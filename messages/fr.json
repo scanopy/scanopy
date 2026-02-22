@@ -952,5 +952,7 @@
     "users_sensitiveLinkWarning": "",
     "users_subtitle": "",
     "users_updateFailed": "",
-    "users_updateSuccess": ""
+    "users_updateSuccess": "",
+    "auth_createAccount": "",
+    "auth_emailAlreadyInUse": "Un compte existe déjà pour cette adresse mail."
 }
