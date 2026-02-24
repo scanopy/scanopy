@@ -53,7 +53,7 @@
 	}
 </script>
 
-<div class="mx-auto max-w-5xl space-y-6">
+<div class="space-y-6">
 	<div>
 		<h1 class="text-primary text-2xl font-bold">Home</h1>
 		<p class="text-tertiary mt-1 text-sm">
