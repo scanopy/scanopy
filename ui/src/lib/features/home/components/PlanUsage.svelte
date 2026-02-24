@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { components } from '$lib/api/schema';
-	import { openModal } from '$lib/shared/stores/modal-registry';
-	import { trackEvent } from '$lib/shared/utils/analytics';
+	import UpgradeButton from '$lib/shared/components/UpgradeButton.svelte';
 
 	type PlanUsage = components['schemas']['PlanUsage'];
 
@@ -61,13 +60,11 @@
 	});
 
 	function barColor(pct: number): string {
-		if (pct >= 1) return 'bg-red-500';
 		if (pct >= 0.8) return 'bg-yellow-500';
 		return 'bg-blue-500';
 	}
 
 	function textColor(pct: number): string {
-		if (pct >= 1) return 'text-red-400';
 		if (pct >= 0.8) return 'text-yellow-400';
 		return 'text-secondary';
 	}
@@ -75,11 +72,16 @@
 
 {#if hasLimits}
 	<section>
-		<h3 class="text-primary mb-3 text-base font-semibold">Plan Usage</h3>
-		<div class="space-y-3">
+		<div class="mb-3 flex items-center justify-between">
+			<h3 class="text-primary text-base font-semibold">Plan Usage</h3>
+			{#if showUpgrade}
+				<UpgradeButton feature="home_plan_usage" />
+			{/if}
+		</div>
+		<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 			{#each rows as row (row.label)}
-				<div>
-					<div class="mb-1 flex items-center justify-between text-sm">
+				<div class="card card-static">
+					<div class="mb-2 flex items-center justify-between text-sm">
 						<span class="text-secondary">{row.label}</span>
 						<span class={textColor(row.pct)}>{row.current} / {row.limit}</span>
 					</div>
@@ -92,16 +94,5 @@
 				</div>
 			{/each}
 		</div>
-		{#if showUpgrade}
-			<button
-				class="mt-3 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500"
-				onclick={() => {
-					trackEvent('upgrade_button_clicked', { feature: 'home_plan_usage' });
-					openModal('billing-plan');
-				}}
-			>
-				Upgrade Plan
-			</button>
-		{/if}
 	</section>
 {/if}

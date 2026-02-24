@@ -67,14 +67,6 @@
 				visible: planType === 'Free'
 			},
 			{
-				id: 'scheduled-paid',
-				title: 'Schedule Automatic Discovery',
-				description: 'Set up scheduled discovery to keep your inventory up-to-date automatically.',
-				actionLabel: 'Go to Scheduled',
-				action: () => onNavigate('discovery-scheduled'),
-				visible: isPaidPlan && dashboard.recent_discoveries.length > 0
-			},
-			{
 				id: 'api-keys',
 				title: 'Automate with the API',
 				description: 'Create an API key to integrate Scanopy with your tools and workflows.',

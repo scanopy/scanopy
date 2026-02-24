@@ -29,7 +29,6 @@
 		label: string;
 		description: string;
 		action: () => void;
-		actionLabel: string;
 	}
 
 	const steps: ChecklistStep[] = [
@@ -42,17 +41,15 @@
 			action: () => {
 				onNavigate('daemons');
 				openModal('create-daemon');
-			},
-			actionLabel: 'Add Daemon'
+			}
 		},
 		{
 			id: 'discovery',
 			milestone: 'FirstDiscoveryCompleted',
 			prerequisite: 'FirstDaemonRegistered',
-			label: 'Run a Discovery',
-			description: 'Discover hosts, services, and subnets on your network.',
-			action: () => onNavigate('discovery-sessions'),
-			actionLabel: 'Go to Discovery'
+			label: 'Wait for Network Discovery',
+			description: 'Your daemon will automatically discover hosts and services.',
+			action: () => onNavigate('discovery-sessions')
 		},
 		{
 			id: 'topology',
@@ -60,8 +57,7 @@
 			prerequisite: 'FirstDiscoveryCompleted',
 			label: 'View your Topology',
 			description: 'See your network visualized as an interactive map.',
-			action: () => onNavigate('topology'),
-			actionLabel: 'Go to Topology'
+			action: () => onNavigate('topology')
 		}
 	];
 
@@ -143,11 +139,6 @@
 								{/if}
 							</div>
 						</div>
-						{#if !complete && enabled}
-							<span class="text-sm font-medium text-blue-400 transition-colors hover:text-blue-300">
-								{step.actionLabel}
-							</span>
-						{/if}
 					</button>
 				{/each}
 			</div>
