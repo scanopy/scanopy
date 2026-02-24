@@ -1,8 +1,34 @@
 import { fieldDefs } from './config';
 import type { Daemon } from './types/base';
 import type { FormValue } from '$lib/shared/components/forms/validators';
+import type { TagProps } from '$lib/shared/components/data/types';
+import { toColor } from '$lib/shared/utils/styling';
+import { CircleHelp } from 'lucide-svelte';
 
 export const DAEMON_STATUS_DOCS_URL = 'https://scanopy.net/docs/daemon-status';
+
+/**
+ * Returns the highest-priority status tag for a daemon, or null if healthy.
+ * Priority: Unreachable > Standby > Deprecated > Outdated
+ */
+export function getDaemonStatusTag(daemon: Daemon): TagProps | null {
+	const docsTag = { href: DAEMON_STATUS_DOCS_URL, icon: CircleHelp };
+
+	if (daemon.is_unreachable === true) {
+		return { label: 'Unreachable', color: toColor('red'), ...docsTag };
+	}
+	if (daemon.standby === true) {
+		return { label: 'Standby', color: toColor('purple'), ...docsTag };
+	}
+	switch (daemon.version_status.status) {
+		case 'Deprecated':
+			return { label: 'Deprecated', color: toColor('orange'), ...docsTag };
+		case 'Outdated':
+			return { label: 'Outdated', color: toColor('yellow'), ...docsTag };
+		default:
+			return null;
+	}
+}
 
 export type DaemonOS = 'linux' | 'macos' | 'windows' | 'freebsd' | 'openbsd';
 
