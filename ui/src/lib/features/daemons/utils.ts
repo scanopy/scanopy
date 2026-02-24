@@ -107,7 +107,7 @@ export function buildRunCommand(
 		if (def.id === 'mode') {
 			cmd += ` ${def.cliFlag} ${String(value).toLowerCase()}`;
 		} else if (def.type === 'boolean') {
-			if (value) cmd += ` ${def.cliFlag} true`;
+			cmd += ` ${def.cliFlag} ${value}`;
 		} else {
 			cmd += ` ${def.cliFlag} ${value}`;
 		}
@@ -168,7 +168,7 @@ export function buildDockerCompose(
 		}
 
 		if (def.type === 'boolean') {
-			if (value) envVars.push(`${def.envVar}=true`);
+			envVars.push(`${def.envVar}=${value}`);
 		} else {
 			envVars.push(`${def.envVar}=${value}`);
 		}
