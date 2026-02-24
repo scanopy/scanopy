@@ -147,6 +147,10 @@ export const queryKeys = {
 		all: ['shares'] as const,
 		detail: (id: string) => [...queryKeys.shares.all, 'detail', id] as const
 	},
+	dashboard: {
+		all: ['dashboard'] as const,
+		summary: () => [...queryKeys.dashboard.all, 'summary'] as const
+	},
 	config: {
 		all: ['config'] as const
 	},

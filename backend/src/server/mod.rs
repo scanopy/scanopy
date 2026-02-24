@@ -5,6 +5,7 @@ pub mod brevo;
 pub mod config;
 pub mod daemon_api_keys;
 pub mod daemons;
+pub mod dashboard;
 pub mod discovery;
 pub mod email;
 pub mod github;

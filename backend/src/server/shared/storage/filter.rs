@@ -441,6 +441,12 @@ impl<T: Storable> StorableFilter<T> {
         self
     }
 
+    pub fn historical_discovery(mut self) -> Self {
+        self.conditions
+            .push("run_type->>'type' = 'Historical'".to_string());
+        self
+    }
+
     pub fn oidc_subject(mut self, subject: String) -> Self {
         let col = self.qualify_column("oidc_subject");
         self.conditions

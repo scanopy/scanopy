@@ -42,7 +42,7 @@
 	);
 	let showBillingModal = $derived(needsPlanSelection || $modalState.name === 'billing-plan');
 
-	let activeTab = $state(initialHash || 'topology');
+	let activeTab = $state(initialHash || 'home');
 	let appInitialized = $state(false);
 	let sidebarCollapsed = $state(false);
 	let dataLoadingStarted = $state(false);
@@ -63,9 +63,8 @@
 	let initialTabSet = $state(false);
 	$effect(() => {
 		if (!initialHash && !initialTabSet && daemonsQuery.isSuccess && !showBillingModal) {
-			const hasDaemons = (daemonsQuery.data?.length ?? 0) > 0;
 			const wantsDaemonSetup = $modalState.name === 'create-daemon';
-			activeTab = hasDaemons && !wantsDaemonSetup ? 'topology' : 'daemons';
+			activeTab = wantsDaemonSetup ? 'daemons' : 'home';
 			initialTabSet = true;
 		}
 	});

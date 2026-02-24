@@ -14,7 +14,8 @@
 		Calendar,
 		Settings,
 		LifeBuoy,
-		ArrowUpCircle
+		ArrowUpCircle,
+		Home
 	} from 'lucide-svelte';
 	import { onMount } from 'svelte';
 	import type { Component } from 'svelte';
@@ -39,6 +40,7 @@
 	import SnmpCredentialsTab from '$lib/features/snmp/components/SnmpCredentialsTab.svelte';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import ShareTab from '$lib/features/shares/components/ShareTab.svelte';
+	import HomeTab from '$lib/features/home/components/HomeTab.svelte';
 
 	let {
 		activeTab = $bindable('topology'),
@@ -123,6 +125,12 @@
 
 	// Base navigation config (before filtering)
 	const baseNavConfig: NavConfig = [
+		{
+			id: 'home',
+			label: 'Home',
+			icon: Home as IconComponent,
+			component: HomeTab
+		},
 		{
 			id: 'visualize',
 			label: 'Visualize',
