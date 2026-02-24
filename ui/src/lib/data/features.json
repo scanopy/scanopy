@@ -1,222 +1,222 @@
 [
-  {
-    "id": "share_views",
-    "name": "Share Views",
-    "description": "Share live network diagrams with others",
-    "category": "Sharing",
-    "icon": "sparkle",
-    "color": "Gray",
-    "metadata": {
-      "is_coming_soon": false
-    }
-  },
-  {
-    "id": "onboarding_call",
-    "name": "Onboarding Call",
-    "description": "30 minute onboarding call to ensure you're getting the most out of Scanopy",
-    "category": "Support",
-    "icon": "sparkle",
-    "color": "Gray",
-    "metadata": {
-      "is_coming_soon": false
-    }
-  },
-  {
-    "id": "audit_logs",
-    "name": "Audit Logs",
-    "description": "Comprehensive logs of all access and data modification actions performed in Scanopy",
-    "category": "Enterprise",
-    "icon": "sparkle",
-    "color": "Gray",
-    "metadata": {
-      "is_coming_soon": true
-    }
-  },
-  {
-    "id": "webhooks",
-    "name": "Webhooks",
-    "description": "Push real-time events to external systems when hosts, services, or topology changes",
-    "category": "Integrations",
-    "icon": "sparkle",
-    "color": "Gray",
-    "metadata": {
-      "is_coming_soon": true
-    }
-  },
-  {
-    "id": "remove_created_with",
-    "name": "Remove Watermark",
-    "description": "Remove 'Created using scanopy.net' in bottom right corner of exported images",
-    "category": "Sharing",
-    "icon": "sparkle",
-    "color": "Gray",
-    "metadata": {
-      "is_coming_soon": false
-    }
-  },
-  {
-    "id": "api_access",
-    "name": "Api Access",
-    "description": "Programmatic access to your data in Scanopy via API",
-    "category": "Integrations",
-    "icon": "sparkle",
-    "color": "Gray",
-    "metadata": {
-      "is_coming_soon": false
-    }
-  },
-  {
-    "id": "custom_sso",
-    "name": "Custom SSO",
-    "description": "Configure your own OIDC identity provider for single sign-on",
-    "category": "Enterprise",
-    "icon": "sparkle",
-    "color": "Gray",
-    "metadata": {
-      "is_coming_soon": false
-    }
-  },
-  {
-    "id": "managed_deployment",
-    "name": "Managed Deployment",
-    "description": "We deploy, configure, and manage Scanopy for you on a dedicated instance",
-    "category": "Enterprise",
-    "icon": "sparkle",
-    "color": "Gray",
-    "metadata": {
-      "is_coming_soon": false
-    }
-  },
-  {
-    "id": "whitelabeling",
-    "name": "Whitelabeling",
-    "description": "We deploy Scanopy to a custom domain with your branding",
-    "category": "Enterprise",
-    "icon": "sparkle",
-    "color": "Gray",
-    "metadata": {
-      "is_coming_soon": false
-    }
-  },
-  {
-    "id": "community_support",
-    "name": "Community Support",
-    "description": "Community support via GitHub issues and discussions",
-    "category": "Support",
-    "icon": "sparkle",
-    "color": "Gray",
-    "metadata": {
-      "is_coming_soon": false
-    }
-  },
-  {
-    "id": "email_support",
-    "name": "Email Support",
-    "description": "Access to the Scanopy team via email support tickets",
-    "category": "Support",
-    "icon": "sparkle",
-    "color": "Gray",
-    "metadata": {
-      "is_coming_soon": false
-    }
-  },
-  {
-    "id": "live_chat_support",
-    "name": "Live Chat Support",
-    "description": "Access to the Scanopy team via live chat",
-    "category": "Support",
-    "icon": "sparkle",
-    "color": "Gray",
-    "metadata": {
-      "is_coming_soon": false
-    }
-  },
-  {
-    "id": "priority_support",
-    "name": "Priority Support",
-    "description": "Prioritized email support with faster response times",
-    "category": "Support",
-    "icon": "sparkle",
-    "color": "Gray",
-    "metadata": {
-      "is_coming_soon": false
-    }
-  },
-  {
-    "id": "embeds",
-    "name": "Embeds",
-    "description": "Embed live network diagrams in wikis, dashboards, or documentation",
-    "category": "Sharing",
-    "icon": "sparkle",
-    "color": "Gray",
-    "metadata": {
-      "is_coming_soon": false
-    }
-  },
-  {
-    "id": "scheduled_discovery",
-    "name": "Scheduled Discovery",
-    "description": "Schedule automatic network discovery scans",
-    "category": "Core",
-    "icon": "sparkle",
-    "color": "Gray",
-    "metadata": {
-      "is_coming_soon": false
-    }
-  },
-  {
-    "id": "daemon_poll",
-    "name": "DaemonPoll Mode",
-    "description": "Daemon-initiated polling — no open ports required on the daemon",
-    "category": "Core",
-    "icon": "sparkle",
-    "color": "Gray",
-    "metadata": {
-      "is_coming_soon": false
-    }
-  },
-  {
-    "id": "service_definitions",
-    "name": "200+ Service Definitions",
-    "description": "Auto-detect databases, containers, web servers, and more",
-    "category": "Core",
-    "icon": "sparkle",
-    "color": "Gray",
-    "metadata": {
-      "is_coming_soon": false
-    }
-  },
-  {
-    "id": "docker_integration",
-    "name": "Docker Integration",
-    "description": "Automatic discovery of containerized services",
-    "category": "Core",
-    "icon": "sparkle",
-    "color": "Gray",
-    "metadata": {
-      "is_coming_soon": false
-    }
-  },
-  {
-    "id": "snmp_integration",
-    "name": "SNMP Integration",
-    "description": "Query network devices for interface and hardware details",
-    "category": "Core",
-    "icon": "sparkle",
-    "color": "Gray",
-    "metadata": {
-      "is_coming_soon": false
-    }
-  },
-  {
-    "id": "real_time_updates",
-    "name": "Real-time Updates",
-    "description": "Live topology updates as your network changes",
-    "category": "Core",
-    "icon": "sparkle",
-    "color": "Gray",
-    "metadata": {
-      "is_coming_soon": false
-    }
-  }
+	{
+		"id": "share_views",
+		"name": "Share Views",
+		"description": "Share live network diagrams with others",
+		"category": "Sharing",
+		"icon": "sparkle",
+		"color": "Gray",
+		"metadata": {
+			"is_coming_soon": false
+		}
+	},
+	{
+		"id": "onboarding_call",
+		"name": "Onboarding Call",
+		"description": "30 minute onboarding call to ensure you're getting the most out of Scanopy",
+		"category": "Support",
+		"icon": "sparkle",
+		"color": "Gray",
+		"metadata": {
+			"is_coming_soon": false
+		}
+	},
+	{
+		"id": "audit_logs",
+		"name": "Audit Logs",
+		"description": "Comprehensive logs of all access and data modification actions performed in Scanopy",
+		"category": "Enterprise",
+		"icon": "sparkle",
+		"color": "Gray",
+		"metadata": {
+			"is_coming_soon": true
+		}
+	},
+	{
+		"id": "webhooks",
+		"name": "Webhooks",
+		"description": "Push real-time events to external systems when hosts, services, or topology changes",
+		"category": "Integrations",
+		"icon": "sparkle",
+		"color": "Gray",
+		"metadata": {
+			"is_coming_soon": true
+		}
+	},
+	{
+		"id": "remove_created_with",
+		"name": "Remove Watermark",
+		"description": "Remove 'Created using scanopy.net' in bottom right corner of exported images",
+		"category": "Sharing",
+		"icon": "sparkle",
+		"color": "Gray",
+		"metadata": {
+			"is_coming_soon": false
+		}
+	},
+	{
+		"id": "api_access",
+		"name": "Api Access",
+		"description": "Programmatic access to your data in Scanopy via API",
+		"category": "Integrations",
+		"icon": "sparkle",
+		"color": "Gray",
+		"metadata": {
+			"is_coming_soon": false
+		}
+	},
+	{
+		"id": "custom_sso",
+		"name": "Custom SSO",
+		"description": "Configure your own OIDC identity provider for single sign-on",
+		"category": "Enterprise",
+		"icon": "sparkle",
+		"color": "Gray",
+		"metadata": {
+			"is_coming_soon": false
+		}
+	},
+	{
+		"id": "managed_deployment",
+		"name": "Managed Deployment",
+		"description": "We deploy, configure, and manage Scanopy for you on a dedicated instance",
+		"category": "Enterprise",
+		"icon": "sparkle",
+		"color": "Gray",
+		"metadata": {
+			"is_coming_soon": false
+		}
+	},
+	{
+		"id": "whitelabeling",
+		"name": "Whitelabeling",
+		"description": "We deploy Scanopy to a custom domain with your branding",
+		"category": "Enterprise",
+		"icon": "sparkle",
+		"color": "Gray",
+		"metadata": {
+			"is_coming_soon": false
+		}
+	},
+	{
+		"id": "community_support",
+		"name": "Community Support",
+		"description": "Community support via GitHub issues and discussions",
+		"category": "Support",
+		"icon": "sparkle",
+		"color": "Gray",
+		"metadata": {
+			"is_coming_soon": false
+		}
+	},
+	{
+		"id": "email_support",
+		"name": "Email Support",
+		"description": "Access to the Scanopy team via email support tickets",
+		"category": "Support",
+		"icon": "sparkle",
+		"color": "Gray",
+		"metadata": {
+			"is_coming_soon": false
+		}
+	},
+	{
+		"id": "live_chat_support",
+		"name": "Live Chat Support",
+		"description": "Access to the Scanopy team via live chat",
+		"category": "Support",
+		"icon": "sparkle",
+		"color": "Gray",
+		"metadata": {
+			"is_coming_soon": false
+		}
+	},
+	{
+		"id": "priority_support",
+		"name": "Priority Support",
+		"description": "Prioritized email support with faster response times",
+		"category": "Support",
+		"icon": "sparkle",
+		"color": "Gray",
+		"metadata": {
+			"is_coming_soon": false
+		}
+	},
+	{
+		"id": "embeds",
+		"name": "Embeds",
+		"description": "Embed live network diagrams in wikis, dashboards, or documentation",
+		"category": "Sharing",
+		"icon": "sparkle",
+		"color": "Gray",
+		"metadata": {
+			"is_coming_soon": false
+		}
+	},
+	{
+		"id": "scheduled_discovery",
+		"name": "Scheduled Discovery",
+		"description": "Schedule automatic network discovery scans",
+		"category": "Core",
+		"icon": "sparkle",
+		"color": "Gray",
+		"metadata": {
+			"is_coming_soon": false
+		}
+	},
+	{
+		"id": "daemon_poll",
+		"name": "DaemonPoll Mode",
+		"description": "Daemon-initiated polling — no open ports required on the daemon",
+		"category": "Core",
+		"icon": "sparkle",
+		"color": "Gray",
+		"metadata": {
+			"is_coming_soon": false
+		}
+	},
+	{
+		"id": "service_definitions",
+		"name": "200+ Service Definitions",
+		"description": "Auto-detect databases, containers, web servers, and more",
+		"category": "Core",
+		"icon": "sparkle",
+		"color": "Gray",
+		"metadata": {
+			"is_coming_soon": false
+		}
+	},
+	{
+		"id": "docker_integration",
+		"name": "Docker Integration",
+		"description": "Automatic discovery of containerized services",
+		"category": "Core",
+		"icon": "sparkle",
+		"color": "Gray",
+		"metadata": {
+			"is_coming_soon": false
+		}
+	},
+	{
+		"id": "snmp_integration",
+		"name": "SNMP Integration",
+		"description": "Query network devices for interface and hardware details",
+		"category": "Core",
+		"icon": "sparkle",
+		"color": "Gray",
+		"metadata": {
+			"is_coming_soon": false
+		}
+	},
+	{
+		"id": "real_time_updates",
+		"name": "Real-time Updates",
+		"description": "Live topology updates as your network changes",
+		"category": "Core",
+		"icon": "sparkle",
+		"color": "Gray",
+		"metadata": {
+			"is_coming_soon": false
+		}
+	}
 ]
