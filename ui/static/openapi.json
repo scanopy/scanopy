@@ -12069,14 +12069,14 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-02-23T22:33:25.667361Z",
-              "id": "70e7b283-7b56-464a-9265-33b41efb809d",
+              "created_at": "2026-02-24T13:31:44.057201Z",
+              "id": "63f91b4c-d8fd-4b63-a4ca-693bf90830cf",
               "interface_id": "550e8400-e29b-41d4-a716-446655440005",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-02-23T22:33:25.667361Z"
+              "updated_at": "2026-02-24T13:31:44.057201Z"
             }
           },
           "error": {
@@ -12426,7 +12426,7 @@
               "daemons": {
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/DaemonSummary"
+                  "$ref": "#/components/schemas/DaemonResponse"
                 }
               },
               "networks": {
@@ -12875,14 +12875,14 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-02-23T22:33:25.648129Z",
-                      "id": "0ad7f1a0-fc1d-48a3-bb93-c12933e3c923",
+                      "created_at": "2026-02-24T13:31:44.043367Z",
+                      "id": "b536cc60-ac8e-4ccb-8e8b-61142a3a1ea5",
                       "interface_id": "550e8400-e29b-41d4-a716-446655440005",
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-02-23T22:33:25.648129Z"
+                      "updated_at": "2026-02-24T13:31:44.043367Z"
                     }
                   ],
                   "created_at": "2026-01-15T10:30:00Z",
@@ -12891,7 +12891,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Google Home",
+                  "service_definition": "MySQL",
                   "source": {
                     "type": "Manual"
                   },
@@ -13694,14 +13694,14 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-02-23T22:33:25.662026Z",
-                  "id": "3fe34ab2-7e67-4b32-8588-c83ea54dfc06",
+                  "created_at": "2026-02-24T13:31:44.053471Z",
+                  "id": "088a3f25-3264-46b1-b7d6-98aa6d376774",
                   "interface_id": "550e8400-e29b-41d4-a716-446655440005",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-02-23T22:33:25.662026Z"
+                  "updated_at": "2026-02-24T13:31:44.053471Z"
                 }
               ],
               "created_at": "2026-01-15T10:30:00Z",
@@ -13710,7 +13710,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Google Home",
+              "service_definition": "MySQL",
               "source": {
                 "type": "Manual"
               },
@@ -14909,14 +14909,14 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-02-23T22:33:25.648333Z",
-          "id": "89f21030-cc1c-4442-966a-0453de0a20c1",
+          "created_at": "2026-02-24T13:31:44.043567Z",
+          "id": "18ee2db1-d80d-4ee6-a262-e6546f081321",
           "interface_id": "550e8400-e29b-41d4-a716-446655440005",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-02-23T22:33:25.648333Z"
+          "updated_at": "2026-02-24T13:31:44.043567Z"
         }
       },
       "BindingBase": {
@@ -15423,7 +15423,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Google Home",
+              "service_definition": "MySQL",
               "tags": [],
               "virtualization": null
             }
@@ -15953,43 +15953,6 @@
           }
         }
       },
-      "DaemonSummary": {
-        "type": "object",
-        "description": "Daemon health summary",
-        "required": [
-          "id",
-          "name",
-          "network_id",
-          "is_unreachable",
-          "version_status"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "is_unreachable": {
-            "type": "boolean"
-          },
-          "last_seen": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          },
-          "name": {
-            "type": "string"
-          },
-          "network_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "version_status": {
-            "$ref": "#/components/schemas/DaemonVersionStatus"
-          }
-        }
-      },
       "DaemonVersionStatus": {
         "type": "object",
         "description": "Daemon version status including health and any warnings",
@@ -16027,7 +15990,7 @@
           "daemons": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/DaemonSummary"
+              "$ref": "#/components/schemas/DaemonResponse"
             }
           },
           "networks": {
@@ -17349,14 +17312,14 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-02-23T22:33:25.647855Z",
-                  "id": "fb917bdf-3bd8-498f-b0d8-5427a5f1d388",
+                  "created_at": "2026-02-24T13:31:44.043095Z",
+                  "id": "d22ed800-34d2-4c48-9fc1-b1f57b8888ed",
                   "interface_id": "550e8400-e29b-41d4-a716-446655440005",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-02-23T22:33:25.647855Z"
+                  "updated_at": "2026-02-24T13:31:44.043095Z"
                 }
               ],
               "created_at": "2026-01-15T10:30:00Z",
@@ -17365,7 +17328,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Google Home",
+              "service_definition": "MySQL",
               "source": {
                 "type": "Manual"
               },
@@ -19299,14 +19262,14 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-02-23T22:33:25.634735Z",
-                        "id": "09271c81-68e6-4279-a398-27d06de04bca",
+                        "created_at": "2026-02-24T13:31:44.033991Z",
+                        "id": "5c9db645-9a13-4756-b3b3-b847c1806e19",
                         "interface_id": "550e8400-e29b-41d4-a716-446655440005",
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-02-23T22:33:25.634735Z"
+                        "updated_at": "2026-02-24T13:31:44.033991Z"
                       }
                     ],
                     "created_at": "2026-01-15T10:30:00Z",
@@ -19315,7 +19278,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Google Home",
+                    "service_definition": "MySQL",
                     "source": {
                       "type": "Manual"
                     },
@@ -19392,14 +19355,14 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-02-23T22:33:25.660973Z",
-                    "id": "576b273c-871c-4b45-b738-87fd9fbc72bf",
+                    "created_at": "2026-02-24T13:31:44.052506Z",
+                    "id": "1b2c20aa-b779-460f-9f3d-0bca19da9593",
                     "interface_id": "550e8400-e29b-41d4-a716-446655440005",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-02-23T22:33:25.660973Z"
+                    "updated_at": "2026-02-24T13:31:44.052506Z"
                   }
                 ],
                 "created_at": "2026-01-15T10:30:00Z",
@@ -19408,7 +19371,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Google Home",
+                "service_definition": "MySQL",
                 "source": {
                   "type": "Manual"
                 },
@@ -20459,14 +20422,14 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-02-23T22:33:25.648265Z",
-              "id": "dfd72817-8cea-4693-bdae-df7be6bf4922",
+              "created_at": "2026-02-24T13:31:44.043495Z",
+              "id": "9a808060-73cb-4dea-8421-1e1020fea3ae",
               "interface_id": "550e8400-e29b-41d4-a716-446655440005",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-02-23T22:33:25.648265Z"
+              "updated_at": "2026-02-24T13:31:44.043495Z"
             }
           ],
           "created_at": "2026-01-15T10:30:00Z",
@@ -20475,7 +20438,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Google Home",
+          "service_definition": "MySQL",
           "source": {
             "type": "Manual"
           },

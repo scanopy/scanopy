@@ -45,7 +45,7 @@
 	let {
 		activeTab = $bindable('topology'),
 		collapsed = $bindable(false),
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any, no-useless-assignment
 		allTabs = $bindable<Array<{ id: string; component: any; isReadOnly: boolean }>>([]),
 		showSettings = $bindable(false),
 		settingsInitialTab = 'account',

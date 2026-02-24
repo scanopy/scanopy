@@ -1,7 +1,7 @@
 use crate::server::{
     auth::middleware::permissions::{Authorized, Viewer},
     config::AppState,
-    daemons::r#impl::{base::Daemon, version::DaemonVersionPolicy},
+    daemons::r#impl::{api::DaemonResponse, base::Daemon, version::DaemonVersionPolicy},
     discovery::r#impl::base::Discovery,
     hosts::r#impl::base::Host,
     networks::r#impl::Network,
@@ -15,7 +15,7 @@ use crate::server::{
     users::r#impl::base::User,
 };
 
-use super::types::{DaemonSummary, DashboardSummary, NetworkSummary, PlanUsage};
+use super::types::{DashboardSummary, NetworkSummary, PlanUsage};
 
 use axum::{extract::State, response::Json};
 use std::sync::Arc;
@@ -112,17 +112,16 @@ async fn get_dashboard_summary(
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 
     let policy = DaemonVersionPolicy::default();
-    let daemon_summaries: Vec<DaemonSummary> = daemons_result
+    let daemon_responses: Vec<DaemonResponse> = daemons_result
         .items
         .into_iter()
         .map(|d| {
             let version_status = policy.evaluate(d.base.version.as_ref());
-            DaemonSummary {
+            DaemonResponse {
                 id: d.id,
-                name: d.base.name,
-                network_id: d.base.network_id,
-                last_seen: d.base.last_seen,
-                is_unreachable: d.base.is_unreachable,
+                created_at: d.created_at,
+                updated_at: d.updated_at,
+                base: d.base,
                 version_status,
             }
         })
@@ -181,7 +180,7 @@ async fn get_dashboard_summary(
 
     Ok(Json(ApiResponse::success(DashboardSummary {
         networks: network_summaries,
-        daemons: daemon_summaries,
+        daemons: daemon_responses,
         recent_discoveries: discovery_result.items,
         plan_usage,
     })))
