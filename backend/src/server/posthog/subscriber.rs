@@ -119,6 +119,7 @@ impl EventSubscriber for PosthogService {
                 TelemetryOperation::FirstHostDiscovered,
                 TelemetryOperation::SecondNetworkCreated,
                 TelemetryOperation::FirstTagCreated,
+                TelemetryOperation::FirstGroupCreated,
                 TelemetryOperation::FirstUserApiKeyCreated,
                 TelemetryOperation::FirstSnmpCredentialCreated,
                 TelemetryOperation::InviteSent,

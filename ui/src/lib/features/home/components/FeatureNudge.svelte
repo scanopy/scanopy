@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { X, ArrowRight } from 'lucide-svelte';
 	import { onMount } from 'svelte';
+	import type { IconComponent } from '$lib/shared/utils/types';
 
 	let {
 		id,
@@ -9,7 +10,8 @@
 		actionLabel,
 		onAction,
 		onDismiss,
-		dismissable = true
+		dismissable = true,
+		Icon = null
 	}: {
 		id: string;
 		title: string;
@@ -18,6 +20,7 @@
 		onAction: () => void;
 		onDismiss?: () => void;
 		dismissable?: boolean;
+		Icon?: IconComponent | null;
 	} = $props();
 
 	let dismissed = $state(false);
@@ -37,6 +40,11 @@
 {#if !dismissed}
 	<div class="card card-static">
 		<div class="flex items-start justify-between gap-3">
+			{#if Icon}
+				<div class="text-tertiary mt-0.5 shrink-0">
+					<Icon size={20} />
+				</div>
+			{/if}
 			<div class="flex-1">
 				<h4 class="text-primary mb-1 text-sm font-semibold">{title}</h4>
 				<p class="text-tertiary text-sm">{description}</p>

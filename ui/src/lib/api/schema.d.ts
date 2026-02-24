@@ -2756,14 +2756,14 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-02-24T13:29:21.828721Z",
-             *       "id": "d6765392-57e2-4e61-9f45-844ab690bc92",
+             *       "created_at": "2026-02-24T16:12:04.136670Z",
+             *       "id": "151eabfb-6799-4bc3-abc6-e663f7fe27e6",
              *       "interface_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-02-24T13:29:21.828721Z"
+             *       "updated_at": "2026-02-24T16:12:04.136670Z"
              *     }
              */
             data?: components["schemas"]["BindingBase"] & {
@@ -3010,14 +3010,14 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-02-24T13:29:21.806767Z",
-             *               "id": "9e7b0957-792c-4fa6-8cc8-7424aa96e417",
+             *               "created_at": "2026-02-24T16:12:04.124760Z",
+             *               "id": "88e42363-5deb-4da0-8c9e-6e7bbfda94b8",
              *               "interface_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-02-24T13:29:21.806767Z"
+             *               "updated_at": "2026-02-24T16:12:04.124760Z"
              *             }
              *           ],
              *           "created_at": "2026-01-15T10:30:00Z",
@@ -3026,7 +3026,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "MySQL",
+             *           "service_definition": "Gitea",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -3299,14 +3299,14 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-02-24T13:29:21.822961Z",
-             *           "id": "e0008a10-e269-47d8-b402-9de0fd1853de",
+             *           "created_at": "2026-02-24T16:12:04.133235Z",
+             *           "id": "756e3b2d-53aa-49b4-ae64-c2ef1c933c19",
              *           "interface_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-02-24T13:29:21.822961Z"
+             *           "updated_at": "2026-02-24T16:12:04.133235Z"
              *         }
              *       ],
              *       "created_at": "2026-01-15T10:30:00Z",
@@ -3315,7 +3315,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "MySQL",
+             *       "service_definition": "Gitea",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -3618,14 +3618,14 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-02-24T13:29:21.807235Z",
-         *       "id": "90ad6f58-0fb9-468c-90de-0188f9da8e62",
+         *       "created_at": "2026-02-24T16:12:04.124970Z",
+         *       "id": "454169c6-a530-4b89-b768-192f194ec4b5",
          *       "interface_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-02-24T13:29:21.807235Z"
+         *       "updated_at": "2026-02-24T16:12:04.124970Z"
          *     }
          */
         Binding: components["schemas"]["BindingBase"] & {
@@ -3807,7 +3807,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "MySQL",
+         *           "service_definition": "Gitea",
          *           "tags": [],
          *           "virtualization": null
          *         }
@@ -4449,14 +4449,14 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-02-24T13:29:21.806131Z",
-         *               "id": "7e817f23-bc78-4b0e-a02c-80fdda7bb857",
+         *               "created_at": "2026-02-24T16:12:04.124465Z",
+         *               "id": "86ea3061-7306-4c4c-a0b5-247015c46483",
          *               "interface_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-02-24T13:29:21.806131Z"
+         *               "updated_at": "2026-02-24T16:12:04.124465Z"
          *             }
          *           ],
          *           "created_at": "2026-01-15T10:30:00Z",
@@ -4465,7 +4465,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "MySQL",
+         *           "service_definition": "Gitea",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -5446,14 +5446,14 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-02-24T13:29:21.807081Z",
-         *           "id": "1e4245ea-2915-474f-b722-7c347ccb41c9",
+         *           "created_at": "2026-02-24T16:12:04.124898Z",
+         *           "id": "e3cd224a-efdb-42de-af98-c092117468df",
          *           "interface_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-02-24T13:29:21.807081Z"
+         *           "updated_at": "2026-02-24T16:12:04.124898Z"
          *         }
          *       ],
          *       "created_at": "2026-01-15T10:30:00Z",
@@ -5462,7 +5462,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "MySQL",
+         *       "service_definition": "Gitea",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -5721,7 +5721,7 @@ export interface components {
          */
         TagOrderField: "created_at" | "name" | "color" | "updated_at";
         /** @enum {string} */
-        TelemetryOperation: "OrgCreated" | "OnboardingModalCompleted" | "PlanSelected" | "PersonalPlanSelected" | "CommercialPlanSelected" | "CheckoutStarted" | "CheckoutCompleted" | "TrialStarted" | "TrialEnded" | "TrialWillEnd" | "SubscriptionCancelled" | "PlanChanged" | "PaymentFailed" | "PaymentActionRequired" | "PaymentRecovered" | "FirstDaemonRegistered" | "FirstTopologyRebuild" | "FirstDiscoveryCompleted" | "FirstHostDiscovered" | "SecondNetworkCreated" | "FirstTagCreated" | "FirstUserApiKeyCreated" | "FirstSnmpCredentialCreated" | "InviteSent" | "InviteAccepted" | "FirstApiKeyCreated" | "FirstNetworkCreated";
+        TelemetryOperation: "OrgCreated" | "OnboardingModalCompleted" | "PlanSelected" | "PersonalPlanSelected" | "CommercialPlanSelected" | "CheckoutStarted" | "CheckoutCompleted" | "TrialStarted" | "TrialEnded" | "TrialWillEnd" | "SubscriptionCancelled" | "PlanChanged" | "PaymentFailed" | "PaymentActionRequired" | "PaymentRecovered" | "FirstDaemonRegistered" | "FirstTopologyRebuild" | "FirstDiscoveryCompleted" | "FirstHostDiscovered" | "SecondNetworkCreated" | "FirstTagCreated" | "FirstGroupCreated" | "FirstUserApiKeyCreated" | "FirstSnmpCredentialCreated" | "InviteSent" | "InviteAccepted" | "FirstApiKeyCreated" | "FirstNetworkCreated";
         Topology: components["schemas"]["TopologyBase"] & {
             /** Format: date-time */
             readonly created_at: string;
