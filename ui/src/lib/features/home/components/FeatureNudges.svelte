@@ -1,8 +1,11 @@
+vvcccdbvueufdtgjguclhvbtnnledrluljfuvchfnkfk
 <script lang="ts">
 	import type { components } from '$lib/api/schema';
 	import FeatureNudge from './FeatureNudge.svelte';
 	import { openModal } from '$lib/shared/stores/modal-registry';
 	import { optionsPanelExpanded } from '$lib/features/topology/queries';
+	import { entities } from '$lib/shared/stores/metadata';
+	import type { IconComponent } from '$lib/shared/utils/types';
 	import { onMount } from 'svelte';
 
 	type Organization = components['schemas']['Organization'];
@@ -44,6 +47,7 @@
 		actionLabel: string;
 		action: () => void;
 		visible: boolean;
+		icon: IconComponent | null;
 	}
 
 	let nudges = $derived.by((): Nudge[] => {
@@ -57,7 +61,8 @@
 					onNavigate('tags');
 					openModal('tag-editor');
 				},
-				visible: !has('FirstTagCreated')
+				visible: !has('FirstTagCreated'),
+				icon: entities.getIconComponent('Tag')
 			},
 			{
 				id: 'topology-customize',
@@ -69,7 +74,8 @@
 					onNavigate('topology');
 					optionsPanelExpanded.set(true);
 				},
-				visible: has('FirstTopologyRebuild') && !has('FirstGroupCreated')
+				visible: has('FirstTopologyRebuild') && !has('FirstGroupCreated'),
+				icon: entities.getIconComponent('Topology')
 			},
 			{
 				id: 'groups',
@@ -81,7 +87,34 @@
 					onNavigate('groups');
 					openModal('group-editor');
 				},
-				visible: has('FirstTopologyRebuild') && !has('FirstGroupCreated')
+				visible: has('FirstTopologyRebuild') && !has('FirstGroupCreated'),
+				icon: entities.getIconComponent('Group')
+			},
+			{
+				id: 'topology-customize',
+				title: 'Customize Your Topology',
+				description:
+					'Use the options panel to filter nodes, hide edges, and organize your network view.',
+				actionLabel: 'Open Options',
+				action: () => {
+					onNavigate('topology');
+					optionsPanelExpanded.set(true);
+				},
+				visible: has('FirstTopologyRebuild') && !has('FirstGroupCreated'),
+				icon: entities.getIconComponent("Topology")
+			},
+			{
+				id: 'groups',
+				title: 'Create a Group',
+				description:
+					'Group related services together on the topology to keep your network view organized.',
+				actionLabel: 'Create Group',
+				action: () => {
+					onNavigate('groups');
+					openModal('group-editor');
+				},
+				visible: has('FirstTopologyRebuild') && !has('FirstGroupCreated'),
+				icon: entities.getIconComponent("Group")
 			},
 			{
 				id: 'snmp',
@@ -92,7 +125,8 @@
 					onNavigate('snmp-credentials');
 					openModal('snmp-credential-editor');
 				},
-				visible: !has('FirstSnmpCredentialCreated')
+				visible: !has('FirstSnmpCredentialCreated'),
+				icon: entities.getIconComponent('SnmpCredential')
 			},
 			{
 				id: 'scheduled-free',
@@ -100,7 +134,8 @@
 				description: 'Upgrade to automatically discover network changes on a schedule.',
 				actionLabel: 'View Plans',
 				action: () => openModal('billing-plan'),
-				visible: planType === 'Free'
+				visible: planType === 'Free',
+				icon: entities.getIconComponent('Discovery')
 			},
 			{
 				id: 'api-keys',
@@ -111,7 +146,8 @@
 					onNavigate('api-keys');
 					openModal('user-api-key');
 				},
-				visible: isProPlus && !has('FirstUserApiKeyCreated')
+				visible: isProPlus && !has('FirstUserApiKeyCreated'),
+				icon: entities.getIconComponent('UserApiKey')
 			},
 			{
 				id: 'multi-network',
@@ -122,7 +158,8 @@
 					onNavigate('networks');
 					openModal('network-editor');
 				},
-				visible: isProPlus && dashboard.networks.length === 1
+				visible: isProPlus && dashboard.networks.length === 1,
+				icon: entities.getIconComponent('Network')
 			},
 			{
 				id: 'share',
@@ -133,7 +170,20 @@
 					onNavigate('topology');
 					openModal('topology-share');
 				},
-				visible: isProPlus
+				visible: isProPlus,
+				icon: entities.getIconComponent('Share')
+			},
+			{
+				id: 'share',
+				title: 'Share Your Topology',
+				description: 'Create a live link or embed to share your network topology with others.',
+				actionLabel: 'Create Share',
+				action: () => {
+					onNavigate('topology');
+					openModal('topology-share');
+				},
+				visible: isProPlus,
+				icon: entities.getIconComponent("Share")
 			},
 			{
 				id: 'invite-team',
@@ -141,7 +191,8 @@
 				description: 'Collaborate with your team by inviting members to your organization.',
 				actionLabel: 'Invite Members',
 				action: () => openModal('settings', { tab: 'team' }),
-				visible: isTeamPlus && !has('InviteSent')
+				visible: isTeamPlus && !has('InviteSent'),
+				icon: entities.getIconComponent('User')
 			}
 		];
 
@@ -175,6 +226,7 @@
 					description={nudge.description}
 					actionLabel={nudge.actionLabel}
 					onAction={nudge.action}
+					Icon={nudge.icon}
 					{onDismiss}
 				/>
 			{/each}
