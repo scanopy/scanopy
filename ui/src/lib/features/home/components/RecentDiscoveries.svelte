@@ -10,12 +10,14 @@
 	{#if discoveries.length === 0}
 		<p class="text-tertiary text-sm">No discovery results yet.</p>
 	{:else}
-		<div class="space-y-2">
-			{#each discoveries as discovery (discovery.id)}
-				<div class="card card-static">
-					<HomeDiscoveryDisplay item={discovery} />
-				</div>
-			{/each}
+		<div class="sm:w-1/2">
+			<div class="space-y-2">
+				{#each discoveries as discovery (discovery.id)}
+					<div class="card card-static">
+						<HomeDiscoveryDisplay item={discovery} />
+					</div>
+				{/each}
+			</div>
 		</div>
 	{/if}
 </section>
