@@ -1,6 +1,7 @@
 use crate::{
     daemon::discovery::types::base::DiscoveryPhase,
     server::{
+        discovery::r#impl::types::DiscoveryType,
         posthog::service::PosthogService,
         shared::{
             entities::EntityDiscriminants,
@@ -50,6 +51,13 @@ fn to_snake_case(s: &str) -> String {
         result.push(ch.to_ascii_lowercase());
     }
     result
+}
+
+/// Inject `$groups` property for PostHog group analytics when `organization_id` is present.
+fn inject_org_group(props: &mut serde_json::Value) {
+    if let Some(org_id) = props.get("organization_id").and_then(|v| v.as_str()) {
+        props["$groups"] = json!({"organization": org_id});
+    }
 }
 
 impl PosthogService {
@@ -170,6 +178,7 @@ impl EventSubscriber for PosthogService {
                         props["organization_id"] = json!(org_id.to_string());
                     }
 
+                    inject_org_group(&mut props);
                     self.capture(&event_name, &distinct_id, props).await;
                 }
                 Event::Auth(auth_event) => {
@@ -183,6 +192,7 @@ impl EventSubscriber for PosthogService {
                         props["organization_id"] = json!(org_id.to_string());
                     }
 
+                    inject_org_group(&mut props);
                     self.capture("login", &distinct_id, props).await;
                 }
                 Event::Telemetry(telemetry_event) => {
@@ -195,12 +205,100 @@ impl EventSubscriber for PosthogService {
                     };
 
                     let event_name = telemetry_event.operation.to_string();
+                    let org_id_str = telemetry_event.organization_id.to_string();
 
                     let mut props = auth_properties(event);
-                    props["organization_id"] = json!(telemetry_event.organization_id.to_string());
+                    props["organization_id"] = json!(&org_id_str);
                     props["metadata"] = telemetry_event.metadata.clone();
 
+                    inject_org_group(&mut props);
                     self.capture(&event_name, &distinct_id, props).await;
+
+                    // Identify person and group on OrgCreated
+                    if telemetry_event.operation == TelemetryOperation::OrgCreated {
+                        let plan_type = telemetry_event
+                            .metadata
+                            .get("plan_type")
+                            .cloned()
+                            .unwrap_or(json!(null));
+                        let plan_status = telemetry_event
+                            .metadata
+                            .get("plan_status")
+                            .cloned()
+                            .unwrap_or(json!(null));
+                        let has_payment_method = telemetry_event
+                            .metadata
+                            .get("has_payment_method")
+                            .cloned()
+                            .unwrap_or(json!(false));
+                        let org_name = telemetry_event
+                            .metadata
+                            .get("org_name")
+                            .cloned()
+                            .unwrap_or(json!(null));
+
+                        self.identify(
+                            &distinct_id,
+                            json!({
+                                "plan_type": plan_type,
+                                "plan_status": plan_status,
+                                "has_payment_method": has_payment_method,
+                                "organization_id": &org_id_str,
+                            }),
+                        )
+                        .await;
+
+                        self.group_identify(
+                            "organization",
+                            &org_id_str,
+                            json!({
+                                "plan_type": plan_type,
+                                "plan_status": plan_status,
+                                "name": org_name,
+                                "created_at": telemetry_event.timestamp.to_rfc3339(),
+                            }),
+                        )
+                        .await;
+                    }
+
+                    // Update person and group properties on billing events
+                    if telemetry_event.operation.is_billing_operation() {
+                        let plan_name = telemetry_event
+                            .metadata
+                            .get("plan_name")
+                            .cloned()
+                            .unwrap_or(json!(null));
+                        let plan_status = telemetry_event
+                            .metadata
+                            .get("plan_status")
+                            .cloned()
+                            .unwrap_or(json!(null));
+                        let has_payment_method = telemetry_event
+                            .metadata
+                            .get("has_payment_method")
+                            .cloned()
+                            .unwrap_or(json!(null));
+
+                        self.identify(
+                            &distinct_id,
+                            json!({
+                                "plan_type": plan_name,
+                                "plan_status": plan_status,
+                                "has_payment_method": has_payment_method,
+                            }),
+                        )
+                        .await;
+
+                        self.group_identify(
+                            "organization",
+                            &org_id_str,
+                            json!({
+                                "plan_type": plan_name,
+                                "plan_status": plan_status,
+                            }),
+                        )
+                        .await;
+                    }
                 }
                 Event::Discovery(discovery_event) => {
                     let event_name = match discovery_event.phase {
@@ -223,8 +321,20 @@ impl EventSubscriber for PosthogService {
                     props["session_id"] = json!(discovery_event.session_id.to_string());
                     props["network_id"] = json!(discovery_event.network_id.to_string());
                     props["daemon_id"] = json!(discovery_event.daemon_id.to_string());
-                    props["discovery_type"] = serde_json::to_value(&discovery_event.discovery_type)
-                        .unwrap_or(json!(null));
+
+                    // Flatten discovery_type to a simple string instead of serialized JSON object
+                    let type_name: &'static str = (&discovery_event.discovery_type).into();
+                    props["discovery_type"] = json!(type_name);
+                    if let DiscoveryType::Network { subnet_ids, .. } =
+                        &discovery_event.discovery_type
+                    {
+                        props["discovery_subnet_scan"] = json!(subnet_ids.is_some());
+                    }
+
+                    // Include error_reason from metadata for failed discoveries
+                    if let Some(error_reason) = discovery_event.metadata.get("error_reason") {
+                        props["error_reason"] = error_reason.clone();
+                    }
 
                     // Resolve org_id from network for discovery events
                     if let Some(org_id) = self
@@ -234,6 +344,7 @@ impl EventSubscriber for PosthogService {
                         props["organization_id"] = json!(org_id.to_string());
                     }
 
+                    inject_org_group(&mut props);
                     self.capture(event_name, &distinct_id, props).await;
                 }
             }
@@ -263,5 +374,24 @@ mod tests {
         assert_eq!(to_snake_case("SnmpCredential"), "snmp_credential");
         assert_eq!(to_snake_case("Network"), "network");
         assert_eq!(to_snake_case("IfEntry"), "if_entry");
+    }
+
+    #[test]
+    fn test_inject_org_group() {
+        let mut props = json!({
+            "organization_id": "abc-123",
+            "user_id": "user-456",
+        });
+        inject_org_group(&mut props);
+        assert_eq!(props["$groups"], json!({"organization": "abc-123"}));
+    }
+
+    #[test]
+    fn test_inject_org_group_no_org() {
+        let mut props = json!({
+            "user_id": "user-456",
+        });
+        inject_org_group(&mut props);
+        assert_eq!(props.get("$groups"), None);
     }
 }

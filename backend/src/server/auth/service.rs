@@ -1,4 +1,5 @@
 use crate::server::shared::events::types::TelemetryOperation;
+use crate::server::shared::types::metadata::TypeMetadataProvider;
 use crate::server::{
     auth::{
         r#impl::{
@@ -226,6 +227,8 @@ impl AuthService {
         } = params;
 
         let mut is_new_org = false;
+        // Plan type at org creation time, used for PostHog identify on OrgCreated
+        let mut new_org_plan_type: Option<String> = None;
 
         // If being invited, use provided org ID, otherwise create a new one
         let organization_id = if let Some(org_id) = org_id {
@@ -256,6 +259,7 @@ impl AuthService {
                     None,
                 )
             };
+            new_org_plan_type = plan.as_ref().map(|p| p.name().to_string());
 
             // Create new organization for this user
             let organization = self
@@ -341,7 +345,10 @@ impl AuthService {
 
             let mut metadata = serde_json::json!({
                 "org_name": org_name,
-                "marketing_opt_in": marketing_opt_in
+                "marketing_opt_in": marketing_opt_in,
+                "plan_type": &new_org_plan_type,
+                "plan_status": serde_json::Value::Null,
+                "has_payment_method": false
             });
             if let Some(use_case) = use_case {
                 metadata["use_case"] = serde_json::json!(use_case);
