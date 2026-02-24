@@ -91,7 +91,7 @@
 
 		<!-- Network Metrics — last since large plans can have many networks -->
 		{#if dashboard.networks.length > 0}
-			<NetworkMetrics networks={dashboard.networks} planUsage={dashboard.plan_usage} />
+			<NetworkMetrics networks={dashboard.networks} />
 		{/if}
 	{/if}
 </div>

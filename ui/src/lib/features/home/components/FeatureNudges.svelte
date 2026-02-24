@@ -6,7 +6,6 @@
 	import { entities } from '$lib/shared/stores/metadata';
 	import type { IconComponent } from '$lib/shared/utils/types';
 	import { onMount } from 'svelte';
-	import type { Color } from '$lib/shared/utils/styling';
 
 	type Organization = components['schemas']['Organization'];
 	type TelemetryOperation = components['schemas']['TelemetryOperation'];
@@ -48,7 +47,7 @@
 		action: () => void;
 		visible: boolean;
 		icon: IconComponent;
-		iconColor: string
+		iconColor: string;
 	}
 
 	let nudges = $derived.by((): Nudge[] => {

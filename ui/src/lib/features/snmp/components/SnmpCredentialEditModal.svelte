@@ -9,7 +9,6 @@
 	import type { SnmpCredential } from '../types/base';
 	import { createDefaultSnmpCredential } from '../types/base';
 	import { entities } from '$lib/shared/stores/metadata';
-	import { Key } from 'lucide-svelte';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { pushError } from '$lib/shared/stores/feedback';
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
@@ -131,7 +130,7 @@
 	showCloseButton={true}
 >
 	{#snippet headerIcon()}
-		<ModalHeaderIcon Icon={entities.getIconComponent("SnmpCredential")} color={colorHelper.color} />
+		<ModalHeaderIcon Icon={entities.getIconComponent('SnmpCredential')} color={colorHelper.color} />
 	{/snippet}
 
 	<form

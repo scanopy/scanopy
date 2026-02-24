@@ -1,5 +1,4 @@
 <script lang="ts">
-	/* eslint-disable svelte/no-navigation-without-resolve */
 	import { type BlockerType, type UseCase, BLOCKERS, getBlockerOptions } from '../../types/base';
 	import { onboardingStore } from '../../stores/onboarding';
 	import { trackEvent } from '$lib/shared/utils/analytics';

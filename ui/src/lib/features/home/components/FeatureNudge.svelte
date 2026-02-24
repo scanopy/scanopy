@@ -12,7 +12,7 @@
 		onDismiss,
 		iconColor,
 		Icon,
-		dismissable = true,
+		dismissable = true
 	}: {
 		id: string;
 		title: string;
@@ -44,7 +44,7 @@
 		<div class="flex items-start justify-between gap-3">
 			{#if Icon}
 				<div class={`mt-0.5 shrink-0 ${iconColor}`}>
-					<Icon size={20}/>
+					<Icon size={20} />
 				</div>
 			{/if}
 			<div class="flex-1">

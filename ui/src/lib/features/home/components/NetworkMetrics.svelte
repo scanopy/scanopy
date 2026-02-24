@@ -1,17 +1,13 @@
 <script lang="ts">
 	import type { components } from '$lib/api/schema';
 	import NetworkCard from './NetworkCard.svelte';
-	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 
 	type NetworkSummary = components['schemas']['NetworkSummary'];
-	type PlanUsage = components['schemas']['PlanUsage'];
 
 	let {
-		networks,
-		planUsage
+		networks
 	}: {
 		networks: NetworkSummary[];
-		planUsage: PlanUsage;
 	} = $props();
 </script>
 
