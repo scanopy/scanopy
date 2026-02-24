@@ -21,19 +21,19 @@
 	<h4 class="text-primary mb-3 truncate text-sm font-semibold">{network.name}</h4>
 	<div class="grid grid-cols-2 gap-3">
 		<div class="flex items-center gap-2">
-			<HostIcon class="h-4 w-4 flex-shrink-0" style="color: {hostColor}" />
+			<HostIcon class="h-4 w-4 flex-shrink-0 {hostColor}" />
 			<span class="text-secondary text-sm">{network.host_count} hosts</span>
 		</div>
 		<div class="flex items-center gap-2">
-			<ServiceIcon class="h-4 w-4 flex-shrink-0" style="color: {serviceColor}" />
+			<ServiceIcon class="h-4 w-4 flex-shrink-0 {serviceColor}" />
 			<span class="text-secondary text-sm">{network.service_count} services</span>
 		</div>
 		<div class="flex items-center gap-2">
-			<SubnetIcon class="h-4 w-4 flex-shrink-0" style="color: {subnetColor}" />
+			<SubnetIcon class="h-4 w-4 flex-shrink-0 {subnetColor}" />
 			<span class="text-secondary text-sm">{network.subnet_count} subnets</span>
 		</div>
 		<div class="flex items-center gap-2">
-			<DaemonIcon class="h-4 w-4 flex-shrink-0" style="color: {daemonColor}" />
+			<DaemonIcon class="h-4 w-4 flex-shrink-0 {daemonColor}" />
 			<span class="text-secondary text-sm">{network.daemon_count} daemons</span>
 		</div>
 	</div>

@@ -3,14 +3,15 @@
 	import UpgradeButton from '$lib/shared/components/UpgradeButton.svelte';
 
 	type PlanUsage = components['schemas']['PlanUsage'];
+	type BillingPlan = components['schemas']['BillingPlan'];
 
 	let {
 		planUsage,
-		planType,
+		plan,
 		isOwner
 	}: {
 		planUsage: PlanUsage;
-		planType: string | null;
+		plan: BillingPlan | null;
 		isOwner: boolean;
 	} = $props();
 
@@ -18,13 +19,12 @@
 		planUsage.host_limit != null || planUsage.network_limit != null || planUsage.seat_limit != null
 	);
 
-	let showUpgrade = $derived(hasLimits && isOwner && planType === 'Free');
-
 	interface UsageRow {
 		label: string;
 		current: number;
 		limit: number;
 		pct: number;
+		hasOverage: boolean;
 	}
 
 	let rows = $derived.by(() => {
@@ -35,7 +35,8 @@
 				label: 'Hosts',
 				current: planUsage.host_count,
 				limit: planUsage.host_limit,
-				pct
+				pct,
+				hasOverage: plan?.host_cents != null
 			});
 		}
 		if (planUsage.network_limit != null) {
@@ -44,7 +45,8 @@
 				label: 'Networks',
 				current: planUsage.network_count,
 				limit: planUsage.network_limit,
-				pct
+				pct,
+				hasOverage: plan?.network_cents != null
 			});
 		}
 		if (planUsage.seat_limit != null) {
@@ -53,19 +55,24 @@
 				label: 'Seats',
 				current: planUsage.seat_count,
 				limit: planUsage.seat_limit,
-				pct
+				pct,
+				hasOverage: plan?.seat_cents != null
 			});
 		}
 		return list;
 	});
 
-	function barColor(pct: number): string {
-		if (pct >= 0.8) return 'bg-yellow-500';
+	let showUpgrade = $derived(hasLimits && isOwner && rows.some((r) => r.pct >= 1 && !r.hasOverage));
+
+	function barColor(row: UsageRow): string {
+		if (row.hasOverage) return 'bg-blue-500';
+		if (row.pct >= 0.8) return 'bg-yellow-500';
 		return 'bg-blue-500';
 	}
 
-	function textColor(pct: number): string {
-		if (pct >= 0.8) return 'text-yellow-400';
+	function textColor(row: UsageRow): string {
+		if (row.hasOverage) return 'text-secondary';
+		if (row.pct >= 0.8) return 'text-yellow-400';
 		return 'text-secondary';
 	}
 </script>
@@ -83,13 +90,26 @@
 				<div class="card card-static">
 					<div class="mb-2 flex items-center justify-between text-sm">
 						<span class="text-secondary">{row.label}</span>
-						<span class={textColor(row.pct)}>{row.current} / {row.limit}</span>
+						<span class={textColor(row)}>{row.current} / {row.limit}</span>
 					</div>
 					<div class="h-2 overflow-hidden rounded-full bg-gray-700">
-						<div
-							class="h-full rounded-full transition-all {barColor(row.pct)}"
-							style="width: {Math.min(row.pct * 100, 100)}%"
-						></div>
+						{#if row.hasOverage && row.pct > 1}
+							<div class="flex h-full">
+								<div
+									class="h-full rounded-l-full bg-blue-500"
+									style="width: {(1 / row.pct) * 100}%"
+								></div>
+								<div
+									class="h-full rounded-r-full bg-green-500"
+									style="width: {((row.pct - 1) / row.pct) * 100}%"
+								></div>
+							</div>
+						{:else}
+							<div
+								class="h-full rounded-full transition-all {barColor(row)}"
+								style="width: {Math.min(row.pct * 100, 100)}%"
+							></div>
+						{/if}
 					</div>
 				</div>
 			{/each}

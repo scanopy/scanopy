@@ -92,10 +92,6 @@
 		{/if}
 
 		<!-- Plan Usage — always visible if limits are approaching -->
-		<PlanUsage
-			planUsage={dashboard.plan_usage}
-			planType={organization.plan?.type ?? null}
-			{isOwner}
-		/>
+		<PlanUsage planUsage={dashboard.plan_usage} plan={organization.plan} {isOwner} />
 	{/if}
 </div>
