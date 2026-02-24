@@ -8,6 +8,7 @@
 		description,
 		actionLabel,
 		onAction,
+		onDismiss,
 		dismissable = true
 	}: {
 		id: string;
@@ -15,6 +16,7 @@
 		description: string;
 		actionLabel: string;
 		onAction: () => void;
+		onDismiss?: () => void;
 		dismissable?: boolean;
 	} = $props();
 
@@ -28,6 +30,7 @@
 	function dismiss() {
 		localStorage.setItem(dismissKey, 'true');
 		dismissed = true;
+		onDismiss?.();
 	}
 </script>
 

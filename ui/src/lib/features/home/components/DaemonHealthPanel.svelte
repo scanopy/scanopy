@@ -28,11 +28,10 @@
 	<div class="mb-3 flex items-center justify-between">
 		<h3 class="text-primary text-base font-semibold">Daemons</h3>
 		<span class="text-tertiary text-sm">
-			<span class="text-success">{healthyCount} healthy</span>{#if issueCount > 0}<span
-					class="text-warning"
-				>
-					&middot; {issueCount} need attention</span
-				>{/if}
+			<span class="text-success">{healthyCount} healthy</span>
+			{#if issueCount > 0}
+				<span class="text-warning">&middot; {issueCount} need attention</span>
+			{/if}
 		</span>
 	</div>
 	<div class="grid gap-4 sm:grid-cols-2">

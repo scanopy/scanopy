@@ -19,9 +19,14 @@
 	} = $props();
 
 	let mounted = $state(false);
+	let dismissCount = $state(0);
 	onMount(() => {
 		mounted = true;
 	});
+
+	function onDismiss() {
+		dismissCount++;
+	}
 
 	const planType = $derived(organization.plan?.type ?? null);
 	const onboarding = $derived(organization.onboarding ?? []);
@@ -108,7 +113,9 @@
 	});
 
 	// Check localStorage for dismissed nudges and limit to 2
+	// dismissCount is a reactive dependency so this recomputes when a nudge is dismissed
 	let visibleNudgeIds = $derived.by((): string[] => {
+		void dismissCount;
 		if (!mounted) return [];
 		const visible: string[] = [];
 		for (const nudge of nudges) {
@@ -132,6 +139,7 @@
 					description={nudge.description}
 					actionLabel={nudge.actionLabel}
 					onAction={nudge.action}
+					{onDismiss}
 				/>
 			{/each}
 		</div>
