@@ -47,8 +47,8 @@ async fn get_dashboard_summary(
         .organization_id()
         .ok_or_else(|| ApiError::forbidden("Organization context required"))?;
 
-    // Fetch networks
-    let networks_filter = StorableFilter::<Network>::new_from_network_ids(&network_ids);
+    // Fetch networks the user has access to (filter by id, not network_id)
+    let networks_filter = StorableFilter::<Network>::new_from_entity_ids(&network_ids);
     let networks_result = state
         .services
         .network_service
