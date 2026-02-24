@@ -24,7 +24,7 @@
 			}
 
 			if (daemon.standby === true) {
-				tags.push({ label: 'Standby', color: toColor('orange'), ...docsTag });
+				tags.push({ label: 'Standby', color: toColor('purple'), ...docsTag });
 			}
 
 			if (daemon.is_unreachable) {
@@ -33,7 +33,7 @@
 
 			switch (daemon.version_status.status) {
 				case 'Deprecated':
-					tags.push({ label: 'Deprecated', color: toColor('red'), ...docsTag });
+					tags.push({ label: 'Deprecated', color: toColor('orange'), ...docsTag });
 					break;
 				case 'Outdated':
 					tags.push({ label: 'Outdated', color: toColor('yellow'), ...docsTag });

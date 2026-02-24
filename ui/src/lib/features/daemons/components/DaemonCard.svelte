@@ -58,20 +58,20 @@
 		daemon.api_key_id ? apiKeysData.find((k) => k.id === daemon.api_key_id) : null
 	);
 
-	// Compute status tag based on standby, reachability, and version_status
-	// Priority: Standby > Unreachable > Deprecated > Outdated
+	// Compute status tag based on reachability, standby, and version_status
+	// Priority: Unreachable > Standby > Deprecated > Outdated
 	let status: TagProps | null = $derived.by(() => {
 		const docsTag = { href: DAEMON_STATUS_DOCS_URL, icon: CircleHelp };
 
-		if (daemon.standby === true) {
-			return { label: 'Standby', color: toColor('orange'), ...docsTag };
-		}
 		if (daemon.is_unreachable === true) {
 			return { label: 'Unreachable', color: toColor('red'), ...docsTag };
 		}
+		if (daemon.standby === true) {
+			return { label: 'Standby', color: toColor('purple'), ...docsTag };
+		}
 		switch (daemon.version_status.status) {
 			case 'Deprecated':
-				return { label: 'Deprecated', color: toColor('red'), ...docsTag };
+				return { label: 'Deprecated', color: toColor('orange'), ...docsTag };
 			case 'Outdated':
 				return { label: 'Outdated', color: toColor('yellow'), ...docsTag };
 			default:

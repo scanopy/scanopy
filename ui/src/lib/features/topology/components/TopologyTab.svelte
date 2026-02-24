@@ -33,6 +33,8 @@
 	import { useGroupsQuery } from '$lib/features/groups/queries';
 	import { useUsersQuery } from '$lib/features/users/queries';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
+	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import type { components } from '$lib/api/schema';
 	import { permissions } from '$lib/shared/stores/metadata';
 	import { modalState } from '$lib/shared/stores/modal-registry';
 	import type { TabProps } from '$lib/shared/types';
@@ -72,6 +74,10 @@
 	const groupsQuery = useGroupsQuery();
 	const usersQuery = useUsersQuery({ enabled: () => canViewUsers });
 	const topologiesQuery = useTopologiesQuery();
+	const organizationQuery = useOrganizationQuery();
+
+	type TelemetryOperation = components['schemas']['TelemetryOperation'];
+	let onboarding = $derived((organizationQuery.data?.onboarding ?? []) as TelemetryOperation[]);
 
 	// Mutations
 	const deleteTopologyMutation = useDeleteTopologyMutation();
@@ -158,6 +164,28 @@
 				topologyViewer?.triggerFitView();
 			});
 		}
+	});
+
+	// One-time rebuild for onboarding: triggers when FirstTopologyRebuild milestone is missing,
+	// regardless of autoRebuild setting, so the checklist item clears on first topology visit.
+	$effect(() => {
+		if (!currentTopology || currentTopology.is_locked) {
+			return;
+		}
+
+		if (initialRebuildChecked.has(currentTopology.id)) {
+			return;
+		}
+
+		if (onboarding.includes('FirstTopologyRebuild')) {
+			return;
+		}
+
+		initialRebuildChecked.add(currentTopology.id);
+
+		void rebuildTopologyMutation.mutateAsync(currentTopology).then(() => {
+			topologyViewer?.triggerFitView();
+		});
 	});
 
 	function handleCreateTopology() {
