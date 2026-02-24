@@ -32,7 +32,7 @@
 </script>
 
 {#if !dismissed}
-	<div class="rounded-lg border border-gray-700 bg-gray-800/50 p-4">
+	<div class="card card-static">
 		<div class="flex items-start justify-between gap-3">
 			<div class="flex-1">
 				<h4 class="text-primary mb-1 text-sm font-semibold">{title}</h4>

@@ -17,7 +17,7 @@
 	const daemonColor = entities.getColorHelper('Daemon').icon;
 </script>
 
-<div class="card-static rounded-lg border border-gray-700 bg-gray-800/50 p-4">
+<div class="card card-static">
 	<h4 class="text-primary mb-3 truncate text-sm font-semibold">{network.name}</h4>
 	<div class="grid grid-cols-2 gap-3">
 		<div class="flex items-center gap-2">

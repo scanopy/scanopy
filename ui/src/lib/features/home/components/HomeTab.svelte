@@ -71,6 +71,11 @@
 			<GettingStartedChecklist {onboarding} onNavigate={navigateTo} />
 		{/if}
 
+		<!-- Feature Nudges — shown after checklist is complete/dismissed -->
+		{#if showNudges}
+			<FeatureNudges {organization} {dashboard} onNavigate={navigateTo} />
+		{/if}
+
 		<!-- Network Metrics — shown when networks exist -->
 		{#if dashboard.networks.length > 0}
 			<NetworkMetrics networks={dashboard.networks} planUsage={dashboard.plan_usage} />
@@ -78,17 +83,12 @@
 
 		<!-- Daemon Health — shown when daemons exist -->
 		{#if dashboard.daemons.length > 0}
-			<DaemonHealthPanel daemons={dashboard.daemons} />
+			<DaemonHealthPanel daemons={dashboard.daemons} onNavigate={navigateTo} />
 		{/if}
 
-		<!-- Recent Discoveries — shown once first discovery is completed -->
-		{#if hasDiscovery}
+		<!-- Recent Discoveries — shown when discoveries exist -->
+		{#if dashboard.recent_discoveries.length > 0}
 			<RecentDiscoveries discoveries={dashboard.recent_discoveries} />
-		{/if}
-
-		<!-- Feature Nudges — shown after checklist is complete -->
-		{#if showNudges}
-			<FeatureNudges {organization} {dashboard} onNavigate={navigateTo} />
 		{/if}
 
 		<!-- Plan Usage — always visible if limits are approaching -->
