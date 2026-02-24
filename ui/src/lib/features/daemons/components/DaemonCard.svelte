@@ -58,7 +58,7 @@
 		daemon.api_key_id ? apiKeysData.find((k) => k.id === daemon.api_key_id) : null
 	);
 
-	let status: TagProps | null = $derived(getDaemonStatusTag(daemon));
+	let status: TagProps = $derived(getDaemonStatusTag(daemon));
 
 	let hasUpdateAvailable = $derived(
 		daemon.version_status.status === 'Outdated' || daemon.version_status.status === 'Deprecated'

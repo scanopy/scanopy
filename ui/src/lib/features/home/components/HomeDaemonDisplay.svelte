@@ -1,6 +1,5 @@
 <script lang="ts" context="module">
 	import { entities } from '$lib/shared/stores/metadata';
-	import { toColor } from '$lib/shared/utils/styling';
 	import { formatRelativeTime } from '$lib/shared/utils/formatting';
 	import { getDaemonStatusTag } from '$lib/features/daemons/utils';
 	import type { Daemon } from '$lib/features/daemons/types/base';
@@ -10,23 +9,9 @@
 		getLabel: (daemon) => daemon.name,
 		getIcon: () => entities.getIconComponent('Daemon'),
 		getIconColor: () => entities.getColorHelper('Daemon').icon,
-		getTags: (daemon) => {
-			const tags = [];
-
-			if (daemon.last_seen) {
-				tags.push({
-					label: `Last seen ${formatRelativeTime(daemon.last_seen)}`,
-					color: toColor('green')
-				});
-			}
-
-			const statusTag = getDaemonStatusTag(daemon);
-			if (statusTag) {
-				tags.push(statusTag);
-			}
-
-			return tags;
-		}
+		getDescription: (daemon) =>
+			daemon.last_seen ? `Last seen ${formatRelativeTime(daemon.last_seen)}` : '',
+		getTags: (daemon) => [getDaemonStatusTag(daemon)]
 	};
 </script>
 

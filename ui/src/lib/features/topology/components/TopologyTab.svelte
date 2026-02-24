@@ -140,6 +140,32 @@
 
 	// Track which topologies have had their initial auto-rebuild check
 	let initialRebuildChecked = new SvelteSet<string>();
+	let onboardingRebuildChecked = new SvelteSet<string>();
+
+	// One-time rebuild for onboarding: triggers when FirstTopologyRebuild milestone is missing,
+	// regardless of autoRebuild setting, so the checklist item clears on first topology visit.
+	// Must run before auto-rebuild so it can trigger unconditionally.
+	$effect(() => {
+		if (!currentTopology || currentTopology.is_locked) {
+			return;
+		}
+
+		if (onboardingRebuildChecked.has(currentTopology.id)) {
+			return;
+		}
+
+		if (onboarding.includes('FirstTopologyRebuild')) {
+			return;
+		}
+
+		onboardingRebuildChecked.add(currentTopology.id);
+		// Also mark auto-rebuild as done to avoid a redundant second rebuild
+		initialRebuildChecked.add(currentTopology.id);
+
+		void rebuildTopologyMutation.mutateAsync(currentTopology).then(() => {
+			topologyViewer?.triggerFitView();
+		});
+	});
 
 	// Auto-rebuild on initial load when autoRebuild is enabled
 	$effect(() => {
@@ -148,7 +174,7 @@
 			return;
 		}
 
-		// Guard: already checked this topology
+		// Guard: already checked this topology (or handled by onboarding rebuild)
 		if (initialRebuildChecked.has(currentTopology.id)) {
 			return;
 		}
@@ -164,28 +190,6 @@
 				topologyViewer?.triggerFitView();
 			});
 		}
-	});
-
-	// One-time rebuild for onboarding: triggers when FirstTopologyRebuild milestone is missing,
-	// regardless of autoRebuild setting, so the checklist item clears on first topology visit.
-	$effect(() => {
-		if (!currentTopology || currentTopology.is_locked) {
-			return;
-		}
-
-		if (initialRebuildChecked.has(currentTopology.id)) {
-			return;
-		}
-
-		if (onboarding.includes('FirstTopologyRebuild')) {
-			return;
-		}
-
-		initialRebuildChecked.add(currentTopology.id);
-
-		void rebuildTopologyMutation.mutateAsync(currentTopology).then(() => {
-			topologyViewer?.triggerFitView();
-		});
 	});
 
 	function handleCreateTopology() {

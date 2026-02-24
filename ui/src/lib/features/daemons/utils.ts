@@ -8,10 +8,10 @@ import { CircleHelp } from 'lucide-svelte';
 export const DAEMON_STATUS_DOCS_URL = 'https://scanopy.net/docs/daemon-status';
 
 /**
- * Returns the highest-priority status tag for a daemon, or null if healthy.
- * Priority: Unreachable > Standby > Deprecated > Outdated
+ * Returns the highest-priority status tag for a daemon.
+ * Priority: Unreachable > Standby > Deprecated > Outdated > Healthy
  */
-export function getDaemonStatusTag(daemon: Daemon): TagProps | null {
+export function getDaemonStatusTag(daemon: Daemon): TagProps {
 	const docsTag = { href: DAEMON_STATUS_DOCS_URL, icon: CircleHelp };
 
 	if (daemon.is_unreachable === true) {
@@ -26,7 +26,7 @@ export function getDaemonStatusTag(daemon: Daemon): TagProps | null {
 		case 'Outdated':
 			return { label: 'Outdated', color: toColor('yellow'), ...docsTag };
 		default:
-			return null;
+			return { label: 'Healthy', color: toColor('green') };
 	}
 }
 
