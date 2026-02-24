@@ -384,6 +384,7 @@
 	"daemons_fixValidationErrors": "Please fix validation errors",
 	"daemons_fixValidationErrorsBody": "Correct the field validation issues above before using the installation commands.",
 	"daemons_generateKeyToContinue": "Generate or enter an API key to continue",
+	"daemons_httpDaemonUrlWarning": "This daemon URL uses HTTP. Credentials will be sent unencrypted. Ensure the connection is secured through other means (e.g., VPN, private network).",
 	"daemons_generateNewKey": "Generate new API key",
 	"daemons_generateNewKeyHelp": "Generate a new key if this is a fresh daemon setup.",
 	"daemons_lastSeen": "Last Seen",
