@@ -935,6 +935,12 @@ impl DiscoveryRunner<NetworkScanDiscovery> {
         ports_to_check.sort_by_key(|p| (p.number(), p.protocol()));
         ports_to_check.dedup();
 
+        let accept_invalid_certs = self
+            .as_ref()
+            .config_store
+            .get_accept_invalid_scan_certs()
+            .await?;
+
         let endpoint_responses = scan_endpoints(
             ip,
             cancel.clone(),
@@ -942,6 +948,7 @@ impl DiscoveryRunner<NetworkScanDiscovery> {
             Some(use_https_ports),
             effective_batch_size,
             probe_raw_socket_ports,
+            accept_invalid_certs,
         )
         .await?;
 

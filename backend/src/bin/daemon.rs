@@ -1,4 +1,8 @@
-use axum::{Router, http::Method, middleware};
+use axum::{
+    Router,
+    http::{HeaderValue, Method},
+    middleware,
+};
 use clap::Parser;
 use scanopy::{
     daemon::{
@@ -83,15 +87,33 @@ async fn async_main() -> anyhow::Result<()> {
     // Create HTTP server with config values
     let api_router = create_router(state.clone()).with_state(state);
 
+    // Restrict CORS to server URL origin (defense-in-depth against exposed daemon ports)
+    let cors = {
+        let server_origin = config_store
+            .get_server_url()
+            .await
+            .ok()
+            .and_then(|url| url::Url::parse(&url).ok())
+            .map(|u| format!("{}://{}", u.scheme(), u.authority()))
+            .and_then(|o| o.parse::<HeaderValue>().ok());
+
+        if let Some(origin) = server_origin {
+            CorsLayer::new()
+                .allow_origin(origin)
+                .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
+                .allow_headers(Any)
+        } else {
+            // Fallback: no CORS (same-origin only)
+            CorsLayer::new()
+                .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
+                .allow_headers(Any)
+        }
+    };
+
     let app = Router::new().merge(api_router).layer(
         ServiceBuilder::new()
             .layer(TraceLayer::new_for_http())
-            .layer(
-                CorsLayer::new()
-                    .allow_origin(Any)
-                    .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
-                    .allow_headers(Any),
-            )
+            .layer(cors)
             .layer(middleware::from_fn(capture_fixtures_middleware)),
     );
 

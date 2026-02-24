@@ -43,7 +43,7 @@
 			>
 				{@render children()}
 				<div>
-					<!-- eslint-disable-next-line svelte/no-at-html-tags -- label content is sanitized -->
+					<!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted: only used via Checkbox with i18n labels -->
 					{@html label}
 					{#if required}
 						<span class="text-danger">*</span>

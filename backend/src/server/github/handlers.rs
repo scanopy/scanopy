@@ -44,10 +44,9 @@ pub async fn get_stars(
         Ok(response) => {
             if !response.status().is_success() {
                 tracing::error!("GitHub API error: {}", response.status());
-                return Err(ApiError::bad_gateway(format!(
-                    "Github API error: {}",
-                    response.text().await.unwrap_or("Unknown Error".to_string())
-                )));
+                return Err(ApiError::bad_gateway(
+                    "Failed to fetch data from GitHub".to_string(),
+                ));
             }
 
             match response.json::<GitHubRepoResponse>().await {
@@ -59,19 +58,17 @@ pub async fn get_stars(
                 }
                 Err(e) => {
                     tracing::error!("Failed to parse GitHub response: {}", e);
-                    Err(ApiError::bad_gateway(format!(
-                        "Failed to parse GitHub response: {}",
-                        e
-                    )))
+                    Err(ApiError::bad_gateway(
+                        "Failed to process GitHub response".to_string(),
+                    ))
                 }
             }
         }
         Err(e) => {
             tracing::error!("Failed to fetch from GitHub: {}", e);
-            Err(ApiError::bad_gateway(format!(
-                "Failed to fetch from GitHub: {}",
-                e
-            )))
+            Err(ApiError::bad_gateway(
+                "GitHub service unavailable".to_string(),
+            ))
         }
     }
 }

@@ -319,6 +319,7 @@ pub fn can_arp_scan(use_npcap: bool) -> bool {
     available
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn scan_ports_and_endpoints(
     ip: IpAddr,
     cancel: CancellationToken,
@@ -327,6 +328,7 @@ pub async fn scan_ports_and_endpoints(
     cidr: IpCidr,
     gateway_ips: Vec<IpAddr>,
     tcp_ports_to_check: Vec<u16>,
+    accept_invalid_certs: bool,
 ) -> Result<(Vec<PortType>, Vec<EndpointResponse>), Error> {
     if cancel.is_cancelled() {
         return Err(anyhow!("Operation cancelled"));
@@ -389,6 +391,7 @@ pub async fn scan_ports_and_endpoints(
         Some(use_https_ports),
         port_scan_batch_size,
         false,
+        accept_invalid_certs,
     )
     .await?;
     endpoint_responses.extend(endpoints);
@@ -627,12 +630,13 @@ pub async fn scan_endpoints(
     use_https_ports: Option<HashMap<u16, bool>>,
     batch_size: usize,
     probe_raw_socket_ports: bool,
+    accept_invalid_certs: bool,
 ) -> Result<Vec<EndpointResponse>, Error> {
     use std::collections::HashMap;
 
     let client = reqwest::Client::builder()
         .timeout(SCAN_TIMEOUT)
-        .danger_accept_invalid_certs(true)
+        .danger_accept_invalid_certs(accept_invalid_certs)
         .build()
         .map_err(|e| anyhow!("Could not build client {}", e))?;
 

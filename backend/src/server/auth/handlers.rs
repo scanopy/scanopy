@@ -904,6 +904,12 @@ async fn reset_password(
         .complete_password_reset(&request.token, &request.password, ip, user_agent)
         .await?;
 
+    // Cycle session ID to prevent session fixation attacks
+    session
+        .cycle_id()
+        .await
+        .map_err(|e| ApiError::internal_error(&format!("Failed to cycle session: {}", e)))?;
+
     session
         .insert("user_id", user.id)
         .await
@@ -936,6 +942,12 @@ async fn verify_email(
         .auth_service
         .verify_email(&request.token, ip, user_agent)
         .await?;
+
+    // Cycle session ID to prevent session fixation attacks
+    session
+        .cycle_id()
+        .await
+        .map_err(|e| ApiError::internal_error(&format!("Failed to cycle session: {}", e)))?;
 
     // Auto-login user after successful verification
     session
@@ -1178,6 +1190,27 @@ async fn oidc_callback(
         )));
     }
 
+    // Extract registration flags before consuming OIDC state (needed for Register flow)
+    let terms_accepted: bool = session
+        .get("oidc_terms_accepted")
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or(false);
+    let marketing_opt_in: bool = session
+        .get("oidc_marketing_opt_in")
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or(false);
+
+    // Consume OIDC state immediately to prevent replay attacks
+    let _ = session.remove::<OidcPendingAuth>("oidc_pending_auth").await;
+    let _ = session.remove::<String>("oidc_provider_slug").await;
+    let _ = session.remove::<String>("oidc_return_url").await;
+    let _ = session.remove::<bool>("oidc_terms_accepted").await;
+    let _ = session.remove::<bool>("oidc_marketing_opt_in").await;
+
     // Parse return URL for error handling
     let return_url_parsed = Url::parse(&return_url).map_err(|_| {
         Redirect::to(&format!(
@@ -1220,27 +1253,11 @@ async fn oidc_callback(
             .await
         }
         OidcFlow::Register => {
-            // Get terms_accepted_at flag from session
-            let terms_accepted: bool = session
-                .get("oidc_terms_accepted")
-                .await
-                .ok()
-                .flatten()
-                .unwrap_or(false);
-
             let terms_accepted_at = if terms_accepted {
                 Some(Utc::now())
             } else {
                 None
             };
-
-            // Get marketing_opt_in flag from session
-            let marketing_opt_in: bool = session
-                .get("oidc_marketing_opt_in")
-                .await
-                .ok()
-                .flatten()
-                .unwrap_or(false);
 
             handle_register_flow(
                 state.clone(),
@@ -1306,21 +1323,9 @@ async fn handle_link_flow(params: HandleLinkFlowParams<'_>) -> Result<Redirect, 
         .link_to_user(slug, &user_id, code, pending_auth, ip, user_agent)
         .await
     {
-        Ok(_) => {
-            // Clear session data
-            let _ = session.remove::<OidcPendingAuth>("oidc_pending_auth").await;
-            let _ = session.remove::<String>("oidc_provider_slug").await;
-            let _ = session.remove::<String>("oidc_return_url").await;
-
-            Ok(Redirect::to(return_url.as_str()))
-        }
+        Ok(_) => Ok(Redirect::to(return_url.as_str())),
         Err(e) => {
             tracing::error!("Failed to link OIDC: {}", e);
-
-            // Clear session data
-            let _ = session.remove::<OidcPendingAuth>("oidc_pending_auth").await;
-            let _ = session.remove::<String>("oidc_provider_slug").await;
-            let _ = session.remove::<String>("oidc_return_url").await;
 
             return_url
                 .query_pairs_mut()
@@ -1407,11 +1412,6 @@ async fn handle_login_flow(
                     urlencoding::encode(&format!("Failed to create session: {}", e))
                 )));
             }
-
-            // Clear OIDC session data
-            let _ = session.remove::<OidcPendingAuth>("oidc_pending_auth").await;
-            let _ = session.remove::<String>("oidc_provider_slug").await;
-            let _ = session.remove::<String>("oidc_return_url").await;
 
             Ok(Redirect::to(return_url.as_str()))
         }
@@ -1533,13 +1533,6 @@ async fn handle_register_flow(
 
             // Clear pending setup data from session
             clear_pending_setup(&session).await;
-
-            // Clear OIDC session data
-            let _ = session.remove::<OidcPendingAuth>("oidc_pending_auth").await;
-            let _ = session.remove::<String>("oidc_provider_slug").await;
-            let _ = session.remove::<String>("oidc_return_url").await;
-            let _ = session.remove::<bool>("oidc_terms_accepted").await;
-            let _ = session.remove::<bool>("oidc_marketing_opt_in").await;
 
             Ok(Redirect::to(return_url.as_str()))
         }

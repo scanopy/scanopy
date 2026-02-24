@@ -594,6 +594,21 @@ async fn provision_daemon(
     // Validate network access
     validate_network_access(Some(request.network_id), &network_ids, "provision daemon")?;
 
+    // Validate TLS for daemon URL
+    if state.config.should_require_daemon_tls()
+        && let Ok(parsed) = url::Url::parse(&request.url)
+        && parsed.scheme() != "https"
+    {
+        let is_localhost = parsed
+            .host_str()
+            .is_some_and(|h| h == "localhost" || h == "127.0.0.1" || h == "::1");
+        if !is_localhost {
+            return Err(ApiError::bad_request(
+                "Daemon URL must use HTTPS when TLS is required. Set SCANOPY_REQUIRE_DAEMON_TLS=false to override.",
+            ));
+        }
+    }
+
     // Generate API key (plaintext + hash)
     let (plaintext, hashed) = generate_api_key_for_storage(ApiKeyType::Daemon);
 

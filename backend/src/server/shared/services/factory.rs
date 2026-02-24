@@ -199,6 +199,10 @@ impl ServiceFactory {
         .await?;
 
         // Create DaemonService with most dependencies directly (not host_service - circular)
+        let require_daemon_tls = config
+            .as_ref()
+            .map(|c| c.should_require_daemon_tls())
+            .unwrap_or(false);
         let daemon_service = Arc::new(DaemonService::new(
             storage.daemons.clone(),
             event_bus.clone(),
@@ -209,6 +213,7 @@ impl ServiceFactory {
             organization_service.clone(),
             user_service.clone(),
             daemon_api_key_service.clone(),
+            require_daemon_tls,
         ));
 
         // HostService needs DaemonService

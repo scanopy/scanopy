@@ -15,7 +15,10 @@ use scanopy::server::{
     },
     billing::plans::get_purchasable_plans,
     config::{AppState, ServerCli, ServerConfig, get_deployment_type},
-    shared::handlers::{cache::AppCache, factory::create_router},
+    shared::handlers::{
+        cache::AppCache,
+        factory::{create_public_share_routes, create_router},
+    },
 };
 use tower::ServiceBuilder;
 use tower_http::{
@@ -176,9 +179,31 @@ async fn main() -> anyhow::Result<()> {
             .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION, header::ACCEPT])
             .allow_credentials(true)
     } else {
-        // Production: Same-origin, no CORS needed but keep it permissive for future flexibility
-        CorsLayer::permissive()
+        // Production: Restrict to public_url origin
+        let parsed_url = url::Url::parse(&public_url).expect("Invalid public_url");
+        let origin_str = format!("{}://{}", parsed_url.scheme(), parsed_url.authority());
+        let public_origin: HeaderValue =
+            origin_str.parse().expect("Invalid origin from public_url");
+
+        CorsLayer::new()
+            .allow_origin(public_origin)
+            .allow_methods([
+                Method::GET,
+                Method::POST,
+                Method::PUT,
+                Method::DELETE,
+                Method::OPTIONS,
+            ])
+            .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION, header::ACCEPT])
+            .allow_credentials(true)
     };
+
+    // Permissive CORS for public share routes (used by embeds on customer domains)
+    // No allow_credentials — public share routes are unauthenticated
+    let public_cors = CorsLayer::new()
+        .allow_origin(tower_http::cors::Any)
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_headers([header::CONTENT_TYPE]);
 
     let client_ip_source = client_ip_source
         .map(|s| ClientIpSource::from_str(&s))
@@ -207,6 +232,23 @@ async fn main() -> anyhow::Result<()> {
         HeaderValue::from_static("frame-ancestors 'self'"),
     );
 
+    // CSP Report-Only: non-blocking header that logs violations to browser console.
+    // Used to identify what a full CSP would break before enforcing it.
+    let csp_report_only = SetResponseHeaderLayer::if_not_present(
+        HeaderName::from_static("content-security-policy-report-only"),
+        HeaderValue::from_static(
+            "default-src 'self'; \
+             script-src 'self'; \
+             style-src 'self' 'unsafe-inline'; \
+             img-src 'self' data: blob:; \
+             font-src 'self'; \
+             connect-src 'self'; \
+             frame-ancestors 'self'; \
+             base-uri 'self'; \
+             form-action 'self'",
+        ),
+    );
+
     let app_cache = Arc::new(AppCache::new());
 
     // Create main app with all middleware
@@ -232,7 +274,8 @@ async fn main() -> anyhow::Result<()> {
             .layer(cache_headers)
             .layer(content_type_options)
             .layer(referrer_policy)
-            .layer(frame_ancestors),
+            .layer(frame_ancestors)
+            .layer(csp_report_only),
     );
 
     // Add HSTS header when secure cookies are enabled (indicates HTTPS is in use)
@@ -244,6 +287,13 @@ async fn main() -> anyhow::Result<()> {
     } else {
         protected_app
     };
+
+    // Public share routes with permissive CORS (embeds on customer domains)
+    let (public_share_router, _) = create_public_share_routes().split_for_parts();
+    let public_share_app = Router::new()
+        .merge(public_share_router)
+        .with_state(state.clone())
+        .layer(public_cors);
 
     // Health check endpoint without middleware (for kamal-proxy health checks)
     // Metrics endpoint is now at /api/metrics with external service auth (see factory.rs)
@@ -260,6 +310,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .with_state(state.clone())
         .layer(cors)
+        .merge(public_share_app)
         .merge(protected_app);
     let listener = tokio::net::TcpListener::bind(&listen_addr).await?;
 
@@ -318,6 +369,10 @@ async fn main() -> anyhow::Result<()> {
     }
     if state.config.use_secure_session_cookies {
         tracing::info!(target: LOG_TARGET, "  Secure cookies:  enabled (HTTPS)");
+    }
+    if state.config.metrics_token.is_some() && state.config.external_service_allowed_ips.is_empty()
+    {
+        tracing::warn!(target: LOG_TARGET, "  WARNING: metrics_token is set but external_service_allowed_ips is empty — all IPs can access metrics endpoint");
     }
 
     // Ready message

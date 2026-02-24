@@ -139,6 +139,11 @@ pub struct ServerConfig {
     // Populated from SCANOPY_EXTERNAL_SERVICE_<NAME>_ALLOWED_IPS env vars
     #[serde(default)]
     pub external_service_allowed_ips: HashMap<String, Vec<String>>,
+
+    // TLS enforcement for daemon URLs in ServerPoll mode.
+    // When None, auto-detected from public_url scheme (HTTPS → require TLS).
+    // Override with SCANOPY_REQUIRE_DAEMON_TLS=true/false.
+    pub require_daemon_tls: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, PartialEq)]
@@ -190,6 +195,7 @@ impl Default for ServerConfig {
             metrics_token: None,
             brevo_api_key: None,
             external_service_allowed_ips: HashMap::new(),
+            require_daemon_tls: None,
         }
     }
 }
@@ -309,6 +315,13 @@ impl ServerConfig {
 
     pub fn database_url(&self) -> String {
         self.database_url.to_string()
+    }
+
+    /// Whether daemon URLs in ServerPoll mode must use HTTPS.
+    /// Auto-detected from public_url scheme unless explicitly overridden.
+    pub fn should_require_daemon_tls(&self) -> bool {
+        self.require_daemon_tls
+            .unwrap_or_else(|| self.public_url.starts_with("https://"))
     }
 }
 

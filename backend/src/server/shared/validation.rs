@@ -137,6 +137,25 @@ pub fn validate_delete_access(
     Ok(())
 }
 
+/// Validates a domain for safe use in CSP frame-ancestors.
+/// Rejects characters that could allow CSP directive injection (spaces, semicolons, quotes).
+/// Allows: alphanumeric, dots, hyphens, colons (port), asterisks (wildcard).
+pub fn validate_csp_domain(domain: &str) -> Result<(), ApiError> {
+    if domain.is_empty() {
+        return Err(ApiError::bad_request("Domain cannot be empty"));
+    }
+    let valid = domain
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | ':' | '*'));
+    if !valid {
+        return Err(ApiError::bad_request(&format!(
+            "Domain '{}' contains invalid characters. Only alphanumeric, dots, hyphens, colons, and wildcards are allowed.",
+            domain
+        )));
+    }
+    Ok(())
+}
+
 /// Validation for bulk delete operations.
 /// Validates network access and organization access for deleting multiple entities.
 pub fn validate_bulk_delete_access(

@@ -221,6 +221,16 @@ export const fieldDefs: FieldDef[] = [
 		section: () => m.daemons_config_sectionNetworkDiscovery()
 	},
 	{
+		id: 'acceptInvalidScanCerts',
+		label: () => m.daemons_config_acceptInvalidScanCerts(),
+		type: 'boolean',
+		defaultValue: true,
+		cliFlag: '--accept-invalid-scan-certs',
+		envVar: 'SCANOPY_ACCEPT_INVALID_SCAN_CERTS',
+		helpText: () => m.daemons_config_acceptInvalidScanCertsHelp(),
+		section: () => m.daemons_config_sectionNetworkDiscovery()
+	},
+	{
 		id: 'concurrentScans',
 		label: () => m.daemons_config_concurrentScans(),
 		type: 'number',

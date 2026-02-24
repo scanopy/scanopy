@@ -315,6 +315,8 @@
 	"daemons_apiKeyHelp": "This will create a new API key, which you can manage later in the API Keys tab.",
 	"daemons_binaryInstallation": "Binary Installation",
 	"daemons_binaryInstallationHelp": "Run the install script to upgrade to the latest version. This will replace the existing binary.",
+	"daemons_config_acceptInvalidScanCerts": "Accept Invalid Scan Certificates",
+	"daemons_config_acceptInvalidScanCertsHelp": "Accept invalid TLS certificates when scanning endpoints. Enabled by default since scanners probe arbitrary internal services.",
 	"daemons_config_allowSelfSignedCerts": "Allow Self-Signed Certificates",
 	"daemons_config_allowSelfSignedCertsHelp": "Allow self-signed certs for daemon -> server connections",
 	"daemons_config_apiKeyHelp": "Authentication key for daemon (generated via UI)",

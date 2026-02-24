@@ -116,6 +116,12 @@ fn create_exempt_openapi_routes() -> OpenApiRouter<Arc<AppState>> {
         )
 }
 
+/// Creates the public share router (unauthenticated, permissive CORS).
+/// Separated from the main router so these routes can use different CORS policy.
+pub fn create_public_share_routes() -> OpenApiRouter<Arc<AppState>> {
+    OpenApiRouter::new().nest("/api/v1/shares", share_handlers::create_public_router())
+}
+
 /// Creates the OpenApiRouter with cacheable routes.
 fn create_cacheable_openapi_routes() -> OpenApiRouter<Arc<AppState>> {
     OpenApiRouter::new()
@@ -131,9 +137,11 @@ pub fn collect_all_openapi_routes() -> OpenApi {
     let (_, mut openapi) = create_billed_openapi_routes().split_for_parts();
     let (_, exempt_openapi) = create_exempt_openapi_routes().split_for_parts();
     let (_, cacheable_openapi) = create_cacheable_openapi_routes().split_for_parts();
+    let (_, public_share_openapi) = create_public_share_routes().split_for_parts();
 
     openapi.merge(exempt_openapi);
     openapi.merge(cacheable_openapi);
+    openapi.merge(public_share_openapi);
     openapi
 }
 

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{num::NonZeroU32, sync::Arc};
 
 use axum::{
     Json,
@@ -6,6 +6,7 @@ use axum::{
     http::{HeaderMap, header},
     response::{IntoResponse, Response},
 };
+use governor::{Quota, RateLimiter, clock::DefaultClock, state::keyed::DashMapStateStore};
 use serde::Deserialize;
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -25,6 +26,7 @@ use crate::server::{
     config::AppState,
     networks::r#impl::Network,
     organizations::r#impl::base::Organization,
+    shared::validation::validate_csp_domain,
     shared::{
         handlers::traits::{CrudHandlers, create_handler, update_handler},
         services::traits::CrudService,
@@ -40,6 +42,28 @@ use crate::server::{
     },
     topology::types::base::Topology,
 };
+
+type ShareRateLimiter = RateLimiter<Uuid, DashMapStateStore<Uuid>, DefaultClock>;
+
+fn share_password_limiter() -> &'static Arc<ShareRateLimiter> {
+    static LIMITER: std::sync::OnceLock<Arc<ShareRateLimiter>> = std::sync::OnceLock::new();
+    LIMITER.get_or_init(|| {
+        Arc::new(RateLimiter::dashmap(
+            Quota::with_period(std::time::Duration::from_secs(180))
+                .unwrap()
+                .allow_burst(NonZeroU32::new(5).unwrap()),
+        ))
+    })
+}
+
+fn check_share_rate_limit(share_id: &Uuid) -> Result<(), ApiError> {
+    if share_password_limiter().check_key(share_id).is_err() {
+        return Err(ApiError::too_many_requests(
+            "Too many password attempts for this share. Please try again later.".to_string(),
+        ));
+    }
+    Ok(())
+}
 
 // Generated handlers for generic CRUD operations
 mod generated {
@@ -74,10 +98,13 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
         ))
         .routes(routes!(generated::bulk_delete))
         .routes(routes!(generated::export_csv))
-        // Public routes (no auth required)
+}
+
+/// Public share routes (no auth required) — mounted separately for permissive CORS
+pub fn create_public_router() -> OpenApiRouter<Arc<AppState>> {
+    OpenApiRouter::new()
         .routes(routes!(get_public_share_metadata))
         .routes(routes!(verify_share_password))
-        // Public topology route (complex response handling - use regular route for now)
         .route(
             "/public/{id}/topology",
             axum::routing::post(get_share_topology),
@@ -109,6 +136,13 @@ async fn create_share(
         password,
     }): Json<CreateUpdateShareRequest>,
 ) -> ApiResult<Json<ApiResponse<Share>>> {
+    // Validate allowed_domains for CSP safety
+    if let Some(ref domains) = share.base.allowed_domains {
+        for domain in domains {
+            validate_csp_domain(domain)?;
+        }
+    }
+
     // Hash password if provided
     if let Some(password) = password
         && !password.is_empty()
@@ -144,6 +178,13 @@ async fn update_share(
         password,
     }): Json<CreateUpdateShareRequest>,
 ) -> ApiResult<Json<ApiResponse<Share>>> {
+    // Validate allowed_domains for CSP safety
+    if let Some(ref domains) = share.base.allowed_domains {
+        for domain in domains {
+            validate_csp_domain(domain)?;
+        }
+    }
+
     // Fetch existing to handle password preservation
     let existing = Share::get_service(&state)
         .get_by_id(&id)
@@ -255,6 +296,8 @@ async fn verify_share_password(
     Path(id): Path<Uuid>,
     Json(password): Json<String>,
 ) -> ApiResult<Json<ApiResponse<bool>>> {
+    check_share_rate_limit(&id)?;
+
     let share = state
         .services
         .share_service
@@ -314,6 +357,7 @@ async fn get_share_topology(
 
     // Handle password-protected shares
     if share.requires_password() {
+        check_share_rate_limit(&id)?;
         match &body.password {
             Some(password) => {
                 state
@@ -378,9 +422,21 @@ async fn get_share_topology(
     let frame_ancestors = if has_embeds_feature {
         // Org has embed feature - allow based on allowed_domains
         if let Some(ref domains) = share.base.allowed_domains {
-            if !domains.is_empty() {
+            // Defense-in-depth: filter out any domains with unsafe CSP characters
+            let safe_domains: Vec<&String> = domains
+                .iter()
+                .filter(|d| validate_csp_domain(d).is_ok())
+                .collect();
+            if !safe_domains.is_empty() {
                 // Specific domains allowed
-                format!("frame-ancestors {}", domains.join(" "))
+                format!(
+                    "frame-ancestors {}",
+                    safe_domains
+                        .iter()
+                        .map(|d| d.as_str())
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                )
             } else {
                 // Empty list = allow all
                 "frame-ancestors *".to_string()

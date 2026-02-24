@@ -153,6 +153,10 @@ pub struct AppConfig {
     docker_proxy_ssl_key: Option<String>,
     #[serde(default)]
     docker_proxy_ssl_chain: Option<String>,
+    /// Accept invalid TLS certificates when scanning endpoints.
+    /// Defaults to true since scanners probe arbitrary internal services.
+    #[serde(default = "default_accept_invalid_scan_certs")]
+    pub accept_invalid_scan_certs: bool,
     #[serde(default)]
     pub use_npcap_arp: bool,
     #[serde(default = "default_arp_retries")]
@@ -170,6 +174,10 @@ pub struct AppConfig {
     /// Updated after SelfReport discovery completes
     #[serde(default)]
     pub capabilities: DaemonCapabilities,
+}
+
+fn default_accept_invalid_scan_certs() -> bool {
+    true
 }
 
 fn default_arp_retries() -> u32 {
@@ -213,6 +221,7 @@ impl Default for AppConfig {
             docker_proxy_ssl_cert: None,
             docker_proxy_ssl_chain: None,
             docker_proxy_ssl_key: None,
+            accept_invalid_scan_certs: default_accept_invalid_scan_certs(),
             use_npcap_arp: false,
             arp_retries: default_arp_retries(),
             arp_rate_pps: default_arp_rate_pps(),
@@ -584,6 +593,11 @@ impl ConfigStore {
     pub async fn get_port_scan_batch_size(&self) -> Result<usize> {
         let config = self.config.read().await;
         Ok(config.port_scan_batch_size)
+    }
+
+    pub async fn get_accept_invalid_scan_certs(&self) -> Result<bool> {
+        let config = self.config.read().await;
+        Ok(config.accept_invalid_scan_certs)
     }
 
     pub async fn get_interfaces(&self) -> Result<Vec<String>> {

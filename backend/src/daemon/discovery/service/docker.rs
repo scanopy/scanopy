@@ -513,6 +513,11 @@ impl DiscoveryRunner<DockerScanDiscovery> {
             let port_scan_batch_size = scan_params.port_batch_size;
 
             // Scan ports and any endpoints that match open ports
+            let accept_invalid_certs = self
+                .as_ref()
+                .config_store
+                .get_accept_invalid_scan_certs()
+                .await?;
             let endpoint_responses = tokio::spawn(scan_endpoints(
                 host_ip,
                 cancel.clone(),
@@ -520,6 +525,7 @@ impl DiscoveryRunner<DockerScanDiscovery> {
                 None,
                 port_scan_batch_size,
                 true,
+                accept_invalid_certs,
             ))
             .await
             .map_err(|e| anyhow!("Scan task panicked: {}", e))?

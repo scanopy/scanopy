@@ -338,7 +338,9 @@
 							<AlertTriangle class="mt-0.5 h-4 w-4 shrink-0 text-warning" />
 							<div class="flex-1">
 								<p class="text-sm font-medium text-warning">{onboarding_commercialNoticeTitle()}</p>
+								<!-- svelte-ignore a11y -- trusted: i18n content with HTML links -->
 								<p class="mt-1 text-sm text-warning">
+									<!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted: i18n content with HTML links -->
 									{@html onboarding_commercialNoticeBody()}
 								</p>
 								<button type="button" class="btn-primary mt-4" onclick={handleLicenseAcknowledge}>

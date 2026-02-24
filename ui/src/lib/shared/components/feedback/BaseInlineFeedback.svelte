@@ -43,11 +43,11 @@
 			<Icon class="mt-0.5 h-4 w-4 shrink-0 {textColor}" />
 			<div class="flex-1">
 				{#if title}
-					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+					<!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted: all callers pass i18n or hardcoded strings -->
 					<p class="text-sm font-medium {textColor}">{@html title}</p>
 				{/if}
 				{#if body}
-					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+					<!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted: all callers pass i18n or hardcoded strings -->
 					<p class={`${title ? 'mt-1' : ''} text-sm ${textColor}`}>{@html body}</p>
 				{/if}
 			</div>
