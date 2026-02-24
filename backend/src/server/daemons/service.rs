@@ -9,7 +9,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use anyhow::{Error, Result, anyhow};
+use anyhow::{Error, Result};
 use async_trait::async_trait;
 use backon::{ExponentialBuilder, Retryable};
 use chrono::Utc;
@@ -88,9 +88,6 @@ pub struct DaemonService {
 
     // Polling state
     poll_semaphore: Arc<Semaphore>,
-
-    // TLS enforcement for daemon URLs in ServerPoll mode
-    require_daemon_tls: bool,
 }
 
 impl EventBusService<Daemon> for DaemonService {
@@ -137,7 +134,6 @@ impl DaemonService {
         organization_service: Arc<OrganizationService>,
         user_service: Arc<UserService>,
         daemon_api_key_service: Arc<DaemonApiKeyService>,
-        require_daemon_tls: bool,
     ) -> Self {
         Self {
             daemon_storage,
@@ -155,27 +151,25 @@ impl DaemonService {
             daemon_api_key_service,
             host_service: std::sync::OnceLock::new(),
             poll_semaphore: Arc::new(Semaphore::new(MAX_CONCURRENT_POLLS)),
-            require_daemon_tls,
         }
     }
 
-    /// Validates that a daemon URL uses HTTPS when TLS is required.
-    /// Localhost addresses are exempt (development/integrated daemon).
-    fn validate_daemon_url_tls(&self, url: &str) -> Result<()> {
-        if !self.require_daemon_tls {
-            return Ok(());
-        }
-        let parsed = url::Url::parse(url).map_err(|_| anyhow!("Invalid daemon URL"))?;
-        if parsed.scheme() == "https" {
-            return Ok(());
-        }
-        // Allow localhost exemption for integrated daemons
-        if let Some(host) = parsed.host_str()
-            && (host == "localhost" || host == "127.0.0.1" || host == "::1")
+    /// Logs a warning if a daemon URL uses HTTP (credentials sent in plaintext).
+    /// Does not block — users may have legitimate reasons (VPN, private network).
+    fn warn_if_insecure_daemon_url(url: &str) {
+        if let Ok(parsed) = url::Url::parse(url)
+            && parsed.scheme() != "https"
+            && let Some(host) = parsed.host_str()
+            && host != "localhost"
+            && host != "127.0.0.1"
+            && host != "::1"
         {
-            return Ok(());
+            tracing::warn!(
+                daemon_url = url,
+                "Daemon URL uses HTTP — credentials will be sent unencrypted. \
+                 Ensure the connection is secured through other means (e.g., VPN, private network)"
+            );
         }
-        Err(anyhow!("Daemon URL must use HTTPS when TLS is required"))
     }
 
     // ========================================================================
@@ -374,8 +368,7 @@ impl DaemonService {
         api_key: Option<&str>,
         request: DaemonDiscoveryRequest,
     ) -> Result<(), Error> {
-        // Validate TLS for daemon URL
-        self.validate_daemon_url_tls(&daemon.base.url)?;
+        Self::warn_if_insecure_daemon_url(&daemon.base.url);
 
         tracing::info!(
             daemon_id = %daemon.id,
@@ -1159,8 +1152,7 @@ impl DaemonService {
     /// /api/discovery/entities-created). Legacy daemons stay alive via their
     /// own heartbeat calls to the server's backward-compat endpoint.
     async fn poll_daemon(&self, daemon: &Daemon) -> Result<()> {
-        // Validate TLS for daemon URL
-        self.validate_daemon_url_tls(&daemon.base.url)?;
+        Self::warn_if_insecure_daemon_url(&daemon.base.url);
 
         // Skip polling for legacy daemons - they don't have the new endpoints
         if !daemon.supports_full_server_poll() {

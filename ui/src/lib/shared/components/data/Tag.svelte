@@ -7,13 +7,15 @@
 		color = 'Gray',
 		disabled = false,
 		label,
-		badge = ''
+		badge = '',
+		href = ''
 	}: {
 		icon?: IconComponent | null;
 		color?: Color;
 		disabled?: boolean;
 		label: string;
 		badge?: string;
+		href?: string;
 	} = $props();
 
 	// Make colorHelper reactive to color changes
@@ -22,8 +24,7 @@
 	let textColor = $derived(colorHelper.text);
 </script>
 
-<div class="inline-flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded">
-	<!-- Main content -->
+{#snippet content()}
 	<span
 		class="inline-flex items-center gap-1 {!disabled ? bgColor : 'bg-gray-700/30'} {!disabled
 			? textColor
@@ -39,4 +40,21 @@
 			<span class="flex-shrink-0 {textColor}">{badge}</span>
 		{/if}
 	</span>
-</div>
+{/snippet}
+
+<!-- eslint-disable svelte/no-navigation-without-resolve -->
+{#if href}
+	<a
+		{href}
+		target="_blank"
+		rel="noopener noreferrer"
+		class="inline-flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded"
+		onclick={(e) => e.stopPropagation()}
+	>
+		{@render content()}
+	</a>
+{:else}
+	<div class="inline-flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded">
+		{@render content()}
+	</div>
+{/if}

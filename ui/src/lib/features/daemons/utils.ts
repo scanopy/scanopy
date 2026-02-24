@@ -2,6 +2,8 @@ import { fieldDefs } from './config';
 import type { Daemon } from './types/base';
 import type { FormValue } from '$lib/shared/components/forms/validators';
 
+export const DAEMON_STATUS_DOCS_URL = 'https://scanopy.net/docs/daemon-status';
+
 export type DaemonOS = 'linux' | 'macos' | 'windows' | 'freebsd' | 'openbsd';
 
 export function detectOS(): DaemonOS {

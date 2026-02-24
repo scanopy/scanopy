@@ -3,6 +3,7 @@
 	import type { FormValue } from '$lib/shared/components/forms/validators';
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
 	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
+	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 	import SelectNetwork from '$lib/features/networks/components/SelectNetwork.svelte';
 	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
 	import {
@@ -23,7 +24,8 @@
 		daemons_config_namePlaceholder,
 		daemons_config_portHelpServerPoll,
 		daemons_networkCannotChange,
-		daemons_portForwardingHint
+		daemons_portForwardingHint,
+		daemons_httpDaemonUrlWarning
 	} from '$lib/paraglide/messages';
 
 	interface Props {
@@ -69,6 +71,13 @@
 	let daemonPortDef = fieldDefs.find((d) => d.id === 'daemonPort')!;
 
 	let isServerPoll = $derived(formValues.mode === 'server_poll');
+	let daemonUrl = $derived(String(formValues.daemonUrl ?? ''));
+	let showHttpWarning = $derived(
+		daemonUrl.startsWith('http://') &&
+			!daemonUrl.startsWith('http://localhost') &&
+			!daemonUrl.startsWith('http://127.0.0.1') &&
+			!daemonUrl.startsWith('http://[::1]')
+	);
 </script>
 
 <div class="space-y-4">
@@ -161,6 +170,10 @@
 				</form.Field>
 			</div>
 		</div>
+
+		{#if showHttpWarning}
+			<InlineWarning title="" body={daemons_httpDaemonUrlWarning()} />
+		{/if}
 
 		<InlineInfo title="" body={daemons_portForwardingHint()} />
 	{/if}
