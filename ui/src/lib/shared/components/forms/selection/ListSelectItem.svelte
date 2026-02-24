@@ -109,7 +109,12 @@
 			{#if tags.length > 0}
 				<div class="flex flex-shrink-0 items-center gap-1">
 					{#each visibleTags as tag, i (`${tag.label}-${i}`)}
-						<Tag label={tag.label} color={tag.color} icon={tag.icon ?? null} />
+						<Tag
+							label={tag.label}
+							color={tag.color}
+							icon={tag.icon ?? null}
+							href={tag.href ?? ''}
+						/>
 					{/each}
 					{#if hiddenCount > 0}
 						<span class="text-tertiary whitespace-nowrap text-xs">+{hiddenCount} more</span>
@@ -128,7 +133,14 @@
 	<div bind:this={measureEl} class="invisible absolute -left-[9999px]" aria-hidden="true">
 		<div class="flex gap-1">
 			{#each tags as tag, i (`measure-${tag.label}-${i}`)}
-				<span data-tag><Tag label={tag.label} color={tag.color} /></span>
+				<span data-tag
+					><Tag
+						label={tag.label}
+						color={tag.color}
+						icon={tag.icon ?? null}
+						href={tag.href ?? ''}
+					/></span
+				>
 			{/each}
 		</div>
 	</div>

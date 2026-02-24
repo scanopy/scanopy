@@ -9,7 +9,8 @@
 	import { concepts, entities } from '$lib/shared/stores/metadata';
 	import { formatTimestamp } from '$lib/shared/utils/formatting';
 	import { toColor } from '$lib/shared/utils/styling';
-	import { ArrowBigUp, RefreshCw, Trash2 } from 'lucide-svelte';
+	import { ArrowBigUp, CircleHelp, RefreshCw, Trash2 } from 'lucide-svelte';
+	import { DAEMON_STATUS_DOCS_URL } from '$lib/features/daemons/utils';
 	import { useNetworksQuery } from '$lib/features/networks/queries';
 	import { useHostsQuery } from '$lib/features/hosts/queries';
 	import { useSubnetsQuery } from '$lib/features/subnets/queries';
@@ -57,17 +58,22 @@
 		daemon.api_key_id ? apiKeysData.find((k) => k.id === daemon.api_key_id) : null
 	);
 
-	// Compute status tag based on version_status and reachability
+	// Compute status tag based on standby, reachability, and version_status
+	// Priority: Standby > Unreachable > Deprecated > Outdated
 	let status: TagProps | null = $derived.by(() => {
-		// Unreachable takes priority - it's a critical status
+		const docsTag = { href: DAEMON_STATUS_DOCS_URL, icon: CircleHelp };
+
+		if (daemon.standby === true) {
+			return { label: 'Standby', color: toColor('orange'), ...docsTag };
+		}
 		if (daemon.is_unreachable === true) {
-			return { label: 'Unreachable', color: toColor('red') };
+			return { label: 'Unreachable', color: toColor('red'), ...docsTag };
 		}
 		switch (daemon.version_status.status) {
 			case 'Deprecated':
-				return { label: 'Deprecated', color: toColor('red') };
+				return { label: 'Deprecated', color: toColor('red'), ...docsTag };
 			case 'Outdated':
-				return { label: 'Outdated', color: toColor('yellow') };
+				return { label: 'Outdated', color: toColor('yellow'), ...docsTag };
 			default:
 				return null;
 		}

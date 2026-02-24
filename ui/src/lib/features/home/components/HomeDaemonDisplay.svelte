@@ -2,7 +2,11 @@
 	import { entities } from '$lib/shared/stores/metadata';
 	import { toColor } from '$lib/shared/utils/styling';
 	import { formatRelativeTime } from '$lib/shared/utils/formatting';
+	import { DAEMON_STATUS_DOCS_URL } from '$lib/features/daemons/utils';
+	import { CircleHelp } from 'lucide-svelte';
 	import type { Daemon } from '$lib/features/daemons/types/base';
+
+	const docsTag = { href: DAEMON_STATUS_DOCS_URL, icon: CircleHelp };
 
 	export const HomeDaemonDisplay: EntityDisplayComponent<Daemon, Record<string, never>> = {
 		getId: (daemon) => daemon.id,
@@ -19,16 +23,20 @@
 				});
 			}
 
+			if (daemon.standby === true) {
+				tags.push({ label: 'Standby', color: toColor('orange'), ...docsTag });
+			}
+
 			if (daemon.is_unreachable) {
-				tags.push({ label: 'Unreachable', color: toColor('red') });
+				tags.push({ label: 'Unreachable', color: toColor('red'), ...docsTag });
 			}
 
 			switch (daemon.version_status.status) {
 				case 'Deprecated':
-					tags.push({ label: 'Deprecated', color: toColor('red') });
+					tags.push({ label: 'Deprecated', color: toColor('red'), ...docsTag });
 					break;
 				case 'Outdated':
-					tags.push({ label: 'Outdated', color: toColor('yellow') });
+					tags.push({ label: 'Outdated', color: toColor('yellow'), ...docsTag });
 					break;
 			}
 
