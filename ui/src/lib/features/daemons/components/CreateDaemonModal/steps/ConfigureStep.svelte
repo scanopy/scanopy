@@ -72,12 +72,17 @@
 
 	let isServerPoll = $derived(formValues.mode === 'server_poll');
 	let daemonUrl = $derived(String(formValues.daemonUrl ?? ''));
-	let showHttpWarning = $derived(
-		daemonUrl.startsWith('http://') &&
-			!daemonUrl.startsWith('http://localhost') &&
-			!daemonUrl.startsWith('http://127.0.0.1') &&
-			!daemonUrl.startsWith('http://[::1]')
-	);
+	let showHttpWarning = $derived.by(() => {
+		try {
+			const parsed = new URL(daemonUrl);
+			if (parsed.protocol !== 'http:') return false;
+			const host = parsed.hostname;
+			return host !== 'localhost' && host !== '127.0.0.1' && host !== '::1';
+		} catch {
+			// URL is incomplete/invalid — don't show warning yet
+			return false;
+		}
+	});
 </script>
 
 <div class="space-y-4">

@@ -1,47 +1,17 @@
 <script lang="ts" context="module">
 	import { entities } from '$lib/shared/stores/metadata';
-	import { toColor } from '$lib/shared/utils/styling';
 	import { formatRelativeTime } from '$lib/shared/utils/formatting';
-	import { DAEMON_STATUS_DOCS_URL } from '$lib/features/daemons/utils';
-	import { CircleHelp } from 'lucide-svelte';
+	import { getDaemonStatusTag } from '$lib/features/daemons/utils';
 	import type { Daemon } from '$lib/features/daemons/types/base';
-
-	const docsTag = { href: DAEMON_STATUS_DOCS_URL, icon: CircleHelp };
 
 	export const HomeDaemonDisplay: EntityDisplayComponent<Daemon, Record<string, never>> = {
 		getId: (daemon) => daemon.id,
 		getLabel: (daemon) => daemon.name,
 		getIcon: () => entities.getIconComponent('Daemon'),
 		getIconColor: () => entities.getColorHelper('Daemon').icon,
-		getTags: (daemon) => {
-			const tags = [];
-
-			if (daemon.last_seen) {
-				tags.push({
-					label: `Last seen ${formatRelativeTime(daemon.last_seen)}`,
-					color: toColor('green')
-				});
-			}
-
-			if (daemon.standby === true) {
-				tags.push({ label: 'Standby', color: toColor('purple'), ...docsTag });
-			}
-
-			if (daemon.is_unreachable) {
-				tags.push({ label: 'Unreachable', color: toColor('red'), ...docsTag });
-			}
-
-			switch (daemon.version_status.status) {
-				case 'Deprecated':
-					tags.push({ label: 'Deprecated', color: toColor('orange'), ...docsTag });
-					break;
-				case 'Outdated':
-					tags.push({ label: 'Outdated', color: toColor('yellow'), ...docsTag });
-					break;
-			}
-
-			return tags;
-		}
+		getDescription: (daemon) =>
+			daemon.last_seen ? `Last seen ${formatRelativeTime(daemon.last_seen)}` : '',
+		getTags: (daemon) => [getDaemonStatusTag(daemon)]
 	};
 </script>
 
