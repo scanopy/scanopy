@@ -36,7 +36,7 @@
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import type { components } from '$lib/api/schema';
 	import { permissions } from '$lib/shared/stores/metadata';
-	import { modalState } from '$lib/shared/stores/modal-registry';
+	import { modalState, openModal } from '$lib/shared/stores/modal-registry';
 	import type { TabProps } from '$lib/shared/types';
 	import {
 		common_auto,
@@ -135,6 +135,13 @@
 
 	let isRefreshConflictsOpen = $state(false);
 	let isShareModalOpen = $state(false);
+
+	// Deep-link: open share modal from modal registry
+	$effect(() => {
+		if ($modalState.name === 'topology-share' && !isShareModalOpen) {
+			isShareModalOpen = true;
+		}
+	});
 
 	let topologyViewer: TopologyViewer | null = $state(null);
 
@@ -314,7 +321,7 @@
 				<div class="flex items-center gap-4 py-2">
 					<ExportButton />
 					{#if !isReadOnly}
-						<button class="btn-secondary" onclick={() => (isShareModalOpen = true)}>
+						<button class="btn-secondary" onclick={() => openModal('topology-share')}>
 							<Share2 class="my-1 h-5 w-5" />
 						</button>
 					{/if}
@@ -483,6 +490,7 @@
 		onCancel={() => (isRefreshConflictsOpen = false)}
 	/>
 	<ShareModal
+		name="topology-share"
 		isOpen={isShareModalOpen}
 		topologyId={currentTopology.id}
 		networkId={currentTopology.network_id}

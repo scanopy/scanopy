@@ -154,6 +154,7 @@ impl BrevoService {
             TelemetryOperation::SecondNetworkCreated
             | TelemetryOperation::FirstHostDiscovered
             | TelemetryOperation::FirstTagCreated
+            | TelemetryOperation::FirstGroupCreated
             | TelemetryOperation::FirstUserApiKeyCreated
             | TelemetryOperation::FirstSnmpCredentialCreated
             | TelemetryOperation::InviteSent
@@ -174,6 +175,9 @@ impl BrevoService {
             }
             TelemetryOperation::FirstTagCreated => {
                 company_attrs = company_attrs.with_first_tag_date(event.timestamp);
+            }
+            TelemetryOperation::FirstGroupCreated => {
+                company_attrs = company_attrs.with_first_group_date(event.timestamp);
             }
             TelemetryOperation::FirstUserApiKeyCreated => {
                 company_attrs = company_attrs.with_first_api_key_date(event.timestamp);

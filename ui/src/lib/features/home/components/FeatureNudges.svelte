@@ -2,6 +2,7 @@
 	import type { components } from '$lib/api/schema';
 	import FeatureNudge from './FeatureNudge.svelte';
 	import { openModal } from '$lib/shared/stores/modal-registry';
+	import { optionsPanelExpanded } from '$lib/features/topology/queries';
 	import { onMount } from 'svelte';
 
 	type Organization = components['schemas']['Organization'];
@@ -19,9 +20,14 @@
 	} = $props();
 
 	let mounted = $state(false);
+	let dismissCount = $state(0);
 	onMount(() => {
 		mounted = true;
 	});
+
+	function onDismiss() {
+		dismissCount++;
+	}
 
 	const planType = $derived(organization.plan?.type ?? null);
 	const onboarding = $derived(organization.onboarding ?? []);
@@ -52,6 +58,30 @@
 					openModal('tag-editor');
 				},
 				visible: !has('FirstTagCreated')
+			},
+			{
+				id: 'topology-customize',
+				title: 'Customize Your Topology',
+				description:
+					'Use the options panel to filter nodes, hide edges, and organize your network view.',
+				actionLabel: 'Open Options',
+				action: () => {
+					onNavigate('topology');
+					optionsPanelExpanded.set(true);
+				},
+				visible: has('FirstTopologyRebuild') && !has('FirstGroupCreated')
+			},
+			{
+				id: 'groups',
+				title: 'Create a Group',
+				description:
+					'Group related services together on the topology to keep your network view organized.',
+				actionLabel: 'Create Group',
+				action: () => {
+					onNavigate('groups');
+					openModal('group-editor');
+				},
+				visible: has('FirstTopologyRebuild') && !has('FirstGroupCreated')
 			},
 			{
 				id: 'snmp',
@@ -95,6 +125,17 @@
 				visible: isProPlus && dashboard.networks.length === 1
 			},
 			{
+				id: 'share',
+				title: 'Share Your Topology',
+				description: 'Create a live link or embed to share your network topology with others.',
+				actionLabel: 'Create Share',
+				action: () => {
+					onNavigate('topology');
+					openModal('topology-share');
+				},
+				visible: isProPlus
+			},
+			{
 				id: 'invite-team',
 				title: 'Invite Your Team',
 				description: 'Collaborate with your team by inviting members to your organization.',
@@ -108,7 +149,9 @@
 	});
 
 	// Check localStorage for dismissed nudges and limit to 2
+	// dismissCount is a reactive dependency so this recomputes when a nudge is dismissed
 	let visibleNudgeIds = $derived.by((): string[] => {
+		void dismissCount;
 		if (!mounted) return [];
 		const visible: string[] = [];
 		for (const nudge of nudges) {
@@ -132,6 +175,7 @@
 					description={nudge.description}
 					actionLabel={nudge.actionLabel}
 					onAction={nudge.action}
+					{onDismiss}
 				/>
 			{/each}
 		</div>

@@ -7,17 +7,19 @@ use crate::server::auth::middleware::permissions::{Authorized, Member, Viewer};
 use crate::server::bindings::r#impl::base::Binding;
 use crate::server::config::AppState;
 use crate::server::groups::r#impl::base::Group;
+use crate::server::shared::events::types::{TelemetryEvent, TelemetryOperation};
 use crate::server::shared::handlers::ordering::OrderField;
 use crate::server::shared::handlers::query::{
     FilterQueryExtractor, OrderDirection, PaginationParams,
 };
 use crate::server::shared::handlers::traits::{create_handler, update_handler};
-use crate::server::shared::services::traits::CrudService;
+use crate::server::shared::services::traits::{CrudService, EventBusService};
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::{Entity, Storable};
 use crate::server::shared::types::api::{
     ApiError, ApiErrorResponse, ApiResponse, ApiResult, PaginatedApiResponse,
 };
+use chrono::Utc;
 use std::sync::Arc;
 use utoipa::IntoParams;
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -201,6 +203,11 @@ async fn create_group(
     auth: Authorized<Member>,
     Json(group): Json<Group>,
 ) -> ApiResult<Json<ApiResponse<Group>>> {
+    let organization_id = auth
+        .organization_id()
+        .ok_or_else(|| ApiError::forbidden("Organization context required"))?;
+    let entity = auth.entity.clone();
+
     // Custom validation: Check for service bindings on different networks
     for binding_id in &group.base.binding_ids {
         let binding_id_filter = StorableFilter::<Binding>::new_from_entity_id(binding_id);
@@ -220,7 +227,36 @@ async fn create_group(
     }
 
     // Delegate to generic handler (handles validation, auth checks, creation)
-    create_handler::<Group>(State(state), auth, Json(group)).await
+    let response = create_handler::<Group>(State(state.clone()), auth, Json(group)).await?;
+
+    // Emit FirstGroupCreated telemetry event if this is the first group
+    if response.data.is_some() {
+        let organization = state
+            .services
+            .organization_service
+            .get_by_id(&organization_id)
+            .await?;
+
+        if let Some(organization) = organization
+            && organization.not_onboarded(&TelemetryOperation::FirstGroupCreated)
+        {
+            state
+                .services
+                .group_service
+                .event_bus()
+                .publish_telemetry(TelemetryEvent {
+                    id: Uuid::new_v4(),
+                    organization_id,
+                    operation: TelemetryOperation::FirstGroupCreated,
+                    timestamp: Utc::now(),
+                    metadata: serde_json::json!({}),
+                    authentication: entity,
+                })
+                .await?;
+        }
+    }
+
+    Ok(response)
 }
 
 /// Update a Group
