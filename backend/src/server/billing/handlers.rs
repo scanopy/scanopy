@@ -4,9 +4,7 @@ use crate::server::billing::types::api::{
 };
 use crate::server::billing::types::base::BillingPlan;
 use crate::server::config::AppState;
-use crate::server::daemons::r#impl::base::Daemon;
 use crate::server::shared::services::traits::CrudService;
-use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::types::ErrorCode;
 use crate::server::shared::types::api::{ApiError, ApiResult};
 use crate::server::shared::types::api::{ApiErrorResponse, ApiResponse, EmptyApiResponse};
@@ -113,24 +111,7 @@ async fn create_checkout_session(
             }));
         }
 
-        // Check if user already has daemons — if not, append modal param to success URL
-        let has_daemons = {
-            let daemon_filter = StorableFilter::<Daemon>::new_from_network_ids(&auth.network_ids());
-            !billing_service
-                .daemon_service
-                .get_all(daemon_filter)
-                .await?
-                .is_empty()
-        };
-
-        let success_url = if has_daemons {
-            format!("{}?billing_flow=checkout", request.url)
-        } else {
-            format!(
-                "{}?billing_flow=checkout&modal=create-daemon#daemons",
-                request.url
-            )
-        };
+        let success_url = format!("{}?billing_flow=checkout", request.url);
 
         // Check if org already has a plan — route based on target plan and payment state
         let org = billing_service.get_organization(organization_id).await?;
