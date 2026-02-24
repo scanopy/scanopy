@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Scanopy API",
-    "description": "\nNetwork topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.14.6\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.14.6\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nThe API version is an integer (`api_version: 1`) incremented only on breaking changes. API is versioned independently from the application. Endpoints are prefixed with `/api/v1/`. Check `GET /api/version` for current versions.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **network(s)**:\n\n- You can only access entities within your organization\n- Network-level entities (hosts, services, etc.) are filtered to networks you have access to\n- Use `?network_id=<UUID>` to filter list endpoints to a specific network\n- API keys can be scoped to a subset of your accessible networks\n",
+    "description": "\nNetwork topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.14.7\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.14.7\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nThe API version is an integer (`api_version: 1`) incremented only on breaking changes. API is versioned independently from the application. Endpoints are prefixed with `/api/v1/`. Check `GET /api/version` for current versions.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **network(s)**:\n\n- You can only access entities within your organization\n- Network-level entities (hosts, services, etc.) are filtered to networks you have access to\n- Use `?network_id=<UUID>` to filter list endpoints to a specific network\n- API keys can be scoped to a subset of your accessible networks\n",
     "license": {
       "name": "Dual (AGPL3.0, Commercial License Available)"
     },
@@ -9452,12 +9452,12 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.14.6"
+            "example": "0.14.7"
           }
         },
         "example": {
           "api_version": 1,
-          "server_version": "0.14.6"
+          "server_version": "0.14.7"
         }
       },
       "ApiResponse": {
@@ -9531,14 +9531,14 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-02-23T00:27:49.354834Z",
-              "id": "c51dc18f-3beb-4cd2-bc41-aec8ec28b498",
+              "created_at": "2026-02-23T22:33:25.667354Z",
+              "id": "9925691f-c53e-4218-89b2-bd58af965e90",
               "interface_id": "550e8400-e29b-41d4-a716-446655440005",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-02-23T00:27:49.354834Z"
+              "updated_at": "2026-02-23T22:33:25.667354Z"
             }
           },
           "error": {
@@ -9853,6 +9853,60 @@
               }
             ],
             "description": "Daemon response for UI including computed version status"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ApiResponse_DashboardSummary": {
+        "type": "object",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Dashboard summary response",
+            "required": [
+              "networks",
+              "daemons",
+              "recent_discoveries",
+              "plan_usage"
+            ],
+            "properties": {
+              "daemons": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DaemonSummary"
+                }
+              },
+              "networks": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/NetworkSummary"
+                }
+              },
+              "plan_usage": {
+                "$ref": "#/components/schemas/PlanUsage"
+              },
+              "recent_discoveries": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Discovery"
+                }
+              }
+            }
           },
           "error": {
             "type": [
@@ -10283,14 +10337,14 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-02-23T00:27:49.340686Z",
-                      "id": "8a0f51d1-405a-4de6-b30f-a00c109d2481",
+                      "created_at": "2026-02-23T22:33:25.648127Z",
+                      "id": "f2956af5-fc6a-42f3-b3aa-d6bd536397c0",
                       "interface_id": "550e8400-e29b-41d4-a716-446655440005",
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-02-23T00:27:49.340686Z"
+                      "updated_at": "2026-02-23T22:33:25.648127Z"
                     }
                   ],
                   "created_at": "2026-01-15T10:30:00Z",
@@ -10299,7 +10353,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "FTP Server",
+                  "service_definition": "Google Home",
                   "source": {
                     "type": "Manual"
                   },
@@ -11102,14 +11156,14 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-02-23T00:27:49.350400Z",
-                  "id": "681807e4-8ae2-4b03-8128-dfebf9125640",
+                  "created_at": "2026-02-23T22:33:25.662025Z",
+                  "id": "5c33a016-757f-4a80-ac83-eddd7493d776",
                   "interface_id": "550e8400-e29b-41d4-a716-446655440005",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-02-23T00:27:49.350400Z"
+                  "updated_at": "2026-02-23T22:33:25.662025Z"
                 }
               ],
               "created_at": "2026-01-15T10:30:00Z",
@@ -11118,7 +11172,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "FTP Server",
+              "service_definition": "Google Home",
               "source": {
                 "type": "Manual"
               },
@@ -12317,14 +12371,14 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-02-23T00:27:49.340906Z",
-          "id": "6782c583-0cc7-4324-8871-f2d02cf20fbe",
+          "created_at": "2026-02-23T22:33:25.648330Z",
+          "id": "2b26fc79-f64d-4c55-a4b3-c11a14159ef9",
           "interface_id": "550e8400-e29b-41d4-a716-446655440005",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-02-23T00:27:49.340906Z"
+          "updated_at": "2026-02-23T22:33:25.648330Z"
         }
       },
       "BindingBase": {
@@ -12831,7 +12885,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "FTP Server",
+              "service_definition": "Google Home",
               "tags": [],
               "virtualization": null
             }
@@ -13361,6 +13415,43 @@
           }
         }
       },
+      "DaemonSummary": {
+        "type": "object",
+        "description": "Daemon health summary",
+        "required": [
+          "id",
+          "name",
+          "network_id",
+          "is_unreachable",
+          "version_status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "is_unreachable": {
+            "type": "boolean"
+          },
+          "last_seen": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "name": {
+            "type": "string"
+          },
+          "network_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version_status": {
+            "$ref": "#/components/schemas/DaemonVersionStatus"
+          }
+        }
+      },
       "DaemonVersionStatus": {
         "type": "object",
         "description": "Daemon version status including health and any warnings",
@@ -13381,6 +13472,39 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DeprecationWarning"
+            }
+          }
+        }
+      },
+      "DashboardSummary": {
+        "type": "object",
+        "description": "Dashboard summary response",
+        "required": [
+          "networks",
+          "daemons",
+          "recent_discoveries",
+          "plan_usage"
+        ],
+        "properties": {
+          "daemons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DaemonSummary"
+            }
+          },
+          "networks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkSummary"
+            }
+          },
+          "plan_usage": {
+            "$ref": "#/components/schemas/PlanUsage"
+          },
+          "recent_discoveries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Discovery"
             }
           }
         }
@@ -14687,14 +14811,14 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-02-23T00:27:49.340383Z",
-                  "id": "1dbda941-e374-4fc8-93ca-f4b0f862cb26",
+                  "created_at": "2026-02-23T22:33:25.647859Z",
+                  "id": "83dc520c-a152-4385-a701-c7a93e7d3a7a",
                   "interface_id": "550e8400-e29b-41d4-a716-446655440005",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-02-23T00:27:49.340383Z"
+                  "updated_at": "2026-02-23T22:33:25.647859Z"
                 }
               ],
               "created_at": "2026-01-15T10:30:00Z",
@@ -14703,7 +14827,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "FTP Server",
+              "service_definition": "Google Home",
               "source": {
                 "type": "Manual"
               },
@@ -15873,6 +15997,47 @@
           }
         }
       },
+      "NetworkSummary": {
+        "type": "object",
+        "description": "Per-network summary of entity counts",
+        "required": [
+          "id",
+          "name",
+          "host_count",
+          "service_count",
+          "subnet_count",
+          "daemon_count"
+        ],
+        "properties": {
+          "daemon_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "host_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "service_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "subnet_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
       "Node": {
         "allOf": [
           {
@@ -16228,7 +16393,7 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.14.6"
+            "example": "0.14.7"
           }
         },
         "example": {
@@ -16239,7 +16404,7 @@
             "offset": 0,
             "total_count": 142
           },
-          "server_version": "0.14.6"
+          "server_version": "0.14.7"
         }
       },
       "PaginatedApiResponse_DaemonResponse": {
@@ -16596,14 +16761,14 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-02-23T00:27:49.329803Z",
-                        "id": "d8cd4a1a-0c40-4ce7-a6aa-ccf6a9ccc7d2",
+                        "created_at": "2026-02-23T22:33:25.634743Z",
+                        "id": "48481ca3-41a9-49fc-8df6-23f123e1b61c",
                         "interface_id": "550e8400-e29b-41d4-a716-446655440005",
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-02-23T00:27:49.329803Z"
+                        "updated_at": "2026-02-23T22:33:25.634743Z"
                       }
                     ],
                     "created_at": "2026-01-15T10:30:00Z",
@@ -16612,7 +16777,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "FTP Server",
+                    "service_definition": "Google Home",
                     "source": {
                       "type": "Manual"
                     },
@@ -16689,14 +16854,14 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-02-23T00:27:49.349282Z",
-                    "id": "f8f9a9f1-c0ea-402b-b219-2b02e9754b47",
+                    "created_at": "2026-02-23T22:33:25.660967Z",
+                    "id": "687e72ba-526c-4670-88c8-120b2233f76d",
                     "interface_id": "550e8400-e29b-41d4-a716-446655440005",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-02-23T00:27:49.349282Z"
+                    "updated_at": "2026-02-23T22:33:25.660967Z"
                   }
                 ],
                 "created_at": "2026-01-15T10:30:00Z",
@@ -16705,7 +16870,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "FTP Server",
+                "service_definition": "Google Home",
                 "source": {
                   "type": "Manual"
                 },
@@ -17231,6 +17396,56 @@
           }
         }
       },
+      "PlanUsage": {
+        "type": "object",
+        "description": "Plan usage limits and current counts",
+        "required": [
+          "host_count",
+          "network_count",
+          "seat_count"
+        ],
+        "properties": {
+          "host_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "host_limit": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "minimum": 0
+          },
+          "network_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "network_limit": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "minimum": 0
+          },
+          "seat_count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "seat_limit": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
       "Port": {
         "allOf": [
           {
@@ -17706,14 +17921,14 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-02-23T00:27:49.340835Z",
-              "id": "1c574535-b718-4753-875d-e49c8e2df5a7",
+              "created_at": "2026-02-23T22:33:25.648260Z",
+              "id": "53c2119e-99ca-4721-81e2-f536630be0e7",
               "interface_id": "550e8400-e29b-41d4-a716-446655440005",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-02-23T00:27:49.340835Z"
+              "updated_at": "2026-02-23T22:33:25.648260Z"
             }
           ],
           "created_at": "2026-01-15T10:30:00Z",
@@ -17722,7 +17937,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "FTP Server",
+          "service_definition": "Google Home",
           "source": {
             "type": "Manual"
           },

@@ -970,6 +970,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboard/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get dashboard summary
+         * @description Returns aggregated dashboard data including network metrics, daemon health,
+         *     recent discoveries, and plan usage.
+         */
+        get: operations["get_dashboard_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/discovery": {
         parameters: {
             query?: never;
@@ -2710,7 +2731,7 @@ export interface components {
          * @description API metadata included in all responses
          * @example {
          *       "api_version": 1,
-         *       "server_version": "0.14.6"
+         *       "server_version": "0.14.7"
          *     }
          */
         ApiMeta: {
@@ -2721,7 +2742,7 @@ export interface components {
             api_version: number;
             /**
              * @description Server version (semver)
-             * @example 0.14.6
+             * @example 0.14.7
              */
             server_version: string;
         };
@@ -2735,14 +2756,14 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-02-23T00:27:49.354828Z",
-             *       "id": "e858d9f9-53a2-4bd1-bab9-261f5009f416",
+             *       "created_at": "2026-02-23T22:33:25.667361Z",
+             *       "id": "70e7b283-7b56-464a-9265-33b41efb809d",
              *       "interface_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-02-23T00:27:49.354828Z"
+             *       "updated_at": "2026-02-23T22:33:25.667361Z"
              *     }
              */
             data?: components["schemas"]["BindingBase"] & {
@@ -2834,6 +2855,18 @@ export interface components {
                 updated_at: string;
                 /** @description Computed version status including health and warnings */
                 version_status: components["schemas"]["DaemonVersionStatus"];
+            };
+            error?: string | null;
+            meta: components["schemas"]["ApiMeta"];
+            success: boolean;
+        };
+        ApiResponse_DashboardSummary: {
+            /** @description Dashboard summary response */
+            data?: {
+                daemons: components["schemas"]["DaemonSummary"][];
+                networks: components["schemas"]["NetworkSummary"][];
+                plan_usage: components["schemas"]["PlanUsage"];
+                recent_discoveries: components["schemas"]["Discovery"][];
             };
             error?: string | null;
             meta: components["schemas"]["ApiMeta"];
@@ -2977,14 +3010,14 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-02-23T00:27:49.340673Z",
-             *               "id": "5af10dcf-45b5-4657-917e-59ff97958fb7",
+             *               "created_at": "2026-02-23T22:33:25.648129Z",
+             *               "id": "0ad7f1a0-fc1d-48a3-bb93-c12933e3c923",
              *               "interface_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-02-23T00:27:49.340673Z"
+             *               "updated_at": "2026-02-23T22:33:25.648129Z"
              *             }
              *           ],
              *           "created_at": "2026-01-15T10:30:00Z",
@@ -2993,7 +3026,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "FTP Server",
+             *           "service_definition": "Google Home",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -3266,14 +3299,14 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-02-23T00:27:49.350419Z",
-             *           "id": "a3af232d-504b-4c35-a2de-a158839c5c52",
+             *           "created_at": "2026-02-23T22:33:25.662026Z",
+             *           "id": "3fe34ab2-7e67-4b32-8588-c83ea54dfc06",
              *           "interface_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-02-23T00:27:49.350419Z"
+             *           "updated_at": "2026-02-23T22:33:25.662026Z"
              *         }
              *       ],
              *       "created_at": "2026-01-15T10:30:00Z",
@@ -3282,7 +3315,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "FTP Server",
+             *       "service_definition": "Google Home",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -3585,14 +3618,14 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-02-23T00:27:49.340887Z",
-         *       "id": "3008f4ec-4999-45d1-a4b0-4ce075b95390",
+         *       "created_at": "2026-02-23T22:33:25.648333Z",
+         *       "id": "89f21030-cc1c-4442-966a-0453de0a20c1",
          *       "interface_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-02-23T00:27:49.340887Z"
+         *       "updated_at": "2026-02-23T22:33:25.648333Z"
          *     }
          */
         Binding: components["schemas"]["BindingBase"] & {
@@ -3774,7 +3807,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "FTP Server",
+         *           "service_definition": "Google Home",
          *           "tags": [],
          *           "virtualization": null
          *         }
@@ -3999,11 +4032,30 @@ export interface components {
             /** @description Daemon software version (optional for backwards compat) */
             version?: string | null;
         };
+        /** @description Daemon health summary */
+        DaemonSummary: {
+            /** Format: uuid */
+            id: string;
+            is_unreachable: boolean;
+            /** Format: date-time */
+            last_seen?: string | null;
+            name: string;
+            /** Format: uuid */
+            network_id: string;
+            version_status: components["schemas"]["DaemonVersionStatus"];
+        };
         /** @description Daemon version status including health and any warnings */
         DaemonVersionStatus: {
             status: components["schemas"]["VersionHealthStatus"];
             version?: string | null;
             warnings?: components["schemas"]["DeprecationWarning"][];
+        };
+        /** @description Dashboard summary response */
+        DashboardSummary: {
+            daemons: components["schemas"]["DaemonSummary"][];
+            networks: components["schemas"]["NetworkSummary"][];
+            plan_usage: components["schemas"]["PlanUsage"];
+            recent_discoveries: components["schemas"]["Discovery"][];
         };
         /** @enum {string} */
         DeploymentType: "cloud" | "commercial" | "community";
@@ -4409,14 +4461,14 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-02-23T00:27:49.340387Z",
-         *               "id": "94b1bc2f-c84f-4f97-ace9-b94bea504f9c",
+         *               "created_at": "2026-02-23T22:33:25.647855Z",
+         *               "id": "fb917bdf-3bd8-498f-b0d8-5427a5f1d388",
          *               "interface_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-02-23T00:27:49.340387Z"
+         *               "updated_at": "2026-02-23T22:33:25.647855Z"
          *             }
          *           ],
          *           "created_at": "2026-01-15T10:30:00Z",
@@ -4425,7 +4477,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "FTP Server",
+         *           "service_definition": "Google Home",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -4857,6 +4909,20 @@ export interface components {
             /** @description SNMP version ("V2c" or "V3") */
             snmp_version?: string | null;
         };
+        /** @description Per-network summary of entity counts */
+        NetworkSummary: {
+            /** Format: int64 */
+            daemon_count: number;
+            /** Format: int64 */
+            host_count: number;
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: int64 */
+            service_count: number;
+            /** Format: int64 */
+            subnet_count: number;
+        };
         Node: components["schemas"]["NodeType"] & {
             header?: string | null;
             /** Format: uuid */
@@ -4961,7 +5027,7 @@ export interface components {
          *         "offset": 0,
          *         "total_count": 142
          *       },
-         *       "server_version": "0.14.6"
+         *       "server_version": "0.14.7"
          *     }
          */
         PaginatedApiMeta: {
@@ -4974,7 +5040,7 @@ export interface components {
             pagination: components["schemas"]["PaginationMeta"];
             /**
              * @description Server version (semver)
-             * @example 0.14.6
+             * @example 0.14.7
              */
             server_version: string;
         };
@@ -5210,6 +5276,21 @@ export interface components {
             /** Format: int32 */
             trial_days: number;
         };
+        /** @description Plan usage limits and current counts */
+        PlanUsage: {
+            /** Format: int64 */
+            host_count: number;
+            /** Format: int64 */
+            host_limit?: number | null;
+            /** Format: int64 */
+            network_count: number;
+            /** Format: int64 */
+            network_limit?: number | null;
+            /** Format: int64 */
+            seat_count: number;
+            /** Format: int64 */
+            seat_limit?: number | null;
+        };
         /**
          * @description Port entity with custom serialization that flattens PortType fields.
          * @example {
@@ -5377,14 +5458,14 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-02-23T00:27:49.340818Z",
-         *           "id": "7189066a-7c67-45c5-90ff-9026e5fdb808",
+         *           "created_at": "2026-02-23T22:33:25.648265Z",
+         *           "id": "dfd72817-8cea-4693-bdae-df7be6bf4922",
          *           "interface_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-02-23T00:27:49.340818Z"
+         *           "updated_at": "2026-02-23T22:33:25.648265Z"
          *         }
          *       ],
          *       "created_at": "2026-01-15T10:30:00Z",
@@ -5393,7 +5474,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "FTP Server",
+         *       "service_definition": "Google Home",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -8079,6 +8160,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_dashboard_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dashboard summary */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_DashboardSummary"];
                 };
             };
         };
