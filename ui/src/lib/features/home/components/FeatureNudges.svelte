@@ -2,6 +2,7 @@
 	import type { components } from '$lib/api/schema';
 	import FeatureNudge from './FeatureNudge.svelte';
 	import { openModal } from '$lib/shared/stores/modal-registry';
+	import { optionsPanelExpanded } from '$lib/features/topology/queries';
 	import { onMount } from 'svelte';
 
 	type Organization = components['schemas']['Organization'];
@@ -59,6 +60,30 @@
 				visible: !has('FirstTagCreated')
 			},
 			{
+				id: 'topology-customize',
+				title: 'Customize Your Topology',
+				description:
+					'Use the options panel to filter nodes, hide edges, and organize your network view.',
+				actionLabel: 'Open Options',
+				action: () => {
+					onNavigate('topology');
+					optionsPanelExpanded.set(true);
+				},
+				visible: has('FirstTopologyRebuild') && !has('FirstGroupCreated')
+			},
+			{
+				id: 'groups',
+				title: 'Create a Group',
+				description:
+					'Group related services together on the topology to keep your network view organized.',
+				actionLabel: 'Create Group',
+				action: () => {
+					onNavigate('groups');
+					openModal('group-editor');
+				},
+				visible: has('FirstTopologyRebuild') && !has('FirstGroupCreated')
+			},
+			{
 				id: 'snmp',
 				title: 'Enable SNMP Discovery',
 				description: 'Add SNMP credentials to discover detailed interface and device information.',
@@ -98,6 +123,17 @@
 					openModal('network-editor');
 				},
 				visible: isProPlus && dashboard.networks.length === 1
+			},
+			{
+				id: 'share',
+				title: 'Share Your Topology',
+				description: 'Create a live link or embed to share your network topology with others.',
+				actionLabel: 'Create Share',
+				action: () => {
+					onNavigate('topology');
+					openModal('topology-share');
+				},
+				visible: isProPlus
 			},
 			{
 				id: 'invite-team',

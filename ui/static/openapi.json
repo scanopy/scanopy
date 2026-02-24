@@ -12069,14 +12069,14 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-02-24T13:31:44.057201Z",
-              "id": "63f91b4c-d8fd-4b63-a4ca-693bf90830cf",
+              "created_at": "2026-02-24T16:13:55.735120Z",
+              "id": "ce8fd8a3-62f1-43e9-bf9d-91222ffda176",
               "interface_id": "550e8400-e29b-41d4-a716-446655440005",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-02-24T13:31:44.057201Z"
+              "updated_at": "2026-02-24T16:13:55.735120Z"
             }
           },
           "error": {
@@ -12875,14 +12875,14 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-02-24T13:31:44.043367Z",
-                      "id": "b536cc60-ac8e-4ccb-8e8b-61142a3a1ea5",
+                      "created_at": "2026-02-24T16:13:55.721650Z",
+                      "id": "3e2f48d6-ddfb-4814-bebb-211e56b5feff",
                       "interface_id": "550e8400-e29b-41d4-a716-446655440005",
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-02-24T13:31:44.043367Z"
+                      "updated_at": "2026-02-24T16:13:55.721650Z"
                     }
                   ],
                   "created_at": "2026-01-15T10:30:00Z",
@@ -12891,7 +12891,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "MySQL",
+                  "service_definition": "Gitea",
                   "source": {
                     "type": "Manual"
                   },
@@ -13694,14 +13694,14 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-02-24T13:31:44.053471Z",
-                  "id": "088a3f25-3264-46b1-b7d6-98aa6d376774",
+                  "created_at": "2026-02-24T16:13:55.731386Z",
+                  "id": "196e2766-73c2-49d1-9cc8-f91895853d66",
                   "interface_id": "550e8400-e29b-41d4-a716-446655440005",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-02-24T13:31:44.053471Z"
+                  "updated_at": "2026-02-24T16:13:55.731386Z"
                 }
               ],
               "created_at": "2026-01-15T10:30:00Z",
@@ -13710,7 +13710,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "MySQL",
+              "service_definition": "Gitea",
               "source": {
                 "type": "Manual"
               },
@@ -14909,14 +14909,14 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-02-24T13:31:44.043567Z",
-          "id": "18ee2db1-d80d-4ee6-a262-e6546f081321",
+          "created_at": "2026-02-24T16:13:55.721862Z",
+          "id": "6ec989ce-2fa4-40f2-a91b-33e6ba4fb9a4",
           "interface_id": "550e8400-e29b-41d4-a716-446655440005",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-02-24T13:31:44.043567Z"
+          "updated_at": "2026-02-24T16:13:55.721862Z"
         }
       },
       "BindingBase": {
@@ -15423,7 +15423,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "MySQL",
+              "service_definition": "Gitea",
               "tags": [],
               "virtualization": null
             }
@@ -17312,14 +17312,14 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-02-24T13:31:44.043095Z",
-                  "id": "d22ed800-34d2-4c48-9fc1-b1f57b8888ed",
+                  "created_at": "2026-02-24T16:13:55.721369Z",
+                  "id": "ec46f013-e75d-4af9-a3e9-8d8c8839ead6",
                   "interface_id": "550e8400-e29b-41d4-a716-446655440005",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-02-24T13:31:44.043095Z"
+                  "updated_at": "2026-02-24T16:13:55.721369Z"
                 }
               ],
               "created_at": "2026-01-15T10:30:00Z",
@@ -17328,7 +17328,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "MySQL",
+              "service_definition": "Gitea",
               "source": {
                 "type": "Manual"
               },
@@ -19262,14 +19262,14 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-02-24T13:31:44.033991Z",
-                        "id": "5c9db645-9a13-4756-b3b3-b847c1806e19",
+                        "created_at": "2026-02-24T16:13:55.712488Z",
+                        "id": "78b4c0bd-97d7-46cf-b91c-cb8d032c3cb0",
                         "interface_id": "550e8400-e29b-41d4-a716-446655440005",
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-02-24T13:31:44.033991Z"
+                        "updated_at": "2026-02-24T16:13:55.712488Z"
                       }
                     ],
                     "created_at": "2026-01-15T10:30:00Z",
@@ -19278,7 +19278,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "MySQL",
+                    "service_definition": "Gitea",
                     "source": {
                       "type": "Manual"
                     },
@@ -19355,14 +19355,14 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-02-24T13:31:44.052506Z",
-                    "id": "1b2c20aa-b779-460f-9f3d-0bca19da9593",
+                    "created_at": "2026-02-24T16:13:55.730311Z",
+                    "id": "9ee243ef-e2bd-47b2-b865-450950412e2a",
                     "interface_id": "550e8400-e29b-41d4-a716-446655440005",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-02-24T13:31:44.052506Z"
+                    "updated_at": "2026-02-24T16:13:55.730311Z"
                   }
                 ],
                 "created_at": "2026-01-15T10:30:00Z",
@@ -19371,7 +19371,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "MySQL",
+                "service_definition": "Gitea",
                 "source": {
                   "type": "Manual"
                 },
@@ -20422,14 +20422,14 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-02-24T13:31:44.043495Z",
-              "id": "9a808060-73cb-4dea-8421-1e1020fea3ae",
+              "created_at": "2026-02-24T16:13:55.721791Z",
+              "id": "060bb4ab-48f6-4693-975f-c8215759a5d6",
               "interface_id": "550e8400-e29b-41d4-a716-446655440005",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-02-24T13:31:44.043495Z"
+              "updated_at": "2026-02-24T16:13:55.721791Z"
             }
           ],
           "created_at": "2026-01-15T10:30:00Z",
@@ -20438,7 +20438,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "MySQL",
+          "service_definition": "Gitea",
           "source": {
             "type": "Manual"
           },
@@ -21177,6 +21177,7 @@
           "FirstHostDiscovered",
           "SecondNetworkCreated",
           "FirstTagCreated",
+          "FirstGroupCreated",
           "FirstUserApiKeyCreated",
           "FirstSnmpCredentialCreated",
           "InviteSent",

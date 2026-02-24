@@ -432,6 +432,7 @@ pub enum TelemetryOperation {
     FirstHostDiscovered,
     SecondNetworkCreated,
     FirstTagCreated,
+    FirstGroupCreated,
     FirstUserApiKeyCreated,
     FirstSnmpCredentialCreated,
     InviteSent,
