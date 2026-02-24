@@ -80,7 +80,7 @@
 	}
 </script>
 
-{#if !dismissed}
+{#if !(allComplete && dismissed)}
 	<section>
 		<div class="rounded-lg border border-blue-600/30 bg-blue-900/20 p-4">
 			<div class="mb-3 flex items-center justify-between">
