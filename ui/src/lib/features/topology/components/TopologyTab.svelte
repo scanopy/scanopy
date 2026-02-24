@@ -57,7 +57,7 @@
 		topology_submitToCommunity
 	} from '$lib/paraglide/messages';
 
-	let { isReadOnly = false }: TabProps = $props();
+	let { isReadOnly = false, isActive = false }: TabProps = $props();
 
 	// Get current user to check permissions
 	const currentUserQuery = useCurrentUserQuery();
@@ -145,7 +145,12 @@
 	// One-time rebuild for onboarding: triggers when FirstTopologyRebuild milestone is missing,
 	// regardless of autoRebuild setting, so the checklist item clears on first topology visit.
 	// Must run before auto-rebuild so it can trigger unconditionally.
+	// Guard on isActive because all tabs are mounted simultaneously (hidden via CSS).
 	$effect(() => {
+		if (!isActive) {
+			return;
+		}
+
 		if (!currentTopology || currentTopology.is_locked) {
 			return;
 		}

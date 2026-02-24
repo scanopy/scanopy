@@ -152,7 +152,7 @@
 				<!-- Programmatically render all tabs based on sidebar config -->
 				{#each allTabs as tab (tab.id)}
 					<div class={activeTab !== tab.id ? 'h-0 overflow-hidden' : ''}>
-						<tab.component isReadOnly={tab.isReadOnly} />
+						<tab.component isReadOnly={tab.isReadOnly} isActive={activeTab === tab.id} />
 					</div>
 				{/each}
 			</div>

@@ -47,7 +47,10 @@
 				title: 'Organize with Tags',
 				description: 'Add tags to group and filter your hosts, services, and other entities.',
 				actionLabel: 'Go to Tags',
-				action: () => onNavigate('tags'),
+				action: () => {
+					onNavigate('tags');
+					openModal('tag-editor');
+				},
 				visible: !has('FirstTagCreated')
 			},
 			{

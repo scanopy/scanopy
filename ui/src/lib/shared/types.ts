@@ -18,6 +18,7 @@ export interface GetAllEntitiesRequest {
 // Shared props interface for sidebar tab components
 export interface TabProps {
 	isReadOnly?: boolean;
+	isActive?: boolean;
 }
 
 export function matchConfidenceColor(confidence: MatchConfidence): Color {

@@ -77,7 +77,10 @@
 			const parsed = new URL(daemonUrl);
 			if (parsed.protocol !== 'http:') return false;
 			const host = parsed.hostname;
-			return host !== 'localhost' && host !== '127.0.0.1' && host !== '::1';
+			if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return false;
+			// Suppress while user is still typing a localhost address
+			if ('localhost'.startsWith(host) || '127.0.0.1'.startsWith(host)) return false;
+			return true;
 		} catch {
 			// URL is incomplete/invalid — don't show warning yet
 			return false;
