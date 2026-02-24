@@ -131,7 +131,7 @@
 	showCloseButton={true}
 >
 	{#snippet headerIcon()}
-		<ModalHeaderIcon Icon={Key} color={colorHelper.color} />
+		<ModalHeaderIcon Icon={entities.getIconComponent("SnmpCredential")} color={colorHelper.color} />
 	{/snippet}
 
 	<form

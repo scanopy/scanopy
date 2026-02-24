@@ -1,4 +1,3 @@
-vvcccdbvueufdtgjguclhvbtnnledrluljfuvchfnkfk
 <script lang="ts">
 	import type { components } from '$lib/api/schema';
 	import FeatureNudge from './FeatureNudge.svelte';
@@ -7,6 +6,7 @@ vvcccdbvueufdtgjguclhvbtnnledrluljfuvchfnkfk
 	import { entities } from '$lib/shared/stores/metadata';
 	import type { IconComponent } from '$lib/shared/utils/types';
 	import { onMount } from 'svelte';
+	import type { Color } from '$lib/shared/utils/styling';
 
 	type Organization = components['schemas']['Organization'];
 	type TelemetryOperation = components['schemas']['TelemetryOperation'];
@@ -47,7 +47,8 @@ vvcccdbvueufdtgjguclhvbtnnledrluljfuvchfnkfk
 		actionLabel: string;
 		action: () => void;
 		visible: boolean;
-		icon: IconComponent | null;
+		icon: IconComponent;
+		iconColor: string
 	}
 
 	let nudges = $derived.by((): Nudge[] => {
@@ -62,7 +63,8 @@ vvcccdbvueufdtgjguclhvbtnnledrluljfuvchfnkfk
 					openModal('tag-editor');
 				},
 				visible: !has('FirstTagCreated'),
-				icon: entities.getIconComponent('Tag')
+				icon: entities.getIconComponent('Tag'),
+				iconColor: entities.getColorHelper('Tag').icon
 			},
 			{
 				id: 'topology-customize',
@@ -75,7 +77,8 @@ vvcccdbvueufdtgjguclhvbtnnledrluljfuvchfnkfk
 					optionsPanelExpanded.set(true);
 				},
 				visible: has('FirstTopologyRebuild') && !has('FirstGroupCreated'),
-				icon: entities.getIconComponent('Topology')
+				icon: entities.getIconComponent('Topology'),
+				iconColor: entities.getColorHelper('Topology').icon
 			},
 			{
 				id: 'groups',
@@ -88,33 +91,8 @@ vvcccdbvueufdtgjguclhvbtnnledrluljfuvchfnkfk
 					openModal('group-editor');
 				},
 				visible: has('FirstTopologyRebuild') && !has('FirstGroupCreated'),
-				icon: entities.getIconComponent('Group')
-			},
-			{
-				id: 'topology-customize',
-				title: 'Customize Your Topology',
-				description:
-					'Use the options panel to filter nodes, hide edges, and organize your network view.',
-				actionLabel: 'Open Options',
-				action: () => {
-					onNavigate('topology');
-					optionsPanelExpanded.set(true);
-				},
-				visible: has('FirstTopologyRebuild') && !has('FirstGroupCreated'),
-				icon: entities.getIconComponent("Topology")
-			},
-			{
-				id: 'groups',
-				title: 'Create a Group',
-				description:
-					'Group related services together on the topology to keep your network view organized.',
-				actionLabel: 'Create Group',
-				action: () => {
-					onNavigate('groups');
-					openModal('group-editor');
-				},
-				visible: has('FirstTopologyRebuild') && !has('FirstGroupCreated'),
-				icon: entities.getIconComponent("Group")
+				icon: entities.getIconComponent('Group'),
+				iconColor: entities.getColorHelper('Group').icon
 			},
 			{
 				id: 'snmp',
@@ -126,7 +104,8 @@ vvcccdbvueufdtgjguclhvbtnnledrluljfuvchfnkfk
 					openModal('snmp-credential-editor');
 				},
 				visible: !has('FirstSnmpCredentialCreated'),
-				icon: entities.getIconComponent('SnmpCredential')
+				icon: entities.getIconComponent('SnmpCredential'),
+				iconColor: entities.getColorHelper('SnmpCredential').icon
 			},
 			{
 				id: 'scheduled-free',
@@ -135,7 +114,8 @@ vvcccdbvueufdtgjguclhvbtnnledrluljfuvchfnkfk
 				actionLabel: 'View Plans',
 				action: () => openModal('billing-plan'),
 				visible: planType === 'Free',
-				icon: entities.getIconComponent('Discovery')
+				icon: entities.getIconComponent('Discovery'),
+				iconColor: entities.getColorHelper('Discovery').icon
 			},
 			{
 				id: 'api-keys',
@@ -147,7 +127,8 @@ vvcccdbvueufdtgjguclhvbtnnledrluljfuvchfnkfk
 					openModal('user-api-key');
 				},
 				visible: isProPlus && !has('FirstUserApiKeyCreated'),
-				icon: entities.getIconComponent('UserApiKey')
+				icon: entities.getIconComponent('UserApiKey'),
+				iconColor: entities.getColorHelper('UserApiKey').icon
 			},
 			{
 				id: 'multi-network',
@@ -159,7 +140,8 @@ vvcccdbvueufdtgjguclhvbtnnledrluljfuvchfnkfk
 					openModal('network-editor');
 				},
 				visible: isProPlus && dashboard.networks.length === 1,
-				icon: entities.getIconComponent('Network')
+				icon: entities.getIconComponent('Network'),
+				iconColor: entities.getColorHelper('Network').icon
 			},
 			{
 				id: 'share',
@@ -171,28 +153,21 @@ vvcccdbvueufdtgjguclhvbtnnledrluljfuvchfnkfk
 					openModal('topology-share');
 				},
 				visible: isProPlus,
-				icon: entities.getIconComponent('Share')
-			},
-			{
-				id: 'share',
-				title: 'Share Your Topology',
-				description: 'Create a live link or embed to share your network topology with others.',
-				actionLabel: 'Create Share',
-				action: () => {
-					onNavigate('topology');
-					openModal('topology-share');
-				},
-				visible: isProPlus,
-				icon: entities.getIconComponent("Share")
+				icon: entities.getIconComponent('Share'),
+				iconColor: entities.getColorHelper('Share').icon
 			},
 			{
 				id: 'invite-team',
 				title: 'Invite Your Team',
 				description: 'Collaborate with your team by inviting members to your organization.',
 				actionLabel: 'Invite Members',
-				action: () => openModal('settings', { tab: 'team' }),
+				action: () => {
+					onNavigate('users');
+					openModal('invite-user');
+				},
 				visible: isTeamPlus && !has('InviteSent'),
-				icon: entities.getIconComponent('User')
+				icon: entities.getIconComponent('User'),
+				iconColor: entities.getColorHelper('User').icon
 			}
 		];
 
@@ -227,6 +202,7 @@ vvcccdbvueufdtgjguclhvbtnnledrluljfuvchfnkfk
 					actionLabel={nudge.actionLabel}
 					onAction={nudge.action}
 					Icon={nudge.icon}
+					iconColor={nudge.iconColor}
 					{onDismiss}
 				/>
 			{/each}

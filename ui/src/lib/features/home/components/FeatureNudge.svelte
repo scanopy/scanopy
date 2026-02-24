@@ -10,8 +10,9 @@
 		actionLabel,
 		onAction,
 		onDismiss,
+		iconColor,
+		Icon,
 		dismissable = true,
-		Icon = null
 	}: {
 		id: string;
 		title: string;
@@ -20,7 +21,8 @@
 		onAction: () => void;
 		onDismiss?: () => void;
 		dismissable?: boolean;
-		Icon?: IconComponent | null;
+		Icon: IconComponent;
+		iconColor: string;
 	} = $props();
 
 	let dismissed = $state(false);
@@ -41,8 +43,8 @@
 	<div class="card card-static">
 		<div class="flex items-start justify-between gap-3">
 			{#if Icon}
-				<div class="text-tertiary mt-0.5 shrink-0">
-					<Icon size={20} />
+				<div class={`mt-0.5 shrink-0 ${iconColor}`}>
+					<Icon size={20}/>
 				</div>
 			{/if}
 			<div class="flex-1">
