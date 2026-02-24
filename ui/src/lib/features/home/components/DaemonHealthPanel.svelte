@@ -74,22 +74,22 @@
 				role={clickable ? 'button' : undefined}
 				tabindex={clickable ? 0 : undefined}
 			>
-				<div class="flex items-center justify-between">
+				<div class="flex items-center justify-between gap-3">
 					<div class="flex items-center gap-3">
 						<DaemonIcon class="h-4 w-4 flex-shrink-0 {daemonColor}" />
 						<span class="text-primary text-sm font-medium">{daemon.name}</span>
 					</div>
-				</div>
-				<div class="mt-2 flex items-center justify-end gap-2">
-					{#if daemon.last_seen}
-						<Tag
-							label="Last seen {formatRelativeTime(daemon.last_seen)}"
-							color={toColor('green')}
-						/>
-					{/if}
-					{#if statusTag}
-						<Tag label={statusTag.label} color={statusTag.color} />
-					{/if}
+					<div class="flex items-center gap-2">
+						{#if daemon.last_seen}
+							<Tag
+								label="Last seen {formatRelativeTime(daemon.last_seen)}"
+								color={toColor('green')}
+							/>
+						{/if}
+						{#if statusTag}
+							<Tag label={statusTag.label} color={statusTag.color} />
+						{/if}
+					</div>
 				</div>
 			</div>
 		{/each}

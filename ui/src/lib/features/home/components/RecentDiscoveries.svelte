@@ -10,6 +10,7 @@
 	let { discoveries }: { discoveries: Discovery[] } = $props();
 
 	const DiscoveryIcon = entities.getIconComponent('Discovery');
+	const discoveryColor = entities.getColorHelper('Discovery').icon;
 
 	function getPhaseFromRunType(discovery: Discovery) {
 		if (discovery.run_type.type === 'Historical' && discovery.run_type.results) {
@@ -46,10 +47,7 @@
 					class="flex items-center justify-between rounded-lg border border-gray-700 bg-gray-800/50 px-4 py-3"
 				>
 					<div class="flex items-center gap-3">
-						<DiscoveryIcon
-							class="h-4 w-4 flex-shrink-0"
-							style="color: {entities.getColorHelper('Discovery').icon}"
-						/>
+						<DiscoveryIcon class="h-4 w-4 flex-shrink-0 {discoveryColor}" />
 						<span class="text-primary text-sm font-medium">{discovery.name}</span>
 					</div>
 					<div class="flex items-center gap-3">
