@@ -54,8 +54,11 @@
 				id: 'snmp',
 				title: 'Enable SNMP Discovery',
 				description: 'Add SNMP credentials to discover detailed interface and device information.',
-				actionLabel: 'Go to SNMP Credentials',
-				action: () => onNavigate('snmp-credentials'),
+				actionLabel: 'Add SNMP Credential',
+				action: () => {
+					onNavigate('snmp-credentials');
+					openModal('snmp-credential-editor');
+				},
 				visible: !has('FirstSnmpCredentialCreated')
 			},
 			{
@@ -70,16 +73,22 @@
 				id: 'api-keys',
 				title: 'Automate with the API',
 				description: 'Create an API key to integrate Scanopy with your tools and workflows.',
-				actionLabel: 'Go to API Keys',
-				action: () => onNavigate('api-keys'),
+				actionLabel: 'Create API Key',
+				action: () => {
+					onNavigate('api-keys');
+					openModal('user-api-key');
+				},
 				visible: isProPlus && !has('FirstUserApiKeyCreated')
 			},
 			{
 				id: 'multi-network',
 				title: 'Add Another Network',
 				description: 'Monitor multiple sites or environments by adding a second network.',
-				actionLabel: 'Go to Networks',
-				action: () => onNavigate('networks'),
+				actionLabel: 'Add Network',
+				action: () => {
+					onNavigate('networks');
+					openModal('network-editor');
+				},
 				visible: isProPlus && dashboard.networks.length === 1
 			},
 			{

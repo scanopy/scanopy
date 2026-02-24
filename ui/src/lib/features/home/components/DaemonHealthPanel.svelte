@@ -1,38 +1,16 @@
 <script lang="ts">
-	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import { toColor } from '$lib/shared/utils/styling';
-	import { entities } from '$lib/shared/stores/metadata';
-	import { formatRelativeTime } from '$lib/shared/utils/formatting';
-	import type { components } from '$lib/api/schema';
-
-	type DaemonSummary = components['schemas']['DaemonSummary'];
+	import type { Daemon } from '$lib/features/daemons/types/base';
+	import HomeDaemonDisplay from './HomeDaemonDisplay.svelte';
 
 	let {
 		daemons,
 		onNavigate
 	}: {
-		daemons: DaemonSummary[];
+		daemons: Daemon[];
 		onNavigate: (tab: string) => void;
 	} = $props();
 
-	const DaemonIcon = entities.getIconComponent('Daemon');
-	const daemonColor = entities.getColorHelper('Daemon').icon;
-
-	function getStatusTag(daemon: DaemonSummary) {
-		if (daemon.is_unreachable) {
-			return { label: 'Unreachable', color: toColor('red') };
-		}
-		switch (daemon.version_status.status) {
-			case 'Deprecated':
-				return { label: 'Deprecated', color: toColor('red') };
-			case 'Outdated':
-				return { label: 'Outdated', color: toColor('yellow') };
-			default:
-				return null;
-		}
-	}
-
-	function hasIssue(daemon: DaemonSummary): boolean {
+	function hasIssue(daemon: Daemon): boolean {
 		return (
 			daemon.is_unreachable ||
 			daemon.version_status.status === 'Deprecated' ||
@@ -58,7 +36,6 @@
 	</div>
 	<div class="grid gap-4 sm:grid-cols-2">
 		{#each daemons as daemon (daemon.id)}
-			{@const statusTag = getStatusTag(daemon)}
 			{@const clickable = hasIssue(daemon)}
 			<div
 				class="card card-static"
@@ -74,23 +51,7 @@
 				role={clickable ? 'button' : undefined}
 				tabindex={clickable ? 0 : undefined}
 			>
-				<div class="flex items-center justify-between">
-					<div class="flex items-center gap-3">
-						<DaemonIcon class="h-4 w-4 flex-shrink-0 {daemonColor}" />
-						<span class="text-primary text-sm font-medium">{daemon.name}</span>
-					</div>
-				</div>
-				<div class="mt-2 flex items-center justify-end gap-2">
-					{#if daemon.last_seen}
-						<Tag
-							label="Last seen {formatRelativeTime(daemon.last_seen)}"
-							color={toColor('green')}
-						/>
-					{/if}
-					{#if statusTag}
-						<Tag label={statusTag.label} color={statusTag.color} />
-					{/if}
-				</div>
+				<HomeDaemonDisplay item={daemon} />
 			</div>
 		{/each}
 	</div>

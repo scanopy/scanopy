@@ -102,6 +102,12 @@
     "helpText": "Maximum ARP packets per second (default: 50, go more conservative for networks with enterprise switches)"
   },
   {
+    "id": "accept_invalid_scan_certs",
+    "cliFlag": "--accept-invalid-scan-certs",
+    "envVar": "SCANOPY_ACCEPT_INVALID_SCAN_CERTS",
+    "helpText": "Accept invalid TLS certificates when scanning endpoints. Defaults to true since scanners probe arbitrary internal services"
+  },
+  {
     "id": "use_npcap_arp",
     "cliFlag": "--use-npcap-arp",
     "envVar": "SCANOPY_USE_NPCAP_ARP",

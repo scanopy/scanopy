@@ -76,11 +76,6 @@
 			<FeatureNudges {organization} {dashboard} onNavigate={navigateTo} />
 		{/if}
 
-		<!-- Network Metrics — shown when networks exist -->
-		{#if dashboard.networks.length > 0}
-			<NetworkMetrics networks={dashboard.networks} planUsage={dashboard.plan_usage} />
-		{/if}
-
 		<!-- Daemon Health — shown when daemons exist -->
 		{#if dashboard.daemons.length > 0}
 			<DaemonHealthPanel daemons={dashboard.daemons} onNavigate={navigateTo} />
@@ -93,5 +88,10 @@
 
 		<!-- Plan Usage — always visible if limits are approaching -->
 		<PlanUsage planUsage={dashboard.plan_usage} plan={organization.plan} {isOwner} />
+
+		<!-- Network Metrics — last since large plans can have many networks -->
+		{#if dashboard.networks.length > 0}
+			<NetworkMetrics networks={dashboard.networks} planUsage={dashboard.plan_usage} />
+		{/if}
 	{/if}
 </div>

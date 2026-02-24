@@ -6,6 +6,7 @@ import type { Organization } from '$lib/features/organizations/types';
 type QueuedEvent =
 	| { type: 'capture'; event: string; properties?: Record<string, unknown> }
 	| { type: 'identify'; userId: string; traits: Record<string, unknown> }
+	| { type: 'group'; groupType: string; groupKey: string; traits: Record<string, unknown> }
 	| { type: 'reset' };
 
 let eventQueue: QueuedEvent[] = [];
@@ -25,6 +26,9 @@ export function flushEventQueue() {
 				break;
 			case 'identify':
 				posthog.identify(item.userId, item.traits);
+				break;
+			case 'group':
+				posthog.group(item.groupType, item.groupKey, item.traits);
 				break;
 			case 'reset':
 				posthog.reset();
@@ -84,6 +88,25 @@ export function identifyUser(
 		posthog.identify(userId, traits);
 	} else {
 		eventQueue.push({ type: 'identify', userId, traits });
+	}
+
+	// Associate user with their organization group
+	if (organization?.id) {
+		const groupTraits: Record<string, unknown> = {
+			plan_type: organization?.plan?.type ?? null,
+			plan_status: organization?.plan_status ?? null,
+			name: organization?.name ?? null
+		};
+		if (posthog.__loaded) {
+			posthog.group('organization', organization.id, groupTraits);
+		} else {
+			eventQueue.push({
+				type: 'group',
+				groupType: 'organization',
+				groupKey: organization.id,
+				traits: groupTraits
+			});
+		}
 	}
 }
 

@@ -85,6 +85,10 @@ pub struct DaemonCli {
     #[arg(long)]
     user_id: Option<Uuid>,
 
+    /// Accept invalid TLS certificates when scanning endpoints. Defaults to true since scanners probe arbitrary internal services.
+    #[arg(long)]
+    accept_invalid_scan_certs: Option<bool>,
+
     /// Enable faster ARP scanning on Windows by using broadcast ARP via Npcap instead of native SendARP, which doesn't support broadcast. **Requires Npcap installation**. Ignored on Linux/macOS.
     #[arg(long)]
     use_npcap_arp: Option<bool>,
@@ -342,6 +346,9 @@ impl AppConfig {
         }
         if let Some(user_id) = cli_args.user_id {
             figment = figment.merge(("user_id", user_id));
+        }
+        if let Some(accept_invalid_scan_certs) = cli_args.accept_invalid_scan_certs {
+            figment = figment.merge(("accept_invalid_scan_certs", accept_invalid_scan_certs));
         }
         if let Some(use_npcap_arp) = cli_args.use_npcap_arp {
             figment = figment.merge(("use_npcap_arp", use_npcap_arp));

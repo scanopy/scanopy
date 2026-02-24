@@ -33,7 +33,7 @@
 			// Clear selection when no items
 			selectedIndex = -1;
 		}
-		previousItemsLength = items.length;
+		previousItemsLength = items.length; // eslint-disable-line no-useless-assignment
 	}
 
 	// Event handlers

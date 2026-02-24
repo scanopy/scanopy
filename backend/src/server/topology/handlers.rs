@@ -403,6 +403,7 @@ async fn rebuild(
 
         if let Some(organization) = organization
             && organization.not_onboarded(&TelemetryOperation::FirstTopologyRebuild)
+            && !organization.not_onboarded(&TelemetryOperation::FirstDiscoveryCompleted)
         {
             state
                 .services

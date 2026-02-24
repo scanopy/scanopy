@@ -2756,14 +2756,14 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-02-23T22:33:25.667361Z",
-             *       "id": "70e7b283-7b56-464a-9265-33b41efb809d",
+             *       "created_at": "2026-02-24T13:29:21.828721Z",
+             *       "id": "d6765392-57e2-4e61-9f45-844ab690bc92",
              *       "interface_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-02-23T22:33:25.667361Z"
+             *       "updated_at": "2026-02-24T13:29:21.828721Z"
              *     }
              */
             data?: components["schemas"]["BindingBase"] & {
@@ -2863,7 +2863,7 @@ export interface components {
         ApiResponse_DashboardSummary: {
             /** @description Dashboard summary response */
             data?: {
-                daemons: components["schemas"]["DaemonSummary"][];
+                daemons: components["schemas"]["DaemonResponse"][];
                 networks: components["schemas"]["NetworkSummary"][];
                 plan_usage: components["schemas"]["PlanUsage"];
                 recent_discoveries: components["schemas"]["Discovery"][];
@@ -3010,14 +3010,14 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-02-23T22:33:25.648129Z",
-             *               "id": "0ad7f1a0-fc1d-48a3-bb93-c12933e3c923",
+             *               "created_at": "2026-02-24T13:29:21.806767Z",
+             *               "id": "9e7b0957-792c-4fa6-8cc8-7424aa96e417",
              *               "interface_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-02-23T22:33:25.648129Z"
+             *               "updated_at": "2026-02-24T13:29:21.806767Z"
              *             }
              *           ],
              *           "created_at": "2026-01-15T10:30:00Z",
@@ -3026,7 +3026,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Google Home",
+             *           "service_definition": "MySQL",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -3299,14 +3299,14 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-02-23T22:33:25.662026Z",
-             *           "id": "3fe34ab2-7e67-4b32-8588-c83ea54dfc06",
+             *           "created_at": "2026-02-24T13:29:21.822961Z",
+             *           "id": "e0008a10-e269-47d8-b402-9de0fd1853de",
              *           "interface_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-02-23T22:33:25.662026Z"
+             *           "updated_at": "2026-02-24T13:29:21.822961Z"
              *         }
              *       ],
              *       "created_at": "2026-01-15T10:30:00Z",
@@ -3315,7 +3315,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Google Home",
+             *       "service_definition": "MySQL",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -3618,14 +3618,14 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-02-23T22:33:25.648333Z",
-         *       "id": "89f21030-cc1c-4442-966a-0453de0a20c1",
+         *       "created_at": "2026-02-24T13:29:21.807235Z",
+         *       "id": "90ad6f58-0fb9-468c-90de-0188f9da8e62",
          *       "interface_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-02-23T22:33:25.648333Z"
+         *       "updated_at": "2026-02-24T13:29:21.807235Z"
          *     }
          */
         Binding: components["schemas"]["BindingBase"] & {
@@ -3807,7 +3807,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Google Home",
+         *           "service_definition": "MySQL",
          *           "tags": [],
          *           "virtualization": null
          *         }
@@ -4032,18 +4032,6 @@ export interface components {
             /** @description Daemon software version (optional for backwards compat) */
             version?: string | null;
         };
-        /** @description Daemon health summary */
-        DaemonSummary: {
-            /** Format: uuid */
-            id: string;
-            is_unreachable: boolean;
-            /** Format: date-time */
-            last_seen?: string | null;
-            name: string;
-            /** Format: uuid */
-            network_id: string;
-            version_status: components["schemas"]["DaemonVersionStatus"];
-        };
         /** @description Daemon version status including health and any warnings */
         DaemonVersionStatus: {
             status: components["schemas"]["VersionHealthStatus"];
@@ -4052,7 +4040,7 @@ export interface components {
         };
         /** @description Dashboard summary response */
         DashboardSummary: {
-            daemons: components["schemas"]["DaemonSummary"][];
+            daemons: components["schemas"]["DaemonResponse"][];
             networks: components["schemas"]["NetworkSummary"][];
             plan_usage: components["schemas"]["PlanUsage"];
             recent_discoveries: components["schemas"]["Discovery"][];
@@ -4461,14 +4449,14 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-02-23T22:33:25.647855Z",
-         *               "id": "fb917bdf-3bd8-498f-b0d8-5427a5f1d388",
+         *               "created_at": "2026-02-24T13:29:21.806131Z",
+         *               "id": "7e817f23-bc78-4b0e-a02c-80fdda7bb857",
          *               "interface_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-02-23T22:33:25.647855Z"
+         *               "updated_at": "2026-02-24T13:29:21.806131Z"
          *             }
          *           ],
          *           "created_at": "2026-01-15T10:30:00Z",
@@ -4477,7 +4465,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Google Home",
+         *           "service_definition": "MySQL",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -5458,14 +5446,14 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-02-23T22:33:25.648265Z",
-         *           "id": "dfd72817-8cea-4693-bdae-df7be6bf4922",
+         *           "created_at": "2026-02-24T13:29:21.807081Z",
+         *           "id": "1e4245ea-2915-474f-b722-7c347ccb41c9",
          *           "interface_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-02-23T22:33:25.648265Z"
+         *           "updated_at": "2026-02-24T13:29:21.807081Z"
          *         }
          *       ],
          *       "created_at": "2026-01-15T10:30:00Z",
@@ -5474,7 +5462,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Google Home",
+         *       "service_definition": "MySQL",
          *       "source": {
          *         "type": "Manual"
          *       },

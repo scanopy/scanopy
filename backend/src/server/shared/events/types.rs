@@ -514,6 +514,10 @@ impl DiscoveryPhase {
 
 impl DiscoveryUpdatePayload {
     pub fn into_discovery_event(&self) -> DiscoverySessionEvent {
+        let mut metadata = json!({});
+        if let Some(ref error) = self.error {
+            metadata["error_reason"] = json!(error);
+        }
         DiscoverySessionEvent {
             id: Uuid::new_v4(),
             network_id: self.network_id,
@@ -523,7 +527,7 @@ impl DiscoveryUpdatePayload {
             phase: self.phase,
             timestamp: Utc::now(),
             authentication: AuthenticatedEntity::System,
-            metadata: json!({}),
+            metadata,
         }
     }
 
