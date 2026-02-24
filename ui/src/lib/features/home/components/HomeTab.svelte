@@ -71,13 +71,13 @@
 			<GettingStartedChecklist {onboarding} onNavigate={navigateTo} />
 		{/if}
 
-		<!-- Network Metrics — shown once daemon is registered -->
-		{#if hasDaemon && dashboard.networks.length > 0}
+		<!-- Network Metrics — shown when networks exist -->
+		{#if dashboard.networks.length > 0}
 			<NetworkMetrics networks={dashboard.networks} planUsage={dashboard.plan_usage} />
 		{/if}
 
-		<!-- Daemon Health — shown once daemon is registered -->
-		{#if hasDaemon && dashboard.daemons.length > 0}
+		<!-- Daemon Health — shown when daemons exist -->
+		{#if dashboard.daemons.length > 0}
 			<DaemonHealthPanel daemons={dashboard.daemons} />
 		{/if}
 

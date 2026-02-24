@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { components } from '$lib/api/schema';
 	import { Check, Circle } from 'lucide-svelte';
+	import { openModal } from '$lib/shared/stores/modal-registry';
 	import { onMount } from 'svelte';
 
 	type TelemetryOperation = components['schemas']['TelemetryOperation'];
@@ -24,9 +25,10 @@
 	interface ChecklistStep {
 		id: string;
 		milestone: TelemetryOperation;
+		prerequisite: TelemetryOperation | null;
 		label: string;
 		description: string;
-		tab: string;
+		action: () => void;
 		actionLabel: string;
 	}
 
@@ -34,25 +36,31 @@
 		{
 			id: 'daemon',
 			milestone: 'FirstDaemonRegistered',
+			prerequisite: null,
 			label: 'Add a Daemon',
 			description: 'Install a daemon to start discovering your network.',
-			tab: 'daemons',
-			actionLabel: 'Go to Daemons'
+			action: () => {
+				onNavigate('daemons');
+				openModal('create-daemon');
+			},
+			actionLabel: 'Add Daemon'
 		},
 		{
 			id: 'discovery',
 			milestone: 'FirstDiscoveryCompleted',
+			prerequisite: 'FirstDaemonRegistered',
 			label: 'Run a Discovery',
 			description: 'Discover hosts, services, and subnets on your network.',
-			tab: 'discovery-sessions',
+			action: () => onNavigate('discovery-sessions'),
 			actionLabel: 'Go to Discovery'
 		},
 		{
 			id: 'topology',
 			milestone: 'FirstTopologyRebuild',
+			prerequisite: 'FirstDiscoveryCompleted',
 			label: 'View your Topology',
 			description: 'See your network visualized as an interactive map.',
-			tab: 'topology',
+			action: () => onNavigate('topology'),
 			actionLabel: 'Go to Topology'
 		}
 	];
@@ -60,6 +68,15 @@
 	let completedCount = $derived(steps.filter((s) => onboarding.includes(s.milestone)).length);
 
 	let allComplete = $derived(completedCount === steps.length);
+
+	function isStepComplete(step: ChecklistStep): boolean {
+		return onboarding.includes(step.milestone);
+	}
+
+	function isStepEnabled(step: ChecklistStep): boolean {
+		if (step.prerequisite === null) return true;
+		return onboarding.includes(step.prerequisite);
+	}
 
 	function dismiss() {
 		localStorage.setItem(DISMISS_KEY, 'true');
@@ -93,41 +110,45 @@
 
 			<div class="space-y-2">
 				{#each steps as step (step.id)}
-					{@const isComplete = onboarding.includes(step.milestone)}
-					<div
-						class="flex items-center justify-between rounded-lg px-3 py-2 {!isComplete
-							? 'bg-gray-800/50'
-							: ''}"
+					{@const complete = isStepComplete(step)}
+					{@const enabled = isStepEnabled(step)}
+					<button
+						class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors {!complete &&
+						enabled
+							? 'bg-gray-800/50 hover:bg-gray-700/50'
+							: ''} {!enabled ? 'opacity-50' : ''}"
+						disabled={complete || !enabled}
+						onclick={() => step.action()}
 					>
 						<div class="flex items-center gap-3">
-							{#if isComplete}
+							{#if complete}
 								<Check class="h-5 w-5 flex-shrink-0 text-green-400" />
 							{:else}
-								<Circle class="text-tertiary h-5 w-5 flex-shrink-0" />
+								<Circle
+									class="h-5 w-5 flex-shrink-0 {enabled ? 'text-tertiary' : 'text-gray-600'}"
+								/>
 							{/if}
 							<div>
 								<span
 									class="text-sm font-medium"
-									class:text-primary={!isComplete}
-									class:text-tertiary={isComplete}
-									class:line-through={isComplete}
+									class:text-primary={!complete && enabled}
+									class:text-tertiary={complete}
+									class:text-gray-500={!complete && !enabled}
+									class:line-through={complete}
 								>
 									{step.label}
 								</span>
-								{#if !isComplete}
+								{#if !complete && enabled}
 									<p class="text-tertiary text-xs">{step.description}</p>
 								{/if}
 							</div>
 						</div>
-						{#if !isComplete}
-							<button
-								onclick={() => onNavigate(step.tab)}
-								class="text-sm font-medium text-blue-400 transition-colors hover:text-blue-300"
-							>
+						{#if !complete && enabled}
+							<span class="text-sm font-medium text-blue-400 transition-colors hover:text-blue-300">
 								{step.actionLabel}
-							</button>
+							</span>
 						{/if}
-					</div>
+					</button>
 				{/each}
 			</div>
 		</div>
