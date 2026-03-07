@@ -165,16 +165,19 @@ pub mod domoticz;
 pub mod esphome;
 pub mod home_assistant;
 pub mod openhab;
+pub mod scrypted;
 pub mod philips_hue_bridge;
 pub mod zigbee2mqtt;
 pub mod zwave_js;
 
 // Virtualization
+pub mod arcane;
 pub mod docker_container;
 pub mod docker_daemon;
 pub mod docker_swarm;
 pub mod dockge;
 pub mod kubernetes;
+pub mod komodo;
 pub mod nomad;
 pub mod openshift;
 pub mod portainer;
@@ -336,6 +339,7 @@ pub mod backrest;
 pub mod cleanuparr;
 pub mod freshrss;
 pub mod grocy;
+pub mod homebox;
 pub mod huntarr;
 pub mod jotty;
 pub mod karakeep;
