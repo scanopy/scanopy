@@ -19,8 +19,10 @@ impl ServiceDefinition for saltproject {
     }
 
     fn discovery_pattern(&self) -> Pattern<'_> {
+        Pattern::AllOf(vec![
         Pattern::Port(PortType::new_tcp(4505)),
-        Pattern::Port(PortType::new_tcp(4506))
+        Pattern::Port(PortType::new_tcp(4506)),
+    ])
     }
 
     fn logo_url(&self) -> &'static str {
