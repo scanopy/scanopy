@@ -49,7 +49,7 @@
 	},
 	"dependencies": {
 		"@beyonk/gdpr-cookie-consent-banner": "^16.0.2",
-		"@inlang/paraglide-js": "2.9.0",
+		"@inlang/paraglide-js": "2.15.1",
 		"@peculiar/x509": "^1.14.3",
 		"@tailwindcss/forms": "^0.5.10",
 		"@tanstack/svelte-form": "^1.27.6",
