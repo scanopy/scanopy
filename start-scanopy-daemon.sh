@@ -14,4 +14,4 @@ fi
 
 # move all parameters to the left, removing the first parameter aka interface name
 shift
-/usr/local/bin/scanopy-daemon --name=$interface --interfaces=$interface --bind-address=$ip $@
+/usr/local/bin/scanopy-daemon --name="$HOSTNAME-$interface" --interfaces=$interface --bind-address=$ip $@
