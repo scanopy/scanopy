@@ -6,7 +6,8 @@ Wants=network-online.target
 [Service]
 Type=simple
 # %i is the instance name (e.g., eth0 from scanopy-daemon@eth0)
-ExecStart=/usr/local/bin/start-scanopy-daemon.sh %i
+# Add server-url, network-id and daemon-api-key here as parameters at the end
+ExecStart=/usr/local/bin/start-scanopy-daemon.sh %i --server-url XXX --network-id XXX --daemon-api-key XXX
 Restart=always
 RestartSec=10
 User=root
