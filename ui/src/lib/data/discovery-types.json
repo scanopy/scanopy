@@ -1,0 +1,38 @@
+[
+  {
+    "id": "SelfReport",
+    "name": "SelfReport",
+    "description": "The daemon reports its own host configuration and network details",
+    "category": null,
+    "icon": "radar",
+    "color": "Green",
+    "metadata": null
+  },
+  {
+    "id": "Network",
+    "name": "Network",
+    "description": "Scan network subnets to discover hosts, open ports, and running services",
+    "category": null,
+    "icon": "radar",
+    "color": "Green",
+    "metadata": null
+  },
+  {
+    "id": "Docker",
+    "name": "Docker",
+    "description": "Discover Docker containers and their configurations on the daemon's host",
+    "category": null,
+    "icon": "radar",
+    "color": "Green",
+    "metadata": null
+  },
+  {
+    "id": "Unified",
+    "name": "Unified",
+    "description": "Unified discovery combining self-report, network scanning, and Docker container detection",
+    "category": null,
+    "icon": "radar",
+    "color": "Green",
+    "metadata": null
+  }
+]

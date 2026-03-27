@@ -105,11 +105,17 @@ impl Subnet {
         discovery_type: &DiscoveryType,
         network_id: Uuid,
     ) -> Option<Self> {
-        let subnet_type = SubnetType::from_interface_name(&interface_name);
+        let mut subnet_type = SubnetType::from_interface_name(&interface_name);
 
         match ip_network {
             IpNetwork::V6(_) => None,
             IpNetwork::V4(ipv4_network) => {
+                // Non-loopback CIDRs on loopback interfaces (e.g. 10.99.0.0/24 aliased
+                // on lo0) are real networks, not loopback
+                if subnet_type.is_loopback() && ipv4_network.ip().octets()[0] != 127 {
+                    subnet_type = SubnetType::Unknown;
+                }
+
                 let (network_addr, prefix_len) = match (&subnet_type, ipv4_network.prefix()) {
                     // VPN tunnels with /32 -> expand to /24
                     (SubnetType::VpnTunnel, 32) => {

@@ -154,6 +154,7 @@ pub struct CompanyAttributes {
     pub scanopy_first_tag_date: Option<String>,
     pub scanopy_first_group_date: Option<String>,
     pub scanopy_first_api_key_date: Option<String>,
+    pub scanopy_first_credential_date: Option<String>,
     pub scanopy_first_snmp_credential_date: Option<String>,
     pub scanopy_first_invite_sent_date: Option<String>,
     pub scanopy_first_invite_accepted_date: Option<String>,
@@ -292,6 +293,11 @@ impl CompanyAttributes {
         self
     }
 
+    pub fn with_first_credential_date(mut self, date: DateTime<Utc>) -> Self {
+        self.scanopy_first_credential_date = Some(date.to_rfc3339());
+        self
+    }
+
     pub fn with_first_snmp_credential_date(mut self, date: DateTime<Utc>) -> Self {
         self.scanopy_first_snmp_credential_date = Some(date.to_rfc3339());
         self
@@ -389,6 +395,12 @@ impl CompanyAttributes {
         if let Some(v) = &self.scanopy_first_api_key_date {
             attrs.insert(
                 "scanopy_first_api_key_date".to_string(),
+                serde_json::json!(v),
+            );
+        }
+        if let Some(v) = &self.scanopy_first_credential_date {
+            attrs.insert(
+                "scanopy_first_credential_date".to_string(),
                 serde_json::json!(v),
             );
         }

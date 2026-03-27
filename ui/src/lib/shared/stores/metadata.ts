@@ -10,6 +10,7 @@ import discoveryTypesJson from '$lib/data/discovery-types.json';
 import billingPlansJson from '$lib/data/billing-plans-all.json';
 import featuresJson from '$lib/data/features.json';
 import permissionsJson from '$lib/data/permissions.json';
+import credentialTypesJson from '$lib/data/credential-types.json';
 import conceptsJson from '$lib/data/concepts.json';
 import {
 	createColorHelper,
@@ -35,6 +36,34 @@ export interface TypeMetadata extends EntityMetadata {
 	metadata: unknown;
 }
 
+export interface FieldDefinition {
+	id: string;
+	label: string;
+	field_type: 'string' | 'text' | 'select' | 'secretpathorinline' | 'pathorinline';
+	placeholder?: string;
+	secret: boolean;
+	optional: boolean;
+	help_text?: string;
+	options?: string[];
+	default_value?: string;
+	inline_format?: 'plain' | 'pemprivatekey' | 'pemcertificate';
+	group?: string;
+}
+
+export interface CredentialTypeMetadata {
+	fields: FieldDefinition[];
+	/** How this credential type can be scoped to targets */
+	scope_models?: string[];
+	/** Name of the associated ServiceDefinition (e.g. "SNMP", "Docker") */
+	associated_service?: string;
+	/** Whether the associated service has a logo */
+	has_logo?: boolean;
+	/** URL to the service logo */
+	logo_url?: string;
+	/** Whether the logo needs a white background */
+	logo_needs_white_background?: boolean;
+}
+
 export interface MetadataRegistry {
 	service_definitions: TypeMetadata[];
 	subnet_types: TypeMetadata[];
@@ -47,6 +76,7 @@ export interface MetadataRegistry {
 	features: TypeMetadata[];
 	permissions: TypeMetadata[];
 	concepts: EntityMetadata[];
+	credential_types: TypeMetadata[];
 }
 
 // Utility type to add proper typing to the metadata field
@@ -115,6 +145,7 @@ export interface SubnetTypeMetadata {
 	network_scan_discovery_eligible: boolean;
 	is_for_containers: boolean;
 	show_label: boolean;
+	hide_from_subnet_list: boolean;
 }
 
 export interface EdgeTypeMetadata {
@@ -157,7 +188,8 @@ export const metadata = writable<MetadataRegistry>({
 	billing_plans: billingPlansJson,
 	features: featuresJson,
 	permissions: permissionsJson,
-	concepts: conceptsJson
+	concepts: conceptsJson,
+	credential_types: credentialTypesJson
 } as unknown as MetadataRegistry);
 
 // Shared color helper functions that work for both TypeMetadata and EntityMetadata
@@ -338,6 +370,10 @@ export const permissions = createTypeMetadataHelpers<'permissions', PermissionsM
 	'permissions'
 );
 export const concepts = createEntityMetadataHelpers('concepts');
+export const credentialTypes = createTypeMetadataHelpers<
+	'credential_types',
+	CredentialTypeMetadata
+>('credential_types');
 
 /**
  * Generic metadata item structure for static fixtures.

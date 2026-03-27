@@ -62,7 +62,9 @@
 				Interface on
 				<EntityTag
 					entityRef={entityRef('Subnet', subnet.id, subnet)}
-					label={subnet?.name ? `${subnet.name} (${subnet.cidr})` : subnet.cidr}
+					label={subnet?.name && subnet.name !== subnet.cidr
+						? `${subnet.name} (${subnet.cidr})`
+						: subnet.cidr}
 					icon={entities.getIconComponent('Subnet')}
 					color={entities.getColorHelper('Subnet').color}
 				/>

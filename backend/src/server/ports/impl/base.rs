@@ -193,6 +193,7 @@ pub enum PortType {
     Ldaps,
     Kerberos,
     Snmp,
+    SnmpAlt,
     Rdp,
     Ntp,
     Sip,
@@ -432,6 +433,10 @@ impl PortType {
                 number: 161,
                 protocol: TransportProtocol::Udp,
             },
+            PortType::SnmpAlt => PortConfig {
+                number: 1161,
+                protocol: TransportProtocol::Udp,
+            },
             PortType::Rdp => PortConfig {
                 number: 3389,
                 protocol: TransportProtocol::Tcp,
@@ -618,6 +623,7 @@ impl TypeMetadataProvider for PortType {
             PortType::LdpTcp => "LDP (TCP)",
             PortType::LdpUdp => "LDP (UDP)",
             PortType::Snmp => "SNMP",
+            PortType::SnmpAlt => "SNMP (Alt)",
             PortType::Ldap => "LDAP",
             PortType::Ldaps => "LDAP TLS",
             PortType::Kerberos => "Kerberos",
@@ -683,6 +689,9 @@ impl TypeMetadataProvider for PortType {
             PortType::LdpTcp => "Line Printer Daemon (TCP)",
             PortType::LdpUdp => "Line Printer Daemon (UDP)",
             PortType::Snmp => "Simple Network Management Protocol",
+            PortType::SnmpAlt => {
+                "Simple Network Management Protocol (non-privileged alternate port)"
+            }
             PortType::Rdp => "Remote Desktop Protocol",
             PortType::Ntp => "Network Time Protocol",
             PortType::Rtsp => "Real-Time Streaming Protocol",
@@ -732,6 +741,7 @@ impl TypeMetadataProvider for PortType {
                 | PortType::Telnet
                 | PortType::Rdp
                 | PortType::Snmp
+                | PortType::SnmpAlt
                 | PortType::Http
                 | PortType::Https
                 | PortType::Http8080

@@ -1,38 +1,38 @@
 <script lang="ts" context="module">
-	import { entities } from '$lib/shared/stores/metadata';
+	import { entities, credentialTypes } from '$lib/shared/stores/metadata';
 	import { entityRef } from '$lib/shared/components/data/types';
-	import type { SnmpCredential } from '$lib/features/snmp/types/base';
+	import type { Credential } from '$lib/features/credentials/types/base';
+	import { getCredentialTypeId } from '$lib/features/credentials/types/base';
 
 	export interface NetworkDisplayContext {
-		snmpCredentials?: SnmpCredential[];
+		credentials?: Credential[];
 	}
 
 	export const NetworkDisplay: EntityDisplayComponent<Network, NetworkDisplayContext> = {
 		getId: (network: Network) => network.id,
 		getLabel: (network: Network) => network.name,
 		getDescription: (network: Network, context: NetworkDisplayContext) => {
-			if (!network.snmp_credential_id) return 'No SNMP credential';
-			const creds = context?.snmpCredentials ?? [];
-			const cred = creds.find((c) => c.id === network.snmp_credential_id);
-			if (cred) return '';
-			return 'SNMP Enabled';
+			const credIds = network.credential_ids ?? [];
+			if (credIds.length === 0) return 'No credentials';
+			const creds = context?.credentials ?? [];
+			const matched = credIds.map((id) => creds.find((c) => c.id === id)).filter(Boolean);
+			if (matched.length > 0) return '';
+			return `${credIds.length} credential(s)`;
 		},
 		getIcon: () => entities.getIconComponent('Network'),
 		getIconColor: () => entities.getColorHelper('Network').icon,
 		getTags: (network: Network, context: NetworkDisplayContext) => {
-			if (!network.snmp_credential_id) return [];
-			const creds = context?.snmpCredentials ?? [];
-			const cred = creds.find((c) => c.id === network.snmp_credential_id);
-			if (cred) {
-				return [
-					{
-						label: cred.name,
-						color: entities.getColorHelper('SnmpCredential').color,
-						entityRef: entityRef('SnmpCredential', cred.id, cred)
-					}
-				];
-			}
-			return [];
+			const credIds = network.credential_ids ?? [];
+			if (credIds.length === 0) return [];
+			const creds = context?.credentials ?? [];
+			return credIds
+				.map((id) => creds.find((c) => c.id === id))
+				.filter(Boolean)
+				.map((cred) => ({
+					label: cred!.name,
+					color: credentialTypes.getColorHelper(getCredentialTypeId(cred!)).color,
+					entityRef: entityRef('Credential', cred!.id, cred!)
+				}));
 		},
 		getCategory: () => null
 	};

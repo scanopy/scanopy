@@ -6,10 +6,9 @@ use strum::{Display, EnumDiscriminants, EnumIter, IntoStaticStr};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use crate::server::credentials::r#impl::mapping::SnmpCredentialMapping;
+use crate::server::discovery::r#impl::scan_settings::ScanSettings;
 use crate::server::shared::entities::EntityDiscriminants;
-use crate::server::snmp_credentials::r#impl::discovery::{
-    SnmpCredentialMapping, SnmpCredentialMappingExposed,
-};
 use crate::server::{
     daemons::r#impl::api::DiscoveryUpdatePayload,
     shared::types::{
@@ -48,11 +47,8 @@ pub enum DiscoveryType {
         /// SNMP credentials for querying devices during discovery
         /// Server builds this mapping before initiating discovery
         #[serde(default)]
+        #[schema(value_type = Object)]
         snmp_credentials: SnmpCredentialMapping,
-        /// Whether to probe raw-socket ports (9100-9107) during endpoint scanning.
-        /// Disabled by default to prevent ghost printing on JetDirect printers.
-        #[serde(default)]
-        probe_raw_socket_ports: bool,
     },
     #[schema(title = "Docker")]
     Docker {
@@ -61,6 +57,24 @@ pub enum DiscoveryType {
         #[serde(default)]
         #[schema(required)]
         host_naming_fallback: HostNamingFallback,
+    },
+    #[schema(title = "Unified")]
+    Unified {
+        /// ID of the host that the daemon is running on
+        host_id: Uuid,
+        /// Subnets to scan. None = scan all interfaced subnets.
+        #[schema(required)]
+        subnet_ids: Option<Vec<Uuid>>,
+        /// Whether to scan the local Docker socket for containers
+        #[serde(default)]
+        scan_local_docker_socket: bool,
+        /// Fallback strategy for naming discovered hosts
+        #[serde(default)]
+        #[schema(required)]
+        host_naming_fallback: HostNamingFallback,
+        /// Per-discovery scan performance settings
+        #[serde(default)]
+        scan_settings: ScanSettings,
     },
 }
 
@@ -73,23 +87,37 @@ impl Default for DiscoveryType {
 }
 
 impl DiscoveryType {
+    /// Returns true for legacy discovery types (SelfReport, Network, Docker).
+    /// Legacy types are frozen and cannot be created — only Unified is allowed.
+    pub fn is_legacy(&self) -> bool {
+        matches!(
+            self,
+            DiscoveryType::SelfReport { .. }
+                | DiscoveryType::Network { .. }
+                | DiscoveryType::Docker { .. }
+        )
+    }
+
     /// Serialize with SNMP credentials exposed as plaintext.
     /// Used only for daemon transmission where the daemon needs actual credentials.
     ///
     /// We patch the serde_json::Value rather than duplicating the entire internally-tagged
     /// enum, since DiscoveryType has multiple variants and #[serde(tag = "type")] flattening.
+    /// ResolvableSecret redacts community by default; this replaces each redacted
+    /// value with the actual plaintext for daemon consumption.
     pub fn with_exposed_snmp(&self) -> serde_json::Value {
+        use crate::server::credentials::r#impl::mapping::SnmpCredentialMappingExposed;
+
         let mut value = serde_json::to_value(self).unwrap_or_default();
         if let DiscoveryType::Network {
             snmp_credentials, ..
         } = self
             && let serde_json::Value::Object(ref mut map) = value
         {
-            map.insert(
-                "snmp_credentials".to_string(),
-                serde_json::to_value(SnmpCredentialMappingExposed::from(snmp_credentials))
-                    .unwrap_or_default(),
-            );
+            let exposed: SnmpCredentialMappingExposed = snmp_credentials.into();
+            if let Ok(exposed_value) = serde_json::to_value(&exposed) {
+                map.insert("snmp_credentials".to_string(), exposed_value);
+            }
         }
         value
     }
@@ -101,6 +129,7 @@ impl Display for DiscoveryType {
             DiscoveryType::SelfReport { .. } => write!(f, "Self Report"),
             DiscoveryType::Network { .. } => write!(f, "Network Discovery"),
             DiscoveryType::Docker { .. } => write!(f, "Docker Discovery"),
+            DiscoveryType::Unified { .. } => write!(f, "Unified Discovery"),
         }
     }
 }
@@ -130,7 +159,9 @@ pub enum RunType {
     },
     #[schema(title = "Historical")]
     /// Historical discovery runs are created by the server and cannot be submitted via API
-    Historical { results: DiscoveryUpdatePayload },
+    Historical {
+        results: Box<DiscoveryUpdatePayload>,
+    },
     #[schema(title = "AdHoc")]
     AdHoc {
         #[serde(default)]
@@ -175,6 +206,9 @@ impl TypeMetadataProvider for DiscoveryType {
             }
             DiscoveryType::SelfReport { .. } => {
                 "The daemon reports its own host configuration and network details"
+            }
+            DiscoveryType::Unified { .. } => {
+                "Unified discovery combining self-report, network scanning, and Docker container detection"
             }
         }
     }

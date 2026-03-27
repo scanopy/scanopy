@@ -25,7 +25,7 @@ use crate::server::{
         storage::{
             filter::StorableFilter,
             generic::GenericPostgresStorage,
-            traits::{Storable, Storage},
+            traits::{Entity, Storable, Storage},
         },
     },
     subnets::{r#impl::base::Subnet, service::SubnetService},

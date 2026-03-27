@@ -1,5 +1,6 @@
 use crate::server::{
     bindings::r#impl::base::Binding,
+    credentials::r#impl::base::Credential,
     daemon_api_keys::r#impl::base::DaemonApiKey,
     daemons::r#impl::base::Daemon,
     discovery::r#impl::base::Discovery,
@@ -14,7 +15,6 @@ use crate::server::{
     services::r#impl::base::Service,
     shared::storage::traits::Storable,
     shares::r#impl::base::Share,
-    snmp_credentials::r#impl::base::SnmpCredential,
     subnets::r#impl::base::Subnet,
     tags::entity_tags::EntityTag,
     tags::r#impl::base::Tag,
@@ -197,13 +197,21 @@ fn get_entity_deserializers() -> HashMap<&'static str, DeserializeFn> {
         }),
     );
 
+    // snmp_credentials table was dropped by universal_credentials migration
+    // SnmpCredential deserializer is no longer needed
+
     map.insert(
-        SnmpCredential::table_name(),
+        Credential::table_name(),
         Box::new(|row| {
-            SnmpCredential::from_row(row)?;
+            Credential::from_row(row)?;
             Ok(())
         }),
     );
+
+    // Junction tables for multi-credential support — no entity struct, just verify readable
+    map.insert("host_credentials", Box::new(|_row| Ok(())));
+
+    map.insert("network_credentials", Box::new(|_row| Ok(())));
 
     map.insert(
         IfEntry::table_name(),

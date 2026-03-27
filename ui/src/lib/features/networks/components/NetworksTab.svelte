@@ -272,4 +272,10 @@
 	onCreate={handleNetworkCreate}
 	onUpdate={handleNetworkUpdate}
 	onClose={handleCloseNetworkEditor}
+	onDelete={editingNetwork
+		? () => {
+				handleDeleteNetwork(editingNetwork!);
+				handleCloseNetworkEditor();
+			}
+		: null}
 />

@@ -29,7 +29,7 @@ export const entityToExportPath: Record<EntityDiscriminants, string | null> = {
 	Topology: 'topologies',
 	User: 'users',
 	IfEntry: 'if-entries',
-	SnmpCredential: 'snmp-credentials',
+	Credential: 'credentials',
 	// API keys use auth paths
 	UserApiKey: 'auth/keys',
 	DaemonApiKey: 'auth/daemon',

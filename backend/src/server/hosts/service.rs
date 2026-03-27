@@ -1,6 +1,7 @@
 use crate::server::{
     auth::middleware::auth::AuthenticatedEntity,
     bindings::r#impl::base::{Binding, BindingType},
+    credentials::service::CredentialService,
     daemons::{r#impl::base::Daemon, service::DaemonService},
     hosts::r#impl::{
         api::{
@@ -12,7 +13,10 @@ use crate::server::{
     if_entries::{r#impl::base::IfEntry, service::IfEntryService},
     interfaces::{r#impl::base::Interface, service::InterfaceService},
     ports::{r#impl::base::Port, service::PortService},
-    services::{r#impl::base::Service, service::ServiceService},
+    services::{
+        r#impl::{base::Service, definitions::ServiceDefinitionExt},
+        service::ServiceService,
+    },
     shared::{
         entities::{ChangeTriggersTopologyStaleness, EntityDiscriminants},
         events::{
@@ -31,13 +35,13 @@ use crate::server::{
             entities::{EntitySource, EntitySourceDiscriminants},
         },
     },
-    snmp_credentials::resolution::{lldp::LldpResolver, resolver::LldpResolverImpl},
+    snmp::resolution::{lldp::LldpResolver, resolver::LldpResolverImpl},
     tags::entity_tags::EntityTagService,
 };
 use anyhow::{Error, Result, anyhow};
 use async_trait::async_trait;
 use chrono::Utc;
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, net::IpAddr, sync::Arc};
 use strum::IntoDiscriminant;
 use tokio::sync::Mutex;
 use uuid::Uuid;
@@ -55,6 +59,7 @@ pub struct HostService {
     service_service: Arc<ServiceService>,
     if_entry_service: Arc<IfEntryService>,
     pub daemon_service: Arc<DaemonService>,
+    credential_service: Arc<CredentialService>,
     host_locks: Arc<Mutex<HashMap<Uuid, Arc<Mutex<()>>>>>,
     event_bus: Arc<EventBus>,
     entity_tag_service: Arc<EntityTagService>,
@@ -228,6 +233,7 @@ impl HostService {
         service_service: Arc<ServiceService>,
         if_entry_service: Arc<IfEntryService>,
         daemon_service: Arc<DaemonService>,
+        credential_service: Arc<CredentialService>,
         event_bus: Arc<EventBus>,
         entity_tag_service: Arc<EntityTagService>,
     ) -> Self {
@@ -238,6 +244,7 @@ impl HostService {
             service_service,
             if_entry_service,
             daemon_service,
+            credential_service,
             host_locks: Arc::new(Mutex::new(HashMap::new())),
             event_bus,
             entity_tag_service,
@@ -451,7 +458,7 @@ impl HostService {
             sys_contact,
             management_url,
             chassis_id,
-            snmp_credential_id,
+            credential_assignments,
             interfaces: interface_inputs,
             ports: port_inputs,
             services: service_inputs,
@@ -487,7 +494,11 @@ impl HostService {
             sys_contact,
             management_url,
             chassis_id,
-            snmp_credential_id,
+            sys_name: None,
+            manufacturer: None,
+            model: None,
+            serial_number: None,
+            credential_assignments,
         };
         let host = Host::new(host_base);
 
@@ -620,7 +631,14 @@ impl HostService {
 
         // Stage 2: Create or upsert host via ID matching
         // If host.id was set to an existing host's ID above, this will trigger upsert_host()
-        let created_host = self.create(host, authentication.clone()).await?;
+        let mut created_host = self.create(host, authentication.clone()).await?;
+
+        // Capture daemon interface ID → IP mapping before interfaces are consumed.
+        // Used later to remap credential assignment interface_ids to server-assigned IDs.
+        let daemon_interface_ips: Vec<(Uuid, IpAddr)> = interfaces
+            .iter()
+            .map(|i| (i.id, i.base.ip_address))
+            .collect();
 
         // Create interfaces with correct host_id
         // For Upsert: deduplicate by checking existing interfaces first
@@ -716,6 +734,21 @@ impl HostService {
             created_ports.push(created);
         }
 
+        // Pre-fetch existing services for ID alignment (same pattern as host at line 596-604).
+        // When the same service is re-discovered from a different scan phase (e.g., network scan
+        // then Docker scan), aligning IDs ensures partition_conflicting_bindings excludes the
+        // existing service's bindings and create() reaches the upsert path.
+        let existing_services_for_match = if matches!(conflict_behavior, ConflictBehavior::Upsert) {
+            self.service_service
+                .get_all(StorableFilter::<Service>::new_from_host_ids(&[
+                    created_host.id,
+                ]))
+                .await
+                .unwrap_or_default()
+        } else {
+            vec![]
+        };
+
         // Create services with bindings reassigned (for discovery where IDs may change)
         // Track claimed bindings in this batch to detect in-batch conflicts
         let mut batch_claimed: Vec<(Uuid, Option<Uuid>)> = Vec::new();
@@ -724,7 +757,7 @@ impl HostService {
         let mut created_services = Vec::new();
 
         for service in services {
-            let reassigned = self
+            let mut reassigned = self
                 .service_service
                 .reassign_service_interface_bindings(
                     service,
@@ -736,6 +769,14 @@ impl HostService {
                     &created_ports,
                 )
                 .await;
+
+            // Align service ID with existing match so conflict check excludes its bindings
+            if let Some(existing) = existing_services_for_match
+                .iter()
+                .find(|e| **e == reassigned)
+            {
+                reassigned.id = existing.id;
+            }
 
             // Check for binding conflicts with other services (DB + batch)
             let (valid_bindings, conflicting_bindings) = self
@@ -749,33 +790,102 @@ impl HostService {
                 .await?;
 
             if !conflicting_bindings.is_empty() {
-                // Log details about the conflict
-                let conflicting_ports: Vec<_> = conflicting_bindings
+                // Check if this service matches an existing one on this host (ID was
+                // aligned earlier to enable upsert). When true, partial conflicts are
+                // expected — the service is being re-discovered from a different scan
+                // phase (e.g., Docker scan after network scan) and some of its new
+                // bindings may conflict with other services like Unclaimed Open Ports.
+                // We proceed with non-conflicting bindings so the upsert can merge
+                // metadata (e.g., Docker virtualization).
+                let matches_existing_service = existing_services_for_match
                     .iter()
-                    .filter_map(|b| {
-                        if let BindingType::Port { port_id, .. } = &b.base.binding_type {
-                            created_ports
-                                .iter()
-                                .find(|p| p.id == *port_id)
-                                .map(|p| p.to_string())
-                        } else {
-                            None
+                    .any(|e| e.id == reassigned.id);
+
+                if matches_existing_service {
+                    tracing::debug!(
+                        service_name = %reassigned.base.name,
+                        service_definition = %reassigned.base.service_definition.name(),
+                        conflicting_count = conflicting_bindings.len(),
+                        valid_count = valid_bindings.len(),
+                        "Re-discovered service has partial binding conflicts - proceeding with valid bindings for upsert"
+                    );
+                    reassigned.base.bindings = valid_bindings;
+                } else if reassigned.base.virtualization.is_some()
+                    && ServiceDefinitionExt::is_generic(&reassigned.base.service_definition)
+                {
+                    // Safety net for Docker container → specific service reconciliation.
+                    //
+                    // When the Docker scan can't identify a container's specific service
+                    // (e.g., exec-based and external endpoint probing both fail to match),
+                    // it creates a generic "Docker Container" service. This conflicts with
+                    // the specific service already found by the network scan (same port).
+                    //
+                    // Rather than dropping the Docker Container and losing its virtualization
+                    // metadata (container name, container ID, Docker daemon linkage), we find
+                    // the specific service that claims the conflicting port and set the Docker
+                    // virtualization on it directly. The network scan already correctly
+                    // identified the service; we're just adding the Docker container metadata.
+                    let conflicting_port_ids: Vec<Uuid> = conflicting_bindings
+                        .iter()
+                        .filter_map(|b| b.port_id())
+                        .collect();
+
+                    // Find non-generic services on this host that claim the conflicting ports
+                    let enrichable_services: Vec<&Service> = existing_services_for_match
+                        .iter()
+                        .filter(|s| {
+                            !ServiceDefinitionExt::is_generic(&s.base.service_definition)
+                                && s.base.virtualization.is_none()
+                                && s.base.bindings.iter().any(|b| {
+                                    b.port_id()
+                                        .is_some_and(|pid| conflicting_port_ids.contains(&pid))
+                                })
+                        })
+                        .collect();
+
+                    if !enrichable_services.is_empty() {
+                        for existing_svc in enrichable_services {
+                            tracing::info!(
+                                service_name = %existing_svc.base.name,
+                                service_definition = %existing_svc.base.service_definition.name(),
+                                container_service = %reassigned.base.name,
+                                "Setting Docker virtualization on existing service from conflicting Docker Container"
+                            );
+                            let mut updated = existing_svc.clone();
+                            updated.base.virtualization = reassigned.base.virtualization.clone();
+                            let _ = self.service_service.storage().update(&mut updated).await;
                         }
-                    })
-                    .collect();
+                    }
 
-                tracing::warn!(
-                    service_name = %reassigned.base.name,
-                    service_definition = %reassigned.base.service_definition.name(),
-                    host_id = %created_host.id,
-                    conflicting_ports = ?conflicting_ports,
-                    valid_binding_count = valid_bindings.len(),
-                    "Discovery found service with conflicting port bindings - dropping service"
-                );
+                    // Still drop the generic Docker Container service itself
+                    continue;
+                } else {
+                    let conflicting_ports: Vec<_> = conflicting_bindings
+                        .iter()
+                        .filter_map(|b| {
+                            if let BindingType::Port { port_id, .. } = &b.base.binding_type {
+                                created_ports
+                                    .iter()
+                                    .find(|p| p.id == *port_id)
+                                    .map(|p| p.to_string())
+                            } else {
+                                None
+                            }
+                        })
+                        .collect();
 
-                // Orphan the valid bindings for OpenPorts
-                orphaned_bindings.extend(valid_bindings);
-                continue;
+                    tracing::warn!(
+                        service_name = %reassigned.base.name,
+                        service_definition = %reassigned.base.service_definition.name(),
+                        host_id = %created_host.id,
+                        conflicting_ports = ?conflicting_ports,
+                        valid_binding_count = valid_bindings.len(),
+                        "Discovery found service with conflicting port bindings - dropping service"
+                    );
+
+                    orphaned_bindings.extend(valid_bindings);
+                    continue;
+                }
             }
 
             // Track this service's port bindings for in-batch conflict detection
@@ -862,6 +972,43 @@ impl HostService {
             created_if_entries.push(created);
         }
 
+        // Remap credential assignment interface_ids from daemon UUIDs to server UUIDs
+        // and persist to the host_credentials junction table.
+        // credential_assignments is transient on HostBase (not stored in hosts table),
+        // so we must persist via set_host_credentials and use the original input host's
+        // assignments (created_host.base.credential_assignments is empty after DB round-trip).
+        let mut remapped_assignments = original_host.base.credential_assignments.clone();
+        for assignment in &mut remapped_assignments {
+            if let Some(ref mut ids) = assignment.interface_ids {
+                *ids = ids
+                    .iter()
+                    .filter_map(|daemon_id| {
+                        let ip = daemon_interface_ips
+                            .iter()
+                            .find(|(id, _)| id == daemon_id)
+                            .map(|(_, ip)| *ip)?;
+                        created_interfaces
+                            .iter()
+                            .find(|i| i.base.ip_address == ip)
+                            .map(|i| i.id)
+                    })
+                    .collect();
+            }
+        }
+        if !remapped_assignments.is_empty()
+            && let Err(e) = self
+                .credential_service
+                .set_host_credentials(&created_host.id, &remapped_assignments)
+                .await
+        {
+            tracing::warn!(
+                host_id = %created_host.id,
+                error = ?e,
+                "Failed to persist credential assignments during discover_host"
+            );
+        }
+        created_host.base.credential_assignments = remapped_assignments;
+
         Ok(HostResponse::from_host_with_children(
             created_host,
             created_interfaces,
@@ -897,6 +1044,7 @@ impl HostService {
             interfaces,
             ports,
             services,
+            credential_assignments,
         } = request;
 
         // Optimistic locking: check if host was modified since user loaded it
@@ -938,7 +1086,12 @@ impl HostService {
                 sys_contact: existing.base.sys_contact.clone(),
                 management_url: existing.base.management_url.clone(),
                 chassis_id: existing.base.chassis_id.clone(),
-                snmp_credential_id: existing.base.snmp_credential_id,
+                sys_name: existing.base.sys_name.clone(),
+                manufacturer: existing.base.manufacturer.clone(),
+                model: existing.base.model.clone(),
+                serial_number: existing.base.serial_number.clone(),
+                credential_assignments: credential_assignments
+                    .unwrap_or_else(|| existing.base.credential_assignments.clone()),
             },
         };
 
@@ -1241,6 +1394,8 @@ impl HostService {
         host_id: &Uuid,
         authentication: AuthenticatedEntity,
     ) -> Result<()> {
+        use crate::server::if_entries::r#impl::base::if_type;
+
         // Get all interfaces for this host
         let interfaces = self.interface_service.get_for_host(host_id).await?;
 
@@ -1250,27 +1405,34 @@ impl HostService {
             .filter_map(|iface| iface.base.mac_address.map(|mac| (mac, iface.id)))
             .collect();
 
-        if mac_to_interface.is_empty() {
-            return Ok(()); // No interfaces with MAC addresses to link
-        }
+        // Find loopback interface (by IP address)
+        let loopback_interface_id = interfaces
+            .iter()
+            .find(|iface| iface.base.ip_address.is_loopback())
+            .map(|iface| iface.id);
 
         // Get all IfEntries for this host
         let if_entries = self.if_entry_service.get_for_host(host_id).await?;
 
         let mut linked_count = 0;
         for mut if_entry in if_entries {
-            // Skip if already linked or no MAC address
+            // Skip if already linked
             if if_entry.base.interface_id.is_some() {
                 continue;
             }
 
-            let Some(if_entry_mac) = if_entry.base.mac_address else {
-                continue;
+            // Try loopback linking by if_type
+            let matched_interface_id = if if_entry.base.if_type == if_type::SOFTWARE_LOOPBACK {
+                loopback_interface_id
+            } else {
+                // Try MAC-based linking
+                if_entry
+                    .base
+                    .mac_address
+                    .and_then(|mac| mac_to_interface.get(&mac).copied())
             };
 
-            // Find matching interface by MAC
-            if let Some(&interface_id) = mac_to_interface.get(&if_entry_mac) {
-                // Update the IfEntry with the interface_id
+            if let Some(interface_id) = matched_interface_id {
                 if_entry.base.interface_id = Some(interface_id);
                 if let Err(e) = self
                     .if_entry_service
@@ -1292,7 +1454,7 @@ impl HostService {
             tracing::debug!(
                 host_id = %host_id,
                 linked = linked_count,
-                "Linked IfEntries to Interfaces via MAC address"
+                "Linked IfEntries to Interfaces via MAC address and loopback type"
             );
         }
 
@@ -1319,15 +1481,29 @@ impl HostService {
         let host_ids: Vec<Uuid> = all_hosts.iter().map(|h| h.id).collect();
         let interfaces_by_host = self.interface_service.get_for_hosts(&host_ids).await?;
 
+        // Exclude loopback interfaces from matching — every host has 127.0.0.1
+        // on the shared loopback subnet, so they would falsely match all hosts
+        let non_loopback_incoming: Vec<_> = incoming_interfaces
+            .iter()
+            .filter(|i| !i.base.ip_address.is_loopback())
+            .collect();
+
+        if non_loopback_incoming.is_empty() {
+            return Ok(None);
+        }
+
         for host in all_hosts {
             let host_interfaces = interfaces_by_host
                 .get(&host.id)
                 .cloned()
                 .unwrap_or_default();
 
-            for incoming_iface in incoming_interfaces {
+            for incoming_iface in &non_loopback_incoming {
                 for existing_iface in &host_interfaces {
-                    if incoming_iface == existing_iface {
+                    if existing_iface.base.ip_address.is_loopback() {
+                        continue;
+                    }
+                    if *incoming_iface == existing_iface {
                         tracing::debug!(
                             incoming_ip = %incoming_iface.base.ip_address,
                             existing_ip = %existing_iface.base.ip_address,
@@ -1369,7 +1545,13 @@ impl HostService {
         );
 
         // Update hostname if not set
-        if existing_host.base.hostname.is_none() && new_host_data.base.hostname.is_some() {
+        if existing_host.base.hostname.is_none()
+            && new_host_data
+                .base
+                .hostname
+                .as_ref()
+                .is_some_and(|h| !h.is_empty())
+        {
             has_updates = true;
             existing_host.base.hostname = new_host_data.base.hostname.clone();
 
@@ -1408,6 +1590,23 @@ impl HostService {
         if existing_host.base.chassis_id.is_none() && new_host_data.base.chassis_id.is_some() {
             has_updates = true;
             existing_host.base.chassis_id = new_host_data.base.chassis_id;
+        }
+        if existing_host.base.sys_name.is_none() && new_host_data.base.sys_name.is_some() {
+            has_updates = true;
+            existing_host.base.sys_name = new_host_data.base.sys_name;
+        }
+        if existing_host.base.manufacturer.is_none() && new_host_data.base.manufacturer.is_some() {
+            has_updates = true;
+            existing_host.base.manufacturer = new_host_data.base.manufacturer;
+        }
+        if existing_host.base.model.is_none() && new_host_data.base.model.is_some() {
+            has_updates = true;
+            existing_host.base.model = new_host_data.base.model;
+        }
+        if existing_host.base.serial_number.is_none() && new_host_data.base.serial_number.is_some()
+        {
+            has_updates = true;
+            existing_host.base.serial_number = new_host_data.base.serial_number;
         }
 
         // Merge entity source metadata
@@ -1696,6 +1895,90 @@ impl HostService {
                 })?;
         }
 
+        // Migrate credential assignments from other host to destination host
+        let other_assignments = self
+            .credential_service
+            .get_credential_assignments_for_host(&other_host.id)
+            .await?;
+
+        if !other_assignments.is_empty() {
+            use crate::server::credentials::r#impl::types::CredentialAssignment;
+
+            let dest_assignments = self
+                .credential_service
+                .get_credential_assignments_for_host(&updated_host.id)
+                .await?;
+
+            let dest_cred_map: HashMap<Uuid, &CredentialAssignment> = dest_assignments
+                .iter()
+                .map(|a| (a.credential_id, a))
+                .collect();
+
+            let mut merged: Vec<CredentialAssignment> = dest_assignments.clone();
+            let mut migrated_count = 0usize;
+
+            for other in &other_assignments {
+                // Remap interface_ids if present
+                let remapped_iface_ids = match &other.interface_ids {
+                    None => None,
+                    Some(ids) => {
+                        let remapped: Vec<Uuid> = ids
+                            .iter()
+                            .filter_map(|id| interface_id_map.get(id).copied())
+                            .collect();
+                        if remapped.is_empty() {
+                            // All interfaces were dropped — skip this assignment
+                            continue;
+                        }
+                        Some(remapped)
+                    }
+                };
+
+                if let Some(dest_assignment) = dest_cred_map.get(&other.credential_id) {
+                    // Both hosts have this credential — merge with broadest-scope-wins
+                    let merged_iface_ids =
+                        match (&dest_assignment.interface_ids, &remapped_iface_ids) {
+                            (None, _) | (_, None) => None, // Either is all-interfaces → all
+                            (Some(dest_ids), Some(other_ids)) => {
+                                let mut union = dest_ids.clone();
+                                for id in other_ids {
+                                    if !union.contains(id) {
+                                        union.push(*id);
+                                    }
+                                }
+                                Some(union)
+                            }
+                        };
+
+                    // Update the existing dest entry in merged list
+                    if let Some(entry) = merged
+                        .iter_mut()
+                        .find(|a| a.credential_id == other.credential_id)
+                    {
+                        entry.interface_ids = merged_iface_ids;
+                    }
+                } else {
+                    // Only on other host — add to merged list
+                    merged.push(CredentialAssignment {
+                        credential_id: other.credential_id,
+                        interface_ids: remapped_iface_ids,
+                    });
+                }
+                migrated_count += 1;
+            }
+
+            self.credential_service
+                .set_host_credentials(&updated_host.id, &merged)
+                .await?;
+
+            tracing::info!(
+                migrated = migrated_count,
+                source_host_id = %other_host.id,
+                dest_host_id = %updated_host.id,
+                "Migrated credential assignments during consolidation"
+            );
+        }
+
         // Delete other host (remaining children that weren't transferred will cascade)
         self.delete_host(&other_host.id, authentication).await?;
 
@@ -1777,12 +2060,9 @@ impl HostService {
                     None
                 }
             } else if let Some(ref device_id) = if_entry.base.cdp_device_id {
-                // Try CDP resolution using device_id (hostname-based)
+                // CDP device_id is typically sysName, resolve against sys_name field
                 // Don't fall back to cdp_address - it's management address, not physical connection
-                if let Some(host_id) = resolver
-                    .find_host_by_chassis_id(device_id, network_id)
-                    .await
-                {
+                if let Some(host_id) = resolver.find_host_by_sys_name(device_id, network_id).await {
                     stats.hosts_resolved += 1;
 
                     // Try CDP port resolution using cdp_port_id (long ifDescr format)
@@ -1820,6 +2100,61 @@ impl HostService {
         );
 
         Ok(stats)
+    }
+
+    /// Resolve FDB (bridge forwarding database) single-MAC ports to neighbor links.
+    /// Called after resolve_lldp_links — only processes ports without LLDP/CDP data
+    /// that have exactly one learned MAC address (direct physical connection).
+    pub async fn resolve_fdb_links(&self, network_id: Uuid) -> Result<u32> {
+        use crate::server::if_entries::r#impl::base::Neighbor;
+
+        let resolver = LldpResolverImpl::new(
+            self.if_entry_service.clone(),
+            self.interface_service.clone(),
+            self.storage.clone(),
+        );
+
+        let filter = StorableFilter::<IfEntry>::new_for_unresolved_fdb_in_network(network_id);
+        let unresolved = self.if_entry_service.get_all(filter).await?;
+
+        let mut resolved_count: u32 = 0;
+
+        for mut if_entry in unresolved {
+            let mac = match &if_entry.base.fdb_macs {
+                Some(macs) if macs.len() == 1 => &macs[0],
+                _ => continue,
+            };
+
+            // Try to find host by MAC
+            let host_id = match resolver.find_host_by_mac(mac, network_id).await {
+                Some(id) => id,
+                None => continue,
+            };
+
+            // Try full resolution (specific port)
+            let neighbor =
+                if let Some(if_entry_id) = resolver.find_if_entry_by_mac(mac, host_id).await {
+                    Neighbor::IfEntry(if_entry_id)
+                } else {
+                    Neighbor::Host(host_id)
+                };
+
+            if_entry.base.neighbor = Some(neighbor);
+            self.if_entry_service
+                .update(&mut if_entry, AuthenticatedEntity::System)
+                .await?;
+            resolved_count += 1;
+        }
+
+        if resolved_count > 0 {
+            tracing::info!(
+                network_id = %network_id,
+                resolved = resolved_count,
+                "FDB link resolution complete"
+            );
+        }
+
+        Ok(resolved_count)
     }
 
     /// Delete a host (children cascade via FK)

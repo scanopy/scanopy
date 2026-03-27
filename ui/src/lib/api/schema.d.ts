@@ -824,6 +824,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all Credentials
+         * @description Returns all credentials in the authenticated user's organization.
+         *     Optionally filter by type (e.g. ?type=Snmp).
+         */
+        get: operations["get_all_credentials"];
+        put?: never;
+        /**
+         * Create a new Credential
+         * @description Creates a credential scoped to your organization.
+         */
+        post: operations["create_credential"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/credentials/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk create Credentials
+         * @description Creates multiple credentials in one request. Validation is atomic — if any
+         *     credential has an invalid type, none are created. Individual creates are
+         *     sequential, so a mid-batch DB error leaves earlier credentials committed.
+         */
+        post: operations["bulk_create_credentials"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/credentials/bulk-delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bulk delete Credentials */
+        post: operations["bulk_delete_credentials"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/credentials/export/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Credentials to CSV
+         * @description Export all Credentials matching the filter criteria to CSV format. Ignores pagination parameters (limit/offset) and exports all matching records.
+         */
+        get: operations["export_credentials_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/credentials/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Credential by ID */
+        get: operations["get_credential_by_id"];
+        /** Update Credential */
+        put: operations["update_credential"];
+        post?: never;
+        /** Delete Credential */
+        delete: operations["delete_credential"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/daemons": {
         parameters: {
             query?: never;
@@ -1631,8 +1734,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List all Networks */
-        get: operations["list_networks"];
+        /** List all networks */
+        get: operations["get_all_networks"];
         put?: never;
         /** Create a new network */
         post: operations["create_network"];
@@ -1686,8 +1789,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Network by ID */
-        get: operations["get_network_by_id"];
+        /** Get a network by ID */
+        get: operations["get_by_id_network"];
         /** Update a network */
         put: operations["update_network"];
         post?: never;
@@ -2086,93 +2189,6 @@ export interface paths {
         post?: never;
         /** Delete Share */
         delete: operations["delete_share"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/snmp-credentials": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List all SNMP Credentials
-         * @description Returns all SNMP Credentials in the authenticated user's organization.
-         */
-        get: operations["get_all_snmp_credentials"];
-        put?: never;
-        /**
-         * Create a new SNMP Credential
-         * @description Creates an SNMP credential scoped to your organization. Credential names must
-         *     be unique within the organization.
-         *
-         *     ### Validation
-         *
-         *     - Name must be 1-100 characters
-         *     - Name must be unique within your organization
-         *     - Community string is required
-         */
-        post: operations["create_snmp_credential"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/snmp-credentials/bulk-delete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Bulk delete SNMP Credential */
-        post: operations["bulk_delete_snmp_credentials"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/snmp-credentials/export/csv": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Export SNMP Credentials to CSV
-         * @description Export all SNMP Credentials matching the filter criteria to CSV format. Ignores pagination parameters (limit/offset) and exports all matching records.
-         */
-        get: operations["export_snmp_credentials_csv"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/snmp-credentials/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get SNMP Credential by ID */
-        get: operations["get_snmp_credential_by_id"];
-        /** Update SNMP Credential */
-        put: operations["update_snmp_credential"];
-        post?: never;
-        /** Delete SNMP credential */
-        delete: operations["delete_snmp_credential"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2800,7 +2816,7 @@ export interface components {
          * @description API metadata included in all responses
          * @example {
          *       "api_version": 1,
-         *       "server_version": "0.14.18"
+         *       "server_version": "0.15.0"
          *     }
          */
         ApiMeta: {
@@ -2811,7 +2827,7 @@ export interface components {
             api_version: number;
             /**
              * @description Server version (semver)
-             * @example 0.14.18
+             * @example 0.15.0
              */
             server_version: string;
         };
@@ -2825,14 +2841,14 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-03-15T02:51:16.558676Z",
-             *       "id": "0ae24fec-a689-4d06-af2f-9e3d1439a86a",
+             *       "created_at": "2026-03-22T04:46:38.087168Z",
+             *       "id": "4b9ffdeb-2c9b-40a0-a4d4-74a4d55f9ff5",
              *       "interface_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-03-15T02:51:16.558676Z"
+             *       "updated_at": "2026-03-22T04:46:38.087168Z"
              *     }
              */
             data?: components["schemas"]["BindingBase"] & {
@@ -2874,6 +2890,19 @@ export interface components {
                 excess_networks: number;
                 /** Format: int64 */
                 excess_seats: number;
+            };
+            error?: string | null;
+            meta: components["schemas"]["ApiMeta"];
+            success: boolean;
+        };
+        ApiResponse_Credential: {
+            data?: components["schemas"]["CredentialBase"] & {
+                /** Format: date-time */
+                readonly created_at: string;
+                /** Format: uuid */
+                readonly id: string;
+                /** Format: date-time */
+                readonly updated_at: string;
             };
             error?: string | null;
             meta: components["schemas"]["ApiMeta"];
@@ -2945,8 +2974,20 @@ export interface components {
             data?: components["schemas"]["DiscoveryBase"] & {
                 /** Format: date-time */
                 readonly created_at: string;
+                /** @description When true, the next scan will be a full port scan regardless of interval */
+                force_full_scan?: boolean;
                 /** Format: uuid */
                 readonly id: string;
+                /**
+                 * @description Credential IDs to include in the next scan's credential_mappings.
+                 *     Set by the discovery edit modal, cleared after each scan completes.
+                 */
+                pending_credential_ids?: string[];
+                /**
+                 * Format: int32
+                 * @description Number of completed scans (incremented by server on session completion)
+                 */
+                readonly scan_count?: number;
                 /** Format: date-time */
                 readonly updated_at: string;
             };
@@ -3018,6 +3059,7 @@ export interface components {
              *     Includes children (interfaces, ports, services, if_entries).
              * @example {
              *       "created_at": "2026-01-15T10:30:00Z",
+             *       "credential_assignments": [],
              *       "description": "Primary web server",
              *       "hidden": false,
              *       "hostname": "web-server-01.local",
@@ -3084,14 +3126,14 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-03-15T02:51:16.541115Z",
-             *               "id": "22881fa3-8831-4172-8782-6c65d10f5da1",
+             *               "created_at": "2026-03-22T04:46:38.068569Z",
+             *               "id": "d76bc78f-78f2-4899-9f5e-803e5f0560a5",
              *               "interface_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-03-15T02:51:16.541115Z"
+             *               "updated_at": "2026-03-22T04:46:38.068569Z"
              *             }
              *           ],
              *           "created_at": "2026-01-15T10:30:00Z",
@@ -3100,7 +3142,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Jaeger",
+             *           "service_definition": "Home Assistant",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -3121,6 +3163,7 @@ export interface components {
                 chassis_id?: string | null;
                 /** Format: date-time */
                 created_at: string;
+                credential_assignments?: components["schemas"]["CredentialAssignment"][];
                 description?: string | null;
                 hidden: boolean;
                 hostname?: string | null;
@@ -3135,8 +3178,6 @@ export interface components {
                 network_id: string;
                 ports: components["schemas"]["Port"][];
                 services: components["schemas"]["Service"][];
-                /** Format: uuid */
-                snmp_credential_id?: string | null;
                 source: components["schemas"]["EntitySource"];
                 sys_contact?: string | null;
                 sys_descr?: string | null;
@@ -3208,6 +3249,7 @@ export interface components {
             /**
              * @example {
              *       "created_at": "2026-01-15T10:30:00Z",
+             *       "credential_ids": [],
              *       "id": "550e8400-e29b-41d4-a716-446655440002",
              *       "name": "Home Network",
              *       "organization_id": "550e8400-e29b-41d4-a716-446655440001",
@@ -3356,14 +3398,14 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-03-15T02:51:16.553956Z",
-             *           "id": "ee950848-69ed-4995-88a8-a9ad439cd2dc",
+             *           "created_at": "2026-03-22T04:46:38.081853Z",
+             *           "id": "f5dc962e-4bdb-4ffb-8750-f513bed5ae94",
              *           "interface_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-03-15T02:51:16.553956Z"
+             *           "updated_at": "2026-03-22T04:46:38.081853Z"
              *         }
              *       ],
              *       "created_at": "2026-01-15T10:30:00Z",
@@ -3372,7 +3414,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Jaeger",
+             *       "service_definition": "Home Assistant",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -3405,19 +3447,6 @@ export interface components {
         };
         ApiResponse_Share: {
             data?: components["schemas"]["ShareBase"] & {
-                /** Format: date-time */
-                readonly created_at: string;
-                /** Format: uuid */
-                readonly id: string;
-                /** Format: date-time */
-                readonly updated_at: string;
-            };
-            error?: string | null;
-            meta: components["schemas"]["ApiMeta"];
-            success: boolean;
-        };
-        ApiResponse_SnmpCredential: {
-            data?: components["schemas"]["SnmpCredentialBase"] & {
                 /** Format: date-time */
                 readonly created_at: string;
                 /** Format: uuid */
@@ -3588,6 +3617,19 @@ export interface components {
             meta: components["schemas"]["ApiMeta"];
             success: boolean;
         };
+        ApiResponse_Vec_Credential: {
+            data?: (components["schemas"]["CredentialBase"] & {
+                /** Format: date-time */
+                readonly created_at: string;
+                /** Format: uuid */
+                readonly id: string;
+                /** Format: date-time */
+                readonly updated_at: string;
+            })[];
+            error?: string | null;
+            meta: components["schemas"]["ApiMeta"];
+            success: boolean;
+        };
         ApiResponse_Vec_DiscoveryUpdatePayload: {
             data?: {
                 /** Format: uuid */
@@ -3693,14 +3735,14 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-03-15T02:51:16.541322Z",
-         *       "id": "e1c7e60d-d555-4fb5-a443-caff77467f74",
+         *       "created_at": "2026-03-22T04:46:38.068992Z",
+         *       "id": "fcc8a9ba-681b-4744-bc43-9a153a997a24",
          *       "interface_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-03-15T02:51:16.541322Z"
+         *       "updated_at": "2026-03-22T04:46:38.068992Z"
          *     }
          */
         Binding: components["schemas"]["BindingBase"] & {
@@ -3846,6 +3888,7 @@ export interface components {
          *     Client must provide UUIDs for all entities, enabling services to reference
          *     interfaces/ports by ID in the same request.
          * @example {
+         *       "credential_assignments": [],
          *       "description": "Primary web server",
          *       "hidden": false,
          *       "hostname": "web-server-01.local",
@@ -3882,7 +3925,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Jaeger",
+         *           "service_definition": "Home Assistant",
          *           "tags": [],
          *           "virtualization": null
          *         }
@@ -3893,6 +3936,7 @@ export interface components {
          */
         CreateHostRequest: {
             chassis_id?: string | null;
+            credential_assignments?: components["schemas"]["CredentialAssignment"][];
             description?: string | null;
             hidden?: boolean;
             hostname?: string | null;
@@ -3908,8 +3952,6 @@ export interface components {
             ports?: components["schemas"]["PortInput"][];
             /** @description Services to create with this host (can reference interfaces/ports by their UUIDs) */
             services?: components["schemas"]["ServiceInput"][];
-            /** Format: uuid */
-            snmp_credential_id?: string | null;
             sys_contact?: string | null;
             sys_descr?: string | null;
             sys_location?: string | null;
@@ -3947,6 +3989,57 @@ export interface components {
         CreateUpdateShareRequest: {
             password?: string | null;
             share: components["schemas"]["Share"];
+        };
+        Credential: components["schemas"]["CredentialBase"] & {
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        /** @description A credential assigned to a host, optionally limited to specific interfaces. */
+        CredentialAssignment: {
+            /** Format: uuid */
+            credential_id: string;
+            /** @description Interface IDs to limit this credential to. None = all host interfaces. */
+            interface_ids: string[] | null;
+        };
+        CredentialBase: {
+            credential_type: components["schemas"]["CredentialType"];
+            name: string;
+            /** Format: uuid */
+            organization_id: string;
+            tags: string[];
+            /**
+             * @description Ephemeral bootstrap IPs for pre-discovery credential resolution.
+             *     Write-only — skipped in API GET responses.
+             */
+            target_ips?: string[] | null;
+        };
+        /** @enum {string} */
+        CredentialOrderField: "created_at" | "name" | "updated_at";
+        /**
+         * @description Universal credential type — tagged enum stored as JSONB.
+         *     Each variant represents a different credential protocol/method.
+         */
+        CredentialType: {
+            community: components["schemas"]["SecretValue"];
+            /** @enum {string} */
+            type: "SnmpV2c";
+        } | {
+            /** @description Optional URL path prefix (e.g. "/v1.43") */
+            path?: string | null;
+            /**
+             * Format: int32
+             * @description Port for the Docker API proxy (default 2376)
+             */
+            port?: number;
+            ssl_cert?: null | components["schemas"]["FileOrInline"];
+            ssl_chain?: null | components["schemas"]["FileOrInline"];
+            ssl_key?: null | components["schemas"]["SecretValue"];
+            /** @enum {string} */
+            type: "DockerProxy";
         };
         Daemon: components["schemas"]["DaemonBase"] & {
             /** Format: date-time */
@@ -4051,6 +4144,8 @@ export interface components {
         /** @description Daemon registration request from daemon to server */
         DaemonRegistrationRequest: {
             capabilities: components["schemas"]["DaemonCapabilities"];
+            /** @description Credential IDs to assign to daemon's host during registration. */
+            credential_ids?: string[];
             /** Format: uuid */
             daemon_id: string;
             mode: components["schemas"]["DaemonMode"];
@@ -4096,8 +4191,16 @@ export interface components {
         };
         /** @description Lightweight daemon status for polling responses. */
         DaemonStatus: {
-            /** @description Daemon capabilities (docker socket, interfaced subnets) */
+            /** @description Backwards compat: pre-v0.15.0 daemons send capabilities instead of interfaced_subnets. */
             capabilities?: components["schemas"]["DaemonCapabilities"];
+            /** @description Whether the daemon has access to a Docker socket. */
+            has_docker_socket?: boolean;
+            /**
+             * @description Subnets detected from daemon's network interfaces. Server resolves these
+             *     via SubnetService::create (create-or-match by CIDR) to get real IDs.
+             *     v0.15.0+ daemons populate this; pre-v0.15.0 daemons leave it empty.
+             */
+            interfaced_subnets?: components["schemas"]["Subnet"][];
             mode: components["schemas"]["DaemonMode"];
             name: string;
             /**
@@ -4116,6 +4219,7 @@ export interface components {
         /** @description Daemon version status including health and any warnings */
         DaemonVersionStatus: {
             status: components["schemas"]["VersionHealthStatus"];
+            supports_unified_discovery?: boolean;
             version?: string | null;
             warnings?: components["schemas"]["DeprecationWarning"][];
         };
@@ -4142,8 +4246,20 @@ export interface components {
         Discovery: components["schemas"]["DiscoveryBase"] & {
             /** Format: date-time */
             readonly created_at: string;
+            /** @description When true, the next scan will be a full port scan regardless of interval */
+            force_full_scan?: boolean;
             /** Format: uuid */
             readonly id: string;
+            /**
+             * @description Credential IDs to include in the next scan's credential_mappings.
+             *     Set by the discovery edit modal, cleared after each scan completes.
+             */
+            pending_credential_ids?: string[];
+            /**
+             * Format: int32
+             * @description Number of completed scans (incremented by server on session completion)
+             */
+            readonly scan_count?: number;
             /** Format: date-time */
             readonly updated_at: string;
         };
@@ -4191,15 +4307,10 @@ export interface components {
         } | {
             host_naming_fallback: components["schemas"]["HostNamingFallback"];
             /**
-             * @description Whether to probe raw-socket ports (9100-9107) during endpoint scanning.
-             *     Disabled by default to prevent ghost printing on JetDirect printers.
-             */
-            probe_raw_socket_ports?: boolean;
-            /**
              * @description SNMP credentials for querying devices during discovery
              *     Server builds this mapping before initiating discovery
              */
-            snmp_credentials?: components["schemas"]["SnmpCredentialMapping"];
+            snmp_credentials?: Record<string, never>;
             subnet_ids: string[] | null;
             /** @enum {string} */
             type: "Network";
@@ -4209,6 +4320,22 @@ export interface components {
             host_naming_fallback: components["schemas"]["HostNamingFallback"];
             /** @enum {string} */
             type: "Docker";
+        } | {
+            /**
+             * Format: uuid
+             * @description ID of the host that the daemon is running on
+             */
+            host_id: string;
+            /** @description Fallback strategy for naming discovered hosts */
+            host_naming_fallback: components["schemas"]["HostNamingFallback"];
+            /** @description Whether to scan the local Docker socket for containers */
+            scan_local_docker_socket?: boolean;
+            /** @description Per-discovery scan performance settings */
+            scan_settings?: components["schemas"]["ScanSettings"];
+            /** @description Subnets to scan. None = scan all interfaced subnets. */
+            subnet_ids: string[] | null;
+            /** @enum {string} */
+            type: "Unified";
         };
         /** @description Progress update from daemon to server during discovery */
         DiscoveryUpdatePayload: {
@@ -4323,7 +4450,7 @@ export interface components {
             urgency?: string | null;
         };
         /** @enum {string} */
-        EntityDiscriminants: "Organization" | "Invite" | "Share" | "Network" | "DaemonApiKey" | "UserApiKey" | "User" | "Tag" | "Discovery" | "Daemon" | "Host" | "Service" | "Port" | "Binding" | "Interface" | "IfEntry" | "SnmpCredential" | "Subnet" | "Group" | "Topology" | "Unknown";
+        EntityDiscriminants: "Organization" | "Invite" | "Share" | "Network" | "DaemonApiKey" | "UserApiKey" | "User" | "Tag" | "Discovery" | "Daemon" | "Host" | "Service" | "Port" | "Binding" | "Interface" | "IfEntry" | "Credential" | "Subnet" | "Group" | "Topology" | "Unknown";
         EntitySource: {
             /** @enum {string} */
             type: "Manual";
@@ -4342,6 +4469,16 @@ export interface components {
         } | {
             /** @enum {string} */
             type: "Unknown";
+        };
+        /** @description Non-secret value that can be inline content or a file path on daemon host. */
+        FileOrInline: {
+            /** @enum {string} */
+            mode: "Inline";
+            value: string;
+        } | {
+            /** @enum {string} */
+            mode: "FilePath";
+            path: string;
         };
         ForgotPasswordRequest: {
             /** Format: email */
@@ -4397,6 +4534,7 @@ export interface components {
         /**
          * @example {
          *       "created_at": "2026-01-15T10:30:00Z",
+         *       "credential_assignments": [],
          *       "description": "Primary web server",
          *       "hidden": false,
          *       "hostname": "web-server-01.local",
@@ -4427,19 +4565,22 @@ export interface components {
         HostBase: {
             /** @description LLDP lldpLocChassisId - globally unique device identifier for deduplication */
             chassis_id?: string | null;
+            /** @description Credential assignments for this host (hydrated from junction table). */
+            credential_assignments: components["schemas"]["CredentialAssignment"][];
             description: string | null;
             hidden: boolean;
             hostname: string | null;
             /** @description URL for device management interface (manual or discovered) */
             management_url?: string | null;
+            /** @description ENTITY-MIB entPhysicalMfgName - hardware manufacturer */
+            manufacturer?: string | null;
+            /** @description ENTITY-MIB entPhysicalModelName - hardware model */
+            model?: string | null;
             name: string;
             /** Format: uuid */
             network_id: string;
-            /**
-             * Format: uuid
-             * @description Per-host SNMP credential override (null = use network default)
-             */
-            snmp_credential_id?: string | null;
+            /** @description ENTITY-MIB entPhysicalSerialNum - hardware serial number */
+            serial_number?: string | null;
             source: components["schemas"]["EntitySource"];
             /** @description SNMP sysContact.0 - admin contact info */
             sys_contact?: string | null;
@@ -4447,6 +4588,8 @@ export interface components {
             sys_descr?: string | null;
             /** @description SNMP sysLocation.0 - physical location */
             sys_location?: string | null;
+            /** @description SNMP sysName.0 - administratively-assigned hostname */
+            sys_name?: string | null;
             /** @description SNMP sysObjectID.0 - vendor OID for device identification */
             sys_object_id?: string | null;
             tags: string[];
@@ -4464,6 +4607,7 @@ export interface components {
          *     Includes children (interfaces, ports, services, if_entries).
          * @example {
          *       "created_at": "2026-01-15T10:30:00Z",
+         *       "credential_assignments": [],
          *       "description": "Primary web server",
          *       "hidden": false,
          *       "hostname": "web-server-01.local",
@@ -4530,14 +4674,14 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-03-15T02:51:16.540834Z",
-         *               "id": "26f9e7a5-b838-4bd6-98b5-972182bb78c2",
+         *               "created_at": "2026-03-22T04:46:38.068025Z",
+         *               "id": "01af750c-22f6-4068-af9f-a90dbbc1c320",
          *               "interface_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-03-15T02:51:16.540834Z"
+         *               "updated_at": "2026-03-22T04:46:38.068025Z"
          *             }
          *           ],
          *           "created_at": "2026-01-15T10:30:00Z",
@@ -4546,7 +4690,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Jaeger",
+         *           "service_definition": "Home Assistant",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -4567,6 +4711,7 @@ export interface components {
             chassis_id?: string | null;
             /** Format: date-time */
             created_at: string;
+            credential_assignments?: components["schemas"]["CredentialAssignment"][];
             description?: string | null;
             hidden: boolean;
             hostname?: string | null;
@@ -4581,8 +4726,6 @@ export interface components {
             network_id: string;
             ports: components["schemas"]["Port"][];
             services: components["schemas"]["Service"][];
-            /** Format: uuid */
-            snmp_credential_id?: string | null;
             source: components["schemas"]["EntitySource"];
             sys_contact?: string | null;
             sys_descr?: string | null;
@@ -4623,6 +4766,12 @@ export interface components {
             cdp_platform?: string | null;
             /** @description Remote port ID from CDP */
             cdp_port_id?: string | null;
+            /**
+             * @description Bridge FDB: learned MAC addresses on this switch port.
+             *     Single-MAC ports can be resolved to neighbor links server-side.
+             *     Multi-MAC ports indicate uplinks where LLDP/CDP is the better source.
+             */
+            fdb_macs?: string[] | null;
             /** Format: uuid */
             host_id: string;
             /** @description SNMP ifAlias - user-configured description */
@@ -4930,6 +5079,7 @@ export interface components {
         /**
          * @example {
          *       "created_at": "2026-01-15T10:30:00Z",
+         *       "credential_ids": [],
          *       "id": "550e8400-e29b-41d4-a716-446655440002",
          *       "name": "Home Network",
          *       "organization_id": "550e8400-e29b-41d4-a716-446655440001",
@@ -4946,15 +5096,11 @@ export interface components {
             readonly updated_at: string;
         };
         NetworkBase: {
+            /** @description Credential IDs associated with this network (hydrated from junction table). */
+            credential_ids: string[];
             name: string;
             /** Format: uuid */
             organization_id: string;
-            /**
-             * Format: uuid
-             * @description Default SNMP credential for this network (hosts can override).
-             *     When set, SNMP discovery is enabled for this network.
-             */
-            snmp_credential_id?: string | null;
             tags: string[];
         };
         /** @description Network configuration for setup */
@@ -5025,7 +5171,7 @@ export interface components {
             snmp_version?: string | null;
         };
         /** @enum {string} */
-        OnboardingOperation: "OrgCreated" | "OnboardingModalCompleted" | "PlanSelected" | "FirstDaemonRegistered" | "FirstTopologyRebuild" | "FirstDiscoveryCompleted" | "FirstHostDiscovered" | "SecondNetworkCreated" | "FirstTagCreated" | "FirstGroupCreated" | "FirstUserApiKeyCreated" | "FirstSnmpCredentialCreated" | "InviteSent" | "InviteAccepted" | "ProfileCompleted" | "ReferralSourceCompleted";
+        OnboardingOperation: "OrgCreated" | "OnboardingModalCompleted" | "PlanSelected" | "FirstDaemonRegistered" | "FirstTopologyRebuild" | "FirstDiscoveryCompleted" | "FirstHostDiscovered" | "SecondNetworkCreated" | "FirstTagCreated" | "FirstGroupCreated" | "FirstUserApiKeyCreated" | "FirstSnmpCredentialCreated" | "FirstCredentialCreated" | "InviteSent" | "InviteAccepted" | "ProfileCompleted" | "ReferralSourceCompleted";
         /** @description Response from onboarding state endpoint */
         OnboardingStateResponse: {
             network?: null | components["schemas"]["OnboardingNetworkState"];
@@ -5085,7 +5231,7 @@ export interface components {
          *         "offset": 0,
          *         "total_count": 142
          *       },
-         *       "server_version": "0.14.18"
+         *       "server_version": "0.15.0"
          *     }
          */
         PaginatedApiMeta: {
@@ -5098,9 +5244,23 @@ export interface components {
             pagination: components["schemas"]["PaginationMeta"];
             /**
              * @description Server version (semver)
-             * @example 0.14.18
+             * @example 0.15.0
              */
             server_version: string;
+        };
+        /** @description Response type for paginated list endpoints (pagination is always present in meta) */
+        PaginatedApiResponse_Credential: {
+            data: (components["schemas"]["CredentialBase"] & {
+                /** Format: date-time */
+                readonly created_at: string;
+                /** Format: uuid */
+                readonly id: string;
+                /** Format: date-time */
+                readonly updated_at: string;
+            })[];
+            error?: string | null;
+            meta: components["schemas"]["PaginatedApiMeta"];
+            success: boolean;
         };
         /** @description Response type for paginated list endpoints (pagination is always present in meta) */
         PaginatedApiResponse_DaemonResponse: {
@@ -5138,6 +5298,7 @@ export interface components {
                 chassis_id?: string | null;
                 /** Format: date-time */
                 created_at: string;
+                credential_assignments?: components["schemas"]["CredentialAssignment"][];
                 description?: string | null;
                 hidden: boolean;
                 hostname?: string | null;
@@ -5152,8 +5313,6 @@ export interface components {
                 network_id: string;
                 ports: components["schemas"]["Port"][];
                 services: components["schemas"]["Service"][];
-                /** Format: uuid */
-                snmp_credential_id?: string | null;
                 source: components["schemas"]["EntitySource"];
                 sys_contact?: string | null;
                 sys_descr?: string | null;
@@ -5171,20 +5330,6 @@ export interface components {
         /** @description Response type for paginated list endpoints (pagination is always present in meta) */
         PaginatedApiResponse_Service: {
             data: (components["schemas"]["ServiceBase"] & {
-                /** Format: date-time */
-                readonly created_at: string;
-                /** Format: uuid */
-                readonly id: string;
-                /** Format: date-time */
-                readonly updated_at: string;
-            })[];
-            error?: string | null;
-            meta: components["schemas"]["PaginatedApiMeta"];
-            success: boolean;
-        };
-        /** @description Response type for paginated list endpoints (pagination is always present in meta) */
-        PaginatedApiResponse_SnmpCredential: {
-            data: (components["schemas"]["SnmpCredentialBase"] & {
                 /** Format: date-time */
                 readonly created_at: string;
                 /** Format: uuid */
@@ -5518,6 +5663,58 @@ export interface components {
             /** @enum {string} */
             type: "AdHoc";
         };
+        /**
+         * @description Scan performance settings. Lives on the discovery entity.
+         *     Numeric fields are `Option<T>` — `None` means "use daemon default".
+         *     The daemon unwraps with defaults at point of use.
+         */
+        ScanSettings: {
+            /**
+             * Format: int32
+             * @description ARP packets per second (default: 50)
+             */
+            arp_rate_pps?: number | null;
+            /**
+             * Format: int32
+             * @description ARP retry rounds for non-responsive targets (default: 2 = 3 total attempts)
+             */
+            arp_retries?: number | null;
+            /**
+             * Format: int32
+             * @description Run a full 65k port scan every N scans. Other scans use a light port set.
+             *     Default: 3. Value of 0 means never full scan. Value of 1 means every scan is full.
+             */
+            full_scan_interval?: number | null;
+            /**
+             * @description Whether this specific scan run should do a full 65k port scan.
+             *     Set by the server before dispatching to the daemon — not user-configurable.
+             */
+            is_full_scan?: boolean;
+            /** @description Ports scanned concurrently per host (default: 200, clamped 16-1000) */
+            port_scan_batch_size?: number | null;
+            /**
+             * @description Whether to probe raw-socket ports 9100-9107 (default: false).
+             *     Disabled by default to prevent ghost printing on JetDirect printers.
+             */
+            probe_raw_socket_ports?: boolean;
+            /**
+             * Format: int32
+             * @description Port scan probes per second (default: 500)
+             */
+            scan_rate_pps?: number | null;
+            /** @description On Windows, use Npcap broadcast ARP instead of SendARP (default: false) */
+            use_npcap_arp?: boolean;
+        };
+        /** @description Secret value that can be either inline content or a file path on the daemon host. */
+        SecretValue: {
+            /** @enum {string} */
+            mode: "Inline";
+            value: string;
+        } | {
+            /** @enum {string} */
+            mode: "FilePath";
+            path: string;
+        };
         /** @description Server capabilities returned on startup/registration */
         ServerCapabilities: {
             /** @description Deprecation warnings for the daemon */
@@ -5531,14 +5728,14 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-03-15T02:51:16.541254Z",
-         *           "id": "f53f8b3e-77e2-4516-b7a5-6375429d85ad",
+         *           "created_at": "2026-03-22T04:46:38.068850Z",
+         *           "id": "5f6ccae8-8696-46c2-9463-50663f2f053b",
          *           "interface_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-03-15T02:51:16.541254Z"
+         *           "updated_at": "2026-03-22T04:46:38.068850Z"
          *         }
          *       ],
          *       "created_at": "2026-01-15T10:30:00Z",
@@ -5547,7 +5744,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Jaeger",
+         *       "service_definition": "Home Assistant",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -5678,65 +5875,6 @@ export interface components {
             show_minimap: boolean;
             show_zoom_controls: boolean;
         };
-        SnmpCredential: components["schemas"]["SnmpCredentialBase"] & {
-            /** Format: date-time */
-            readonly created_at: string;
-            /** Format: uuid */
-            readonly id: string;
-            /** Format: date-time */
-            readonly updated_at: string;
-        };
-        SnmpCredentialBase: {
-            /**
-             * @description SNMPv2c community string (stored encrypted)
-             *     For V3, this would be extended with auth/priv credentials
-             *     Redacted in API responses for security
-             */
-            community: string;
-            name: string;
-            /** Format: uuid */
-            organization_id: string;
-            tags: string[];
-            /** @description SNMP version (V2c or V3) */
-            version?: components["schemas"]["SnmpVersion"];
-        };
-        /**
-         * @description SNMP credential mapping for network discovery
-         *     Server builds this before initiating discovery; daemon uses it during scan
-         */
-        SnmpCredentialMapping: {
-            default_credential?: null | components["schemas"]["SnmpQueryCredential"];
-            /** @description Per-IP overrides (from host.snmp_credential_id where host has known IPs) */
-            ip_overrides?: components["schemas"]["SnmpIpOverride"][];
-        };
-        /** @enum {string} */
-        SnmpCredentialOrderField: "created_at" | "name" | "version" | "updated_at";
-        /** @description IP-specific SNMP credential override */
-        SnmpIpOverride: {
-            /** @description Credential to use for this IP */
-            credential: components["schemas"]["SnmpQueryCredential"];
-            /** @description IP address for this override */
-            ip: string;
-        };
-        /**
-         * @description Minimal SNMP credential for daemon queries (version + community only)
-         *     Does not include organization_id, name, timestamps - just what's needed for SNMP queries
-         *
-         *     The community string is wrapped in `Secret` to prevent accidental exposure in logs,
-         *     debug output, and API responses. Use `community.expose_secret()` for explicit access
-         *     (e.g. daemon SNMP sessions).
-         */
-        SnmpQueryCredential: {
-            /** @description SNMPv2c community string — redacted in serialization/debug by default */
-            community: string;
-            /** @description SNMP version (V2c or V3) */
-            version?: components["schemas"]["SnmpVersion"];
-        };
-        /**
-         * @description SNMP protocol version
-         * @enum {string}
-         */
-        SnmpVersion: "V2c" | "V3";
         /**
          * @example {
          *       "cidr": "192.168.1.0/24",
@@ -5778,7 +5916,7 @@ export interface components {
          */
         SubnetOrderField: "created_at" | "name" | "cidr" | "subnet_type" | "updated_at" | "network_id";
         /** @enum {string} */
-        SubnetType: "Internet" | "Remote" | "Gateway" | "VpnTunnel" | "Dmz" | "Lan" | "WiFi" | "IoT" | "Guest" | "DockerBridge" | "MacVlan" | "IpVlan" | "Management" | "Storage" | "Unknown" | "None";
+        SubnetType: "Internet" | "Remote" | "Gateway" | "VpnTunnel" | "Dmz" | "Lan" | "WiFi" | "IoT" | "Guest" | "DockerBridge" | "MacVlan" | "IpVlan" | "Management" | "Storage" | "Loopback" | "Unknown";
         /**
          * @example {
          *       "color": "Green",
@@ -6016,6 +6154,11 @@ export interface components {
          *     Server will sync children (create new, update existing, delete removed) only if provided.
          */
         UpdateHostRequest: {
+            /**
+             * @description Credential assignments for this host.
+             *     If provided, replaces all existing credential assignments.
+             */
+            credential_assignments?: components["schemas"]["CredentialAssignment"][] | null;
             description?: string | null;
             /**
              * Format: date-time
@@ -7981,6 +8124,280 @@ export interface operations {
             };
         };
     };
+    get_all_credentials: {
+        parameters: {
+            query?: {
+                /** @description Filter by credential type (e.g. "Snmp", "DockerProxy") */
+                type?: string | null;
+                /** @description Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
+                group_by?: null | components["schemas"]["CredentialOrderField"];
+                /** @description Secondary ordering field (sorting within groups or standalone sort). */
+                order_by?: null | components["schemas"]["CredentialOrderField"];
+                /** @description Direction for order_by field (group_by always uses ASC). */
+                order_direction?: null | components["schemas"]["OrderDirection"];
+                /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
+                limit?: number | null;
+                /** @description Number of results to skip. Default: 0. */
+                offset?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of credentials */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedApiResponse_Credential"];
+                };
+            };
+        };
+    };
+    create_credential: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Credential"];
+            };
+        };
+        responses: {
+            /** @description Credential created successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_Credential"];
+                };
+            };
+            /** @description Validation error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    bulk_create_credentials: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Credential"][];
+            };
+        };
+        responses: {
+            /** @description Credentials created successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_Vec_Credential"];
+                };
+            };
+            /** @description Validation error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    bulk_delete_credentials: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": string[];
+            };
+        };
+        responses: {
+            /** @description Credentials deleted successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_BulkDeleteResponse"];
+                };
+            };
+            /** @description Validation error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    export_credentials_csv: {
+        parameters: {
+            query?: {
+                /** @description Filter by credential type (e.g. "Snmp", "DockerProxy") */
+                type?: string | null;
+                /** @description Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
+                group_by?: null | components["schemas"]["CredentialOrderField"];
+                /** @description Secondary ordering field (sorting within groups or standalone sort). */
+                order_by?: null | components["schemas"]["CredentialOrderField"];
+                /** @description Direction for order_by field (group_by always uses ASC). */
+                order_direction?: null | components["schemas"]["OrderDirection"];
+                /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
+                limit?: number | null;
+                /** @description Number of results to skip. Default: 0. */
+                offset?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV file containing Credentials */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": unknown;
+                };
+            };
+        };
+    };
+    get_credential_by_id: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Credential ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Credential found */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_Credential"];
+                };
+            };
+            /** @description Credential not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    update_credential: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Credential ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Credential"];
+            };
+        };
+        responses: {
+            /** @description Credential updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_Credential"];
+                };
+            };
+            /** @description Validation error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Credential not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    delete_credential: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Credential ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Credential deleted successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Credential not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
     get_daemons: {
         parameters: {
             query?: {
@@ -9839,7 +10256,7 @@ export interface operations {
             };
         };
     };
-    list_networks: {
+    get_all_networks: {
         parameters: {
             query?: {
                 /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
@@ -9853,14 +10270,21 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description List of Networks */
+            /** @description List of networks */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        data: components["schemas"]["Network"][];
+                        data: (components["schemas"]["NetworkBase"] & {
+                            /** Format: date-time */
+                            readonly created_at: string;
+                            /** Format: uuid */
+                            readonly id: string;
+                            /** Format: date-time */
+                            readonly updated_at: string;
+                        })[];
                         error?: string | null;
                         meta: components["schemas"]["PaginatedApiMeta"];
                         success: boolean;
@@ -9952,7 +10376,7 @@ export interface operations {
             };
         };
     };
-    get_network_by_id: {
+    get_by_id_network: {
         parameters: {
             query?: never;
             header?: never;
@@ -11045,252 +11469,6 @@ export interface operations {
                 };
             };
             /** @description Share not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-        };
-    };
-    get_all_snmp_credentials: {
-        parameters: {
-            query?: {
-                /** @description Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
-                group_by?: null | components["schemas"]["SnmpCredentialOrderField"];
-                /** @description Secondary ordering field (sorting within groups or standalone sort). */
-                order_by?: null | components["schemas"]["SnmpCredentialOrderField"];
-                /** @description Direction for order_by field (group_by always uses ASC). */
-                order_direction?: null | components["schemas"]["OrderDirection"];
-                /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
-                limit?: number | null;
-                /** @description Number of results to skip. Default: 0. */
-                offset?: number | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description List of SNMP credentials */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PaginatedApiResponse_SnmpCredential"];
-                };
-            };
-        };
-    };
-    create_snmp_credential: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SnmpCredential"];
-            };
-        };
-        responses: {
-            /** @description SNMP credential created successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse_SnmpCredential"];
-                };
-            };
-            /** @description Validation error */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-            /** @description Credential name already exists in this organization */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-        };
-    };
-    bulk_delete_snmp_credentials: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": string[];
-            };
-        };
-        responses: {
-            /** @description SNMP Credentials deleted successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse_BulkDeleteResponse"];
-                };
-            };
-            /** @description Validation error */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-        };
-    };
-    export_snmp_credentials_csv: {
-        parameters: {
-            query?: {
-                /** @description Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
-                group_by?: null | components["schemas"]["SnmpCredentialOrderField"];
-                /** @description Secondary ordering field (sorting within groups or standalone sort). */
-                order_by?: null | components["schemas"]["SnmpCredentialOrderField"];
-                /** @description Direction for order_by field (group_by always uses ASC). */
-                order_direction?: null | components["schemas"]["OrderDirection"];
-                /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
-                limit?: number | null;
-                /** @description Number of results to skip. Default: 0. */
-                offset?: number | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description CSV file containing SNMP Credentials */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/csv": unknown;
-                };
-            };
-        };
-    };
-    get_snmp_credential_by_id: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description SNMP Credential ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description SNMP Credential found */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse_SnmpCredential"];
-                };
-            };
-            /** @description SNMP Credential not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-        };
-    };
-    update_snmp_credential: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description snmp_credential ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SnmpCredential"];
-            };
-        };
-        responses: {
-            /** @description snmp_credential updated successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse_SnmpCredential"];
-                };
-            };
-            /** @description Validation error */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-            /** @description snmp_credential not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiErrorResponse"];
-                };
-            };
-        };
-    };
-    delete_snmp_credential: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description snmp_credential ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description snmp_credential deleted successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiResponse"];
-                };
-            };
-            /** @description snmp_credential not found */
             404: {
                 headers: {
                     [name: string]: unknown;

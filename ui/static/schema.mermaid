@@ -2,9 +2,7 @@ erDiagram
 
 "public.users" }o--|| "public.organizations" : "FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE"
 "public.networks" }o--|| "public.organizations" : "FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE"
-"public.networks" }o--o| "public.snmp_credentials" : "FOREIGN KEY (snmp_credential_id) REFERENCES snmp_credentials(id) ON DELETE SET NULL"
 "public.hosts" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
-"public.hosts" }o--o| "public.snmp_credentials" : "FOREIGN KEY (snmp_credential_id) REFERENCES snmp_credentials(id) ON DELETE SET NULL"
 "public.subnets" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
 "public.groups" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
 "public.daemons" }o--|| "public.users" : "FOREIGN KEY (user_id) REFERENCES users(id)"
@@ -40,12 +38,16 @@ erDiagram
 "public.user_api_key_network_access" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
 "public.user_api_key_network_access" }o--|| "public.user_api_keys" : "FOREIGN KEY (api_key_id) REFERENCES user_api_keys(id) ON DELETE CASCADE"
 "public.entity_tags" }o--|| "public.tags" : "FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE"
-"public.snmp_credentials" }o--|| "public.organizations" : "FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE"
 "public.if_entries" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
 "public.if_entries" }o--|| "public.hosts" : "FOREIGN KEY (host_id) REFERENCES hosts(id) ON DELETE CASCADE"
 "public.if_entries" }o--o| "public.hosts" : "FOREIGN KEY (neighbor_host_id) REFERENCES hosts(id) ON DELETE SET NULL"
 "public.if_entries" }o--o| "public.interfaces" : "FOREIGN KEY (interface_id) REFERENCES interfaces(id) ON DELETE SET NULL"
 "public.if_entries" }o--o| "public.if_entries" : "FOREIGN KEY (neighbor_if_entry_id) REFERENCES if_entries(id) ON DELETE SET NULL"
+"public.credentials" }o--|| "public.organizations" : "FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE"
+"public.network_credentials" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.network_credentials" }o--|| "public.credentials" : "FOREIGN KEY (credential_id) REFERENCES credentials(id) ON DELETE CASCADE"
+"public.host_credentials" }o--|| "public.hosts" : "FOREIGN KEY (host_id) REFERENCES hosts(id) ON DELETE CASCADE"
+"public.host_credentials" }o--|| "public.credentials" : "FOREIGN KEY (credential_id) REFERENCES credentials(id) ON DELETE CASCADE"
 
 "public._sqlx_migrations" {
   bigint version
@@ -81,7 +83,6 @@ erDiagram
   timestamp_with_time_zone created_at
   timestamp_with_time_zone updated_at
   uuid organization_id FK
-  uuid snmp_credential_id FK
 }
 "public.hosts" {
   uuid id
@@ -100,7 +101,10 @@ erDiagram
   text sys_contact
   text management_url
   text chassis_id
-  uuid snmp_credential_id FK
+  text manufacturer
+  text model
+  text serial_number
+  text sys_name
 }
 "public.subnets" {
   uuid id
@@ -163,6 +167,9 @@ erDiagram
   text name
   timestamp_with_time_zone created_at
   timestamp_with_time_zone updated_at
+  integer scan_count
+  boolean force_full_scan
+  uuid__ pending_credential_ids
 }
 "public.api_keys" {
   uuid id
@@ -331,15 +338,6 @@ erDiagram
   uuid tag_id FK
   timestamp_with_time_zone created_at
 }
-"public.snmp_credentials" {
-  uuid id
-  uuid organization_id FK
-  timestamp_with_time_zone created_at
-  timestamp_with_time_zone updated_at
-  text name
-  text version
-  text community
-}
 "public.if_entries" {
   uuid id
   uuid host_id FK
@@ -368,6 +366,25 @@ erDiagram
   text cdp_platform
   inet cdp_address
   text if_name
+  jsonb fdb_macs
+}
+"public.credentials" {
+  uuid id
+  uuid organization_id FK
+  text name
+  jsonb credential_type
+  inet__ target_ips
+  timestamp_with_time_zone created_at
+  timestamp_with_time_zone updated_at
+}
+"public.network_credentials" {
+  uuid network_id FK
+  uuid credential_id FK
+}
+"public.host_credentials" {
+  uuid host_id FK
+  uuid credential_id FK
+  uuid__ interface_ids
 }
 "tower_sessions.session" {
   text id

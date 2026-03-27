@@ -4,7 +4,7 @@
 	import type { IfEntry, Interface } from '$lib/features/hosts/types/base';
 	import { getHostByIdFromCache } from '$lib/features/hosts/queries';
 	import { getSubnetByIdFromCache } from '$lib/features/subnets/queries';
-	import { getAdminStatusLabels, getOperStatusLabels } from '$lib/features/snmp/types/base';
+	import { getAdminStatusLabels, getOperStatusLabels } from '$lib/features/credentials/types/base';
 	import ConfigHeader from '$lib/shared/components/forms/config/ConfigHeader.svelte';
 	import CollapsibleCard from '$lib/shared/components/data/CollapsibleCard.svelte';
 	import InfoRow from '$lib/shared/components/data/InfoRow.svelte';
@@ -146,7 +146,7 @@
 					{#if linkedSubnet}
 						<EntityTag
 							entityRef={entityRef('Subnet', linkedSubnet.id, linkedSubnet)}
-							label={linkedSubnet.name
+							label={linkedSubnet.name && linkedSubnet.name !== linkedSubnet.cidr
 								? `${linkedSubnet.name} (${linkedSubnet.cidr})`
 								: linkedSubnet.cidr}
 							icon={entities.getIconComponent('Subnet')}

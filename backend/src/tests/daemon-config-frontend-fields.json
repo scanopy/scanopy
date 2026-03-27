@@ -90,12 +90,6 @@
     "helpText": "Accept invalid TLS certificates when scanning endpoints. Enabled by default since scanners probe arbitrary internal services."
   },
   {
-    "id": "concurrent_scans",
-    "cliFlag": "--concurrent-scans",
-    "envVar": "SCANOPY_CONCURRENT_SCANS",
-    "helpText": "Maximum parallel host scans"
-  },
-  {
     "id": "bind_address",
     "cliFlag": "--bind-address",
     "envVar": "SCANOPY_BIND_ADDRESS",
@@ -118,5 +112,11 @@
     "cliFlag": "--heartbeat-interval",
     "envVar": "SCANOPY_HEARTBEAT_INTERVAL",
     "helpText": "Seconds between heartbeat updates to the server"
+  },
+  {
+    "id": "enable_local_docker_socket",
+    "cliFlag": "--enable-local-docker-socket",
+    "envVar": "SCANOPY_ENABLE_LOCAL_DOCKER_SOCKET",
+    "helpText": "Disable local Docker socket detection. When false, daemon reports has_docker_socket: false regardless of socket presence"
   }
 ]

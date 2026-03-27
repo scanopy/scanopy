@@ -121,12 +121,12 @@ impl EventSubscriber for EmailService {
                             }
                         }
                         OnboardingOperation::FirstDiscoveryCompleted => {
-                            // Only send topology ready email for Network discoveries, not SelfReport
+                            // Only send topology ready email for Network/Unified discoveries, not SelfReport
                             let is_network = t
                                 .metadata
                                 .get("discovery_type")
                                 .and_then(|v| v.as_str())
-                                .map(|dt| dt.starts_with("Network"))
+                                .map(|dt| dt.starts_with("Network") || dt.starts_with("Unified"))
                                 .unwrap_or(false);
 
                             if is_network

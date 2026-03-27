@@ -1,12 +1,14 @@
 <script lang="ts">
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import { AlertTriangle } from 'lucide-svelte';
 	import {
 		common_confirmAction,
 		common_areYouSure,
 		common_confirm,
 		common_cancel
 	} from '$lib/paraglide/messages';
+	import InlineWarning from './InlineWarning.svelte';
+	import InlineDanger from './InlineDanger.svelte';
+	import InlineInfo from './InlineInfo.svelte';
 
 	export let isOpen: boolean = false;
 	export let title: string | undefined = undefined;
@@ -25,17 +27,7 @@
 	$: resolvedConfirmLabel = confirmLabel ?? common_confirm();
 	$: resolvedCancelLabel = cancelLabel ?? common_cancel();
 
-	const variantClasses = {
-		danger: 'bg-red-900/20 border-red-600 text-red-400',
-		warning: 'bg-yellow-900/20 border-yellow-600 text-yellow-400',
-		info: 'bg-blue-900/20 border-blue-600 text-blue-400'
-	};
-
-	const iconColors = {
-		danger: 'text-red-400',
-		warning: 'text-yellow-400',
-		info: 'text-blue-400'
-	};
+	$: detailsBody = details.length > 0 ? details.join(', ') : null;
 
 	const confirmButtonClasses = {
 		danger: 'btn-danger',
@@ -45,22 +37,13 @@
 </script>
 
 <GenericModal {isOpen} title={resolvedTitle} {onClose} size="sm">
-	{#snippet headerIcon()}
-		<AlertTriangle class="h-5 w-5 flex-shrink-0 {iconColors[variant]}" />
-	{/snippet}
 	<div class="space-y-4 p-6">
-		<div class="flex items-start gap-3">
-			<p class="text-secondary text-sm">{resolvedMessage}</p>
-		</div>
-
-		{#if details.length > 0}
-			<div class="rounded border px-3 py-2 {variantClasses[variant]}">
-				<ul class="list-inside list-disc space-y-1 text-sm">
-					{#each details as detail, i (i)}
-						<li>{detail}</li>
-					{/each}
-				</ul>
-			</div>
+		{#if variant === 'danger'}
+			<InlineDanger title={resolvedMessage} body={detailsBody} />
+		{:else if variant === 'info'}
+			<InlineInfo title={resolvedMessage} body={detailsBody} />
+		{:else}
+			<InlineWarning title={resolvedMessage} body={detailsBody} />
 		{/if}
 	</div>
 

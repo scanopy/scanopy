@@ -52,22 +52,6 @@ impl Storable for Host {
         self.base.clone()
     }
 
-    fn id(&self) -> Uuid {
-        self.id
-    }
-
-    fn created_at(&self) -> DateTime<Utc> {
-        self.created_at
-    }
-
-    fn set_id(&mut self, id: Uuid) {
-        self.id = id;
-    }
-
-    fn set_created_at(&mut self, time: DateTime<Utc>) {
-        self.created_at = time;
-    }
-
     fn to_params(&self) -> Result<(Vec<&'static str>, Vec<SqlValue>), anyhow::Error> {
         // Exhaustive destructuring ensures compile error if HostBase changes
         let Self {
@@ -90,7 +74,11 @@ impl Storable for Host {
                     sys_contact,
                     management_url,
                     chassis_id,
-                    snmp_credential_id,
+                    sys_name,
+                    manufacturer,
+                    model,
+                    serial_number,
+                    credential_assignments: _, // Stored in host_credentials junction table
                 },
         } = self.clone();
 
@@ -112,7 +100,10 @@ impl Storable for Host {
                 "sys_contact",
                 "management_url",
                 "chassis_id",
-                "snmp_credential_id",
+                "sys_name",
+                "manufacturer",
+                "model",
+                "serial_number",
             ],
             vec![
                 SqlValue::Uuid(id),
@@ -131,7 +122,10 @@ impl Storable for Host {
                 SqlValue::OptionalString(sys_contact),
                 SqlValue::OptionalString(management_url),
                 SqlValue::OptionalString(chassis_id),
-                SqlValue::OptionalUuid(snmp_credential_id),
+                SqlValue::OptionalString(sys_name),
+                SqlValue::OptionalString(manufacturer),
+                SqlValue::OptionalString(model),
+                SqlValue::OptionalString(serial_number),
             ],
         ))
     }
@@ -164,13 +158,33 @@ impl Storable for Host {
                 sys_contact: row.get("sys_contact"),
                 management_url: row.get("management_url"),
                 chassis_id: row.get("chassis_id"),
-                snmp_credential_id: row.get("snmp_credential_id"),
+                sys_name: row.get("sys_name"),
+                manufacturer: row.get("manufacturer"),
+                model: row.get("model"),
+                serial_number: row.get("serial_number"),
+                credential_assignments: Vec::new(), // Hydrated from host_credentials junction table
             },
         })
     }
 }
 
 impl Entity for Host {
+    fn id(&self) -> Uuid {
+        self.id
+    }
+
+    fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    fn set_id(&mut self, id: Uuid) {
+        self.id = id;
+    }
+
+    fn set_created_at(&mut self, time: DateTime<Utc>) {
+        self.created_at = time;
+    }
+
     type CsvRow = HostCsvRow;
 
     fn to_csv_row(&self) -> Self::CsvRow {

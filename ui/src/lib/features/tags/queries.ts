@@ -205,7 +205,7 @@ const entityTypeToQueryKeyName: Record<EntityDiscriminants, keyof typeof queryKe
 	Daemon: 'daemons',
 	DaemonApiKey: 'apiKeys',
 	UserApiKey: 'userApiKeys',
-	SnmpCredential: 'snmpCredentials',
+	Credential: 'credentials',
 	// Non-taggable entities (null = no cache invalidation needed)
 	Organization: null,
 	Invite: null,

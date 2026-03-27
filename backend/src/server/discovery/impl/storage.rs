@@ -44,27 +44,14 @@ impl Storable for Discovery {
             created_at: now,
             updated_at: now,
             base,
+            scan_count: 0,
+            force_full_scan: false,
+            pending_credential_ids: vec![],
         }
     }
 
     fn get_base(&self) -> Self::BaseData {
         self.base.clone()
-    }
-
-    fn id(&self) -> Uuid {
-        self.id
-    }
-
-    fn created_at(&self) -> DateTime<Utc> {
-        self.created_at
-    }
-
-    fn set_id(&mut self, id: Uuid) {
-        self.id = id;
-    }
-
-    fn set_created_at(&mut self, time: DateTime<Utc>) {
-        self.created_at = time;
     }
 
     fn to_params(&self) -> Result<(Vec<&'static str>, Vec<SqlValue>), anyhow::Error> {
@@ -81,6 +68,9 @@ impl Storable for Discovery {
                     network_id,
                     tags: _, // Stored in entity_tags junction table
                 },
+            scan_count,
+            force_full_scan,
+            pending_credential_ids,
         } = self.clone();
 
         Ok((
@@ -93,6 +83,9 @@ impl Storable for Discovery {
                 "daemon_id",
                 "run_type",
                 "discovery_type",
+                "scan_count",
+                "force_full_scan",
+                "pending_credential_ids",
             ],
             vec![
                 SqlValue::Uuid(id),
@@ -103,6 +96,9 @@ impl Storable for Discovery {
                 SqlValue::Uuid(daemon_id),
                 SqlValue::RunType(run_type),
                 SqlValue::DiscoveryType(discovery_type),
+                SqlValue::I32(scan_count as i32),
+                SqlValue::Bool(force_full_scan),
+                SqlValue::UuidArray(pending_credential_ids),
             ],
         ))
     }
@@ -127,11 +123,30 @@ impl Storable for Discovery {
                 discovery_type,
                 tags: Vec::new(), // Hydrated from entity_tags junction table
             },
+            scan_count: row.get::<i32, _>("scan_count") as u32,
+            force_full_scan: row.get("force_full_scan"),
+            pending_credential_ids: row.get("pending_credential_ids"),
         })
     }
 }
 
 impl Entity for Discovery {
+    fn id(&self) -> Uuid {
+        self.id
+    }
+
+    fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    fn set_id(&mut self, id: Uuid) {
+        self.id = id;
+    }
+
+    fn set_created_at(&mut self, time: DateTime<Utc>) {
+        self.created_at = time;
+    }
+
     type CsvRow = DiscoveryCsvRow;
 
     fn to_csv_row(&self) -> Self::CsvRow {
@@ -157,6 +172,11 @@ impl Entity for Discovery {
 
     fn entity_category() -> EntityCategory {
         EntityCategory::DiscoveryAndDaemons
+    }
+
+    fn preserve_immutable_fields(&mut self, existing: &Self) {
+        // scan_count is server-managed — never overwritten by API updates
+        self.scan_count = existing.scan_count;
     }
 
     fn network_id(&self) -> Option<Uuid> {

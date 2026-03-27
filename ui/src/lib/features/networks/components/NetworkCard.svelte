@@ -1,11 +1,10 @@
 <script lang="ts">
 	import { Edit, Trash2 } from 'lucide-svelte';
 	import GenericCard from '$lib/shared/components/data/GenericCard.svelte';
-	import { entities, permissions } from '$lib/shared/stores/metadata';
+	import { entities, permissions, credentialTypes, subnetTypes } from '$lib/shared/stores/metadata';
 	import type { Network } from '../types';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
 	import { useSubnetsQuery } from '$lib/features/subnets/queries';
-	import { useGroupsQuery } from '$lib/features/groups/queries';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
 	import { entityRef } from '$lib/shared/components/data/types';
@@ -13,12 +12,11 @@
 		common_daemons,
 		common_delete,
 		common_edit,
-		common_groupsLabel,
-		common_snmpCredential,
 		common_subnets,
 		common_tags
 	} from '$lib/paraglide/messages';
-	import { useSnmpCredentialsQuery } from '$lib/features/snmp/queries';
+	import { useCredentialsQuery } from '$lib/features/credentials/queries';
+	import { getCredentialTypeId } from '$lib/features/credentials/types/base';
 	import { uuidv4Sentinel } from '$lib/shared/utils/formatting';
 	import { toColor } from '$lib/shared/utils/styling';
 	import { useHostsQuery } from '$lib/features/hosts/queries';
@@ -47,26 +45,28 @@
 
 	const daemonsQuery = useDaemonsQuery();
 	const subnetsQuery = useSubnetsQuery();
-	const groupsQuery = useGroupsQuery();
 	const hostsQuery = useHostsQuery({ limit: 0 });
 
 	// Derived data from queries
 	let daemonsData = $derived(daemonsQuery.data ?? []);
 	let subnetsData = $derived(subnetsQuery.data ?? []);
-	let groupsData = $derived(groupsQuery.data ?? []);
 	let hostsData = $derived(hostsQuery.data?.items ?? []);
 
 	let networkDaemons = $derived(daemonsData.filter((d) => d.network_id == network.id));
-	let networkSubnets = $derived(subnetsData.filter((s) => s.network_id == network.id));
-	let networkGroups = $derived(groupsData.filter((g) => g.network_id == network.id));
+	let networkSubnets = $derived(
+		subnetsData.filter(
+			(s) =>
+				s.network_id == network.id && !subnetTypes.getMetadata(s.subnet_type).hide_from_subnet_list
+		)
+	);
 
-	// Use the list query and find by ID (queries inside $derived don't work correctly)
-	const snmpCredentialsQuery = useSnmpCredentialsQuery();
-	let snmpCredentialsData = $derived(snmpCredentialsQuery.data ?? []);
-	let snmpCredential = $derived(
-		network.snmp_credential_id
-			? (snmpCredentialsData.find((c) => c.id === network.snmp_credential_id) ?? null)
-			: null
+	// Credentials query
+	const credentialsQuery = useCredentialsQuery();
+	let credentialsData = $derived(credentialsQuery.data ?? []);
+	let networkCredentials = $derived(
+		(network.credential_ids ?? [])
+			.map((id) => credentialsData.find((c) => c.id === id))
+			.filter(Boolean)
 	);
 
 	let canManageNetworks = $derived(
@@ -89,23 +89,22 @@
 				}))
 			},
 			{
-				label: common_snmpCredential(),
-				value: snmpCredential
-					? [
-							{
-								id: snmpCredential.id,
-								label: snmpCredential.name,
-								color: entities.getColorHelper('SnmpCredential').color,
-								entityRef: entityRef('SnmpCredential', snmpCredential.id, snmpCredential)
-							}
-						]
-					: [
-							{
-								id: uuidv4Sentinel,
-								label: 'None',
-								color: toColor('Gray')
-							}
-						]
+				label: 'Credentials',
+				value:
+					networkCredentials.length > 0
+						? networkCredentials.map((cred) => ({
+								id: cred!.id,
+								label: cred!.name,
+								color: credentialTypes.getColorHelper(getCredentialTypeId(cred!)).color,
+								entityRef: entityRef('Credential', cred!.id, cred!)
+							}))
+						: [
+								{
+									id: uuidv4Sentinel,
+									label: 'None',
+									color: toColor('Gray')
+								}
+							]
 			},
 			{
 				label: common_subnets(),
@@ -114,15 +113,6 @@
 					label: s.name,
 					color: entities.getColorHelper('Subnet').color,
 					entityRef: entityRef('Subnet', s.id, s)
-				}))
-			},
-			{
-				label: common_groupsLabel(),
-				value: networkGroups.map((g) => ({
-					id: g.id,
-					label: g.name,
-					color: entities.getColorHelper('Group').color,
-					entityRef: entityRef('Group', g.id, g)
 				}))
 			},
 			{ label: common_tags(), snippet: tagsSnippet }

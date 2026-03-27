@@ -10,7 +10,7 @@ use crate::server::{
         storage::{
             filter::StorableFilter,
             generic::GenericPostgresStorage,
-            traits::{Storable, Storage},
+            traits::{Entity, Storable, Storage},
         },
     },
     tags::entity_tags::EntityTagService,

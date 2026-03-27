@@ -8,8 +8,8 @@ use std::net::IpAddr;
 use std::time::Duration;
 use tokio::time::timeout;
 
-use crate::server::snmp_credentials::r#impl::base::SnmpVersion;
-use crate::server::snmp_credentials::r#impl::discovery::SnmpQueryCredential;
+use crate::server::credentials::r#impl::mapping::SnmpQueryCredential;
+use crate::server::credentials::r#impl::types::SnmpVersion;
 
 /// Default timeout for SNMP operations
 pub const SNMP_TIMEOUT: Duration = Duration::from_secs(5);
@@ -33,12 +33,14 @@ pub const MAX_WALK_ENTRIES: usize = 10000;
 pub async fn create_session(
     ip: IpAddr,
     credential: &SnmpQueryCredential,
+    port: u16,
 ) -> Result<Box<AsyncSession>> {
-    let target = format!("{}:161", ip);
+    let target = format!("{}:{}", ip, port);
 
     match credential.version {
         SnmpVersion::V2c => {
-            let community = credential.community.expose_secret();
+            let community_secret = credential.community.resolve("community", "SNMP")?;
+            let community = community_secret.expose_secret();
             tracing::debug!(
                 ip = %ip,
                 community_len = community.len(),

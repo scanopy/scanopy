@@ -1,4 +1,4 @@
-.PHONY: help build test test-unit clean format generate-schema generate-messages generate-fixtures seed-dev set-plan-community set-plan-starter set-plan-pro set-plan-team set-plan-business set-plan-enterprise test-plan test-merge test-results install-dev-mac install-dev-linux install-dev-windows
+.PHONY: help build test test-unit clean format generate-schema generate-messages generate-fixtures seed-dev set-plan-community set-plan-starter set-plan-pro set-plan-team set-plan-business set-plan-enterprise test-plan test-merge test-results install-dev-mac install-dev-linux install-dev-windows snmp-up snmp-down snmp-status docker-proxy-up docker-proxy-up-tls docker-proxy-down docker-proxy-status
 
 help:
 	@echo "Scanopy Development Commands"
@@ -38,6 +38,15 @@ help:
 	@echo "  make set-plan-team        - Set to Team"
 	@echo "  make set-plan-business    - Set to Business"
 	@echo "  make set-plan-enterprise  - Set to Enterprise"
+	@echo ""
+	@echo "Test Environments:"
+	@echo "  make snmp-up         - Start SNMP test environment (6 snmpd containers)"
+	@echo "  make snmp-down       - Stop SNMP test environment"
+	@echo "  make snmp-status     - Show SNMP test environment status"
+	@echo "  make docker-proxy-up - Start Docker proxy test environment (HTTP)"
+	@echo "  make docker-proxy-up-tls - Start Docker proxy with TLS"
+	@echo "  make docker-proxy-down   - Stop Docker proxy test environment"
+	@echo "  make docker-proxy-status - Show Docker proxy status"
 
 fresh-db:
 	make clean-db
@@ -132,16 +141,16 @@ test-merge:
 
 test-plan:
 	@echo "Collecting TEST_PLAN.json from worktrees..."
-	@echo "var TEST_PLANS = [" > tools/test-plans.js
+	@echo "var TEST_PLANS = [" > tools/testing/test-plans.js
 	@first=true; \
 	for f in $$(find .. -maxdepth 2 -name "TEST_PLAN.json" -path "*/scanopy-*/TEST_PLAN.json" 2>/dev/null); do \
-		if [ "$$first" = true ]; then first=false; else echo "," >> tools/test-plans.js; fi; \
-		cat "$$f" >> tools/test-plans.js; \
+		if [ "$$first" = true ]; then first=false; else echo "," >> tools/testing/test-plans.js; fi; \
+		cat "$$f" >> tools/testing/test-plans.js; \
 		echo "  Found: $$f"; \
 	done
-	@echo "];" >> tools/test-plans.js
+	@echo "];" >> tools/testing/test-plans.js
 	@echo "Opening test runner..."
-	@open tools/test-runner.html 2>/dev/null || xdg-open tools/test-runner.html 2>/dev/null || echo "Open tools/test-runner.html in your browser"
+	@open tools/testing/test-runner.html 2>/dev/null || xdg-open tools/testing/test-runner.html 2>/dev/null || echo "Open tools/testing/test-runner.html in your browser"
 
 test-results:
 	@if [ ! -f TEST_RESULTS.json ]; then \
@@ -163,6 +172,7 @@ test-results:
 	@echo "Done. Agents can read TEST_RESULTS.json in their worktree."
 
 dev-server:
+	make generate-fixtures
 	@export DATABASE_URL="postgresql://postgres:password@localhost:5432/scanopy" && \
 	cd backend && cargo run --bin server -- --log-level debug --public-url http://localhost:60072
 
@@ -356,3 +366,23 @@ set-plan-demo:
 	@docker exec -t scanopy-postgres psql -U postgres -d scanopy -c \
 		"UPDATE organizations SET plan = '{\"type\": \"Demo\", \"base_cents\": 0, \"rate\": \"Month\", \"trial_days\": 0, \"seat_cents\": null, \"network_cents\": null, \"included_seats\": null, \"included_networks\": null}'::jsonb"
 	@echo "Done!"
+
+# Test Environments
+
+snmp-verify:
+	tools/snmp/snmp-test-env.sh verify
+
+snmp-status:
+	tools/snmp/snmp-test-env.sh status
+
+docker-proxy-up:
+	tools/docker-proxy/docker-proxy-test-env.sh up
+
+docker-proxy-up-tls:
+	tools/docker-proxy/docker-proxy-test-env.sh up --tls
+
+docker-proxy-down:
+	tools/docker-proxy/docker-proxy-test-env.sh down
+
+docker-proxy-status:
+	tools/docker-proxy/docker-proxy-test-env.sh status

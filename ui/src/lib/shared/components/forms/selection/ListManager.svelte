@@ -1,6 +1,7 @@
-<script lang="ts" generics="T, V, OC, IC">
+<script lang="ts" generics="T, V, OC, IC, W = unknown, SOC = unknown">
 	import { ArrowUp, ArrowDown, Trash2, Plus, Edit, Square, CheckSquare } from 'lucide-svelte';
 	import RichSelect from './RichSelect.svelte';
+	import SegmentedControl from '../SegmentedControl.svelte';
 	import ListSelectItem from './ListSelectItem.svelte';
 	import type { EntityDisplayComponent } from './types';
 	import type { Snippet } from 'svelte';
@@ -9,6 +10,7 @@
 		// Global
 		label: string;
 		helpText?: string;
+		helpSnippet?: Snippet;
 		placeholder?: string;
 		required?: boolean;
 		allowReorder?: boolean;
@@ -26,6 +28,15 @@
 		optionDisplayComponent: EntityDisplayComponent<V, OC>;
 		getOptionContext?: (option: V, index: number) => OC;
 		showSearch?: boolean;
+
+		// Secondary options (dual-mode dropdown)
+		secondaryOptions?: W[];
+		secondaryOptionDisplayComponent?: EntityDisplayComponent<W, SOC>;
+		secondaryPlaceholder?: string;
+		primaryOptionsLabel?: string;
+		secondaryOptionsLabel?: string;
+		onAddSecondary?: (selectOptionId: string) => void;
+		getSecondaryOptionContext?: (option: W, index: number) => SOC;
 
 		// Items
 		items?: T[];
@@ -57,6 +68,7 @@
 		// Global
 		label,
 		helpText = '',
+		helpSnippet,
 		placeholder = 'Select an item to add',
 		required = false,
 		allowReorder = true,
@@ -74,6 +86,15 @@
 		optionDisplayComponent,
 		getOptionContext = () => ({}) as OC,
 		showSearch = false,
+
+		// Secondary options (dual-mode dropdown)
+		secondaryOptions = undefined,
+		secondaryOptionDisplayComponent = undefined,
+		secondaryPlaceholder = '',
+		primaryOptionsLabel = '',
+		secondaryOptionsLabel = '',
+		onAddSecondary = () => {},
+		getSecondaryOptionContext = () => ({}) as SOC,
 
 		// Items
 		items = [] as T[],
@@ -103,6 +124,26 @@
 	// Internal state
 	let selectedOptionId = $state('');
 	let editingIndex = $state<number | null>(null);
+	let optionMode = $state<'primary' | 'secondary'>('primary');
+
+	let hasDualMode = $derived(
+		!!secondaryOptionDisplayComponent &&
+			!!secondaryOptionsLabel &&
+			(secondaryOptions?.length ?? 0) > 0
+	);
+
+	// Auto-switch mode if current mode's options become empty
+	$effect(() => {
+		if (optionMode === 'secondary' && (secondaryOptions?.length ?? 0) === 0) {
+			optionMode = 'primary';
+		} else if (
+			optionMode === 'primary' &&
+			options.length === 0 &&
+			(secondaryOptions?.length ?? 0) > 0
+		) {
+			optionMode = 'secondary';
+		}
+	});
 
 	let computedEmptyMessage = $derived(emptyMessage || `No ${label.toLowerCase()} added yet`);
 
@@ -156,6 +197,12 @@
 		}
 	}
 
+	function handleSecondaryDropdownSelectChange(value: string) {
+		if (value) {
+			onAddSecondary(value);
+		}
+	}
+
 	function isItemSelected(item: T): boolean {
 		const itemId = itemDisplayComponent.getId(item);
 		return selectedItems.some((selected) => itemDisplayComponent.getId(selected) === itemId);
@@ -188,7 +235,11 @@
 				{label}
 				{#if required}<span class="text-danger">*</span>{/if}
 			</div>
-			{#if helpText}
+			{#if helpSnippet}
+				<div class="text-tertiary mt-1 text-sm">
+					{@render helpSnippet()}
+				</div>
+			{:else if helpText}
 				<p class="text-tertiary mt-1 text-sm">
 					{helpText}
 				</p>
@@ -227,19 +278,42 @@
 
 	<!-- Add Item Section with RichSelect -->
 	{#if allowAddFromOptions}
-		<div class="mb-3 mt-4">
+		<div class="mb-3 mt-4 space-y-2">
+			{#if hasDualMode}
+				<SegmentedControl
+					options={[
+						{ value: 'primary', label: primaryOptionsLabel },
+						{ value: 'secondary', label: secondaryOptionsLabel }
+					]}
+					selected={optionMode}
+					onchange={(v) => (optionMode = v as 'primary' | 'secondary')}
+					size="sm"
+					fullWidth={true}
+				/>
+			{/if}
 			<div class="flex gap-2">
-				<!-- RichSelect Component -->
 				<div class="flex-1">
-					<RichSelect
-						selectedValue={selectedOptionId}
-						{showSearch}
-						{options}
-						{placeholder}
-						onSelect={handleDropdownSelectChange}
-						displayComponent={optionDisplayComponent}
-						{getOptionContext}
-					/>
+					{#if optionMode === 'primary' || !secondaryOptionDisplayComponent}
+						<RichSelect
+							selectedValue={selectedOptionId}
+							{showSearch}
+							{options}
+							{placeholder}
+							onSelect={handleDropdownSelectChange}
+							displayComponent={optionDisplayComponent}
+							{getOptionContext}
+						/>
+					{:else if secondaryOptionDisplayComponent}
+						<RichSelect
+							selectedValue=""
+							{showSearch}
+							options={secondaryOptions ?? []}
+							placeholder={secondaryPlaceholder || placeholder}
+							onSelect={handleSecondaryDropdownSelectChange}
+							displayComponent={secondaryOptionDisplayComponent}
+							getOptionContext={getSecondaryOptionContext}
+						/>
+					{/if}
 				</div>
 			</div>
 		</div>

@@ -138,7 +138,7 @@ async fn test_cannot_create_host_on_other_network(
         sys_contact: None,
         management_url: None,
         chassis_id: None,
-        snmp_credential_id: None,
+        credential_assignments: vec![],
         interfaces: vec![],
         ports: vec![],
         services: vec![],

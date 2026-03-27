@@ -50,7 +50,7 @@
 	let mounted = $state(false);
 	let hasConsented = $state(false);
 
-	let bannerPanel: CookieSettingsPanel;
+	let bannerPanel = $state<CookieSettingsPanel>();
 
 	onMount(() => {
 		mounted = true;
@@ -122,10 +122,10 @@
 					</div>
 					<div class="buttons">
 						<button class="btn btn-link" onclick={openSettings}>{common_customize()}</button>
-						<button class="btn btn-secondary" onclick={() => bannerPanel.rejectAll()}
+						<button class="btn btn-secondary" onclick={() => bannerPanel?.rejectAll()}
 							>{cookies_rejectAll()}</button
 						>
-						<button class="btn btn-primary" onclick={() => bannerPanel.acceptAll()}
+						<button class="btn btn-primary" onclick={() => bannerPanel?.acceptAll()}
 							>{cookies_acceptAll()}</button
 						>
 					</div>

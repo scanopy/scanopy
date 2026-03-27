@@ -18,6 +18,10 @@ use crate::server::{
         oidc::{OidcRegisterResult, OidcService},
     },
     config::{AppState, DeploymentType, get_deployment_type},
+    credentials::r#impl::{
+        base::{Credential, CredentialBase},
+        types::{CredentialType, SecretValue},
+    },
     daemon_api_keys::r#impl::base::{DaemonApiKey, DaemonApiKeyBase},
     invites::handlers::process_pending_invite,
     networks::r#impl::{Network, NetworkBase},
@@ -30,7 +34,6 @@ use crate::server::{
         types::api::{ApiError, ApiErrorResponse, ApiResponse, ApiResult, EmptyApiResponse},
         types::error_codes::ErrorCode,
     },
-    snmp_credentials::r#impl::base::{SnmpCredential, SnmpCredentialBase, SnmpVersion},
     topology::types::base::{Topology, TopologyBase},
     users::r#impl::base::{User, UserBase},
 };
@@ -552,43 +555,36 @@ async fn apply_pending_setup(
     if pending_network.snmp_enabled
         && let Some(ref community) = pending_network.snmp_community
     {
-        let version = pending_network
-            .snmp_version
-            .as_ref()
-            .and_then(|v| v.parse::<SnmpVersion>().ok())
-            .unwrap_or(SnmpVersion::V2c);
-
         let credential_name = format!("{} SNMP Credential", pending_network.name);
-        let credential = SnmpCredential::new(SnmpCredentialBase {
+        let credential = Credential::new(CredentialBase {
             organization_id,
             name: credential_name,
-            version,
-            community: SecretString::new(community.clone().into()),
+            credential_type: CredentialType::SnmpV2c {
+                community: SecretValue::Inline {
+                    value: SecretString::new(community.clone().into()),
+                },
+            },
+            target_ips: None,
             tags: Vec::new(),
         });
 
         let created_credential = state
             .services
-            .snmp_credential_service
+            .credential_service
             .create(credential, auth_entity.clone())
             .await
             .map_err(|e| {
-                ApiError::internal_error(&format!("Failed to create SNMP credential: {}", e))
+                ApiError::internal_error(&format!("Failed to create credential: {}", e))
             })?;
 
-        // Update network with the SNMP credential ID
-        let mut updated_network = network.clone();
-        updated_network.base.snmp_credential_id = Some(created_credential.id);
+        // Link credential to network via junction table
         state
             .services
-            .network_service
-            .update(&mut updated_network, auth_entity.clone())
+            .credential_service
+            .set_network_credentials(&network.id, &[created_credential.id])
             .await
             .map_err(|e| {
-                ApiError::internal_error(&format!(
-                    "Failed to update network with SNMP credential: {}",
-                    e
-                ))
+                ApiError::internal_error(&format!("Failed to link credential to network: {}", e))
             })?;
     }
 

@@ -8,6 +8,7 @@ use validator::Validate;
 
 use crate::server::{
     bindings::r#impl::base::{Binding, BindingBase, BindingType},
+    credentials::r#impl::types::CredentialAssignment,
     hosts::r#impl::{
         base::{Host, HostBase},
         virtualization::HostVirtualization,
@@ -359,6 +360,7 @@ impl IfEntryInput {
                 cdp_port_id: None,
                 cdp_platform: None,
                 cdp_address: None,
+                fdb_macs: None,
             },
         }
     }
@@ -402,8 +404,8 @@ pub struct CreateHostRequest {
     pub management_url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub chassis_id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub snmp_credential_id: Option<Uuid>,
+    #[serde(default)]
+    pub credential_assignments: Vec<CredentialAssignment>,
 
     /// Interfaces to create with this host (client provides UUIDs)
     #[serde(default)]
@@ -460,6 +462,11 @@ pub struct UpdateHostRequest {
     /// If None, existing services are preserved.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub services: Option<Vec<ServiceInput>>,
+
+    /// Credential assignments for this host.
+    /// If provided, replaces all existing credential assignments.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub credential_assignments: Option<Vec<CredentialAssignment>>,
 }
 
 // =============================================================================
@@ -499,8 +506,8 @@ pub struct HostResponse {
     pub management_url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub chassis_id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub snmp_credential_id: Option<Uuid>,
+    #[serde(default)]
+    pub credential_assignments: Vec<CredentialAssignment>,
 
     // Children (fetched by service layer)
     pub interfaces: Vec<Interface>,
@@ -533,7 +540,7 @@ impl HostResponse {
             sys_contact,
             management_url,
             chassis_id,
-            snmp_credential_id,
+            credential_assignments,
             interfaces: _,
             ports: _,
             services: _,
@@ -559,7 +566,11 @@ impl HostResponse {
                 sys_contact: sys_contact.clone(),
                 management_url: management_url.clone(),
                 chassis_id: chassis_id.clone(),
-                snmp_credential_id: *snmp_credential_id,
+                sys_name: None,
+                manufacturer: None,
+                model: None,
+                serial_number: None,
+                credential_assignments: credential_assignments.clone(),
             },
         }
     }
@@ -598,7 +609,11 @@ impl HostResponse {
             sys_contact,
             management_url,
             chassis_id,
-            snmp_credential_id,
+            sys_name: _,
+            manufacturer: _,
+            model: _,
+            serial_number: _,
+            credential_assignments,
         } = base;
 
         Self {
@@ -619,7 +634,7 @@ impl HostResponse {
             sys_contact,
             management_url,
             chassis_id,
-            snmp_credential_id,
+            credential_assignments,
             interfaces,
             ports,
             services,

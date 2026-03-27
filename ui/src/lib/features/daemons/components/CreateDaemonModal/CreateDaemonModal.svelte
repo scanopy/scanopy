@@ -15,7 +15,8 @@
 		createEmptyApiKeyFormData,
 		useCreateApiKeyMutation
 	} from '$lib/features/daemon_api_keys/queries';
-	import { useProvisionDaemonMutation, useDaemonQuery, useDaemonsQuery } from '../../queries';
+	import { useProvisionDaemonMutation, useDaemonQuery } from '../../queries';
+	import { apiClient } from '$lib/api/client';
 	import { useConfigQuery, isCloud } from '$lib/shared/stores/config-query';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
@@ -32,10 +33,19 @@
 		type DaemonOS
 	} from '../../utils';
 	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import {
+		useBulkCreateCredentialsMutation,
+		useDeleteCredentialMutation,
+		useUpdateCredentialMutation,
+		useCredentialsQuery
+	} from '$lib/features/credentials/queries';
 	import { daemonSetupState, type DaemonConnectionStatus } from '../../stores/daemon-setup';
 	import ConfigureStep from './steps/ConfigureStep.svelte';
 	import InstallStep from './steps/InstallStep.svelte';
 	import AdvancedStep from './steps/AdvancedStep.svelte';
+	import CredentialWizardStep, {
+		type PendingCredential
+	} from './steps/CredentialWizardStep.svelte';
 	import {
 		common_close,
 		common_configure,
@@ -43,8 +53,13 @@
 		common_install,
 		common_next,
 		daemons_createDaemon,
+		daemons_credentialWizardReturn,
+		daemons_credentialWizardReturnToInstall,
 		daemons_enterApiKey
 	} from '$lib/paraglide/messages';
+	import { createDefaultCredential } from '$lib/features/credentials/types/base';
+	import { credentialTypes } from '$lib/shared/stores/metadata';
+	import { v4 as uuidv4 } from 'uuid';
 
 	interface Props {
 		isOpen?: boolean;
@@ -61,6 +76,10 @@
 	const organizationQuery = useOrganizationQuery();
 	const createApiKeyMutation = useCreateApiKeyMutation();
 	const provisionDaemonMutation = useProvisionDaemonMutation();
+	const bulkCreateCredentialsMutation = useBulkCreateCredentialsMutation();
+	const deleteCredentialMutation = useDeleteCredentialMutation();
+	const updateCredentialMutation = useUpdateCredentialMutation();
+	const credentialsQuery = useCredentialsQuery();
 
 	// Derived data
 	let serverUrl = $derived(configQuery.data?.public_url ?? '');
@@ -92,6 +111,76 @@
 	// Auto-generation state (for first daemon flow)
 	let isAutoGenerating = $state(false);
 
+	// Docker config state
+	let dockerMode = $state<string>('local_socket');
+
+	// Credential wizard state
+	let credentialWizardRef: ReturnType<typeof CredentialWizardStep> | undefined = $state();
+	let showCredentialWizard = $state(false);
+	let pendingCredentials = $state<PendingCredential[]>([]);
+	let credentialIds = $state<string[]>([]);
+	let hasDockerProxyCredential = $derived(
+		pendingCredentials.some(
+			(p) =>
+				p.credential.credential_type.type === 'DockerProxy' &&
+				p.targetIps.some((ip) => ip === '127.0.0.1' || ip === '::1')
+		)
+	);
+	let unsavedCredentialCount = $derived(
+		pendingCredentials.filter((p) => !p.isExisting && !credentialIds.includes(p.credential.id))
+			.length
+	);
+
+	function initDefaultFieldValues(typeId: string): Record<string, string> {
+		const meta = credentialTypes.getMetadata(typeId);
+		const fields = meta?.fields ?? [];
+		const values: Record<string, string> = {};
+		for (const field of fields) {
+			if (field.field_type === 'pathorinline') {
+				values[field.id] = JSON.stringify({ mode: 'Inline', value: '' });
+			} else {
+				values[field.id] = field.default_value ?? '';
+			}
+		}
+		return values;
+	}
+
+	function handleNavigateToCredentialWizard() {
+		// Add a DockerProxy pending credential if one doesn't already exist
+		if (!hasDockerProxyCredential && org) {
+			const cred = {
+				...createDefaultCredential(org.id),
+				id: uuidv4(),
+				name: (formValues.name as string) || 'scanopy-daemon',
+				credential_type: {
+					type: 'DockerProxy'
+				} as import('$lib/features/credentials/types/base').Credential['credential_type']
+			};
+			// Set defaults from fixture metadata
+			const meta = credentialTypes.getMetadata('DockerProxy');
+			if (meta?.fields) {
+				const ct = cred.credential_type as unknown as Record<string, unknown>;
+				for (const field of meta.fields) {
+					if (field.default_value != null && ct[field.id] === undefined) {
+						if (field.field_type === 'secretpathorinline' || field.field_type === 'pathorinline') {
+							ct[field.id] = { mode: 'Inline', value: field.default_value };
+						} else {
+							const num = Number(field.default_value);
+							ct[field.id] = !isNaN(num) ? num : field.default_value;
+						}
+					}
+				}
+			}
+			const fieldValues = initDefaultFieldValues('DockerProxy');
+			pendingCredentials = [
+				...pendingCredentials,
+				{ credential: cred, targetIps: ['127.0.0.1'], fieldValues }
+			];
+		}
+		showAdvanced = false;
+		showCredentialWizard = true;
+	}
+
 	// OS selection
 	let selectedOS: DaemonOS = $state(detectOS());
 	let linuxMethod = $state<'binary' | 'docker'>('binary');
@@ -118,11 +207,6 @@
 		enabled: () =>
 			(connectionStatus === 'waiting' || connectionStatus === 'trouble') && !!provisionedDaemonId
 	});
-	const daemonsQuery = useDaemonsQuery({
-		enabled: () =>
-			(connectionStatus === 'waiting' || connectionStatus === 'trouble') && !provisionedDaemonId
-	});
-
 	function getDefaultDaemonName(networkId: string): string {
 		const network = networksData.find((n) => n.id === networkId);
 		if (network) {
@@ -164,11 +248,37 @@
 	});
 
 	// Derived commands
+	let dockerConfig = $derived({
+		mode: dockerMode,
+		credentialId: null as string | null,
+		disableLocalSocket: hasDockerProxyCredential
+	});
+	let allCredentialIds = $derived([...credentialIds]);
 	let runCommand = $derived(
-		buildRunCommand(serverUrl, selectedNetworkId, key, formValues, null, currentUserId, selectedOS)
+		buildRunCommand(
+			serverUrl,
+			selectedNetworkId,
+			key,
+			formValues,
+			null,
+			currentUserId,
+			selectedOS,
+			dockerConfig,
+			allCredentialIds
+		)
 	);
 	let dockerCompose = $derived(
-		key ? buildDockerCompose(serverUrl, selectedNetworkId, key, formValues, currentUserId) : ''
+		key
+			? buildDockerCompose(
+					serverUrl,
+					selectedNetworkId,
+					key,
+					formValues,
+					currentUserId,
+					dockerConfig,
+					allCredentialIds
+				)
+			: ''
 	);
 
 	// Check for form validation errors (only visible fields)
@@ -328,6 +438,20 @@
 				return;
 			}
 
+			// Snapshot daemon IDs NOW, before showing install commands.
+			// Must happen before user can install, so fast-connecting daemons are detected.
+			if (formValues.mode !== 'server_poll') {
+				try {
+					const { data } = await apiClient.GET('/api/v1/daemons', {
+						params: { query: { limit: 0 } }
+					});
+					const daemons = data?.data ?? [];
+					daemonIdsAtWaitStart = new Set(daemons.map((d) => d.id));
+				} catch {
+					daemonIdsAtWaitStart = new Set();
+				}
+			}
+
 			if (furthestReached < 1) furthestReached = 1;
 			nextTab();
 		}
@@ -346,12 +470,6 @@
 	}
 
 	function handleInstalled() {
-		// Snapshot daemon IDs for DaemonPoll detection before entering waiting state
-		if (formValues.mode !== 'server_poll') {
-			const currentDaemons = daemonsQuery.data ?? [];
-			daemonIdsAtWaitStart = new Set(currentDaemons.map((d) => d.id));
-		}
-
 		connectionStatus = 'waiting';
 		daemonSetupState.set({ connectionStatus: 'waiting' });
 		trackEvent('daemon_install_confirmed');
@@ -409,31 +527,39 @@
 		}
 	});
 
-	// DaemonPoll: poll daemonsQuery every 5s when waiting/trouble
+	// DaemonPoll: poll API directly every 5s when waiting/trouble, detect new daemon
 	$effect(() => {
 		if (
 			(connectionStatus === 'waiting' || connectionStatus === 'trouble') &&
 			!provisionedDaemonId
 		) {
-			const interval = setInterval(() => {
-				daemonsQuery.refetch();
-			}, 5000);
-			return () => clearInterval(interval);
-		}
-	});
+			let active = true;
 
-	// DaemonPoll: detect connection when a new daemon ID appears
-	$effect(() => {
-		if (
-			(connectionStatus === 'waiting' || connectionStatus === 'trouble') &&
-			!provisionedDaemonId &&
-			daemonsQuery.data
-		) {
-			const currentIds = daemonsQuery.data.map((d) => d.id);
-			const hasNewDaemon = currentIds.some((id) => !daemonIdsAtWaitStart.has(id));
-			if (hasNewDaemon) {
-				markConnected();
+			async function checkForNewDaemon() {
+				if (!active) return;
+				try {
+					const { data } = await apiClient.GET('/api/v1/daemons', {
+						params: { query: { limit: 0 } }
+					});
+					if (!active) return;
+					const currentIds = (data?.data ?? []).map((d) => d.id);
+					const hasNewDaemon = currentIds.some((id) => !daemonIdsAtWaitStart.has(id));
+					if (hasNewDaemon) {
+						markConnected();
+					}
+				} catch {
+					// Ignore fetch errors, will retry on next interval
+				}
 			}
+
+			// Check immediately, then every 5s
+			checkForNewDaemon();
+			const interval = setInterval(checkForNewDaemon, 5000);
+
+			return () => {
+				active = false;
+				clearInterval(interval);
+			};
 		}
 	});
 
@@ -457,11 +583,15 @@
 		activeTab = 'configure';
 		furthestReached = 0;
 		showAdvanced = false;
+		showCredentialWizard = false;
+		pendingCredentials = [];
+		credentialIds = [];
 		connectionStatus = 'idle';
 		showTroubleshootingPanel = false;
 		serverPollReachable = null;
 		isTestingReachability = false;
 		serverPollReachabilityResult = null;
+		dockerMode = 'local_socket';
 		daemonIdsAtWaitStart = new Set();
 		onClose();
 	}
@@ -502,56 +632,143 @@
 	{/snippet}
 
 	<div class="flex min-h-0 flex-1 flex-col">
-		<div class="flex-1 overflow-auto p-6">
-			{#if showAdvanced}
-				<AdvancedStep {form} {formValues} />
-			{:else if activeTab === 'configure'}
-				<ConfigureStep
-					{form}
-					{formValues}
-					{selectedNetworkId}
-					onNetworkChange={(id) => (selectedNetworkId = id)}
-					onNameInput={() => (nameManuallyEdited = true)}
-					{keySet}
-					{isFirstDaemon}
-					onUseExistingKey={handleUseExistingKey}
-					onReachabilityChange={(r) => {
-						serverPollReachable = r;
-						if (r === null) serverPollReachabilityResult = null;
+		{#if showCredentialWizard}
+			<div class="flex min-h-0 flex-1 flex-col">
+				<CredentialWizardStep
+					bind:this={credentialWizardRef}
+					daemonName={formValues.name as string}
+					networkId={selectedNetworkId}
+					bind:pendingCredentials
+					onRemoveCredential={(credential) => {
+						// If credential was already created on server, delete it
+						if (credentialIds.includes(credential.id)) {
+							deleteCredentialMutation.mutate(credential.id);
+							credentialIds = credentialIds.filter((id) => id !== credential.id);
+						}
 					}}
-					bind:reachabilityResult={serverPollReachabilityResult}
 				/>
-			{:else if activeTab === 'install'}
-				<InstallStep
-					{selectedOS}
-					onOsSelect={(os) => (selectedOS = os)}
-					{linuxMethod}
-					onLinuxMethodChange={(method) => (linuxMethod = method)}
-					{runCommand}
-					{dockerCompose}
-					{hasErrors}
-					isFirstDaemon={startedAsFirstDaemon}
-					{connectionStatus}
-					onViewDiscovery={handleViewDiscovery}
-					{hasEmailSupport}
-					{showTroubleshootingPanel}
-					onAdvanced={() => (showAdvanced = true)}
-					daemonMode={String(formValues.mode ?? 'daemon_poll')}
-					daemonUrl={constructDaemonUrl(
-						String(formValues.daemonUrl ?? ''),
-						Number(formValues.daemonPort) || 60073
-					)}
-					{provisionedDaemonId}
-					onTroubleshoot={handleTrouble}
-					onStartWaitingTimeout={startWaitingTimeout}
-				/>
-			{/if}
-		</div>
+			</div>
+		{:else}
+			<div class="flex-1 overflow-auto p-6">
+				{#if showAdvanced}
+					<AdvancedStep
+						{form}
+						{formValues}
+						bind:dockerMode
+						{hasDockerProxyCredential}
+						onNavigateToCredentialWizard={handleNavigateToCredentialWizard}
+					/>
+				{:else if activeTab === 'configure'}
+					<ConfigureStep
+						{form}
+						{formValues}
+						{selectedNetworkId}
+						onNetworkChange={(id) => (selectedNetworkId = id)}
+						onNameInput={() => (nameManuallyEdited = true)}
+						{keySet}
+						{isFirstDaemon}
+						onUseExistingKey={handleUseExistingKey}
+						onReachabilityChange={(r) => {
+							serverPollReachable = r;
+							if (r === null) serverPollReachabilityResult = null;
+						}}
+						bind:reachabilityResult={serverPollReachabilityResult}
+					/>
+				{:else if activeTab === 'install'}
+					<InstallStep
+						{selectedOS}
+						onOsSelect={(os) => (selectedOS = os)}
+						{linuxMethod}
+						onLinuxMethodChange={(method) => (linuxMethod = method)}
+						{runCommand}
+						{dockerCompose}
+						{hasErrors}
+						isFirstDaemon={startedAsFirstDaemon}
+						{connectionStatus}
+						onViewDiscovery={handleViewDiscovery}
+						{hasEmailSupport}
+						{showTroubleshootingPanel}
+						onAdvanced={() => (showAdvanced = true)}
+						onCredentialWizard={() => (showCredentialWizard = true)}
+						daemonMode={String(formValues.mode ?? 'daemon_poll')}
+						daemonUrl={constructDaemonUrl(
+							String(formValues.daemonUrl ?? ''),
+							Number(formValues.daemonPort) || 60073
+						)}
+						{provisionedDaemonId}
+						onTroubleshoot={handleTrouble}
+						onStartWaitingTimeout={startWaitingTimeout}
+					/>
+				{/if}
+			</div>
+		{/if}
 
 		<!-- Footer -->
 		<div class="modal-footer">
 			<div class="flex items-center justify-end gap-3">
-				{#if showAdvanced}
+				{#if showCredentialWizard}
+					<button
+						type="button"
+						class="btn-primary"
+						disabled={bulkCreateCredentialsMutation.isPending}
+						onclick={async () => {
+							// Collect existing credential IDs and set target_ips on them
+							const existingCreds = credentialWizardRef?.getExistingCredentials() ?? [];
+							for (const ec of existingCreds) {
+								const ips = ec.targetIps.map((s) => s.trim()).filter(Boolean);
+								if (ips.length > 0) {
+									const cred = credentialsQuery.data?.find((c) => c.id === ec.credentialId);
+									if (cred) {
+										await updateCredentialMutation.mutateAsync({
+											...cred,
+											target_ips: ips
+										});
+									}
+								}
+							}
+							const existingIds = existingCreds.map((c) => c.credentialId);
+
+							const unsaved = pendingCredentials.filter(
+								(p) => !p.isExisting && !credentialIds.includes(p.credential.id)
+							);
+							if (unsaved.length > 0) {
+								// Validate all fields before creating
+								if (credentialWizardRef) {
+									const isValid = await credentialWizardRef.validate();
+									if (!isValid) return;
+								}
+								try {
+									const prepared = credentialWizardRef?.getCredentialsForCreate() ?? [];
+									const unsavedPrepared = prepared.filter(
+										(p) => !credentialIds.includes(p.credential.id)
+									);
+									const toCreate = unsavedPrepared.map((p) => {
+										const ips = p.targetIps.map((s) => s.trim()).filter(Boolean);
+										return {
+											...p.credential,
+											target_ips: ips.length > 0 ? ips : undefined
+										};
+									});
+									const created = await bulkCreateCredentialsMutation.mutateAsync(toCreate);
+									credentialIds = [...credentialIds, ...created.map((c) => c.id), ...existingIds];
+								} catch {
+									return;
+								}
+							} else if (existingIds.length > 0) {
+								// No new credentials but some existing ones to add
+								credentialIds = [...credentialIds, ...existingIds];
+							}
+							showCredentialWizard = false;
+						}}
+					>
+						<ArrowLeft class="h-4 w-4" />
+						{#if unsavedCredentialCount > 0}
+							{daemons_credentialWizardReturn({ count: unsavedCredentialCount })}
+						{:else}
+							{daemons_credentialWizardReturnToInstall()}
+						{/if}
+					</button>
+				{:else if showAdvanced}
 					<button type="button" class="btn-primary" onclick={() => (showAdvanced = false)}>
 						<ArrowLeft class="h-4 w-4" />
 						Back to install

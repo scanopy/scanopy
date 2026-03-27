@@ -63,8 +63,6 @@ async fn async_main() -> anyhow::Result<()> {
     let mode = config_store.get_mode().await?;
     let interval_secs = config_store.get_heartbeat_interval().await?;
     let interval = Duration::from_secs(interval_secs);
-    let concurrent_scans = config.concurrent_scans;
-
     // Startup banner
     tracing::info!("");
     tracing::info!("   _____                                   ");
@@ -143,10 +141,38 @@ async fn async_main() -> anyhow::Result<()> {
     tracing::info!("  Bind address:    {}", bind_addr);
     tracing::info!("  Daemon URL:      {} ({})", daemon_url, url_source);
     tracing::info!("  Heartbeat:       every {}s", interval_secs);
-    if concurrent_scans == 15 {
-        tracing::info!("  Concurrent:      auto (determined at scan time)");
+    let interfaces = config_store.get_interfaces().await.unwrap_or_default();
+    if interfaces.is_empty() {
+        tracing::info!("  Interfaces:      all (no restriction)");
     } else {
-        tracing::info!("  Concurrent:      {} parallel scans", concurrent_scans);
+        tracing::info!("  Interfaces:      {}", interfaces.join(", "));
+    }
+
+    // Deprecation warnings for config values that have moved to server-side settings
+    if config.docker_proxy.is_some() {
+        tracing::warn!(
+            "Deprecated config: docker_proxy, docker_proxy_ssl_cert, docker_proxy_ssl_key, docker_proxy_ssl_chain"
+        );
+        tracing::warn!("  Docker proxy config will no longer be read from daemon in v0.16.0.");
+        tracing::warn!("  Migrate by creating a DockerProxy credential in the Scanopy UI.");
+        tracing::warn!("  See: https://scanopy.net/docs/guides/unified-discovery-migration/");
+    }
+
+    {
+        use scanopy::server::discovery::r#impl::scan_settings::defaults;
+        let has_deprecated_scan_settings = config.arp_retries != defaults::arp_retries()
+            || config.arp_rate_pps != defaults::arp_rate_pps()
+            || config.scan_rate_pps != defaults::scan_rate_pps()
+            || config.port_scan_batch_size != defaults::port_scan_batch_size();
+        if has_deprecated_scan_settings {
+            tracing::warn!(
+                "Deprecated config: arp_retries, arp_rate_pps, scan_rate_pps, port_scan_batch_size"
+            );
+            tracing::warn!(
+                "  Scan settings are now configured per-discovery on the server and will no longer be read from daemon in v0.16.0."
+            );
+            tracing::warn!("  See: https://scanopy.net/docs/guides/unified-discovery-migration/");
+        }
     }
 
     // Initialize services based on mode

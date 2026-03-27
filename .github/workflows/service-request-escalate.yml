@@ -1,3 +1,4 @@
+# Adds 'help wanted' label to service requests older than 2 weeks
 name: Escalate Service Requests
 
 on:

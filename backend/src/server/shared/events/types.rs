@@ -481,6 +481,7 @@ pub enum OnboardingOperation {
     FirstGroupCreated,
     FirstUserApiKeyCreated,
     FirstSnmpCredentialCreated,
+    FirstCredentialCreated,
     InviteSent,
     InviteAccepted,
     ProfileCompleted,

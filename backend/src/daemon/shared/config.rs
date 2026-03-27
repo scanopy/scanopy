@@ -45,10 +45,6 @@ pub struct DaemonCli {
     #[arg(long)]
     bind_address: Option<String>,
 
-    /// Maximum parallel host scans
-    #[arg(long)]
-    concurrent_scans: Option<usize>,
-
     /// API key
     #[arg(long)]
     daemon_api_key: Option<String>,
@@ -88,6 +84,14 @@ pub struct DaemonCli {
     /// Accept invalid TLS certificates when scanning endpoints. Enabled by default since scanners probe arbitrary internal services.
     #[arg(long)]
     accept_invalid_scan_certs: Option<bool>,
+
+    /// Disable local Docker socket detection. When false, daemon reports has_docker_socket: false regardless of socket presence
+    #[arg(long)]
+    enable_local_docker_socket: Option<bool>,
+
+    /// Credential IDs to assign to this daemon's host during registration (repeatable)
+    #[arg(long = "credential-id")]
+    credential_ids: Option<Vec<Uuid>>,
 
     /// Enable faster ARP scanning on Windows by using broadcast ARP via Npcap instead of native SendARP, which doesn't support broadcast. **Requires Npcap installation**. Ignored on Linux/macOS.
     #[arg(long)]
@@ -131,7 +135,6 @@ pub struct AppConfig {
     pub log_level: String,
     pub heartbeat_interval: u64,
     pub bind_address: String,
-    pub concurrent_scans: usize,
 
     // Runtime state
     pub id: Uuid,
@@ -174,10 +177,20 @@ pub struct AppConfig {
     /// Network interfaces to restrict scanning to. Empty means all interfaces.
     #[serde(default)]
     pub interfaces: Vec<String>,
+    /// Whether to detect and report local Docker socket availability.
+    /// When false, daemon reports has_docker_socket: false regardless of socket presence.
+    #[serde(default = "default_enable_local_docker_socket")]
+    pub enable_local_docker_socket: bool,
+    /// Credential IDs to assign to this daemon's host during registration.
+    #[serde(default)]
+    pub credential_ids: Vec<Uuid>,
     /// Daemon capabilities (docker socket availability, interfaced subnets)
     /// Updated after SelfReport discovery completes
     #[serde(default)]
     pub capabilities: DaemonCapabilities,
+    /// Set to true after the first self-report completes
+    #[serde(default)]
+    pub has_self_reported: bool,
 }
 
 fn default_accept_invalid_scan_certs() -> bool {
@@ -200,6 +213,10 @@ fn default_port_scan_batch_size() -> usize {
     200 // Default: 200 ports concurrently per host
 }
 
+fn default_enable_local_docker_socket() -> bool {
+    true
+}
+
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
@@ -215,7 +232,6 @@ impl Default for AppConfig {
             host_id: None,
             daemon_api_key: None,
             user_id: None,
-            concurrent_scans: 15,
             docker_proxy: None,
             mode: DaemonMode::DaemonPoll,
             server_port: None,
@@ -233,6 +249,9 @@ impl Default for AppConfig {
             scan_rate_pps: default_scan_rate_pps(),
             port_scan_batch_size: default_port_scan_batch_size(),
             capabilities: DaemonCapabilities::default(),
+            enable_local_docker_socket: default_enable_local_docker_socket(),
+            credential_ids: Vec::new(),
+            has_self_reported: false,
         }
     }
 }
@@ -320,9 +339,6 @@ impl AppConfig {
         if let Some(bind_address) = cli_args.bind_address {
             figment = figment.merge(("bind_address", bind_address));
         }
-        if let Some(concurrent_scans) = cli_args.concurrent_scans {
-            figment = figment.merge(("concurrent_scans", concurrent_scans));
-        }
         if let Some(api_key) = cli_args.daemon_api_key {
             figment = figment.merge(("daemon_api_key", api_key));
         }
@@ -368,6 +384,12 @@ impl AppConfig {
         if let Some(interface) = cli_args.interfaces {
             figment = figment.merge(("interfaces", interface));
         }
+        if let Some(enable_local_docker_socket) = cli_args.enable_local_docker_socket {
+            figment = figment.merge(("enable_local_docker_socket", enable_local_docker_socket));
+        }
+        if let Some(credential_ids) = cli_args.credential_ids {
+            figment = figment.merge(("credential_ids", credential_ids));
+        }
 
         let config: AppConfig = figment
             .extract()
@@ -402,7 +424,7 @@ impl ConfigStore {
         if self.path.exists() {
             self.load().await?;
         } else {
-            tracing::info!("No existing runtime config found, will create new on first save");
+            tracing::debug!("No existing runtime config found, will create new on first save");
         }
 
         Ok(())
@@ -537,11 +559,6 @@ impl ConfigStore {
         }
     }
 
-    pub async fn get_concurrent_scans(&self) -> Result<usize> {
-        let config = self.config.read().await;
-        Ok(config.concurrent_scans)
-    }
-
     pub async fn get_docker_proxy(&self) -> Result<Option<String>> {
         let config = self.config.read().await;
         Ok(config.docker_proxy.clone())
@@ -577,26 +594,32 @@ impl ConfigStore {
         config.clone()
     }
 
+    /// Deprecated: scan settings are now per-discovery via ScanSettings.
+    /// Kept for backwards compatibility with old daemons.
     pub async fn get_use_npcap_arp(&self) -> Result<bool> {
         let config = self.config.read().await;
         Ok(config.use_npcap_arp)
     }
 
+    /// Deprecated: scan settings are now per-discovery via ScanSettings.
     pub async fn get_arp_retries(&self) -> Result<u32> {
         let config = self.config.read().await;
         Ok(config.arp_retries)
     }
 
+    /// Deprecated: scan settings are now per-discovery via ScanSettings.
     pub async fn get_arp_rate_pps(&self) -> Result<u32> {
         let config = self.config.read().await;
         Ok(config.arp_rate_pps)
     }
 
+    /// Deprecated: scan settings are now per-discovery via ScanSettings.
     pub async fn get_scan_rate_pps(&self) -> Result<u32> {
         let config = self.config.read().await;
         Ok(config.scan_rate_pps)
     }
 
+    /// Deprecated: scan settings are now per-discovery via ScanSettings.
     pub async fn get_port_scan_batch_size(&self) -> Result<usize> {
         let config = self.config.read().await;
         Ok(config.port_scan_batch_size)
@@ -612,6 +635,16 @@ impl ConfigStore {
         Ok(config.interfaces.clone())
     }
 
+    pub async fn get_enable_local_docker_socket(&self) -> Result<bool> {
+        let config = self.config.read().await;
+        Ok(config.enable_local_docker_socket)
+    }
+
+    pub async fn get_credential_ids(&self) -> Result<Vec<Uuid>> {
+        let config = self.config.read().await;
+        Ok(config.credential_ids.clone())
+    }
+
     pub async fn get_capabilities(&self) -> Result<DaemonCapabilities> {
         let config = self.config.read().await;
         Ok(config.capabilities.clone())
@@ -620,6 +653,16 @@ impl ConfigStore {
     pub async fn set_capabilities(&self, capabilities: DaemonCapabilities) -> Result<()> {
         let mut config = self.config.write().await;
         config.capabilities = capabilities;
+        self.save(&config.clone()).await
+    }
+
+    pub async fn has_self_reported(&self) -> bool {
+        self.config.read().await.has_self_reported
+    }
+
+    pub async fn set_has_self_reported(&self) -> Result<()> {
+        let mut config = self.config.write().await;
+        config.has_self_reported = true;
         self.save(&config.clone()).await
     }
 }
@@ -677,12 +720,13 @@ mod tests {
         help_text: String,
     }
 
-    const EXCLUDED_FIELDS: [&str; 6] = [
+    const EXCLUDED_FIELDS: [&str; 7] = [
         "daemon_api_key",
         "network_id",
         "server_url",
         // Automatically set by install command, not user-configurable
         "user_id",
+        "credential_ids",
         // Legacy fields not exposed in UI
         "server_target",
         "server_port",

@@ -3,21 +3,20 @@ use anyhow::{Error, Result};
 use async_trait::async_trait;
 use bollard::{
     Docker,
+    models::{ContainerInspectResponse, ContainerSummary, PortSummaryTypeEnum},
     query_parameters::{InspectContainerOptions, ListContainersOptions, ListNetworksOptions},
-    secret::{ContainerInspectResponse, ContainerSummary, PortTypeEnum},
 };
 use futures::future::try_join_all;
 use futures::stream::{self, StreamExt};
 use mac_address::MacAddress;
 use std::str::FromStr;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicU8, Ordering};
 use std::{collections::HashMap, net::IpAddr, sync::OnceLock};
 use strum::IntoDiscriminant;
 use tokio_util::sync::CancellationToken;
 
 use crate::daemon::discovery::service::base::RunsDiscovery;
-use crate::daemon::discovery::types::base::DiscoverySessionUpdate;
 use crate::daemon::utils::base::{DaemonUtils, merge_host_and_docker_subnets};
 use crate::daemon::utils::scanner::scan_endpoints;
 use crate::server::bindings::r#impl::base::{Binding, BindingDiscriminants};
@@ -52,9 +51,14 @@ use uuid::Uuid;
 type IpPortHashMap = HashMap<IpAddr, Vec<PortType>>;
 
 pub struct DockerScanDiscovery {
-    docker_client: OnceLock<Docker>,
-    host_id: Uuid,
-    host_naming_fallback: HostNamingFallback,
+    pub docker_client: OnceLock<Docker>,
+    pub host_id: Uuid,
+    pub docker_service_id: OnceLock<Uuid>,
+    pub host_naming_fallback: HostNamingFallback,
+    /// IP address of the Docker host. Used for endpoint probing when containers
+    /// publish ports on 0.0.0.0. For local scanning this is the daemon's own IP;
+    /// for remote scanning this is the remote host's IP from the credential.
+    pub host_ip: IpAddr,
 }
 
 pub struct ProcessContainerParams<'a> {
@@ -96,7 +100,7 @@ impl RunsDiscovery for DiscoveryRunner<DockerScanDiscovery> {
             let docker = self
                 .as_ref()
                 .utils
-                .new_local_docker_client(docker_proxy, docker_proxy_ssl_info)
+                .new_docker_client(docker_proxy, docker_proxy_ssl_info)
                 .await?;
             self.domain
                 .docker_client
@@ -159,6 +163,12 @@ impl RunsDiscovery for DiscoveryRunner<DockerScanDiscovery> {
             .first()
             .ok_or_else(|| anyhow!("Docker daemon service was not created, aborting"))?;
 
+        // Set docker_service_id on domain for scan_and_process_containers
+        self.domain
+            .docker_service_id
+            .set(docker_daemon_service.id)
+            .map_err(|_| anyhow!("Docker service ID already set"))?;
+
         // Get container info
         let containers = self.get_containers_and_summaries().await?;
 
@@ -171,7 +181,7 @@ impl RunsDiscovery for DiscoveryRunner<DockerScanDiscovery> {
                 cancel.clone(),
                 containers,
                 &containers_interfaces_and_subnets,
-                &docker_daemon_service.id,
+                Arc::new(AtomicU8::new(0)),
             )
             .await;
 
@@ -197,11 +207,34 @@ impl RunsDiscovery for DiscoveryRunner<DockerScanDiscovery> {
 }
 
 impl DockerScanDiscovery {
-    pub fn new(host_id: Uuid, host_naming_fallback: HostNamingFallback) -> Self {
+    pub fn new(
+        host_id: Uuid,
+        docker_service_id: Uuid,
+        host_naming_fallback: HostNamingFallback,
+        host_ip: IpAddr,
+    ) -> Self {
+        let service_id_lock = OnceLock::new();
+        let _ = service_id_lock.set(docker_service_id);
         Self {
             docker_client: OnceLock::new(),
             host_id,
+            docker_service_id: service_id_lock,
             host_naming_fallback,
+            host_ip,
+        }
+    }
+
+    pub fn new_deferred(
+        host_id: Uuid,
+        host_naming_fallback: HostNamingFallback,
+        host_ip: IpAddr,
+    ) -> Self {
+        Self {
+            docker_client: OnceLock::new(),
+            host_id,
+            docker_service_id: OnceLock::new(),
+            host_naming_fallback,
+            host_ip,
         }
     }
 }
@@ -347,7 +380,11 @@ impl DiscoveryRunner<DockerScanDiscovery> {
             sys_contact: None,
             management_url: None,
             chassis_id: None,
-            snmp_credential_id: None,
+            sys_name: None,
+            manufacturer: None,
+            model: None,
+            serial_number: None,
+            credential_assignments: vec![],
         });
         temp_docker_daemon_host.id = self.domain.host_id;
 
@@ -366,59 +403,101 @@ impl DiscoveryRunner<DockerScanDiscovery> {
         Ok((host_response.to_host(), host_response.services))
     }
 
-    async fn scan_and_process_containers(
+    /// Create Docker bridge subnets from Docker networks.
+    /// Returns the created subnets (with server-assigned IDs) for use in container interface resolution.
+    pub async fn create_docker_bridge_subnets(
+        &self,
+        cancel: &CancellationToken,
+    ) -> Result<Vec<Subnet>, Error> {
+        let daemon_id = self.as_ref().config_store.get_id().await?;
+        let network_id = self
+            .as_ref()
+            .config_store
+            .get_network_id()
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Network ID not set"))?;
+
+        let docker_client = self
+            .domain
+            .docker_client
+            .get()
+            .ok_or_else(|| anyhow::anyhow!("Docker client not set"))?;
+
+        let host_id = self.domain.host_id;
+        let discovery_type = DiscoveryType::Docker {
+            host_id,
+            host_naming_fallback: self.domain.host_naming_fallback,
+        };
+
+        let docker_subnets = self
+            .as_ref()
+            .utils
+            .get_subnets_from_docker_networks(daemon_id, network_id, docker_client, discovery_type)
+            .await
+            .unwrap_or_default();
+
+        let bridge_subnet_futures = docker_subnets
+            .iter()
+            .filter(|s| s.is_docker_bridge_subnet())
+            .map(|s| self.create_subnet(s, cancel));
+
+        let created_subnets: Vec<Subnet> = futures::future::join_all(bridge_subnet_futures)
+            .await
+            .into_iter()
+            .filter_map(|r| r.ok())
+            .collect();
+
+        Ok(created_subnets)
+    }
+
+    pub async fn scan_and_process_containers(
         &self,
         cancel: CancellationToken,
         containers: Vec<(ContainerInspectResponse, ContainerSummary)>,
         containers_interfaces_and_subnets: &HashMap<String, Vec<(Interface, Subnet)>>,
-        docker_service_id: &Uuid,
+        progress: Arc<AtomicU8>,
     ) -> Result<Vec<(Host, Vec<Service>)>> {
-        let total_containers = containers.len();
-
-        self.report_scanning_progress(0).await?;
-
-        let processed_count = Arc::new(AtomicUsize::new(0));
-
-        let concurrent_scans = self.as_ref().config_store.get_concurrent_scans().await?;
-
-        self.report_discovery_update(DiscoverySessionUpdate::scanning(0))
-            .await?;
+        let docker_service_id = self
+            .domain
+            .docker_service_id
+            .get()
+            .ok_or_else(|| anyhow!("Docker service ID not set"))?;
+        let concurrent_scans = 15usize;
+        let total = containers.len().max(1);
 
         // Process containers concurrently using streams
         let results = stream::iter(containers.into_iter())
             .map(|(container, container_summary)| {
                 let cancel = cancel.clone();
-                let processed_count = processed_count.clone();
 
                 async move {
-                    let result = self
-                        .process_single_container(&ProcessContainerParams {
-                            containers_interfaces_and_subnets,
-                            container: &container,
-                            container_summary: &container_summary,
-                            docker_service_id,
-                            cancel,
-                        })
-                        .await;
-
-                    // Update progress after each container
-                    let done = processed_count.fetch_add(1, Ordering::Relaxed) + 1;
-                    let pct = (done * 100 / total_containers.max(1)) as u8;
-                    let _ = self.report_scanning_progress(pct).await;
-
-                    result
+                    self.process_single_container(&ProcessContainerParams {
+                        containers_interfaces_and_subnets,
+                        container: &container,
+                        container_summary: &container_summary,
+                        docker_service_id,
+                        cancel,
+                    })
+                    .await
                 }
             })
             .buffer_unordered(concurrent_scans);
 
         let mut stream_pin = Box::pin(results);
         let mut all_container_data = Vec::new();
+        let mut completed = 0usize;
 
         while let Some(result) = stream_pin.next().await {
             if cancel.is_cancelled() {
                 tracing::warn!("Docker discovery session was cancelled");
                 return Err(Error::msg("Docker discovery session was cancelled"));
             }
+
+            completed += 1;
+            progress.store(
+                ((completed as f64 / total as f64) * 99.0) as u8,
+                Ordering::Relaxed,
+            );
 
             match result {
                 Ok(Some((host, services))) => all_container_data.push((host, services)),
@@ -501,34 +580,28 @@ impl DiscoveryRunner<DockerScanDiscovery> {
                 .unwrap_or(&"Unknown Container Name".to_string())
         );
 
-        let host_ip = self.as_ref().utils.get_own_ip_address()?;
+        let host_ip = self.domain.host_ip;
 
-        if let Some(Some(p)) = container.config.as_ref().map(|c| c.exposed_ports.as_ref()) {
-            let open_ports: Vec<PortType> = p
-                .keys()
-                .filter_map(|v| PortType::from_str(v).ok())
-                .collect();
+        let open_ports: Vec<PortType> = container
+            .config
+            .as_ref()
+            .and_then(|c| c.exposed_ports.as_ref())
+            .map(|p| {
+                p.iter()
+                    .filter_map(|v| PortType::from_str(v).ok())
+                    .collect()
+            })
+            .unwrap_or_default();
 
-            // Get FD-safe batch size for single container scanning
-            let port_batch_config = self
-                .as_ref()
-                .config_store
-                .get_port_scan_batch_size()
-                .await?;
-            let scan_params = self
-                .as_ref()
-                .utils
-                .get_optimal_concurrent_scans(1, port_batch_config)
-                .await?;
-            let port_scan_batch_size = scan_params.port_batch_size;
-
-            // Scan ports and any endpoints that match open ports
+        // Scan endpoints for exposed ports if any are declared
+        let endpoint_responses = if !open_ports.is_empty() {
+            let port_scan_batch_size = 200usize.clamp(16, 1000);
             let accept_invalid_certs = self
                 .as_ref()
                 .config_store
                 .get_accept_invalid_scan_certs()
                 .await?;
-            let endpoint_responses = tokio::spawn(scan_endpoints(
+            tokio::spawn(scan_endpoints(
                 host_ip,
                 cancel.clone(),
                 Some(open_ports.clone()),
@@ -539,47 +612,51 @@ impl DiscoveryRunner<DockerScanDiscovery> {
             ))
             .await
             .map_err(|e| anyhow!("Scan task panicked: {}", e))?
-            .map_err(|e| anyhow!("Endpoint scanning error: {}", e))?;
+            .map_err(|e| anyhow!("Endpoint scanning error: {}", e))?
+        } else {
+            vec![]
+        };
 
-            let empty_vec_ref = &vec![];
+        let empty_vec_ref = &vec![];
 
-            let container_interfaces_and_subnets = containers_interfaces_and_subnets
-                .get(container_id)
-                .unwrap_or(empty_vec_ref);
+        let container_interfaces_and_subnets = containers_interfaces_and_subnets
+            .get(container_id)
+            .unwrap_or(empty_vec_ref);
 
-            for (interface, subnet) in container_interfaces_and_subnets {
-                let params = ServiceMatchBaselineParams {
-                    subnet,
-                    interface,
-                    all_ports: &open_ports,
-                    endpoint_responses: &endpoint_responses,
-                    virtualization: &Some(ServiceVirtualization::Docker(DockerVirtualization {
-                        container_name: container
-                            .name
-                            .clone()
-                            .map(|n| n.trim_start_matches("/").to_string()),
-                        container_id: container.id.clone(),
-                        service_id: **docker_service_id,
-                    })),
-                };
+        for (interface, subnet) in container_interfaces_and_subnets {
+            let empty_client_responses = std::collections::HashMap::new();
+            let params = ServiceMatchBaselineParams {
+                subnet,
+                interface,
+                all_ports: &open_ports,
+                endpoint_responses: &endpoint_responses,
+                virtualization: &Some(ServiceVirtualization::Docker(DockerVirtualization {
+                    container_name: container
+                        .name
+                        .clone()
+                        .map(|n| n.trim_start_matches("/").to_string()),
+                    container_id: container.id.clone(),
+                    service_id: **docker_service_id,
+                })),
+                client_responses: &empty_client_responses,
+            };
 
-                if let Ok(Some((mut host, interfaces, ports, services))) = self
-                    .process_host(params, None, self.domain.host_naming_fallback)
+            if let Ok(Some((mut host, interfaces, ports, services))) = self
+                .process_host(params, None, self.domain.host_naming_fallback)
+                .await
+            {
+                host.id = self.domain.host_id;
+
+                if let Ok(host_response) = self
+                    .create_host(host, interfaces, ports, services, vec![], cancel)
                     .await
                 {
-                    host.id = self.domain.host_id;
-
-                    if let Ok(host_response) = self
-                        .create_host(host, interfaces, ports, services, vec![], cancel)
-                        .await
-                    {
-                        return Ok::<Option<(Host, Vec<Service>)>, Error>(Some((
-                            host_response.to_host(),
-                            host_response.services,
-                        )));
-                    }
-                    return Ok(None);
+                    return Ok::<Option<(Host, Vec<Service>)>, Error>(Some((
+                        host_response.to_host(),
+                        host_response.services,
+                    )));
                 }
+                return Ok(None);
             }
         }
         Ok(None)
@@ -616,12 +693,20 @@ impl DiscoveryRunner<DockerScanDiscovery> {
         let (host_ip_to_host_ports, container_ips_to_container_ports, host_to_container_port_map) =
             self.get_ports_from_container(container_summary, container_interfaces_and_subnets);
 
+        if container_interfaces_and_subnets.is_empty() {
+            tracing::warn!(
+                container = ?container.name,
+                "No interfaces found for bridge container - Docker bridge subnets may not have been created"
+            );
+            return Ok(None);
+        }
+
         for (interface, subnet) in container_interfaces_and_subnets {
             if cancel.is_cancelled() {
                 return Err(Error::msg("Discovery was cancelled"));
             }
 
-            let endpoint_responses = if let Some(name) = &container.name {
+            let mut endpoint_responses = if let Some(name) = &container.name {
                 self.scan_container_endpoints(
                     interface,
                     &host_to_container_port_map,
@@ -632,6 +717,35 @@ impl DiscoveryRunner<DockerScanDiscovery> {
             } else {
                 vec![]
             };
+
+            // Always try external probing when published ports exist. Exec-based results
+            // may contain partial responses (e.g., from bash /dev/tcp raw sockets) that
+            // don't match specific service patterns but would prevent a fallback-only
+            // approach from firing. Merging both sets gives the pattern matcher the best
+            // chance of identifying the specific service.
+            if !host_to_container_port_map.is_empty() {
+                let accept_invalid_certs = self
+                    .as_ref()
+                    .config_store
+                    .get_accept_invalid_scan_certs()
+                    .await?;
+                let external_responses = self
+                    .scan_container_endpoints_external(
+                        interface,
+                        &host_to_container_port_map,
+                        cancel.clone(),
+                        accept_invalid_certs,
+                    )
+                    .await?;
+                if !external_responses.is_empty() {
+                    tracing::debug!(
+                        "External endpoint probing found {} responses for container at {}",
+                        external_responses.len(),
+                        interface.base.ip_address
+                    );
+                    endpoint_responses.extend(external_responses);
+                }
+            }
 
             if !endpoint_responses.is_empty() {
                 tracing::debug!(
@@ -646,6 +760,7 @@ impl DiscoveryRunner<DockerScanDiscovery> {
                 .get(&interface.base.ip_address)
                 .unwrap_or(empty_vec_ref);
 
+            let empty_client_responses = std::collections::HashMap::new();
             if let Ok(Some((mut host, mut interfaces, mut ports, mut services))) = self
                 .process_host(
                     ServiceMatchBaselineParams {
@@ -663,6 +778,7 @@ impl DiscoveryRunner<DockerScanDiscovery> {
                                 service_id: **docker_service_id,
                             },
                         )),
+                        client_responses: &empty_client_responses,
                     },
                     None,
                     self.domain.host_naming_fallback,
@@ -1079,6 +1195,159 @@ impl DiscoveryRunner<DockerScanDiscovery> {
         Ok(endpoint_responses)
     }
 
+    /// Fallback endpoint scanning for bridge-mode containers that lack HTTP tools.
+    /// Probes host-published ports externally via reqwest, then remaps responses
+    /// back to container ports for the pattern matcher.
+    async fn scan_container_endpoints_external(
+        &self,
+        interface: &Interface,
+        host_to_container_port_map: &HashMap<(IpAddr, u16), u16>,
+        cancel: CancellationToken,
+        accept_invalid_certs: bool,
+    ) -> Result<Vec<EndpointResponse>, Error> {
+        // Build inverse map: container_port -> Vec<(host_ip, host_port)>
+        let mut container_to_host_port_map: HashMap<u16, Vec<(IpAddr, u16)>> = HashMap::new();
+        for ((host_ip, host_port), container_port) in host_to_container_port_map {
+            container_to_host_port_map
+                .entry(*container_port)
+                .or_default()
+                .push((*host_ip, *host_port));
+        }
+
+        let all_endpoints = Service::all_discovery_endpoints();
+
+        // Filter to endpoints whose port matches a container port with a host mapping
+        let probeable_endpoints: Vec<_> = all_endpoints
+            .into_iter()
+            .filter(|e| container_to_host_port_map.contains_key(&e.port_type.number()))
+            .collect();
+
+        if probeable_endpoints.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let client = reqwest::Client::builder()
+            .connect_timeout(crate::daemon::utils::scanner::SCAN_TIMEOUT)
+            .danger_accept_invalid_certs(accept_invalid_certs)
+            .build()
+            .map_err(|e| anyhow!("Could not build client: {}", e))?;
+
+        let mut endpoint_responses = Vec::new();
+
+        for endpoint in &probeable_endpoints {
+            if cancel.is_cancelled() {
+                break;
+            }
+
+            let Some(host_mappings) = container_to_host_port_map.get(&endpoint.port_type.number())
+            else {
+                continue;
+            };
+
+            for (host_ip, host_port) in host_mappings {
+                if cancel.is_cancelled() {
+                    break;
+                }
+
+                // Resolve 0.0.0.0 to the Docker host's IP
+                let probe_ip = if *host_ip == ALL_INTERFACES_IP {
+                    self.domain.host_ip
+                } else {
+                    *host_ip
+                };
+
+                // Try HTTP and HTTPS, same pattern as scan_endpoints in scanner.rs
+                let http_url = format!("http://{}:{}{}", probe_ip, host_port, endpoint.path);
+                let https_url = format!("https://{}:{}{}", probe_ip, host_port, endpoint.path);
+
+                let urls = [http_url, https_url];
+
+                for url in &urls {
+                    tracing::trace!("Docker external probe: {}", url);
+
+                    // Timeout covers connect + headers; body has its own deadline.
+                    match tokio::time::timeout(
+                        crate::daemon::utils::scanner::SCAN_TIMEOUT,
+                        client.get(url).send(),
+                    )
+                    .await
+                    {
+                        Ok(Ok(response)) => {
+                            let status = response.status().as_u16();
+                            let headers: HashMap<String, String> = response
+                                .headers()
+                                .iter()
+                                .filter_map(|(name, value)| {
+                                    value
+                                        .to_str()
+                                        .ok()
+                                        .map(|v| (name.as_str().to_lowercase(), v.to_string()))
+                                })
+                                .collect();
+
+                            let deadline = tokio::time::Instant::now()
+                                + crate::daemon::utils::scanner::SCAN_TIMEOUT;
+                            let body =
+                                crate::daemon::utils::scanner::read_response_body_until_deadline(
+                                    response, deadline,
+                                )
+                                .await;
+
+                            tracing::debug!(
+                                "Docker external probe {} returned {} (length: {})",
+                                url,
+                                status,
+                                body.len()
+                            );
+
+                            // Container-port response for pattern matching
+                            endpoint_responses.push(EndpointResponse {
+                                endpoint: Endpoint {
+                                    ip: Some(interface.base.ip_address),
+                                    port_type: endpoint.port_type,
+                                    protocol: endpoint.protocol,
+                                    path: endpoint.path.clone(),
+                                },
+                                body: body.clone(),
+                                status,
+                                headers: headers.clone(),
+                            });
+
+                            // Host-port response for downstream binding logic
+                            endpoint_responses.push(EndpointResponse {
+                                endpoint: Endpoint {
+                                    ip: Some(*host_ip),
+                                    port_type: PortType::new_tcp(*host_port),
+                                    protocol: endpoint.protocol,
+                                    path: endpoint.path.clone(),
+                                },
+                                body,
+                                status,
+                                headers,
+                            });
+
+                            // Got a response, no need to try HTTPS
+                            break;
+                        }
+                        Ok(Err(e)) => {
+                            tracing::trace!("Docker external probe {} failed: {}", url, e);
+                            continue;
+                        }
+                        Err(_) => {
+                            tracing::trace!(
+                                "Docker external probe {} timed out waiting for headers",
+                                url
+                            );
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(endpoint_responses)
+    }
+
     /// Parse HTTP response to extract status code and body
     /// Returns (status_code, body) if successful
     fn parse_http_response(response: &str) -> Option<(u16, String, HashMap<String, String>)> {
@@ -1138,10 +1407,12 @@ impl DiscoveryRunner<DockerScanDiscovery> {
         if let Some(ports) = &container_summary.ports {
             ports.iter().for_each(|p| {
                 // Handle ports regardless of whether ip is set
-                if let Some(port_type @ (PortTypeEnum::TCP | PortTypeEnum::UDP)) = p.typ {
+                if let Some(port_type @ (PortSummaryTypeEnum::TCP | PortSummaryTypeEnum::UDP)) =
+                    p.typ
+                {
                     let private_port = match port_type {
-                        PortTypeEnum::TCP => PortType::new_tcp(p.private_port),
-                        PortTypeEnum::UDP => PortType::new_udp(p.private_port),
+                        PortSummaryTypeEnum::TCP => PortType::new_tcp(p.private_port),
+                        PortSummaryTypeEnum::UDP => PortType::new_udp(p.private_port),
                         _ => unreachable!("Already matched TCP/UDP in outer pattern"),
                     };
 
@@ -1158,8 +1429,8 @@ impl DiscoveryRunner<DockerScanDiscovery> {
                         && let Ok(ip) = ip_str.parse::<IpAddr>()
                     {
                         let public_port = match port_type {
-                            PortTypeEnum::TCP => PortType::new_tcp(public),
-                            PortTypeEnum::UDP => PortType::new_udp(public),
+                            PortSummaryTypeEnum::TCP => PortType::new_tcp(public),
+                            PortSummaryTypeEnum::UDP => PortType::new_udp(public),
                             _ => unreachable!("Already matched TCP/UDP in outer pattern"),
                         };
 
@@ -1181,7 +1452,7 @@ impl DiscoveryRunner<DockerScanDiscovery> {
         )
     }
 
-    fn get_container_interfaces(
+    pub fn get_container_interfaces(
         &self,
         containers: &[(ContainerInspectResponse, ContainerSummary)],
         subnets: &[Subnet],

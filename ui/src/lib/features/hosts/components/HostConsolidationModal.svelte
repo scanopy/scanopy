@@ -18,6 +18,7 @@
 		common_consolidating,
 		common_next,
 		hosts_consolidateModal_chooseHost,
+		hosts_consolidateModal_credentialsMigrated,
 		hosts_consolidateModal_hostWillBeDeleted,
 		hosts_consolidateModal_interfacesMigrated,
 		hosts_consolidateModal_portsMigrated,
@@ -116,6 +117,18 @@
 					id: 'ports',
 					name: hosts_consolidateModal_portsMigrated({
 						count: ports.length,
+						source: otherHost.name,
+						destination: selectedTargetHost.name
+					})
+				});
+			}
+
+			const credentialCount = otherHost.credential_assignments?.length ?? 0;
+			if (credentialCount > 0) {
+				actions.push({
+					id: 'credentials',
+					name: hosts_consolidateModal_credentialsMigrated({
+						count: credentialCount,
 						source: otherHost.name,
 						destination: selectedTargetHost.name
 					})

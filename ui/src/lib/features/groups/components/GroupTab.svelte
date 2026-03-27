@@ -249,4 +249,10 @@
 	onCreate={handleGroupCreate}
 	onUpdate={handleGroupUpdate}
 	onClose={handleCloseGroupEditor}
+	onDelete={editingGroup
+		? () => {
+				handleDeleteGroup(editingGroup!);
+				handleCloseGroupEditor();
+			}
+		: null}
 />

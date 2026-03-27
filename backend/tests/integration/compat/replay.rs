@@ -213,10 +213,9 @@ pub async fn replay_exchange(
 /// run, giving fixtures a clean slate without FK constraint issues.
 const SKIP_PATH_PREFIXES: &[&str] = &[];
 
-/// Path suffixes that indicate deprecated endpoints.
-/// Note: Intentionally empty - we want compat tests to fail when deprecated
-/// endpoints are removed. This catches breaking changes.
-const SKIP_PATH_SUFFIXES: &[&str] = &[];
+/// Path suffixes to skip during replay.
+/// Registration and startup are version-gated — old daemons are rejected.
+const SKIP_PATH_SUFFIXES: &[&str] = &["/register", "/startup"];
 
 /// Paths that should be skipped during daemon replay tests.
 /// Note: Intentionally empty - we cancel discovery sessions between fixtures.

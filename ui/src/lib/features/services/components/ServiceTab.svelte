@@ -367,6 +367,10 @@
 			isOpen={showServiceEditor}
 			onUpdate={handleServiceUpdate}
 			onClose={handleCloseServiceEditor}
+			onDelete={() => {
+				handleDeleteService(editingService!);
+				handleCloseServiceEditor();
+			}}
 		/>
 	{/if}
 {/if}

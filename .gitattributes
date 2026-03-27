@@ -4,7 +4,5 @@ ui/static/openapi.json merge=ours
 ui/static/openapi-public.json merge=ours
 ui/src/lib/generated/error-codes.ts merge=ours
 ui/src/lib/generated/error-messages.json merge=ours
-ui/src/lib/data/billing-plans-next.json merge=ours
-ui/src/lib/data/features-next.json merge=ours
 backend/tests/integration/compat/fixtures/**/*.json merge=ours
 TEST_PLAN.json merge=ours

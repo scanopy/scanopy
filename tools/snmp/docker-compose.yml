@@ -1,0 +1,62 @@
+services:
+  switch-core-01:
+    build: .
+    command: ["/etc/snmp-test/snmpd-10.99.0.10.conf"]
+    volumes:
+      - ./snmp-test-configs:/etc/snmp-test:ro
+    networks:
+      snmp-test-net:
+        ipv4_address: 10.99.0.10
+
+  switch-access-01:
+    build: .
+    command: ["/etc/snmp-test/snmpd-10.99.0.11.conf"]
+    volumes:
+      - ./snmp-test-configs:/etc/snmp-test:ro
+    networks:
+      snmp-test-net:
+        ipv4_address: 10.99.0.11
+
+  router-gw-01:
+    build: .
+    command: ["/etc/snmp-test/snmpd-10.99.0.12.conf"]
+    volumes:
+      - ./snmp-test-configs:/etc/snmp-test:ro
+    networks:
+      snmp-test-net:
+        ipv4_address: 10.99.0.12
+
+  firewall-01:
+    build: .
+    command: ["/etc/snmp-test/snmpd-10.99.0.13.conf"]
+    volumes:
+      - ./snmp-test-configs:/etc/snmp-test:ro
+    networks:
+      snmp-test-net:
+        ipv4_address: 10.99.0.13
+
+  printer-lobby:
+    build: .
+    command: ["/etc/snmp-test/snmpd-10.99.0.14.conf"]
+    volumes:
+      - ./snmp-test-configs:/etc/snmp-test:ro
+    networks:
+      snmp-test-net:
+        ipv4_address: 10.99.0.14
+
+  ap-wireless-01:
+    build: .
+    command: ["/etc/snmp-test/snmpd-10.99.0.15.conf"]
+    volumes:
+      - ./snmp-test-configs:/etc/snmp-test:ro
+    networks:
+      snmp-test-net:
+        ipv4_address: 10.99.0.15
+
+networks:
+  snmp-test-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.99.0.0/24
+          gateway: 10.99.0.1

@@ -155,6 +155,7 @@
 														color={field.color || item.color}
 														badge={item.badge}
 														label={item.label}
+														title={item.title}
 													/>
 												{/if}
 											{/each}
@@ -208,6 +209,7 @@
 													color={field.color || item.color}
 													badge={item.badge}
 													label={item.label}
+													title={item.title}
 												/>
 											{/if}
 										{/each}

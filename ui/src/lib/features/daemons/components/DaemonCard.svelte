@@ -1,20 +1,17 @@
 <script lang="ts">
 	import GenericCard from '$lib/shared/components/data/GenericCard.svelte';
 	import type { Daemon } from '$lib/features/daemons/types/base';
-	import {
-		getDaemonIsRunningDiscovery,
-		useRetryDaemonConnectionMutation
-	} from '$lib/features/daemons/queries';
-	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
-	import { entities } from '$lib/shared/stores/metadata';
+	import { useRetryDaemonConnectionMutation } from '$lib/features/daemons/queries';
+	import { entities, subnetTypes } from '$lib/shared/stores/metadata';
 	import { formatTimestamp } from '$lib/shared/utils/formatting';
 	import { ArrowBigUp, RefreshCw, Trash2 } from 'lucide-svelte';
+	import { common_delete } from '$lib/paraglide/messages';
 	import { getDaemonStatusTag } from '$lib/features/daemons/utils';
 	import { useNetworksQuery } from '$lib/features/networks/queries';
 	import { useHostsQuery } from '$lib/features/hosts/queries';
 	import { useSubnetsQuery } from '$lib/features/subnets/queries';
 	import { useApiKeysQuery } from '$lib/features/daemon_api_keys/queries';
-	import { useSnmpCredentialsQuery } from '$lib/features/snmp/queries';
+	import { useCredentialsQuery } from '$lib/features/credentials/queries';
 	import type { TagProps } from '$lib/shared/components/data/types';
 	import { entityRef } from '$lib/shared/components/data/types';
 	import DaemonUpgradeModal from './DaemonUpgradeModal.svelte';
@@ -51,17 +48,15 @@
 	// Use limit: 0 to get all hosts for daemon card lookups
 	const hostsQuery = useHostsQuery({ limit: 0 });
 	const subnetsQuery = useSubnetsQuery();
-	const sessionsQuery = useActiveSessionsQuery();
 	const apiKeysQuery = useApiKeysQuery();
-	const snmpCredentialsQuery = useSnmpCredentialsQuery();
+	const credentialsQuery = useCredentialsQuery();
 
 	// Derived data
 	let networksData = $derived(networksQuery.data ?? []);
 	let hostsData = $derived(hostsQuery.data?.items ?? []);
 	let subnetsData = $derived(subnetsQuery.data ?? []);
-	let sessionsData = $derived(sessionsQuery.data ?? []);
 	let apiKeysData = $derived(apiKeysQuery.data ?? []);
-	let snmpCredentialsData = $derived(snmpCredentialsQuery.data ?? []);
+	let credentialsData = $derived(credentialsQuery.data ?? []);
 
 	let {
 		daemon,
@@ -78,7 +73,6 @@
 	} = $props();
 
 	let host = $derived(hostsData.find((h) => h.id === daemon.host_id) ?? null);
-	let daemonIsRunningDiscovery = $derived(getDaemonIsRunningDiscovery(daemon.id, sessionsData));
 	let linkedApiKey = $derived(
 		daemon.api_key_id ? apiKeysData.find((k) => k.id === daemon.api_key_id) : null
 	);
@@ -123,7 +117,7 @@
 							label: network.name,
 							color: entities.getColorHelper('Network').color,
 							entityRef: entityRef('Network', network.id, network, {
-								snmpCredentials: snmpCredentialsData
+								credentials: credentialsData
 							})
 						}
 					];
@@ -184,6 +178,7 @@
 				value: daemon.capabilities.interfaced_subnet_ids
 					.map((s) => subnetsData.find((subnet) => subnet.id == s))
 					.filter((s) => s != undefined)
+					.filter((s) => !subnetTypes.getMetadata(s.subnet_type).hide_from_subnet_list)
 					.map((s) => ({
 						id: s.id,
 						label: s.name,
@@ -198,11 +193,10 @@
 			...(onDelete
 				? [
 						{
-							label: 'Delete',
+							label: common_delete(),
 							icon: Trash2,
 							class: 'btn-icon-danger',
-							onClick: () => onDelete(daemon),
-							disabled: daemonIsRunningDiscovery
+							onClick: () => onDelete(daemon)
 						}
 					]
 				: []),

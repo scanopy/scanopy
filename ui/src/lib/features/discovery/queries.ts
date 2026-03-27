@@ -146,10 +146,12 @@ export function createEmptyDiscoveryFormData(daemon: Daemon | null): Discovery {
 		updated_at: utcTimeZoneSentinel,
 		tags: [],
 		discovery_type: {
-			type: 'Network',
-			subnet_ids: daemon ? daemon.capabilities.interfaced_subnet_ids : [],
-			host_naming_fallback: 'Ip',
-			probe_raw_socket_ports: false
+			type: 'Unified',
+			host_id: daemon ? daemon.host_id : uuidv4Sentinel,
+			subnet_ids: null,
+			scan_local_docker_socket: false,
+			host_naming_fallback: 'BestService',
+			scan_settings: {}
 		},
 		run_type: {
 			type: 'Scheduled',

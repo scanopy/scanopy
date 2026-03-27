@@ -54,22 +54,6 @@ impl Storable for Group {
         self.base.clone()
     }
 
-    fn id(&self) -> Uuid {
-        self.id
-    }
-
-    fn created_at(&self) -> DateTime<Utc> {
-        self.created_at
-    }
-
-    fn set_id(&mut self, id: Uuid) {
-        self.id = id;
-    }
-
-    fn set_created_at(&mut self, time: DateTime<Utc>) {
-        self.created_at = time;
-    }
-
     fn to_params(&self) -> Result<(Vec<&'static str>, Vec<SqlValue>), anyhow::Error> {
         let Self {
             id,
@@ -156,6 +140,22 @@ impl Storable for Group {
 }
 
 impl Entity for Group {
+    fn id(&self) -> Uuid {
+        self.id
+    }
+
+    fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    fn set_id(&mut self, id: Uuid) {
+        self.id = id;
+    }
+
+    fn set_created_at(&mut self, time: DateTime<Utc>) {
+        self.created_at = time;
+    }
+
     type CsvRow = GroupCsvRow;
 
     fn to_csv_row(&self) -> Self::CsvRow {

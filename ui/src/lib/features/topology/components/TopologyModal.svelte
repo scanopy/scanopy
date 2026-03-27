@@ -10,7 +10,8 @@
 		useTopologiesQuery,
 		useUpdateMetadataMutation,
 		selectedTopologyId,
-		topologyOptions
+		topologyOptions,
+		sanitizeOptionsForApi
 	} from '../queries';
 	import { entities } from '$lib/shared/stores/metadata';
 	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
@@ -97,7 +98,7 @@
 			const topologyData: Topology = {
 				...topologyFields,
 				name: topologyFields.name.trim(),
-				options: $topologyOptions
+				options: sanitizeOptionsForApi($topologyOptions)
 			};
 
 			loading = true;
@@ -125,12 +126,35 @@
 	// Local state for network_id to enable Svelte 5 reactivity
 	// (form.state.values is NOT tracked by $derived)
 	let selectedNetworkId = $state<string>('');
+	let selectedParentId = $state<string | null>(null);
 
 	// Sync form values to local state on store changes
 	$effect(() => {
 		return form.store.subscribe(() => {
 			selectedNetworkId = form.state.values.network_id;
+			selectedParentId = form.state.values.parent_id ?? null;
 		});
+	});
+
+	// Clear parent_id when network changes and current parent isn't on the new network
+	$effect(() => {
+		// Read reactive deps unconditionally for Svelte 5 tracking
+		const topos = availableTopologies;
+		const networkId = selectedNetworkId;
+
+		const currentParentId = form.state.values.parent_id;
+		if (currentParentId && networkId) {
+			const parentOnNetwork = topos.find((t) => t.id === currentParentId);
+			if (!parentOnNetwork) {
+				const newParentId = topos[0]?.id ?? null;
+				form.setFieldValue('parent_id', newParentId);
+				selectedParentId = newParentId;
+				if (topos.length === 0) {
+					creationMode = 'fresh';
+					previousCreationMode = 'fresh';
+				}
+			}
+		}
 	});
 
 	// Local state for creation mode to enable Svelte 5 reactivity
@@ -166,6 +190,7 @@
 			creation_mode: mode
 		});
 		selectedNetworkId = defaults.network_id;
+		selectedParentId = defaults.parent_id ?? null;
 		creationMode = mode;
 		previousCreationMode = mode;
 	}
@@ -248,7 +273,7 @@
 									displayComponent={TopologyDisplay}
 									required={false}
 									disabled={isEditing}
-									selectedValue={field.state.value}
+									selectedValue={selectedParentId}
 									onSelect={(id) => field.handleChange(id)}
 									options={availableTopologies}
 								/>

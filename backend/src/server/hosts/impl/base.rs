@@ -1,3 +1,4 @@
+use crate::server::credentials::r#impl::types::CredentialAssignment;
 use crate::server::hosts::r#impl::virtualization::HostVirtualization;
 use crate::server::shared::entities::ChangeTriggersTopologyStaleness;
 use crate::server::shared::types::api::deserialize_empty_string_as_none;
@@ -51,9 +52,22 @@ pub struct HostBase {
     /// LLDP lldpLocChassisId - globally unique device identifier for deduplication
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub chassis_id: Option<String>,
-    /// Per-host SNMP credential override (null = use network default)
+    /// SNMP sysName.0 - administratively-assigned hostname
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub snmp_credential_id: Option<Uuid>,
+    pub sys_name: Option<String>,
+    /// ENTITY-MIB entPhysicalMfgName - hardware manufacturer
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub manufacturer: Option<String>,
+    /// ENTITY-MIB entPhysicalModelName - hardware model
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    /// ENTITY-MIB entPhysicalSerialNum - hardware serial number
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub serial_number: Option<String>,
+    /// Credential assignments for this host (hydrated from junction table).
+    #[serde(default)]
+    #[schema(required)]
+    pub credential_assignments: Vec<CredentialAssignment>,
 }
 
 impl Default for HostBase {
@@ -73,7 +87,11 @@ impl Default for HostBase {
             sys_contact: None,
             management_url: None,
             chassis_id: None,
-            snmp_credential_id: None,
+            sys_name: None,
+            manufacturer: None,
+            model: None,
+            serial_number: None,
+            credential_assignments: Vec::new(),
         }
     }
 }

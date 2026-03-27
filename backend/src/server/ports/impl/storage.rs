@@ -46,22 +46,6 @@ impl Storable for Port {
         self.base
     }
 
-    fn id(&self) -> Uuid {
-        self.id
-    }
-
-    fn created_at(&self) -> DateTime<Utc> {
-        self.created_at
-    }
-
-    fn set_id(&mut self, id: Uuid) {
-        self.id = id;
-    }
-
-    fn set_created_at(&mut self, time: DateTime<Utc>) {
-        self.created_at = time;
-    }
-
     fn to_params(&self) -> Result<(Vec<&'static str>, Vec<SqlValue>), anyhow::Error> {
         let config = self.base.port_type.config();
         let port_type = Self::port_type_string(&self.base.port_type);
@@ -135,6 +119,22 @@ impl Storable for Port {
 }
 
 impl Entity for Port {
+    fn id(&self) -> Uuid {
+        self.id
+    }
+
+    fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    fn set_id(&mut self, id: Uuid) {
+        self.id = id;
+    }
+
+    fn set_created_at(&mut self, time: DateTime<Utc>) {
+        self.created_at = time;
+    }
+
     type CsvRow = PortCsvRow;
 
     fn to_csv_row(&self) -> Self::CsvRow {

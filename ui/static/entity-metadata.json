@@ -135,15 +135,6 @@
     "table_name": "discovery"
   },
   {
-    "id": "snmp_credential",
-    "name_singular": "SNMP Credential",
-    "name_plural": "SNMP Credentials",
-    "description": "SNMP credentials for network device discovery. Manage credentials used to query SNMP-enabled devices.",
-    "category": "discovery_and_daemons",
-    "category_display": "Discovery & Daemons",
-    "table_name": "snmp_credentials"
-  },
-  {
     "id": "group",
     "name_singular": "Group",
     "name_plural": "Groups",

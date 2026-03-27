@@ -1,5 +1,5 @@
 use crate::server::shared::entities::ChangeTriggersTopologyStaleness;
-use crate::server::snmp_credentials::resolution::lldp::{LldpChassisId, LldpPortId};
+use crate::server::snmp::resolution::lldp::{LldpChassisId, LldpPortId};
 use chrono::{DateTime, Utc};
 use mac_address::MacAddress;
 use serde::{Deserialize, Serialize};
@@ -162,6 +162,12 @@ pub struct IfEntryBase {
     /// Remote management IP from CDP (cdpCacheAddress)
     #[schema(value_type = Option<String>)]
     pub cdp_address: Option<std::net::IpAddr>,
+
+    /// Bridge FDB: learned MAC addresses on this switch port.
+    /// Single-MAC ports can be resolved to neighbor links server-side.
+    /// Multi-MAC ports indicate uplinks where LLDP/CDP is the better source.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fdb_macs: Option<Vec<String>>,
 }
 
 impl Default for IfEntryBase {
@@ -190,6 +196,7 @@ impl Default for IfEntryBase {
             cdp_port_id: None,
             cdp_platform: None,
             cdp_address: None,
+            fdb_macs: None,
         }
     }
 }

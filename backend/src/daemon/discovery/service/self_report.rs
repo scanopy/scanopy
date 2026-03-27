@@ -4,7 +4,7 @@ use crate::{
     },
     server::{
         bindings::r#impl::base::Binding,
-        daemons::r#impl::api::{DaemonCapabilities, DaemonDiscoveryRequest},
+        daemons::r#impl::api::DaemonDiscoveryRequest,
         discovery::r#impl::types::DiscoveryType,
         interfaces::r#impl::base::{ALL_INTERFACES_IP, Interface},
         ports::r#impl::base::{Port, PortType},
@@ -91,7 +91,7 @@ impl DiscoversNetworkedEntities for DiscoveryRunner<SelfReportDiscovery> {
         let docker_client = self
             .as_ref()
             .utils
-            .new_local_docker_client(docker_proxy, docker_proxy_ssl_info)
+            .new_docker_client(docker_proxy, docker_proxy_ssl_info)
             .await;
 
         let docker_subnets = if let Ok(docker_client) = docker_client {
@@ -269,29 +269,9 @@ impl DiscoveryRunner<SelfReportDiscovery> {
             "Network interfaces gathered for host creation"
         );
 
-        // Check if docker socket is available (for capabilities)
-        let docker_proxy = self.as_ref().config_store.get_docker_proxy().await;
-        let docker_proxy_ssl_info = self.as_ref().config_store.get_docker_proxy_ssl_info().await;
-        let has_docker_socket = self
-            .as_ref()
-            .utils
-            .new_local_docker_client(docker_proxy, docker_proxy_ssl_info)
-            .await
-            .is_ok();
+        // Capabilities are now updated via process_status on every poll — no separate POST needed.
 
-        // Update capabilities
-        let interfaced_subnet_ids: Vec<Uuid> = created_subnets.iter().map(|s| s.id).collect();
-
-        tracing::debug!(
-            "Updating capabilities with {} interfaced subnets: {:?}",
-            interfaced_subnet_ids.len(),
-            interfaced_subnet_ids
-        );
-
-        self.update_capabilities(has_docker_socket, interfaced_subnet_ids)
-            .await?;
-
-        // Check cancellation after capabilities update
+        // Check cancellation
         if cancel.is_cancelled() {
             return Err(anyhow::anyhow!("Discovery cancelled"));
         }
@@ -369,7 +349,11 @@ impl DiscoveryRunner<SelfReportDiscovery> {
             sys_contact: None,
             management_url: None,
             chassis_id: None,
-            snmp_credential_id: None,
+            sys_name: None,
+            manufacturer: None,
+            model: None,
+            serial_number: None,
+            credential_assignments: vec![],
         };
 
         // Ports to create with the host
@@ -423,57 +407,5 @@ impl DiscoveryRunner<SelfReportDiscovery> {
             .await?;
 
         Ok(())
-    }
-
-    async fn update_capabilities(
-        &self,
-        has_docker_socket: bool,
-        interfaced_subnet_ids: Vec<Uuid>,
-    ) -> Result<(), Error> {
-        tracing::debug!(
-            has_docker_socket,
-            subnet_count = interfaced_subnet_ids.len(),
-            subnet_ids = ?interfaced_subnet_ids,
-            "Updating daemon capabilities"
-        );
-
-        let capabilities = DaemonCapabilities {
-            has_docker_socket,
-            interfaced_subnet_ids: interfaced_subnet_ids.clone(),
-        };
-
-        // Store capabilities locally for ServerPoll mode status responses
-        self.as_ref()
-            .config_store
-            .set_capabilities(capabilities.clone())
-            .await?;
-
-        let daemon_id = self.as_ref().api_client.config().get_id().await?;
-        let path = format!("/api/daemons/{}/update-capabilities", daemon_id);
-
-        match self
-            .as_ref()
-            .api_client
-            .post_no_data(&path, &capabilities, "Failed to update capabilities")
-            .await
-        {
-            Ok(()) => {
-                tracing::info!(
-                    has_docker_socket,
-                    subnet_count = interfaced_subnet_ids.len(),
-                    "Daemon capabilities updated successfully"
-                );
-                Ok(())
-            }
-            Err(e) => {
-                tracing::error!(
-                    has_docker_socket,
-                    subnet_count = interfaced_subnet_ids.len(),
-                    error = %e,
-                    "Failed to update daemon capabilities"
-                );
-                Err(e)
-            }
-        }
     }
 }

@@ -175,6 +175,44 @@ export function pattern(regex: RegExp, message: string): Validator {
 	};
 }
 
+/** PEM certificate format validator */
+export function pemCertificate(value: FormValue): string | undefined {
+	if (!value || typeof value !== 'string') return undefined;
+	const trimmed = value.trim();
+	if (!trimmed) return undefined;
+	if (
+		!trimmed.startsWith('-----BEGIN CERTIFICATE-----') ||
+		!trimmed.endsWith('-----END CERTIFICATE-----')
+	) {
+		return 'Invalid PEM certificate format. Must start with "-----BEGIN CERTIFICATE-----" and end with "-----END CERTIFICATE-----"';
+	}
+	return undefined;
+}
+
+/** PEM private key format validator */
+export function pemPrivateKey(value: FormValue): string | undefined {
+	if (!value || typeof value !== 'string') return undefined;
+	const trimmed = value.trim();
+	if (!trimmed) return undefined;
+	const validStarts = [
+		'-----BEGIN PRIVATE KEY-----',
+		'-----BEGIN RSA PRIVATE KEY-----',
+		'-----BEGIN EC PRIVATE KEY-----'
+	];
+	const validEnds = [
+		'-----END PRIVATE KEY-----',
+		'-----END RSA PRIVATE KEY-----',
+		'-----END EC PRIVATE KEY-----'
+	];
+	if (
+		!validStarts.some((s) => trimmed.startsWith(s)) ||
+		!validEnds.some((e) => trimmed.endsWith(e))
+	) {
+		return 'Invalid PEM private key format. Must have a valid PRIVATE KEY PEM envelope';
+	}
+	return undefined;
+}
+
 /** Array minimum length validator */
 export function minArrayLength(
 	length: number,

@@ -23,18 +23,6 @@ use uuid::Uuid;
 
 pub const SCAN_TIMEOUT: Duration = Duration::from_millis(800);
 
-/// Parameters for scan concurrency, including both concurrent hosts and port batch size.
-/// These values must be calculated together to ensure total FD usage stays within limits.
-/// Previously, batch size was calculated independently which caused FD exhaustion when
-/// concurrent_scans * port_batch_size exceeded available file descriptors.
-#[derive(Debug, Clone)]
-pub struct ScanConcurrencyParams {
-    /// Number of hosts to scan concurrently
-    pub concurrent_scans: usize,
-    /// Port batch size per host (number of ports scanned in parallel per host)
-    pub port_batch_size: usize,
-}
-
 /// Cross-platform system utilities trait
 #[async_trait]
 pub trait DaemonUtils {
@@ -48,7 +36,7 @@ pub trait DaemonUtils {
     fn get_own_ip_address(&self) -> Result<IpAddr, Error> {
         match local_ip() {
             Ok(ip) => {
-                tracing::info!(ip = %ip, "Detected local IP address");
+                tracing::debug!(ip = %ip, "Detected local IP address");
                 Ok(ip)
             }
             Err(e) => {
@@ -135,7 +123,7 @@ pub trait DaemonUtils {
         let mut potential_subnets: Vec<(String, IpNetwork)> = Vec::new();
         let mut interface_data: Vec<(String, IpAddr, Option<MacAddress>)> = Vec::new();
 
-        for interface in interfaces.into_iter().filter(|i| !i.is_loopback()) {
+        for interface in interfaces.into_iter() {
             let name = interface.name.clone();
             let mac_address = match interface.mac {
                 Some(mac) if !mac.octets().iter().all(|o| *o == 0) => {
@@ -203,14 +191,14 @@ pub trait DaemonUtils {
         Ok((interfaces, subnets, cidr_to_mac))
     }
 
-    async fn new_local_docker_client(
+    async fn new_docker_client(
         &self,
         docker_proxy: Result<Option<String>, Error>,
         docker_proxy_ssl_info: Result<Option<(String, String, String)>, Error>,
     ) -> Result<Docker, Error> {
         use tokio::time::timeout;
 
-        const DOCKER_CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
+        const DOCKER_CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
 
         tracing::debug!("Creating Docker client connection");
         let start = std::time::Instant::now();
@@ -218,10 +206,10 @@ pub trait DaemonUtils {
         let client = if let Ok(Some(docker_proxy)) = docker_proxy {
             tracing::debug!(proxy = %docker_proxy, "Using Docker proxy");
             if docker_proxy.contains("https://")
-                && let Ok(Some((key, cert, chain))) = docker_proxy_ssl_info
+                && let Ok(Some((cert, key, chain))) = docker_proxy_ssl_info
             {
-                let key_path = PathBuf::from(key);
                 let cert_path = PathBuf::from(cert);
+                let key_path = PathBuf::from(key);
                 let chain_path = PathBuf::from(chain);
 
                 Docker::connect_with_ssl(
@@ -229,7 +217,7 @@ pub trait DaemonUtils {
                     &key_path,
                     &cert_path,
                     &chain_path,
-                    4,
+                    15,
                     API_DEFAULT_VERSION,
                 )
                 .map_err(|e| anyhow::anyhow!("Failed to connect to Docker: {}", e))?
@@ -243,39 +231,57 @@ pub trait DaemonUtils {
                 .map_err(|e| anyhow::anyhow!("Failed to connect to Docker: {}", e))?
         };
 
-        // Add timeout to Docker ping to prevent indefinite blocking
-        tracing::debug!(
-            "Pinging Docker daemon (timeout: {:?})",
-            DOCKER_CONNECT_TIMEOUT
-        );
-        match timeout(DOCKER_CONNECT_TIMEOUT, client.ping()).await {
-            Ok(Ok(_)) => {
-                tracing::info!(
-                    elapsed_ms = start.elapsed().as_millis(),
-                    "Docker client connected successfully"
-                );
-                Ok(client)
-            }
-            Ok(Err(e)) => {
-                tracing::warn!(
-                    elapsed_ms = start.elapsed().as_millis(),
-                    error = %e,
-                    "Docker ping failed"
-                );
-                Err(anyhow::anyhow!("Docker ping failed: {}", e))
-            }
-            Err(_) => {
-                tracing::warn!(
-                    elapsed_ms = start.elapsed().as_millis(),
-                    "Docker ping timed out after {:?}",
-                    DOCKER_CONNECT_TIMEOUT
-                );
-                Err(anyhow::anyhow!(
-                    "Docker connection timed out after {:?}",
-                    DOCKER_CONNECT_TIMEOUT
-                ))
+        // Ping Docker with retry and exponential backoff
+        const MAX_PING_ATTEMPTS: u32 = 3;
+        let mut last_error = None;
+        for attempt in 1..=MAX_PING_ATTEMPTS {
+            match timeout(DOCKER_CONNECT_TIMEOUT, client.ping()).await {
+                Ok(Ok(_)) => {
+                    tracing::debug!(
+                        elapsed_ms = start.elapsed().as_millis(),
+                        attempt,
+                        "Docker client connected successfully"
+                    );
+                    return Ok(client);
+                }
+                Ok(Err(e)) => {
+                    last_error = Some(format!("Docker ping failed: {}", e));
+                    if attempt < MAX_PING_ATTEMPTS {
+                        let backoff = Duration::from_millis(500 * 2u64.pow(attempt - 1));
+                        tracing::warn!(
+                            attempt,
+                            backoff_ms = backoff.as_millis(),
+                            error = %e,
+                            "Docker ping failed, retrying"
+                        );
+                        tokio::time::sleep(backoff).await;
+                    }
+                }
+                Err(_) => {
+                    last_error = Some(format!(
+                        "Docker connection timed out after {:?}",
+                        DOCKER_CONNECT_TIMEOUT
+                    ));
+                    if attempt < MAX_PING_ATTEMPTS {
+                        let backoff = Duration::from_millis(500 * 2u64.pow(attempt - 1));
+                        tracing::warn!(
+                            attempt,
+                            backoff_ms = backoff.as_millis(),
+                            "Docker ping timed out, retrying"
+                        );
+                        tokio::time::sleep(backoff).await;
+                    }
+                }
             }
         }
+        tracing::warn!(
+            elapsed_ms = start.elapsed().as_millis(),
+            "Docker ping failed after {} attempts",
+            MAX_PING_ATTEMPTS
+        );
+        Err(anyhow::anyhow!(
+            last_error.unwrap_or_else(|| "Docker connection failed".to_string())
+        ))
     }
 
     async fn get_subnets_from_docker_networks(
@@ -370,82 +376,6 @@ pub trait DaemonUtils {
         port_batch_size: usize,
         arp_subnet_count: usize,
     ) -> Result<usize, Error>;
-
-    /// Get optimal number of concurrent host scans and port batch size.
-    /// Batch-prioritized: use configured batch size, then calculate concurrent hosts.
-    /// Returns both values since they must be calculated together to stay within FD limits.
-    async fn get_optimal_concurrent_scans(
-        &self,
-        concurrency_config_value: usize,
-        port_batch_config_value: usize,
-    ) -> Result<ScanConcurrencyParams, Error> {
-        let fd_limit = Self::get_fd_limit()?;
-
-        // Reserve FDs for daemon operations
-        let reserved = 203;
-        let available = fd_limit.saturating_sub(reserved);
-
-        // FD usage per host (besides port batch)
-        let endpoint_fds_per_host = 25;
-        let overhead_per_host = 20;
-        let fixed_fds_per_host = endpoint_fds_per_host + overhead_per_host;
-
-        // Use configured batch size, clamped to reasonable bounds
-        let port_batch_size = port_batch_config_value.clamp(16, 1000);
-
-        // Calculate how many concurrent hosts we can afford with this batch size
-        let fds_per_host = port_batch_size + fixed_fds_per_host;
-        let calculated_concurrent = available / fds_per_host;
-
-        // Bound concurrent hosts (min 1, max 50)
-        let optimal_concurrent = calculated_concurrent.clamp(1, 50);
-
-        let concurrent_scans = if concurrency_config_value != 15 {
-            // User override - respect it but warn if it exceeds budget
-            let max_safe = available / fds_per_host;
-            if concurrency_config_value > max_safe {
-                tracing::warn!(
-                    configured = %concurrency_config_value,
-                    max_safe = %max_safe,
-                    fd_limit = %fd_limit,
-                    "Configured concurrent_scans exceeds FD budget, may cause EMFILE errors"
-                );
-            }
-            tracing::info!(
-                "Using configured concurrent_scans={} (automatic would be {}, \
-                 with port_batch={})",
-                concurrency_config_value,
-                optimal_concurrent,
-                port_batch_size
-            );
-            concurrency_config_value
-        } else {
-            // Use automatic
-            tracing::info!(
-                concurrent_scans = %optimal_concurrent,
-                port_batch = %port_batch_size,
-                fd_limit = %fd_limit,
-                fd_available = %available,
-                fds_per_host = %fds_per_host,
-                "Using automatic concurrent_scans",
-            );
-            optimal_concurrent
-        };
-
-        if concurrent_scans < 5 {
-            tracing::warn!(
-                fd_limit = %fd_limit,
-                concurrent_scans = %concurrent_scans,
-                port_batch = %port_batch_size,
-                "Low concurrency due to FD limits. Consider increasing ulimit or reducing port_scan_batch_size.",
-            );
-        }
-
-        Ok(ScanConcurrencyParams {
-            concurrent_scans,
-            port_batch_size,
-        })
-    }
 }
 
 /// Merge host (physical) and Docker subnets, giving host subnets precedence.

@@ -142,12 +142,12 @@
 				description: 'Add SNMP credentials to discover detailed interface and device information.',
 				actionLabel: 'Add SNMP Credential',
 				action: () => {
-					onNavigate('snmp-credentials');
-					openModal('snmp-credential-editor');
+					onNavigate('credentials');
+					openModal('credential-editor');
 				},
 				visible: !has('FirstSnmpCredentialCreated'),
-				icon: entities.getIconComponent('SnmpCredential'),
-				iconColor: entities.getColorHelper('SnmpCredential').icon
+				icon: entities.getIconComponent('Credential'),
+				iconColor: entities.getColorHelper('Credential').icon
 			},
 			{
 				id: 'scheduled-free',

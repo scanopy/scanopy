@@ -1,3 +1,4 @@
+# Closes issues inactive for 30 days with a courtesy notice
 name: Close Stale Issues
 
 on:

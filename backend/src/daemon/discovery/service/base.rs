@@ -99,6 +99,8 @@ pub struct DiscoverySession {
     pub last_progress_report_time: Arc<AtomicU64>,
     pub hosts_discovered: Arc<AtomicU32>,
     pub estimated_remaining_secs: Arc<AtomicU32>,
+    pub progress_range_start: Arc<AtomicU8>,
+    pub progress_range_end: Arc<AtomicU8>,
 }
 
 impl DiscoverySession {
@@ -110,8 +112,22 @@ impl DiscoverySession {
             last_progress_report_time: Arc::new(AtomicU64::new(0)),
             hosts_discovered: Arc::new(AtomicU32::new(0)),
             estimated_remaining_secs: Arc::new(AtomicU32::new(u32::MAX)),
+            progress_range_start: Arc::new(AtomicU8::new(0)),
+            progress_range_end: Arc::new(AtomicU8::new(100)),
         }
     }
+
+    pub fn set_progress_range(&self, start: u8, end: u8) {
+        self.progress_range_start.store(start, Ordering::Relaxed);
+        self.progress_range_end.store(end, Ordering::Relaxed);
+    }
+}
+
+fn map_progress(raw: u8, start: u8, end: u8) -> u8 {
+    if start == 0 && end == 100 {
+        return raw;
+    }
+    start + (raw as f64 * (end - start) as f64 / 100.0) as u8
 }
 
 impl<T> AsRef<DaemonDiscoveryService> for DiscoveryRunner<T> {
@@ -170,6 +186,10 @@ pub trait RunsDiscovery: AsRef<DaemonDiscoveryService> + Send + Sync {
     /// Percent should be 0-100.
     async fn report_scanning_progress(&self, percent: u8) -> Result<(), Error> {
         let session = self.as_ref().get_session().await?;
+        let start = session.progress_range_start.load(Ordering::Relaxed);
+        let end = session.progress_range_end.load(Ordering::Relaxed);
+        let percent = map_progress(percent, start, end);
+
         let last_report_time = &session.last_progress_report_time;
         let last_progress = &session.last_progress;
 
@@ -214,6 +234,18 @@ pub trait RunsDiscovery: AsRef<DaemonDiscoveryService> + Send + Sync {
     async fn report_discovery_update(&self, update: DiscoverySessionUpdate) -> Result<(), Error> {
         let session = self.as_ref().get_session().await?;
         let discovery_type = self.discovery_type();
+
+        // Map progress for scanning updates through the session's progress range
+        let update = if update.phase == DiscoveryPhase::Scanning {
+            let start = session.progress_range_start.load(Ordering::Relaxed);
+            let end = session.progress_range_end.load(Ordering::Relaxed);
+            DiscoverySessionUpdate {
+                progress: map_progress(update.progress, start, end),
+                ..update
+            }
+        } else {
+            update
+        };
 
         let mut payload = DiscoveryUpdatePayload::from_state_and_update(
             discovery_type,
@@ -472,7 +504,11 @@ pub trait DiscoversNetworkedEntities:
             sys_contact: None,
             management_url: None,
             chassis_id: None,
-            snmp_credential_id: None,
+            sys_name: None,
+            manufacturer: None,
+            model: None,
+            serial_number: None,
+            credential_assignments: vec![],
         });
 
         // Store interfaces separately to pass to server

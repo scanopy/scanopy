@@ -10,7 +10,6 @@ use scanopy::server::services::r#impl::base::Service;
 use scanopy::server::shared::entities::EntityDiscriminants;
 use scanopy::server::shared::storage::traits::Storable;
 use scanopy::server::shared::types::metadata::HasId;
-use scanopy::server::snmp_credentials::r#impl::discovery::SnmpCredentialMapping;
 use scanopy::server::tags::handlers::BulkTagRequest;
 use scanopy::server::tags::r#impl::base::{Tag, TagBase};
 use uuid::Uuid;
@@ -20,21 +19,23 @@ use uuid::Uuid;
 pub async fn trigger_discovery(
     client: &TestClient,
     daemon_id: Uuid,
+    host_id: Uuid,
     network_id: Uuid,
 ) -> Result<Uuid, String> {
     println!("\n=== Creating Discovery for ServerPoll Daemon ===");
 
-    // Create a Discovery record
+    // Create a Unified Discovery record
     let discovery = Discovery {
         id: Uuid::nil(), // Server assigns ID
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
         base: DiscoveryBase {
-            discovery_type: DiscoveryType::Network {
-                subnet_ids: None, // Discover all subnets on the network
+            discovery_type: DiscoveryType::Unified {
+                host_id,
+                subnet_ids: None,
+                scan_local_docker_socket: false,
                 host_naming_fallback: HostNamingFallback::BestService,
-                snmp_credentials: SnmpCredentialMapping::default(),
-                probe_raw_socket_ports: false,
+                scan_settings: Default::default(),
             },
             run_type: RunType::AdHoc { last_run: None },
             name: "ServerPoll Integration Test Discovery".to_string(),
@@ -42,6 +43,9 @@ pub async fn trigger_discovery(
             network_id,
             tags: vec![],
         },
+        scan_count: 0,
+        force_full_scan: false,
+        pending_credential_ids: vec![],
     };
 
     let created_discovery: Discovery = client.post("/api/v1/discovery", &discovery).await?;
@@ -99,8 +103,8 @@ pub async fn run_discovery(client: &TestClient, session_id: Option<Uuid>) -> Res
                                         continue;
                                     }
                                 } else {
-                                    // No session_id filter - only accept Network discoveries
-                                    if !matches!(update.discovery_type, DiscoveryType::Network { .. }) {
+                                    // No session_id filter - only accept Network or Unified discoveries
+                                    if !matches!(update.discovery_type, DiscoveryType::Network { .. } | DiscoveryType::Unified { .. }) {
                                         continue;
                                     }
                                 }

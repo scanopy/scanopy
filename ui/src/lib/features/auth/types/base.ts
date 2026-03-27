@@ -2,6 +2,7 @@ import type { components } from '$lib/api/schema';
 import {
 	common_company,
 	common_homelab,
+	common_other,
 	onboarding_companyDescription,
 	onboarding_companyNetworkHelp,
 	onboarding_companyNetworkLabel,
@@ -21,7 +22,10 @@ import {
 	onboarding_mspNetworkPlaceholder,
 	onboarding_mspOrgLabel,
 	onboarding_mspOrgPlaceholder,
-	onboarding_orgHelp
+	onboarding_orgHelp,
+	onboarding_otherDescription,
+	onboarding_otherNetworkPlaceholder,
+	onboarding_otherOrgPlaceholder
 } from '$lib/paraglide/messages';
 
 // Re-export generated types
@@ -46,7 +50,7 @@ export interface SessionUser {
 }
 
 // Onboarding use case types
-export type UseCase = 'homelab' | 'company' | 'msp';
+export type UseCase = 'homelab' | 'company' | 'msp' | 'other';
 
 // Consolidated use case configuration
 // Icons are mapped separately in components (Svelte component references)
@@ -111,6 +115,21 @@ export function getUseCases(): Record<UseCase, UseCaseConfig> {
 				ring: 'ring-violet-500',
 				bg: 'bg-violet-500/20',
 				text: 'text-violet-400'
+			}
+		},
+		other: {
+			label: common_other(),
+			description: onboarding_otherDescription(),
+			orgLabel: onboarding_companyOrgLabel(),
+			orgPlaceholder: onboarding_otherOrgPlaceholder(),
+			orgHelp: onboarding_orgHelp(),
+			networkLabel: onboarding_homelabNetworkLabel(),
+			networkPlaceholder: onboarding_otherNetworkPlaceholder(),
+			networkHelp: onboarding_homelabNetworkHelp(),
+			colors: {
+				ring: 'ring-amber-500',
+				bg: 'bg-amber-500/20',
+				text: 'text-amber-400'
 			}
 		}
 	};

@@ -1,15 +1,18 @@
+use crate::server::shared::extractors::Query;
+use crate::server::shared::handlers::query::NoFilterQuery;
 use crate::server::shared::handlers::traits::{
     BulkDeleteResponse, CrudHandlers, bulk_delete_handler, create_handler, delete_handler,
-    update_handler,
+    get_all_handler, update_handler,
 };
 use crate::server::shared::services::traits::{CrudService, EventBusService};
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::{Entity, Storable};
+use crate::server::shared::types::api::PaginatedApiResponse;
 use crate::server::topology::types::base::{Topology, TopologyBase};
 use crate::server::{
     auth::middleware::{
         features::{CreateNetworkFeature, RequireFeature},
-        permissions::{Admin, Authorized, Member},
+        permissions::{Admin, Authorized, Member, Viewer},
     },
     shared::{
         events::types::{OnboardingEvent, OnboardingOperation},
@@ -31,21 +34,88 @@ use uuid::Uuid;
 // Generated handlers for operations that use generic CRUD logic
 mod generated {
     use super::*;
-    crate::crud_get_all_handler!(Network);
-    crate::crud_get_by_id_handler!(Network);
+    // get_all and get_by_id are now custom (below) to hydrate credential_ids
     crate::crud_export_csv_handler!(Network);
 }
 
 pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
     OpenApiRouter::new()
-        .routes(routes!(generated::get_all, create_network))
-        .routes(routes!(
-            generated::get_by_id,
-            update_network,
-            delete_network
-        ))
+        .routes(routes!(get_all_networks, create_network))
+        .routes(routes!(get_by_id_network, update_network, delete_network))
         .routes(routes!(bulk_delete_networks))
         .routes(routes!(generated::export_csv))
+}
+
+/// List all networks
+#[utoipa::path(
+    get,
+    path = "",
+    tag = Network::ENTITY_NAME_PLURAL,
+    params(NoFilterQuery),
+    responses(
+        (status = 200, description = "List of networks", body = inline(PaginatedApiResponse<Network>)),
+    ),
+    security(("user_api_key" = []), ("session" = []))
+)]
+async fn get_all_networks(
+    State(state): State<Arc<AppState>>,
+    auth: Authorized<Viewer>,
+    query: Query<NoFilterQuery>,
+) -> ApiResult<Json<PaginatedApiResponse<Network>>> {
+    let mut response = get_all_handler::<Network>(State(state.clone()), auth, query).await?;
+
+    // Hydrate credential_ids from junction table
+    let network_ids: Vec<Uuid> = response.data.iter().map(|n| n.id).collect();
+    let cred_map = state
+        .services
+        .credential_service
+        .get_credential_ids_for_networks(&network_ids)
+        .await
+        .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+    for network in &mut response.data {
+        if let Some(creds) = cred_map.get(&network.id) {
+            network.base.credential_ids = creds.clone();
+        }
+    }
+
+    Ok(response)
+}
+
+/// Get a network by ID
+#[utoipa::path(
+    get,
+    path = "/{id}",
+    tag = Network::ENTITY_NAME_PLURAL,
+    params(("id" = Uuid, Path, description = "Network ID")),
+    responses(
+        (status = 200, description = "Network found", body = ApiResponse<Network>),
+        (status = 404, description = "Network not found", body = ApiErrorResponse),
+    ),
+    security(("user_api_key" = []), ("session" = []))
+)]
+async fn get_by_id_network(
+    State(state): State<Arc<AppState>>,
+    auth: Authorized<Viewer>,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<ApiResponse<Network>>> {
+    let mut response = crate::server::shared::handlers::traits::get_by_id_handler::<Network>(
+        State(state.clone()),
+        auth,
+        Path(id),
+    )
+    .await?;
+
+    // Hydrate credential_ids from junction table
+    if let Some(ref mut network) = response.data {
+        network.base.credential_ids = state
+            .services
+            .credential_service
+            .get_credential_ids_for_network(&id)
+            .await
+            .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+    }
+
+    Ok(response)
 }
 
 /// Create a new network
@@ -75,6 +145,14 @@ async fn create_network(
     .await?;
 
     if let Some(network) = &response.data {
+        // Sync credentials to junction table
+        state
+            .services
+            .credential_service
+            .set_network_credentials(&network.id, &network.base.credential_ids)
+            .await
+            .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+
         let service = Network::get_service(&state);
         service
             .create_organizational_subnets(network.id, entity.clone())
@@ -145,12 +223,35 @@ async fn create_network(
      security(("user_api_key" = []), ("session" = []))
 )]
 async fn update_network(
-    state: State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     auth: Authorized<Admin>,
-    path: Path<Uuid>,
-    json: Json<Network>,
+    Path(id): Path<Uuid>,
+    Json(network): Json<Network>,
 ) -> ApiResult<Json<ApiResponse<Network>>> {
-    update_handler::<Network>(state, auth.into_permission::<Member>(), path, json).await
+    let credential_ids = network.base.credential_ids.clone();
+
+    let mut response = update_handler::<Network>(
+        State(state.clone()),
+        auth.into_permission::<Member>(),
+        Path(id),
+        Json(network),
+    )
+    .await?;
+
+    // Sync credentials to junction table
+    state
+        .services
+        .credential_service
+        .set_network_credentials(&id, &credential_ids)
+        .await
+        .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+
+    // Hydrate credential_ids on the response
+    if let Some(ref mut network) = response.data {
+        network.base.credential_ids = credential_ids;
+    }
+
+    Ok(response)
 }
 
 /// Delete a network

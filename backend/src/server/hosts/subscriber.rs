@@ -26,6 +26,15 @@ impl EventSubscriber for HostService {
                         "Failed to resolve LLDP links after discovery completion"
                     );
                 }
+                // Resolve FDB single-MAC ports after LLDP/CDP (lower priority)
+                if let Err(e) = self.resolve_fdb_links(discovery_event.network_id).await {
+                    tracing::warn!(
+                        session_id = %discovery_event.session_id,
+                        network_id = %discovery_event.network_id,
+                        error = %e,
+                        "Failed to resolve FDB links after discovery completion"
+                    );
+                }
             }
         }
         Ok(())

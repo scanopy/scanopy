@@ -151,22 +151,6 @@ impl Storable for Share {
         self.base.clone()
     }
 
-    fn id(&self) -> Uuid {
-        self.id
-    }
-
-    fn created_at(&self) -> DateTime<Utc> {
-        self.created_at
-    }
-
-    fn set_id(&mut self, id: Uuid) {
-        self.id = id;
-    }
-
-    fn set_created_at(&mut self, time: DateTime<Utc>) {
-        self.created_at = time;
-    }
-
     fn to_params(&self) -> Result<(Vec<&'static str>, Vec<SqlValue>), anyhow::Error> {
         Ok((
             vec![
@@ -193,7 +177,7 @@ impl Storable for Share {
                 SqlValue::OptionTimestamp(self.base.expires_at),
                 SqlValue::OptionalString(self.base.password_hash.clone()),
                 SqlValue::OptionalStringArray(self.base.allowed_domains.clone()),
-                SqlValue::JsonValue(serde_json::to_value(&self.base.options)?),
+                SqlValue::ShareOptions(self.base.options.clone()),
                 SqlValue::Timestamp(self.created_at),
                 SqlValue::Timestamp(self.updated_at),
             ],
@@ -224,6 +208,22 @@ impl Storable for Share {
 }
 
 impl Entity for Share {
+    fn id(&self) -> Uuid {
+        self.id
+    }
+
+    fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    fn set_id(&mut self, id: Uuid) {
+        self.id = id;
+    }
+
+    fn set_created_at(&mut self, time: DateTime<Utc>) {
+        self.created_at = time;
+    }
+
     type CsvRow = ShareCsvRow;
 
     fn to_csv_row(&self) -> Self::CsvRow {

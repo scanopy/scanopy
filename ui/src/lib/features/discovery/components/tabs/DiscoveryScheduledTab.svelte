@@ -28,12 +28,14 @@
 	import type { TabProps } from '$lib/shared/types';
 	import { downloadCsv } from '$lib/shared/utils/csvExport';
 	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
+	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 	import {
 		common_confirmDeleteName,
 		common_create,
 		common_created,
 		common_tags,
 		discovery_confirmDeleteScheduled,
+		discovery_legacyDaemonsWarning,
 		discovery_noScheduledSessions,
 		discovery_runType,
 		discovery_scheduledTitle
@@ -70,6 +72,9 @@
 	let hostsData = $derived(hostsQuery.data?.items ?? []);
 	let isLoading = $derived(
 		discoveriesQuery.isPending || daemonsQuery.isPending || hostsQuery.isPending
+	);
+	let hasLegacyDaemons = $derived(
+		daemonsData.some((d) => d.version_status?.supports_unified_discovery === false)
 	);
 
 	let showDiscoveryModal = $state(false);
@@ -194,6 +199,14 @@
 		</svelte:fragment>
 	</TabHeader>
 
+	{#if hasLegacyDaemons}
+		<InlineWarning
+			title=""
+			body={discovery_legacyDaemonsWarning()}
+			dismissableKey="unified-discovery-migration"
+		/>
+	{/if}
+
 	{#if !hasDaemon(onboarding)}
 		<PreDaemonEmptyState title="Install a daemon to start running discoveries on your network." />
 	{:else if isLoading}
@@ -249,4 +262,10 @@
 	onCreate={handleDiscoveryCreate}
 	onUpdate={handleDiscoveryUpdate}
 	onClose={handleCloseEditor}
+	onDelete={editingDiscovery
+		? () => {
+				handleDeleteDiscovery(editingDiscovery!);
+				handleCloseEditor();
+			}
+		: null}
 />

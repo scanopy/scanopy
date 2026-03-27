@@ -53,6 +53,18 @@ pub fn value_to_mac(value: &Value) -> Option<MacAddress> {
     }
 }
 
+/// Extract an IP address from an SNMP varbind value.
+/// Handles IpAddress (4-byte) and OctetString (4-byte) formats.
+pub fn value_to_ip(value: &Value) -> Option<IpAddr> {
+    match value {
+        Value::IpAddress(bytes) => Some(IpAddr::from(*bytes)),
+        Value::OctetString(bytes) if bytes.len() == 4 => {
+            Some(IpAddr::from([bytes[0], bytes[1], bytes[2], bytes[3]]))
+        }
+        _ => None,
+    }
+}
+
 /// Parse LLDP management address from raw SNMP bytes.
 ///
 /// SNMP returns the address in one of these formats:

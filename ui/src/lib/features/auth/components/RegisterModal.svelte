@@ -32,6 +32,7 @@
 		auth_termsAndPrivacy,
 		auth_youreInvitedBody,
 		auth_youreInvitedTitle,
+		common_back,
 		common_change,
 		common_continue,
 		common_email,
@@ -61,6 +62,7 @@
 	let emailError = $state<'email_in_use' | 'generic' | null>(null);
 	let checkingEmail = $state(false);
 	let honeypotValue = $state('');
+	let hasAutoAdvanced = $state(false);
 
 	const configQuery = useConfigQuery();
 	let configData = $derived(configQuery.data);
@@ -77,8 +79,10 @@
 			!hasOidcProviders &&
 			!disablePasswordLogin &&
 			!enableTermsCheckbox &&
-			subStep === 'method'
+			subStep === 'method' &&
+			!hasAutoAdvanced
 		) {
+			hasAutoAdvanced = true;
 			subStep = 'email';
 		}
 	});
@@ -391,7 +395,7 @@
 							}}
 							class="btn-secondary"
 						>
-							Back
+							{common_back()}
 						</button>
 						<button type="submit" disabled={checkingEmail} class="btn-primary flex-1">
 							{checkingEmail ? 'Checking...' : common_continue()}

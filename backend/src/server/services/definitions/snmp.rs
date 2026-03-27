@@ -18,7 +18,10 @@ impl ServiceDefinition for Snmp {
         ServiceCategory::SNMP
     }
     fn discovery_pattern(&self) -> Pattern<'_> {
-        Pattern::Port(PortType::Snmp)
+        Pattern::AnyOf(vec![
+            Pattern::Port(PortType::Snmp),
+            Pattern::Port(PortType::SnmpAlt),
+        ])
     }
     fn is_generic(&self) -> bool {
         true

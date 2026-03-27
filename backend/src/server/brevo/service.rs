@@ -4,6 +4,10 @@ use crate::server::{
         client::BrevoClient,
         types::{CompanyAttributes, ContactAttributes},
     },
+    credentials::{
+        r#impl::{base::Credential, types::CredentialType},
+        service::CredentialService,
+    },
     daemons::{r#impl::base::Daemon, service::DaemonService},
     hosts::{r#impl::base::Host, service::HostService},
     networks::{r#impl::Network, service::NetworkService},
@@ -16,7 +20,6 @@ use crate::server::{
         services::traits::CrudService,
         storage::filter::StorableFilter,
     },
-    snmp_credentials::{r#impl::base::SnmpCredential, service::SnmpCredentialService},
     tags::{r#impl::base::Tag, service::TagService},
     user_api_keys::{r#impl::base::UserApiKey, service::UserApiKeyService},
     users::{r#impl::base::User, r#impl::permissions::UserOrgPermissions, service::UserService},
@@ -43,7 +46,7 @@ pub struct BrevoService {
     daemon_service: Arc<DaemonService>,
     tag_service: Arc<TagService>,
     user_api_key_service: Arc<UserApiKeyService>,
-    snmp_credential_service: Arc<SnmpCredentialService>,
+    credential_service: Arc<CredentialService>,
 }
 
 impl BrevoService {
@@ -57,7 +60,7 @@ impl BrevoService {
         daemon_service: Arc<DaemonService>,
         tag_service: Arc<TagService>,
         user_api_key_service: Arc<UserApiKeyService>,
-        snmp_credential_service: Arc<SnmpCredentialService>,
+        credential_service: Arc<CredentialService>,
     ) -> Self {
         Self {
             client: Arc::new(BrevoClient::new(api_key)),
@@ -68,7 +71,7 @@ impl BrevoService {
             daemon_service,
             tag_service,
             user_api_key_service,
-            snmp_credential_service,
+            credential_service,
         }
     }
 
@@ -171,6 +174,7 @@ impl BrevoService {
             | OnboardingOperation::FirstGroupCreated
             | OnboardingOperation::FirstUserApiKeyCreated
             | OnboardingOperation::FirstSnmpCredentialCreated
+            | OnboardingOperation::FirstCredentialCreated
             | OnboardingOperation::InviteSent
             | OnboardingOperation::InviteAccepted
             | OnboardingOperation::ReferralSourceCompleted => {
@@ -199,6 +203,9 @@ impl BrevoService {
             }
             OnboardingOperation::FirstSnmpCredentialCreated => {
                 company_attrs = company_attrs.with_first_snmp_credential_date(event.timestamp);
+            }
+            OnboardingOperation::FirstCredentialCreated => {
+                company_attrs = company_attrs.with_first_credential_date(event.timestamp);
             }
             OnboardingOperation::InviteSent => {
                 company_attrs = company_attrs.with_first_invite_sent_date(event.timestamp);
@@ -932,9 +939,16 @@ impl BrevoService {
             attrs = attrs.with_first_api_key_date(first_api_key.created_at);
         }
 
-        let snmp_filter = StorableFilter::<SnmpCredential>::new_from_org_id(&org_id);
-        let snmp_creds = self.snmp_credential_service.get_all(snmp_filter).await?;
-        if let Some(first_snmp) = snmp_creds.iter().min_by_key(|s| s.created_at) {
+        let cred_filter = StorableFilter::<Credential>::new_from_org_id(&org_id);
+        let creds = self.credential_service.get_all(cred_filter).await?;
+        if let Some(first_cred) = creds.iter().min_by_key(|c| c.created_at) {
+            attrs = attrs.with_first_credential_date(first_cred.created_at);
+        }
+        if let Some(first_snmp) = creds
+            .iter()
+            .filter(|c| matches!(c.base.credential_type, CredentialType::SnmpV2c { .. }))
+            .min_by_key(|c| c.created_at)
+        {
             attrs = attrs.with_first_snmp_credential_date(first_snmp.created_at);
         }
 

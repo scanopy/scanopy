@@ -46,7 +46,7 @@
 	import UserTab from '$lib/features/users/components/UserTab.svelte';
 	import UserApiKeyTab from '$lib/features/user_api_keys/components/UserApiKeyTab.svelte';
 	import TagTab from '$lib/features/tags/components/TagTab.svelte';
-	import SnmpCredentialsTab from '$lib/features/snmp/components/SnmpCredentialsTab.svelte';
+	import CredentialsTab from '$lib/features/credentials/components/CredentialsTab.svelte';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import ShareTab from '$lib/features/shares/components/ShareTab.svelte';
 	import HomeTab from '$lib/features/home/components/HomeTab.svelte';
@@ -124,7 +124,9 @@
 	let onboarding = $derived((organization?.onboarding ?? []) as OnboardingOperation[]);
 	let showSidebarChecklist = $derived(organization && !isAllComplete(onboarding));
 	let isDiscoveryActive = $derived(
-		(activeSessionsQuery.data ?? []).some((s) => s.discovery_type?.type === 'Network')
+		(activeSessionsQuery.data ?? []).some(
+			(s) => s.discovery_type?.type === 'Network' || s.discovery_type?.type === 'Unified'
+		)
 	);
 
 	// Subscribe to daemon setup state
@@ -318,11 +320,11 @@
 					requiredPermissions: ['Member', 'Admin', 'Owner']
 				},
 				{
-					id: entityUIConfig.SnmpCredential!.tabId,
-					label: TAB_LABELS[entityUIConfig.SnmpCredential!.tabId],
-					icon: entities.getIconComponent('SnmpCredential'),
-					entityType: 'SnmpCredential',
-					component: SnmpCredentialsTab
+					id: entityUIConfig.Credential!.tabId,
+					label: TAB_LABELS[entityUIConfig.Credential!.tabId],
+					icon: entities.getIconComponent('Credential'),
+					entityType: 'Credential',
+					component: CredentialsTab
 				}
 			]
 		},

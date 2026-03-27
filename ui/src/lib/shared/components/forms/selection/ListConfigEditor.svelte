@@ -97,34 +97,36 @@
 		<Loading />
 	</div>
 {:else}
-	<div class="flex h-full min-h-0 gap-6">
-		<!-- Left Panel - List Manager -->
-		<div class="{listPanelWidth} min-h-0 overflow-y-auto">
-			<div class="p-6">
-				<slot
-					name="list"
-					{items}
-					{selectedIndex}
-					onEdit={handleEdit}
-					onMoveUp={handleMoveUp}
-					onMoveDown={handleMoveDown}
-					{onItemSelect}
-					highlightedIndex={selectedIndex}
-					highlightedItem={selectedItem}
-				>
-					<!-- Default slot content if no list slot provided -->
-					<div class="text-danger">No list component provided</div>
+	<div class="relative min-h-0 flex-1">
+		<div class="absolute inset-0 flex gap-6">
+			<!-- Left Panel - List Manager -->
+			<div class="{listPanelWidth} min-h-0 overflow-y-auto">
+				<div class="p-6">
+					<slot
+						name="list"
+						{items}
+						{selectedIndex}
+						onEdit={handleEdit}
+						onMoveUp={handleMoveUp}
+						onMoveDown={handleMoveDown}
+						{onItemSelect}
+						highlightedIndex={selectedIndex}
+						highlightedItem={selectedItem}
+					>
+						<!-- Default slot content if no list slot provided -->
+						<div class="text-danger">No list component provided</div>
+					</slot>
+				</div>
+			</div>
+
+			<!-- Right Panel - Configuration -->
+			<div class="{configPanelWidth} min-h-0 overflow-y-auto border-l border-gray-600 p-6">
+				<slot name="config" {selectedItem} {selectedIndex} onChange={handleItemChange}>
+					<div class="text-tertiary flex h-32 items-center justify-center">
+						<p>Select an item to configure</p>
+					</div>
 				</slot>
 			</div>
-		</div>
-
-		<!-- Right Panel - Configuration -->
-		<div class="{configPanelWidth} min-h-0 overflow-y-auto border-l border-gray-600 p-6">
-			<slot name="config" {selectedItem} {selectedIndex} onChange={handleItemChange}>
-				<div class="text-tertiary flex h-32 items-center justify-center">
-					<p>Select an item to configure</p>
-				</div>
-			</slot>
 		</div>
 	</div>
 {/if}

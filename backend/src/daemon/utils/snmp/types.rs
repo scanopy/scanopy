@@ -70,6 +70,61 @@ pub struct LldpNeighbor {
     pub remote_mgmt_addr: Option<IpAddr>,
 }
 
+/// IP address table entry from ipAddrTable
+#[derive(Debug, Clone)]
+pub struct IpAddrEntry {
+    /// ifIndex for the interface with this IP
+    pub if_index: i32,
+    /// Subnet mask for this IP address
+    pub net_mask: Option<IpAddr>,
+}
+
+/// ARP table entry from ipNetToMediaTable
+#[derive(Debug, Clone)]
+pub struct ArpEntry {
+    /// Interface index where this ARP entry was learned
+    pub if_index: i32,
+    /// MAC address of the remote host
+    pub mac_address: MacAddress,
+    /// IP address of the remote host
+    pub ip_address: IpAddr,
+}
+
+/// Hardware inventory from ENTITY-MIB entPhysicalTable
+#[derive(Debug, Clone, Default)]
+pub struct DeviceInventory {
+    /// entPhysicalDescr - description of the physical entity
+    pub description: Option<String>,
+    /// entPhysicalMfgName - manufacturer name
+    pub manufacturer: Option<String>,
+    /// entPhysicalModelName - model name
+    pub model: Option<String>,
+    /// entPhysicalSerialNum - serial number
+    pub serial_number: Option<String>,
+}
+
+/// Bridge FDB entry from dot1dTpFdbTable
+#[derive(Debug, Clone)]
+pub struct BridgeFdbEntry {
+    /// MAC address learned on this port
+    pub mac_address: MacAddress,
+    /// Bridge port number (not ifIndex)
+    pub bridge_port: i32,
+    /// Resolved ifIndex from dot1dBasePortIfIndex (None if unresolvable)
+    pub if_index: Option<i32>,
+    /// FDB entry status: 1=other, 2=invalid, 3=learned, 4=self, 5=mgmt
+    pub status: i32,
+}
+
+/// Local LLDP information from lldpLocalSystemData
+#[derive(Debug, Clone)]
+pub struct LldpLocalInfo {
+    /// lldpLocChassisIdSubtype - type of chassis ID
+    pub chassis_id_subtype: u8,
+    /// lldpLocChassisId - raw chassis ID bytes
+    pub chassis_id_bytes: Vec<u8>,
+}
+
 /// CDP neighbor information (Cisco proprietary)
 #[derive(Debug, Clone)]
 pub struct CdpNeighbor {

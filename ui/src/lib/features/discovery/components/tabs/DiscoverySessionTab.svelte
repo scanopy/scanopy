@@ -27,7 +27,8 @@
 		discovery_noActiveSessionsSubtitle,
 		discovery_notStarted,
 		discovery_startedAt,
-		discovery_unknownDaemon
+		discovery_unknownDaemon,
+		common_firstDiscoveryEmailHint
 	} from '$lib/paraglide/messages';
 
 	let { isReadOnly = false }: TabProps = $props();
@@ -114,10 +115,7 @@
 	<!-- Header -->
 	<TabHeader title={discovery_activeSessionsTitle()} />
 	{#if showEmailHint}
-		<InlineInfo
-			title="We'll email you when your first network discovery is complete."
-			dismissableKey="discovery-email-hint"
-		/>
+		<InlineInfo title={common_firstDiscoveryEmailHint()} dismissableKey="discovery-email-hint" />
 	{/if}
 	{#if !hasDaemon(onboarding)}
 		<PreDaemonEmptyState title="Install a daemon to start running discoveries on your network." />

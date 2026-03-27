@@ -12,7 +12,7 @@ use crate::server::{
         services::traits::CrudService,
         storage::{filter::StorableFilter, traits::Storable},
         types::api::{
-            ApiError, ApiErrorResponse, ApiResponse, ApiResult, EmptyApiResponse,
+            ApiError, ApiErrorResponse, ApiJson, ApiResponse, ApiResult, EmptyApiResponse,
             PaginatedApiResponse,
         },
     },
@@ -151,7 +151,7 @@ async fn get_all_topologies(
 async fn create_topology(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(mut topology): Json<Topology>,
+    ApiJson(mut topology): ApiJson<Topology>,
 ) -> ApiResult<Json<ApiResponse<Topology>>> {
     let user_id = auth.user_id();
     let network_ids = auth.network_ids();

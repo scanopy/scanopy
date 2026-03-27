@@ -183,74 +183,72 @@
 </script>
 
 <div class="flex min-h-0 flex-1 flex-col">
-	<div class="min-h-0 flex-1">
-		<ListConfigEditor items={formData.interfaces} onReorder={handleReorder} bind:targetEntityId>
-			<svelte:fragment
-				slot="list"
-				let:items
-				let:onEdit
-				let:highlightedIndex
-				let:onMoveUp
-				let:onMoveDown
-			>
-				<ListManager
-					label={common_interfaces()}
-					helpText={hosts_interfaces_helpText()}
-					placeholder={hosts_interfaces_placeholder()}
-					emptyMessage={hosts_interfaces_emptyMessage()}
-					allowReorder={true}
-					itemClickAction="edit"
-					options={availableSubnets}
-					{items}
-					optionDisplayComponent={SubnetDisplay}
-					itemDisplayComponent={InterfaceDisplay}
-					getItemContext={() => ({ subnets: subnetsData })}
-					onAdd={handleAddInterface}
-					onRemove={handleRemoveInterface}
-					{onMoveUp}
-					{onMoveDown}
-					{onEdit}
-					{highlightedIndex}
-				/>
-			</svelte:fragment>
+	<ListConfigEditor items={formData.interfaces} onReorder={handleReorder} bind:targetEntityId>
+		<svelte:fragment
+			slot="list"
+			let:items
+			let:onEdit
+			let:highlightedIndex
+			let:onMoveUp
+			let:onMoveDown
+		>
+			<ListManager
+				label={common_interfaces()}
+				helpText={hosts_interfaces_helpText()}
+				placeholder={hosts_interfaces_placeholder()}
+				emptyMessage={hosts_interfaces_emptyMessage()}
+				allowReorder={true}
+				itemClickAction="edit"
+				options={availableSubnets}
+				{items}
+				optionDisplayComponent={SubnetDisplay}
+				itemDisplayComponent={InterfaceDisplay}
+				getItemContext={() => ({ subnets: subnetsData })}
+				onAdd={handleAddInterface}
+				onRemove={handleRemoveInterface}
+				{onMoveUp}
+				{onMoveDown}
+				{onEdit}
+				{highlightedIndex}
+			/>
+		</svelte:fragment>
 
-			<svelte:fragment slot="config" let:selectedItem let:selectedIndex let:onChange>
-				{@const selectedSubnet = selectedItem ? findSubnetById(selectedItem.subnet_id) : null}
+		<svelte:fragment slot="config" let:selectedItem let:selectedIndex let:onChange>
+			{@const selectedSubnet = selectedItem ? findSubnetById(selectedItem.subnet_id) : null}
 
-				<!-- Render all interface config panels to register form fields, but only show the selected one -->
-				<!-- Key includes index to force re-mount when position changes (reordering) -->
-				{#each interfaces as iface, index (`${iface.id}-${index}`)}
-					{@const subnet = findSubnetById(iface.subnet_id)}
-					{#if subnet && subnet.cidr !== '0.0.0.0/0'}
-						<div class:hidden={selectedIndex !== index}>
-							<InterfaceConfigPanel
-								{iface}
-								{subnet}
-								{index}
-								{form}
-								{isEditing}
-								onChange={(updatedInterface) => handleInterfaceChange(updatedInterface, index)}
-							/>
-						</div>
-					{/if}
-				{/each}
-
-				<!-- Show internet interface panel only when selected (no form validation needed) -->
-				{#if selectedItem && selectedSubnet && selectedSubnet.cidr === '0.0.0.0/0'}
-					<InternetInterfaceConfigPanel
-						iface={selectedItem}
-						subnet={selectedSubnet}
-						onChange={(updatedInterface) => onChange(updatedInterface)}
-					/>
-				{:else if !selectedItem}
-					<EntityConfigEmpty
-						title={hosts_interfaces_noSelected()}
-						subtitle={hosts_interfaces_selectToConfig()}
-					/>
+			<!-- Render all interface config panels to register form fields, but only show the selected one -->
+			<!-- Key includes index to force re-mount when position changes (reordering) -->
+			{#each interfaces as iface, index (`${iface.id}-${index}`)}
+				{@const subnet = findSubnetById(iface.subnet_id)}
+				{#if subnet && subnet.cidr !== '0.0.0.0/0'}
+					<div class:hidden={selectedIndex !== index}>
+						<InterfaceConfigPanel
+							{iface}
+							{subnet}
+							{index}
+							{form}
+							{isEditing}
+							onChange={(updatedInterface) => handleInterfaceChange(updatedInterface, index)}
+						/>
+					</div>
 				{/if}
-			</svelte:fragment>
-		</ListConfigEditor>
-	</div>
+			{/each}
+
+			<!-- Show internet interface panel only when selected (no form validation needed) -->
+			{#if selectedItem && selectedSubnet && selectedSubnet.cidr === '0.0.0.0/0'}
+				<InternetInterfaceConfigPanel
+					iface={selectedItem}
+					subnet={selectedSubnet}
+					onChange={(updatedInterface) => onChange(updatedInterface)}
+				/>
+			{:else if !selectedItem}
+				<EntityConfigEmpty
+					title={hosts_interfaces_noSelected()}
+					subtitle={hosts_interfaces_selectToConfig()}
+				/>
+			{/if}
+		</svelte:fragment>
+	</ListConfigEditor>
 
 	<EntityMetadataSection entities={formData.interfaces} />
 </div>

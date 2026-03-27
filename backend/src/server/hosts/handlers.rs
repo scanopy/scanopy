@@ -230,11 +230,25 @@ async fn get_all_hosts(
     // Apply ordering and JOINs
     let (filter, order_by) = query.apply_ordering(filter);
 
-    let result = state
+    let mut result = state
         .services
         .host_service
         .get_all_host_responses_paginated(filter, &order_by)
         .await?;
+
+    // Hydrate credential assignments from junction table
+    let host_ids: Vec<Uuid> = result.items.iter().map(|h| h.id).collect();
+    let cred_map = state
+        .services
+        .credential_service
+        .get_credential_assignments_for_hosts(&host_ids)
+        .await
+        .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+    for host in &mut result.items {
+        if let Some(assignments) = cred_map.get(&host.id) {
+            host.credential_assignments = assignments.clone();
+        }
+    }
 
     // Get effective pagination values for response metadata
     let limit = pagination.effective_limit().unwrap_or(0);
@@ -290,6 +304,14 @@ async fn get_host_by_id(
     if let Some(tags) = tags_map.get(&host.id) {
         host.tags = tags.clone();
     }
+
+    // Hydrate credential assignments from junction table
+    host.credential_assignments = state
+        .services
+        .credential_service
+        .get_credential_assignments_for_host(&host.id)
+        .await
+        .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 
     Ok(Json(ApiResponse::success(host)))
 }
@@ -405,6 +427,14 @@ async fn create_host(
 
             let host_response = host_service.create_from_request(request, entity).await?;
 
+            // Sync credential assignments to junction table
+            state
+                .services
+                .credential_service
+                .set_host_credentials(&host_response.id, &host_response.credential_assignments)
+                .await
+                .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+
             Ok(Json(ApiResponse::success(HostCreateResponse::New(
                 host_response,
             ))))
@@ -512,9 +542,30 @@ async fn update_host(
         organization_id,
     )?;
 
+    let credential_assignments = request.credential_assignments.clone();
+
     let mut host_response = host_service
         .update_from_request(request, auth.into_entity())
         .await?;
+
+    // Sync credential assignments if provided
+    if let Some(ref assignments) = credential_assignments {
+        state
+            .services
+            .credential_service
+            .set_host_credentials(&host_response.id, assignments)
+            .await
+            .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+        host_response.credential_assignments = assignments.clone();
+    } else {
+        // Hydrate from junction table
+        host_response.credential_assignments = state
+            .services
+            .credential_service
+            .get_credential_assignments_for_host(&host_response.id)
+            .await
+            .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+    }
 
     // Hydrate tags from junction table
     let tags_map = state
@@ -683,6 +734,14 @@ async fn consolidate_hosts(
         host_response.tags = tags.clone();
     }
 
+    // Hydrate credential assignments from junction table
+    host_response.credential_assignments = state
+        .services
+        .credential_service
+        .get_credential_assignments_for_host(&host_response.id)
+        .await
+        .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+
     Ok(Json(ApiResponse::success(host_response)))
 }
 
@@ -717,8 +776,12 @@ pub async fn delete_host(
         .await?
         .is_some()
     {
-        return Err(ApiError::conflict(
-            "Can't delete a host with an associated daemon. Delete the daemon first.",
+        return Err(ApiError::coded(
+            StatusCode::CONFLICT,
+            ErrorCode::EntityDeleteForbidden {
+                entity: "host".to_string(),
+                reason: Some("has an associated daemon — delete the daemon first".to_string()),
+            },
         ));
     }
 
@@ -751,8 +814,15 @@ pub async fn bulk_delete_hosts(
     let daemon_filter = StorableFilter::<Daemon>::new_from_host_ids(&ids);
 
     if !daemon_service.get_all(daemon_filter).await?.is_empty() {
-        return Err(ApiError::conflict(
-            "One or more hosts has an associated daemon, and can't be deleted. Delete the daemon(s) first.",
+        return Err(ApiError::coded(
+            StatusCode::CONFLICT,
+            ErrorCode::EntityDeleteForbidden {
+                entity: "host".to_string(),
+                reason: Some(
+                    "one or more hosts has an associated daemon — delete the daemon(s) first"
+                        .to_string(),
+                ),
+            },
         ));
     }
 

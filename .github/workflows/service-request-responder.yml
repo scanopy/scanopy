@@ -1,3 +1,4 @@
+# Auto-responds to service detection request issues with contribution guide link
 name: Service Request Auto-Responder
 
 on:

@@ -4,7 +4,7 @@ use crate::server::{
         permissions::{Authorized, IsDaemon, Member, Viewer},
     },
     config::AppState,
-    daemons::r#impl::api::DiscoveryUpdatePayload,
+    daemons::r#impl::{api::DiscoveryUpdatePayload, version::supports_unified_discovery},
     discovery::r#impl::{
         base::Discovery,
         types::{DiscoveryType, RunType},
@@ -29,7 +29,6 @@ use axum::{
     },
     routing::get,
 };
-use chrono::Utc;
 use futures::Stream;
 use std::{convert::Infallible, sync::Arc};
 use tokio::sync::broadcast;
@@ -87,6 +86,30 @@ pub async fn create_discovery(
         return Err(ApiError::discovery_historical_read_only());
     }
 
+    // Reject legacy discovery types — only Unified can be created
+    if discovery.base.discovery_type.is_legacy() {
+        return Err(ApiError::bad_request(&format!(
+            "{} discoveries are frozen. Create a Unified discovery instead.",
+            discovery.base.discovery_type,
+        )));
+    }
+
+    // For Unified: check daemon version supports it
+    if let DiscoveryType::Unified { .. } = &discovery.base.discovery_type {
+        let daemon = state
+            .services
+            .daemon_service
+            .get_by_id(&discovery.base.daemon_id)
+            .await?
+            .ok_or_else(|| ApiError::not_found("Daemon not found".to_string()))?;
+
+        if !supports_unified_discovery(daemon.base.version.as_ref()) {
+            return Err(ApiError::bad_request(
+                "Daemon does not support unified discovery. Upgrade to version 0.15.0 or later.",
+            ));
+        }
+    }
+
     // Check scheduled discovery restriction
     if matches!(discovery.base.run_type, RunType::Scheduled { .. })
         && let Some(org_id) = auth.organization_id()
@@ -106,21 +129,23 @@ pub async fn create_discovery(
         ));
     }
 
-    // Custom validation: Check if any subnets aren't on the same network as the discovery
-    #[allow(clippy::single_match)]
-    match &discovery.base.discovery_type {
-        DiscoveryType::Network { subnet_ids, .. } => {
-            for subnet_id in subnet_ids.as_ref().unwrap_or(&vec![]) {
-                if let Some(subnet) = state.services.subnet_service.get_by_id(subnet_id).await?
-                    && subnet.base.network_id != discovery.base.network_id
-                {
-                    return Err(ApiError::discovery_subnet_network_mismatch(
-                        &subnet.base.name,
-                    ));
-                }
+    // Validate subnet network membership for Network and Unified types
+    let subnet_ids_to_check = match &discovery.base.discovery_type {
+        DiscoveryType::Network { subnet_ids, .. } | DiscoveryType::Unified { subnet_ids, .. } => {
+            subnet_ids.clone()
+        }
+        _ => None,
+    };
+    if let Some(ids) = subnet_ids_to_check {
+        for subnet_id in &ids {
+            if let Some(subnet) = state.services.subnet_service.get_by_id(subnet_id).await?
+                && subnet.base.network_id != discovery.base.network_id
+            {
+                return Err(ApiError::discovery_subnet_network_mismatch(
+                    &subnet.base.name,
+                ));
             }
         }
-        DiscoveryType::Docker { .. } | DiscoveryType::SelfReport { .. } => (),
     }
 
     // Delegate to generic handler (handles validation, auth checks, creation)
@@ -149,6 +174,17 @@ pub async fn update_discovery(
 ) -> ApiResult<Json<ApiResponse<Discovery>>> {
     if let RunType::Historical { .. } = discovery.base.run_type {
         return Err(ApiError::discovery_historical_read_only());
+    }
+
+    // Reject changing a legacy discovery's type
+    if let Some(existing) = state.services.discovery_service.get_by_id(&id).await?
+        && existing.base.discovery_type.is_legacy()
+        && std::mem::discriminant(&existing.base.discovery_type)
+            != std::mem::discriminant(&discovery.base.discovery_type)
+    {
+        return Err(ApiError::bad_request(
+            "Cannot change the type of a legacy discovery. Create a new Unified discovery instead.",
+        ));
     }
 
     // Check scheduled discovery restriction
@@ -241,7 +277,7 @@ async fn start_session(
     let network_ids = auth.network_ids();
     let entity = auth.into_entity();
 
-    let mut discovery = state
+    let discovery = state
         .services
         .discovery_service
         .get_by_id(&discovery_id)
@@ -275,29 +311,10 @@ async fn start_session(
         );
     }
 
-    // Update last_run BEFORE moving any fields
-    if let RunType::Scheduled {
-        ref mut last_run, ..
-    } = discovery.base.run_type
-    {
-        *last_run = Some(Utc::now());
-    } else if let RunType::AdHoc {
-        ref mut last_run, ..
-    } = discovery.base.run_type
-    {
-        *last_run = Some(Utc::now());
-    }
-
     let update = state
         .services
         .discovery_service
-        .start_session(discovery.clone(), entity.clone())
-        .await?;
-
-    state
-        .services
-        .discovery_service
-        .update(&mut discovery, entity)
+        .start_session(discovery, entity)
         .await?;
 
     Ok(Json(ApiResponse::success(update)))

@@ -26,6 +26,13 @@ export type IfEntry = components['schemas']['IfEntry'];
 export type IfAdminStatus = components['schemas']['IfAdminStatus'];
 export type IfOperStatus = components['schemas']['IfOperStatus'];
 
+// Credential assignment for a host, optionally limited to specific interfaces
+export interface CredentialAssignment {
+	credential_id: string;
+	/** Interface IDs to limit this credential to. null = all host interfaces. */
+	interface_ids: string[] | null;
+}
+
 // Form state type for creating/editing hosts
 // Includes children arrays for form editing - distinct from HostResponse (API response type)
 export interface HostFormData {
@@ -50,8 +57,8 @@ export interface HostFormData {
 	management_url: string | null;
 	chassis_id: string | null;
 
-	// SNMP credential override (user-editable)
-	snmp_credential_id: string | null;
+	// Credential assignments (user-editable, from junction table)
+	credential_assignments: CredentialAssignment[];
 
 	// Children for form editing (managed separately from host in stores)
 	interfaces: Interface[];

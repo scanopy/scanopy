@@ -104,7 +104,7 @@ impl EventSubscriber for PosthogService {
         entity_ops.insert(EntityDiscriminants::UserApiKey, ops.clone());
         entity_ops.insert(EntityDiscriminants::DaemonApiKey, ops.clone());
         entity_ops.insert(EntityDiscriminants::Daemon, ops.clone());
-        entity_ops.insert(EntityDiscriminants::SnmpCredential, ops.clone());
+        entity_ops.insert(EntityDiscriminants::Credential, ops.clone());
         entity_ops.insert(EntityDiscriminants::Invite, ops.clone());
         entity_ops.insert(EntityDiscriminants::User, ops);
 
@@ -137,6 +137,7 @@ impl EventSubscriber for PosthogService {
                 OnboardingOperation::FirstGroupCreated,
                 OnboardingOperation::FirstUserApiKeyCreated,
                 OnboardingOperation::FirstSnmpCredentialCreated,
+                OnboardingOperation::FirstCredentialCreated,
                 OnboardingOperation::InviteSent,
                 OnboardingOperation::InviteAccepted,
             ]),
@@ -433,7 +434,7 @@ mod tests {
         assert_eq!(to_snake_case("Host"), "host");
         assert_eq!(to_snake_case("DaemonApiKey"), "daemon_api_key");
         assert_eq!(to_snake_case("UserApiKey"), "user_api_key");
-        assert_eq!(to_snake_case("SnmpCredential"), "snmp_credential");
+        assert_eq!(to_snake_case("Credential"), "credential");
         assert_eq!(to_snake_case("Network"), "network");
         assert_eq!(to_snake_case("IfEntry"), "if_entry");
     }

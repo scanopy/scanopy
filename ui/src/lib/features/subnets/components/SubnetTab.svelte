@@ -40,6 +40,7 @@
 		subnets_subnetType
 	} from '$lib/paraglide/messages';
 	import { hasDaemon } from '$lib/shared/onboarding/checklist';
+	import { subnetTypes } from '$lib/shared/stores/metadata';
 
 	type OnboardingOperation = components['schemas']['OnboardingOperation'];
 	type SubnetOrderField = components['schemas']['SubnetOrderField'];
@@ -63,7 +64,11 @@
 
 	// Derived data
 	let tagsData = $derived(tagsQuery.data ?? []);
-	let subnetsData = $derived(subnetsQuery.data ?? []);
+	let subnetsData = $derived(
+		(subnetsQuery.data ?? []).filter(
+			(s) => !subnetTypes.getMetadata(s.subnet_type).hide_from_subnet_list
+		)
+	);
 	let networksData = $derived(networksQuery.data ?? []);
 	let isLoading = $derived(subnetsQuery.isPending);
 
@@ -245,4 +250,10 @@
 	onCreate={handleSubnetCreate}
 	onUpdate={handleSubnetUpdate}
 	onClose={handleCloseSubnetEditor}
+	onDelete={editingSubnet
+		? () => {
+				handleDeleteSubnet(editingSubnet!);
+				handleCloseSubnetEditor();
+			}
+		: null}
 />

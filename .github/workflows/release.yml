@@ -44,6 +44,9 @@ jobs:
           docker system prune -af --volumes
           df -h
                   
+      - name: Generate UI fixtures before container build
+        run: make generate-fixtures
+
       - name: Run all tests
         run: |
           make dev-down
@@ -60,16 +63,6 @@ jobs:
       - name: Cleanup containers
         if: always()
         run: make dev-down
-      
-      - name: Update fixtures
-        run: |
-          mv backend/src/tests/scanopy-next.sql backend/src/tests/scanopy.sql
-          mv backend/src/tests/daemon_config-next.json backend/src/tests/daemon_config.json
-          mv ui/static/services-next.json ui/static/services.json
-          mv ui/static/schema-next.mermaid ui/static/schema.mermaid
-          mv ui/static/schema-er-next.mermaid ui/static/schema-er.mermaid
-          mv ui/static/entity-metadata-next.json ui/static/entity-metadata.json
-          echo "✅ Updated test fixtures"
       
       - name: Commit and push fixture updates
         run: |

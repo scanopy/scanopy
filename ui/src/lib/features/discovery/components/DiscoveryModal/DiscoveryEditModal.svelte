@@ -7,7 +7,9 @@
 	import { entities } from '$lib/shared/stores/metadata';
 	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
 	import DiscoveryDetailsForm from './DiscoveryDetailsForm.svelte';
-	import DiscoveryTypeConfigForm from './DiscoveryTypeConfigForm.svelte';
+	import DiscoveryTargetsForm from './DiscoveryTargetsForm.svelte';
+	import DiscoveryDetectionForm from './DiscoveryDetectionForm.svelte';
+	import DiscoveryScanSettingsForm from './DiscoveryScanSettingsForm.svelte';
 	import DiscoveryScheduleForm from './DiscoveryScheduleForm.svelte';
 	import type { Discovery } from '../../types/base';
 	import DiscoveryHistoricalSummary from './DiscoveryHistoricalSummary.svelte';
@@ -20,21 +22,40 @@
 	import { useSubnetsQuery } from '$lib/features/subnets/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { billingPlans } from '$lib/shared/stores/metadata';
-	import { Info, Calendar, ArrowRight } from 'lucide-svelte';
+	import {
+		Info,
+		Crosshair,
+		ScanSearch,
+		Gauge,
+		Calendar,
+		ArrowRight,
+		KeyRound
+	} from 'lucide-svelte';
+	import CredentialWizardStep from '$lib/features/daemons/components/CreateDaemonModal/steps/CredentialWizardStep.svelte';
+	import type { PendingCredential } from '$lib/features/daemons/components/CreateDaemonModal/steps/CredentialWizardStep.svelte';
+	import {
+		useBulkCreateCredentialsMutation,
+		useUpdateCredentialMutation,
+		useCredentialsQuery
+	} from '$lib/features/credentials/queries';
 	import {
 		common_back,
 		common_cancel,
 		common_close,
-		common_configuration,
+		common_credentials,
 		common_delete,
 		common_deleting,
 		common_details,
 		common_next,
 		common_saving,
 		common_schedule,
+		common_detection,
+		common_performance,
+		common_targets,
 		discovery_couldNotGetNetworkId,
 		discovery_createDiscovery,
 		discovery_createScheduled,
+		discovery_credentialsDescription,
 		discovery_edit,
 		discovery_failedToDelete,
 		discovery_failedToSave,
@@ -81,6 +102,11 @@
 	let rawCronMode = $state(false);
 	let activeTab = $state('details');
 	let furthestReached = $state(0);
+	let pendingCredentials = $state<PendingCredential[]>([]);
+	let credentialWizardRef = $state<ReturnType<typeof CredentialWizardStep> | undefined>();
+	const bulkCreateCredentialsMutation = useBulkCreateCredentialsMutation();
+	const updateCredentialMutation = useUpdateCredentialMutation();
+	const allCredentialsQuery = useCredentialsQuery();
 
 	// Mutable form data that sub-components can update
 	let formData = $state<Discovery>(createEmptyDiscoveryFormData(null));
@@ -102,9 +128,19 @@
 		(daemon ? hosts.find((h) => h.id === daemon.host_id)?.id : null) || null
 	);
 
-	let hasConfigTab = $derived(
-		formData.discovery_type.type === 'Network' || formData.discovery_type.type === 'Docker'
+	let hasTargetsTab = $derived(
+		formData.discovery_type.type === 'Network' || formData.discovery_type.type === 'Unified'
 	);
+	let hasDetectionTab = $derived(
+		formData.discovery_type.type === 'Network' || formData.discovery_type.type === 'Unified'
+	);
+	let hasPerformanceTab = $derived(
+		formData.discovery_type.type === 'Network' || formData.discovery_type.type === 'Unified'
+	);
+	let daemonSupportsUnified = $derived(
+		!daemon || daemon.version_status?.supports_unified_discovery !== false
+	);
+	let hasCredentialsTab = $derived(formData.discovery_type.type === 'Unified');
 	let hasScheduleTab = $derived(formData.run_type.type === 'Scheduled');
 
 	let tabs: ModalTab[] = $derived(
@@ -112,13 +148,47 @@
 			? []
 			: [
 					{ id: 'details', label: common_details(), icon: Info },
-					...(hasConfigTab
+					...(hasTargetsTab
 						? [
 								{
-									id: 'type',
-									label: common_configuration(),
-									icon: entities.getIconComponent('Discovery'),
+									id: 'targets',
+									label: common_targets(),
+									icon: Crosshair,
 									disabled: !isEditing && furthestReached < 1
+								}
+							]
+						: []),
+					...(hasCredentialsTab
+						? [
+								{
+									id: 'credentials',
+									label: common_credentials(),
+									icon: KeyRound,
+									disabled: !isEditing && furthestReached < 2
+								}
+							]
+						: []),
+					...(hasDetectionTab
+						? [
+								{
+									id: 'detection',
+									label: common_detection(),
+									icon: ScanSearch,
+									disabled:
+										!isEditing && furthestReached < (hasCredentialsTab ? 3 : hasTargetsTab ? 2 : 1)
+								}
+							]
+						: []),
+					...(hasPerformanceTab
+						? [
+								{
+									id: 'performance',
+									label: common_performance(),
+									icon: Gauge,
+									disabled:
+										!isEditing &&
+										furthestReached <
+											(hasCredentialsTab ? 4 : hasDetectionTab ? 3 : hasTargetsTab ? 2 : 1)
 								}
 							]
 						: []),
@@ -128,7 +198,22 @@
 									id: 'schedule',
 									label: common_schedule(),
 									icon: Calendar,
-									disabled: !isEditing && furthestReached < (hasConfigTab ? 2 : 1)
+									disabled:
+										!isEditing &&
+										furthestReached <
+											(hasCredentialsTab
+												? hasPerformanceTab
+													? 5
+													: hasDetectionTab
+														? 4
+														: 3
+												: hasPerformanceTab
+													? 4
+													: hasDetectionTab
+														? 3
+														: hasTargetsTab
+															? 2
+															: 1)
 								}
 							]
 						: [])
@@ -140,17 +225,33 @@
 		if (activeTab === 'schedule' && !hasScheduleTab) {
 			activeTab = 'details';
 		}
-		if (activeTab === 'type' && !hasConfigTab) {
+		if (activeTab === 'targets' && !hasTargetsTab) {
+			activeTab = 'details';
+		}
+		if (activeTab === 'detection' && !hasDetectionTab) {
+			activeTab = hasTargetsTab ? 'targets' : 'details';
+		}
+		if (activeTab === 'performance' && !hasPerformanceTab) {
+			activeTab = hasDetectionTab ? 'detection' : hasTargetsTab ? 'targets' : 'details';
+		}
+		if (activeTab === 'credentials' && !hasCredentialsTab) {
 			activeTab = 'details';
 		}
 	});
 
-	function nextTab() {
-		const flow = [
+	function getFlow() {
+		return [
 			'details',
-			...(hasConfigTab ? ['type'] : []),
+			...(hasTargetsTab ? ['targets'] : []),
+			...(hasCredentialsTab ? ['credentials'] : []),
+			...(hasDetectionTab ? ['detection'] : []),
+			...(hasPerformanceTab ? ['performance'] : []),
 			...(hasScheduleTab ? ['schedule'] : [])
 		];
+	}
+
+	function nextTab() {
+		const flow = getFlow();
 		const idx = flow.indexOf(activeTab);
 		if (idx >= 0 && idx < flow.length - 1) {
 			activeTab = flow[idx + 1];
@@ -158,11 +259,7 @@
 	}
 
 	function previousTab() {
-		const flow = [
-			'details',
-			...(hasConfigTab ? ['type'] : []),
-			...(hasScheduleTab ? ['schedule'] : [])
-		];
+		const flow = getFlow();
 		const idx = flow.indexOf(activeTab);
 		if (idx > 0) {
 			activeTab = flow[idx - 1];
@@ -176,18 +273,25 @@
 				if (furthestReached < 1) furthestReached = 1;
 				nextTab();
 			}
-		} else if (activeTab === 'type') {
+		} else if (activeTab === 'targets') {
 			if (furthestReached < 2) furthestReached = 2;
+			nextTab();
+		} else if (activeTab === 'credentials') {
+			if (furthestReached < 3) furthestReached = 3;
+			nextTab();
+		} else if (activeTab === 'detection') {
+			const level = hasCredentialsTab ? 4 : 3;
+			if (furthestReached < level) furthestReached = level;
+			nextTab();
+		} else if (activeTab === 'performance') {
+			const level = hasCredentialsTab ? 5 : 4;
+			if (furthestReached < level) furthestReached = level;
 			nextTab();
 		}
 	}
 
 	let isLastTab = $derived.by(() => {
-		const flow = [
-			'details',
-			...(hasConfigTab ? ['type'] : []),
-			...(hasScheduleTab ? ['schedule'] : [])
-		];
+		const flow = getFlow();
 		return activeTab === flow[flow.length - 1];
 	});
 
@@ -210,15 +314,14 @@
 		return empty;
 	}
 
-	// TanStack Form for validation
+	// TanStack Form for validation (only fields that need validation)
 	// NOTE: defaultValues must NOT read from $state to avoid reactivity loops
 	const form = createForm(() => ({
 		defaultValues: {
 			name: '',
 			run_type_type: (hasScheduledDiscovery ? 'Scheduled' : 'AdHoc') as 'AdHoc' | 'Scheduled',
-			discovery_type_type: 'Network' as 'Network' | 'Docker' | 'SelfReport',
+			discovery_type_type: 'Unified' as 'Network' | 'Docker' | 'SelfReport' | 'Unified',
 			host_naming_fallback: 'BestService' as 'BestService' | 'Ip',
-			probe_raw_socket_ports: false,
 			schedule_days_of_week: '0',
 			schedule_time: '00:00',
 			schedule_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -231,6 +334,39 @@
 			if (daemon) {
 				loading = true;
 				try {
+					// Create pending credentials from the credential wizard
+					const allCredentialIds: string[] = [];
+					if (pendingCredentials.length > 0 && credentialWizardRef) {
+						const prepared = credentialWizardRef.getCredentialsForCreate();
+						if (prepared.length > 0) {
+							const toCreate = prepared.map((p) => {
+								const ips = p.targetIps.map((s) => s.trim()).filter(Boolean);
+								return {
+									...p.credential,
+									target_ips: ips.length > 0 ? ips : undefined
+								};
+							});
+							const created = await bulkCreateCredentialsMutation.mutateAsync(toCreate);
+							allCredentialIds.push(...created.map((c: { id: string }) => c.id));
+						}
+						const existing = credentialWizardRef.getExistingCredentials();
+						for (const ec of existing) {
+							const ips = ec.targetIps.map((s) => s.trim()).filter(Boolean);
+							if (ips.length > 0) {
+								const cred = allCredentialsQuery.data?.find((c) => c.id === ec.credentialId);
+								if (cred) {
+									await updateCredentialMutation.mutateAsync({
+										...cred,
+										target_ips: ips
+									});
+								}
+							}
+						}
+						allCredentialIds.push(...existing.map((e) => e.credentialId));
+					}
+					if (allCredentialIds.length > 0) {
+						formData.pending_credential_ids = allCredentialIds;
+					}
 					if (isEditing && discovery) {
 						await onUpdate(discovery.id, formData);
 					} else {
@@ -252,6 +388,7 @@
 		activeTab = 'details';
 		furthestReached = discovery ? Infinity : 0;
 		formData = getDefaultFormData();
+		pendingCredentials = [];
 
 		// Parse schedule fields from cron
 		let scheduleDaysOfWeek = '0';
@@ -276,21 +413,17 @@
 
 		// Compute host naming fallback
 		const hostNamingFallback =
-			formData.discovery_type.type === 'Network' || formData.discovery_type.type === 'Docker'
+			formData.discovery_type.type === 'Network' ||
+			formData.discovery_type.type === 'Docker' ||
+			formData.discovery_type.type === 'Unified'
 				? formData.discovery_type.host_naming_fallback
 				: 'BestService';
-
-		const probeRawSocketPorts =
-			formData.discovery_type.type === 'Network'
-				? (formData.discovery_type.probe_raw_socket_ports ?? false)
-				: false;
 
 		form.reset({
 			name: formData.name,
 			run_type_type: formData.run_type.type === 'Historical' ? 'AdHoc' : formData.run_type.type,
 			discovery_type_type: formData.discovery_type.type,
 			host_naming_fallback: hostNamingFallback,
-			probe_raw_socket_ports: probeRawSocketPorts,
 			schedule_days_of_week: scheduleDaysOfWeek,
 			schedule_time: scheduleTime,
 			schedule_timezone: scheduleTimezone,
@@ -357,7 +490,12 @@
 		}}
 		class="flex min-h-0 flex-1 flex-col"
 	>
-		<div class="min-h-0 flex-1 overflow-y-auto">
+		<div
+			class="min-h-0 flex-1"
+			class:overflow-y-auto={activeTab !== 'credentials'}
+			class:flex={activeTab === 'credentials'}
+			class:flex-col={activeTab === 'credentials'}
+		>
 			{#if isHistoricalRun && discovery?.run_type.type === 'Historical'}
 				<div class="space-y-8 p-6">
 					<DiscoveryHistoricalSummary payload={discovery.run_type.results} />
@@ -372,21 +510,39 @@
 						bind:formData
 						{readOnly}
 						{hasScheduledDiscovery}
-						{daemonHostId}
 						{daemon}
 					/>
 				</div>
-			{:else if activeTab === 'type'}
+			{:else if activeTab === 'targets'}
 				<div class="space-y-8 p-6">
 					{#if daemon}
-						<DiscoveryTypeConfigForm {form} bind:formData {readOnly} {daemonHostId} {daemon} />
+						<DiscoveryTargetsForm bind:formData {daemonHostId} {daemon} />
 					{:else}
 						<InlineWarning body={discovery_noDaemonSelected()} />
 					{/if}
 				</div>
+			{:else if activeTab === 'detection'}
+				<div class="space-y-8 p-6">
+					<DiscoveryDetectionForm bind:formData {readOnly} />
+				</div>
+			{:else if activeTab === 'performance'}
+				<div class="space-y-8 p-6">
+					<DiscoveryScanSettingsForm bind:formData {readOnly} />
+				</div>
 			{:else if activeTab === 'schedule'}
 				<div class="space-y-8 p-6">
 					<DiscoveryScheduleForm {form} bind:formData {readOnly} bind:rawCronMode />
+				</div>
+			{/if}
+			{#if hasCredentialsTab}
+				<div class="flex min-h-0 flex-1 flex-col" class:hidden={activeTab !== 'credentials'}>
+					<CredentialWizardStep
+						bind:this={credentialWizardRef}
+						daemonName={daemon?.name ?? 'scanopy-daemon'}
+						networkId={formData.network_id}
+						bind:pendingCredentials
+						description={discovery_credentialsDescription()}
+					/>
 				</div>
 			{/if}
 		</div>
@@ -435,11 +591,20 @@
 							</button>
 						{/if}
 						{#if isLastTab}
-							<button type="submit" disabled={loading} class="btn-primary">
+							<button
+								type="submit"
+								disabled={loading || (!isEditing && !daemonSupportsUnified)}
+								class="btn-primary"
+							>
 								{loading ? common_saving() : saveLabel}
 							</button>
 						{:else}
-							<button type="button" class="btn-primary btn-primary-lg" onclick={handleNext}>
+							<button
+								type="button"
+								class="btn-primary btn-primary-lg"
+								onclick={handleNext}
+								disabled={!isEditing && !daemonSupportsUnified}
+							>
 								{common_next()}
 								<ArrowRight class="h-4 w-4" />
 							</button>

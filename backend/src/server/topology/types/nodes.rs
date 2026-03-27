@@ -78,8 +78,8 @@ impl SubnetType {
             SubnetType::Storage => 3,
 
             // Special
+            SubnetType::Loopback => 999,
             SubnetType::Unknown => 999,
-            SubnetType::None => 999,
         }
     }
 
@@ -108,8 +108,8 @@ impl SubnetType {
             SubnetType::IpVlan => 4,
 
             // Special
+            SubnetType::Loopback => 999,
             SubnetType::Unknown => 999,
-            SubnetType::None => 999,
         }
     }
 }

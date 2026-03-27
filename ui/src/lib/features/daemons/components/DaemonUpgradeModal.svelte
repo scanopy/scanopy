@@ -2,6 +2,7 @@
 	import CodeContainer from '$lib/shared/components/data/CodeContainer.svelte';
 	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
 	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
+	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
 	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
 	import { entities } from '$lib/shared/stores/metadata';
@@ -30,7 +31,8 @@
 		daemons_upgradeMultipleDaemons,
 		daemons_upgradeMultipleDaemonsBody,
 		daemons_upgradeStartProcess,
-		daemons_upgradeStopProcess
+		daemons_upgradeStopProcess,
+		discovery_upgradeConsolidationWarning
 	} from '$lib/paraglide/messages';
 
 	interface Props {
@@ -94,6 +96,12 @@ docker compose up -d`;
 				</p>
 
 				<InlineInfo title="" body={daemons_upgradeConfigPreserved()} />
+
+				<InlineWarning
+					title=""
+					body={discovery_upgradeConsolidationWarning()}
+					dismissableKey="unified-discovery-migration"
+				/>
 
 				<OsSelector
 					{selectedOS}

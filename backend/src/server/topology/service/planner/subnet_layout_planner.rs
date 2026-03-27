@@ -214,6 +214,12 @@ impl SubnetLayoutPlanner {
                 continue;
             };
             let subnet = ctx.get_subnet_by_id(interface.base.subnet_id);
+            if subnet
+                .map(|s| s.base.subnet_type.exclude_from_topology())
+                .unwrap_or(false)
+            {
+                continue;
+            }
             let subnet_type = subnet.map(|s| s.base.subnet_type).unwrap_or_default();
             let services = ctx.services;
 

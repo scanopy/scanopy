@@ -13,6 +13,7 @@ use crate::{
             service::base::DaemonDiscoveryService,
         },
         shared::config::ConfigStore,
+        utils::base::{DaemonUtils, PlatformDaemonUtils},
     },
     server::{
         daemons::r#impl::{
@@ -37,9 +38,17 @@ pub struct DaemonStatus {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schema(value_type = Option<String>)]
     pub version: Option<Version>,
-    /// Daemon capabilities (docker socket, interfaced subnets)
+    /// Backwards compat: pre-v0.15.0 daemons send capabilities instead of interfaced_subnets.
     #[serde(default)]
     pub capabilities: DaemonCapabilities,
+    /// Subnets detected from daemon's network interfaces. Server resolves these
+    /// via SubnetService::create (create-or-match by CIDR) to get real IDs.
+    /// v0.15.0+ daemons populate this; pre-v0.15.0 daemons leave it empty.
+    #[serde(default)]
+    pub interfaced_subnets: Vec<Subnet>,
+    /// Whether the daemon has access to a Docker socket.
+    #[serde(default)]
+    pub has_docker_socket: bool,
     /// Whether the daemon can accept a new discovery session.
     /// Both DaemonPoll and ServerPoll use this to avoid dispatching work to a busy daemon.
     #[serde(default = "default_true")]
@@ -98,6 +107,7 @@ pub struct CreatedEntitiesPayload {
 /// and EntityBuffer for buffered entities.
 pub struct DaemonState {
     config: Arc<ConfigStore>,
+    utils: PlatformDaemonUtils,
     discovery_service: Arc<DaemonDiscoveryService>,
     entity_buffer: Arc<EntityBuffer>,
     discovery_manager: Arc<DaemonDiscoverySessionManager>,
@@ -106,12 +116,14 @@ pub struct DaemonState {
 impl DaemonState {
     pub fn new(
         config: Arc<ConfigStore>,
+        utils: PlatformDaemonUtils,
         discovery_service: Arc<DaemonDiscoveryService>,
         entity_buffer: Arc<EntityBuffer>,
         discovery_manager: Arc<DaemonDiscoverySessionManager>,
     ) -> Self {
         Self {
             config,
+            utils,
             discovery_service,
             entity_buffer,
             discovery_manager,
@@ -127,12 +139,17 @@ impl DaemonState {
 impl DaemonState {
     /// Get lightweight daemon status (name, mode, version, capabilities).
     /// Note: URL is intentionally not included - server manages URL via provisioning.
+    /// Detects interfaces and Docker socket freshly on every call.
     pub async fn get_status(&self) -> DaemonStatus {
         let name = self.config.get_name().await.unwrap_or_default();
         let mode = self.config.get_mode().await.unwrap_or_default();
         let version = Version::parse(env!("CARGO_PKG_VERSION")).ok();
-        let capabilities = self.config.get_capabilities().await.unwrap_or_default();
         let ready_for_work = !self.discovery_manager.is_discovery_running().await;
+
+        // Detect interfaces fresh — cheap NIC enumeration
+        let interfaced_subnets = self.detect_interfaced_subnets().await.unwrap_or_default();
+        // Detect Docker socket availability — cheap local socket check
+        let has_docker_socket = self.detect_docker_socket().await;
 
         DaemonStatus {
             // Don't send URL - server manages this via provisioning for ServerPoll,
@@ -141,9 +158,46 @@ impl DaemonState {
             name,
             mode,
             version,
-            capabilities,
+            capabilities: DaemonCapabilities::default(),
+            interfaced_subnets,
+            has_docker_socket,
             ready_for_work,
         }
+    }
+
+    /// Detect subnets from daemon's network interfaces.
+    async fn detect_interfaced_subnets(&self) -> anyhow::Result<Vec<Subnet>> {
+        let daemon_id = self.config.get_id().await?;
+        let network_id = match self.config.get_network_id().await? {
+            Some(id) => id,
+            None => return Ok(Vec::new()),
+        };
+        let interface_filter = self.config.get_interfaces().await?;
+
+        let (_, subnets, _) = self
+            .utils
+            .get_own_interfaces(
+                crate::server::discovery::r#impl::types::DiscoveryType::SelfReport {
+                    host_id: daemon_id,
+                },
+                daemon_id,
+                network_id,
+                &interface_filter,
+            )
+            .await?;
+
+        Ok(subnets)
+    }
+
+    /// Check if Docker socket is available (local socket or proxy).
+    async fn detect_docker_socket(&self) -> bool {
+        let docker_proxy = self.config.get_docker_proxy().await;
+        let docker_proxy_ssl_info = self.config.get_docker_proxy_ssl_info().await;
+
+        self.utils
+            .new_docker_client(docker_proxy, docker_proxy_ssl_info)
+            .await
+            .is_ok()
     }
 
     /// Get current discovery session progress, if any.

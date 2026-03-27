@@ -237,6 +237,36 @@ where
         self.create_base(entity, authentication).await
     }
 
+    /// Bulk create entities. Bypasses per-entity service logic for speed,
+    /// but publishes a Created event for each entity so subscribers
+    /// (e.g. topology) pick up the new data.
+    async fn create_many(
+        &self,
+        entities: &[T],
+        authentication: AuthenticatedEntity,
+    ) -> Result<Vec<T>, anyhow::Error> {
+        let created = self.storage().create_many(entities).await?;
+
+        for entity in &created {
+            let _ = self
+                .event_bus()
+                .publish_entity(EntityEvent {
+                    id: Uuid::new_v4(),
+                    entity_id: entity.id(),
+                    network_id: self.get_network_id(entity),
+                    organization_id: self.get_organization_id(entity),
+                    entity_type: entity.clone().into(),
+                    operation: EntityOperation::Created,
+                    timestamp: Utc::now(),
+                    metadata: serde_json::json!({}),
+                    authentication: authentication.clone(),
+                })
+                .await;
+        }
+
+        Ok(created)
+    }
+
     /// Update entity
     async fn update(
         &self,

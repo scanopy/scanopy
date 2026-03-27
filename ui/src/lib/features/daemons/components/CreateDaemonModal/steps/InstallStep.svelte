@@ -18,11 +18,13 @@
 		CheckCircle2,
 		AlertTriangle,
 		SlidersHorizontal,
+		KeyRound,
 		ExternalLink
 	} from 'lucide-svelte';
 	import type { DaemonConnectionStatus } from '../../../stores/daemon-setup';
 	import {
 		common_advanced,
+		daemons_credentialWizardButton,
 		daemons_dockerLinuxOnly,
 		daemons_dockerLinuxOnlyBody,
 		daemons_docsMacvlan,
@@ -32,7 +34,8 @@
 		daemons_fixValidationErrors,
 		daemons_fixValidationErrorsBody,
 		daemons_wslWarning,
-		daemons_wslWarningBody
+		daemons_wslWarningBody,
+		common_firstDiscoveryEmailHint
 	} from '$lib/paraglide/messages';
 
 	type LinuxMethod = 'binary' | 'docker';
@@ -51,6 +54,7 @@
 		hasEmailSupport?: boolean;
 		showTroubleshootingPanel?: boolean;
 		onAdvanced?: (() => void) | null;
+		onCredentialWizard?: (() => void) | null;
 		daemonMode?: string;
 		daemonUrl?: string;
 		provisionedDaemonId?: string;
@@ -72,6 +76,7 @@
 		hasEmailSupport = false,
 		showTroubleshootingPanel = false,
 		onAdvanced = null,
+		onCredentialWizard = null,
 		daemonMode = 'daemon_poll',
 		daemonUrl = '',
 		provisionedDaemonId = '',
@@ -295,7 +300,7 @@
 				</button>
 				{#if hasEmail && isFirstDaemon}
 					<p class="text-secondary text-sm">
-						We'll email you when your first network discovery is complete.
+						{common_firstDiscoveryEmailHint()}
 					</p>
 				{/if}
 			</div>
@@ -391,12 +396,24 @@
 					/>
 				{/snippet}
 				{#snippet afterButtons()}
-					{#if onAdvanced}
-						<button type="button" class="btn-secondary shrink-0 text-sm" onclick={onAdvanced}>
-							<SlidersHorizontal class="h-4 w-4" />
-							{common_advanced()}
-						</button>
-					{/if}
+					<div class="flex items-center gap-2">
+						{#if onCredentialWizard}
+							<button
+								type="button"
+								class="btn-secondary shrink-0 text-sm"
+								onclick={onCredentialWizard}
+							>
+								<KeyRound class="h-4 w-4" />
+								{daemons_credentialWizardButton()}
+							</button>
+						{/if}
+						{#if onAdvanced}
+							<button type="button" class="btn-secondary shrink-0 text-sm" onclick={onAdvanced}>
+								<SlidersHorizontal class="h-4 w-4" />
+								{common_advanced()}
+							</button>
+						{/if}
+					</div>
 				{/snippet}
 				{#if selectedOS === 'linux'}
 					{#if linuxMethod === 'binary'}

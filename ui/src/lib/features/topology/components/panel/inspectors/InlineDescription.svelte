@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { Pencil } from 'lucide-svelte';
 
+	function focus(node: HTMLElement) {
+		node.focus();
+	}
+
 	let {
 		value = null,
 		editable = false,
@@ -47,7 +51,7 @@
 		rows={2}
 		onblur={save}
 		onkeydown={handleKeydown}
-		autofocus
+		use:focus
 	></textarea>
 {:else if editable && !value}
 	<button

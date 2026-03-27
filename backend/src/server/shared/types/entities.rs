@@ -1,7 +1,7 @@
+use crate::server::credentials::r#impl::mapping::SnmpCredentialMapping;
 use crate::server::discovery::r#impl::types::DiscoveryType;
 use crate::server::discovery::r#impl::types::HostNamingFallback;
 use crate::server::services::r#impl::patterns::MatchDetails;
-use crate::server::snmp_credentials::r#impl::discovery::SnmpCredentialMapping;
 use chrono::DateTime;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
@@ -85,7 +85,6 @@ impl Default for DiscoveryMetadata {
                 subnet_ids: None,
                 host_naming_fallback: HostNamingFallback::BestService,
                 snmp_credentials: SnmpCredentialMapping::default(),
-                probe_raw_socket_ports: false,
             },
             daemon_id: Uuid::new_v4(),
             date: Utc::now(),

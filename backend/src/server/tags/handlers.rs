@@ -304,9 +304,6 @@ async fn resolve_entity_scope(
         EntityDiscriminants::UserApiKey => {
             resolve_scope(s.user_api_key_service.as_ref(), entity_id).await
         }
-        EntityDiscriminants::SnmpCredential => {
-            resolve_scope(s.snmp_credential_service.as_ref(), entity_id).await
-        }
         EntityDiscriminants::Tag => resolve_scope(s.tag_service.as_ref(), entity_id).await,
         EntityDiscriminants::Organization => {
             resolve_scope(s.organization_service.as_ref(), entity_id).await
@@ -323,6 +320,9 @@ async fn resolve_entity_scope(
             resolve_scope(s.interface_service.as_ref(), entity_id).await
         }
         EntityDiscriminants::IfEntry => resolve_scope(s.if_entry_service.as_ref(), entity_id).await,
+        EntityDiscriminants::Credential => {
+            resolve_scope(s.credential_service.as_ref(), entity_id).await
+        }
         EntityDiscriminants::Unknown => (None, None),
     }
 }

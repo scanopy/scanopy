@@ -18,6 +18,8 @@
 	import {
 		common_noServiceSelected,
 		hosts_virtualization_emptyMessage,
+		hosts_virtualization_emptySubtitle,
+		hosts_virtualization_emptyTitle,
 		hosts_virtualization_pleaseSave,
 		hosts_virtualization_pleaseSaveBody,
 		hosts_virtualization_selectToManage,
@@ -50,62 +52,65 @@
 </script>
 
 <div class="flex min-h-0 flex-1 flex-col">
-	<div class="min-h-0 flex-1">
-		<ListConfigEditor items={virtualizationManagerServices} onChange={onServiceChange}>
-			<svelte:fragment slot="list" let:items let:onEdit let:highlightedIndex>
-				<ListManager
-					label={hosts_virtualization_servicesLabel()}
-					helpText={hosts_virtualization_servicesHelp()}
-					emptyMessage={hosts_virtualization_emptyMessage()}
-					{items}
-					itemClickAction="edit"
-					allowItemRemove={() => false}
-					allowReorder={false}
-					allowAddFromOptions={false}
-					options={[] as Service[]}
-					itemDisplayComponent={VirtualizationManagerServiceDisplay}
-					optionDisplayComponent={VirtualizationManagerServiceDisplay}
-					getItemContext={() => displayContext}
-					{onEdit}
-					{highlightedIndex}
-				/>
-			</svelte:fragment>
+	<ListConfigEditor items={virtualizationManagerServices} onChange={onServiceChange}>
+		<svelte:fragment slot="list" let:items let:onEdit let:highlightedIndex>
+			<ListManager
+				label={hosts_virtualization_servicesLabel()}
+				helpText={hosts_virtualization_servicesHelp()}
+				emptyMessage={hosts_virtualization_emptyMessage()}
+				{items}
+				itemClickAction="edit"
+				allowItemRemove={() => false}
+				allowReorder={false}
+				allowAddFromOptions={false}
+				options={[] as Service[]}
+				itemDisplayComponent={VirtualizationManagerServiceDisplay}
+				optionDisplayComponent={VirtualizationManagerServiceDisplay}
+				getItemContext={() => displayContext}
+				{onEdit}
+				{highlightedIndex}
+			/>
+		</svelte:fragment>
 
-			<svelte:fragment slot="config" let:selectedItem>
-				{#if selectedItem}
-					{#if selectedItem.id == uuidv4Sentinel}
-						<InlineWarning
-							title={hosts_virtualization_pleaseSave({ name: selectedItem.name })}
-							body={hosts_virtualization_pleaseSaveBody({ name: selectedItem.name })}
+		<svelte:fragment slot="config" let:selectedItem>
+			{#if selectedItem}
+				{#if selectedItem.id == uuidv4Sentinel}
+					<InlineWarning
+						title={hosts_virtualization_pleaseSave({ name: selectedItem.name })}
+						body={hosts_virtualization_pleaseSaveBody({ name: selectedItem.name })}
+					/>
+				{:else}
+					{@const virtualizationType = serviceDefinitions.getMetadata(
+						selectedItem.service_definition
+					).manages_virtualization}
+					{#if virtualizationType === 'vms'}
+						<VmManagerConfigPanel
+							service={selectedItem}
+							onChange={(updatedHost) => onVirtualizedHostChange(updatedHost)}
+						/>
+					{:else if virtualizationType === 'containers'}
+						<ContainerManagerConfigPanel
+							service={selectedItem}
+							onChange={(updatedService) => onServiceChange(updatedService)}
 						/>
 					{:else}
-						{@const virtualizationType = serviceDefinitions.getMetadata(
-							selectedItem.service_definition
-						).manages_virtualization}
-						{#if virtualizationType === 'vms'}
-							<VmManagerConfigPanel
-								service={selectedItem}
-								onChange={(updatedHost) => onVirtualizedHostChange(updatedHost)}
-							/>
-						{:else if virtualizationType === 'containers'}
-							<ContainerManagerConfigPanel
-								service={selectedItem}
-								onChange={(updatedService) => onServiceChange(updatedService)}
-							/>
-						{:else}
-							<EntityConfigEmpty
-								title={hosts_virtualization_unknownType()}
-								subtitle={hosts_virtualization_unknownTypeSubtitle()}
-							/>
-						{/if}
+						<EntityConfigEmpty
+							title={hosts_virtualization_unknownType()}
+							subtitle={hosts_virtualization_unknownTypeSubtitle()}
+						/>
 					{/if}
-				{:else}
-					<EntityConfigEmpty
-						title={common_noServiceSelected()}
-						subtitle={hosts_virtualization_selectToManage()}
-					/>
 				{/if}
-			</svelte:fragment>
-		</ListConfigEditor>
-	</div>
+			{:else if virtualizationManagerServices.length === 0}
+				<EntityConfigEmpty
+					title={hosts_virtualization_emptyTitle()}
+					subtitle={hosts_virtualization_emptySubtitle()}
+				/>
+			{:else}
+				<EntityConfigEmpty
+					title={common_noServiceSelected()}
+					subtitle={hosts_virtualization_selectToManage()}
+				/>
+			{/if}
+		</svelte:fragment>
+	</ListConfigEditor>
 </div>

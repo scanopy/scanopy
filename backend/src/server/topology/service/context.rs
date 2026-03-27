@@ -103,7 +103,8 @@ impl<'a> TopologyContext<'a> {
                 return false;
             }
             if let Some(subnet) = self.get_subnet_by_id(interface.base.subnet_id) {
-                return !subnet.base.subnet_type.is_docker_bridge();
+                return !subnet.base.subnet_type.is_docker_bridge()
+                    && !subnet.base.subnet_type.is_loopback();
             }
             false
         })

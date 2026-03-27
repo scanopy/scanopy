@@ -5,8 +5,8 @@ use crate::daemon::shared::config::ConfigStore;
 use crate::daemon::utils::base::DaemonUtils;
 use crate::daemon::utils::base::{PlatformDaemonUtils, create_system_utils};
 use crate::server::daemons::r#impl::api::{
-    DaemonCapabilities, DaemonRegistrationRequest, DaemonRegistrationResponse,
-    DaemonStartupRequest, DiscoveryUpdatePayload, ServerCapabilities,
+    DaemonCapabilities, DaemonDiscoveryRequest, DaemonRegistrationRequest,
+    DaemonRegistrationResponse, DaemonStartupRequest, ServerCapabilities,
 };
 use crate::server::daemons::r#impl::base::Daemon;
 use crate::server::shared::types::api::{ApiError, ApiErrorResponse};
@@ -63,6 +63,17 @@ impl DaemonRuntimeService {
     /// Check Docker availability and return a detailed description of the connection method.
     /// Returns (is_available, description) where description explains how Docker is being accessed.
     pub async fn check_docker_availability(&self) -> (bool, String) {
+        if !self
+            .config
+            .get_enable_local_docker_socket()
+            .await
+            .unwrap_or(true)
+        {
+            return (
+                false,
+                "Local Docker socket scanning disabled by configuration".to_string(),
+            );
+        }
         let docker_proxy = self.config.get_docker_proxy().await;
         let docker_proxy_ssl_info = self.config.get_docker_proxy_ssl_info().await;
 
@@ -89,7 +100,7 @@ impl DaemonRuntimeService {
 
         match self
             .utils
-            .new_local_docker_client(docker_proxy, docker_proxy_ssl_info)
+            .new_docker_client(docker_proxy, docker_proxy_ssl_info)
             .await
         {
             Ok(_) => (true, format!("Available {}", connection_method)),
@@ -182,20 +193,27 @@ impl DaemonRuntimeService {
             tracing::debug!(target: LOG_TARGET, daemon_id = %daemon_id, "Polling server for work");
 
             let path = format!("/api/daemons/{}/request-work", daemon_id);
+            // Detect interfaces fresh — cheap NIC enumeration
+            let interfaced_subnets = self.detect_interfaced_subnets().await.unwrap_or_default();
+            // Detect Docker socket — cheap local socket check
+            let has_docker_socket = self.detect_docker_socket().await;
+
             let status_payload = DaemonStatus {
                 // URL not sent - server manages this via provisioning
                 url: None,
                 name: name.clone(),
                 mode,
                 version: Some(semver::Version::parse(env!("CARGO_PKG_VERSION")).unwrap()),
-                capabilities: self.config.get_capabilities().await.unwrap_or_default(),
+                capabilities: DaemonCapabilities::default(),
+                interfaced_subnets,
+                has_docker_socket,
                 ready_for_work: !self.discovery_manager.is_discovery_running().await,
             };
 
             // Use backon for retry with exponential backoff
             let result = (|| async {
                 self.api_client
-                    .post::<_, (Option<DiscoveryUpdatePayload>, bool)>(
+                    .post::<_, (Option<DaemonDiscoveryRequest>, bool)>(
                         &path,
                         &status_payload,
                         "Failed to request work",
@@ -217,25 +235,41 @@ impl DaemonRuntimeService {
             .await;
 
             match result {
-                Ok((payload, cancel_current_session)) => {
+                Ok((request, cancel_current_session)) => {
                     if cancel_current_session {
                         tracing::info!(target: LOG_TARGET, "Received cancellation request from server");
                         self.discovery_manager.cancel_current_session().await;
                     }
 
-                    if let Some(payload) = payload {
+                    if let Some(request) = request {
                         tracing::info!(
                             target: LOG_TARGET,
                             "Discovery session received: {} ({:?})",
-                            payload.session_id,
-                            payload.discovery_type
+                            request.session_id,
+                            request.discovery_type
                         );
-                        self.discovery_manager
-                            .initiate_session(payload.into())
-                            .await;
+                        self.discovery_manager.initiate_session(request).await;
                     }
                 }
                 Err(e) => {
+                    // Check if daemon record was deleted or DB was reset
+                    if let Some(api_err) = e.downcast_ref::<ApiErrorResponse>()
+                        && api_err.matches_error(&ApiError::coded(
+                            axum::http::StatusCode::NOT_FOUND,
+                            ErrorCode::DaemonNotRegistered,
+                        ))
+                    {
+                        tracing::error!(
+                            target: LOG_TARGET,
+                            daemon_id = %daemon_id,
+                            "Daemon not found on server — deleted or database was reset. \
+                             Entering standby. Reinstall or reconfigure the daemon to resume. \
+                             Waiting for shutdown signal (Ctrl+C)..."
+                        );
+                        tokio::signal::ctrl_c().await.ok();
+                        return Err(anyhow::anyhow!("Daemon not registered — shutting down"));
+                    }
+
                     // Check if daemon has been put on standby (inactivity)
                     if let Some(api_err) = e.downcast_ref::<ApiErrorResponse>()
                         && api_err.matches_error(&ApiError::coded(
@@ -282,6 +316,51 @@ impl DaemonRuntimeService {
                 );
             }
         }
+    }
+
+    /// Detect subnets from daemon's network interfaces.
+    async fn detect_interfaced_subnets(
+        &self,
+    ) -> Result<Vec<crate::server::subnets::r#impl::base::Subnet>> {
+        let daemon_id = self.config.get_id().await?;
+        let network_id = match self.config.get_network_id().await? {
+            Some(id) => id,
+            None => return Ok(Vec::new()),
+        };
+        let interface_filter = self.config.get_interfaces().await?;
+
+        let (_, subnets, _) = self
+            .utils
+            .get_own_interfaces(
+                crate::server::discovery::r#impl::types::DiscoveryType::SelfReport {
+                    host_id: daemon_id,
+                },
+                daemon_id,
+                network_id,
+                &interface_filter,
+            )
+            .await?;
+
+        Ok(subnets)
+    }
+
+    /// Check if Docker socket is available (local socket or proxy).
+    async fn detect_docker_socket(&self) -> bool {
+        if !self
+            .config
+            .get_enable_local_docker_socket()
+            .await
+            .unwrap_or(true)
+        {
+            return false;
+        }
+        let docker_proxy = self.config.get_docker_proxy().await;
+        let docker_proxy_ssl_info = self.config.get_docker_proxy_ssl_info().await;
+
+        self.utils
+            .new_docker_client(docker_proxy, docker_proxy_ssl_info)
+            .await
+            .is_ok()
     }
 
     pub async fn initialize_services(&self, network_id: Uuid, api_key: String) -> Result<()> {
@@ -375,6 +454,8 @@ impl DaemonRuntimeService {
 
         let user_id = config.get_user_id().await?.unwrap_or(Uuid::nil());
 
+        let credential_ids = config.get_credential_ids().await?;
+
         let registration_request = DaemonRegistrationRequest {
             daemon_id,
             network_id,
@@ -389,6 +470,7 @@ impl DaemonRuntimeService {
             },
             user_id,
             version: Some(version.to_string()),
+            credential_ids,
         };
 
         tracing::info!(target: LOG_TARGET, "Registering with server:");
@@ -452,6 +534,18 @@ impl DaemonRuntimeService {
     ) -> Result<()> {
         // Check for API error responses first
         if let Some(api_err) = e.downcast_ref::<ApiErrorResponse>() {
+            if api_err.matches_error(&ApiError::daemon_version_too_old("", "")) {
+                tracing::error!(
+                    target: LOG_TARGET,
+                    daemon_id = %daemon_id,
+                    "Daemon version is older than the server version. \
+                     Please update the daemon binary to match the server. \
+                     Download the latest version from the Scanopy UI under Discover > Daemons."
+                );
+                return Err(anyhow::anyhow!(
+                    "Daemon version is older than server — update required"
+                ));
+            }
             if api_err.matches_error(&ApiError::daemon_key_not_yet_active()) {
                 tracing::error!(
                     target: LOG_TARGET,

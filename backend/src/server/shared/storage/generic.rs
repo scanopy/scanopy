@@ -42,6 +42,26 @@ where
         )
     }
 
+    /// Generate multi-row INSERT query: INSERT INTO table (cols) VALUES ($1,$2), ($3,$4), ...
+    fn build_bulk_insert_query(columns: &[&str], row_count: usize) -> String {
+        let cols_per_row = columns.len();
+        let value_groups: Vec<String> = (0..row_count)
+            .map(|row| {
+                let placeholders: Vec<String> = (1..=cols_per_row)
+                    .map(|col| format!("${}", row * cols_per_row + col))
+                    .collect();
+                format!("({})", placeholders.join(", "))
+            })
+            .collect();
+
+        format!(
+            "INSERT INTO {} ({}) VALUES {}",
+            T::table_name(),
+            columns.join(", "),
+            value_groups.join(", ")
+        )
+    }
+
     /// Generate UPDATE query dynamically
     fn build_update_query(columns: &[&str]) -> String {
         let set_clauses: Vec<String> = columns
@@ -109,6 +129,7 @@ where
             SqlValue::String(v) => query.bind(v),
             SqlValue::U16(v) => query.bind(Into::<i32>::into(*v)),
             SqlValue::I32(v) => query.bind(v),
+            SqlValue::OptionalI64(v) => query.bind(v),
             SqlValue::Bool(v) => query.bind(v),
             SqlValue::Timestamp(v) => query.bind(v),
             SqlValue::OptionTimestamp(v) => query.bind(v),
@@ -154,7 +175,19 @@ where
             SqlValue::OnboardingOperation(v) => query.bind(serde_json::to_value(v)?),
             SqlValue::StringArray(v) => query.bind(v.clone()),
             SqlValue::OptionalStringArray(v) => query.bind(v.clone()),
-            SqlValue::JsonValue(v) => query.bind(v.clone()),
+            SqlValue::OptionalLldpChassisId(v) => {
+                query.bind(v.as_ref().map(|c| serde_json::to_value(c).unwrap()))
+            }
+            SqlValue::OptionalLldpPortId(v) => {
+                query.bind(v.as_ref().map(|p| serde_json::to_value(p).unwrap()))
+            }
+            SqlValue::OptionalFdbMacs(v) => {
+                query.bind(v.as_ref().map(|m| serde_json::to_value(m).unwrap()))
+            }
+            SqlValue::ShareOptions(v) => query.bind(serde_json::to_value(v)?),
+            SqlValue::CredentialType(v) => query.bind(serde_json::to_value(
+                crate::server::credentials::r#impl::types::StorageCredentialType(v),
+            )?),
             SqlValue::MacAddress(v) => {
                 // sqlx mac_address feature supports MacAddress directly
                 query.bind(*v)
@@ -163,10 +196,17 @@ where
                 // sqlx mac_address feature supports MacAddress directly
                 query.bind(*v)
             }
+            SqlValue::OptionalIpAddrArray(v) => {
+                let networks: Option<Vec<IpNetwork>> = v
+                    .as_ref()
+                    .map(|ips| ips.iter().map(|ip| IpNetwork::from(*ip)).collect());
+                query.bind(networks)
+            }
             SqlValue::EntityDiscriminant(v) => {
                 // Serialize to JSON string to match how it's stored/deserialized
                 query.bind(serde_json::to_string(v)?)
             }
+            SqlValue::OptionalUuidVec(v) => query.bind(v.clone()),
         };
 
         Ok(value)
@@ -202,6 +242,65 @@ where
             }
             Err(e) => Err(e.into()),
         }
+    }
+
+    /// Maximum bind parameters per PostgreSQL query
+    const MAX_BIND_PARAMS: usize = 65535;
+
+    /// Internal: bulk create entities with any executor.
+    /// Chunks automatically to stay under PostgreSQL's bind parameter limit.
+    pub async fn create_many_with_executor(
+        entities: &[T],
+        pool: &PgPool,
+    ) -> Result<Vec<T>, anyhow::Error> {
+        if entities.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // Get column count from first entity to calculate chunk size
+        let (columns, _) = entities[0].to_params()?;
+        let cols_per_row = columns.len();
+        let chunk_size = Self::MAX_BIND_PARAMS / cols_per_row;
+
+        for chunk in entities.chunks(chunk_size) {
+            // Collect all params first to get owned column names
+            let all_params: Vec<(Vec<&'static str>, Vec<SqlValue>)> = chunk
+                .iter()
+                .map(|e| e.to_params())
+                .collect::<Result<_, _>>()?;
+
+            let query_str = Self::build_bulk_insert_query(&all_params[0].0, chunk.len());
+            let mut query = sqlx::query(&query_str);
+
+            for (_, values) in &all_params {
+                for value in values {
+                    query = Self::bind_value(query, value)?;
+                }
+            }
+
+            match query.execute(pool).await {
+                Ok(_) => {
+                    tracing::trace!("Bulk created {} {}s", chunk.len(), T::table_name());
+                }
+                Err(sqlx::Error::Database(db_err)) if db_err.is_unique_violation() => {
+                    let friendly_msg = Self::friendly_unique_violation_message(db_err.constraint());
+                    let detail = db_err
+                        .try_downcast_ref::<sqlx::postgres::PgDatabaseError>()
+                        .and_then(|pg| pg.detail().map(|d| d.to_string()));
+                    tracing::warn!(
+                        table = T::table_name(),
+                        constraint = db_err.constraint(),
+                        detail = detail,
+                        error = %db_err,
+                        "Bulk insert unique violation"
+                    );
+                    return Err(ValidationError::new(friendly_msg).into());
+                }
+                Err(e) => return Err(e.into()),
+            }
+        }
+
+        Ok(entities.to_vec())
     }
 
     /// Internal: delete by filter with any executor
@@ -292,6 +391,10 @@ where
 {
     async fn create(&self, entity: &T) -> Result<T, anyhow::Error> {
         Self::create_with_executor(entity, &self.pool).await
+    }
+
+    async fn create_many(&self, entities: &[T]) -> Result<Vec<T>, anyhow::Error> {
+        Self::create_many_with_executor(entities, &self.pool).await
     }
 
     async fn get_by_id(&self, id: &Uuid) -> Result<Option<T>, anyhow::Error> {

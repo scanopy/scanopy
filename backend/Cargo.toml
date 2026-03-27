@@ -1,6 +1,6 @@
 [package]
 name = "scanopy-server"
-version = "0.14.19"
+version = "0.15.3"
 edition = "2024"
 description = "Scanopy HTTP API server"
 
@@ -80,6 +80,7 @@ rsntp = "4.0.0"
 dhcproto = "0.13.0"
 
 # === TLS and Security ===
+pem = "3"
 rustls = "0.21"
 webpki-roots = "0.25"
 base64ct = "=1.6.0"
@@ -146,7 +147,7 @@ validator = { version = "0.20", features = ["derive"] }
 regex = "1.11.3"
 tempfile = "3.23.0"
 net-route = "0.4.6"
-bollard = { version = "0.19.4", features = ["ssl"] }
+bollard = { version = "0.20.2", features = ["ssl"] }
 httparse = "1.10.1"
 async-stream = "0.3.6"
 serial_test = "3.2.0"
@@ -205,7 +206,7 @@ windows = { version = "0.52", features = [
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }
 walkdir = "2.5"
 tar = "0.4"
-testcontainers = "0.25.0"
+testcontainers = "0.27.2"
 top-english-words = "1.1.1"
 comrak = "0.48.0"
 jsonschema = "0.29"

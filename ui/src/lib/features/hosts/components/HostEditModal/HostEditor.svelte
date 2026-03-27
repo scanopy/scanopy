@@ -49,7 +49,6 @@
 		hosts_createHost,
 		hosts_editor_basicInfo,
 		hosts_editor_interfacesDesc,
-		hosts_editor_snmpTab,
 		hosts_editor_snmpTabDesc,
 		hosts_editor_updateHost,
 		hosts_editor_virtualizationDesc,
@@ -99,7 +98,6 @@
 	}));
 
 	let hostIfEntries = $derived(ifEntriesQuery.data ?? []);
-	let hasIfEntries = $derived(hostIfEntries.length > 0);
 
 	let loading = $state(false);
 	let deleting = $state(false);
@@ -204,9 +202,9 @@
 			interfaces: formData.interfaces || [],
 			ports: formData.ports || [],
 			services: formData.services || [],
-			credential_mode: (formData.snmp_credential_id ? 'override' : 'default') as
-				| 'default'
-				| 'override'
+			credential_mode: ((formData.credential_assignments?.length ?? 0) > 0
+				? 'override'
+				: 'default') as 'default' | 'override'
 		},
 		onSubmit: async ({ value }) => {
 			await performSubmission(value);
@@ -296,8 +294,8 @@
 		},
 		{
 			id: 'snmp',
-			label: hosts_editor_snmpTab(),
-			icon: concepts.getIconComponent('SNMP'),
+			label: 'Credentials',
+			icon: entities.getIconComponent('Credential'),
 			description: hosts_editor_snmpTabDesc(),
 			disabled: !isEditing && furthestReached < 1
 		},
@@ -307,8 +305,7 @@
 						id: 'if-entries',
 						label: common_ifEntries(),
 						icon: entities.getIconComponent('IfEntry'),
-						description: hosts_ifEntries_subtitle(),
-						disabled: !hasIfEntries
+						description: hosts_ifEntries_subtitle()
 					}
 				]
 			: []),
@@ -333,7 +330,7 @@
 			description: common_serviceConfiguration(),
 			disabled: !isEditing && furthestReached < 4
 		},
-		...(isEditing && vmManagerServices.length > 0
+		...(isEditing
 			? [
 					{
 						id: 'virtualization',
@@ -379,7 +376,7 @@
 			interfaces: formData.interfaces || [],
 			ports: formData.ports || [],
 			services: formData.services || [],
-			credential_mode: formData.snmp_credential_id ? 'override' : 'default'
+			credential_mode: (formData.credential_assignments?.length ?? 0) > 0 ? 'override' : 'default'
 		});
 
 		activeTab = 'details'; // Reset to first tab
@@ -465,7 +462,7 @@
 			{#if activeTab === 'details'}
 				<div class="flex h-full flex-col">
 					<div class="min-h-0 flex-1 overflow-y-auto">
-						<DetailsForm {form} bind:formData />
+						<DetailsForm {form} bind:formData {isEditing} />
 					</div>
 					{#if isEditing && host}
 						<EntityMetadataSection entities={[host]} />
@@ -520,8 +517,8 @@
 
 			<!-- SNMP Tab -->
 			{#if activeTab === 'snmp'}
-				<div class="h-full overflow-y-auto">
-					<SnmpForm bind:formData {form} {isEditing} network={currentNetwork} />
+				<div class="flex h-full flex-col">
+					<SnmpForm bind:formData network={currentNetwork} />
 				</div>
 			{/if}
 

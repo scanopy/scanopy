@@ -2,6 +2,7 @@ use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::auth::middleware::permissions::{Authorized, IsUser, Member, Owner};
 use crate::server::auth::service::hash_password;
 use crate::server::billing::types::base::BillingPlan;
+use crate::server::bindings::r#impl::base::Binding;
 use crate::server::config::AppState;
 use crate::server::networks::r#impl::{Network, NetworkBase};
 use crate::server::organizations::r#impl::base::Organization;
@@ -9,7 +10,7 @@ use crate::server::shared::events::types::{OnboardingEvent, OnboardingOperation}
 use crate::server::shared::handlers::traits::{CrudHandlers, update_handler};
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
-use crate::server::shared::storage::traits::{Entity, Storable};
+use crate::server::shared::storage::traits::{Entity, Storable, Storage};
 use crate::server::shared::types::api::ApiResponse;
 use crate::server::shared::types::api::ApiResult;
 use crate::server::shared::types::api::{ApiError, ApiErrorResponse, EmptyApiResponse};
@@ -279,7 +280,7 @@ pub async fn populate_demo_data(
         .ok_or_else(ApiError::organization_required)?;
     let user_id = auth.user_id().ok_or_else(ApiError::user_required)?;
 
-    let org = state
+    let mut org = state
         .services
         .organization_service
         .get_by_id(&id)
@@ -302,226 +303,266 @@ pub async fn populate_demo_data(
     // First, reset all existing data
     reset_organization_data(&state, &id, entity.clone()).await?;
 
+    org.base.onboarding = vec![
+        OnboardingOperation::OrgCreated,
+        OnboardingOperation::FirstDaemonRegistered,
+        OnboardingOperation::FirstDiscoveryCompleted,
+    ];
+
+    state
+        .services
+        .organization_service
+        .update(&mut org, entity.clone())
+        .await?;
+
     // Generate demo data
     let demo_data = DemoData::generate(id, user_id);
 
-    // Insert entities in dependency order:
-    // 1. Tags (no dependencies) - keep track of created tags for group generation
-    let mut created_tags = Vec::new();
-    for tag in demo_data.tags {
-        let created = state
-            .services
-            .tag_service
-            .create(tag, entity.clone())
-            .await?;
-        created_tags.push(created);
-    }
+    // Collect all entity tags to bulk insert at the end (single INSERT).
+    let mut all_entity_tags: Vec<crate::server::tags::entity_tags::EntityTag> = Vec::new();
 
-    // 2. SNMP Credentials (depends on organization — must precede networks)
-    for credential in demo_data.snmp_credentials {
-        state
-            .services
-            .snmp_credential_service
-            .create(credential, entity.clone())
-            .await?;
-    }
-
-    // 3. Networks (depends on organization, tags, snmp_credentials) - keep track for group generation
-    let mut created_networks = Vec::new();
-    for network in demo_data.networks {
-        let created = state
-            .services
-            .network_service
-            .create(network, entity.clone())
-            .await?;
-        created_networks.push(created);
-    }
-
-    // 4. Subnets (depends on networks)
-    for subnet in demo_data.subnets {
-        state
-            .services
-            .subnet_service
-            .create(subnet, entity.clone())
-            .await?;
-    }
-
-    // 5. Hosts with Services - collect created services for group generation
-    let mut all_created_services: Vec<Service> = Vec::new();
-    for host_with_services in demo_data.hosts_with_services {
-        // Match if_entries for this host by host_id
-        let host_if_entries: Vec<crate::server::if_entries::r#impl::base::IfEntry> = demo_data
-            .if_entries
-            .iter()
-            .filter(|e| e.base.host_id == host_with_services.host.id)
-            .cloned()
-            .collect();
-
-        let host_response = state
-            .services
-            .host_service
-            .discover_host(
-                host_with_services.host,
-                host_with_services.interfaces,
-                host_with_services.ports,
-                host_with_services.services,
-                host_if_entries,
-                entity.clone(),
-                None, // Demo data seeding - no host limit
-            )
-            .await?;
-        all_created_services.extend(host_response.services);
-    }
-
-    // 4.5 Apply deferred neighbor updates now that all if_entries exist
-    // Build a lookup map: (host_name, if_index) -> if_entry
-    use crate::server::if_entries::r#impl::base::Neighbor;
-    use std::collections::HashMap;
-
-    let mut if_entry_lookup: HashMap<
-        (String, i32),
-        crate::server::if_entries::r#impl::base::IfEntry,
-    > = HashMap::new();
-
-    // Get all hosts to map host_id -> host_name
-    // Filter by network_ids since hosts belong to networks, not directly to organizations
-    let network_ids: Vec<Uuid> = created_networks.iter().map(|n| n.id).collect();
-    let all_hosts = state
-        .services
-        .host_service
-        .get_all(crate::server::shared::storage::filter::StorableFilter::<
-            crate::server::hosts::r#impl::base::Host,
-        >::new_from_network_ids(&network_ids))
-        .await?;
-    let host_id_to_name: HashMap<Uuid, String> = all_hosts
-        .iter()
-        .map(|h| (h.id, h.base.name.clone()))
-        .collect();
-
-    // Get all if_entries and index by (host_name, if_index)
-    for host in &all_hosts {
-        let entries = state
-            .services
-            .if_entry_service
-            .get_for_host(&host.id)
-            .await?;
-        for entry in entries {
-            if let Some(host_name) = host_id_to_name.get(&entry.base.host_id) {
-                if_entry_lookup.insert((host_name.clone(), entry.base.if_index), entry);
+    /// Collect EntityTag records from tagged entities into the accumulator.
+    fn collect_entity_tags<T: Entity>(
+        entities: &[T],
+        out: &mut Vec<crate::server::tags::entity_tags::EntityTag>,
+    ) {
+        use crate::server::tags::entity_tags::{EntityTag, EntityTagBase};
+        for entity in entities {
+            if let Some(tags) = entity.get_tags() {
+                for &tag_id in tags {
+                    out.push(EntityTag::new(EntityTagBase::new(
+                        entity.id(),
+                        T::entity_type(),
+                        tag_id,
+                    )));
+                }
             }
         }
     }
 
-    // Apply neighbor updates using the lookup
-    tracing::info!(
-        lookup_size = if_entry_lookup.len(),
-        "Built if_entry lookup for neighbor updates"
-    );
-    for (key, entry) in &if_entry_lookup {
-        tracing::debug!(
-            host_name = %key.0,
-            if_index = key.1,
-            if_entry_id = %entry.id,
-            "Lookup entry"
-        );
-    }
+    // Insert entities in dependency order using bulk inserts.
+    // Since we just reset the org, there are no collisions — we use service-level
+    // create_many (publishes one event per scope per entity type) instead of
+    // per-entity create() for speed. Entities without event subscribers use
+    // storage().create_many() directly.
 
-    for neighbor_update in demo_data.neighbor_updates {
-        let source_key = (
-            neighbor_update.source_host_name.clone(),
-            neighbor_update.source_if_index,
-        );
-        let target_key = (
-            neighbor_update.target_host_name.clone(),
-            neighbor_update.target_if_index,
-        );
+    // 1. Tags (no dependencies)
+    let created_tags = state
+        .services
+        .tag_service
+        .storage()
+        .create_many(&demo_data.tags)
+        .await?;
 
-        let source_entry = if_entry_lookup.get(&source_key);
-        let target_entry = if_entry_lookup.get(&target_key);
+    // 2. Credentials (depends on organization)
+    state
+        .services
+        .credential_service
+        .storage()
+        .create_many(&demo_data.credentials)
+        .await?;
 
-        tracing::info!(
-            source_host = %neighbor_update.source_host_name,
-            source_if_index = neighbor_update.source_if_index,
-            target_host = %neighbor_update.target_host_name,
-            target_if_index = neighbor_update.target_if_index,
-            source_found = source_entry.is_some(),
-            target_found = target_entry.is_some(),
-            "Processing neighbor update"
-        );
+    // 3. Networks (depends on organization, tags)
+    let created_networks = state
+        .services
+        .network_service
+        .storage()
+        .create_many(&demo_data.networks)
+        .await?;
+    collect_entity_tags(&created_networks, &mut all_entity_tags);
 
-        if let (Some(source_entry), Some(target_entry)) = (source_entry, target_entry) {
-            let mut updated_entry = source_entry.clone();
-            updated_entry.base.neighbor = Some(Neighbor::IfEntry(target_entry.id));
-            state
-                .services
-                .if_entry_service
-                .update(&mut updated_entry, entity.clone())
-                .await?;
-            tracing::info!(
-                source_id = %source_entry.id,
-                target_id = %target_entry.id,
-                "Applied neighbor update"
-            );
-        }
-    }
-
-    // 5. Daemons (depends on hosts, networks, subnets)
-    for daemon in demo_data.daemons {
+    // 3.5. Network-credential associations
+    for assignment in demo_data.network_credential_assignments {
         state
             .services
-            .daemon_service
-            .create(daemon, entity.clone())
-            .await?;
-    }
-
-    // 6. Daemon API Keys (depends on networks)
-    for api_key in demo_data.api_keys {
-        state
-            .services
-            .daemon_api_key_service
-            .create(api_key, entity.clone())
-            .await?;
-    }
-
-    // 7. Discoveries (depends on daemons, networks, subnets)
-    for discovery in demo_data.discoveries {
-        state
-            .services
-            .discovery_service
-            .create_discovery(discovery, entity.clone())
+            .credential_service
+            .set_network_credentials(&assignment.network_id, &assignment.credential_ids)
             .await
             .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     }
 
-    // 8. Groups - generate with actual created services to get correct binding IDs
-    let groups = generate_groups(&created_networks, &all_created_services, &created_tags);
-    for group in groups {
+    // 4. Subnets (depends on networks)
+    let created_subnets = state
+        .services
+        .subnet_service
+        .create_many(&demo_data.subnets, entity.clone())
+        .await?;
+    collect_entity_tags(&created_subnets, &mut all_entity_tags);
+
+    // 5. Hosts + children — bypass discover_host (no collisions in fresh org)
+    // Flatten hosts, interfaces, ports, services from HostWithServices bundles
+    let mut all_hosts = Vec::new();
+    let mut all_interfaces = Vec::new();
+    let mut all_ports = Vec::new();
+    let mut all_services: Vec<Service> = Vec::new();
+    for hws in &demo_data.hosts_with_services {
+        let host_id = hws.host.id;
+        let network_id = hws.host.base.network_id;
+        all_hosts.push(hws.host.clone());
+        all_interfaces.extend(hws.interfaces.clone());
+        all_ports.extend(
+            hws.ports
+                .iter()
+                .cloned()
+                .map(|p| p.with_host(host_id, network_id)),
+        );
+        all_services.extend(hws.services.clone());
+    }
+
+    let created_hosts = state
+        .services
+        .host_service
+        .create_many(&all_hosts, entity.clone())
+        .await?;
+    collect_entity_tags(&created_hosts, &mut all_entity_tags);
+
+    state
+        .services
+        .interface_service
+        .create_many(&all_interfaces, entity.clone())
+        .await?;
+
+    state
+        .services
+        .port_service
+        .create_many(&all_ports, entity.clone())
+        .await?;
+
+    let created_services = state
+        .services
+        .service_service
+        .create_many(&all_services, entity.clone())
+        .await?;
+    collect_entity_tags(&created_services, &mut all_entity_tags);
+
+    // 5.3. Bindings (child entities of services, stored in separate table)
+    let all_bindings: Vec<Binding> = created_services
+        .iter()
+        .flat_map(|s| {
+            s.base
+                .bindings
+                .iter()
+                .cloned()
+                .map(|b| b.with_service(s.id, s.base.network_id))
+        })
+        .collect();
+    state
+        .services
+        .binding_service
+        .create_many(&all_bindings, entity.clone())
+        .await?;
+
+    // 5.5. IfEntries (depends on hosts)
+    // Resolve neighbor relationships in memory before inserting, so we can set
+    // neighbor_if_entry_id directly and avoid N individual UPDATEs after insert.
+    {
+        use crate::server::if_entries::r#impl::base::Neighbor;
+        use std::collections::HashMap;
+
+        let host_id_to_name: HashMap<Uuid, String> = all_hosts
+            .iter()
+            .map(|h| (h.id, h.base.name.clone()))
+            .collect();
+
+        let mut if_entry_lookup: HashMap<(String, i32), Uuid> = HashMap::new();
+        for entry in &demo_data.if_entries {
+            if let Some(host_name) = host_id_to_name.get(&entry.base.host_id) {
+                if_entry_lookup.insert((host_name.clone(), entry.base.if_index), entry.id);
+            }
+        }
+
+        // Build a map of source_if_entry_id -> target_if_entry_id
+        let mut neighbor_map: HashMap<Uuid, Uuid> = HashMap::new();
+        for neighbor_update in &demo_data.neighbor_updates {
+            let source_key = (
+                neighbor_update.source_host_name.clone(),
+                neighbor_update.source_if_index,
+            );
+            let target_key = (
+                neighbor_update.target_host_name.clone(),
+                neighbor_update.target_if_index,
+            );
+            if let (Some(&source_id), Some(&target_id)) = (
+                if_entry_lookup.get(&source_key),
+                if_entry_lookup.get(&target_key),
+            ) {
+                neighbor_map.insert(source_id, target_id);
+            }
+        }
+
+        // Apply neighbors to if_entries before inserting
+        let mut if_entries = demo_data.if_entries;
+        for entry in &mut if_entries {
+            if let Some(&target_id) = neighbor_map.get(&entry.id) {
+                entry.base.neighbor = Some(Neighbor::IfEntry(target_id));
+            }
+        }
+
         state
             .services
-            .group_service
-            .create(group, entity.clone())
+            .if_entry_service
+            .create_many(&if_entries, entity.clone())
             .await?;
     }
 
-    // 9. Topologies (depends on networks)
-    for topology in demo_data.topologies {
+    // 6. Daemons (depends on hosts, networks, subnets)
+    state
+        .services
+        .daemon_service
+        .storage()
+        .create_many(&demo_data.daemons)
+        .await?;
+
+    // 7. Daemon API Keys (depends on networks)
+    state
+        .services
+        .daemon_api_key_service
+        .storage()
+        .create_many(&demo_data.api_keys)
+        .await?;
+
+    // 8. Discoveries (depends on daemons, networks, subnets)
+    state
+        .services
+        .discovery_service
+        .storage()
+        .create_many(&demo_data.discoveries)
+        .await?;
+
+    // 9. Groups — generate with created services to get correct binding IDs
+    let groups = generate_groups(&created_networks, &created_services, &created_tags);
+    state
+        .services
+        .group_service
+        .create_many(&groups, entity.clone())
+        .await?;
+
+    // 10. Topologies (depends on networks)
+    state
+        .services
+        .topology_service
+        .storage()
+        .create_many(&demo_data.topologies)
+        .await?;
+
+    // 10.5. Bulk insert all entity tags (single INSERT for all tagged entities)
+    if !all_entity_tags.is_empty() {
         state
             .services
-            .topology_service
-            .create(topology, entity.clone())
+            .entity_tag_service
+            .create_many(&all_entity_tags)
             .await?;
     }
 
-    // 10. Shares (depends on topologies)
-    for share in demo_data.shares {
-        state
-            .services
-            .share_service
-            .create(share, entity.clone())
-            .await?;
-    }
+    // 11. Shares (depends on topologies)
+    state
+        .services
+        .share_service
+        .storage()
+        .create_many(&demo_data.shares)
+        .await?;
 
-    // Create admin user
+    // 12. Demo admin user
     let password = hash_password("password123")?;
     let mut demo_admin = User::new(UserBase::new_password(
         EmailAddress::new_unchecked("demo@scanopy.net"),
@@ -539,7 +580,7 @@ pub async fn populate_demo_data(
         .create(demo_admin, entity.clone())
         .await?;
 
-    // 11. User API Keys (depends on demo admin user)
+    // 13. User API Keys (depends on demo admin user + network access junction table)
     for (api_key, network_ids) in demo_data.user_api_keys {
         state
             .services
@@ -552,88 +593,181 @@ pub async fn populate_demo_data(
     Ok(Json(ApiResponse::success(())))
 }
 
-/// Internal function to reset organization data (reused by populate_demo_data)
+/// Internal function to reset organization data (reused by populate_demo_data).
+///
+/// Uses direct storage-level bulk deletes instead of service-level `delete_all_for_org`
+/// to avoid O(N) per-entity tag removal and event publishing. This is safe because:
+/// - We're deleting the entire org's data, not selective entities
+/// - Tags are deleted first, and `tag_id REFERENCES tags(id) ON DELETE CASCADE`
+///   automatically cleans up all entity_tags — no per-entity removal needed
+/// - Event publishing during a full demo reset is unnecessary
 async fn reset_organization_data(
     state: &Arc<AppState>,
     organization_id: &Uuid,
-    auth: AuthenticatedEntity,
+    _auth: AuthenticatedEntity,
 ) -> Result<(), ApiError> {
+    use crate::server::credentials::r#impl::base::Credential;
+    use crate::server::daemon_api_keys::r#impl::base::DaemonApiKey;
+    use crate::server::daemons::r#impl::base::Daemon;
+    use crate::server::discovery::r#impl::base::Discovery;
+    use crate::server::groups::r#impl::base::Group;
+    use crate::server::hosts::r#impl::base::Host;
+    use crate::server::if_entries::r#impl::base::IfEntry;
+    use crate::server::interfaces::r#impl::base::Interface;
+    use crate::server::invites::r#impl::base::Invite;
+    use crate::server::ports::r#impl::base::Port;
+    use crate::server::services::r#impl::base::Service;
+    use crate::server::shares::r#impl::base::Share;
+    use crate::server::subnets::r#impl::base::Subnet;
+    use crate::server::tags::r#impl::base::Tag;
+    use crate::server::topology::types::base::Topology;
+    use crate::server::user_api_keys::r#impl::base::UserApiKey;
+
     let org_filter = StorableFilter::<Network>::new_from_org_id(organization_id);
     let network_ids: Vec<Uuid> = state
         .services
         .network_service
-        .get_all(org_filter.clone())
+        .get_all(org_filter)
         .await?
         .iter()
         .map(|n| n.id)
         .collect();
 
-    // Delete all data except org and owner user
-    // Order matters due to foreign keys:
-    // 1. Shares depend on topologies/networks
-    // 2. Discoveries depend on daemons/networks
-    // 3. Daemons depend on hosts/networks
-    // 4. Hosts/services depend on networks
-    // 5. Topologies depend on networks
-    // 6. API keys (daemon + user) depend on networks/users
-    // 7. Networks, credentials, tags, invites
+    // 1. Delete tags FIRST — CASCADE on tag_id cleans up all entity_tags automatically.
+    //    This eliminates the O(N) per-entity remove_all_for_entity calls that were
+    //    the primary bottleneck on high-latency databases (Neon).
+    state
+        .services
+        .tag_service
+        .storage()
+        .delete_by_filter(StorableFilter::<Tag>::new_from_org_id(organization_id))
+        .await?;
+
+    // 2. Delete all remaining data except org and owner user.
+    //    Order matters due to foreign keys:
+    //    - Shares depend on topologies/networks
+    //    - Discoveries depend on daemons/networks
+    //    - Daemons depend on hosts/networks
+    //    - Hosts/services depend on networks
+    //    - Topologies depend on networks
+    //    - API keys (daemon + user) depend on networks/users
+    //    - Networks, credentials, invites
+    let net_filter = &network_ids;
+
     state
         .services
         .share_service
-        .delete_all_for_org(organization_id, &network_ids, auth.clone())
+        .storage()
+        .delete_by_filter(StorableFilter::<Share>::new_from_network_ids(net_filter))
+        .await?;
+    state
+        .services
+        .group_service
+        .storage()
+        .delete_by_filter(StorableFilter::<Group>::new_from_network_ids(net_filter))
         .await?;
     state
         .services
         .discovery_service
-        .delete_all_for_org(organization_id, &network_ids, auth.clone())
+        .storage()
+        .delete_by_filter(StorableFilter::<Discovery>::new_from_network_ids(
+            net_filter,
+        ))
         .await?;
     state
         .services
         .daemon_service
-        .delete_all_for_org(organization_id, &network_ids, auth.clone())
+        .storage()
+        .delete_by_filter(StorableFilter::<Daemon>::new_from_network_ids(net_filter))
+        .await?;
+    state
+        .services
+        .if_entry_service
+        .storage()
+        .delete_by_filter(StorableFilter::<IfEntry>::new_from_network_ids(net_filter))
+        .await?;
+    state
+        .services
+        .binding_service
+        .storage()
+        .delete_by_filter(StorableFilter::<Binding>::new_from_network_ids(net_filter))
+        .await?;
+    state
+        .services
+        .service_service
+        .storage()
+        .delete_by_filter(StorableFilter::<Service>::new_from_network_ids(net_filter))
+        .await?;
+    state
+        .services
+        .port_service
+        .storage()
+        .delete_by_filter(StorableFilter::<Port>::new_from_network_ids(net_filter))
+        .await?;
+    state
+        .services
+        .interface_service
+        .storage()
+        .delete_by_filter(StorableFilter::<Interface>::new_from_network_ids(
+            net_filter,
+        ))
         .await?;
     state
         .services
         .host_service
-        .delete_all_for_org(organization_id, &network_ids, auth.clone())
+        .storage()
+        .delete_by_filter(StorableFilter::<Host>::new_from_network_ids(net_filter))
+        .await?;
+    state
+        .services
+        .subnet_service
+        .storage()
+        .delete_by_filter(StorableFilter::<Subnet>::new_from_network_ids(net_filter))
         .await?;
     state
         .services
         .topology_service
-        .delete_all_for_org(organization_id, &network_ids, auth.clone())
+        .storage()
+        .delete_by_filter(StorableFilter::<Topology>::new_from_network_ids(net_filter))
         .await?;
     state
         .services
         .daemon_api_key_service
-        .delete_all_for_org(organization_id, &network_ids, auth.clone())
+        .storage()
+        .delete_by_filter(StorableFilter::<DaemonApiKey>::new_from_network_ids(
+            net_filter,
+        ))
         .await?;
     state
         .services
         .user_api_key_service
-        .delete_all_for_org(organization_id, &network_ids, auth.clone())
+        .storage()
+        .delete_by_filter(StorableFilter::<UserApiKey>::new_from_org_id(
+            organization_id,
+        ))
         .await?;
     state
         .services
         .network_service
-        .delete_all_for_org(organization_id, &network_ids, auth.clone())
+        .storage()
+        .delete_by_filter(StorableFilter::<Network>::new_from_org_id(organization_id))
         .await?;
     state
         .services
         .invite_service
-        .delete_all_for_org(organization_id, &network_ids, auth.clone())
+        .storage()
+        .delete_by_filter(StorableFilter::<Invite>::new_from_org_id(organization_id))
         .await?;
     state
         .services
-        .snmp_credential_service
-        .delete_all_for_org(organization_id, &network_ids, auth.clone())
-        .await?;
-    state
-        .services
-        .tag_service
-        .delete_all_for_org(organization_id, &network_ids, auth.clone())
+        .credential_service
+        .storage()
+        .delete_by_filter(StorableFilter::<Credential>::new_from_org_id(
+            organization_id,
+        ))
         .await?;
 
-    // Delete non-owner users
+    // 3. Delete non-owner users
     let user_filter = StorableFilter::<User>::new_from_org_id(organization_id);
     let non_owner_user_ids: Vec<Uuid> = state
         .services
@@ -650,11 +784,14 @@ async fn reset_organization_data(
         })
         .collect();
 
-    state
-        .services
-        .user_service
-        .delete_many(&non_owner_user_ids, auth)
-        .await?;
+    if !non_owner_user_ids.is_empty() {
+        state
+            .services
+            .user_service
+            .storage()
+            .delete_many(&non_owner_user_ids)
+            .await?;
+    }
 
     Ok(())
 }

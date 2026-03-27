@@ -85,22 +85,6 @@ impl Storable for EntityTag {
         self.base.clone()
     }
 
-    fn id(&self) -> Uuid {
-        self.id
-    }
-
-    fn created_at(&self) -> DateTime<Utc> {
-        self.created_at
-    }
-
-    fn set_id(&mut self, id: Uuid) {
-        self.id = id;
-    }
-
-    fn set_created_at(&mut self, time: DateTime<Utc>) {
-        self.created_at = time;
-    }
-
     fn to_params(&self) -> Result<(Vec<&'static str>, Vec<SqlValue>)> {
         Ok((
             vec!["id", "entity_id", "entity_type", "tag_id", "created_at"],
@@ -261,6 +245,12 @@ impl EntityTagStorage {
 
         self.storage.delete_by_filter(filter).await?;
         Ok(())
+    }
+
+    /// Bulk insert pre-built EntityTag records. Skips validation — caller must
+    /// ensure tags exist. Uses a single INSERT for all records.
+    pub async fn create_many(&self, entity_tags: &[EntityTag]) -> Result<Vec<EntityTag>> {
+        self.storage.create_many(entity_tags).await
     }
 
     /// Bulk add a tag to multiple entities.
@@ -468,6 +458,12 @@ impl EntityTagService {
     // =========================================================================
     // Bulk Operations
     // =========================================================================
+
+    /// Bulk insert pre-built EntityTag records. Skips validation — caller must
+    /// ensure tags exist. Single INSERT for all records.
+    pub async fn create_many(&self, entity_tags: &[EntityTag]) -> Result<Vec<EntityTag>> {
+        self.storage.create_many(entity_tags).await
+    }
 
     /// Add a tag to multiple entities.
     ///

@@ -27,10 +27,28 @@ use tokio::net::UdpSocket;
 use tokio::{net::TcpStream, time::timeout};
 use tokio_util::sync::CancellationToken;
 
+use crate::server::credentials::r#impl::mapping::SnmpQueryCredential;
 use crate::server::ports::r#impl::base::{PortType, TransportProtocol};
-use crate::server::snmp_credentials::r#impl::discovery::SnmpQueryCredential;
 
 pub const SCAN_TIMEOUT: Duration = Duration::from_millis(800);
+
+/// Read response body until a deadline, returning whatever was downloaded.
+/// Service identification only needs enough body to find identifying strings
+/// (e.g., "portainer.io" in a 22KB page). Streaming with a deadline ensures
+/// we get partial data instead of failing entirely when large responses
+/// exceed the timeout.
+pub async fn read_response_body_until_deadline(
+    response: reqwest::Response,
+    deadline: tokio::time::Instant,
+) -> String {
+    use futures::StreamExt;
+    let mut body_bytes = Vec::new();
+    let mut stream = response.bytes_stream();
+    while let Ok(Some(Ok(chunk))) = tokio::time::timeout_at(deadline, stream.next()).await {
+        body_bytes.extend_from_slice(&chunk);
+    }
+    String::from_utf8_lossy(&body_bytes).to_string()
+}
 
 /// Default port scan batch size - number of ports scanned concurrently per host
 pub const PORT_SCAN_BATCH_SIZE: usize = 200;
@@ -440,7 +458,7 @@ pub async fn scan_tcp_ports(
     )
     .await;
 
-    tracing::debug!(
+    tracing::trace!(
         ip = %ip,
         ports_scanned = %ports.len(),
         responses = %open_ports.len(),
@@ -459,13 +477,17 @@ pub async fn scan_udp_ports(
     scan_rate_pps: u32,
     cidr: IpCidr,
     gateway_ips: Vec<IpAddr>,
-    snmp_credential: Option<&SnmpQueryCredential>,
+    snmp_credentials: &[SnmpQueryCredential],
 ) -> Result<Vec<PortType>, Error> {
     let discovery_ports = Service::all_discovery_ports();
-    let ports: Vec<u16> = discovery_ports
+
+    // Separate SNMP ports from other UDP ports
+    let snmp_port_numbers: Vec<u16> = vec![161, 1161];
+    let other_ports: Vec<u16> = discovery_ports
         .iter()
         .filter(|p| p.protocol() == TransportProtocol::Udp)
         .map(|p| p.number())
+        .filter(|p| !snmp_port_numbers.contains(p))
         .collect();
 
     // UDP is slower and less reliable, cap at 10 concurrent
@@ -473,52 +495,77 @@ pub async fn scan_udp_ports(
 
     let is_gateway = gateway_ips.contains(&ip);
 
-    // UDP rate limiting is less critical but still useful
-    let snmp_credential_clone = snmp_credential.cloned();
-    let open_ports = batch_scan(
-        ports.clone(),
+    // 1. Batch-scan non-SNMP UDP ports concurrently (DNS, NTP, DHCP, BACnet, etc.)
+    let mut open_ports = batch_scan(
+        other_ports.clone(),
         udp_batch_size,
         scan_rate_pps,
-        cancel,
-        |port| {
-            let snmp_cred = snmp_credential_clone.clone();
-            async move {
-                let result = match port {
-                    53 => test_dns_service(ip).await,
-                    123 => test_ntp_service(ip).await,
-                    161 => test_snmp_service(ip, snmp_cred.as_ref()).await,
-                    67 => {
-                        if is_gateway {
-                            test_dhcp_service(ip, &cidr).await
-                        } else {
-                            Ok(None)
-                        }
+        cancel.clone(),
+        |port| async move {
+            let result = match port {
+                53 => test_dns_service(ip).await,
+                123 => test_ntp_service(ip).await,
+                67 => {
+                    if is_gateway {
+                        test_dhcp_service(ip, &cidr).await
+                    } else {
+                        Ok(None)
                     }
-                    47808 => test_bacnet_service(ip).await,
-                    _ => Ok(None),
-                };
+                }
+                47808 => test_bacnet_service(ip).await,
+                _ => Ok(None),
+            };
 
-                match result {
-                    Ok(Some(detected_port)) => {
-                        tracing::trace!("Found open UDP port {}:{}", ip, detected_port);
-                        Some(PortType::new_udp(detected_port))
+            match result {
+                Ok(Some(detected_port)) => {
+                    tracing::trace!("Found open UDP port {}:{}", ip, detected_port);
+                    Some(PortType::new_udp(detected_port))
+                }
+                Ok(None) => None,
+                Err(e) => {
+                    if DiscoveryCriticalError::is_critical_error(e.to_string()) {
+                        tracing::error!("Critical error scanning UDP {}:{}: {}", ip, port, e);
                     }
-                    Ok(None) => None,
-                    Err(e) => {
-                        if DiscoveryCriticalError::is_critical_error(e.to_string()) {
-                            tracing::error!("Critical error scanning UDP {}:{}: {}", ip, port, e);
-                        }
-                        None
-                    }
+                    None
                 }
             }
         },
     )
     .await;
 
+    // 2. Probe SNMP ports sequentially — one session at a time per host.
+    //    Stagger all credentials across all ports. Don't short-circuit:
+    //    both ports could be open, and different communities can expose different MIB views.
+    if !cancel.is_cancelled() {
+        for &port in &snmp_port_numbers {
+            if cancel.is_cancelled() {
+                break;
+            }
+
+            let mut port_detected = false;
+
+            // Try each credential in specificity order (IP override → network default → public)
+            for cred in snmp_credentials {
+                if let Ok(Some(p)) = try_snmp_with_credential_on_port(ip, cred, port).await {
+                    if !port_detected {
+                        open_ports.push(PortType::new_udp(p));
+                        port_detected = true;
+                    }
+                    break; // port detected with this credential, move to next port
+                }
+            }
+
+            // If no configured credential worked, try hardcoded "public"
+            // (covers case where snmp_credentials is empty)
+            if !port_detected && let Ok(Some(p)) = try_snmp_with_public_on_port(ip, port).await {
+                open_ports.push(PortType::new_udp(p));
+            }
+        }
+    }
+
     tracing::debug!(
         ip = %ip,
-        ports_scanned = %ports.len(),
+        ports_scanned = %(other_ports.len() + snmp_port_numbers.len()),
         responses = %open_ports.len(),
         "UDP ports scanned"
     );
@@ -538,7 +585,7 @@ pub async fn scan_endpoints(
     use std::collections::HashMap;
 
     let client = reqwest::Client::builder()
-        .timeout(SCAN_TIMEOUT)
+        .connect_timeout(SCAN_TIMEOUT)
         .danger_accept_invalid_certs(accept_invalid_certs)
         .build()
         .map_err(|e| anyhow!("Could not build client {}", e))?;
@@ -608,8 +655,12 @@ pub async fn scan_endpoints(
             for url in urls {
                 tracing::trace!("Trying endpoint: {}", url);
 
-                match client.get(&url).send().await {
-                    Ok(response) => {
+                // Timeout covers TCP connect + TLS handshake + response headers.
+                // Body streaming has its own deadline via read_response_body_until_deadline.
+                // Without this, non-HTTP services (e.g. Chromecast port 8009) that accept
+                // TCP but never send HTTP headers would block .send() indefinitely.
+                match timeout(SCAN_TIMEOUT, client.get(&url).send()).await {
+                    Ok(Ok(response)) => {
                         let status = response.status().as_u16();
 
                         let headers = response
@@ -626,32 +677,30 @@ pub async fn scan_endpoints(
                             })
                             .collect();
 
-                        match response.text().await {
-                            Ok(body) => {
-                                tracing::debug!(
-                                    "Endpoint {} returned {} (length: {})",
-                                    url,
-                                    status,
-                                    body.len()
-                                );
-                                return Some(EndpointResponse {
-                                    endpoint: endpoint_with_ip,
-                                    headers,
-                                    body,
-                                    status,
-                                });
-                            }
-                            Err(e) => {
-                                tracing::trace!("Failed to read response from {}: {}", url, e);
-                                continue;
-                            }
-                        }
+                        let deadline = tokio::time::Instant::now() + SCAN_TIMEOUT;
+                        let body = read_response_body_until_deadline(response, deadline).await;
+                        tracing::debug!(
+                            "Endpoint {} returned {} (length: {})",
+                            url,
+                            status,
+                            body.len()
+                        );
+                        return Some(EndpointResponse {
+                            endpoint: endpoint_with_ip,
+                            headers,
+                            body,
+                            status,
+                        });
                     }
-                    Err(e) => {
+                    Ok(Err(e)) => {
                         tracing::trace!("Endpoint {} failed: {}", url, e);
                         if DiscoveryCriticalError::is_critical_error(e.to_string()) {
                             tracing::error!("Critical error scanning endpoint {}: {}", url, e);
                         }
+                        continue;
+                    }
+                    Err(_) => {
+                        tracing::trace!("Endpoint {} timed out waiting for response headers", url);
                         continue;
                     }
                 }
@@ -718,34 +767,21 @@ pub async fn test_ntp_service(ip: IpAddr) -> Result<Option<u16>, Error> {
     }
 }
 
-pub async fn test_snmp_service(
-    ip: IpAddr,
-    credential: Option<&SnmpQueryCredential>,
-) -> Result<Option<u16>, Error> {
-    // Try custom credential first if provided
-    if let Some(cred) = credential
-        && let Ok(Some(port)) = try_snmp_with_credential(ip, cred).await
-    {
-        return Ok(Some(port));
-    }
-    // Always try "public" as fallback
-    try_snmp_with_public(ip).await
-}
-
-/// Try an SNMP GET using a specific credential
-async fn try_snmp_with_credential(
+/// Try an SNMP GET on a specific port using a credential
+async fn try_snmp_with_credential_on_port(
     ip: IpAddr,
     credential: &SnmpQueryCredential,
+    port: u16,
 ) -> Result<Option<u16>, Error> {
     let sys_descr_oid =
         Oid::from(&[1, 3, 6, 1, 2, 1, 1, 1, 0]).map_err(|e| anyhow!("Invalid Oid: {:?}", e))?;
 
-    match crate::daemon::utils::snmp::session::create_session(ip, credential).await {
+    match crate::daemon::utils::snmp::session::create_session(ip, credential, port).await {
         Ok(mut session) => {
             match timeout(Duration::from_millis(2000), session.get(&sys_descr_oid)).await {
                 Ok(Ok(mut response)) => {
                     if response.varbinds.next().is_some() {
-                        Ok(Some(161))
+                        Ok(Some(port))
                     } else {
                         Ok(None)
                     }
@@ -758,12 +794,12 @@ async fn try_snmp_with_credential(
     }
 }
 
-/// Try an SNMP GET using the default "public" community string
-async fn try_snmp_with_public(ip: IpAddr) -> Result<Option<u16>, Error> {
+/// Try an SNMP GET on a specific port using the default "public" community string
+async fn try_snmp_with_public_on_port(ip: IpAddr, port: u16) -> Result<Option<u16>, Error> {
     let sys_descr_oid =
         Oid::from(&[1, 3, 6, 1, 2, 1, 1, 1, 0]).map_err(|e| anyhow!("Invalid Oid: {:?}", e))?;
 
-    let target = format!("{}:161", ip);
+    let target = format!("{}:{}", ip, port);
     let community = b"public";
 
     let session_result = timeout(
@@ -777,7 +813,7 @@ async fn try_snmp_with_public(ip: IpAddr) -> Result<Option<u16>, Error> {
             match timeout(Duration::from_millis(2000), session.get(&sys_descr_oid)).await {
                 Ok(Ok(mut response)) => {
                     if response.varbinds.next().is_some() {
-                        Ok(Some(161))
+                        Ok(Some(port))
                     } else {
                         Ok(None)
                     }

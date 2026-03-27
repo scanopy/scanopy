@@ -62,7 +62,9 @@
 	let hasEmail = $derived(configQuery.data?.has_email_service ?? false);
 
 	let activeNetworkSession = $derived(
-		(sessionsQuery.data ?? []).find((s) => s.discovery_type?.type === 'Network')
+		(sessionsQuery.data ?? []).find(
+			(s) => s.discovery_type?.type === 'Network' || s.discovery_type?.type === 'Unified'
+		)
 	);
 	let isDiscoveryActive = $derived(!!activeNetworkSession);
 
@@ -161,8 +163,8 @@
 		suggestions.push({
 			label: 'Set up SNMP credentials',
 			action: () => {
-				onNavigate('snmp-credentials');
-				openModal('snmp-credential-editor');
+				onNavigate('credentials');
+				openModal('credential-editor');
 			},
 			completed: onboarding.includes('FirstSnmpCredentialCreated')
 		});
@@ -394,7 +396,6 @@
 					</div>
 				{/each}
 			</div>
-
 		</div>
 	</section>
 {/if}

@@ -4,7 +4,6 @@ import {
 	max,
 	ipAddressFormat,
 	min,
-	url,
 	urlWithoutPort,
 	type Validator
 } from '$lib/shared/components/forms/validators';
@@ -109,56 +108,7 @@ export const fieldDefs: FieldDef[] = [
 		validators: [portRangeValidation],
 		showWhen: (values) => values.mode === 'server_poll'
 	},
-	// Docker Discovery
-	{
-		id: 'dockerProxy',
-		label: () => m.daemons_config_dockerProxy(),
-		type: 'string',
-		defaultValue: '',
-		cliFlag: '--docker-proxy',
-		envVar: 'SCANOPY_DOCKER_PROXY',
-		helpText: () => m.daemons_config_dockerProxyHelp(),
-		placeholder: () => m.common_placeholderLocalHostName(),
-		section: () => m.daemons_config_sectionDockerDiscovery(),
-		validators: [url]
-	},
-	{
-		id: 'dockerProxySslCert',
-		label: () => m.daemons_config_dockerProxySslCert(),
-		type: 'string',
-		defaultValue: '',
-		cliFlag: '--docker-proxy-ssl-cert',
-		envVar: 'SCANOPY_DOCKER_PROXY_SSL_CERT',
-		helpText: () => m.daemons_config_dockerProxySslCertHelp(),
-		placeholder: () => m.common_placeholderSslCert(),
-		section: () => m.daemons_config_sectionDockerDiscovery(),
-		validators: []
-	},
-	{
-		id: 'dockerProxySslKey',
-		label: () => m.daemons_config_dockerProxySslKey(),
-		type: 'string',
-		defaultValue: '',
-		cliFlag: '--docker-proxy-ssl-key',
-		envVar: 'SCANOPY_DOCKER_PROXY_SSL_KEY',
-		helpText: () => m.daemons_config_dockerProxySslKeyHelp(),
-		placeholder: () => m.common_placeholderSslKey(),
-		section: () => m.daemons_config_sectionDockerDiscovery(),
-		validators: []
-	},
-	{
-		id: 'dockerProxySslChain',
-		label: () => m.daemons_config_dockerProxySslChain(),
-		type: 'string',
-		defaultValue: '',
-		cliFlag: '--docker-proxy-ssl-chain',
-		envVar: 'SCANOPY_DOCKER_PROXY_SSL_CHAIN',
-		helpText: () => m.daemons_config_dockerProxySslChainHelp(),
-		placeholder: () => m.common_placeholderSslChain(),
-		section: () => m.daemons_config_sectionDockerDiscovery(),
-		validators: []
-	},
-	// Network Discovery
+	// Runtime
 	{
 		id: 'interfaces',
 		label: () => m.common_interfaces(),
@@ -168,78 +118,7 @@ export const fieldDefs: FieldDef[] = [
 		envVar: 'SCANOPY_INTERFACES',
 		helpText: () => m.daemons_config_interfacesHelp(),
 		placeholder: () => m.common_placeholderInterface(),
-		section: () => m.daemons_config_sectionNetworkDiscovery()
-	},
-	{
-		id: 'arp_retries',
-		label: () => m.daemons_config_arpRetries(),
-		type: 'number',
-		cliFlag: '--arp-retries',
-		envVar: 'SCANOPY_ARP_RETRIES',
-		placeholder: 2,
-		helpText: () => m.daemons_config_arpRetriesHelp(),
-		section: () => m.daemons_config_sectionNetworkDiscovery()
-	},
-	{
-		id: 'scan_rate_pps',
-		label: () => m.daemons_config_portScanPacketsPerSecond(),
-		type: 'number',
-		cliFlag: '--scan-rate-pps',
-		envVar: 'SCANOPY_SCAN_RATE_PPS',
-		placeholder: 500,
-		helpText: () => m.daemons_config_portScanPacketsPerSecondHelp(),
-		section: () => m.daemons_config_sectionNetworkDiscovery()
-	},
-	{
-		id: 'port_scan_batch_size',
-		label: () => m.daemons_config_portScanBatchSize(),
-		type: 'number',
-		cliFlag: '--port-scan-batch-size',
-		envVar: 'SCANOPY_PORT_SCAN_BATCH_SIZE',
-		placeholder: 200,
-		helpText: () => m.daemons_config_portScanBatchSizeHelp(),
-		section: () => m.daemons_config_sectionNetworkDiscovery(),
-		validators: [min(16), max(1000)]
-	},
-	{
-		id: 'arp_rate_pps',
-		label: () => m.daemons_config_arpPacketsPerSecond(),
-		type: 'number',
-		placeholder: 50,
-		cliFlag: '--arp-rate-pps',
-		envVar: 'SCANOPY_ARP_RATE_PPS',
-		helpText: () => m.daemons_config_arpPacketsPerSecondHelp(),
-		section: () => m.daemons_config_sectionNetworkDiscovery()
-	},
-	{
-		id: 'use_npcap_arp',
-		label: () => m.daemons_config_useNpcapArp(),
-		type: 'boolean',
-		defaultValue: false,
-		cliFlag: '--use-npcap-arp',
-		envVar: 'SCANOPY_USE_NPCAP_ARP',
-		helpText: () => m.daemons_config_useNpcapArpHelp(),
-		section: () => m.daemons_config_sectionNetworkDiscovery()
-	},
-	{
-		id: 'acceptInvalidScanCerts',
-		label: () => m.daemons_config_acceptInvalidScanCerts(),
-		type: 'boolean',
-		defaultValue: true,
-		cliFlag: '--accept-invalid-scan-certs',
-		envVar: 'SCANOPY_ACCEPT_INVALID_SCAN_CERTS',
-		helpText: () => m.daemons_config_acceptInvalidScanCertsHelp(),
-		section: () => m.daemons_config_sectionNetworkDiscovery()
-	},
-	{
-		id: 'concurrentScans',
-		label: () => m.daemons_config_concurrentScans(),
-		type: 'number',
-		cliFlag: '--concurrent-scans',
-		envVar: 'SCANOPY_CONCURRENT_SCANS',
-		helpText: () => m.daemons_config_concurrentScansHelp(),
-		placeholder: () => m.common_auto(),
-		section: () => m.daemons_config_sectionNetworkDiscovery()
+		section: () => m.common_runtime()
 	},
 	// Server Connection
 	{
@@ -266,7 +145,7 @@ export const fieldDefs: FieldDef[] = [
 		section: () => m.daemons_config_sectionServerConnection(),
 		showWhen: (values) => values.mode === 'daemon_poll'
 	},
-	// Performance
+	// Runtime
 	{
 		id: 'logLevel',
 		label: () => m.daemons_config_logLevel(),
@@ -275,7 +154,7 @@ export const fieldDefs: FieldDef[] = [
 		cliFlag: '--log-level',
 		envVar: 'SCANOPY_LOG_LEVEL',
 		helpText: () => m.daemons_config_logLevelHelp(),
-		section: () => m.common_performance(),
+		section: () => m.common_runtime(),
 		options: [
 			{ label: () => m.common_trace(), value: 'trace' },
 			{ label: () => m.common_debug(), value: 'debug' },
@@ -292,7 +171,7 @@ export const fieldDefs: FieldDef[] = [
 		cliFlag: '--heartbeat-interval',
 		envVar: 'SCANOPY_HEARTBEAT_INTERVAL',
 		helpText: () => m.daemons_config_heartbeatIntervalHelp(),
-		section: () => m.common_performance(),
+		section: () => m.common_runtime(),
 		validators: [min(0), max(300)],
 		showWhen: (values) => values.mode === 'daemon_poll'
 	}
@@ -309,15 +188,6 @@ export const sectionDefs: Record<
 		docsHint?: { text: () => string; href: string; linkText: () => string };
 	}
 > = {
-	'Docker Discovery': {
-		description: () => m.daemons_config_sectionDockerDiscoveryDesc(),
-		docsHint: {
-			text: () => m.daemons_docsDockerProxy(),
-			href: 'https://scanopy.net/docs/guides/docker-proxy/',
-			linkText: () => m.daemons_docsDockerProxyLinkText()
-		}
-	},
-	'Network Discovery': { description: () => m.daemons_config_sectionNetworkDiscoveryDesc() },
 	'Server Connection': { description: () => m.daemons_config_sectionServerConnectionDesc() },
-	Performance: { description: () => m.daemons_config_sectionPerformanceDesc() }
+	Runtime: { description: () => m.daemons_config_sectionRuntimeDesc() }
 };

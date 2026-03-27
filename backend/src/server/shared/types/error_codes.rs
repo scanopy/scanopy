@@ -154,6 +154,13 @@ pub enum ErrorCode {
     DaemonIdentityMismatch,
     /// Daemon is on standby due to plan restrictions
     DaemonStandby,
+    /// Daemon record not found — deleted or database was reset
+    DaemonNotRegistered,
+    /// Daemon version is older than the server version
+    DaemonVersionTooOld {
+        daemon_version: String,
+        server_version: String,
+    },
 
     // === User ===
     /// Email is already in use
@@ -245,10 +252,7 @@ impl ErrorCode {
             Self::EntityExpired { .. } => "This {entity} has expired",
             Self::EntityDisabled { .. } => "This {entity} is disabled",
             Self::EntityRequired { .. } => "At least one {entity} is required",
-            Self::EntityDeleteForbidden { reason: None, .. } => "Cannot delete this {entity}",
-            Self::EntityDeleteForbidden {
-                reason: Some(_), ..
-            } => "Cannot delete this {entity}: {reason}",
+            Self::EntityDeleteForbidden { .. } => "Cannot delete this {entity}: {reason}",
             Self::EntityUpdateForbidden { .. } => "Cannot update this {entity}",
             Self::EntityNetworkMismatch { .. } => "{entity} is on a different network",
 
@@ -284,6 +288,12 @@ impl ErrorCode {
             Self::DaemonIdentityMismatch => "Cannot send updates for a different daemon",
             Self::DaemonStandby => {
                 "Your plan does not support DaemonPoll mode. The daemon is on standby. Upgrade your plan and restart the daemon to resume."
+            }
+            Self::DaemonNotRegistered => {
+                "Daemon not found on server. It may have been deleted or the database was reset. Reinstall or reconfigure the daemon."
+            }
+            Self::DaemonVersionTooOld { .. } => {
+                "Daemon version {daemon_version} is older than server version {server_version}. Update the daemon to match the server version."
             }
 
             // User
@@ -347,6 +357,7 @@ impl ErrorCode {
             | Self::DaemonNetworkMismatch
             | Self::DaemonIdentityMismatch
             | Self::DaemonStandby
+            | Self::DaemonNotRegistered
             | Self::BillingPaymentRequired
             | Self::BillingSubscriptionRequired
             | Self::BillingSetupIncomplete
@@ -388,10 +399,10 @@ impl ErrorCode {
             | Self::EntityRequired { entity }
             | Self::EntityUpdateForbidden { entity }
             | Self::EntityNetworkMismatch { entity } => Some(json_map! { "entity" => entity }),
-            Self::EntityDeleteForbidden { entity, reason } => match reason {
-                Some(r) => Some(json_map! { "entity" => entity, "reason" => r }),
-                None => Some(json_map! { "entity" => entity }),
-            },
+            Self::EntityDeleteForbidden { entity, reason } => Some(json_map! {
+                "entity" => entity,
+                "reason" => reason.as_deref().unwrap_or("")
+            }),
 
             // Domain-specific with params
             Self::HostsConsolidateFailed { reason } => Some(json_map! { "reason" => reason }),
@@ -404,6 +415,12 @@ impl ErrorCode {
             Self::InterfaceIpOutOfRange { ip, subnet } => {
                 Some(json_map! { "ip" => ip, "subnet" => subnet })
             }
+            Self::DaemonVersionTooOld {
+                daemon_version,
+                server_version,
+            } => Some(
+                json_map! { "daemon_version" => daemon_version, "server_version" => server_version },
+            ),
             Self::UserEmailInUse { email } => Some(json_map! { "email" => email }),
             Self::BillingPlanLimitReached { resource, limit } => {
                 Some(json_map! { "resource" => resource, "limit" => limit })

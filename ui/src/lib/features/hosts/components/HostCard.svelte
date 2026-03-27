@@ -6,13 +6,13 @@
 	import { concepts, entities, serviceDefinitions } from '$lib/shared/stores/metadata';
 	import { useServicesCacheQuery } from '$lib/features/services/queries';
 	import { useInterfacesQuery } from '$lib/features/interfaces/queries';
-	import { useDaemonsQuery } from '$lib/features/daemons/queries';
 	import { useSubnetsQuery, isContainerSubnet } from '$lib/features/subnets/queries';
 	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
 	import { entityRef } from '$lib/shared/components/data/types';
 	import {
 		common_consolidate,
 		common_containers,
+		common_credentials,
 		common_delete,
 		common_description,
 		common_edit,
@@ -28,20 +28,21 @@
 		hosts_vmManagedBy
 	} from '$lib/paraglide/messages';
 	import { useIfEntriesQuery } from '$lib/features/ifEntries/queries';
+	import { useCredentialsQuery } from '$lib/features/credentials/queries';
 
 	// Queries
 	const servicesQuery = useServicesCacheQuery();
 	const interfacesQuery = useInterfacesQuery();
 	const ifEntriesQuery = useIfEntriesQuery();
-	const daemonsQuery = useDaemonsQuery();
 	const subnetsQuery = useSubnetsQuery();
+	const credentialsQuery = useCredentialsQuery();
 
 	// Derived data
 	let servicesData = $derived(servicesQuery.data ?? []);
 	let interfacesData = $derived(interfacesQuery.data ?? []);
 	let ifEntriesData = $derived(ifEntriesQuery.data ?? []);
-	let daemonsData = $derived(daemonsQuery.data ?? []);
 	let subnetsData = $derived(subnetsQuery.data ?? []);
+	let credentialsData = $derived(credentialsQuery.data ?? []);
 
 	// Helper to check if subnet is a container subnet
 	let isContainerSubnetFn = $derived((subnetId: string) => {
@@ -69,8 +70,6 @@
 		onSelectionChange?: (selected: boolean) => void;
 	} = $props();
 
-	let hasDaemon = $derived(daemonsData.some((d) => d.host_id == host.id));
-
 	// Get filtered data for this host, sorted by position
 	let hostServices = $derived(
 		servicesData
@@ -79,6 +78,11 @@
 	);
 	let hostInterfaces = $derived(interfacesData.filter((i) => i.host_id === host.id));
 	let hostIfEntries = $derived(ifEntriesData.filter((i) => i.host_id === host.id));
+	let hostCredentials = $derived(
+		(host.credential_assignments ?? [])
+			.map((a: { credential_id: string }) => credentialsData.find((c) => c.id === a.credential_id))
+			.filter((c): c is NonNullable<typeof c> => c != null)
+	);
 	let virtualizationService = $derived(
 		host.virtualization
 			? servicesData.find((s) => s.id === host.virtualization?.details.service_id)
@@ -163,6 +167,15 @@
 					emptyText: hosts_noInterfaces()
 				},
 				{
+					label: common_credentials(),
+					value: hostCredentials.map((c) => ({
+						id: c.id,
+						label: c.name,
+						color: entities.getColorHelper('Credential').color,
+						entityRef: entityRef('Credential', c.id, c)
+					}))
+				},
+				{
 					label: common_ifEntries(),
 					value: hostIfEntries.map((i) => ({
 						id: i.id,
@@ -180,8 +193,7 @@
 								label: common_delete(),
 								icon: Trash2,
 								class: 'btn-icon-danger',
-								onClick: () => onDelete(host),
-								disabled: hasDaemon
+								onClick: () => onDelete(host)
 							}
 						]
 					: []),

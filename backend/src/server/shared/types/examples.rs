@@ -8,12 +8,12 @@ use chrono::{TimeZone, Utc};
 use cidr::{IpCidr, Ipv4Cidr};
 use email_address::EmailAddress;
 use mac_address::MacAddress;
-use secrecy::SecretString;
 use semver::Version;
 use std::net::{IpAddr, Ipv4Addr};
 
 use crate::server::{
     bindings::r#impl::base::Binding,
+    credentials::r#impl::mapping::SnmpCredentialMapping,
     daemon_api_keys::r#impl::base::{DaemonApiKey, DaemonApiKeyBase},
     daemons::r#impl::{
         api::DaemonCapabilities,
@@ -43,10 +43,6 @@ use crate::server::{
         r#impl::base::{Service, ServiceBase},
     },
     shared::types::{Color, entities::EntitySource},
-    snmp_credentials::r#impl::{
-        base::{SnmpCredential, SnmpCredentialBase, SnmpVersion},
-        discovery::SnmpCredentialMapping,
-    },
     subnets::r#impl::{
         base::{Subnet, SubnetBase},
         types::SubnetType,
@@ -83,7 +79,6 @@ pub mod ids {
     pub const USER: Uuid = Uuid::from_u128(0x550e8400_e29b_41d4_a716_44665544000d);
     pub const DISCOVERY: Uuid = Uuid::from_u128(0x550e8400_e29b_41d4_a716_44665544000e);
     pub const IF_ENTRY: Uuid = Uuid::from_u128(0x550e8400_e29b_41d4_a716_44665544000f);
-    pub const SNMP_CREDENTIAL: Uuid = Uuid::from_u128(0x550e8400_e29b_41d4_a716_446655440010);
 }
 
 /// Example timestamp for created_at/updated_at fields.
@@ -105,7 +100,7 @@ pub fn network() -> Network {
             name: "Home Network".to_string(),
             organization_id: ids::ORGANIZATION,
             tags: vec![],
-            snmp_credential_id: None,
+            credential_ids: vec![],
         },
     }
 }
@@ -131,7 +126,11 @@ pub fn host() -> Host {
             sys_contact: None,
             management_url: None,
             chassis_id: None,
-            snmp_credential_id: None,
+            sys_name: None,
+            manufacturer: None,
+            model: None,
+            serial_number: None,
+            credential_assignments: vec![],
         },
     }
 }
@@ -359,13 +358,15 @@ pub fn discovery() -> Discovery {
                 subnet_ids: Some(vec![ids::SUBNET]),
                 host_naming_fallback: Default::default(),
                 snmp_credentials: SnmpCredentialMapping::default(),
-                probe_raw_socket_ports: false,
             },
             run_type: RunType::AdHoc {
                 last_run: Some(example_timestamp()),
             },
             tags: vec![],
         },
+        scan_count: 0,
+        force_full_scan: false,
+        pending_credential_ids: vec![],
     }
 }
 
@@ -399,22 +400,7 @@ pub fn if_entry() -> IfEntry {
             cdp_port_id: None,
             cdp_platform: None,
             cdp_address: None,
-        },
-    }
-}
-
-/// Example SnmpCredential entity.
-pub fn snmp_credential() -> SnmpCredential {
-    SnmpCredential {
-        id: ids::SNMP_CREDENTIAL,
-        created_at: example_timestamp(),
-        updated_at: example_timestamp(),
-        base: SnmpCredentialBase {
-            organization_id: ids::ORGANIZATION,
-            name: "Default SNMPv2c".to_string(),
-            version: SnmpVersion::V2c,
-            community: SecretString::from("public".to_string()),
-            tags: Vec::new(),
+            fdb_macs: None,
         },
     }
 }
@@ -443,7 +429,7 @@ pub fn create_host_request() -> CreateHostRequest {
         sys_contact: None,
         management_url: None,
         chassis_id: None,
-        snmp_credential_id: None,
+        credential_assignments: vec![],
         interfaces: vec![InterfaceInput {
             id: ids::INTERFACE,
             subnet_id: ids::SUBNET,

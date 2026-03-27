@@ -1335,7 +1335,7 @@
     "category": "Virtualization",
     "color": "Indigo",
     "description": "Docker",
-    "discovery_pattern": "No match pattern provided",
+    "discovery_pattern": "Client probe Docker succeeded",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/docker.svg",
     "name": "Docker"
@@ -2046,10 +2046,28 @@
     "category": "SNMP",
     "color": "Pink",
     "description": "Simple Network Management Protocol",
-    "discovery_pattern": "161/udp is open",
+    "discovery_pattern": "Any of: (161/udp is open, 1161/udp is open)",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "SNMP"
+  },
+  {
+    "category": "NetworkCore",
+    "color": "Yellow",
+    "description": "A Salt Proxy server acts as a proxy between the Salt Master and the minions.",
+    "discovery_pattern": "All of: (4505/tcp is open, 4506/tcp is open, 8022/tcp is open)",
+    "logo_needs_white_background": false,
+    "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/salt-project.svg",
+    "name": "Salt Proxy"
+  },
+  {
+    "category": "NetworkCore",
+    "color": "Yellow",
+    "description": "A Salt master server acts as a central control bus for the clients, which are called minions.",
+    "discovery_pattern": "All of: (4505/tcp is open, 4506/tcp is open, Not (8022/tcp is open))",
+    "logo_needs_white_background": false,
+    "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/salt-project.svg",
+    "name": "Salt Master"
   },
   {
     "category": "NetworkCore",

@@ -12,6 +12,11 @@
 	import { formatTimestamp } from '$lib/shared/utils/formatting';
 	import { entityRef } from '$lib/shared/components/data/types';
 	import DiscoveryEstimation from '../DiscoveryEstimation.svelte';
+	import {
+		common_notApplicable,
+		discovery_scanModeFull,
+		discovery_scanModeLight
+	} from '$lib/paraglide/messages';
 
 	// Props
 	let {
@@ -70,6 +75,15 @@
 			{
 				label: 'Started',
 				value: session.started_at ? formatTimestamp(session.started_at) : 'Not Yet'
+			},
+			{
+				label: 'Scan Mode',
+				value:
+					session.discovery_type.type === 'Unified'
+						? session.discovery_type.scan_settings?.is_full_scan
+							? discovery_scanModeFull()
+							: discovery_scanModeLight()
+						: common_notApplicable()
 			},
 			{
 				label: 'Session ID',

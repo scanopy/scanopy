@@ -2,9 +2,10 @@ use crate::daemon::runtime::state::DaemonStatus;
 use crate::server::auth::middleware::permissions::{Authorized, IsDaemon, Member, Viewer};
 use crate::server::daemon_api_keys::r#impl::base::{DaemonApiKey, DaemonApiKeyBase};
 use crate::server::daemons::r#impl::api::{
-    DaemonHeartbeatPayload, ProvisionDaemonRequest, ProvisionDaemonResponse,
-    TestReachabilityRequest, TestReachabilityResponse,
+    DaemonDiscoveryRequest, DaemonHeartbeatPayload, ProvisionDaemonRequest,
+    ProvisionDaemonResponse, TestReachabilityRequest, TestReachabilityResponse,
 };
+use crate::server::discovery::r#impl::types::DiscoveryType;
 use crate::server::openapi::SERVER_VERSION;
 use crate::server::shared::api_key_common::{ApiKeyType, generate_api_key_for_storage};
 use crate::server::shared::entities::EntityDiscriminants;
@@ -144,12 +145,86 @@ mod generated {
     crate::crud_export_csv_handler!(Daemon);
 }
 
+/// Returns a conflict error when trying to delete a daemon with active discovery sessions.
+fn active_session_error() -> ApiError {
+    ApiError::coded(
+        StatusCode::CONFLICT,
+        ErrorCode::EntityDeleteForbidden {
+            entity: "daemon".to_string(),
+            reason: Some("has active discovery sessions — cancel the discovery first".to_string()),
+        },
+    )
+}
+
+/// Delete daemon — blocks if daemon has active discovery sessions.
+#[utoipa::path(
+    delete,
+    path = "/{id}",
+    tag = "daemons",
+    operation_id = "delete_daemon",
+    summary = "Delete daemon",
+    params(("id" = Uuid, Path, description = "daemon ID")),
+    responses(
+        (status = 200, description = "daemon deleted", body = EmptyApiResponse),
+        (status = 404, description = "daemon not found", body = ApiErrorResponse),
+        (status = 409, description = "daemon has active sessions", body = ApiErrorResponse),
+    ),
+    security(("user_api_key" = []), ("session" = []))
+)]
+async fn delete_daemon(
+    state: State<Arc<AppState>>,
+    auth: Authorized<Member>,
+    Path(id): Path<Uuid>,
+) -> ApiResult<Json<ApiResponse<()>>> {
+    if state
+        .services
+        .discovery_service
+        .has_active_session_for_daemon(&id)
+        .await
+    {
+        return Err(active_session_error());
+    }
+    generated::delete(state, auth, Path(id)).await
+}
+
+/// Bulk delete daemons — blocks if any daemon has active discovery sessions.
+#[utoipa::path(
+    post,
+    path = "/bulk-delete",
+    tag = "daemons",
+    operation_id = "bulk_delete_daemons",
+    summary = "Bulk delete daemons",
+    request_body(content = Vec<Uuid>, description = "Array of daemon IDs to delete"),
+    responses(
+        (status = 200, description = "daemons deleted", body = ApiResponse<crate::server::shared::handlers::traits::BulkDeleteResponse>),
+        (status = 409, description = "daemon has active sessions", body = ApiErrorResponse),
+    ),
+    security(("user_api_key" = []), ("session" = []))
+)]
+async fn bulk_delete_daemons(
+    state: State<Arc<AppState>>,
+    auth: Authorized<Member>,
+    Json(ids): Json<Vec<Uuid>>,
+) -> ApiResult<Json<ApiResponse<crate::server::shared::handlers::traits::BulkDeleteResponse>>> {
+    for id in &ids {
+        if state
+            .services
+            .discovery_service
+            .has_active_session_for_daemon(id)
+            .await
+        {
+            return Err(active_session_error());
+        }
+    }
+    generated::bulk_delete(state, auth, Json(ids)).await
+}
+
 /// User-facing daemon management endpoints (versioned at /api/v1/daemons)
 pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
     OpenApiRouter::new()
         .routes(routes!(get_all))
-        .routes(routes!(get_by_id, generated::delete))
-        .routes(routes!(generated::bulk_delete))
+        .routes(routes!(get_by_id, delete_daemon))
+        .routes(routes!(bulk_delete_daemons))
         .routes(routes!(generated::export_csv))
         .routes(routes!(provision_daemon))
         .routes(routes!(retry_connection))
@@ -449,8 +524,31 @@ async fn receive_work_request(
         .daemon_service
         .get_by_id(&daemon_id)
         .await
-        .map_err(|e| ApiError::internal_error(&format!("Failed to get daemon: {}", e)))?
-        .ok_or_else(|| ApiError::entity_not_found::<Daemon>(daemon_id))?;
+        .map_err(|e| ApiError::internal_error(&format!("Failed to get daemon: {}", e)))?;
+
+    let daemon = match daemon {
+        Some(d) => d,
+        None => {
+            // Daemon was deleted or DB was reset. Version-split the response:
+            // - Daemons >= 0.15.0 get DaemonNotRegistered (they handle it explicitly)
+            // - Older daemons get DaemonStandby (which they already handle by entering standby)
+            let supports_not_registered = status
+                .version
+                .as_ref()
+                .is_some_and(|v| *v >= semver::Version::new(0, 15, 0));
+            if supports_not_registered {
+                return Err(ApiError::coded(
+                    StatusCode::NOT_FOUND,
+                    ErrorCode::DaemonNotRegistered,
+                ));
+            } else {
+                return Err(ApiError::coded(
+                    StatusCode::FORBIDDEN,
+                    ErrorCode::DaemonStandby,
+                ));
+            }
+        }
+    };
 
     if daemon.base.network_id != daemon_network_id {
         return Err(ApiError::entity_access_denied::<Daemon>(daemon_id));
@@ -505,9 +603,34 @@ async fn receive_work_request(
         );
     }
 
-    // Serialize with SNMP credentials exposed as plaintext.
-    // The daemon deserializes this as DiscoveryUpdatePayload, so we must preserve all fields.
-    let next_session_value = next_session.map(|payload| payload.with_exposed_snmp());
+    // Serialize discovery payload for daemon transmission.
+    // Unified: build credential_mappings via discovery_service and use with_exposed_credentials()
+    // Legacy: use with_exposed_snmp() (SNMP inline in DiscoveryType::Network)
+    let next_session_value = match next_session {
+        Some(payload) if matches!(payload.discovery_type, DiscoveryType::Unified { .. }) => {
+            let pending = state
+                .services
+                .discovery_service
+                .get_pending_credential_ids_for_session(&payload.session_id)
+                .await;
+            let request = state
+                .services
+                .discovery_service
+                .build_daemon_request(&payload, daemon_network_id, &pending)
+                .await
+                .unwrap_or_else(|e| {
+                    tracing::error!("Failed to build daemon request: {}", e);
+                    DaemonDiscoveryRequest {
+                        session_id: payload.session_id,
+                        discovery_type: payload.discovery_type,
+                        credential_mappings: vec![],
+                    }
+                });
+            Some(request.with_exposed_credentials())
+        }
+        Some(payload) => Some(payload.with_exposed_snmp()),
+        None => None,
+    };
 
     Ok(Json(ApiResponse::success((
         next_session_value,
@@ -561,6 +684,8 @@ async fn receive_heartbeat(
         mode: request.mode,
         version: None, // Old daemons don't send version in heartbeat
         capabilities: DaemonCapabilities::default(),
+        interfaced_subnets: Vec::new(),
+        has_docker_socket: false,
         ready_for_work: true,
     };
     state
@@ -657,7 +782,11 @@ async fn provision_daemon(
         sys_contact: None,
         management_url: None,
         chassis_id: None,
-        snmp_credential_id: None,
+        sys_name: None,
+        manufacturer: None,
+        model: None,
+        serial_number: None,
+        credential_assignments: vec![],
     });
 
     let created_host = state

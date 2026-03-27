@@ -5,6 +5,7 @@ use crate::daemon::{
     },
     runtime::{service::DaemonRuntimeService, state::DaemonState},
     shared::config::ConfigStore,
+    utils::base::create_system_utils,
 };
 use anyhow::Result;
 use std::sync::Arc;
@@ -37,6 +38,7 @@ impl DaemonServiceFactory {
         ));
         let daemon_state = Arc::new(DaemonState::new(
             config.clone(),
+            create_system_utils(),
             discovery_service.clone(),
             entity_buffer.clone(),
             discovery_manager.clone(),

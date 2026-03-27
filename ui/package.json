@@ -1,7 +1,7 @@
 {
 	"name": "scanopy-ui",
 	"private": true,
-	"version": "0.14.19",
+	"version": "0.15.3",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
@@ -18,6 +18,7 @@
 	"devDependencies": {
 		"@eslint/compat": "^2.0.2",
 		"@eslint/js": "^10.0.1",
+		"@inlang/paraglide-js": "^2.15.1",
 		"@magidoc/plugin-svelte-prismjs": "^6.3.0",
 		"@sveltejs/adapter-static": "^3.0.9",
 		"@sveltejs/kit": "^2.52.2",
@@ -49,7 +50,7 @@
 	},
 	"dependencies": {
 		"@beyonk/gdpr-cookie-consent-banner": "^16.0.2",
-		"@inlang/paraglide-js": "2.9.0",
+		"@peculiar/x509": "^1.14.3",
 		"@tailwindcss/forms": "^0.5.10",
 		"@tanstack/svelte-form": "^1.27.6",
 		"@tanstack/svelte-query": "^6.0.10",

@@ -99,6 +99,25 @@
 		}
 	});
 
+	// Auto-show daemon prompt for new orgs that haven't installed a daemon yet.
+	// Centralizes logic that previously lived in each registration path.
+	let daemonPromptShown = $state(false);
+	$effect(() => {
+		if (
+			appInitialized &&
+			!daemonPromptShown &&
+			!showBillingModal &&
+			$modalState.name === null &&
+			organization?.onboarding?.includes('OrgCreated') &&
+			!organization?.onboarding?.includes('FirstDaemonRegistered') &&
+			daemonsQuery.isSuccess &&
+			daemonsQuery.data?.length === 0
+		) {
+			daemonPromptShown = true;
+			openModal('daemon-prompt');
+		}
+	});
+
 	// Function to handle browser navigation (back/forward)
 	function handleHashChange() {
 		if (typeof window !== 'undefined') {

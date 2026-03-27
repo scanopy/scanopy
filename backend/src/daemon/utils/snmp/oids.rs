@@ -269,6 +269,9 @@ pub mod bridge {
     /// dot1qTpFdbTable - VLAN-aware forwarding database (Q-BRIDGE-MIB)
     pub const DOT1Q_TP_FDB_TABLE: &str = "1.3.6.1.2.1.17.7.1.2.2";
 
+    /// dot1dBasePortIfIndex - bridge port to ifIndex mapping
+    pub const DOT1D_BASE_PORT_IF_INDEX: &str = "1.3.6.1.2.1.17.1.4.1.2";
+
     /// dot1dTpFdbEntry columns
     pub mod fdb_entry {
         /// dot1dTpFdbAddress - MAC address

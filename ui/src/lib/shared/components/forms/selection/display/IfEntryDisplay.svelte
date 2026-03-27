@@ -2,7 +2,7 @@
 	import type { IfEntry } from '$lib/features/hosts/types/base';
 	import type { EntityDisplayComponent } from '../types';
 	import { entities } from '$lib/shared/stores/metadata';
-	import { getOperStatusLabels } from '$lib/features/snmp/types/base';
+	import { getOperStatusLabels } from '$lib/features/credentials/types/base';
 	import { common_unknown } from '$lib/paraglide/messages';
 
 	export const IfEntryDisplay: EntityDisplayComponent<IfEntry, void> = {

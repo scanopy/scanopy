@@ -445,7 +445,9 @@
 									<span class="text-[10px]">Estimating...</span>
 								{/if}
 							</div>
-							<div class="card-divider-v self-stretch"></div>
+							{#if hasCompletedFirstRebuild}
+								<div class="card-divider-v self-stretch"></div>
+							{/if}
 						{/if}
 						{#if hasCompletedFirstRebuild}
 							<div class="flex items-center">
@@ -517,7 +519,7 @@
 						{/if}
 					{/if}
 
-					{#if topologiesData.length > 0}
+					{#if hasCompletedFirstRebuild && topologiesData.length > 0}
 						<RichSelect
 							label=""
 							selectedValue={currentTopology.id}
@@ -528,7 +530,7 @@
 					{/if}
 				{/if}
 
-				{#if !isReadOnly}
+				{#if !isReadOnly && hasCompletedFirstRebuild}
 					{#if currentTopology}
 						<div class="card-divider-v self-stretch"></div>
 					{/if}

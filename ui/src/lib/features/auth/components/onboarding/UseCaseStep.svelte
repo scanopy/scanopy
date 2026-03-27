@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Home, Building2, Users } from 'lucide-svelte';
+	import { Home, Building2, Users, Boxes } from 'lucide-svelte';
 	import { type UseCase, getUseCases } from '../../types/base';
 	import { useConfigQuery, isCommunity } from '$lib/shared/stores/config-query';
 	import { onboardingStore } from '../../stores/onboarding';
@@ -39,11 +39,12 @@
 	const useCaseIcons: Record<UseCase, typeof Home> = {
 		homelab: Home,
 		company: Building2,
-		msp: Users
+		msp: Users,
+		other: Boxes
 	};
 
 	// Use case IDs for iteration
-	const useCaseIds: UseCase[] = ['homelab', 'company', 'msp'];
+	const useCaseIds: UseCase[] = ['homelab', 'company', 'msp', 'other'];
 
 	function submitAndProceed() {
 		if (!selectedUseCase) return;
@@ -58,7 +59,7 @@
 		selectedUseCase = useCase;
 
 		// For Community self-hosted + Company/MSP: show license warning
-		if (configData && isCommunity(configData) && (useCase === 'company' || useCase === 'msp')) {
+		if (configData && isCommunity(configData) && useCase !== 'homelab') {
 			showLicenseWarning = true;
 		} else {
 			showLicenseWarning = false;
