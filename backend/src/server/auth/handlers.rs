@@ -23,7 +23,7 @@ use crate::server::{
         types::{CredentialType, SecretValue},
     },
     daemon_api_keys::r#impl::base::{DaemonApiKey, DaemonApiKeyBase},
-    invites::handlers::process_pending_invite,
+    invites::{handlers::process_pending_invite, service::InviteService},
     networks::r#impl::{Network, NetworkBase},
     shared::api_key_common::{ApiKeyType, generate_api_key_for_storage},
     shared::{
@@ -72,6 +72,44 @@ fn is_demo_host(host: &str) -> bool {
 fn is_demo_only_host(host: &str) -> bool {
     let hostname = host.split(':').next().unwrap_or(host);
     hostname == DEMO_ONLY_HOST
+}
+
+/// Read `pending_invite_id` from session. Returns None on absence or storage error.
+async fn extract_pending_invite_id(session: &Session) -> Option<Uuid> {
+    session
+        .get::<Uuid>("pending_invite_id")
+        .await
+        .ok()
+        .flatten()
+}
+
+/// Returns `Some(invite_id)` iff the session carries a still-valid pending invite.
+///
+/// Used to authorize registration when `disable_registration: true` — a valid invite
+/// (issued by an authenticated admin) IS the registration authorization. Re-validates
+/// at call-time via `get_valid_invite` so a session field cannot replay an invite
+/// that has been deleted (consumed by `use_invite`, revoked, or expired — single-use
+/// and revocation are implemented as row deletions in `invite_service`).
+///
+/// Fail-closed: any error from session storage or the invite service results in
+/// `None`. Storage errors are logged at WARN so operators can distinguish "no invite
+/// in session" from "invite lookup is broken".
+async fn has_valid_pending_invite(
+    session: &Session,
+    invite_service: &InviteService,
+) -> Option<Uuid> {
+    let invite_id = extract_pending_invite_id(session).await?;
+    match invite_service.get_valid_invite(invite_id).await {
+        Ok(_) => Some(invite_id),
+        Err(e) => {
+            tracing::warn!(
+                invite_id = %invite_id,
+                error = %e,
+                "invite lookup failed during disable_registration bypass check",
+            );
+            None
+        }
+    }
 }
 
 pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
@@ -169,10 +207,24 @@ async fn register(
     }
 
     if state.config.disable_registration {
-        return Err(ApiError::coded(
-            StatusCode::FORBIDDEN,
-            ErrorCode::AuthRegistrationDisabled,
-        ));
+        match has_valid_pending_invite(&session, &state.services.invite_service).await {
+            Some(invite_id) => {
+                // invite_id alone is sufficient for audit trail (join with invites
+                // table to find inviter + invitee email). Email omitted to avoid
+                // PII at INFO level.
+                tracing::info!(
+                    invite_id = %invite_id,
+                    path = "password",
+                    "registration bypassed by valid pending invite",
+                );
+            }
+            None => {
+                return Err(ApiError::coded(
+                    StatusCode::FORBIDDEN,
+                    ErrorCode::AuthRegistrationDisabled,
+                ));
+            }
+        }
     }
 
     // Honeypot: hidden field filled = likely bot (cloud only — self-hosted has no public signup)
@@ -1036,10 +1088,22 @@ async fn oidc_authorize(
             }
 
             if state.config.disable_registration {
-                return Err(ApiError::coded(
-                    StatusCode::FORBIDDEN,
-                    ErrorCode::AuthRegistrationDisabled,
-                ));
+                match has_valid_pending_invite(&session, &state.services.invite_service).await {
+                    Some(invite_id) => {
+                        tracing::info!(
+                            invite_id = %invite_id,
+                            path = "oidc",
+                            provider = %slug,
+                            "registration bypassed by valid pending invite",
+                        );
+                    }
+                    None => {
+                        return Err(ApiError::coded(
+                            StatusCode::FORBIDDEN,
+                            ErrorCode::AuthRegistrationDisabled,
+                        ));
+                    }
+                }
             }
 
             let terms_accepted = params.terms_accepted.unwrap_or(false);
@@ -1664,6 +1728,55 @@ mod tests {
                 !mailchecker::is_valid(email),
                 "{} should be blocked as disposable",
                 email
+            );
+        }
+    }
+
+    mod extract_pending_invite_id_tests {
+        use super::super::extract_pending_invite_id;
+        use std::sync::Arc;
+        use tower_sessions::{MemoryStore, Session};
+        use uuid::Uuid;
+
+        fn new_test_session() -> Session {
+            Session::new(None, Arc::new(MemoryStore::default()), None)
+        }
+
+        #[tokio::test]
+        async fn returns_none_when_session_has_no_invite_key() {
+            let session = new_test_session();
+            assert_eq!(extract_pending_invite_id(&session).await, None);
+        }
+
+        #[tokio::test]
+        async fn returns_some_when_session_has_valid_uuid() {
+            let session = new_test_session();
+            let stored = Uuid::new_v4();
+            session.insert("pending_invite_id", stored).await.unwrap();
+            assert_eq!(extract_pending_invite_id(&session).await, Some(stored));
+        }
+
+        #[tokio::test]
+        async fn returns_none_when_stored_value_is_wrong_type() {
+            let session = new_test_session();
+            // Store a String under the key — Uuid deserialization must fail gracefully.
+            session
+                .insert("pending_invite_id", "not-a-uuid".to_string())
+                .await
+                .unwrap();
+            assert_eq!(extract_pending_invite_id(&session).await, None);
+        }
+
+        #[tokio::test]
+        async fn returns_exact_stored_value() {
+            let session = new_test_session();
+            let stored: Uuid = "12345678-1234-1234-1234-123456789abc".parse().unwrap();
+            session.insert("pending_invite_id", stored).await.unwrap();
+            let retrieved = extract_pending_invite_id(&session).await.unwrap();
+            assert_eq!(retrieved, stored);
+            assert_eq!(
+                retrieved.to_string(),
+                "12345678-1234-1234-1234-123456789abc"
             );
         }
     }

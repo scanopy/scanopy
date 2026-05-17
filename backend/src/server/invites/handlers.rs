@@ -538,10 +538,19 @@ pub async fn process_pending_invite(
         _ => return Ok(None), // No network ids
     };
 
-    // Mark invite as used
-    if let Err(e) = state.services.invite_service.use_invite(invite_id).await {
-        tracing::error!("Failed to mark invite as used: {}", e);
-    }
+    // Mark invite as used. Failure is fatal: prevents TOCTOU where an invite gets
+    // consumed/revoked between authorization (e.g. has_valid_pending_invite in the
+    // register handler) and this consumption point. If we swallowed this error, a
+    // deleted invite would still result in user creation + org assignment.
+    state
+        .services
+        .invite_service
+        .use_invite(invite_id)
+        .await
+        .map_err(|e| {
+            tracing::warn!(invite_id = %invite_id, error = %e, "invite consumption failed (TOCTOU race or revoked)");
+            Error::msg(format!("invite {} consumption failed: {}", invite_id, e))
+        })?;
 
     // Emit InviteAccepted telemetry event if this is the first accepted invite
     let organization = state
