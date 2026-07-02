@@ -37,8 +37,12 @@ pub const SNMP_TIMEOUT: Duration = Duration::from_secs(5);
 /// Timeout for SNMP session creation (UDP socket setup)
 pub const SNMP_SESSION_TIMEOUT: Duration = Duration::from_secs(5);
 
-/// Default timeout for table walks (longer since they involve multiple requests)
-pub const SNMP_WALK_TIMEOUT: Duration = Duration::from_secs(30);
+/// Per-table walk timeout. Large tables on slow, round-trip-bound agents (e.g.
+/// core switches with thousands of ifTable/ENTITY rows) can take tens of seconds
+/// even over GETBULK. This is a per-table cap; the whole SNMP execute() stays
+/// bounded by the 300s integration timeout, which real per-device totals sit
+/// well under.
+pub const SNMP_WALK_TIMEOUT: Duration = Duration::from_secs(60);
 
 /// Maximum number of varbinds to process in a single walk
 pub const MAX_WALK_ENTRIES: usize = 10000;
