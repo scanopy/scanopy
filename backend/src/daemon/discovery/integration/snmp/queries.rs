@@ -10,6 +10,7 @@ use tokio::time::timeout;
 use tracing::{debug, trace, warn};
 
 use crate::server::credentials::r#impl::mapping::SnmpQueryCredential;
+use crate::server::credentials::r#impl::types::SnmpVersion;
 
 use super::oids::{self, oid_to_vec, parse_oid};
 use super::session::{MAX_WALK_ENTRIES, SNMP_TIMEOUT, create_session};
@@ -21,6 +22,137 @@ use super::values::{
     parse_lldp_mgmt_addr, parse_portlist_bitmap, value_to_i32, value_to_ip, value_to_mac,
     value_to_string, value_to_u16, value_to_u64,
 };
+
+/// Max varbinds requested per GETBULK PDU. Kept modest so responses fit in a
+/// single UDP datagram even for columns with long string values (ifAlias/ifDescr).
+const BULK_MAX_REPETITIONS: u32 = 20;
+
+/// Whether a credential's SNMP version supports GETBULK (v2c/v3; not v1).
+fn supports_bulk(credential: &SnmpQueryCredential) -> bool {
+    !matches!(credential.version, SnmpVersion::V1)
+}
+
+/// Walk a single OID subtree (one table column), invoking `visit(suffix, value)`
+/// for every varbind strictly under `base_oid_str`, where `suffix` is the OID
+/// components after the base (the table index). Returns the number visited.
+///
+/// Uses GETBULK when `use_bulk` is true (SNMPv2c/v3) to fetch up to
+/// `BULK_MAX_REPETITIONS` rows per round-trip — far fewer round-trips than one
+/// GETNEXT per row on large tables. Falls back to GETNEXT if the first GETBULK
+/// errors. On a per-request timeout or error the walk stops and returns what it
+/// has collected so far — partial data is kept, never discarded.
+async fn walk_column(
+    session: &mut snmp2::AsyncSession,
+    ip: IpAddr,
+    base_oid_str: &str,
+    label: &str,
+    use_bulk: bool,
+    mut visit: impl FnMut(&[u64], &Value),
+) -> Result<usize> {
+    let base_oid = parse_oid(base_oid_str)?;
+    let base_parts: Vec<u64> = base_oid_str
+        .split('.')
+        .filter(|s| !s.is_empty())
+        .filter_map(|s| s.parse().ok())
+        .collect();
+
+    let mut current_oid = base_oid;
+    let mut count = 0usize;
+    let mut use_bulk = use_bulk;
+
+    loop {
+        if count >= MAX_WALK_ENTRIES {
+            warn!("Walk limit reached for {} on {}", label, ip);
+            break;
+        }
+
+        // Fetch the next chunk of varbinds after current_oid.
+        let mut response = if use_bulk {
+            match timeout(
+                SNMP_TIMEOUT,
+                session.getbulk(&[&current_oid], 0, BULK_MAX_REPETITIONS),
+            )
+            .await
+            {
+                Ok(Ok(r)) => r,
+                Ok(Err(e)) if count == 0 => {
+                    // Device likely doesn't support GETBULK — fall back to GETNEXT.
+                    debug!(
+                        "GETBULK unsupported for {} on {} ({:?}); using GETNEXT",
+                        label, ip, e
+                    );
+                    use_bulk = false;
+                    continue;
+                }
+                Ok(Err(e)) => {
+                    debug!("Bulk walk {} failed on {}: {:?}", label, ip, e);
+                    break;
+                }
+                Err(_) => {
+                    debug!("Bulk walk {} timeout on {}", label, ip);
+                    break;
+                }
+            }
+        } else {
+            match timeout(SNMP_TIMEOUT, session.getnext(&current_oid)).await {
+                Ok(Ok(r)) => r,
+                Ok(Err(e)) => {
+                    debug!("Walk {} failed on {}: {:?}", label, ip, e);
+                    break;
+                }
+                Err(_) => {
+                    debug!("Walk {} timeout on {}", label, ip);
+                    break;
+                }
+            }
+        };
+
+        let mut last_parts: Option<Vec<u64>> = None;
+        let mut stop = false;
+
+        while let Some((resp_oid, value)) = response.varbinds.next() {
+            // EndOfMibView/NoSuchObject/NoSuchInstance = no more data
+            if matches!(
+                value,
+                Value::EndOfMibView | Value::NoSuchObject | Value::NoSuchInstance
+            ) {
+                stop = true;
+                break;
+            }
+
+            // Check if we're still in the same subtree
+            let parts = oid_to_vec(&resp_oid);
+            if parts.len() <= base_parts.len() || !parts.starts_with(&base_parts) {
+                // We've walked past the column
+                stop = true;
+                break;
+            }
+
+            visit(&parts[base_parts.len()..], &value);
+            count += 1;
+            last_parts = Some(parts);
+
+            if count >= MAX_WALK_ENTRIES {
+                stop = true;
+                break;
+            }
+        }
+
+        if stop {
+            break;
+        }
+
+        match last_parts {
+            Some(parts) => {
+                current_oid = Oid::from(parts.as_slice())
+                    .map_err(|e| anyhow!("Invalid response OID: {:?}", e))?;
+            }
+            None => break, // empty response — nothing more to walk
+        }
+    }
+
+    Ok(count)
+}
 
 /// Query system MIB information from a device
 pub async fn query_system_info(
@@ -102,111 +234,61 @@ pub async fn walk_if_table(
     ];
 
     // Walk each column
+    let use_bulk = supports_bulk(credential);
     for (base_oid_str, column_name) in columns {
-        let base_oid = match parse_oid(base_oid_str) {
-            Ok(o) => o,
-            Err(e) => {
-                warn!("Failed to parse OID {}: {}", base_oid_str, e);
-                continue;
-            }
-        };
+        let count = walk_column(
+            &mut session,
+            ip,
+            base_oid_str,
+            column_name,
+            use_bulk,
+            |suffix, value| {
+                // ifTable index is a single component: the ifIndex
+                if let Some(&if_index_u64) = suffix.last() {
+                    let if_index = if_index_u64 as i32;
+                    let entry = entries.entry(if_index).or_insert_with(|| IfTableEntry {
+                        if_index,
+                        if_descr: None,
+                        if_type: None,
+                        if_mtu: None,
+                        if_speed: None,
+                        if_phys_address: None,
+                        if_admin_status: None,
+                        if_oper_status: None,
+                        if_name: None,
+                        if_alias: None,
+                    });
 
-        let base_parts: Vec<u64> = base_oid_str
-            .split('.')
-            .filter(|s| !s.is_empty())
-            .filter_map(|s| s.parse().ok())
-            .collect();
-
-        let mut current_oid = base_oid.clone();
-        let mut count = 0;
-
-        loop {
-            if count >= MAX_WALK_ENTRIES {
-                warn!("Walk limit reached for {} on {}", column_name, ip);
-                break;
-            }
-
-            match timeout(SNMP_TIMEOUT, session.getnext(&current_oid)).await {
-                Ok(Ok(mut response)) => {
-                    if let Some((resp_oid, value)) = response.varbinds.next() {
-                        // EndOfMibView/NoSuchObject/NoSuchInstance = no more data
-                        if matches!(
-                            value,
-                            Value::EndOfMibView | Value::NoSuchObject | Value::NoSuchInstance
-                        ) {
-                            break;
+                    match column_name {
+                        "ifIndex" => {
+                            // Already set above
                         }
-
-                        // Check if we're still in the same subtree
-                        let response_parts = oid_to_vec(&resp_oid);
-                        if response_parts.len() <= base_parts.len()
-                            || !response_parts.starts_with(&base_parts)
-                        {
-                            // We've walked past the column
-                            break;
-                        }
-
-                        // Extract ifIndex from OID (last component)
-                        if let Some(&if_index_u64) = response_parts.last() {
-                            let if_index = if_index_u64 as i32;
-                            let entry = entries.entry(if_index).or_insert_with(|| IfTableEntry {
-                                if_index,
-                                if_descr: None,
-                                if_type: None,
-                                if_mtu: None,
-                                if_speed: None,
-                                if_phys_address: None,
-                                if_admin_status: None,
-                                if_oper_status: None,
-                                if_name: None,
-                                if_alias: None,
-                            });
-
-                            match column_name {
-                                "ifIndex" => {
-                                    // Already set above
-                                }
-                                "ifDescr" => entry.if_descr = value_to_string(&value),
-                                "ifType" => entry.if_type = value_to_i32(&value),
-                                "ifMtu" => entry.if_mtu = value_to_i32(&value),
-                                "ifSpeed" => {
-                                    // Only set if ifHighSpeed not already set
-                                    if entry.if_speed.is_none() {
-                                        entry.if_speed = value_to_u64(&value);
-                                    }
-                                }
-                                "ifPhysAddress" => entry.if_phys_address = value_to_mac(&value),
-                                "ifAdminStatus" => entry.if_admin_status = value_to_i32(&value),
-                                "ifOperStatus" => entry.if_oper_status = value_to_i32(&value),
-                                "ifName" => entry.if_name = value_to_string(&value),
-                                "ifHighSpeed" => {
-                                    // ifHighSpeed is in Mbps, convert to bps for consistency
-                                    if let Some(mbps) = value_to_u64(&value) {
-                                        entry.if_speed = Some(mbps * 1_000_000);
-                                    }
-                                }
-                                "ifAlias" => entry.if_alias = value_to_string(&value),
-                                _ => {}
+                        "ifDescr" => entry.if_descr = value_to_string(value),
+                        "ifType" => entry.if_type = value_to_i32(value),
+                        "ifMtu" => entry.if_mtu = value_to_i32(value),
+                        "ifSpeed" => {
+                            // Only set if ifHighSpeed not already set
+                            if entry.if_speed.is_none() {
+                                entry.if_speed = value_to_u64(value);
                             }
                         }
-
-                        current_oid = Oid::from(response_parts.as_slice())
-                            .map_err(|e| anyhow!("Invalid response OID: {:?}", e))?;
-                        count += 1;
-                    } else {
-                        break;
+                        "ifPhysAddress" => entry.if_phys_address = value_to_mac(value),
+                        "ifAdminStatus" => entry.if_admin_status = value_to_i32(value),
+                        "ifOperStatus" => entry.if_oper_status = value_to_i32(value),
+                        "ifName" => entry.if_name = value_to_string(value),
+                        "ifHighSpeed" => {
+                            // ifHighSpeed is in Mbps, convert to bps for consistency
+                            if let Some(mbps) = value_to_u64(value) {
+                                entry.if_speed = Some(mbps * 1_000_000);
+                            }
+                        }
+                        "ifAlias" => entry.if_alias = value_to_string(value),
+                        _ => {}
                     }
                 }
-                Ok(Err(e)) => {
-                    debug!("Walk {} failed on {}: {:?}", column_name, ip, e);
-                    break;
-                }
-                Err(_) => {
-                    debug!("Walk {} timeout on {}", column_name, ip);
-                    break;
-                }
-            }
-        }
+            },
+        )
+        .await?;
 
         trace!("Walked {} entries for {} from {}", count, column_name, ip);
     }
@@ -263,113 +345,69 @@ pub async fn query_lldp_neighbors(
         (oids::lldp::remote::entry::LLDP_REM_MAN_ADDR, "remManAddr"),
     ];
 
+    let use_bulk = supports_bulk(credential);
     for (base_oid_str, column_name) in columns {
-        let base_oid = match parse_oid(base_oid_str) {
-            Ok(o) => o,
-            Err(e) => {
-                debug!("Failed to parse LLDP OID {}: {}", base_oid_str, e);
-                continue;
-            }
-        };
+        walk_column(
+            &mut session,
+            ip,
+            base_oid_str,
+            column_name,
+            use_bulk,
+            |suffix, value| {
+                // Extract index components from OID suffix
+                // Format: base.timeMark.localPortNum.remIndex
+                if suffix.len() >= 3 {
+                    let local_port = suffix[1] as i32;
+                    let rem_index = suffix[2] as i32;
 
-        let base_parts: Vec<u64> = base_oid_str
-            .split('.')
-            .filter(|s| !s.is_empty())
-            .filter_map(|s| s.parse().ok())
-            .collect();
+                    let neighbor =
+                        neighbors
+                            .entry((local_port, rem_index))
+                            .or_insert_with(|| LldpNeighbor {
+                                local_port_index: local_port,
+                                remote_chassis_id_subtype: None,
+                                remote_chassis_id_bytes: None,
+                                remote_port_id_subtype: None,
+                                remote_port_id_bytes: None,
+                                remote_port_desc: None,
+                                remote_sys_name: None,
+                                remote_sys_desc: None,
+                                remote_mgmt_addr: None,
+                            });
 
-        let mut current_oid = base_oid.clone();
-        let mut count = 0;
-
-        loop {
-            if count >= MAX_WALK_ENTRIES {
-                break;
-            }
-
-            match timeout(SNMP_TIMEOUT, session.getnext(&current_oid)).await {
-                Ok(Ok(mut response)) => {
-                    if let Some((resp_oid, value)) = response.varbinds.next() {
-                        // EndOfMibView/NoSuchObject/NoSuchInstance = no more data
-                        if matches!(
-                            value,
-                            Value::EndOfMibView | Value::NoSuchObject | Value::NoSuchInstance
-                        ) {
-                            break;
+                    match column_name {
+                        "remChassisIdSubtype" => {
+                            neighbor.remote_chassis_id_subtype =
+                                value_to_i32(value).map(|v| v as u8)
                         }
-
-                        let response_parts = oid_to_vec(&resp_oid);
-                        if response_parts.len() <= base_parts.len()
-                            || !response_parts.starts_with(&base_parts)
-                        {
-                            break;
-                        }
-
-                        // Extract index components from OID suffix
-                        // Format: base.timeMark.localPortNum.remIndex
-                        let suffix = &response_parts[base_parts.len()..];
-                        if suffix.len() >= 3 {
-                            let local_port = suffix[1] as i32;
-                            let rem_index = suffix[2] as i32;
-
-                            let neighbor =
-                                neighbors.entry((local_port, rem_index)).or_insert_with(|| {
-                                    LldpNeighbor {
-                                        local_port_index: local_port,
-                                        remote_chassis_id_subtype: None,
-                                        remote_chassis_id_bytes: None,
-                                        remote_port_id_subtype: None,
-                                        remote_port_id_bytes: None,
-                                        remote_port_desc: None,
-                                        remote_sys_name: None,
-                                        remote_sys_desc: None,
-                                        remote_mgmt_addr: None,
-                                    }
-                                });
-
-                            match column_name {
-                                "remChassisIdSubtype" => {
-                                    neighbor.remote_chassis_id_subtype =
-                                        value_to_i32(&value).map(|v| v as u8)
-                                }
-                                "remChassisId" => {
-                                    if let Value::OctetString(bytes) = &value {
-                                        neighbor.remote_chassis_id_bytes = Some(bytes.to_vec());
-                                    }
-                                }
-                                "remPortIdSubtype" => {
-                                    neighbor.remote_port_id_subtype =
-                                        value_to_i32(&value).map(|v| v as u8)
-                                }
-                                "remPortId" => {
-                                    if let Value::OctetString(bytes) = &value {
-                                        neighbor.remote_port_id_bytes = Some(bytes.to_vec());
-                                    }
-                                }
-                                "remPortDesc" => {
-                                    neighbor.remote_port_desc = value_to_string(&value)
-                                }
-                                "remSysName" => neighbor.remote_sys_name = value_to_string(&value),
-                                "remSysDesc" => neighbor.remote_sys_desc = value_to_string(&value),
-                                "remManAddr" => {
-                                    // Management address is encoded as address family + address bytes
-                                    if let Value::OctetString(bytes) = &value {
-                                        neighbor.remote_mgmt_addr = parse_lldp_mgmt_addr(bytes);
-                                    }
-                                }
-                                _ => {}
+                        "remChassisId" => {
+                            if let Value::OctetString(bytes) = value {
+                                neighbor.remote_chassis_id_bytes = Some(bytes.to_vec());
                             }
                         }
-
-                        current_oid = Oid::from(response_parts.as_slice())
-                            .map_err(|e| anyhow!("Invalid response OID: {:?}", e))?;
-                        count += 1;
-                    } else {
-                        break;
+                        "remPortIdSubtype" => {
+                            neighbor.remote_port_id_subtype = value_to_i32(value).map(|v| v as u8)
+                        }
+                        "remPortId" => {
+                            if let Value::OctetString(bytes) = value {
+                                neighbor.remote_port_id_bytes = Some(bytes.to_vec());
+                            }
+                        }
+                        "remPortDesc" => neighbor.remote_port_desc = value_to_string(value),
+                        "remSysName" => neighbor.remote_sys_name = value_to_string(value),
+                        "remSysDesc" => neighbor.remote_sys_desc = value_to_string(value),
+                        "remManAddr" => {
+                            // Management address is encoded as address family + address bytes
+                            if let Value::OctetString(bytes) = value {
+                                neighbor.remote_mgmt_addr = parse_lldp_mgmt_addr(bytes);
+                            }
+                        }
+                        _ => {}
                     }
                 }
-                Ok(Err(_)) | Err(_) => break,
-            }
-        }
+            },
+        )
+        .await?;
     }
 
     let result: Vec<LldpNeighbor> = neighbors.into_values().collect();
@@ -390,139 +428,53 @@ pub async fn query_ip_addr_table(
     let mut if_index_map: HashMap<IpAddr, i32> = HashMap::new();
     let mut net_mask_map: HashMap<IpAddr, IpAddr> = HashMap::new();
 
+    let use_bulk = supports_bulk(credential);
+
     // Walk ipAdEntIfIndex
-    let base_oid_str = oids::ip_mib::ip_addr_entry::IP_AD_ENT_IF_INDEX;
-    let base_oid = parse_oid(base_oid_str)?;
-    let base_parts: Vec<u64> = base_oid_str
-        .split('.')
-        .filter(|s| !s.is_empty())
-        .filter_map(|s| s.parse().ok())
-        .collect();
-
-    let mut current_oid = base_oid.clone();
-    let mut count = 0;
-
-    loop {
-        if count >= MAX_WALK_ENTRIES {
-            warn!("Walk limit reached for ipAddrTable ifIndex on {}", ip);
-            break;
-        }
-
-        match timeout(SNMP_TIMEOUT, session.getnext(&current_oid)).await {
-            Ok(Ok(mut response)) => {
-                if let Some((resp_oid, value)) = response.varbinds.next() {
-                    // EndOfMibView/NoSuchObject/NoSuchInstance = no more data
-                    if matches!(
-                        value,
-                        Value::EndOfMibView | Value::NoSuchObject | Value::NoSuchInstance
-                    ) {
-                        break;
-                    }
-
-                    let response_parts = oid_to_vec(&resp_oid);
-                    if response_parts.len() <= base_parts.len()
-                        || !response_parts.starts_with(&base_parts)
-                    {
-                        break;
-                    }
-
-                    let suffix = &response_parts[base_parts.len()..];
-                    if suffix.len() == 4 {
-                        let addr = IpAddr::from([
-                            suffix[0] as u8,
-                            suffix[1] as u8,
-                            suffix[2] as u8,
-                            suffix[3] as u8,
-                        ]);
-                        if let Some(if_index) = value_to_i32(&value) {
-                            if_index_map.insert(addr, if_index);
-                        }
-                    }
-
-                    current_oid = Oid::from(response_parts.as_slice())
-                        .map_err(|e| anyhow!("Invalid response OID: {:?}", e))?;
-                    count += 1;
-                } else {
-                    break;
+    walk_column(
+        &mut session,
+        ip,
+        oids::ip_mib::ip_addr_entry::IP_AD_ENT_IF_INDEX,
+        "ipAddrTable ifIndex",
+        use_bulk,
+        |suffix, value| {
+            if suffix.len() == 4 {
+                let addr = IpAddr::from([
+                    suffix[0] as u8,
+                    suffix[1] as u8,
+                    suffix[2] as u8,
+                    suffix[3] as u8,
+                ]);
+                if let Some(if_index) = value_to_i32(value) {
+                    if_index_map.insert(addr, if_index);
                 }
             }
-            Ok(Err(e)) => {
-                debug!("ipAddrTable ifIndex walk failed on {}: {:?}", ip, e);
-                break;
-            }
-            Err(_) => {
-                debug!("ipAddrTable ifIndex walk timeout on {}", ip);
-                break;
-            }
-        }
-    }
+        },
+    )
+    .await?;
 
     // Walk ipAdEntNetMask
-    let mask_oid_str = oids::ip_mib::ip_addr_entry::IP_AD_ENT_NET_MASK;
-    let mask_base_oid = parse_oid(mask_oid_str)?;
-    let mask_base_parts: Vec<u64> = mask_oid_str
-        .split('.')
-        .filter(|s| !s.is_empty())
-        .filter_map(|s| s.parse().ok())
-        .collect();
-
-    let mut current_oid = mask_base_oid.clone();
-    let mut count = 0;
-
-    loop {
-        if count >= MAX_WALK_ENTRIES {
-            warn!("Walk limit reached for ipAddrTable netMask on {}", ip);
-            break;
-        }
-
-        match timeout(SNMP_TIMEOUT, session.getnext(&current_oid)).await {
-            Ok(Ok(mut response)) => {
-                if let Some((resp_oid, value)) = response.varbinds.next() {
-                    // EndOfMibView/NoSuchObject/NoSuchInstance = no more data
-                    if matches!(
-                        value,
-                        Value::EndOfMibView | Value::NoSuchObject | Value::NoSuchInstance
-                    ) {
-                        break;
-                    }
-
-                    let response_parts = oid_to_vec(&resp_oid);
-                    if response_parts.len() <= mask_base_parts.len()
-                        || !response_parts.starts_with(&mask_base_parts)
-                    {
-                        break;
-                    }
-
-                    let suffix = &response_parts[mask_base_parts.len()..];
-                    if suffix.len() == 4 {
-                        let addr = IpAddr::from([
-                            suffix[0] as u8,
-                            suffix[1] as u8,
-                            suffix[2] as u8,
-                            suffix[3] as u8,
-                        ]);
-                        if let Some(mask) = value_to_ip(&value) {
-                            net_mask_map.insert(addr, mask);
-                        }
-                    }
-
-                    current_oid = Oid::from(response_parts.as_slice())
-                        .map_err(|e| anyhow!("Invalid response OID: {:?}", e))?;
-                    count += 1;
-                } else {
-                    break;
+    walk_column(
+        &mut session,
+        ip,
+        oids::ip_mib::ip_addr_entry::IP_AD_ENT_NET_MASK,
+        "ipAddrTable netMask",
+        use_bulk,
+        |suffix, value| {
+            if suffix.len() == 4 {
+                let addr = IpAddr::from([
+                    suffix[0] as u8,
+                    suffix[1] as u8,
+                    suffix[2] as u8,
+                    suffix[3] as u8,
+                ]);
+                if let Some(mask) = value_to_ip(value) {
+                    net_mask_map.insert(addr, mask);
                 }
             }
-            Ok(Err(e)) => {
-                debug!("ipAddrTable netMask walk failed on {}: {:?}", ip, e);
-                break;
-            }
-            Err(_) => {
-                debug!("ipAddrTable netMask walk timeout on {}", ip);
-                break;
-            }
-        }
-    }
+        },
+    )
+    .await?;
 
     // Combine ifIndex and netMask results
     let result: HashMap<IpAddr, IpAddrEntry> = if_index_map
@@ -558,91 +510,49 @@ pub async fn query_cdp_neighbors(
         (oids::cdp::entry::CDP_CACHE_ADDRESS, "address"),
     ];
 
+    let use_bulk = supports_bulk(credential);
     for (base_oid_str, column_name) in columns {
-        let base_oid = match parse_oid(base_oid_str) {
-            Ok(o) => o,
-            Err(e) => {
-                debug!("Failed to parse CDP OID {}: {}", base_oid_str, e);
-                continue;
-            }
-        };
+        walk_column(
+            &mut session,
+            ip,
+            base_oid_str,
+            column_name,
+            use_bulk,
+            |suffix, value| {
+                // CDP index: base.cdpCacheIfIndex.cdpCacheDeviceIndex
+                if suffix.len() >= 2 {
+                    let if_index = suffix[0] as i32;
+                    let device_index = suffix[1] as i32;
 
-        let base_parts: Vec<u64> = base_oid_str
-            .split('.')
-            .filter(|s| !s.is_empty())
-            .filter_map(|s| s.parse().ok())
-            .collect();
+                    let neighbor = neighbors
+                        .entry((if_index, device_index))
+                        .or_insert_with(|| CdpNeighbor {
+                            local_port_index: if_index,
+                            remote_device_id: None,
+                            remote_port_id: None,
+                            remote_platform: None,
+                            remote_address: None,
+                        });
 
-        let mut current_oid = base_oid.clone();
-        let mut count = 0;
-
-        loop {
-            if count >= MAX_WALK_ENTRIES {
-                break;
-            }
-
-            match timeout(SNMP_TIMEOUT, session.getnext(&current_oid)).await {
-                Ok(Ok(mut response)) => {
-                    if let Some((resp_oid, value)) = response.varbinds.next() {
-                        // EndOfMibView/NoSuchObject/NoSuchInstance = no more data
-                        if matches!(
-                            value,
-                            Value::EndOfMibView | Value::NoSuchObject | Value::NoSuchInstance
-                        ) {
-                            break;
-                        }
-
-                        let response_parts = oid_to_vec(&resp_oid);
-                        if response_parts.len() <= base_parts.len()
-                            || !response_parts.starts_with(&base_parts)
-                        {
-                            break;
-                        }
-
-                        // CDP index: base.cdpCacheIfIndex.cdpCacheDeviceIndex
-                        let suffix = &response_parts[base_parts.len()..];
-                        if suffix.len() >= 2 {
-                            let if_index = suffix[0] as i32;
-                            let device_index = suffix[1] as i32;
-
-                            let neighbor = neighbors
-                                .entry((if_index, device_index))
-                                .or_insert_with(|| CdpNeighbor {
-                                    local_port_index: if_index,
-                                    remote_device_id: None,
-                                    remote_port_id: None,
-                                    remote_platform: None,
-                                    remote_address: None,
-                                });
-
-                            match column_name {
-                                "deviceId" => neighbor.remote_device_id = value_to_string(&value),
-                                "devicePort" => neighbor.remote_port_id = value_to_string(&value),
-                                "platform" => neighbor.remote_platform = value_to_string(&value),
-                                "address" => {
-                                    // CDP address is encoded as 4 bytes for IPv4
-                                    if let Value::OctetString(bytes) = &value
-                                        && bytes.len() == 4
-                                    {
-                                        neighbor.remote_address = Some(IpAddr::from([
-                                            bytes[0], bytes[1], bytes[2], bytes[3],
-                                        ]));
-                                    }
-                                }
-                                _ => {}
+                    match column_name {
+                        "deviceId" => neighbor.remote_device_id = value_to_string(value),
+                        "devicePort" => neighbor.remote_port_id = value_to_string(value),
+                        "platform" => neighbor.remote_platform = value_to_string(value),
+                        "address" => {
+                            // CDP address is encoded as 4 bytes for IPv4
+                            if let Value::OctetString(bytes) = value
+                                && bytes.len() == 4
+                            {
+                                neighbor.remote_address =
+                                    Some(IpAddr::from([bytes[0], bytes[1], bytes[2], bytes[3]]));
                             }
                         }
-
-                        current_oid = Oid::from(response_parts.as_slice())
-                            .map_err(|e| anyhow!("Invalid response OID: {:?}", e))?;
-                        count += 1;
-                    } else {
-                        break;
+                        _ => {}
                     }
                 }
-                Ok(Err(_)) | Err(_) => break,
-            }
-        }
+            },
+        )
+        .await?;
     }
 
     let result: Vec<CdpNeighbor> = neighbors.into_values().collect();
@@ -681,82 +591,41 @@ pub async fn query_arp_table(
         (oids::arp::entry::IP_NET_TO_MEDIA_TYPE, "type"),
     ];
 
+    let use_bulk = supports_bulk(credential);
     for (base_oid_str, column_name) in columns {
-        let base_oid = match parse_oid(base_oid_str) {
-            Ok(o) => o,
-            Err(e) => {
-                debug!("Failed to parse ARP OID {}: {}", base_oid_str, e);
-                continue;
-            }
-        };
+        walk_column(
+            &mut session,
+            ip,
+            base_oid_str,
+            column_name,
+            use_bulk,
+            |suffix, value| {
+                // OID suffix: ifIndex.A.B.C.D
+                if suffix.len() >= 5 {
+                    let key = suffix
+                        .iter()
+                        .map(|v| v.to_string())
+                        .collect::<Vec<_>>()
+                        .join(".");
 
-        let base_parts: Vec<u64> = base_oid_str
-            .split('.')
-            .filter(|s| !s.is_empty())
-            .filter_map(|s| s.parse().ok())
-            .collect();
+                    let entry = entries.entry(key).or_insert_with(|| ArpEntryBuilder {
+                        if_index: None,
+                        mac_address: None,
+                        ip_address: None,
+                        entry_type: None,
+                    });
 
-        let mut current_oid = base_oid.clone();
-        let mut count = 0;
-
-        loop {
-            if count >= MAX_WALK_ENTRIES {
-                break;
-            }
-
-            match timeout(SNMP_TIMEOUT, session.getnext(&current_oid)).await {
-                Ok(Ok(mut response)) => {
-                    if let Some((resp_oid, value)) = response.varbinds.next() {
-                        // EndOfMibView/NoSuchObject/NoSuchInstance = no more data
-                        if matches!(
-                            value,
-                            Value::EndOfMibView | Value::NoSuchObject | Value::NoSuchInstance
-                        ) {
-                            break;
-                        }
-
-                        let response_parts = oid_to_vec(&resp_oid);
-                        if response_parts.len() <= base_parts.len()
-                            || !response_parts.starts_with(&base_parts)
-                        {
-                            break;
-                        }
-
-                        // OID suffix: ifIndex.A.B.C.D
-                        let suffix = &response_parts[base_parts.len()..];
-                        if suffix.len() >= 5 {
-                            let key = suffix
-                                .iter()
-                                .map(|v| v.to_string())
-                                .collect::<Vec<_>>()
-                                .join(".");
-
-                            let entry = entries.entry(key).or_insert_with(|| ArpEntryBuilder {
-                                if_index: None,
-                                mac_address: None,
-                                ip_address: None,
-                                entry_type: None,
-                            });
-
-                            match column_name {
-                                "ifIndex" => entry.if_index = value_to_i32(&value),
-                                "physAddress" => entry.mac_address = value_to_mac(&value),
-                                "netAddress" => entry.ip_address = value_to_ip(&value),
-                                "type" => entry.entry_type = value_to_i32(&value),
-                                _ => {}
-                            }
-                        }
-
-                        current_oid = Oid::from(response_parts.as_slice())
-                            .map_err(|e| anyhow!("Invalid response OID: {:?}", e))?;
-                        count += 1;
-                    } else {
-                        break;
+                    match column_name {
+                        "ifIndex" => entry.if_index = value_to_i32(value),
+                        "physAddress" => entry.mac_address = value_to_mac(value),
+                        "netAddress" => entry.ip_address = value_to_ip(value),
+                        "type" => entry.entry_type = value_to_i32(value),
+                        _ => {}
                     }
                 }
-                Ok(Err(_)) | Err(_) => break,
-            }
-        }
+            },
+        )
+        .await?;
     }
 
     // Filter out invalid entries (type==2) and entries missing required fields
@@ -814,88 +683,46 @@ pub async fn query_entity_physical(
         (oids::entity::entry::ENT_PHYSICAL_MODEL_NAME, "modelName"),
     ];
 
+    let use_bulk = supports_bulk(credential);
     for (base_oid_str, column_name) in columns {
-        let base_oid = match parse_oid(base_oid_str) {
-            Ok(o) => o,
-            Err(e) => {
-                debug!("Failed to parse ENTITY OID {}: {}", base_oid_str, e);
-                continue;
-            }
-        };
+        walk_column(
+            &mut session,
+            ip,
+            base_oid_str,
+            column_name,
+            use_bulk,
+            |suffix, value| {
+                // OID suffix is entPhysicalIndex (single integer)
+                if let Some(&index_u64) = suffix.last() {
+                    let index = index_u64 as i32;
+                    let entry = entries.entry(index).or_insert_with(|| PhysicalEntry {
+                        description: None,
+                        class: None,
+                        name: None,
+                        serial_number: None,
+                        manufacturer: None,
+                        model: None,
+                    });
 
-        let base_parts: Vec<u64> = base_oid_str
-            .split('.')
-            .filter(|s| !s.is_empty())
-            .filter_map(|s| s.parse().ok())
-            .collect();
-
-        let mut current_oid = base_oid.clone();
-        let mut count = 0;
-
-        loop {
-            if count >= MAX_WALK_ENTRIES {
-                break;
-            }
-
-            match timeout(SNMP_TIMEOUT, session.getnext(&current_oid)).await {
-                Ok(Ok(mut response)) => {
-                    if let Some((resp_oid, value)) = response.varbinds.next() {
-                        // EndOfMibView/NoSuchObject/NoSuchInstance = no more data
-                        if matches!(
-                            value,
-                            Value::EndOfMibView | Value::NoSuchObject | Value::NoSuchInstance
-                        ) {
-                            break;
+                    match column_name {
+                        "descr" => entry.description = value_to_string(value),
+                        "class" => entry.class = value_to_i32(value),
+                        "name" => entry.name = value_to_string(value),
+                        "serialNum" => {
+                            entry.serial_number = value_to_string(value).filter(|s| !s.is_empty())
                         }
-
-                        let response_parts = oid_to_vec(&resp_oid);
-                        if response_parts.len() <= base_parts.len()
-                            || !response_parts.starts_with(&base_parts)
-                        {
-                            break;
+                        "mfgName" => {
+                            entry.manufacturer = value_to_string(value).filter(|s| !s.is_empty())
                         }
-
-                        // OID suffix is entPhysicalIndex (single integer)
-                        if let Some(&index_u64) = response_parts.last() {
-                            let index = index_u64 as i32;
-                            let entry = entries.entry(index).or_insert_with(|| PhysicalEntry {
-                                description: None,
-                                class: None,
-                                name: None,
-                                serial_number: None,
-                                manufacturer: None,
-                                model: None,
-                            });
-
-                            match column_name {
-                                "descr" => entry.description = value_to_string(&value),
-                                "class" => entry.class = value_to_i32(&value),
-                                "name" => entry.name = value_to_string(&value),
-                                "serialNum" => {
-                                    entry.serial_number =
-                                        value_to_string(&value).filter(|s| !s.is_empty())
-                                }
-                                "mfgName" => {
-                                    entry.manufacturer =
-                                        value_to_string(&value).filter(|s| !s.is_empty())
-                                }
-                                "modelName" => {
-                                    entry.model = value_to_string(&value).filter(|s| !s.is_empty())
-                                }
-                                _ => {}
-                            }
+                        "modelName" => {
+                            entry.model = value_to_string(value).filter(|s| !s.is_empty())
                         }
-
-                        current_oid = Oid::from(response_parts.as_slice())
-                            .map_err(|e| anyhow!("Invalid response OID: {:?}", e))?;
-                        count += 1;
-                    } else {
-                        break;
+                        _ => {}
                     }
                 }
-                Ok(Err(_)) | Err(_) => break,
-            }
-        }
+            },
+        )
+        .await?;
     }
 
     // Select best match: prefer chassis (3), fallback to stack (11), then module (9)
@@ -926,59 +753,28 @@ pub async fn query_entity_physical(
 /// Shared by query_bridge_fdb() and query_port_vlan_membership().
 async fn walk_bridge_port_mapping(
     session: &mut Box<snmp2::AsyncSession>,
+    ip: IpAddr,
+    use_bulk: bool,
 ) -> Result<HashMap<i32, i32>> {
-    let port_oid_str = oids::bridge::DOT1D_BASE_PORT_IF_INDEX;
-    let port_base_oid = parse_oid(port_oid_str)?;
-    let port_base_parts: Vec<u64> = port_oid_str
-        .split('.')
-        .filter(|s| !s.is_empty())
-        .filter_map(|s| s.parse().ok())
-        .collect();
-
     let mut port_to_if_index: HashMap<i32, i32> = HashMap::new();
-    let mut current_oid = port_base_oid.clone();
-    let mut count = 0;
 
-    loop {
-        if count >= MAX_WALK_ENTRIES {
-            break;
-        }
-
-        match timeout(SNMP_TIMEOUT, session.getnext(&current_oid)).await {
-            Ok(Ok(mut response)) => {
-                if let Some((resp_oid, value)) = response.varbinds.next() {
-                    if matches!(
-                        value,
-                        Value::EndOfMibView | Value::NoSuchObject | Value::NoSuchInstance
-                    ) {
-                        break;
-                    }
-
-                    let response_parts = oid_to_vec(&resp_oid);
-                    if response_parts.len() <= port_base_parts.len()
-                        || !response_parts.starts_with(&port_base_parts)
-                    {
-                        break;
-                    }
-
-                    // OID suffix is bridge port number, value is ifIndex
-                    if let Some(&port_u64) = response_parts.last() {
-                        let bridge_port = port_u64 as i32;
-                        if let Some(if_index) = value_to_i32(&value) {
-                            port_to_if_index.insert(bridge_port, if_index);
-                        }
-                    }
-
-                    current_oid = Oid::from(response_parts.as_slice())
-                        .map_err(|e| anyhow!("Invalid response OID: {:?}", e))?;
-                    count += 1;
-                } else {
-                    break;
+    walk_column(
+        &mut **session,
+        ip,
+        oids::bridge::DOT1D_BASE_PORT_IF_INDEX,
+        "dot1dBasePortIfIndex",
+        use_bulk,
+        |suffix, value| {
+            // OID suffix is bridge port number, value is ifIndex
+            if let Some(&port_u64) = suffix.last() {
+                let bridge_port = port_u64 as i32;
+                if let Some(if_index) = value_to_i32(value) {
+                    port_to_if_index.insert(bridge_port, if_index);
                 }
             }
-            Ok(Err(_)) | Err(_) => break,
-        }
-    }
+        },
+    )
+    .await?;
 
     Ok(port_to_if_index)
 }
@@ -993,7 +789,8 @@ pub async fn query_bridge_fdb(
     let mut session = create_session(ip, credential, port).await?;
 
     // Step 1: Walk dot1dBasePortIfIndex to build bridge_port → ifIndex map
-    let port_to_if_index = walk_bridge_port_mapping(&mut session).await?;
+    let port_to_if_index =
+        walk_bridge_port_mapping(&mut session, ip, supports_bulk(credential)).await?;
 
     // Step 2: Walk dot1dTpFdbTable columns
     struct FdbBuilder {
@@ -1010,80 +807,39 @@ pub async fn query_bridge_fdb(
         (oids::bridge::fdb_entry::DOT1D_TP_FDB_STATUS, "status"),
     ];
 
+    let use_bulk = supports_bulk(credential);
     for (base_oid_str, column_name) in columns {
-        let base_oid = match parse_oid(base_oid_str) {
-            Ok(o) => o,
-            Err(e) => {
-                debug!("Failed to parse bridge FDB OID {}: {}", base_oid_str, e);
-                continue;
-            }
-        };
+        walk_column(
+            &mut session,
+            ip,
+            base_oid_str,
+            column_name,
+            use_bulk,
+            |suffix, value| {
+                // OID suffix is 6-octet MAC encoded as 6 integers
+                if suffix.len() == 6 {
+                    let key = suffix
+                        .iter()
+                        .map(|v| v.to_string())
+                        .collect::<Vec<_>>()
+                        .join(".");
 
-        let base_parts: Vec<u64> = base_oid_str
-            .split('.')
-            .filter(|s| !s.is_empty())
-            .filter_map(|s| s.parse().ok())
-            .collect();
+                    let entry = fdb_entries.entry(key).or_insert_with(|| FdbBuilder {
+                        mac_address: None,
+                        port: None,
+                        status: None,
+                    });
 
-        let mut current_oid = base_oid.clone();
-        let mut count = 0;
-
-        loop {
-            if count >= MAX_WALK_ENTRIES {
-                break;
-            }
-
-            match timeout(SNMP_TIMEOUT, session.getnext(&current_oid)).await {
-                Ok(Ok(mut response)) => {
-                    if let Some((resp_oid, value)) = response.varbinds.next() {
-                        // EndOfMibView/NoSuchObject/NoSuchInstance = no more data
-                        if matches!(
-                            value,
-                            Value::EndOfMibView | Value::NoSuchObject | Value::NoSuchInstance
-                        ) {
-                            break;
-                        }
-
-                        let response_parts = oid_to_vec(&resp_oid);
-                        if response_parts.len() <= base_parts.len()
-                            || !response_parts.starts_with(&base_parts)
-                        {
-                            break;
-                        }
-
-                        // OID suffix is 6-octet MAC encoded as 6 integers
-                        let suffix = &response_parts[base_parts.len()..];
-                        if suffix.len() == 6 {
-                            let key = suffix
-                                .iter()
-                                .map(|v| v.to_string())
-                                .collect::<Vec<_>>()
-                                .join(".");
-
-                            let entry = fdb_entries.entry(key).or_insert_with(|| FdbBuilder {
-                                mac_address: None,
-                                port: None,
-                                status: None,
-                            });
-
-                            match column_name {
-                                "address" => entry.mac_address = value_to_mac(&value),
-                                "port" => entry.port = value_to_i32(&value),
-                                "status" => entry.status = value_to_i32(&value),
-                                _ => {}
-                            }
-                        }
-
-                        current_oid = Oid::from(response_parts.as_slice())
-                            .map_err(|e| anyhow!("Invalid response OID: {:?}", e))?;
-                        count += 1;
-                    } else {
-                        break;
+                    match column_name {
+                        "address" => entry.mac_address = value_to_mac(value),
+                        "port" => entry.port = value_to_i32(value),
+                        "status" => entry.status = value_to_i32(value),
+                        _ => {}
                     }
                 }
-                Ok(Err(_)) | Err(_) => break,
-            }
-        }
+            },
+        )
+        .await?;
     }
 
     // Filter: keep learned (3) and self (5), resolve bridge port to ifIndex
@@ -1194,112 +950,46 @@ pub async fn query_vlan_table(
     let mut session = create_session(ip, credential, port).await?;
     let mut vlans: Vec<VlanInfo> = Vec::new();
 
+    let use_bulk = supports_bulk(credential);
+
     // Try Q-BRIDGE dot1qVlanStaticName first
-    let base_oid_str = oids::vlan::q_bridge::DOT1Q_VLAN_STATIC_NAME;
-    let base_oid = parse_oid(base_oid_str)?;
-    let base_parts: Vec<u64> = base_oid_str
-        .split('.')
-        .filter(|s| !s.is_empty())
-        .filter_map(|s| s.parse().ok())
-        .collect();
-
-    let mut current_oid = base_oid.clone();
-    let mut count = 0;
-
-    loop {
-        if count >= MAX_WALK_ENTRIES {
-            break;
-        }
-
-        match timeout(SNMP_TIMEOUT, session.getnext(&current_oid)).await {
-            Ok(Ok(mut response)) => {
-                if let Some((resp_oid, value)) = response.varbinds.next() {
-                    if matches!(
-                        value,
-                        Value::EndOfMibView | Value::NoSuchObject | Value::NoSuchInstance
-                    ) {
-                        break;
-                    }
-
-                    let response_parts = oid_to_vec(&resp_oid);
-                    if response_parts.len() <= base_parts.len()
-                        || !response_parts.starts_with(&base_parts)
-                    {
-                        break;
-                    }
-
-                    // OID suffix is VLAN ID
-                    if let Some(&vlan_u64) = response_parts.last() {
-                        let vlan_id = vlan_u64 as u16;
-                        if let Some(name) = value_to_string(&value) {
-                            vlans.push(VlanInfo { vlan_id, name });
-                        }
-                    }
-
-                    current_oid = Oid::from(response_parts.as_slice())
-                        .map_err(|e| anyhow!("Invalid response OID: {:?}", e))?;
-                    count += 1;
-                } else {
-                    break;
+    walk_column(
+        &mut session,
+        ip,
+        oids::vlan::q_bridge::DOT1Q_VLAN_STATIC_NAME,
+        "dot1qVlanStaticName",
+        use_bulk,
+        |suffix, value| {
+            // OID suffix is VLAN ID
+            if let Some(&vlan_u64) = suffix.last() {
+                let vlan_id = vlan_u64 as u16;
+                if let Some(name) = value_to_string(value) {
+                    vlans.push(VlanInfo { vlan_id, name });
                 }
             }
-            Ok(Err(_)) | Err(_) => break,
-        }
-    }
+        },
+    )
+    .await?;
 
     // Fall back to Cisco VTP if Q-BRIDGE returned nothing
     if vlans.is_empty() {
-        let vtp_oid_str = oids::vlan::cisco_vtp::VTP_VLAN_NAME;
-        let vtp_base_oid = parse_oid(vtp_oid_str)?;
-        let vtp_base_parts: Vec<u64> = vtp_oid_str
-            .split('.')
-            .filter(|s| !s.is_empty())
-            .filter_map(|s| s.parse().ok())
-            .collect();
-
-        let mut current_oid = vtp_base_oid.clone();
-        let mut count = 0;
-
-        loop {
-            if count >= MAX_WALK_ENTRIES {
-                break;
-            }
-
-            match timeout(SNMP_TIMEOUT, session.getnext(&current_oid)).await {
-                Ok(Ok(mut response)) => {
-                    if let Some((resp_oid, value)) = response.varbinds.next() {
-                        if matches!(
-                            value,
-                            Value::EndOfMibView | Value::NoSuchObject | Value::NoSuchInstance
-                        ) {
-                            break;
-                        }
-
-                        let response_parts = oid_to_vec(&resp_oid);
-                        if response_parts.len() <= vtp_base_parts.len()
-                            || !response_parts.starts_with(&vtp_base_parts)
-                        {
-                            break;
-                        }
-
-                        // VTP index is mgmtDomainIndex.vlanId — use last component as VLAN ID
-                        if let Some(&vlan_u64) = response_parts.last() {
-                            let vlan_id = vlan_u64 as u16;
-                            if let Some(name) = value_to_string(&value) {
-                                vlans.push(VlanInfo { vlan_id, name });
-                            }
-                        }
-
-                        current_oid = Oid::from(response_parts.as_slice())
-                            .map_err(|e| anyhow!("Invalid response OID: {:?}", e))?;
-                        count += 1;
-                    } else {
-                        break;
+        walk_column(
+            &mut session,
+            ip,
+            oids::vlan::cisco_vtp::VTP_VLAN_NAME,
+            "vtpVlanName",
+            use_bulk,
+            |suffix, value| {
+                // VTP index is mgmtDomainIndex.vlanId — use last component as VLAN ID
+                if let Some(&vlan_u64) = suffix.last() {
+                    let vlan_id = vlan_u64 as u16;
+                    if let Some(name) = value_to_string(value) {
+                        vlans.push(VlanInfo { vlan_id, name });
                     }
                 }
-                Ok(Err(_)) | Err(_) => break,
-            }
-        }
+            },
+        )
+        .await?;
     }
 
     debug!(
@@ -1321,8 +1011,10 @@ pub async fn query_port_vlan_membership(
 ) -> Result<Vec<PortVlanMembership>> {
     let mut session = create_session(ip, credential, port).await?;
 
+    let use_bulk = supports_bulk(credential);
+
     // Step 1: Get bridge port → ifIndex mapping
-    let port_to_if_index = walk_bridge_port_mapping(&mut session).await?;
+    let port_to_if_index = walk_bridge_port_mapping(&mut session, ip, use_bulk).await?;
 
     if port_to_if_index.is_empty() {
         debug!(
@@ -1334,182 +1026,72 @@ pub async fn query_port_vlan_membership(
 
     // Step 2: Walk dot1qPvid for native VLAN per bridge port
     let mut native_vlans: HashMap<i32, u16> = HashMap::new();
-    {
-        let base_oid_str = oids::vlan::q_bridge::DOT1Q_PVID;
-        let base_oid = parse_oid(base_oid_str)?;
-        let base_parts: Vec<u64> = base_oid_str
-            .split('.')
-            .filter(|s| !s.is_empty())
-            .filter_map(|s| s.parse().ok())
-            .collect();
-
-        let mut current_oid = base_oid.clone();
-        let mut count = 0;
-
-        loop {
-            if count >= MAX_WALK_ENTRIES {
-                break;
-            }
-
-            match timeout(SNMP_TIMEOUT, session.getnext(&current_oid)).await {
-                Ok(Ok(mut response)) => {
-                    if let Some((resp_oid, value)) = response.varbinds.next() {
-                        if matches!(
-                            value,
-                            Value::EndOfMibView | Value::NoSuchObject | Value::NoSuchInstance
-                        ) {
-                            break;
-                        }
-
-                        let response_parts = oid_to_vec(&resp_oid);
-                        if response_parts.len() <= base_parts.len()
-                            || !response_parts.starts_with(&base_parts)
-                        {
-                            break;
-                        }
-
-                        // OID suffix is bridge port number, value is native VLAN ID
-                        if let Some(&port_u64) = response_parts.last() {
-                            let bridge_port = port_u64 as i32;
-                            if let Some(vlan_id) = value_to_u16(&value) {
-                                native_vlans.insert(bridge_port, vlan_id);
-                            }
-                        }
-
-                        current_oid = Oid::from(response_parts.as_slice())
-                            .map_err(|e| anyhow!("Invalid response OID: {:?}", e))?;
-                        count += 1;
-                    } else {
-                        break;
-                    }
+    walk_column(
+        &mut session,
+        ip,
+        oids::vlan::q_bridge::DOT1Q_PVID,
+        "dot1qPvid",
+        use_bulk,
+        |suffix, value| {
+            // OID suffix is bridge port number, value is native VLAN ID
+            if let Some(&port_u64) = suffix.last() {
+                let bridge_port = port_u64 as i32;
+                if let Some(vlan_id) = value_to_u16(value) {
+                    native_vlans.insert(bridge_port, vlan_id);
                 }
-                Ok(Err(_)) | Err(_) => break,
             }
-        }
-    }
+        },
+    )
+    .await?;
 
     // Step 3: Walk dot1qVlanCurrentEgressPorts — PortList bitmap per VLAN
     // Indexed by timeFilter.vlanId (timeFilter is typically 0)
     let mut egress_by_port: HashMap<i32, Vec<u16>> = HashMap::new();
-    {
-        let base_oid_str = oids::vlan::q_bridge::DOT1Q_VLAN_CURRENT_EGRESS_PORTS;
-        let base_oid = parse_oid(base_oid_str)?;
-        let base_parts: Vec<u64> = base_oid_str
-            .split('.')
-            .filter(|s| !s.is_empty())
-            .filter_map(|s| s.parse().ok())
-            .collect();
+    walk_column(
+        &mut session,
+        ip,
+        oids::vlan::q_bridge::DOT1Q_VLAN_CURRENT_EGRESS_PORTS,
+        "dot1qVlanCurrentEgressPorts",
+        use_bulk,
+        |suffix, value| {
+            // Suffix is timeFilter.vlanId — last component is VLAN ID
+            if let Some(&vlan_u64) = suffix.last() {
+                let vlan_id = vlan_u64 as u16;
 
-        let mut current_oid = base_oid.clone();
-        let mut count = 0;
-
-        loop {
-            if count >= MAX_WALK_ENTRIES {
-                break;
-            }
-
-            match timeout(SNMP_TIMEOUT, session.getnext(&current_oid)).await {
-                Ok(Ok(mut response)) => {
-                    if let Some((resp_oid, value)) = response.varbinds.next() {
-                        if matches!(
-                            value,
-                            Value::EndOfMibView | Value::NoSuchObject | Value::NoSuchInstance
-                        ) {
-                            break;
-                        }
-
-                        let response_parts = oid_to_vec(&resp_oid);
-                        if response_parts.len() <= base_parts.len()
-                            || !response_parts.starts_with(&base_parts)
-                        {
-                            break;
-                        }
-
-                        // Suffix is timeFilter.vlanId — last component is VLAN ID
-                        let suffix = &response_parts[base_parts.len()..];
-                        if let Some(&vlan_u64) = suffix.last() {
-                            let vlan_id = vlan_u64 as u16;
-
-                            // Value is PortList bitmap (OCTET STRING)
-                            if let Value::OctetString(bytes) = &value {
-                                let bridge_ports = parse_portlist_bitmap(bytes);
-                                for bp in bridge_ports {
-                                    egress_by_port.entry(bp).or_default().push(vlan_id);
-                                }
-                            }
-                        }
-
-                        current_oid = Oid::from(response_parts.as_slice())
-                            .map_err(|e| anyhow!("Invalid response OID: {:?}", e))?;
-                        count += 1;
-                    } else {
-                        break;
+                // Value is PortList bitmap (OCTET STRING)
+                if let Value::OctetString(bytes) = value {
+                    let bridge_ports = parse_portlist_bitmap(bytes);
+                    for bp in bridge_ports {
+                        egress_by_port.entry(bp).or_default().push(vlan_id);
                     }
                 }
-                Ok(Err(_)) | Err(_) => break,
             }
-        }
-    }
+        },
+    )
+    .await?;
 
     // Step 4: Walk dot1qVlanCurrentUntaggedPorts — same bitmap format
     let mut untagged_by_port: HashMap<i32, Vec<u16>> = HashMap::new();
-    {
-        let base_oid_str = oids::vlan::q_bridge::DOT1Q_VLAN_CURRENT_UNTAGGED_PORTS;
-        let base_oid = parse_oid(base_oid_str)?;
-        let base_parts: Vec<u64> = base_oid_str
-            .split('.')
-            .filter(|s| !s.is_empty())
-            .filter_map(|s| s.parse().ok())
-            .collect();
+    walk_column(
+        &mut session,
+        ip,
+        oids::vlan::q_bridge::DOT1Q_VLAN_CURRENT_UNTAGGED_PORTS,
+        "dot1qVlanCurrentUntaggedPorts",
+        use_bulk,
+        |suffix, value| {
+            if let Some(&vlan_u64) = suffix.last() {
+                let vlan_id = vlan_u64 as u16;
 
-        let mut current_oid = base_oid.clone();
-        let mut count = 0;
-
-        loop {
-            if count >= MAX_WALK_ENTRIES {
-                break;
-            }
-
-            match timeout(SNMP_TIMEOUT, session.getnext(&current_oid)).await {
-                Ok(Ok(mut response)) => {
-                    if let Some((resp_oid, value)) = response.varbinds.next() {
-                        if matches!(
-                            value,
-                            Value::EndOfMibView | Value::NoSuchObject | Value::NoSuchInstance
-                        ) {
-                            break;
-                        }
-
-                        let response_parts = oid_to_vec(&resp_oid);
-                        if response_parts.len() <= base_parts.len()
-                            || !response_parts.starts_with(&base_parts)
-                        {
-                            break;
-                        }
-
-                        let suffix = &response_parts[base_parts.len()..];
-                        if let Some(&vlan_u64) = suffix.last() {
-                            let vlan_id = vlan_u64 as u16;
-
-                            if let Value::OctetString(bytes) = &value {
-                                let bridge_ports = parse_portlist_bitmap(bytes);
-                                for bp in bridge_ports {
-                                    untagged_by_port.entry(bp).or_default().push(vlan_id);
-                                }
-                            }
-                        }
-
-                        current_oid = Oid::from(response_parts.as_slice())
-                            .map_err(|e| anyhow!("Invalid response OID: {:?}", e))?;
-                        count += 1;
-                    } else {
-                        break;
+                if let Value::OctetString(bytes) = value {
+                    let bridge_ports = parse_portlist_bitmap(bytes);
+                    for bp in bridge_ports {
+                        untagged_by_port.entry(bp).or_default().push(vlan_id);
                     }
                 }
-                Ok(Err(_)) | Err(_) => break,
             }
-        }
-    }
+        },
+    )
+    .await?;
 
     // Step 5: Assemble per-port membership, resolving bridge port → ifIndex
     let mut result: Vec<PortVlanMembership> = Vec::new();
