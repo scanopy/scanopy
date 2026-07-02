@@ -150,7 +150,10 @@ impl DiscoveryIntegration for SnmpIntegration {
         let ip = ctx.ip;
 
         // Query system info
-        let system_info = match query_system_info(ip, credential, port).await {
+        let system_info = match timeout(SNMP_WALK_TIMEOUT, query_system_info(ip, credential, port))
+            .await
+            .unwrap_or_else(|_| Err(anyhow::anyhow!("system info query timeout")))
+        {
             Ok(info)
                 if info.sys_descr.is_some()
                     || info.sys_name.is_some()
@@ -178,7 +181,10 @@ impl DiscoveryIntegration for SnmpIntegration {
         }
 
         // Walk interface table
-        let snmp_if_entries = match walk_if_table(ip, credential, port).await {
+        let snmp_if_entries = match timeout(SNMP_WALK_TIMEOUT, walk_if_table(ip, credential, port))
+            .await
+            .unwrap_or_else(|_| Err(anyhow::anyhow!("ifTable walk timeout")))
+        {
             Ok(entries) => {
                 tracing::debug!(ip = %ip, if_count = entries.len(), "SNMP ifTable walked");
                 entries
@@ -190,7 +196,13 @@ impl DiscoveryIntegration for SnmpIntegration {
         };
 
         // Query LLDP neighbors
-        let lldp_neighbors = match query_lldp_neighbors(ip, credential, port).await {
+        let lldp_neighbors = match timeout(
+            SNMP_WALK_TIMEOUT,
+            query_lldp_neighbors(ip, credential, port),
+        )
+        .await
+        .unwrap_or_else(|_| Err(anyhow::anyhow!("LLDP query timeout")))
+        {
             Ok(neighbors) => {
                 tracing::debug!(ip = %ip, count = neighbors.len(), "LLDP neighbors discovered");
                 neighbors
@@ -202,32 +214,55 @@ impl DiscoveryIntegration for SnmpIntegration {
         };
 
         // Query CDP neighbors (Cisco devices)
-        let cdp_neighbors = match query_cdp_neighbors(ip, credential, port).await {
-            Ok(neighbors) => {
-                tracing::debug!(ip = %ip, count = neighbors.len(), "CDP neighbors discovered");
-                neighbors
-            }
-            Err(e) => {
-                tracing::debug!(ip = %ip, error = %e, "CDP query failed");
-                Vec::new()
-            }
-        };
+        let cdp_neighbors =
+            match timeout(SNMP_WALK_TIMEOUT, query_cdp_neighbors(ip, credential, port))
+                .await
+                .unwrap_or_else(|_| Err(anyhow::anyhow!("CDP query timeout")))
+            {
+                Ok(neighbors) => {
+                    tracing::debug!(ip = %ip, count = neighbors.len(), "CDP neighbors discovered");
+                    neighbors
+                }
+                Err(e) => {
+                    tracing::debug!(ip = %ip, error = %e, "CDP query failed");
+                    Vec::new()
+                }
+            };
 
         // Query ipAddrTable for IP->ifIndex+netMask mappings
-        let ip_addr_table = query_ip_addr_table(ip, credential, port)
-            .await
-            .unwrap_or_default();
+        let ip_addr_table =
+            match timeout(SNMP_WALK_TIMEOUT, query_ip_addr_table(ip, credential, port)).await {
+                Ok(res) => res.unwrap_or_default(),
+                Err(_) => {
+                    tracing::debug!(ip = %ip, "SNMP ipAddrTable walk timeout");
+                    Default::default()
+                }
+            };
 
         // Query ARP table for remote host discovery
-        let arp_entries = query_arp_table(ip, credential, port)
-            .await
-            .unwrap_or_default();
+        let arp_entries =
+            match timeout(SNMP_WALK_TIMEOUT, query_arp_table(ip, credential, port)).await {
+                Ok(res) => res.unwrap_or_default(),
+                Err(_) => {
+                    tracing::debug!(ip = %ip, "SNMP ARP table walk timeout");
+                    Default::default()
+                }
+            };
         tracing::info!(ip = %ip, count = arp_entries.len(), "ARP table entries collected");
 
         // Query ENTITY-MIB for hardware inventory
-        let device_inventory = query_entity_physical(ip, credential, port)
-            .await
-            .unwrap_or(None);
+        let device_inventory = match timeout(
+            SNMP_WALK_TIMEOUT,
+            query_entity_physical(ip, credential, port),
+        )
+        .await
+        {
+            Ok(res) => res.unwrap_or(None),
+            Err(_) => {
+                tracing::debug!(ip = %ip, "SNMP ENTITY-MIB walk timeout");
+                None
+            }
+        };
         tracing::info!(
             ip = %ip,
             has_inventory = device_inventory.is_some(),
@@ -235,17 +270,27 @@ impl DiscoveryIntegration for SnmpIntegration {
         );
 
         // Query bridge FDB for MAC-to-port mappings
-        let bridge_fdb = query_bridge_fdb(ip, credential, port)
-            .await
-            .unwrap_or_default();
+        let bridge_fdb =
+            match timeout(SNMP_WALK_TIMEOUT, query_bridge_fdb(ip, credential, port)).await {
+                Ok(res) => res.unwrap_or_default(),
+                Err(_) => {
+                    tracing::debug!(ip = %ip, "SNMP bridge FDB walk timeout");
+                    Default::default()
+                }
+            };
         tracing::info!(ip = %ip, count = bridge_fdb.len(), "Bridge FDB entries collected");
 
         let network_id = host_data.host.base.network_id;
 
         // Query VLAN table for VLAN names and persist as VLAN entities
-        let vlan_table = query_vlan_table(ip, credential, port)
-            .await
-            .unwrap_or_default();
+        let vlan_table =
+            match timeout(SNMP_WALK_TIMEOUT, query_vlan_table(ip, credential, port)).await {
+                Ok(res) => res.unwrap_or_default(),
+                Err(_) => {
+                    tracing::debug!(ip = %ip, "SNMP VLAN table walk timeout");
+                    Default::default()
+                }
+            };
         let vlan_number_to_uuid: std::collections::HashMap<u16, Uuid> = if !vlan_table.is_empty() {
             tracing::info!(
                 ip = %ip,
@@ -265,13 +310,29 @@ impl DiscoveryIntegration for SnmpIntegration {
         };
 
         // Query per-port VLAN membership
-        let port_vlan_membership = query_port_vlan_membership(ip, credential, port)
-            .await
-            .unwrap_or_default();
+        let port_vlan_membership = match timeout(
+            SNMP_WALK_TIMEOUT,
+            query_port_vlan_membership(ip, credential, port),
+        )
+        .await
+        {
+            Ok(res) => res.unwrap_or_default(),
+            Err(_) => {
+                tracing::debug!(ip = %ip, "SNMP port VLAN membership walk timeout");
+                Default::default()
+            }
+        };
         tracing::info!(ip = %ip, count = port_vlan_membership.len(), "Port VLAN memberships collected");
 
         // Query local LLDP identity
-        let lldp_local = query_lldp_local(ip, credential, port).await.unwrap_or(None);
+        let lldp_local =
+            match timeout(SNMP_WALK_TIMEOUT, query_lldp_local(ip, credential, port)).await {
+                Ok(res) => res.unwrap_or(None),
+                Err(_) => {
+                    tracing::debug!(ip = %ip, "SNMP LLDP local identity query timeout");
+                    None
+                }
+            };
         tracing::info!(
             ip = %ip,
             has_lldp_local = lldp_local.is_some(),
