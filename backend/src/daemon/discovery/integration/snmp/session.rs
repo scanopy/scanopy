@@ -43,6 +43,10 @@ pub const SNMP_WALK_TIMEOUT: Duration = Duration::from_secs(30);
 /// Maximum number of varbinds to process in a single walk
 pub const MAX_WALK_ENTRIES: usize = 10000;
 
+/// Max varbinds requested per GETBULK PDU. Kept modest so responses fit in a
+/// single UDP datagram even for columns with long string values (ifAlias/ifDescr).
+pub const BULK_MAX_REPETITIONS: u32 = 20;
+
 /// Create an SNMP session with the given credentials.
 ///
 /// Returns a boxed session because `AsyncSession` contains ~131KB of stack-allocated

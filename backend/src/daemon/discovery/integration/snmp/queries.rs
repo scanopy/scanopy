@@ -13,7 +13,7 @@ use crate::server::credentials::r#impl::mapping::SnmpQueryCredential;
 use crate::server::credentials::r#impl::types::SnmpVersion;
 
 use super::oids::{self, oid_to_vec, parse_oid};
-use super::session::{MAX_WALK_ENTRIES, SNMP_TIMEOUT, create_session};
+use super::session::{BULK_MAX_REPETITIONS, MAX_WALK_ENTRIES, SNMP_TIMEOUT, create_session};
 use super::types::{
     ArpEntry, BridgeFdbEntry, CdpNeighbor, DeviceInventory, IfTableEntry, IpAddrEntry,
     LldpLocalInfo, LldpNeighbor, PortVlanMembership, SystemInfo, VlanInfo,
@@ -22,10 +22,6 @@ use super::values::{
     parse_lldp_mgmt_addr, parse_portlist_bitmap, value_to_i32, value_to_ip, value_to_mac,
     value_to_string, value_to_u16, value_to_u64,
 };
-
-/// Max varbinds requested per GETBULK PDU. Kept modest so responses fit in a
-/// single UDP datagram even for columns with long string values (ifAlias/ifDescr).
-const BULK_MAX_REPETITIONS: u32 = 20;
 
 /// Whether a credential's SNMP version supports GETBULK (v2c/v3; not v1).
 fn supports_bulk(credential: &SnmpQueryCredential) -> bool {
@@ -46,19 +42,14 @@ async fn walk_column(
     ip: IpAddr,
     base_oid_str: &str,
     label: &str,
-    use_bulk: bool,
+    mut use_bulk: bool,
     mut visit: impl FnMut(&[u64], &Value),
 ) -> Result<usize> {
     let base_oid = parse_oid(base_oid_str)?;
-    let base_parts: Vec<u64> = base_oid_str
-        .split('.')
-        .filter(|s| !s.is_empty())
-        .filter_map(|s| s.parse().ok())
-        .collect();
+    let base_parts: Vec<u64> = oid_to_vec(&base_oid);
 
     let mut current_oid = base_oid;
     let mut count = 0usize;
-    let mut use_bulk = use_bulk;
 
     loop {
         if count >= MAX_WALK_ENTRIES {
@@ -74,6 +65,19 @@ async fn walk_column(
             )
             .await
             {
+                // A non-zero error_status (e.g. tooBig, genErr) means the agent
+                // rejected the GETBULK. validate() doesn't inspect error_status, so
+                // this arrives as Ok(Ok) with no usable varbinds. Fall back to
+                // GETNEXT from the current position — works whether it happens on
+                // the first request or mid-walk, and preserves rows already read.
+                Ok(Ok(r)) if r.error_status != 0 => {
+                    debug!(
+                        "GETBULK error_status={} for {} on {}; falling back to GETNEXT",
+                        r.error_status, label, ip
+                    );
+                    use_bulk = false;
+                    continue;
+                }
                 Ok(Ok(r)) => r,
                 Ok(Err(e)) if count == 0 => {
                     // Device likely doesn't support GETBULK — fall back to GETNEXT.
