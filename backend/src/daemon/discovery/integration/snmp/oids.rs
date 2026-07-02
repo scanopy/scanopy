@@ -283,6 +283,17 @@ pub mod bridge {
         /// dot1dTpFdbStatus - Entry status
         pub const DOT1D_TP_FDB_STATUS: &str = "1.3.6.1.2.1.17.4.3.1.3";
     }
+
+    /// dot1qTpFdbEntry columns (Q-BRIDGE-MIB). Index is dot1qFdbId + MAC, so the
+    /// MAC comes from the OID suffix, not a value column; only Port and Status
+    /// are accessible columns.
+    pub mod q_fdb_entry {
+        /// dot1qTpFdbPort - Bridge port number
+        pub const DOT1Q_TP_FDB_PORT: &str = "1.3.6.1.2.1.17.7.1.2.2.1.2";
+
+        /// dot1qTpFdbStatus - Entry status
+        pub const DOT1Q_TP_FDB_STATUS: &str = "1.3.6.1.2.1.17.7.1.2.2.1.3";
+    }
 }
 
 /// VLAN MIB OIDs - Q-BRIDGE-MIB (IEEE 802.1Q) and Cisco VTP

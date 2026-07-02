@@ -846,6 +846,51 @@ pub async fn query_bridge_fdb(
         .await?;
     }
 
+    // Also walk Q-BRIDGE dot1qTpFdbTable (VLAN-aware FDB). Modern VLAN switches
+    // populate this instead of the legacy dot1dTpFdbTable; walking both and
+    // merging keeps dot1d devices working while adding Q-BRIDGE coverage.
+    //
+    // Index is dot1qFdbId + MAC, so the MAC is in the OID suffix (last 6 octets)
+    // and only Port/Status are value columns. We key by MAC only (same format as
+    // dot1d) so a MAC seen in several VLANs collapses to one entry and merges
+    // with any dot1d entry for the same MAC.
+    let q_columns = [
+        (oids::bridge::q_fdb_entry::DOT1Q_TP_FDB_PORT, "port"),
+        (oids::bridge::q_fdb_entry::DOT1Q_TP_FDB_STATUS, "status"),
+    ];
+    for (base_oid_str, column_name) in q_columns {
+        walk_column(
+            &mut session,
+            ip,
+            base_oid_str,
+            column_name,
+            use_bulk,
+            |suffix, value| {
+                if suffix.len() >= 7 {
+                    let m = &suffix[suffix.len() - 6..];
+                    let key = m
+                        .iter()
+                        .map(|v| v.to_string())
+                        .collect::<Vec<_>>()
+                        .join(".");
+                    let entry = fdb_entries.entry(key).or_insert_with(|| FdbBuilder {
+                        mac_address: Some(mac_address::MacAddress::new([
+                            m[0] as u8, m[1] as u8, m[2] as u8, m[3] as u8, m[4] as u8, m[5] as u8,
+                        ])),
+                        port: None,
+                        status: None,
+                    });
+                    match column_name {
+                        "port" => entry.port = value_to_i32(value),
+                        "status" => entry.status = value_to_i32(value),
+                        _ => {}
+                    }
+                }
+            },
+        )
+        .await?;
+    }
+
     // Filter: keep learned (3) and self (5), resolve bridge port to ifIndex
     let result: Vec<BridgeFdbEntry> = fdb_entries
         .into_values()
