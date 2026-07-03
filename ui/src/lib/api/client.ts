@@ -312,13 +312,25 @@ const errorMiddleware: Middleware = {
 };
 
 /**
+ * n9e 嵌入:API 路径前缀(运行时注入)。
+ * app.html inline 脚本从 iframe 的 ?apiBase= 读入 window.__SCANOPY_API_BASE__。
+ * 原生部署无该参数 → 空串 → 行为不变(打 <origin>/api/v1/*)。
+ * 嵌入 n9e 时 = '/topo-studio/scanopy-api' → 打 <origin>/topo-studio/scanopy-api/api/v1/*。
+ * 导出供绕过 apiClient 的裸 URL(SSE 等)复用。
+ */
+export const API_BASE_PATH: string =
+	(typeof window !== 'undefined' &&
+		(window as unknown as { __SCANOPY_API_BASE__?: string }).__SCANOPY_API_BASE__) ||
+	'';
+
+/**
  * Create the typed API client
  *
  * Note: baseUrl does NOT include '/api' because the OpenAPI schema paths
  * already include the '/api' prefix (e.g., '/api/hosts', '/api/networks').
  */
 export const apiClient = createClient<paths>({
-	baseUrl: getServerUrl(),
+	baseUrl: getServerUrl() + API_BASE_PATH,
 	credentials: 'include',
 	headers: {
 		'Content-Type': 'application/json'

@@ -20,6 +20,15 @@
 				document.documentElement.style.colorScheme = d ? 'dark' : 'light';
 			})();
 		</script>
+		<script>
+			// n9e 嵌入:API 路径前缀。iframe 首次带 ?apiBase=/topo-studio/scanopy-api;
+			// 存 localStorage 以在 SPA 内整页刷新(query 丢失)后仍生效。原生部署无参数 → 空。
+			(function () {
+				var a = new URLSearchParams(location.search).get('apiBase');
+				if (a !== null) localStorage.setItem('scanopy-api-base', a);
+				window.__SCANOPY_API_BASE__ = a !== null ? a : localStorage.getItem('scanopy-api-base') || '';
+			})();
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

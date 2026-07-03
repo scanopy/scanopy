@@ -7,7 +7,7 @@
 
 import { createQuery, createMutation } from '@tanstack/svelte-query';
 import { queryClient, queryKeys } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
+import { apiClient, API_BASE_PATH } from '$lib/api/client';
 import type { Topology, TopologyEdge, TopologyOptions, RenderableTopology } from './types/base';
 import type { ContainerGraphRule, ElementGraphRule, ElementRule } from './types/grouping';
 import { makeGraphRule } from './types/grouping';
@@ -839,7 +839,7 @@ interface LiveTopologyUpdate {
 class TopologySSEManager extends BaseSSEManager<LiveTopologyUpdate> {
 	protected createConfig(): SSEConfig<LiveTopologyUpdate> {
 		return {
-			url: '/api/v1/topology/stream',
+			url: `${API_BASE_PATH}/api/v1/topology/stream`,
 			onMessage: (update) => {
 				// Live data changed for this network — invalidate the topology
 				// list (the live row's nodes/edges may have shifted), the

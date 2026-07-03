@@ -4,7 +4,7 @@
 
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
 import { queryClient, queryKeys } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
+import { apiClient, API_BASE_PATH } from '$lib/api/client';
 import type { Discovery } from './types/base';
 import type { DiscoveryUpdatePayload } from './types/api';
 import type { Organization } from '../organizations/types';
@@ -501,7 +501,7 @@ class DiscoverySSEManager extends BaseSSEManager<DiscoveryUpdatePayload> {
 
 	protected createConfig(): SSEConfig<DiscoveryUpdatePayload> {
 		return {
-			url: '/api/v1/discovery/stream',
+			url: `${API_BASE_PATH}/api/v1/discovery/stream`,
 			onMessage: async (update) => {
 				// Check if progress increased
 				const last = lastProgress.get(update.session_id) || 0;
