@@ -1,0 +1,898 @@
+[
+  {
+    "id": "Ssh",
+    "name": "SSH",
+    "description": "Secure Shell",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": true,
+      "number": 22,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Telnet",
+    "name": "Telnet",
+    "description": "Telnet Protocol",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": true,
+      "number": 23,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "DnsUdp",
+    "name": "DNS (UDP)",
+    "description": "Domain Name System (UDP)",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": true,
+      "is_management": false,
+      "number": 53,
+      "protocol": "Udp"
+    }
+  },
+  {
+    "id": "DnsTcp",
+    "name": "DNS (TCP)",
+    "description": "Domain Name System (TCP)",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": true,
+      "is_management": false,
+      "number": 53,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Samba",
+    "name": "Samba",
+    "description": "Samba File Sharing",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 445,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Nfs",
+    "name": "NFS",
+    "description": "Network File System",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 2049,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Ftp",
+    "name": "FTP",
+    "description": "File Transfer Protocol",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 21,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Ipp",
+    "name": "IPP",
+    "description": "Internet Printing Protocol",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 631,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "LdpTcp",
+    "name": "LDP (TCP)",
+    "description": "Line Printer Daemon (TCP)",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 515,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "LdpUdp",
+    "name": "LDP (UDP)",
+    "description": "Line Printer Daemon (UDP)",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 515,
+      "protocol": "Udp"
+    }
+  },
+  {
+    "id": "Ldap",
+    "name": "LDAP",
+    "description": "Lightweight Directory Access Protocol",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 389,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Ldaps",
+    "name": "LDAP TLS",
+    "description": "Lightweight Directory Access Protocol using TLS",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 636,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Kerberos",
+    "name": "Kerberos",
+    "description": "Kerberos Authentication Protocol",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 88,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Snmp",
+    "name": "SNMP",
+    "description": "Simple Network Management Protocol",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": true,
+      "number": 161,
+      "protocol": "Udp"
+    }
+  },
+  {
+    "id": "SnmpAlt",
+    "name": "SNMP (Alt)",
+    "description": "Simple Network Management Protocol (non-privileged alternate port)",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": true,
+      "number": 1161,
+      "protocol": "Udp"
+    }
+  },
+  {
+    "id": "Rdp",
+    "name": "RDP",
+    "description": "Remote Desktop Protocol",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": true,
+      "number": 3389,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Ntp",
+    "name": "NTP",
+    "description": "Network Time Protocol",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 123,
+      "protocol": "Udp"
+    }
+  },
+  {
+    "id": "Sip",
+    "name": "SIP",
+    "description": "Session Initiation Protocol",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 5060,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "SipTls",
+    "name": "SIP TLS",
+    "description": "Session Initiation Protocol using TLS",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 5061,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Rtsp",
+    "name": "RTSP",
+    "description": "Real-Time Streaming Protocol",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 554,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Dhcp",
+    "name": "DHCP",
+    "description": "Dynamic Host Configuration Protocol",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 67,
+      "protocol": "Udp"
+    }
+  },
+  {
+    "id": "Http",
+    "name": "HTTP",
+    "description": "Hypertext Transfer Protocol",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": true,
+      "number": 80,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "MySql",
+    "name": "MySql",
+    "description": "MySQL Database",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 3306,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "PostgreSQL",
+    "name": "PostgreSql",
+    "description": "PostgreSQL Database",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 5432,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "MongoDB",
+    "name": "MongoDB",
+    "description": "MongoDB",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 27017,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Redis",
+    "name": "Redis",
+    "description": "Redis Database",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 6379,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "MsSql",
+    "name": "MicrosoftSql",
+    "description": "MicrosoftSQL Database",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 1433,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Docker",
+    "name": "Docker",
+    "description": "Docker",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 2375,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "DockerTls",
+    "name": "Docker TLS",
+    "description": "Docker using TLS",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 2376,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Kubernetes",
+    "name": "Kubernetes",
+    "description": "Kubernetes",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 6443,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "RabbitMqMgmt",
+    "name": "RabbitMq Management",
+    "description": "RabbitMQ Management",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 15672,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Cassandra",
+    "name": "Cassandra",
+    "description": "Cassandra",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 9042,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Elasticsearch",
+    "name": "Elastic Search",
+    "description": "Elastic Search",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 9200,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "InfluxDb",
+    "name": "InfluxDB",
+    "description": "Influx Database",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 8086,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "CouchDb",
+    "name": "CouchDB",
+    "description": "Couch Database",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 5984,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Kafka",
+    "name": "Kafka",
+    "description": "Kafka",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 9092,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Http3000",
+    "name": "HTTP 3000",
+    "description": "HTTP 3000",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 3000,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Http5000",
+    "name": "HTTP 5000",
+    "description": "HTTP 5000",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 5000,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Http8080",
+    "name": "HTTP 8080",
+    "description": "HTTP 8080",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": true,
+      "number": 8080,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Http8081",
+    "name": "HTTP 8081",
+    "description": "HTTP 8081",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 8081,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Http8082",
+    "name": "HTTP 8082",
+    "description": "HTTP 8082",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 8082,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Http8888",
+    "name": "HTTP 8888",
+    "description": "HTTP 8888",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 8888,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Http9000",
+    "name": "HTTP 9000",
+    "description": "HTTP 9000",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 9000,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Https",
+    "name": "HTTPS",
+    "description": "Hypertext Transfer Protocol Secure",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": true,
+      "number": 443,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Https8443",
+    "name": "HTTPS 8443",
+    "description": "Alternative HTTPS Port",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": true,
+      "number": 8443,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Https9443",
+    "name": "HTTP 9443",
+    "description": "HTTPS 9443",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 9443,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Https10443",
+    "name": "HTTP 10443",
+    "description": "HTTPS 10443",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 10443,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Mqtt",
+    "name": "MQTT",
+    "description": "MQTT",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 1883,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "MqttTls",
+    "name": "MQTT TLS",
+    "description": "MQTT using TLS",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 8883,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "AMQP",
+    "name": "AMQP",
+    "description": "Advanced Message Queuing Protocol",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 5672,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "AMQPTls",
+    "name": "AMQP TLS",
+    "description": "Advanced Message Queuing Protocol using TLS",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 5671,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Wireguard",
+    "name": "Wireguard",
+    "description": "Wireguard VPN",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 51820,
+      "protocol": "Udp"
+    }
+  },
+  {
+    "id": "OpenVPN",
+    "name": "OpenVPN",
+    "description": "OpenVPN",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 1194,
+      "protocol": "Udp"
+    }
+  },
+  {
+    "id": "BACnet",
+    "name": "BACnet",
+    "description": "Building Automation and Control Network",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 47808,
+      "protocol": "Udp"
+    }
+  },
+  {
+    "id": "JetDirect",
+    "name": "JetDirect",
+    "description": "JetDirect RAW Printing",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": true,
+      "is_custom": false,
+      "is_dns": false,
+      "is_management": false,
+      "number": 9100,
+      "protocol": "Tcp"
+    }
+  },
+  {
+    "id": "Custom",
+    "name": "Custom",
+    "description": "Custom Port Configuration",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": false,
+      "is_custom": true,
+      "is_dns": false,
+      "is_management": false,
+      "number": 0,
+      "protocol": "Udp"
+    }
+  }
+]

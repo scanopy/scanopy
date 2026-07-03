@@ -1,0 +1,4790 @@
+[
+  {
+    "id": "Jellyfin",
+    "name": "Jellyfin",
+    "description": "Free media server for personal streaming",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Tuya Smart",
+    "name": "Tuya Smart",
+    "description": "Tuya Smart IoT Devices",
+    "category": "IoT",
+    "icon": "circuit-board",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "RTSP Camera",
+    "name": "RTSP Camera",
+    "description": "Camera with RTSP Streaming",
+    "category": "IoT",
+    "icon": "circuit-board",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Microsoft IIS",
+    "name": "Microsoft IIS",
+    "description": "Microsoft Internet Information Services web server",
+    "category": "ReverseProxy",
+    "icon": "split",
+    "color": "Cyan",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Workstation",
+    "name": "Workstation",
+    "description": "Desktop computer for productivity work",
+    "category": "Workstation",
+    "icon": "monitor",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "SABnzbd",
+    "name": "SABnzbd",
+    "description": "A NZB Files Downloader.",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Frigate",
+    "name": "Frigate",
+    "description": "NVR with realtime object detection for IP Cameras",
+    "category": "IoT",
+    "icon": "circuit-board",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Elasticsearch",
+    "name": "Elasticsearch",
+    "description": "Distributed search and analytics engine",
+    "category": "Database",
+    "icon": "database",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "BigBlueButton",
+    "name": "BigBlueButton",
+    "description": "Web conferencing system",
+    "category": "Conferencing",
+    "icon": "video",
+    "color": "Teal",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "GitLab",
+    "name": "GitLab",
+    "description": "DevOps platform",
+    "category": "Development",
+    "icon": "code",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "BookLore",
+    "name": "BookLore",
+    "description": "A self-hosted, multi-user digital library.",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Roku Media Player",
+    "name": "Roku Media Player",
+    "description": "Roku streaming device or TV",
+    "category": "IoT",
+    "icon": "circuit-board",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "UptimeKuma",
+    "name": "UptimeKuma",
+    "description": "Self-hosted uptime monitoring tool",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Google Nest router",
+    "name": "Google Nest router",
+    "description": "Google Nest Wifi router",
+    "category": "NetworkAccess",
+    "icon": "router",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": true,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Print Server",
+    "name": "Print Server",
+    "description": "A generic printing service",
+    "category": "Printer",
+    "icon": "printer",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "LinkStack",
+    "name": "LinkStack",
+    "description": "A highly customizable link sharing platform",
+    "category": "Dashboard",
+    "icon": "layout-dashboard",
+    "color": "Purple",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Veeam",
+    "name": "Veeam",
+    "description": "Backup and replication",
+    "category": "Backup",
+    "icon": "database-backup",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Sentry",
+    "name": "Sentry",
+    "description": "Error tracking platform",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "BackRest",
+    "name": "BackRest",
+    "description": "Web UI and orchestrator for Restic",
+    "category": "Backup",
+    "icon": "database-backup",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Authentik",
+    "name": "Authentik",
+    "description": "A self-hosted, open source identity provider",
+    "category": "IdentityAndAccess",
+    "icon": "key-round",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "PostgreSQL",
+    "name": "PostgreSQL",
+    "description": "Open-source relational database",
+    "category": "Database",
+    "icon": "database",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "FreePBX",
+    "name": "FreePBX",
+    "description": "PBX web ip_address",
+    "category": "Telephony",
+    "icon": "phone",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "ownCloud",
+    "name": "ownCloud",
+    "description": "File sync and share",
+    "category": "Office",
+    "icon": "file-text",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Salt Proxy",
+    "name": "Salt Proxy",
+    "description": "A Salt Proxy server acts as a proxy between the Salt Master and the minions.",
+    "category": "Development",
+    "icon": "code",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "OpenSpeedTest",
+    "name": "OpenSpeedTest",
+    "description": "Self-hosted network speed test application",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "FreeIPA",
+    "name": "FreeIPA",
+    "description": "Identity management system",
+    "category": "IdentityAndAccess",
+    "icon": "key-round",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "PeaNUT",
+    "name": "PeaNUT",
+    "description": "A tiny dashboard for Network UPS Tools",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Kafka",
+    "name": "Kafka",
+    "description": "Event streaming platform",
+    "category": "MessageQueue",
+    "icon": "message-square-code",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Zabbix Agent",
+    "name": "Zabbix Agent",
+    "description": "Monitoring agent for Zabbix server",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Jotty",
+    "name": "Jotty",
+    "description": "A simple, self-hosted app for your checklists and notes",
+    "category": "Office",
+    "icon": "file-text",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Chromecast",
+    "name": "Chromecast",
+    "description": "Google Chromecast streaming device",
+    "category": "IoT",
+    "icon": "circuit-board",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Discourse",
+    "name": "Discourse",
+    "description": "Discussion platform",
+    "category": "Publishing",
+    "icon": "pen-line",
+    "color": "Purple",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Scanopy Daemon",
+    "name": "Scanopy Daemon",
+    "description": "Automatically discover and visually document network infrastructure",
+    "category": "Scanopy",
+    "icon": "zap",
+    "color": "Purple",
+    "metadata": {
+      "can_be_added": false,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "png",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Actual Budget",
+    "name": "Actual Budget",
+    "description": "A local-first personal finance app",
+    "category": "Office",
+    "icon": "file-text",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Duplicati",
+    "name": "Duplicati",
+    "description": "Cross-platform backup client with encryption",
+    "category": "Backup",
+    "icon": "database-backup",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "CrowdSec",
+    "name": "CrowdSec",
+    "description": "Crowdsourced protection against malicious IPs",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Nomad",
+    "name": "Nomad",
+    "description": "Workload orchestration",
+    "category": "Orchestrator",
+    "icon": "layers",
+    "color": "Purple",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Homarr",
+    "name": "Homarr",
+    "description": "A sleek, modern dashboard",
+    "category": "Dashboard",
+    "icon": "layout-dashboard",
+    "color": "Purple",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Gitea",
+    "name": "Gitea",
+    "description": "DevOps platform",
+    "category": "Development",
+    "icon": "code",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "RabbitMQ",
+    "name": "RabbitMQ",
+    "description": "Message broker",
+    "category": "MessageQueue",
+    "icon": "message-square-code",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Ceph",
+    "name": "Ceph",
+    "description": "Distributed storage",
+    "category": "Storage",
+    "icon": "hard-drive",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Wiz",
+    "name": "Wiz",
+    "description": "Wiz IoT Devices",
+    "category": "IoT",
+    "icon": "circuit-board",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Roborock Vacuum",
+    "name": "Roborock Vacuum",
+    "description": "Roborock robot vacuum cleaner",
+    "category": "IoT",
+    "icon": "circuit-board",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "webp",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "AudioBookShelf",
+    "name": "AudioBookShelf",
+    "description": "Self-hosted audiobook and podcast server.",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Open LDAP",
+    "name": "Open LDAP",
+    "description": "Generic LDAP directory service",
+    "category": "IdentityAndAccess",
+    "icon": "key-round",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Firewall",
+    "name": "Firewall",
+    "description": "Generic network security appliance",
+    "category": "NetworkAppliance",
+    "icon": "brick-wall",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Redis",
+    "name": "Redis",
+    "description": "In-memory data store and cache",
+    "category": "Database",
+    "icon": "database",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Tautulli",
+    "name": "Tautulli",
+    "description": "Monitor, view analytics, and receive notifications about your Plex Media Server.",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Unclaimed Open Ports",
+    "name": "Unclaimed Open Ports",
+    "description": "Unclaimed open ports. Reassign to the correct service if known.",
+    "category": "OpenPorts",
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "can_be_added": false,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Wizarr",
+    "name": "Wizarr",
+    "description": "User invitation and management system for Jellyfin, Plex, Emby etc",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "IoT",
+    "name": "IoT",
+    "description": "A generic IoT Service",
+    "category": "IoT",
+    "icon": "circuit-board",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "NextCloud",
+    "name": "NextCloud",
+    "description": "Self-hosted cloud storage and collaboration platform",
+    "category": "Office",
+    "icon": "file-text",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Prometheus Node Exporter",
+    "name": "Prometheus Node Exporter",
+    "description": "Prometheus exporter for hardware and OS metrics",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": true,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Netdata",
+    "name": "Netdata",
+    "description": "Real-time performance monitoring",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "TeamCity",
+    "name": "TeamCity",
+    "description": "CI/CD server",
+    "category": "Development",
+    "icon": "code",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Open WebUI",
+    "name": "Open WebUI",
+    "description": "Open, extensible, user-friendly ip_address for AI",
+    "category": "Development",
+    "icon": "code",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Jaeger",
+    "name": "Jaeger",
+    "description": "Distributed tracing system",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Slskd",
+    "name": "Slskd",
+    "description": "A modern client-server application for the Soulseek file-sharing network",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Seafile",
+    "name": "Seafile",
+    "description": "File hosting platform",
+    "category": "Office",
+    "icon": "file-text",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Memos",
+    "name": "Memos",
+    "description": "An open-source, self-hosted note-taking service.",
+    "category": "Office",
+    "icon": "file-text",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "png",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Nagios",
+    "name": "Nagios",
+    "description": "Infrastructure monitoring",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Switch",
+    "name": "Switch",
+    "description": "Generic network switch for local area networking",
+    "category": "NetworkCore",
+    "icon": "network",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Docker",
+    "name": "Docker",
+    "description": "Docker",
+    "category": "ContainerRuntime",
+    "icon": "box",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": "containers",
+      "virtualization_variant": "Docker"
+    }
+  },
+  {
+    "id": "Jellystat",
+    "name": "Jellystat",
+    "description": "Open source software application for managing requests for your media library.",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Client",
+    "name": "Client",
+    "description": "A generic client device that initiates connections to services",
+    "category": "Mobile",
+    "icon": "smartphone",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "StrongSwan",
+    "name": "StrongSwan",
+    "description": "Open-source IPsec VPN daemon (IKE / NAT-T)",
+    "category": "VPN",
+    "icon": "venetian-mask",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Fortinet",
+    "name": "Fortinet",
+    "description": "Fortinet security appliance",
+    "category": "NetworkAppliance",
+    "icon": "brick-wall",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Podman Container",
+    "name": "Podman Container",
+    "description": "A generic podman container",
+    "category": "Container",
+    "icon": "box",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Synology DSM",
+    "name": "Synology DSM",
+    "description": "Synology DiskStation Manager NAS system",
+    "category": "Storage",
+    "icon": "hard-drive",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Netbootxyz",
+    "name": "Netbootxyz",
+    "description": "PXE Boot Server",
+    "category": "Storage",
+    "icon": "hard-drive",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "WGDashboard",
+    "name": "WGDashboard",
+    "description": "Wireguard dashboard for visualizing and managing wireguard clients and server",
+    "category": "Dashboard",
+    "icon": "layout-dashboard",
+    "color": "Purple",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Fios Gateway",
+    "name": "Fios Gateway",
+    "description": "Fios device providing routing and gateway services",
+    "category": "NetworkAccess",
+    "icon": "router",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": true,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Glances",
+    "name": "Glances",
+    "description": "An open-source system cross-platform monitoring tool.",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Docker Container",
+    "name": "Docker Container",
+    "description": "A generic docker container",
+    "category": "Container",
+    "icon": "box",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Mattermost",
+    "name": "Mattermost",
+    "description": "Team messaging platform",
+    "category": "Messaging",
+    "icon": "message-circle",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Tomcat",
+    "name": "Tomcat",
+    "description": "Java servlet container",
+    "category": "Development",
+    "icon": "code",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Tasmota",
+    "name": "Tasmota",
+    "description": "ESP device firmware",
+    "category": "IoT",
+    "icon": "circuit-board",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "MinIO",
+    "name": "MinIO",
+    "description": "Object storage",
+    "category": "Storage",
+    "icon": "hard-drive",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Emby",
+    "name": "Emby",
+    "description": "Personal media server with streaming capabilities",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Scanopy Server",
+    "name": "Scanopy Server",
+    "description": "Automatically discover and visually document network infrastructure",
+    "category": "Scanopy",
+    "icon": "zap",
+    "color": "Purple",
+    "metadata": {
+      "can_be_added": false,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "png",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Grafana",
+    "name": "Grafana",
+    "description": "Analytics and monitoring visualization platform",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Bind9",
+    "name": "Bind9",
+    "description": "Berkeley Internet Name Domain DNS server",
+    "category": "DNS",
+    "icon": "search",
+    "color": "Emerald",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Splunk",
+    "name": "Splunk",
+    "description": "Data analytics platform",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Zigbee2MQTT",
+    "name": "Zigbee2MQTT",
+    "description": "Zigbee to MQTT bridge",
+    "category": "HomeAutomation",
+    "icon": "house",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Nest Thermostat",
+    "name": "Nest Thermostat",
+    "description": "Google Nest smart thermostat",
+    "category": "IoT",
+    "icon": "circuit-board",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Philips Hue Bridge",
+    "name": "Philips Hue Bridge",
+    "description": "Philips Hue Bridge for lighting control",
+    "category": "IoT",
+    "icon": "circuit-board",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Bacula",
+    "name": "Bacula",
+    "description": "Network backup solution",
+    "category": "Backup",
+    "icon": "database-backup",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "png",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Immich",
+    "name": "Immich",
+    "description": "Self-hosted photo and video management solution",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "FTP Server",
+    "name": "FTP Server",
+    "description": "Generic FTP file sharing service",
+    "category": "Storage",
+    "icon": "hard-drive",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Loki",
+    "name": "Loki",
+    "description": "Log aggregation system inspired by Prometheus",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "OpenVPN",
+    "name": "OpenVPN",
+    "description": "OpenVPN server",
+    "category": "VPN",
+    "icon": "venetian-mask",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Termix",
+    "name": "Termix",
+    "description": "Web-based server management with SSH terminal, tunneling, and file editing",
+    "category": "RemoteAccess",
+    "icon": "terminal",
+    "color": "Amber",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Mendelson AS2",
+    "name": "Mendelson AS2",
+    "description": "Open-source AS2 server for B2B/EDI file exchange",
+    "category": "Integration",
+    "icon": "workflow",
+    "color": "Cyan",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Rancher",
+    "name": "Rancher",
+    "description": "Kubernetes management",
+    "category": "Orchestrator",
+    "icon": "layers",
+    "color": "Purple",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "OpenShift",
+    "name": "OpenShift",
+    "description": "Enterprise Kubernetes",
+    "category": "Orchestrator",
+    "icon": "layers",
+    "color": "Purple",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Radarr",
+    "name": "Radarr",
+    "description": "A movie collection manager for Usenet and BitTorrent users.",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "ActiveMQ",
+    "name": "ActiveMQ",
+    "description": "Message broker",
+    "category": "MessageQueue",
+    "icon": "message-square-code",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "NTP Server",
+    "name": "NTP Server",
+    "description": "Network Time Protocol server",
+    "category": "NetworkCore",
+    "icon": "network",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Access Point",
+    "name": "Access Point",
+    "description": "A generic wireless access point for WiFi connectivity",
+    "category": "NetworkAccess",
+    "icon": "router",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Amazon Echo",
+    "name": "Amazon Echo",
+    "description": "Amazon Echo smart speaker",
+    "category": "IoT",
+    "icon": "circuit-board",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Pi-Hole",
+    "name": "Pi-Hole",
+    "description": "Network-wide ad blocking DNS service",
+    "category": "AdBlock",
+    "icon": "shield-check",
+    "color": "Emerald",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "CUPS",
+    "name": "CUPS",
+    "description": "Common Unix Printing System",
+    "category": "Printer",
+    "icon": "printer",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "MongoDB",
+    "name": "MongoDB",
+    "description": "NoSQL document database",
+    "category": "Database",
+    "icon": "database",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Jellyseerr",
+    "name": "Jellyseerr",
+    "description": "Open source software application for managing requests for your media library.",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "HP Printer",
+    "name": "HP Printer",
+    "description": "An HP Printer",
+    "category": "Printer",
+    "icon": "printer",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Z-Wave JS",
+    "name": "Z-Wave JS",
+    "description": "Z-Wave controller server",
+    "category": "HomeAutomation",
+    "icon": "house",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "mailcow",
+    "name": "mailcow",
+    "description": "Open-source mail server suite (Dockerized)",
+    "category": "Email",
+    "icon": "mail",
+    "color": "Rose",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Ntfy",
+    "name": "Ntfy",
+    "description": "Simple HTTP-based pub-sub notification service",
+    "category": "MessageQueue",
+    "icon": "message-square-code",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Grocy",
+    "name": "Grocy",
+    "description": "Web-based self-hosted groceries & household management solution",
+    "category": "HomeAutomation",
+    "icon": "house",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Podman",
+    "name": "Podman",
+    "description": "Daemonless container runtime",
+    "category": "ContainerRuntime",
+    "icon": "box",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": "containers",
+      "virtualization_variant": "Podman"
+    }
+  },
+  {
+    "id": "Adguard Home",
+    "name": "Adguard Home",
+    "description": "Network-wide ad and tracker blocking",
+    "category": "AdBlock",
+    "icon": "shield-check",
+    "color": "Emerald",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "MySQL",
+    "name": "MySQL",
+    "description": "Open-source relational database",
+    "category": "Database",
+    "icon": "database",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Denodo",
+    "name": "Denodo",
+    "description": "Data virtualization",
+    "category": "Database",
+    "icon": "database",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Cassandra",
+    "name": "Cassandra",
+    "description": "Distributed NoSQL database",
+    "category": "Database",
+    "icon": "database",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "MikroTik",
+    "name": "MikroTik",
+    "description": "MikroTik RouterOS network device",
+    "category": "NetworkAppliance",
+    "icon": "brick-wall",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Web Service",
+    "name": "Web Service",
+    "description": "A generic web service",
+    "category": "Unknown",
+    "icon": "circle-question-mark",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "OpenMediaVault",
+    "name": "OpenMediaVault",
+    "description": "Debian-based NAS solution",
+    "category": "Storage",
+    "icon": "hard-drive",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Vault",
+    "name": "Vault",
+    "description": "Secrets management",
+    "category": "IdentityAndAccess",
+    "icon": "key-round",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "PowerDNS",
+    "name": "PowerDNS",
+    "description": "Authoritative DNS server with API",
+    "category": "DNS",
+    "icon": "search",
+    "color": "Emerald",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Fios Extender",
+    "name": "Fios Extender",
+    "description": "Fios device providing mesh networking services",
+    "category": "NetworkAccess",
+    "icon": "router",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Kubernetes",
+    "name": "Kubernetes",
+    "description": "Container orchestration platform",
+    "category": "Orchestrator",
+    "icon": "layers",
+    "color": "Purple",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Domoticz",
+    "name": "Domoticz",
+    "description": "Home automation system",
+    "category": "HomeAutomation",
+    "icon": "house",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "png",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "CouchDB",
+    "name": "CouchDB",
+    "description": "NoSQL document database",
+    "category": "Database",
+    "icon": "database",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "HAProxy",
+    "name": "HAProxy",
+    "description": "Load balancer and proxy",
+    "category": "ReverseProxy",
+    "icon": "split",
+    "color": "Cyan",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Gatus",
+    "name": "Gatus",
+    "description": "Automated developer-oriented status page",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "ArgoCD",
+    "name": "ArgoCD",
+    "description": "GitOps continuous delivery",
+    "category": "Development",
+    "icon": "code",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Proxmox VE",
+    "name": "Proxmox VE",
+    "description": "Open-source virtualization management platform",
+    "category": "Hypervisor",
+    "icon": "monitor-cog",
+    "color": "Amber",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": "vms",
+      "virtualization_variant": "Proxmox"
+    }
+  },
+  {
+    "id": "Bitbucket Server",
+    "name": "Bitbucket Server",
+    "description": "Git repository management",
+    "category": "Development",
+    "icon": "code",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Kerberos",
+    "name": "Kerberos",
+    "description": "Kerberos authentication service",
+    "category": "IdentityAndAccess",
+    "icon": "key-round",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Ring Doorbell",
+    "name": "Ring Doorbell",
+    "description": "Ring video doorbell or security camera",
+    "category": "IoT",
+    "icon": "circuit-board",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Icinga",
+    "name": "Icinga",
+    "description": "Infrastructure monitoring",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Glance",
+    "name": "Glance",
+    "description": "A self-hosted dashboard that puts all your feeds in one place",
+    "category": "Dashboard",
+    "icon": "layout-dashboard",
+    "color": "Purple",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "QNAP NAS",
+    "name": "QNAP NAS",
+    "description": "QNAP network attached storage system",
+    "category": "Storage",
+    "icon": "hard-drive",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "SNMP",
+    "name": "SNMP",
+    "description": "Simple Network Management Protocol",
+    "category": "NetworkCore",
+    "icon": "network",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Graylog",
+    "name": "Graylog",
+    "description": "Security Information and Event Management (SIEM) solution and log analytics platform",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Pocket ID",
+    "name": "Pocket ID",
+    "description": "A Simple OIDC provider that uses passkeys for authentication",
+    "category": "IdentityAndAccess",
+    "icon": "key-round",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Sonarr",
+    "name": "Sonarr",
+    "description": "A TV collection manager for Usenet and BitTorrent users.",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Komga",
+    "name": "Komga",
+    "description": "A media server for your comics, mangas, BDs, magazines and eBooks.",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Homepage",
+    "name": "Homepage",
+    "description": "A self-hosted dashboard for your homelab",
+    "category": "Dashboard",
+    "icon": "layout-dashboard",
+    "color": "Purple",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "webp",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Nginx Proxy Manager",
+    "name": "Nginx Proxy Manager",
+    "description": "Web-based Nginx proxy management ip_address",
+    "category": "ReverseProxy",
+    "icon": "split",
+    "color": "Cyan",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Zipkin",
+    "name": "Zipkin",
+    "description": "Distributed tracing system",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Active Directory",
+    "name": "Active Directory",
+    "description": "Microsoft directory service",
+    "category": "IdentityAndAccess",
+    "icon": "key-round",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "CoolerControl",
+    "name": "CoolerControl",
+    "description": "Monitor temperatures, fan speeds, and power in real time.",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "pfSense",
+    "name": "pfSense",
+    "description": "Open-source firewall and router platform",
+    "category": "NetworkAppliance",
+    "icon": "brick-wall",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Paperless-NGX",
+    "name": "Paperless-NGX",
+    "description": "Community-supported document management system",
+    "category": "Office",
+    "icon": "file-text",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Bamboo",
+    "name": "Bamboo",
+    "description": "CI/CD server",
+    "category": "Development",
+    "icon": "code",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "AMQP",
+    "name": "AMQP",
+    "description": "Advanced Message Queuing Protocol",
+    "category": "MessageQueue",
+    "icon": "message-square-code",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "NCPA Agent",
+    "name": "NCPA Agent",
+    "description": "Nagios Cross-Platform Agent for monitoring",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "AWX",
+    "name": "AWX",
+    "description": "Ansible automation platform",
+    "category": "Development",
+    "icon": "code",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Google Nest repeater",
+    "name": "Google Nest repeater",
+    "description": "Google Nest Wifi repeater",
+    "category": "NetworkAccess",
+    "icon": "router",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Unbound DNS",
+    "name": "Unbound DNS",
+    "description": "Recursive DNS resolver with control ip_address",
+    "category": "DNS",
+    "icon": "search",
+    "color": "Emerald",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "BACnet",
+    "name": "BACnet",
+    "description": "Building automation and control network protocol",
+    "category": "IoT",
+    "icon": "circuit-board",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Plex Media Server",
+    "name": "Plex Media Server",
+    "description": "Media server for streaming personal content",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Elastic APM",
+    "name": "Elastic APM",
+    "description": "Application performance monitoring",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Caddy",
+    "name": "Caddy",
+    "description": "Lightweight & versatile reverse proxy, web & file server",
+    "category": "ReverseProxy",
+    "icon": "split",
+    "color": "Cyan",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "APC",
+    "name": "APC",
+    "description": "APC Network-Connected UPS",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Drone",
+    "name": "Drone",
+    "description": "Container-native CI platform",
+    "category": "Development",
+    "icon": "code",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "png",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "ESXi",
+    "name": "ESXi",
+    "description": "VMware ESXi bare-metal hypervisor",
+    "category": "Hypervisor",
+    "icon": "monitor-cog",
+    "color": "Amber",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": "vms",
+      "virtualization_variant": "ESXi"
+    }
+  },
+  {
+    "id": "Nest Protect",
+    "name": "Nest Protect",
+    "description": "Google Nest smoke and CO detector",
+    "category": "IoT",
+    "icon": "circuit-board",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Proxmox Datacenter Manager",
+    "name": "Proxmox Datacenter Manager",
+    "description": "A single pane of glass for managing clustered & non-clustered Proxmox nodes",
+    "category": "Dashboard",
+    "icon": "layout-dashboard",
+    "color": "Purple",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Proxmox Backup Server",
+    "name": "Proxmox Backup Server",
+    "description": "Encrypted, incremental and deduplicated backups for Proxmox VMs, LXCs, and hosts",
+    "category": "Backup",
+    "icon": "database-backup",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Bazarr",
+    "name": "Bazarr",
+    "description": "A companion application to Sonarr and Radarr that manages and downloads subtitles",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Ubiquiti Discovery",
+    "name": "Ubiquiti Discovery",
+    "description": "Ubiquiti device discovery service",
+    "category": "NetworkAccess",
+    "icon": "router",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "NUT",
+    "name": "NUT",
+    "description": "Network UPS Tools",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Mealie",
+    "name": "Mealie",
+    "description": "A self-hosted recipe manager and meal planner",
+    "category": "HomeAutomation",
+    "icon": "house",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Restic",
+    "name": "Restic",
+    "description": "Fast and secure backup program",
+    "category": "Backup",
+    "icon": "database-backup",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "png",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Lidarr",
+    "name": "Lidarr",
+    "description": "A music collection manager for Usenet and BitTorrent users.",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Sonos Speaker",
+    "name": "Sonos Speaker",
+    "description": "Sonos wireless speaker system",
+    "category": "IoT",
+    "icon": "circuit-board",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Wazuh",
+    "name": "Wazuh",
+    "description": "Security platform",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Promtail",
+    "name": "Promtail",
+    "description": "Agent which ships logs to Grafana Loki",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "MQTT",
+    "name": "MQTT",
+    "description": "Generic MQTT broker",
+    "category": "MessageQueue",
+    "icon": "message-square-code",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "DHCP Server",
+    "name": "DHCP Server",
+    "description": "A generic DHCP server",
+    "category": "NetworkCore",
+    "icon": "network",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "openHAB",
+    "name": "openHAB",
+    "description": "Home automation platform",
+    "category": "HomeAutomation",
+    "icon": "house",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Spinnaker",
+    "name": "Spinnaker",
+    "description": "Multi-cloud CD platform",
+    "category": "Development",
+    "icon": "code",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Huntarr",
+    "name": "Huntarr",
+    "description": "Finds missing media and upgrades your existing content.",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "png",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Pulse",
+    "name": "Pulse",
+    "description": "Proxmox node/cluster/VM/LXC monitor",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Syncthing",
+    "name": "Syncthing",
+    "description": "Continuous file synchronization service",
+    "category": "Backup",
+    "icon": "database-backup",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "SSH",
+    "name": "SSH",
+    "description": "Secure Shell remote access",
+    "category": "RemoteAccess",
+    "icon": "terminal",
+    "color": "Amber",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Forgejo",
+    "name": "Forgejo",
+    "description": "DevOps platform",
+    "category": "Development",
+    "icon": "code",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Oracle Database",
+    "name": "Oracle Database",
+    "description": "Enterprise relational database",
+    "category": "Database",
+    "icon": "database",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Tyk",
+    "name": "Tyk",
+    "description": "API gateway",
+    "category": "ReverseProxy",
+    "icon": "split",
+    "color": "Cyan",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Lubelogger",
+    "name": "Lubelogger",
+    "description": "Vehicle Maintenance Records and Fuel Mileage Tracker",
+    "category": "HomeAutomation",
+    "icon": "house",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "png",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "n8n",
+    "name": "n8n",
+    "description": "Open source workflow automation platform",
+    "category": "Development",
+    "icon": "code",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Overseerr",
+    "name": "Overseerr",
+    "description": "Open source software application for managing requests for your media library.",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Portainer",
+    "name": "Portainer",
+    "description": "Orchestration platform for Docker, K8s, and Podman",
+    "category": "Orchestrator",
+    "icon": "layers",
+    "color": "Purple",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Cloudflared",
+    "name": "Cloudflared",
+    "description": "Cloudflare tunnel daemon",
+    "category": "ReverseProxy",
+    "icon": "split",
+    "color": "Cyan",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "vCenter",
+    "name": "vCenter",
+    "description": "VMware vCenter Server virtualization management platform",
+    "category": "Hypervisor",
+    "icon": "monitor-cog",
+    "color": "Amber",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": "vms",
+      "virtualization_variant": "VCenter"
+    }
+  },
+  {
+    "id": "RustDesk",
+    "name": "RustDesk",
+    "description": "Self-hosted remote desktop server",
+    "category": "RemoteAccess",
+    "icon": "terminal",
+    "color": "Amber",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Keycloak",
+    "name": "Keycloak",
+    "description": "Identity and access management",
+    "category": "IdentityAndAccess",
+    "icon": "key-round",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Jitsi Meet",
+    "name": "Jitsi Meet",
+    "description": "Video conferencing",
+    "category": "Conferencing",
+    "icon": "video",
+    "color": "Teal",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Karakeep",
+    "name": "Karakeep",
+    "description": "The Bookmark Everything App",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "WordPress",
+    "name": "WordPress",
+    "description": "Content management system",
+    "category": "Publishing",
+    "icon": "pen-line",
+    "color": "Purple",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Samba",
+    "name": "Samba",
+    "description": "Generic SMB file server",
+    "category": "Storage",
+    "icon": "hard-drive",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Ollama",
+    "name": "Ollama",
+    "description": "An easy way to get up and running with LLMs.",
+    "category": "Development",
+    "icon": "code",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Nvidia GPU Exporter",
+    "name": "Nvidia GPU Exporter",
+    "description": "Prometheus exporter for Nvidia GPU metrics",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "TP-Link EAP",
+    "name": "TP-Link EAP",
+    "description": "TP-Link EAP wireless access point",
+    "category": "NetworkAccess",
+    "icon": "router",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Vaultwarden",
+    "name": "Vaultwarden",
+    "description": "Self-hosted Bitwarden-compatible server, written in Rust",
+    "category": "IdentityAndAccess",
+    "icon": "key-round",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Rocket.Chat",
+    "name": "Rocket.Chat",
+    "description": "Team communication platform",
+    "category": "Messaging",
+    "icon": "message-circle",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Jenkins",
+    "name": "Jenkins",
+    "description": "Automation server for CI/CD",
+    "category": "Development",
+    "icon": "code",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Confluence",
+    "name": "Confluence",
+    "description": "Team collaboration wiki",
+    "category": "ProjectManagement",
+    "icon": "square-kanban",
+    "color": "Indigo",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "MariaDB",
+    "name": "MariaDB",
+    "description": "MySQL-compatible relational database",
+    "category": "Database",
+    "icon": "database",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "FreshRSS",
+    "name": "FreshRSS",
+    "description": "A free, self-hostable news aggregator",
+    "category": "Publishing",
+    "icon": "pen-line",
+    "color": "Purple",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Traefik",
+    "name": "Traefik",
+    "description": "Modern reverse proxy and load balancer",
+    "category": "ReverseProxy",
+    "icon": "split",
+    "color": "Cyan",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Sensu",
+    "name": "Sensu",
+    "description": "Monitoring framework",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "UniFi Controller",
+    "name": "UniFi Controller",
+    "description": "Ubiquiti UniFi network controller",
+    "category": "NetworkAccess",
+    "icon": "router",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Eero Gateway",
+    "name": "Eero Gateway",
+    "description": "Eero device providing routing and gateway services",
+    "category": "NetworkAccess",
+    "icon": "router",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": true,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Radicale",
+    "name": "Radicale",
+    "description": "Free and Open-Source CalDAV and CardDAV Server",
+    "category": "Office",
+    "icon": "file-text",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "JetDirect",
+    "name": "JetDirect",
+    "description": "HP JetDirect RAW printing protocol",
+    "category": "Printer",
+    "icon": "printer",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Docker Swarm",
+    "name": "Docker Swarm",
+    "description": "Docker native clustering and orchestration",
+    "category": "Orchestrator",
+    "icon": "layers",
+    "color": "Purple",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Remote Desktop",
+    "name": "Remote Desktop",
+    "description": "Remote Desktop Protocol (RDP)",
+    "category": "RemoteAccess",
+    "icon": "terminal",
+    "color": "Amber",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "SIP Server",
+    "name": "SIP Server",
+    "description": "Session initiation protocol",
+    "category": "Telephony",
+    "icon": "phone",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "NFS",
+    "name": "NFS",
+    "description": "Generic network file system",
+    "category": "Storage",
+    "icon": "hard-drive",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "HyperFile Server",
+    "name": "HyperFile Server",
+    "description": "PC SOFT HFSQL Client-Server database (WinDev/WebDev)",
+    "category": "Database",
+    "icon": "database",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "TrueNAS",
+    "name": "TrueNAS",
+    "description": "Open-source network attached storage system",
+    "category": "Storage",
+    "icon": "hard-drive",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "NATS",
+    "name": "NATS",
+    "description": "Cloud-native messaging system",
+    "category": "MessageQueue",
+    "icon": "message-square-code",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Appwrite",
+    "name": "Appwrite",
+    "description": "Open-source backend-as-a-service platform",
+    "category": "Development",
+    "icon": "code",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "cAdvisor",
+    "name": "cAdvisor",
+    "description": "Monitoring for container",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "png",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Beszel Agent",
+    "name": "Beszel Agent",
+    "description": "Lightweight server monitoring agent",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Dockge",
+    "name": "Dockge",
+    "description": "Docker compose stack management UI",
+    "category": "Orchestrator",
+    "icon": "layers",
+    "color": "Purple",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Jump",
+    "name": "Jump",
+    "description": "A self-hosted startpage and real-time status page",
+    "category": "Dashboard",
+    "icon": "layout-dashboard",
+    "color": "Purple",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Kong",
+    "name": "Kong",
+    "description": "API gateway",
+    "category": "ReverseProxy",
+    "icon": "split",
+    "color": "Cyan",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Gateway",
+    "name": "Gateway",
+    "description": "A generic gateway",
+    "category": "NetworkCore",
+    "icon": "network",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": true,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Google Home",
+    "name": "Google Home",
+    "description": "Google Home smart speaker or display",
+    "category": "IoT",
+    "icon": "circuit-board",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Telnet",
+    "name": "Telnet",
+    "description": "Telnet remote access",
+    "category": "RemoteAccess",
+    "icon": "terminal",
+    "color": "Amber",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "qBittorrent",
+    "name": "qBittorrent",
+    "description": "Cross-platform open-source BitTorrent client",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Asterisk",
+    "name": "Asterisk",
+    "description": "PBX and VoIP server",
+    "category": "Telephony",
+    "icon": "phone",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "png",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Microsoft SQL Server",
+    "name": "Microsoft SQL Server",
+    "description": "Microsoft relational database",
+    "category": "Database",
+    "icon": "database",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "WireGuard",
+    "name": "WireGuard",
+    "description": "WireGuard VPN",
+    "category": "VPN",
+    "icon": "venetian-mask",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Eero Repeater",
+    "name": "Eero Repeater",
+    "description": "Eero device providing mesh network services",
+    "category": "NetworkAccess",
+    "icon": "router",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Cleanuparr",
+    "name": "Cleanuparr",
+    "description": "Torrent cleanup tool for Sonarr and Radarr",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "GitHub",
+    "name": "GitHub",
+    "description": "Self-hosted GitHub",
+    "category": "Development",
+    "icon": "code",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Bitwarden",
+    "name": "Bitwarden",
+    "description": "Password manager",
+    "category": "IdentityAndAccess",
+    "icon": "key-round",
+    "color": "Yellow",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Ghost",
+    "name": "Ghost",
+    "description": "Publishing platform",
+    "category": "Publishing",
+    "icon": "pen-line",
+    "color": "Purple",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "png",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Prowlarr",
+    "name": "Prowlarr",
+    "description": "The Ultimate Indexer Manager.",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "MeTube",
+    "name": "MeTube",
+    "description": "Self-hosted YouTube downloader",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Zabbix",
+    "name": "Zabbix",
+    "description": "Enterprise monitoring solution",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Unimus",
+    "name": "Unimus",
+    "description": "Network device configuration backup and change management",
+    "category": "Backup",
+    "icon": "database-backup",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "ESPHome",
+    "name": "ESPHome",
+    "description": "ESP device management",
+    "category": "HomeAutomation",
+    "icon": "house",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "FileZilla Server",
+    "name": "FileZilla Server",
+    "description": "FTP server",
+    "category": "Storage",
+    "icon": "hard-drive",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Serviio",
+    "name": "Serviio",
+    "description": "DLNA media streaming server",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "CheckMK Agent",
+    "name": "CheckMK Agent",
+    "description": "Monitoring agent for CheckMK server",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Neo4j",
+    "name": "Neo4j",
+    "description": "Graph database",
+    "category": "Database",
+    "icon": "database",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "png",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Autobrr",
+    "name": "Autobrr",
+    "description": "The modern autodl-irssi replacement.",
+    "category": "Media",
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Prometheus",
+    "name": "Prometheus",
+    "description": "Time-series monitoring and alerting system",
+    "category": "Monitoring",
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "pfBlockerNG",
+    "name": "pfBlockerNG",
+    "description": "PfSense package for DNS/IP blocking",
+    "category": "AdBlock",
+    "icon": "shield-check",
+    "color": "Emerald",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "DNS Server",
+    "name": "DNS Server",
+    "description": "A generic DNS server",
+    "category": "DNS",
+    "icon": "search",
+    "color": "Emerald",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": false,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "OPNsense",
+    "name": "OPNsense",
+    "description": "Open-source firewall and routing platform",
+    "category": "NetworkAppliance",
+    "icon": "brick-wall",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Unifi Access Point",
+    "name": "Unifi Access Point",
+    "description": "Ubiquiti UniFi wireless access point",
+    "category": "NetworkAccess",
+    "icon": "router",
+    "color": "Green",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "InfluxDB",
+    "name": "InfluxDB",
+    "description": "Time series database",
+    "category": "Database",
+    "icon": "database",
+    "color": "Gray",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": true,
+      "logo_ext": "svg",
+      "logo_needs_white_background": true,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Jira",
+    "name": "Jira",
+    "description": "Project management platform",
+    "category": "ProjectManagement",
+    "icon": "square-kanban",
+    "color": "Indigo",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Home Assistant",
+    "name": "Home Assistant",
+    "description": "Open-source home automation platform",
+    "category": "HomeAutomation",
+    "icon": "house",
+    "color": "Blue",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  },
+  {
+    "id": "Salt Master",
+    "name": "Salt Master",
+    "description": "A Salt master server acts as a central control bus for the clients, which are called minions.",
+    "category": "Development",
+    "icon": "code",
+    "color": "Red",
+    "metadata": {
+      "can_be_added": true,
+      "has_logo": true,
+      "has_raw_socket_endpoint": false,
+      "is_gateway": false,
+      "is_generic": false,
+      "logo_ext": "svg",
+      "logo_needs_white_background": false,
+      "manages_virtualization": null,
+      "virtualization_variant": null
+    }
+  }
+]

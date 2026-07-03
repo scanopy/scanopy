@@ -1,0 +1,119 @@
+[
+  {
+    "id": "Docker",
+    "name": "Docker",
+    "category": "Container & Virtualization",
+    "has_logo": true,
+    "logo_ext": "svg",
+    "logo_slug": "docker",
+    "logo_needs_white_background": false,
+    "discovers": "Discover Docker containers and the services they expose.",
+    "summary": "Discover Docker containers and the services they expose. Supports proxy and socket.",
+    "transports": [
+      {
+        "id": "DockerProxy",
+        "name": "Proxy",
+        "description": "Connects over TCP, optionally with TLS.",
+        "requires_config": true,
+        "single_endpoint_per_host": true,
+        "targets": [
+          "DaemonHost",
+          "Hosts"
+        ]
+      },
+      {
+        "id": "DockerSocket",
+        "name": "Socket",
+        "description": "Connects via the daemon's local socket.",
+        "requires_config": true,
+        "single_endpoint_per_host": true,
+        "targets": [
+          "DaemonHost"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "Podman",
+    "name": "Podman",
+    "category": "Container & Virtualization",
+    "has_logo": true,
+    "logo_ext": "svg",
+    "logo_slug": "podman",
+    "logo_needs_white_background": false,
+    "discovers": "Discover Podman containers and the services they expose.",
+    "summary": "Discover Podman containers and the services they expose. Supports proxy and socket.",
+    "transports": [
+      {
+        "id": "PodmanProxy",
+        "name": "Proxy",
+        "description": "Connects over TCP, optionally with TLS.",
+        "requires_config": true,
+        "single_endpoint_per_host": true,
+        "targets": [
+          "DaemonHost",
+          "Hosts"
+        ]
+      },
+      {
+        "id": "PodmanSocket",
+        "name": "Socket",
+        "description": "Connects via the daemon's local socket.",
+        "requires_config": true,
+        "single_endpoint_per_host": true,
+        "targets": [
+          "DaemonHost"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SNMP",
+    "name": "SNMP",
+    "category": "Network Monitoring",
+    "has_logo": false,
+    "logo_ext": "",
+    "logo_slug": "snmp",
+    "logo_needs_white_background": false,
+    "discovers": "Discover a host's interfaces, system details, and CDP/LLDP neighbors.",
+    "summary": "Discover a host's interfaces, system details, and CDP/LLDP neighbors. Supports v1, v2c, and v3.",
+    "transports": [
+      {
+        "id": "SnmpV1",
+        "name": "v1",
+        "description": "Uses SNMPv1.",
+        "requires_config": true,
+        "single_endpoint_per_host": false,
+        "targets": [
+          "DaemonHost",
+          "Hosts",
+          "Network"
+        ]
+      },
+      {
+        "id": "SnmpV2c",
+        "name": "v2c",
+        "description": "Uses SNMPv2c.",
+        "requires_config": true,
+        "single_endpoint_per_host": false,
+        "targets": [
+          "DaemonHost",
+          "Hosts",
+          "Network"
+        ]
+      },
+      {
+        "id": "SnmpV3",
+        "name": "v3",
+        "description": "Uses SNMPv3.",
+        "requires_config": true,
+        "single_endpoint_per_host": false,
+        "targets": [
+          "DaemonHost",
+          "Hosts",
+          "Network"
+        ]
+      }
+    ]
+  }
+]

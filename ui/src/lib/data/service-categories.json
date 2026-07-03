@@ -1,0 +1,569 @@
+[
+  {
+    "id": "NetworkCore",
+    "name": "Network Core",
+    "description": "Core network services like DHCP, NTP, gateways, and switches",
+    "category": null,
+    "icon": "network",
+    "color": "Yellow",
+    "metadata": {
+      "application_relevant_use_cases": []
+    }
+  },
+  {
+    "id": "NetworkAccess",
+    "name": "Network Access",
+    "description": "WiFi access points, mesh routers, and network access devices",
+    "category": null,
+    "icon": "router",
+    "color": "Green",
+    "metadata": {
+      "application_relevant_use_cases": []
+    }
+  },
+  {
+    "id": "NetworkAppliance",
+    "name": "Network Appliance",
+    "description": "Router, firewall, and VPN platforms like pfSense and MikroTik",
+    "category": null,
+    "icon": "brick-wall",
+    "color": "Red",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "msp"
+      ]
+    }
+  },
+  {
+    "id": "RemoteAccess",
+    "name": "Remote Access",
+    "description": "Remote access protocols like SSH, Telnet, and RDP",
+    "category": null,
+    "icon": "terminal",
+    "color": "Amber",
+    "metadata": {
+      "application_relevant_use_cases": []
+    }
+  },
+  {
+    "id": "Storage",
+    "name": "Storage",
+    "description": "Network-attached storage, file servers, and object storage",
+    "category": null,
+    "icon": "hard-drive",
+    "color": "Green",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "Backup",
+    "name": "Backup",
+    "description": "Backup and data protection services",
+    "category": null,
+    "icon": "database-backup",
+    "color": "Gray",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "Media",
+    "name": "Media",
+    "description": "Media servers and streaming services like Plex and Jellyfin",
+    "category": null,
+    "icon": "circle-play",
+    "color": "Blue",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "HomeAutomation",
+    "name": "Home Automation",
+    "description": "Smart home platforms like Home Assistant and openHAB",
+    "category": null,
+    "icon": "house",
+    "color": "Blue",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "Hypervisor",
+    "name": "Hypervisor",
+    "description": "Virtual machine managers and hypervisors",
+    "category": null,
+    "icon": "monitor-cog",
+    "color": "Amber",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "ContainerRuntime",
+    "name": "Container Runtime",
+    "description": "Container engines that directly run containers",
+    "category": null,
+    "icon": "box",
+    "color": "Blue",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "Container",
+    "name": "Container",
+    "description": "Application and system container instances",
+    "category": null,
+    "icon": "box",
+    "color": "Blue",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "Orchestrator",
+    "name": "Orchestrator",
+    "description": "Container orchestration and management platforms",
+    "category": null,
+    "icon": "layers",
+    "color": "Purple",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "DNS",
+    "name": "DNS",
+    "description": "DNS servers and resolvers",
+    "category": null,
+    "icon": "search",
+    "color": "Emerald",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "VPN",
+    "name": "VPN",
+    "description": "VPN servers like OpenVPN and WireGuard",
+    "category": null,
+    "icon": "venetian-mask",
+    "color": "Green",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "Monitoring",
+    "name": "Monitoring",
+    "description": "Monitoring, observability, and SNMP agents",
+    "category": null,
+    "icon": "activity",
+    "color": "Orange",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "AdBlock",
+    "name": "Ad Blocking",
+    "description": "Network-level ad and tracker blocking",
+    "category": null,
+    "icon": "shield-check",
+    "color": "Emerald",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "ReverseProxy",
+    "name": "Reverse Proxy",
+    "description": "Reverse proxies and API gateways like Nginx and Traefik",
+    "category": null,
+    "icon": "split",
+    "color": "Cyan",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "Workstation",
+    "name": "Workstation",
+    "description": "Desktop computers and laptops",
+    "category": null,
+    "icon": "monitor",
+    "color": "Green",
+    "metadata": {
+      "application_relevant_use_cases": []
+    }
+  },
+  {
+    "id": "Mobile",
+    "name": "Mobile",
+    "description": "Phones and tablets",
+    "category": null,
+    "icon": "smartphone",
+    "color": "Blue",
+    "metadata": {
+      "application_relevant_use_cases": []
+    }
+  },
+  {
+    "id": "IoT",
+    "name": "IoT",
+    "description": "Smart devices, sensors, and connected appliances",
+    "category": null,
+    "icon": "circuit-board",
+    "color": "Yellow",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab"
+      ]
+    }
+  },
+  {
+    "id": "Printer",
+    "name": "Printer",
+    "description": "Printers and print servers",
+    "category": null,
+    "icon": "printer",
+    "color": "Gray",
+    "metadata": {
+      "application_relevant_use_cases": []
+    }
+  },
+  {
+    "id": "Database",
+    "name": "Database",
+    "description": "Database servers like PostgreSQL, MySQL, and Redis",
+    "category": null,
+    "icon": "database",
+    "color": "Gray",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "Development",
+    "name": "Development",
+    "description": "Dev tools, CI/CD pipelines, and configuration management",
+    "category": null,
+    "icon": "code",
+    "color": "Red",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "Dashboard",
+    "name": "Dashboard",
+    "description": "Dashboard and homepage applications",
+    "category": null,
+    "icon": "layout-dashboard",
+    "color": "Purple",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "MessageQueue",
+    "name": "Message Queue",
+    "description": "Message brokers and streaming platforms like Kafka and RabbitMQ",
+    "category": null,
+    "icon": "message-square-code",
+    "color": "Green",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "IdentityAndAccess",
+    "name": "Identity & Access",
+    "description": "Identity providers, SSO, and secret management",
+    "category": null,
+    "icon": "key-round",
+    "color": "Yellow",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "Integration",
+    "name": "Integration",
+    "description": "B2B/EDI and application integration servers (AS2, ESB, iPaaS)",
+    "category": null,
+    "icon": "workflow",
+    "color": "Cyan",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "Office",
+    "name": "Office",
+    "description": "Document editing, notes, and file management",
+    "category": null,
+    "icon": "file-text",
+    "color": "Blue",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "ProjectManagement",
+    "name": "Project Management",
+    "description": "Task tracking, wikis, and project boards",
+    "category": null,
+    "icon": "square-kanban",
+    "color": "Indigo",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "Messaging",
+    "name": "Messaging",
+    "description": "Team chat and messaging platforms",
+    "category": null,
+    "icon": "message-circle",
+    "color": "Green",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "Conferencing",
+    "name": "Conferencing",
+    "description": "Video and audio conferencing",
+    "category": null,
+    "icon": "video",
+    "color": "Teal",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "Telephony",
+    "name": "Telephony",
+    "description": "VoIP and PBX infrastructure",
+    "category": null,
+    "icon": "phone",
+    "color": "Orange",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "Email",
+    "name": "Email",
+    "description": "Email servers and relay services",
+    "category": null,
+    "icon": "mail",
+    "color": "Rose",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "Publishing",
+    "name": "Publishing",
+    "description": "CMS, blogs, and forums",
+    "category": null,
+    "icon": "pen-line",
+    "color": "Purple",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "Unknown",
+    "name": "Unknown",
+    "description": "Services that could not be identified",
+    "category": null,
+    "icon": "circle-question-mark",
+    "color": "Gray",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "Custom",
+    "name": "Custom",
+    "description": "User-defined custom services",
+    "category": null,
+    "icon": "sparkle",
+    "color": "Rose",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "Scanopy",
+    "name": "Scanopy",
+    "description": "Scanopy platform services",
+    "category": null,
+    "icon": "zap",
+    "color": "Purple",
+    "metadata": {
+      "application_relevant_use_cases": [
+        "homelab",
+        "internal_it",
+        "msp",
+        "other"
+      ]
+    }
+  },
+  {
+    "id": "OpenPorts",
+    "name": "Open Ports",
+    "description": "Unclaimed open ports without a matched service",
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "application_relevant_use_cases": []
+    }
+  }
+]

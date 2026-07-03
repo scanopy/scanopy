@@ -1,0 +1,76 @@
+[
+  {
+    "id": "Owner",
+    "name": "Owner",
+    "description": "Full organization control: manage billing, invite any role, and access all administrative features",
+    "category": null,
+    "icon": "user",
+    "color": "Blue",
+    "metadata": {
+      "grantable_api_key_permissions": [
+        "Owner",
+        "Admin",
+        "Member",
+        "Viewer"
+      ],
+      "grantable_user_permissions": [
+        "Owner",
+        "Admin",
+        "Member",
+        "Viewer"
+      ],
+      "manage_org_entities": true
+    }
+  },
+  {
+    "id": "Admin",
+    "name": "Admin",
+    "description": "Manage users and invites, create and modify all entities, but cannot access billing",
+    "category": null,
+    "icon": "user",
+    "color": "Blue",
+    "metadata": {
+      "grantable_api_key_permissions": [
+        "Admin",
+        "Member",
+        "Viewer"
+      ],
+      "grantable_user_permissions": [
+        "Member",
+        "Viewer"
+      ],
+      "manage_org_entities": true
+    }
+  },
+  {
+    "id": "Member",
+    "name": "Member",
+    "description": "Create and modify entities for specific networks",
+    "category": null,
+    "icon": "user",
+    "color": "Blue",
+    "metadata": {
+      "grantable_api_key_permissions": [
+        "Member",
+        "Viewer"
+      ],
+      "grantable_user_permissions": [],
+      "manage_org_entities": false
+    }
+  },
+  {
+    "id": "Viewer",
+    "name": "Viewer",
+    "description": "View entities.",
+    "category": null,
+    "icon": "user",
+    "color": "Blue",
+    "metadata": {
+      "grantable_api_key_permissions": [
+        "Viewer"
+      ],
+      "grantable_user_permissions": [],
+      "manage_org_entities": false
+    }
+  }
+]

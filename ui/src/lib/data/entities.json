@@ -1,0 +1,304 @@
+[
+  {
+    "id": "Organization",
+    "name": "Organization",
+    "description": null,
+    "category": null,
+    "icon": "building",
+    "color": "Blue",
+    "metadata": {
+      "entity_name_plural": "Organizations",
+      "entity_name_singular": "Organization",
+      "is_taggable": false
+    }
+  },
+  {
+    "id": "Invite",
+    "name": "Invite",
+    "description": null,
+    "category": null,
+    "icon": "user-plus",
+    "color": "Sky",
+    "metadata": {
+      "entity_name_plural": "Invites",
+      "entity_name_singular": "Invite",
+      "is_taggable": false
+    }
+  },
+  {
+    "id": "Share",
+    "name": "Share",
+    "description": null,
+    "category": null,
+    "icon": "share2",
+    "color": "Pink",
+    "metadata": {
+      "entity_name_plural": "Shares",
+      "entity_name_singular": "Share",
+      "is_taggable": false
+    }
+  },
+  {
+    "id": "Network",
+    "name": "Network",
+    "description": null,
+    "category": null,
+    "icon": "land-plot",
+    "color": "Blue",
+    "metadata": {
+      "entity_name_plural": "Networks",
+      "entity_name_singular": "Network",
+      "is_taggable": true
+    }
+  },
+  {
+    "id": "DaemonApiKey",
+    "name": "DaemonApiKey",
+    "description": null,
+    "category": null,
+    "icon": "key",
+    "color": "Yellow",
+    "metadata": {
+      "entity_name_plural": "Daemon API Keys",
+      "entity_name_singular": "Daemon API Key",
+      "is_taggable": true
+    }
+  },
+  {
+    "id": "UserApiKey",
+    "name": "UserApiKey",
+    "description": null,
+    "category": null,
+    "icon": "key",
+    "color": "Yellow",
+    "metadata": {
+      "entity_name_plural": "User API Keys",
+      "entity_name_singular": "User API Key",
+      "is_taggable": true
+    }
+  },
+  {
+    "id": "User",
+    "name": "User",
+    "description": null,
+    "category": null,
+    "icon": "user",
+    "color": "Blue",
+    "metadata": {
+      "entity_name_plural": "Users",
+      "entity_name_singular": "User",
+      "is_taggable": false
+    }
+  },
+  {
+    "id": "Tag",
+    "name": "Tag",
+    "description": null,
+    "category": null,
+    "icon": "tag",
+    "color": "Yellow",
+    "metadata": {
+      "entity_name_plural": "Tags",
+      "entity_name_singular": "Tag",
+      "is_taggable": false
+    }
+  },
+  {
+    "id": "Discovery",
+    "name": "Discovery",
+    "description": null,
+    "category": null,
+    "icon": "radar",
+    "color": "Green",
+    "metadata": {
+      "entity_name_plural": "Discoveries",
+      "entity_name_singular": "Discovery",
+      "is_taggable": true
+    }
+  },
+  {
+    "id": "Daemon",
+    "name": "Daemon",
+    "description": null,
+    "category": null,
+    "icon": "satellite-dish",
+    "color": "Green",
+    "metadata": {
+      "entity_name_plural": "Daemons",
+      "entity_name_singular": "Daemon",
+      "is_taggable": true
+    }
+  },
+  {
+    "id": "Host",
+    "name": "Host",
+    "description": null,
+    "category": null,
+    "icon": "server",
+    "color": "Amber",
+    "metadata": {
+      "entity_name_plural": "Hosts",
+      "entity_name_singular": "Host",
+      "is_taggable": true
+    }
+  },
+  {
+    "id": "Service",
+    "name": "Service",
+    "description": null,
+    "category": null,
+    "icon": "layers",
+    "color": "Fuchsia",
+    "metadata": {
+      "entity_name_plural": "Services",
+      "entity_name_singular": "Service",
+      "is_taggable": true
+    }
+  },
+  {
+    "id": "Port",
+    "name": "Port",
+    "description": null,
+    "category": null,
+    "icon": "binary",
+    "color": "Sky",
+    "metadata": {
+      "entity_name_plural": "Ports",
+      "entity_name_singular": "Port",
+      "is_taggable": false,
+      "parent_taggable_entity": "Host"
+    }
+  },
+  {
+    "id": "Binding",
+    "name": "Binding",
+    "description": null,
+    "category": null,
+    "icon": "link",
+    "color": "Cyan",
+    "metadata": {
+      "entity_name_plural": "Bindings",
+      "entity_name_singular": "Binding",
+      "is_taggable": false
+    }
+  },
+  {
+    "id": "IPAddress",
+    "name": "IPAddress",
+    "description": null,
+    "category": null,
+    "icon": "map-pin",
+    "color": "Emerald",
+    "metadata": {
+      "entity_name_plural": "IP Addresses",
+      "entity_name_singular": "IP Address",
+      "is_taggable": false,
+      "parent_taggable_entity": "Host"
+    }
+  },
+  {
+    "id": "Interface",
+    "name": "Interface",
+    "description": null,
+    "category": null,
+    "icon": "ethernet-port",
+    "color": "Teal",
+    "metadata": {
+      "entity_name_plural": "Interfaces",
+      "entity_name_singular": "Interface",
+      "is_taggable": false,
+      "parent_taggable_entity": "Host"
+    }
+  },
+  {
+    "id": "Credential",
+    "name": "Credential",
+    "description": null,
+    "category": null,
+    "icon": "asterisk",
+    "color": "Yellow",
+    "metadata": {
+      "entity_name_plural": "Credentials",
+      "entity_name_singular": "Credential",
+      "is_taggable": true
+    }
+  },
+  {
+    "id": "Subnet",
+    "name": "Subnet",
+    "description": null,
+    "category": null,
+    "icon": "cloud",
+    "color": "Indigo",
+    "metadata": {
+      "entity_name_plural": "Subnets",
+      "entity_name_singular": "Subnet",
+      "is_taggable": true
+    }
+  },
+  {
+    "id": "Vlan",
+    "name": "Vlan",
+    "description": null,
+    "category": null,
+    "icon": "network",
+    "color": "Violet",
+    "metadata": {
+      "entity_name_plural": "Vlans",
+      "entity_name_singular": "Vlan",
+      "is_taggable": false
+    }
+  },
+  {
+    "id": "Dependency",
+    "name": "Dependency",
+    "description": null,
+    "category": null,
+    "icon": "waypoints",
+    "color": "Rose",
+    "metadata": {
+      "entity_name_plural": "Dependencies",
+      "entity_name_singular": "Dependency",
+      "is_taggable": true
+    }
+  },
+  {
+    "id": "Topology",
+    "name": "Topology",
+    "description": null,
+    "category": null,
+    "icon": "chart-bar-stacked",
+    "color": "Pink",
+    "metadata": {
+      "entity_name_plural": "Topologies",
+      "entity_name_singular": "Topology",
+      "is_taggable": false
+    }
+  },
+  {
+    "id": "Snapshot",
+    "name": "Snapshot",
+    "description": null,
+    "category": null,
+    "icon": "camera",
+    "color": "Purple",
+    "metadata": {
+      "entity_name_plural": "Snapshots",
+      "entity_name_singular": "Snapshot",
+      "is_taggable": false
+    }
+  },
+  {
+    "id": "Unknown",
+    "name": "Unknown",
+    "description": null,
+    "category": null,
+    "icon": "circle-question-mark",
+    "color": "Gray",
+    "metadata": {
+      "entity_name_plural": "Entities",
+      "entity_name_singular": "Entity",
+      "is_taggable": false
+    }
+  }
+]

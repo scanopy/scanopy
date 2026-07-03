@@ -1,0 +1,95 @@
+[
+  {
+    "id": "too_expensive",
+    "name": "Too expensive",
+    "description": null,
+    "category": null,
+    "icon": "dollar-sign",
+    "color": "Gray",
+    "metadata": {
+      "save_offers": [
+        "pause",
+        "discount"
+      ]
+    }
+  },
+  {
+    "id": "missing_features",
+    "name": "Missing features",
+    "description": null,
+    "category": null,
+    "icon": "layers",
+    "color": "Gray",
+    "metadata": {
+      "save_offers": []
+    }
+  },
+  {
+    "id": "switched_service",
+    "name": "Switched to another service",
+    "description": null,
+    "category": null,
+    "icon": "arrow-right-left",
+    "color": "Gray",
+    "metadata": {
+      "save_offers": []
+    }
+  },
+  {
+    "id": "unused",
+    "name": "Not using it enough",
+    "description": null,
+    "category": null,
+    "icon": "circle-slash",
+    "color": "Gray",
+    "metadata": {
+      "save_offers": [
+        "pause"
+      ]
+    }
+  },
+  {
+    "id": "customer_service",
+    "name": "Customer service",
+    "description": null,
+    "category": null,
+    "icon": "headset",
+    "color": "Gray",
+    "metadata": {
+      "save_offers": []
+    }
+  },
+  {
+    "id": "low_quality",
+    "name": "Low quality",
+    "description": null,
+    "category": null,
+    "icon": "frown",
+    "color": "Gray",
+    "metadata": {
+      "save_offers": []
+    }
+  },
+  {
+    "id": "too_complex",
+    "name": "Too complex",
+    "description": null,
+    "category": null,
+    "icon": "puzzle",
+    "color": "Gray",
+    "metadata": {
+      "save_offers": []
+    }
+  },
+  {
+    "id": "other",
+    "name": "Other",
+    "description": null,
+    "category": null,
+    "icon": "message-circle",
+    "color": "Gray",
+    "metadata": {
+      "save_offers": []
+    }
+  }
+]

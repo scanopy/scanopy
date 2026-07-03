@@ -1,0 +1,290 @@
+[
+  {
+    "id": "share_views",
+    "name": "Shareable Diagrams",
+    "description": "Share live network diagrams with others",
+    "category": "Visualization",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Starter"
+    }
+  },
+  {
+    "id": "onboarding_call",
+    "name": "Onboarding Call",
+    "description": "30 minute onboarding call to ensure you're getting the most out of Scanopy",
+    "category": "Support",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Business"
+    }
+  },
+  {
+    "id": "audit_logs",
+    "name": "Audit Logs",
+    "description": "Track all user actions and data changes for compliance and security",
+    "category": "Enterprise",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": true,
+      "minimum_plan": "Business"
+    }
+  },
+  {
+    "id": "webhooks",
+    "name": "Webhooks",
+    "description": "Push real-time events to external systems when hosts, services, or topology changes",
+    "category": "Integrations",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": true,
+      "minimum_plan": "Business"
+    }
+  },
+  {
+    "id": "remove_created_with",
+    "name": "Remove Watermark",
+    "description": "Remove 'Created using scanopy.net' in bottom right corner of exported images",
+    "category": "Visualization",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Starter"
+    }
+  },
+  {
+    "id": "api_access",
+    "name": "API Access",
+    "description": "Programmatic access to your data in Scanopy via API",
+    "category": "Integrations",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Pro"
+    }
+  },
+  {
+    "id": "custom_sso",
+    "name": "Custom SSO",
+    "description": "Use your own identity provider (Okta, Azure AD, etc.) for single sign-on",
+    "category": "Enterprise",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Enterprise"
+    }
+  },
+  {
+    "id": "managed_deployment",
+    "name": "Managed Deployment",
+    "description": "We deploy, configure, and manage Scanopy for you on a dedicated instance",
+    "category": "Enterprise",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Enterprise"
+    }
+  },
+  {
+    "id": "whitelabeling",
+    "name": "White Labeling",
+    "description": "We deploy Scanopy to a custom domain with your branding",
+    "category": "Enterprise",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Enterprise"
+    }
+  },
+  {
+    "id": "email_support",
+    "name": "Email Support",
+    "description": "Access to the Scanopy team via email support tickets",
+    "category": "Support",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Starter"
+    }
+  },
+  {
+    "id": "live_chat_support",
+    "name": "Live Chat Support",
+    "description": "Access to the Scanopy team via live chat",
+    "category": "Support",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Enterprise"
+    }
+  },
+  {
+    "id": "priority_support",
+    "name": "Priority Support",
+    "description": "Prioritized email support with faster response times",
+    "category": "Support",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Business"
+    }
+  },
+  {
+    "id": "embeds",
+    "name": "Embeddable Diagrams",
+    "description": "Embed live network diagrams in wikis, dashboards, or documentation",
+    "category": "Visualization",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Pro"
+    }
+  },
+  {
+    "id": "network_mapping",
+    "name": "Automated Network Mapping",
+    "description": "Automatically discover hosts, services, and connections and map them as interactive topology diagrams",
+    "category": "Discovery",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Free"
+    }
+  },
+  {
+    "id": "png_export",
+    "name": "PNG Export",
+    "description": "Export network diagrams as high-resolution PNG images",
+    "category": "Visualization",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Free"
+    }
+  },
+  {
+    "id": "svg_export",
+    "name": "SVG Export",
+    "description": "Export network diagrams as scalable SVG vector images",
+    "category": "Visualization",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Starter"
+    }
+  },
+  {
+    "id": "mermaid_export",
+    "name": "Mermaid Export",
+    "description": "Export topology as Mermaid flowchart for use in documentation and wikis",
+    "category": "Visualization",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Pro"
+    }
+  },
+  {
+    "id": "confluence_export",
+    "name": "Confluence Export",
+    "description": "Export topology as Confluence wiki markup tables for team documentation",
+    "category": "Visualization",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Business"
+    }
+  },
+  {
+    "id": "pdf_export",
+    "name": "PDF Export",
+    "description": "Export network diagrams as printable PDF documents",
+    "category": "Visualization",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Pro"
+    }
+  },
+  {
+    "id": "html_export",
+    "name": "HTML Export",
+    "description": "Export network diagrams as self-contained HTML pages for offline viewing",
+    "category": "Visualization",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Pro"
+    }
+  },
+  {
+    "id": "scheduled_discovery",
+    "name": "Scheduled Discovery",
+    "description": "Schedule automatic network discovery scans",
+    "category": "Discovery",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Starter"
+    }
+  },
+  {
+    "id": "discovery_integrations",
+    "name": "Discovery Integrations",
+    "description": "Discover Docker containers and query network devices via SNMP",
+    "category": "Discovery",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Free"
+    }
+  },
+  {
+    "id": "csv_export",
+    "name": "CSV Export",
+    "description": "Download host, service, and network data as CSV for use in spreadsheets and other tools",
+    "category": "Integrations",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Free"
+    }
+  },
+  {
+    "id": "snapshot_retention_days",
+    "name": "Snapshot Retention",
+    "description": "How long captured snapshots are retained before automatic deletion",
+    "category": "Visualization",
+    "icon": "sparkle",
+    "color": "Gray",
+    "metadata": {
+      "is_coming_soon": false,
+      "minimum_plan": "Starter"
+    }
+  }
+]

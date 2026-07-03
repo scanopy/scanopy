@@ -1,0 +1,20 @@
+[
+  {
+    "id": "RequestPath",
+    "name": "Request Path",
+    "description": "Ordered path of network traffic through services. Represents how requests flow through your infrastructure from one service to another.",
+    "category": null,
+    "icon": "route",
+    "color": "Rose",
+    "metadata": null
+  },
+  {
+    "id": "HubAndSpoke",
+    "name": "Hub and Spoke",
+    "description": "Central service connecting to multiple dependent services in a hub-and-spoke pattern. The first service in the list is the hub.",
+    "category": null,
+    "icon": "sun",
+    "color": "Rose",
+    "metadata": null
+  }
+]

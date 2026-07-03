@@ -1,0 +1,56 @@
+[
+  {
+    "id": "active",
+    "name": "Active",
+    "description": null,
+    "category": null,
+    "icon": "circle-check",
+    "color": "Green",
+    "metadata": null
+  },
+  {
+    "id": "trialing",
+    "name": "Trialing",
+    "description": null,
+    "category": null,
+    "icon": "clock",
+    "color": "Blue",
+    "metadata": null
+  },
+  {
+    "id": "past_due",
+    "name": "Past due",
+    "description": null,
+    "category": null,
+    "icon": "circle-alert",
+    "color": "Red",
+    "metadata": null
+  },
+  {
+    "id": "paused",
+    "name": "Paused",
+    "description": null,
+    "category": null,
+    "icon": "pause",
+    "color": "Orange",
+    "metadata": null
+  },
+  {
+    "id": "pending_cancellation",
+    "name": "Downgrading",
+    "description": null,
+    "category": null,
+    "icon": "triangle-alert",
+    "color": "Amber",
+    "metadata": null
+  },
+  {
+    "id": "cancelled",
+    "name": "Cancelled",
+    "description": null,
+    "category": null,
+    "icon": "circle-x",
+    "color": "Yellow",
+    "metadata": null
+  }
+]

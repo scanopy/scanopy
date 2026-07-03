@@ -1,0 +1,67 @@
+[
+  {
+    "id": "Dns",
+    "color": "Emerald",
+    "icon": "search"
+  },
+  {
+    "id": "Vpn",
+    "color": "Green",
+    "icon": "venetian-mask"
+  },
+  {
+    "id": "Gateway",
+    "color": "Teal",
+    "icon": "router"
+  },
+  {
+    "id": "ReverseProxy",
+    "color": "Cyan",
+    "icon": "split"
+  },
+  {
+    "id": "IoT",
+    "color": "Yellow",
+    "icon": "circuit-board"
+  },
+  {
+    "id": "Storage",
+    "color": "Green",
+    "icon": "hard-drive"
+  },
+  {
+    "id": "Virtualization",
+    "color": "Amber",
+    "icon": "monitor-cog"
+  },
+  {
+    "id": "Containerization",
+    "color": "Blue",
+    "icon": "box"
+  },
+  {
+    "id": "Workloads",
+    "color": "Orange",
+    "icon": "boxes"
+  },
+  {
+    "id": "SNMP",
+    "color": "Pink",
+    "icon": "activity"
+  },
+  {
+    "id": "L2",
+    "color": "Green",
+    "icon": "cable"
+  },
+  {
+    "id": "L3",
+    "color": "Blue",
+    "icon": "signpost"
+  },
+  {
+    "id": "Application",
+    "color": "Purple",
+    "icon": "workflow"
+  }
+]

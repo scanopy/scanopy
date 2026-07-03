@@ -1,0 +1,29 @@
+[
+  {
+    "id": "pause",
+    "name": "Pause subscription",
+    "description": "Take a break for 30, 60, or 90 days. We'll keep your data and resume billing when you return.",
+    "category": null,
+    "icon": "pause",
+    "color": "Amber",
+    "metadata": null
+  },
+  {
+    "id": "discount",
+    "name": "Apply a discount",
+    "description": "Stay subscribed at a lower rate for the next few months.",
+    "category": null,
+    "icon": "badge-percent",
+    "color": "Green",
+    "metadata": null
+  },
+  {
+    "id": "downgrade",
+    "name": "Switch to a smaller plan",
+    "description": "Move to a plan with fewer features but a lower price.",
+    "category": null,
+    "icon": "trending-down",
+    "color": "Blue",
+    "metadata": null
+  }
+]

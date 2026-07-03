@@ -1,0 +1,83 @@
+[
+  {
+    "id": "AwaitingSnapshot",
+    "name": "Waiting for snapshot",
+    "description": "Waiting for snapshot — discovery will start once the snapshot completes",
+    "category": null,
+    "icon": "camera",
+    "color": "Yellow",
+    "metadata": null
+  },
+  {
+    "id": "Queued",
+    "name": "Queued",
+    "description": "Waiting in queue — another scan is running on this daemon",
+    "category": null,
+    "icon": "clock",
+    "color": "Gray",
+    "metadata": null
+  },
+  {
+    "id": "Pending",
+    "name": "Pending",
+    "description": "Ready to start — connecting to daemon",
+    "category": null,
+    "icon": "clock",
+    "color": "Blue",
+    "metadata": null
+  },
+  {
+    "id": "Starting",
+    "name": "Starting",
+    "description": "Waiting for session to start on the daemon",
+    "category": null,
+    "icon": "play",
+    "color": "Blue",
+    "metadata": null
+  },
+  {
+    "id": "Started",
+    "name": "Started",
+    "description": "Daemon acknowledged, actively running",
+    "category": null,
+    "icon": "play",
+    "color": "Blue",
+    "metadata": null
+  },
+  {
+    "id": "Scanning",
+    "name": "Scanning",
+    "description": "Scanning for hosts",
+    "category": null,
+    "icon": "radar",
+    "color": "Blue",
+    "metadata": null
+  },
+  {
+    "id": "Complete",
+    "name": "Complete",
+    "description": "Discovery complete",
+    "category": null,
+    "icon": "check",
+    "color": "Green",
+    "metadata": null
+  },
+  {
+    "id": "Failed",
+    "name": "Failed",
+    "description": "Discovery failed",
+    "category": null,
+    "icon": "x",
+    "color": "Red",
+    "metadata": null
+  },
+  {
+    "id": "Cancelled",
+    "name": "Cancelled",
+    "description": "Discovery cancelled",
+    "category": null,
+    "icon": "circle-slash",
+    "color": "Gray",
+    "metadata": null
+  }
+]

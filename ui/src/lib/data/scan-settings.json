@@ -1,0 +1,88 @@
+[
+  {
+    "id": "scan_rate_pps",
+    "label": "Port Scan Rate",
+    "field_type": "number",
+    "placeholder": "500",
+    "secret": false,
+    "optional": true,
+    "help_text": "Probes per second during port scanning. Lower values reduce network impact.",
+    "default_value": "500",
+    "category": "Port Scanning"
+  },
+  {
+    "id": "arp_rate_pps",
+    "label": "ARP Scan Rate",
+    "field_type": "number",
+    "placeholder": "50",
+    "secret": false,
+    "optional": true,
+    "help_text": "ARP packets per second during host discovery. Keep low on networks with strict switch policies.",
+    "default_value": "50",
+    "category": "ARP"
+  },
+  {
+    "id": "arp_retries",
+    "label": "ARP Retries",
+    "field_type": "number",
+    "placeholder": "2",
+    "secret": false,
+    "optional": true,
+    "help_text": "Additional ARP rounds for non-responsive hosts. Total attempts = retries + 1.",
+    "default_value": "2",
+    "category": "ARP"
+  },
+  {
+    "id": "port_scan_batch_size",
+    "label": "Port Scan Batch Size",
+    "field_type": "number",
+    "placeholder": "200",
+    "secret": false,
+    "optional": true,
+    "help_text": "Ports scanned concurrently per host. Range: 16-1000.",
+    "default_value": "200",
+    "category": "Port Scanning"
+  },
+  {
+    "id": "probe_raw_socket_ports",
+    "label": "Probe Raw Socket Ports",
+    "field_type": "boolean",
+    "secret": false,
+    "optional": false,
+    "help_text": "Scan ports 9100-9107. May cause ghost printing on some printers.",
+    "default_value": "false",
+    "category": "Detection"
+  },
+  {
+    "id": "arp_scan_cutoff",
+    "label": "ARP Scan Cutoff",
+    "field_type": "number",
+    "placeholder": "15",
+    "secret": false,
+    "optional": true,
+    "help_text": "Interfaced subnets larger than this CIDR prefix are truncated during ARP scanning. Lower values scan more IPs — increase ARP Scan Rate accordingly for large subnets.",
+    "default_value": "15",
+    "category": "ARP"
+  },
+  {
+    "id": "use_npcap_arp",
+    "label": "Use Npcap ARP (Windows)",
+    "field_type": "boolean",
+    "secret": false,
+    "optional": false,
+    "help_text": "Use Npcap broadcast ARP instead of Windows SendARP. Requires Npcap installed.",
+    "default_value": "false",
+    "category": "ARP"
+  },
+  {
+    "id": "full_scan_interval",
+    "label": "Full Scan Interval",
+    "field_type": "number",
+    "placeholder": "3",
+    "secret": false,
+    "optional": true,
+    "help_text": "Run a full 65k port scan every N scans. Other scans use a lighter port set for faster results. Set to 0 for light scans only, 1 for every scan to be full.",
+    "default_value": "3",
+    "category": "Detection"
+  }
+]

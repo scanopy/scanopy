@@ -1,0 +1,240 @@
+[
+  {
+    "id": "Internet",
+    "name": "Internet",
+    "description": "Internet",
+    "category": null,
+    "icon": "globe",
+    "color": "Blue",
+    "metadata": {
+      "hide_from_subnet_list": true,
+      "is_for_containers": false,
+      "network_scan_discovery_eligible": false,
+      "show_label": true
+    }
+  },
+  {
+    "id": "Remote",
+    "name": "Remote",
+    "description": "Remote network",
+    "category": null,
+    "icon": "cloud",
+    "color": "Indigo",
+    "metadata": {
+      "hide_from_subnet_list": true,
+      "is_for_containers": false,
+      "network_scan_discovery_eligible": false,
+      "show_label": true
+    }
+  },
+  {
+    "id": "Gateway",
+    "name": "Gateway",
+    "description": "Gateway subnet",
+    "category": null,
+    "icon": "router",
+    "color": "Teal",
+    "metadata": {
+      "hide_from_subnet_list": false,
+      "is_for_containers": false,
+      "network_scan_discovery_eligible": true,
+      "show_label": true
+    }
+  },
+  {
+    "id": "VpnTunnel",
+    "name": "VPN",
+    "description": "Virtual private network",
+    "category": null,
+    "icon": "venetian-mask",
+    "color": "Green",
+    "metadata": {
+      "hide_from_subnet_list": false,
+      "is_for_containers": false,
+      "network_scan_discovery_eligible": true,
+      "show_label": true
+    }
+  },
+  {
+    "id": "Dmz",
+    "name": "DMZ",
+    "description": "Demilitarized zone",
+    "category": null,
+    "icon": "cloud",
+    "color": "Rose",
+    "metadata": {
+      "hide_from_subnet_list": false,
+      "is_for_containers": false,
+      "network_scan_discovery_eligible": true,
+      "show_label": true
+    }
+  },
+  {
+    "id": "Lan",
+    "name": "LAN",
+    "description": "Local area network",
+    "category": null,
+    "icon": "cloud",
+    "color": "Indigo",
+    "metadata": {
+      "hide_from_subnet_list": false,
+      "is_for_containers": false,
+      "network_scan_discovery_eligible": true,
+      "show_label": true
+    }
+  },
+  {
+    "id": "WiFi",
+    "name": "WiFi",
+    "description": "WiFi network",
+    "category": null,
+    "icon": "wifi",
+    "color": "Teal",
+    "metadata": {
+      "hide_from_subnet_list": false,
+      "is_for_containers": false,
+      "network_scan_discovery_eligible": true,
+      "show_label": true
+    }
+  },
+  {
+    "id": "IoT",
+    "name": "IoT",
+    "description": "Internet of things",
+    "category": null,
+    "icon": "circuit-board",
+    "color": "Yellow",
+    "metadata": {
+      "hide_from_subnet_list": false,
+      "is_for_containers": false,
+      "network_scan_discovery_eligible": true,
+      "show_label": true
+    }
+  },
+  {
+    "id": "Guest",
+    "name": "Guest",
+    "description": "Guest network",
+    "category": null,
+    "icon": "user",
+    "color": "Green",
+    "metadata": {
+      "hide_from_subnet_list": false,
+      "is_for_containers": false,
+      "network_scan_discovery_eligible": true,
+      "show_label": true
+    }
+  },
+  {
+    "id": "DockerBridge",
+    "name": "Docker Bridge",
+    "description": "Docker bridge network",
+    "category": null,
+    "icon": "box",
+    "color": "Blue",
+    "metadata": {
+      "hide_from_subnet_list": false,
+      "is_for_containers": true,
+      "network_scan_discovery_eligible": false,
+      "show_label": true
+    }
+  },
+  {
+    "id": "PodmanBridge",
+    "name": "Podman Bridge",
+    "description": "Podman bridge network",
+    "category": null,
+    "icon": "box",
+    "color": "Blue",
+    "metadata": {
+      "hide_from_subnet_list": false,
+      "is_for_containers": true,
+      "network_scan_discovery_eligible": false,
+      "show_label": true
+    }
+  },
+  {
+    "id": "MacVlan",
+    "name": "MacVLAN",
+    "description": "MacVLAN network",
+    "category": null,
+    "icon": "network",
+    "color": "Blue",
+    "metadata": {
+      "hide_from_subnet_list": false,
+      "is_for_containers": true,
+      "network_scan_discovery_eligible": true,
+      "show_label": true
+    }
+  },
+  {
+    "id": "IpVlan",
+    "name": "IpVLAN",
+    "description": "IpVLAN network",
+    "category": null,
+    "icon": "network",
+    "color": "Blue",
+    "metadata": {
+      "hide_from_subnet_list": false,
+      "is_for_containers": true,
+      "network_scan_discovery_eligible": true,
+      "show_label": true
+    }
+  },
+  {
+    "id": "Management",
+    "name": "Management",
+    "description": "Management network",
+    "category": null,
+    "icon": "server-cog",
+    "color": "Gray",
+    "metadata": {
+      "hide_from_subnet_list": false,
+      "is_for_containers": false,
+      "network_scan_discovery_eligible": true,
+      "show_label": true
+    }
+  },
+  {
+    "id": "Storage",
+    "name": "Storage",
+    "description": "Storage network",
+    "category": null,
+    "icon": "hard-drive",
+    "color": "Green",
+    "metadata": {
+      "hide_from_subnet_list": false,
+      "is_for_containers": false,
+      "network_scan_discovery_eligible": true,
+      "show_label": true
+    }
+  },
+  {
+    "id": "Loopback",
+    "name": "Loopback",
+    "description": "Host-local loopback, excluded from topology and scans",
+    "category": null,
+    "icon": "network",
+    "color": "Gray",
+    "metadata": {
+      "hide_from_subnet_list": true,
+      "is_for_containers": false,
+      "network_scan_discovery_eligible": false,
+      "show_label": false
+    }
+  },
+  {
+    "id": "Unknown",
+    "name": "Unknown",
+    "description": "Unknown network type",
+    "category": null,
+    "icon": "cloud",
+    "color": "Gray",
+    "metadata": {
+      "hide_from_subnet_list": false,
+      "is_for_containers": false,
+      "network_scan_discovery_eligible": true,
+      "show_label": false
+    }
+  }
+]

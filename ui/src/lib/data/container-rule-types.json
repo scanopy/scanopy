@@ -1,0 +1,75 @@
+[
+  {
+    "id": "BySubnet",
+    "name": "Subnet",
+    "description": "Group nodes by network subnet",
+    "category": null,
+    "icon": "network",
+    "color": "Blue",
+    "metadata": {
+      "allow_multiple": false,
+      "is_configurable": false,
+      "is_removable": false,
+      "is_reorderable": false,
+      "views": [
+        "L3Logical"
+      ],
+      "will_accept_edges": false
+    }
+  },
+  {
+    "id": "MergeDockerBridges",
+    "name": "Docker bridges",
+    "description": "Merge Docker Bridge subnets from the same host into a single container",
+    "category": null,
+    "icon": "boxes",
+    "color": "Teal",
+    "metadata": {
+      "allow_multiple": false,
+      "is_configurable": false,
+      "is_removable": true,
+      "is_reorderable": true,
+      "views": [
+        "L3Logical"
+      ],
+      "will_accept_edges": true
+    }
+  },
+  {
+    "id": "ByApplication",
+    "name": "Application",
+    "description": "Group services by application tag",
+    "category": null,
+    "icon": "workflow",
+    "color": "Purple",
+    "metadata": {
+      "allow_multiple": false,
+      "is_configurable": false,
+      "is_removable": false,
+      "is_reorderable": false,
+      "views": [
+        "Application"
+      ],
+      "will_accept_edges": false
+    }
+  },
+  {
+    "id": "ByHost",
+    "name": "Host",
+    "description": "Group elements by host",
+    "category": null,
+    "icon": "cable",
+    "color": "Green",
+    "metadata": {
+      "allow_multiple": false,
+      "is_configurable": false,
+      "is_removable": false,
+      "is_reorderable": false,
+      "views": [
+        "L2Physical",
+        "Workloads"
+      ],
+      "will_accept_edges": false
+    }
+  }
+]
