@@ -1,0 +1,179 @@
+/*
+ * n9e 主题桥接(和谐,非像素级对齐)。
+ * 仅在嵌入模式生效(html.n9e-embed 由 app.html 注入),原生 scanopy 不受影响。
+ * 覆盖 scanopy 的 --color-* 设计 token + 字体,对齐 n9e 色板。
+ * 明色见 html.n9e-embed;暗色见 html.n9e-embed.dark。
+ */
+
+/* 字体:对齐 n9e(Microsoft Yahei 系),是"像 n9e"最大的杠杆 */
+html.n9e-embed body,
+html.n9e-embed {
+	font-family:
+		'Microsoft Yahei', Verdana, 'Helvetica Neue', sans-serif, 'PingFangSC-Regular', simsun,
+		'sans-serif';
+}
+
+/* 字号:scanopy 根字号 16px(Tailwind rem 基准),n9e base 12px 更紧凑。
+ * 下调根字号让整套 rem(文字/间距)按比例缩小,靠近 n9e 密度。改这一个值即可整体缩放。 */
+html.n9e-embed {
+	font-size: 13px; /* n9e base 12px;13px 靠近 n9e 又不挤。想完全对齐 n9e 改 12px,想松改 14px */
+}
+
+/* 明色 token → n9e */
+html.n9e-embed {
+	--color-text-primary: #111827; /* n9e --fc-text-1 */
+	--color-text-secondary: #374151; /* n9e --fc-text-2 */
+	--color-text-tertiary: #6b7280;
+	--color-border: #e5e7eb;
+	--color-border-input: #d1d5db;
+	--color-topology-bg: #f7f9fb;
+	--color-topology-node-bg: #ffffff;
+}
+
+/* 暗色 token → n9e(精确对齐:文本 slate-50/200/300、背景 component-bg、边框 n9e dark) */
+html.n9e-embed.dark {
+	--color-bg-body: #181b1f; /* n9e component-background rgb(24 27 31) */
+	--color-bg-elevated: #181b1f;
+	--color-bg-sidebar: #15171c;
+	--color-bg-surface: rgba(34, 37, 43, 0.7); /* n9e fill-3 rgb(34 37 43) */
+	--color-bg-surface-hover: rgba(204, 204, 220, 0.08);
+	--color-bg-input: rgba(34, 37, 43, 0.7);
+	--color-text-primary: rgb(248, 250, 252); /* n9e --fc-text-1 slate-50 */
+	--color-text-secondary: rgb(226, 232, 240); /* n9e --fc-text-2 slate-200 */
+	--color-text-tertiary: rgb(203, 213, 225); /* n9e --fc-text-3 slate-300 */
+	--color-border: rgba(204, 204, 220, 0.2); /* n9e dark 边框 */
+	--color-border-input: rgba(204, 204, 220, 0.2);
+	--color-topology-bg: #15171c;
+	--color-topology-node-bg: #181b1f;
+	--color-topology-subgroup-bg: rgba(255, 255, 255, 0.04);
+}
+
+/* 暗色主按钮 → n9e 暗色中海蓝渐变(135deg #2699e0→#0078c2),hover 加深 */
+html.n9e-embed.dark .btn-primary {
+	background-image: linear-gradient(135deg, #2699e0 0%, #0078c2 100%);
+	border-color: #0078c2;
+}
+html.n9e-embed.dark .btn-primary:hover {
+	background-image: linear-gradient(135deg, #0078c2 0%, #005a9e 100%);
+	border-color: #005a9e;
+}
+html.n9e-embed.dark .text-link,
+html.n9e-embed.dark a.text-link {
+	color: #2699e0;
+}
+
+/* 主按钮 → n9e"中海蓝"渐变(135deg teal-500→teal-600),hover/active 加深 */
+html.n9e-embed .btn-primary {
+	background-color: #0078c2;
+	background-image: linear-gradient(135deg, #0078c2 0%, #005a9e 100%);
+	border-color: #005a9e;
+	color: #fff;
+}
+html.n9e-embed .btn-primary:hover {
+	background-image: linear-gradient(135deg, #005a9e 0%, #004888 100%);
+	border-color: #004888;
+}
+html.n9e-embed .btn-primary:active {
+	background-image: linear-gradient(135deg, #004888 0%, #003670 100%);
+	border-color: #003670;
+}
+/* 链接/强调文字 → n9e text-link #005a9e(teal-600) */
+html.n9e-embed .text-link,
+html.n9e-embed a.text-link {
+	color: #005a9e;
+}
+
+/* ── 按钮 / 输入框 / 搜索框 / 下拉:对齐 n9e antd 风格 ── */
+
+/* 统一 6px 圆角(n9e 全局圆角);scanopy 部分用 rounded-md(=6px)本就一致,这里兜底 */
+html.n9e-embed .input-field,
+html.n9e-embed .select-trigger,
+html.n9e-embed .input-secondary,
+html.n9e-embed .btn-primary,
+html.n9e-embed .btn-secondary,
+html.n9e-embed .btn-danger,
+html.n9e-embed .btn-info,
+html.n9e-embed input[type='text'],
+html.n9e-embed input[type='search'],
+html.n9e-embed input[type='email'],
+html.n9e-embed input[type='password'],
+html.n9e-embed input[type='number'],
+html.n9e-embed select,
+html.n9e-embed textarea {
+	border-radius: 6px;
+}
+
+/* 输入/搜索/下拉 focus:换掉 Tailwind blue-500 ring → n9e 主色高亮(浅色) */
+html.n9e-embed .input-field:focus,
+html.n9e-embed .select-trigger:focus,
+html.n9e-embed input:focus,
+html.n9e-embed textarea:focus,
+html.n9e-embed select:focus {
+	border-color: #0078c2;
+	box-shadow: 0 0 0 2px rgba(0, 120, 194, 0.2);
+	outline: none;
+}
+
+/* focus:n9e 深色主色高亮 */
+html.n9e-embed.dark .input-field:focus,
+html.n9e-embed.dark .select-trigger:focus,
+html.n9e-embed.dark input:focus,
+html.n9e-embed.dark textarea:focus,
+html.n9e-embed.dark select:focus {
+	border-color: #2699e0;
+	box-shadow: 0 0 0 2px rgba(38, 153, 224, 0.25);
+}
+
+/* 卡片圆角:scanopy rounded-2xl(16px)→ 靠近 n9e(8px,不做到 6px 太锐) */
+html.n9e-embed .card {
+	border-radius: 8px;
+}
+
+/* ── 按钮尺寸/文字对齐 n9e antd:高 ~32px、字号 12px、字重 400、水平 padding 12px ── */
+html.n9e-embed .btn-primary,
+html.n9e-embed .btn-secondary,
+html.n9e-embed .btn-danger,
+html.n9e-embed .btn-info,
+html.n9e-embed .btn-success,
+html.n9e-embed .btn-warning {
+	padding: 4px 12px;
+	font-size: 12px;
+	font-weight: 400;
+	line-height: 1.5;
+}
+/* 次要按钮 → antd Default:白底 + #d9d9d9 边 + #262626 字,hover 主色 */
+html.n9e-embed .btn-secondary {
+	background-color: #ffffff;
+	border-color: #d9d9d9;
+	color: #262626;
+}
+html.n9e-embed .btn-secondary:hover {
+	background-color: #ffffff;
+	border-color: #0078c2;
+	color: #0078c2;
+}
+/* 深色下的次要按钮 */
+html.n9e-embed.dark .btn-secondary {
+	background-color: transparent;
+	border-color: rgba(204, 204, 220, 0.2);
+	color: rgb(226, 232, 240);
+}
+html.n9e-embed.dark .btn-secondary:hover {
+	background-color: transparent;
+	border-color: #2699e0;
+	color: #2699e0;
+}
+
+/* 图标按钮:悬浮加 n9e 主色边框(默认透明边,避免 hover 位移)。工具栏描边控件同理。 */
+html.n9e-embed .btn-icon,
+html.n9e-embed .input-secondary {
+	border: 1px solid transparent;
+}
+html.n9e-embed .btn-icon:hover,
+html.n9e-embed .input-secondary:hover {
+	border-color: #0078c2;
+}
+html.n9e-embed.dark .btn-icon:hover,
+html.n9e-embed.dark .input-secondary:hover {
+	border-color: #2699e0;
+}

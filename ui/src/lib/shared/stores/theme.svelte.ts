@@ -12,10 +12,19 @@ const resolvedTheme = $derived<ResolvedTheme>(
 	themeMode === 'system' ? (systemPrefersDark ? 'dark' : 'light') : themeMode
 );
 
-// Initialize from localStorage and set up listeners (browser only)
+// Initialize from URL / localStorage and set up listeners (browser only)
 if (typeof window !== 'undefined') {
+	// n9e 嵌入:iframe 的 ?theme=light|dark 优先(跟随 n9e 明暗)。
+	// 嵌入但没带 theme 参数时,默认浅色(n9e 默认浅色)——不跟 OS,避免嵌入区意外变黑。
+	// 非嵌入(原生)才按 localStorage / system。
+	const urlTheme = new URLSearchParams(window.location.search).get('theme');
+	const embed = !!(window as unknown as { __SCANOPY_EMBED__?: boolean }).__SCANOPY_EMBED__;
 	const stored = localStorage.getItem(STORAGE_KEY) as ThemeMode | null;
-	if (stored === 'light' || stored === 'dark' || stored === 'system') {
+	if (urlTheme === 'light' || urlTheme === 'dark') {
+		themeMode = urlTheme;
+	} else if (embed) {
+		themeMode = 'light';
+	} else if (stored === 'light' || stored === 'dark' || stored === 'system') {
 		themeMode = stored;
 	}
 
