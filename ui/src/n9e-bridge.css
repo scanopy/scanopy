@@ -5,6 +5,16 @@
  * 明色见 html.n9e-embed;暗色见 html.n9e-embed.dark。
  */
 
+/* Phase 3:隐藏 scanopy 自带侧栏(导航改由 n9e 菜单驱动)。
+ * ⚠️ 用 display:none 而非卸载组件——Sidebar 负责计算 allTabs(内容区 tab 列表),
+ * 卸载会导致内容为空。隐藏后去掉 <main> 为侧栏预留的左边距(ml-48/ml-16)。 */
+html.n9e-embed .sidebar {
+	display: none !important;
+}
+html.n9e-embed main.flex-1 {
+	margin-left: 0 !important;
+}
+
 /* 字体:对齐 n9e(Microsoft Yahei 系),是"像 n9e"最大的杠杆 */
 html.n9e-embed body,
 html.n9e-embed {

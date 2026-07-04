@@ -1,4 +1,5 @@
 import { writable, get } from 'svelte/store';
+import { base } from '$app/paths';
 import type { components } from '$lib/api/schema';
 import serviceDefinitionsJson from '$lib/data/service-definitions.json';
 import subnetTypesJson from '$lib/data/subnet-types.json';
@@ -319,7 +320,7 @@ function createTypeMetadataHelpers<T extends TypeMetadataKeys, M = unknown>(cate
 				const ext = 'logo_ext' in meta && meta.logo_ext ? meta.logo_ext : 'svg';
 				if (logoId) {
 					const logoSlug = logoId.toLowerCase().replaceAll(' ', '-');
-					const logoUrl = `/logos/services/${logoSlug}.${ext}`;
+					const logoUrl = `${base}/logos/services/${logoSlug}.${ext}`;
 					const useWhiteBg =
 						'logo_needs_white_background' in meta && !!meta.logo_needs_white_background;
 					return createLogoIconComponent(iconName, logoUrl, useWhiteBg);
