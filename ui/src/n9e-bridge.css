@@ -31,6 +31,8 @@ html.n9e-embed {
 
 /* 明色 token → n9e */
 html.n9e-embed {
+	/* 整页背景 body{background:var(--color-bg-body)};对齐 n9e 正文区 --fc-fill-2(#fff)。 */
+	--color-bg-body: #ffffff;
 	--color-text-primary: #111827; /* n9e --fc-text-1 */
 	--color-text-secondary: #374151; /* n9e --fc-text-2 */
 	--color-text-tertiary: #6b7280;
@@ -42,7 +44,7 @@ html.n9e-embed {
 
 /* 暗色 token → n9e(精确对齐:文本 slate-50/200/300、背景 component-bg、边框 n9e dark) */
 html.n9e-embed.dark {
-	--color-bg-body: #181b1f; /* n9e component-background rgb(24 27 31) */
+	--color-bg-body: #0f172a; /* n9e --fc-fill-2 dark 正文区 slate-900 */
 	--color-bg-elevated: #181b1f;
 	--color-bg-sidebar: #15171c;
 	--color-bg-surface: rgba(34, 37, 43, 0.7); /* n9e fill-3 rgb(34 37 43) */
