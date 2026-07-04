@@ -13,6 +13,7 @@
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { permissions } from '$lib/shared/stores/metadata';
 	import UpgradeButton from '$lib/shared/components/UpgradeButton.svelte';
+	import { isEmbed } from '$lib/shared/utils/embed';
 	import type { TabProps } from '$lib/shared/types';
 	import {
 		common_create,
@@ -199,7 +200,7 @@
 	<TabHeader title={common_networks()}>
 		<svelte:fragment slot="actions">
 			<div class="flex items-center gap-3">
-				{#if networkLimit !== null && !canBuyMore}
+				{#if networkLimit !== null && !canBuyMore && !isEmbed}
 					<span
 						class="text-sm {isAtNetworkLimit
 							? 'text-amber-400'

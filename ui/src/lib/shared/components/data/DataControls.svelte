@@ -1354,7 +1354,7 @@
 			<!-- Page size selector (only show when there are more than 20 items) -->
 			{#if totalCount > 20}
 				<div class="flex items-center gap-2">
-					<span class="text-tertiary text-sm">{common_show()}</span>
+					<span class="text-tertiary whitespace-nowrap text-sm">{common_show()}</span>
 					<select
 						value={pageSize}
 						onchange={(e) =>
