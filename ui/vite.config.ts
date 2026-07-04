@@ -22,9 +22,15 @@ export default defineConfig({
 		allowedHosts: ['scanopy-dev.local'],
 		port: 5173,
 		proxy: {
+			// dev 时 /api 代理到后端。默认本地 scanopy(原生开发不变)。
+			// n9e 嵌入调试:设 SCANOPY_DEV_API_TARGET=http://localhost:18080(本地 topo-studio,
+			// 注入服务会话)+ SCANOPY_DEV_API_REWRITE=/scanopy-api → 走会话代理到远程 scanopy。
 			'/api': {
-				target: 'http://localhost:60072',
-				changeOrigin: true
+				target: process.env.SCANOPY_DEV_API_TARGET || 'http://localhost:60072',
+				changeOrigin: true,
+				...(process.env.SCANOPY_DEV_API_REWRITE
+					? { rewrite: (p: string) => process.env.SCANOPY_DEV_API_REWRITE + p }
+					: {})
 			}
 		}
 	},
