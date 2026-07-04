@@ -11,9 +11,16 @@
 		<title>Scanopy</title>
 		<script>
 			(function () {
-				var p = new URLSearchParams(location.search).get('theme');
+				var q = new URLSearchParams(location.search);
+				var p = q.get('theme');
+				// n9e 嵌入且未指定 theme 时初始默认浅色(避免加载瞬间闪黑)
+				var embed = q.get('embed') === '1' || localStorage.getItem('scanopy-embed') === '1';
 				var t =
-					p === 'light' || p === 'dark' ? p : localStorage.getItem('scanopy-theme') || 'system';
+					p === 'light' || p === 'dark'
+						? p
+						: embed
+							? 'light'
+							: localStorage.getItem('scanopy-theme') || 'system';
 				var d =
 					t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
 				document.documentElement.classList.toggle('dark', d);
@@ -34,6 +41,16 @@
 				var e = new URLSearchParams(location.search).get('embed');
 				if (e !== null) localStorage.setItem('scanopy-embed', e);
 				window.__SCANOPY_EMBED__ = (e !== null ? e : localStorage.getItem('scanopy-embed') || '') === '1';
+				// 加 class 供 n9e-bridge.css 门控主题桥接(仅嵌入时对齐 n9e 色板/字体)
+				if (window.__SCANOPY_EMBED__) document.documentElement.classList.add('n9e-embed');
+			})();
+			// n9e 语言联动:iframe 带 ?locale=zh|en(由 n9e 当前语言映射)。
+			// Paraglide strategy 首选 PARAGLIDE_LOCALE cookie,这里按 URL 种 cookie 决定初始语言。
+			(function () {
+				var l = new URLSearchParams(location.search).get('locale');
+				if (l === 'zh' || l === 'en') {
+					document.cookie = 'PARAGLIDE_LOCALE=' + l + ';path=/;max-age=34560000;samesite=lax';
+				}
 			})();
 		</script>
 		%sveltekit.head%

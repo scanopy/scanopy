@@ -21,7 +21,8 @@
 		common_notAssigned,
 		common_scope,
 		common_tags,
-		common_notApplicable
+		common_notApplicable,
+		common_type
 	} from '$lib/paraglide/messages';
 
 	let {
@@ -60,7 +61,7 @@
 		Icon: credentialTypes.getIconComponent(typeId),
 		fields: [
 			{
-				label: 'Type',
+				label: common_type(),
 				value: [
 					{
 						id: 'type',

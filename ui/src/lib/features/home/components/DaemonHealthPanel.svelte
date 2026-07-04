@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { et } from '$lib/shared/utils/embed-i18n';
 	import type { Daemon } from '$lib/features/daemons/types/base';
 	import HomeDaemonDisplay from './HomeDaemonDisplay.svelte';
 
@@ -26,7 +27,7 @@
 
 <section>
 	<div class="mb-3 flex items-center justify-between">
-		<h3 class="text-primary text-base font-semibold">Daemons</h3>
+		<h3 class="text-primary text-base font-semibold">{et('Daemons')}</h3>
 		<span class="text-tertiary text-sm">
 			<span class="text-success">{healthyCount} healthy</span>
 			{#if issueCount > 0}

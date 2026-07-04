@@ -4,6 +4,33 @@
 	import { isBillingPlanActive } from '$lib/features/organizations/types';
 	import SettingsModal from '$lib/features/settings/SettingsModal.svelte';
 	import { isEmbed } from '$lib/shared/utils/embed';
+	import { getLocale } from '$lib/paraglide/runtime';
+
+	// 侧栏菜单文案未走 paraglide(TAB_LABELS 静态 + 分组硬编码英文),这里补中文映射。
+	const MENU_ZH: Record<string, string> = {
+		Home: '首页',
+		Topology: '拓扑',
+		Sharing: '共享',
+		Scans: '扫描',
+		Historical: '历史',
+		Daemons: '采集器',
+		'API Keys': 'API 密钥',
+		Networks: '网络',
+		Subnets: '子网',
+		Hosts: '主机',
+		Services: '服务',
+		Tags: '标签',
+		Users: '用户',
+		Credentials: '凭据',
+		Discover: '发现',
+		Assets: '资产',
+		Platform: '平台',
+		Settings: '设置',
+		Support: '支持'
+	};
+	function mLabel(en: string): string {
+		return getLocale() === 'zh' ? (MENU_ZH[en] ?? en) : en;
+	}
 	import SupportModal from '$lib/features/support/SupportModal.svelte';
 	import { billingPlans, entities } from '$lib/shared/stores/metadata';
 	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
@@ -448,8 +475,22 @@
 		return true;
 	}
 
+	// n9e 嵌入模式隐藏的侧栏项/分组 id(账户/租户级壳,嵌入时不需要)。
+	// 方案 B(半管理台):隐藏 Users/API Keys/Settings/Support;保留 Tags/Credentials/Scans/Daemons。
+	// 顶层项按 id;整段分组按 section id。
+	const EMBED_HIDDEN_IDS = new Set<string>([
+		'support',
+		'settings',
+		entityUIConfig.User!.tabId,
+		entityUIConfig.UserApiKey!.tabId
+	]);
+	const EMBED_HIDDEN_SECTION_IDS = new Set<string>([]);
+
 	// Helper to check if item should be visible
 	function isItemVisible(item: NavItem): boolean {
+		if (isEmbed && EMBED_HIDDEN_IDS.has(item.id)) {
+			return false;
+		}
 		return (
 			hasRequiredPermissions(item) &&
 			meetsBillingRequirement(item) &&
@@ -493,6 +534,10 @@
 	let navConfig = $derived.by((): NavConfig => {
 		return baseNavConfig
 			.map((configItem) => {
+				// n9e 嵌入:整段隐藏的分组(如 platform)
+				if (isEmbed && EMBED_HIDDEN_SECTION_IDS.has(configItem.id)) {
+					return null;
+				}
 				if (isSection(configItem)) {
 					// Filter items within the section (including their children)
 					const visibleItems = configItem.items
@@ -687,7 +732,7 @@
 									class={sectionHeaderClass}
 									style="height: 2rem; padding: 0.25rem 0.75rem;"
 								>
-									<span class="flex-1 text-left">{configItem.label}</span>
+									<span class="flex-1 text-left">{mLabel(configItem.label)}</span>
 									<ChevronDown
 										class="h-4 w-4 flex-shrink-0 transition-transform {sectionStates[configItem.id]
 											? '-rotate-90'
@@ -718,7 +763,7 @@
 													{/if}
 												</span>
 												{#if !collapsed}
-													<span class="ml-2.5 truncate">{item.label}</span>
+													<span class="ml-2.5 truncate">{mLabel(item.label)}</span>
 												{/if}
 											</button>
 											<!-- Render children if present -->
@@ -736,7 +781,7 @@
 															>
 																<child.icon class="h-4 w-4 flex-shrink-0" />
 																{#if !collapsed}
-																	<span class="ml-3 truncate text-sm">{child.label}</span>
+																	<span class="ml-3 truncate text-sm">{mLabel(child.label)}</span>
 																{/if}
 															</button>
 														</li>
@@ -762,7 +807,7 @@
 							>
 								<configItem.icon class="h-4 w-4 flex-shrink-0" />
 								{#if !collapsed}
-									<span class="ml-2.5 truncate">{configItem.label}</span>
+									<span class="ml-2.5 truncate">{mLabel(configItem.label)}</span>
 								{/if}
 							</button>
 						</li>
@@ -841,7 +886,7 @@
 								{/if}
 							</span>
 							{#if !collapsed}
-								<span class="ml-3 truncate">{item.label}</span>
+								<span class="ml-3 truncate">{mLabel(item.label)}</span>
 							{/if}
 						</button>
 					</li>

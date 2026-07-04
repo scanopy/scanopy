@@ -1,4 +1,5 @@
 <script lang="ts" generics="T, V, OC, IC, W = unknown, SOC = unknown">
+	import { noneOf } from '$lib/shared/utils/embed-i18n';
 	import { ArrowUp, ArrowDown, Trash2, Plus, Edit, Square, CheckSquare } from 'lucide-svelte';
 	import RichSelect from './RichSelect.svelte';
 	import SegmentedControl from '../SegmentedControl.svelte';
@@ -162,7 +163,7 @@
 		}
 	});
 
-	let computedEmptyMessage = $derived(emptyMessage || `No ${label.toLowerCase()} added yet`);
+	let computedEmptyMessage = $derived(emptyMessage || noneOf(label));
 
 	function addItem() {
 		if (selectedOptionId) {

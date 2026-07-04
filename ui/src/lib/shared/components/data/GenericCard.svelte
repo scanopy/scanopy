@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { noneOf } from '$lib/shared/utils/embed-i18n';
 	import type { CardAction, CardField, TagProps } from './types';
 	import Tag from './Tag.svelte';
 	import EntityTag from './EntityTag.svelte';
@@ -168,7 +169,7 @@
 										{/if}
 									{:else}
 										<span class="text-muted text-xs"
-											>{field.emptyText || `No ${field.label.toLowerCase()}`}</span
+											>{field.emptyText || noneOf(field.label)}</span
 										>
 									{/if}
 								{:else}
@@ -216,7 +217,7 @@
 										{/each}
 									{:else}
 										<span class="text-muted"
-											>{field.emptyText || `No ${field.label.toLowerCase()}`}</span
+											>{field.emptyText || noneOf(field.label)}</span
 										>
 									{/if}
 								</div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { et } from '$lib/shared/utils/embed-i18n';
 	import ProgressTrack from '$lib/shared/components/data/ProgressTrack.svelte';
 	import AnimatedProgressBar from '$lib/features/discovery/components/cards/AnimatedProgressBar.svelte';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
@@ -24,7 +25,7 @@
 
 {#if scanningSessions.length > 0}
 	<section>
-		<h3 class="text-primary mb-3 text-base font-semibold">Active Discoveries</h3>
+		<h3 class="text-primary mb-3 text-base font-semibold">{et('Active Discoveries')}</h3>
 		<div class="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] gap-4">
 			{#each scanningSessions as session (session.session_id)}
 				{@const daemon = daemons.find((d) => d.id == session.daemon_id)}

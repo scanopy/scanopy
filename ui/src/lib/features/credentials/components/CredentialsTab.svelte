@@ -36,7 +36,8 @@
 		credentials_deleteImpact,
 		credentials_subtitle,
 		common_credentials,
-		common_scope
+		common_scope,
+		common_type
 	} from '$lib/paraglide/messages';
 
 	let { isReadOnly = false }: TabProps = $props();
@@ -189,7 +190,7 @@
 		[
 			{
 				key: 'credential_type',
-				label: 'Type',
+				label: common_type(),
 				type: 'string',
 				filterable: true,
 				filterMode: 'include',
