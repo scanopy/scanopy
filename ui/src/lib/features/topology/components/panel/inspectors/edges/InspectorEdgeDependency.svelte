@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { et } from '$lib/shared/utils/embed-i18n';
 	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
 	import {
 		useUpdateDependencyMutation,
@@ -224,7 +225,7 @@
 
 <div class="space-y-3">
 	{#if group && localGroup}
-		<span class="text-secondary mb-2 block text-sm font-medium">Dependency</span>
+		<span class="text-secondary mb-2 block text-sm font-medium">{et('Dependency')}</span>
 		<div class="card card-static">
 			<EntityDisplayWrapper
 				context={groupContext}
@@ -256,7 +257,7 @@
 			</button>
 		{/if}
 
-		<span class="text-secondary mb-2 block text-sm font-medium">Services</span>
+		<span class="text-secondary mb-2 block text-sm font-medium">{et('Services')}</span>
 		{#if group.members.type === 'Bindings'}
 			{#each group.members.binding_ids as bindingId (bindingId)}
 				{@const bindingService = getServiceForBindingFromTopology(bindingId)}

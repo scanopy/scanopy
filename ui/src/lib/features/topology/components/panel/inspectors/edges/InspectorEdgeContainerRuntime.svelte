@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { et } from '$lib/shared/utils/embed-i18n';
 	import type { Edge } from '@xyflow/svelte';
 	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
 	import { ServiceDisplay } from '$lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
@@ -103,7 +104,7 @@
 
 <div class="space-y-3">
 	{#if containerizingHost}
-		<span class="text-secondary mb-2 block text-sm font-medium">Docker Host</span>
+		<span class="text-secondary mb-2 block text-sm font-medium">{et('Docker Host')}</span>
 		<div class="card card-static">
 			<EntityDisplayWrapper
 				context={{
@@ -122,7 +123,7 @@
 		</div>
 	{/if}
 	{#if containerizingService}
-		<span class="text-secondary mb-2 block text-sm font-medium">Docker Service</span>
+		<span class="text-secondary mb-2 block text-sm font-medium">{et('Docker Service')}</span>
 		<div class="card card-static">
 			<EntityDisplayWrapper
 				context={{

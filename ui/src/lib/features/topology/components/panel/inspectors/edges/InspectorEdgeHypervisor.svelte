@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { et } from '$lib/shared/utils/embed-i18n';
 	import type { Edge } from '@xyflow/svelte';
 	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
 	import { ServiceDisplay } from '$lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
@@ -66,7 +67,7 @@
 	{/if}
 
 	{#if hypervisorHost}
-		<span class="text-secondary mb-2 block text-sm font-medium">Hypervisor Host</span>
+		<span class="text-secondary mb-2 block text-sm font-medium">{et('Hypervisor Host')}</span>
 		<div class="card card-static">
 			<EntityDisplayWrapper
 				context={{

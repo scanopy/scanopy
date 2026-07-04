@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { et } from '$lib/shared/utils/embed-i18n';
 	import type { Node } from '@xyflow/svelte';
 	import InspectorElementNode from './nodes/InspectorElementNode.svelte';
 	import InspectorContainerNode from './nodes/InspectorContainerNode.svelte';
@@ -16,7 +17,7 @@
 		<InspectorContainerNode {node} />
 	{:else}
 		<div class="space-y-3">
-			<p class="text-tertiary text-sm">Unable to display node details</p>
+			<p class="text-tertiary text-sm">{et('Unable to display node details')}</p>
 		</div>
 	{/if}
 </div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { et } from '$lib/shared/utils/embed-i18n';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import type { TopologyEdge, RenderableTopology } from '$lib/features/topology/types/base';
 	import { useTopology, selectedTopologyId } from '$lib/features/topology/context';
@@ -219,7 +220,7 @@
 			{:else if isContainerRuntime(edgeType) && svcVirtData}
 				{#if svcVirtData.mode === 'single'}
 					{#if svcVirtData.containerizer}
-						<span class="text-secondary mb-1 block text-sm font-medium">Docker Service</span>
+						<span class="text-secondary mb-1 block text-sm font-medium">{et('Docker Service')}</span>
 						<div class="card card-static">
 							<EntityDisplayWrapper
 								item={svcVirtData.containerizer}

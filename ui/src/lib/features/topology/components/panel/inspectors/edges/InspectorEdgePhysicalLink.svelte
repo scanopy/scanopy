@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { et } from '$lib/shared/utils/embed-i18n';
 	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
 	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
 	import { InterfaceDisplay } from '$lib/shared/components/forms/selection/display/InterfaceDisplay.svelte';
@@ -45,7 +46,7 @@
 	{/if}
 
 	{#if sourceHost || sourceInterface}
-		<span class="text-secondary mb-2 block text-sm font-medium">Source</span>
+		<span class="text-secondary mb-2 block text-sm font-medium">{et('Source')}</span>
 		{#if sourceHost}
 			<div class="card card-static">
 				<EntityDisplayWrapper
@@ -70,7 +71,7 @@
 	{/if}
 
 	{#if targetHost || targetInterface}
-		<span class="text-secondary mb-2 block text-sm font-medium">Target</span>
+		<span class="text-secondary mb-2 block text-sm font-medium">{et('Target')}</span>
 		{#if targetHost}
 			<div class="card card-static">
 				<EntityDisplayWrapper

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { et } from '$lib/shared/utils/embed-i18n';
 	import type { Edge } from '@xyflow/svelte';
 	import type { TopologyEdge } from '$lib/features/topology/types/base';
 	import { activeView, aggregatedEdgeOriginals } from '$lib/features/topology/queries';
@@ -21,7 +22,7 @@
 <div class="w-full space-y-4">
 	{#if !edgeData}
 		<div class="space-y-3">
-			<p class="text-tertiary text-sm">Edge data not available</p>
+			<p class="text-tertiary text-sm">{et('Edge data not available')}</p>
 		</div>
 	{:else if edgeData.isAggregated && originalEdges}
 		<InspectorEdgeAggregated edges={originalEdges} />
@@ -46,7 +47,7 @@
 		/>
 	{:else}
 		<div class="space-y-3">
-			<p class="text-tertiary text-sm">Unable to display edge details</p>
+			<p class="text-tertiary text-sm">{et('Unable to display edge details')}</p>
 		</div>
 	{/if}
 </div>
