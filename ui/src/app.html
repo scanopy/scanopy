@@ -28,6 +28,13 @@
 				if (a !== null) localStorage.setItem('scanopy-api-base', a);
 				window.__SCANOPY_API_BASE__ = a !== null ? a : localStorage.getItem('scanopy-api-base') || '';
 			})();
+			// n9e 嵌入模式:隐藏 scanopy 自带壳(billing/banner/Upgrade/品牌等)。
+			// iframe 带 ?embed=1;存 localStorage 抗整页刷新。原生部署无参数 → false。
+			(function () {
+				var e = new URLSearchParams(location.search).get('embed');
+				if (e !== null) localStorage.setItem('scanopy-embed', e);
+				window.__SCANOPY_EMBED__ = (e !== null ? e : localStorage.getItem('scanopy-embed') || '') === '1';
+			})();
 		</script>
 		%sveltekit.head%
 	</head>

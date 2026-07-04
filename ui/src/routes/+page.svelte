@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { SvelteURL } from 'svelte/reactivity';
+	import { isEmbed } from '$lib/shared/utils/embed';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import Toast from '$lib/shared/components/feedback/Toast.svelte';
 	import EmailVerificationBanner from '$lib/shared/components/feedback/EmailVerificationBanner.svelte';
@@ -65,7 +66,8 @@
 	// Without this, closeModal() clears $modalState but needsPlanSelection keeps showBillingModal true.
 	let planJustActivated = $state(false);
 	let showBillingModal = $derived(
-		billingEnabled &&
+		!isEmbed &&
+			billingEnabled &&
 			((needsPlanSelection && !planJustActivated) || $modalState.name === 'billing-plan')
 	);
 
@@ -246,24 +248,27 @@
 			class:ml-16={sidebarCollapsed}
 			class:ml-48={!sidebarCollapsed}
 		>
-			{#if currentUserQuery.data && !currentUserQuery.data.email_verified}
-				<EmailVerificationBanner email={currentUserQuery.data.email} />
-			{/if}
-			<TrialEndingBanner />
-			<NoPaymentMethodBanner />
-			<PostStripeWelcomeBanner />
-			{#if organization?.plan?.type === 'Demo'}
-				<DemoBanner />
-			{/if}
-			{#if configQuery.data?.license_status === 'expired' || configQuery.data?.license_status === 'invalid'}
-				<LicenseLockedBanner status={configQuery.data.license_status} />
-			{:else if configQuery.data?.license_in_grace_period && configQuery.data?.license_intended_expiry && configQuery.data?.license_expiry}
-				<LicenseGraceBanner
-					intendedExpiry={configQuery.data.license_intended_expiry}
-					hardExpiry={configQuery.data.license_expiry}
-				/>
-			{:else if configQuery.data && isLicenseApproachingExpiry(configQuery.data) && configQuery.data.license_intended_expiry}
-				<LicenseExpiringBanner intendedExpiry={configQuery.data.license_intended_expiry} />
+			<!-- n9e 嵌入:隐藏 SaaS/license banner 群 -->
+			{#if !isEmbed}
+				{#if currentUserQuery.data && !currentUserQuery.data.email_verified}
+					<EmailVerificationBanner email={currentUserQuery.data.email} />
+				{/if}
+				<TrialEndingBanner />
+				<NoPaymentMethodBanner />
+				<PostStripeWelcomeBanner />
+				{#if organization?.plan?.type === 'Demo'}
+					<DemoBanner />
+				{/if}
+				{#if configQuery.data?.license_status === 'expired' || configQuery.data?.license_status === 'invalid'}
+					<LicenseLockedBanner status={configQuery.data.license_status} />
+				{:else if configQuery.data?.license_in_grace_period && configQuery.data?.license_intended_expiry && configQuery.data?.license_expiry}
+					<LicenseGraceBanner
+						intendedExpiry={configQuery.data.license_intended_expiry}
+						hardExpiry={configQuery.data.license_expiry}
+					/>
+				{:else if configQuery.data && isLicenseApproachingExpiry(configQuery.data) && configQuery.data.license_intended_expiry}
+					<LicenseExpiringBanner intendedExpiry={configQuery.data.license_intended_expiry} />
+				{/if}
 			{/if}
 			<div class="p-4 [&_.sticky]:sticky [&_.sticky]:top-0">
 				<!-- Programmatically render all tabs based on sidebar config -->

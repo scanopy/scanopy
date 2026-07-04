@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
+	import { isEmbed } from '$lib/shared/utils/embed';
 	import { useDashboardQuery } from '$lib/features/home/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
@@ -94,19 +95,21 @@
 		<Loading />
 	{:else if dashboard && organization}
 		<!-- Getting Started Checklist -->
-		{#if !checklistDismissed}
+		{#if !checklistDismissed && !isEmbed}
 			<GettingStartedChecklist {onboarding} {organization} onNavigate={navigateTo} {isActive} />
 		{/if}
 
-		<!-- Onboarding prompts — one at a time -->
-		{#if showReferralSource}
-			<ReferralSourcePrompt {organization} {configData} />
-		{:else if showProfile}
-			<ProfilePrompt {organization} {configData} />
+		<!-- Onboarding prompts — one at a time(n9e 嵌入隐藏)-->
+		{#if !isEmbed}
+			{#if showReferralSource}
+				<ReferralSourcePrompt {organization} {configData} />
+			{:else if showProfile}
+				<ProfilePrompt {organization} {configData} />
+			{/if}
 		{/if}
 
 		<!-- Demo Topology Embed — shown before first topology rebuild -->
-		{#if configData && isCloud(configData) && !has('FirstDiscoveryCompleted') && !demoTopologyDismissed}
+		{#if !isEmbed && configData && isCloud(configData) && !has('FirstDiscoveryCompleted') && !demoTopologyDismissed}
 			<section>
 				<div class="card card-static overflow-hidden !p-0">
 					<div class="flex items-center justify-between px-4 pt-3">
@@ -153,8 +156,8 @@
 			/>
 		{/if}
 
-		<!-- Feature Nudges — shown after checklist is complete/dismissed -->
-		{#if showNudges}
+		<!-- Feature Nudges — shown after checklist is complete/dismissed(n9e 嵌入隐藏)-->
+		{#if showNudges && !isEmbed}
 			<FeatureNudges {organization} {dashboard} onNavigate={navigateTo} />
 		{/if}
 
@@ -176,8 +179,8 @@
 			/>
 		{/if}
 
-		<!-- Plan Usage — hidden pre-daemon since limits can't be hit -->
-		{#if has('FirstDaemonRegistered')}
+		<!-- Plan Usage — hidden pre-daemon since limits can't be hit(n9e 嵌入隐藏)-->
+		{#if has('FirstDaemonRegistered') && !isEmbed}
 			<PlanUsage planUsage={dashboard.plan_usage} plan={organization.plan} {isOwner} />
 		{/if}
 

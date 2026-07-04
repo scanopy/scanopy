@@ -3,6 +3,7 @@
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { isBillingPlanActive } from '$lib/features/organizations/types';
 	import SettingsModal from '$lib/features/settings/SettingsModal.svelte';
+	import { isEmbed } from '$lib/shared/utils/embed';
 	import SupportModal from '$lib/features/support/SupportModal.svelte';
 	import { billingPlans, entities } from '$lib/shared/stores/metadata';
 	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
@@ -119,7 +120,7 @@
 			trialDaysLeft !== null &&
 			trialDaysLeft <= 7
 	);
-	let showFreeUpgradeButton = $derived(isFreePlan && isOwner && isBillingEnabled);
+	let showFreeUpgradeButton = $derived(!isEmbed && isFreePlan && isOwner && isBillingEnabled);
 	let trialPillLabel = $derived.by(() => {
 		if (trialDaysLeft === null) return '';
 		if (trialDaysLeft <= 0) return billing_trialPillToday();
@@ -647,7 +648,7 @@
 				aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
 			>
 				<Menu class="h-5 w-5 flex-shrink-0" />
-				{#if !collapsed}
+				{#if !collapsed && !isEmbed}
 					<img src="/logos/scanopy-logo.png" alt="Logo" class="ml-2 h-6 w-auto rounded" />
 					<h1 class="text-primary ml-1.5 text-sm font-bold">Scanopy</h1>
 				{/if}
