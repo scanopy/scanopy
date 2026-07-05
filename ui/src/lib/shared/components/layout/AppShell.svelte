@@ -20,6 +20,7 @@
 	import { getRoute } from '$lib/shared/utils/navigation';
 	import type { PostHog } from 'posthog-js';
 	import { browser } from '$app/environment';
+	import { isEmbed } from '$lib/shared/utils/embed';
 	import CookieConsent, {
 		hasAnalyticsConsent
 	} from '$lib/shared/components/feedback/CookieConsent.svelte';
@@ -40,6 +41,25 @@
 	let isAuthenticated = $derived(currentUser != null);
 	let isCheckingAuth = $derived(currentUserQuery.isPending);
 	let authCheckComplete = $derived(!currentUserQuery.isPending);
+
+	// n9e embed:认证失败或长时间卡住时,给明确提示取代无限 loading。
+	// embed 下没有可跳的 /login(壳被隐藏),topo-studio 会话/令牌坏了就会一直转圈,
+	// 这里超时(20s)或查询报错/无用户即显示错误面板 + 重试。
+	let authTimedOut = $state(false);
+	$effect(() => {
+		if (!currentUserQuery.isPending) {
+			authTimedOut = false;
+			return;
+		}
+		const t = setTimeout(() => (authTimedOut = true), 20000);
+		return () => clearTimeout(t);
+	});
+	let embedAuthError = $derived(
+		isEmbed &&
+			(currentUserQuery.isError ||
+				(authCheckComplete && !isAuthenticated) ||
+				(isCheckingAuth && authTimedOut))
+	);
 
 	// TanStack Query for organization
 	const organizationQuery = useOrganizationQuery();
@@ -162,8 +182,9 @@
 			window.history.replaceState({}, '', cleanUrl.toString());
 		}
 
-		if (!isAuthenticated) {
-			// Not authenticated - redirect to login/onboarding if not on public route
+		if (!isAuthenticated && !isEmbed) {
+			// Not authenticated - redirect to login/onboarding if not on public route.
+			// embed 下不跳(壳/登录页被隐藏),改由下方 embedAuthError 面板提示。
 			const isPublicRoute =
 				$page.url.pathname === '/auth' ||
 				$page.url.pathname === '/login' ||
@@ -263,7 +284,20 @@
 	});
 </script>
 
-{#if isCheckingAuth && !$page.url.pathname.startsWith('/onboarding')}
+{#if embedAuthError}
+	<!-- n9e embed:认证失败提示,取代无限 loading -->
+	<div
+		class="flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center"
+		style="background: var(--color-bg-body)"
+	>
+		<p class="text-lg font-medium" style="color: var(--color-text-primary)">网络拓扑服务连接失败</p>
+		<p class="max-w-md text-sm leading-relaxed" style="color: var(--color-text-secondary)">
+			无法建立与 scanopy 的会话(认证未通过)。请联系管理员检查:scanopy 服务是否正常运行、
+			SCANOPY_TOKEN 令牌是否有效、以及 topo-studio 的会话账号(SCANOPY_SESSION_EMAIL/PASSWORD)配置是否正确。
+		</p>
+		<button class="btn-primary mt-1" onclick={() => location.reload()}>重试</button>
+	</div>
+{:else if isCheckingAuth && !$page.url.pathname.startsWith('/onboarding')}
 	<div class="flex min-h-screen items-center justify-center bg-[var(--color-bg-elevated)]">
 		<Loading />
 	</div>
