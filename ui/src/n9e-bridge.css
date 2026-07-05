@@ -44,19 +44,19 @@ html.n9e-embed {
 
 /* 暗色 token → n9e(精确对齐:文本 slate-50/200/300、背景 component-bg、边框 n9e dark) */
 html.n9e-embed.dark {
-	--color-bg-body: #0f172a; /* n9e --fc-fill-2 dark 正文区 slate-900 */
-	--color-bg-elevated: #181b1f;
-	--color-bg-sidebar: #15171c;
-	--color-bg-surface: rgba(34, 37, 43, 0.7); /* n9e fill-3 rgb(34 37 43) */
+	--color-bg-body: #0f172a; /* n9e --fc-fill-2 主背景 slate-900 */
+	--color-bg-elevated: #1e293b; /* n9e --fc-fill-3 卡片/弹窗 slate-800(原 #181b1f 灰,不对齐) */
+	--color-bg-sidebar: #0f172a; /* 嵌入下侧栏已隐藏;对齐主背景 slate-900 */
+	--color-bg-surface: rgba(30, 41, 59, 0.7); /* n9e --fc-fill-3 = rgb(30 41 59) slate-800(原 34 37 43 灰) */
 	--color-bg-surface-hover: rgba(204, 204, 220, 0.08);
-	--color-bg-input: rgba(34, 37, 43, 0.7);
+	--color-bg-input: rgba(30, 41, 59, 0.7); /* n9e fill-3 slate-800 */
 	--color-text-primary: rgb(248, 250, 252); /* n9e --fc-text-1 slate-50 */
 	--color-text-secondary: rgb(226, 232, 240); /* n9e --fc-text-2 slate-200 */
 	--color-text-tertiary: rgb(203, 213, 225); /* n9e --fc-text-3 slate-300 */
 	--color-border: rgba(204, 204, 220, 0.2); /* n9e dark 边框 */
 	--color-border-input: rgba(204, 204, 220, 0.2);
-	--color-topology-bg: #15171c;
-	--color-topology-node-bg: #181b1f;
+	--color-topology-bg: #0f172a; /* 画布底 → n9e 主背景 slate-900(原 #15171c 灰) */
+	--color-topology-node-bg: #1e293b; /* 拓扑节点 → n9e fill-3 slate-800(原 #181b1f 灰) */
 	--color-topology-subgroup-bg: rgba(255, 255, 255, 0.04);
 }
 
