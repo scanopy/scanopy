@@ -601,7 +601,13 @@
 </script>
 
 <SvelteFlowProvider>
-	{#if !hasDaemon(onboarding)}
+	{#if organizationQuery.isPending}
+		<!-- org(含 onboarding)未加载完前先 loading,避免闪「装 daemon」空状态:
+		     pending 时 data 为空 → onboarding=[] → hasDaemon=false 会误判成无 daemon。 -->
+		<div class="flex min-h-[60vh] items-center justify-center">
+			<Loading />
+		</div>
+	{:else if !hasDaemon(onboarding)}
 		<PreDaemonEmptyState title="Install a daemon to start mapping your network topology." />
 	{:else}
 		<div class="space-y-3">
