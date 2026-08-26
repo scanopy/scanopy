@@ -649,6 +649,16 @@ pub struct SnmpCollection<T> {
     /// asserted that it never would — true of a device serving malformed rows, false of a column
     /// that stopped early, and the two were indistinguishable to the operator (GH #668).
     pub discard_reason: Option<MalformedNeighbourReason>,
+    /// The records' local-port keys are already `ifIndex` values, so the caller must not put
+    /// them through `remap_lldp_local_ports`.
+    ///
+    /// Set only by the LLDP neighbour walk, and only when it read the neighbours from the
+    /// LLDP-V2-MIB (GH #688). `lldpV2RemLocalIfIndex` is an ifIndex by definition, where the
+    /// classic `lldpRemLocalPortNum` is a separate namespace that has to be translated through
+    /// `lldpLocPortTable` — a table a V2-only agent does not serve. Remapping a V2 result would
+    /// treat a real ifIndex as a port number: identity on most firmware, and wrong on exactly the
+    /// vendors the remap exists for. `false` everywhere else, where nothing consumes it.
+    pub local_port_is_if_index: bool,
 }
 
 impl<T: Default> SnmpCollection<T> {
@@ -666,6 +676,7 @@ impl<T: Default> SnmpCollection<T> {
             discarded: 0,
             discard_reason: None,
             claim: None,
+            local_port_is_if_index: false,
         }
     }
 }
@@ -685,6 +696,7 @@ impl<T> SnmpCollection<T> {
             discarded: 0,
             discard_reason: None,
             claim: None,
+            local_port_is_if_index: false,
         }
     }
 }
@@ -698,6 +710,7 @@ impl<T: Default> Default for SnmpCollection<T> {
             discarded: 0,
             discard_reason: None,
             claim: None,
+            local_port_is_if_index: false,
             // `query_or_default` produces this when a whole query timed out or errored, and it
             // genuinely cannot say more — the future was dropped before it could report.
             reason: Some(ShortfallReason::NoAnswer),
@@ -1030,12 +1043,59 @@ pub async fn walk_if_table<T: SnmpWalkTransport>(
     })
 }
 
-/// Query LLDP remote table for neighbor information
+/// Query LLDP remote table for neighbor information.
+///
+/// The classic LLDP-MIB is walked first, and the LLDP-V2-MIB only when that walk finished and
+/// found nothing (GH #688). The two are never merged: a device that serves both serves the same
+/// neighbours twice, under different keys, and the classic result is the one every existing
+/// device is read through.
 pub async fn query_lldp_neighbors<T: SnmpWalkTransport>(
     session: &mut T,
     ip: IpAddr,
 ) -> Result<SnmpCollection<Vec<LldpNeighbor>>> {
-    query_lldp_neighbors_for(session, ip, &CLASSIC_LLDP_MIB).await
+    let classic = query_lldp_neighbors_for(session, ip, &CLASSIC_LLDP_MIB).await?;
+
+    // A classic walk that read nothing can mean three different agents: one with no LLDP at all,
+    // one whose table is implemented and empty, and one that implements only the 802.1AB-2009
+    // revision of the MIB under 1.3.111. The third cannot be told from the first two by the stop
+    // reason: `unsupported` covers an agent that answers `noSuchObject`, but IP Infusion OcNOS
+    // serves the `lldpExtensions` subtree under the classic root, so its classic columns end
+    // `EndOfSubtree` — "implemented and empty" — and `unsupported` stays false. Zero rows from a
+    // finished walk is therefore the gate, deliberately wider than `unsupported`: every device
+    // whose classic table is implemented and empty — a host, a printer, a switch with nothing
+    // plugged in — pays for it with eight single-page walks (the seven remote columns and the
+    // management-address table) that find nothing.
+    //
+    // A walk that did *not* finish is a different matter. Its empty result is a read that failed,
+    // not a device that has nothing, and falling back on it would let a V2 walk — or, worse, an
+    // equally empty one — stand in for neighbours the classic table holds.
+    if !classic.complete || !classic.records.is_empty() {
+        return Ok(classic);
+    }
+
+    let mut v2 = query_lldp_neighbors_for(session, ip, &V2_LLDP_MIB).await?;
+    // Only a V2 walk that finished and read nothing at all yields to the classic verdict. That
+    // verdict is kept on purpose: an equally empty fallback must not launder an agent with no
+    // LLDP into a supported-but-empty one, which would give the server authority to clear the
+    // neighbours another integration wrote for it.
+    //
+    // A V2 walk that came up short is the opposite case and must *not* yield. On a V2-only
+    // device the classic result is complete and not unsupported — the empty table the server
+    // treats as authoritative — so handing it back after a transient V2 stall would clear the
+    // edges the previous scan wrote. The incomplete V2 result goes back instead, empty and
+    // marked as such. Rows the walk read and had to discard are likewise the device's own,
+    // and the discard is what the operator needs told.
+    if v2.complete && v2.records.is_empty() && v2.discarded == 0 {
+        return Ok(classic);
+    }
+    debug!(
+        ip = %ip,
+        neighbors = v2.records.len(),
+        complete = v2.complete,
+        "classic LLDP-MIB empty; neighbours read from LLDP-V2-MIB"
+    );
+    v2.local_port_is_if_index = true;
+    Ok(v2)
 }
 
 /// The neighbour walk, against whichever LLDP MIB `mib` names.
@@ -1306,6 +1366,7 @@ pub async fn query_lldp_neighbors_for<T: SnmpWalkTransport>(
         // The LLDP/CDP claim is the device's own local identity, which is read later in the
         // collection than this walk, so the caller attaches it.
         claim: None,
+        local_port_is_if_index: false,
     })
 }
 
@@ -1431,6 +1492,113 @@ fn split_lldp_man_addr_index(suffix: &[u64]) -> Option<(i32, i32, Vec<u8>)> {
         return Some((suffix[prefix - 2] as i32, suffix[prefix - 1] as i32, buf));
     }
     None
+}
+
+/// The LLDP-V2-MIB, `1.3.111.2.802.1.1.13` (GH #688).
+///
+/// Walked only as a fallback — see [`query_lldp_neighbors`] — and never through the classic
+/// splitters: its remote entry has one more index sub-id and one more column than the classic
+/// one, and its local identifier is an ifIndex rather than an `lldpLocPortNum`.
+pub static V2_LLDP_MIB: LldpMibProfile = LldpMibProfile {
+    remote_columns: [
+        (
+            oids::lldp_v2::remote::entry::LLDP_V2_REM_CHASSIS_ID_SUBTYPE,
+            "remChassisIdSubtype",
+        ),
+        (
+            oids::lldp_v2::remote::entry::LLDP_V2_REM_CHASSIS_ID,
+            "remChassisId",
+        ),
+        (
+            oids::lldp_v2::remote::entry::LLDP_V2_REM_PORT_ID_SUBTYPE,
+            "remPortIdSubtype",
+        ),
+        (
+            oids::lldp_v2::remote::entry::LLDP_V2_REM_PORT_ID,
+            "remPortId",
+        ),
+        (
+            oids::lldp_v2::remote::entry::LLDP_V2_REM_PORT_DESC,
+            "remPortDesc",
+        ),
+        (
+            oids::lldp_v2::remote::entry::LLDP_V2_REM_SYS_NAME,
+            "remSysName",
+        ),
+        (
+            oids::lldp_v2::remote::entry::LLDP_V2_REM_SYS_DESC,
+            "remSysDesc",
+        ),
+    ],
+    split_rem_index: split_lldp_v2_rem_index,
+    man_addr_column: oids::lldp_v2::remote::entry::LLDP_V2_REM_MAN_ADDR_IF_SUBTYPE,
+    split_man_addr_index: split_lldp_v2_man_addr_index,
+};
+
+/// Split an `lldpV2RemEntry` OID index into `(lldpV2RemLocalIfIndex, lldpV2RemIndex)`.
+///
+/// The index is `timeMark.localIfIndex.localDestMACAddress.remIndex`, read from the front and
+/// required whole. This is deliberately not [`split_lldp_rem_index`], which reads its pair off
+/// the end to tolerate an omitted time mark: applied to a four-sub-id V2 index that returns
+/// `(destAddressIndex, remIndex)`, collapsing every neighbour on the device onto the
+/// destination-address index — 1, the nearest-bridge group address — and discarding all but one
+/// as duplicates, silently. No V2 firmware has been seen omitting the time mark, and guessing at
+/// a three-sub-id layout would re-open exactly that ambiguity, so a short or long index is
+/// counted in `short_index` rather than parsed.
+fn split_lldp_v2_rem_index(suffix: &[u64]) -> Option<(i32, i32)> {
+    match suffix {
+        [_time_mark, local_if_index, _dest_mac_index, rem_index] => {
+            Some((*local_if_index as i32, *rem_index as i32))
+        }
+        _ => None,
+    }
+}
+
+/// Split an `lldpV2RemManAddrTable` OID index into its neighbour key and management address.
+///
+/// The index is `timeMark.ifIndex.destMacIndex.remIndex.addrSubtype.addrLen.addr…`, and the
+/// conformant layout is tried first, accepted only when the declared length accounts for exactly
+/// the sub-ids that follow. The firmware this was written against (IP Infusion OcNOS 7.0.1) serves
+/// **no address-length sub-identifier** — the address bytes simply run to the end of the index —
+/// so that layout is the fallback:
+///
+/// ```text
+///   1.3.111...13.1.4.2.1.3.0.10009.1.6.1.192.0.2.102   (ifIndex 10009, remIndex 6, IPv4)
+///   1.3.111...13.1.4.2.1.3.0.3.1.4.2                   (a row with subtype but no address)
+/// ```
+///
+/// The second shape yields an empty address buffer, which `parse_lldp_mgmt_addr` rejects — the
+/// right outcome for a row that carries nothing to resolve. The two layouts are ambiguous in one
+/// case: a length-less address whose first octet happens to equal the count of octets after it
+/// (an IPv4 address starting with 3) parses as conformant and loses that octet, and
+/// `parse_lldp_mgmt_addr` then rejects the three-byte IPv4 — so the row resolves to no address,
+/// never to a wrong one.
+///
+/// Returns `(ifIndex, remIndex, [ianaFamily, addr bytes...])` — the byte buffer
+/// `parse_lldp_mgmt_addr` expects.
+fn split_lldp_v2_man_addr_index(suffix: &[u64]) -> Option<(i32, i32, Vec<u8>)> {
+    let [
+        _time_mark,
+        if_index,
+        _dest_mac_index,
+        rem_index,
+        addr_subtype,
+        rest @ ..,
+    ] = suffix
+    else {
+        return None;
+    };
+    let mut buf = Vec::with_capacity(1 + rest.len());
+    buf.push(*addr_subtype as u8);
+    match rest {
+        // Conformant: the length sub-id is followed by exactly that many address sub-ids.
+        [addr_len, addr @ ..] if *addr_len > 0 && addr.len() == *addr_len as usize => {
+            buf.extend(addr.iter().map(|&b| b as u8));
+        }
+        // Length-less: whatever follows the subtype is the address.
+        addr => buf.extend(addr.iter().map(|&b| b as u8)),
+    }
+    Some((*if_index as i32, *rem_index as i32, buf))
 }
 
 /// The cause that explains most of what a device's LLDP walk threw away.
@@ -1749,6 +1917,7 @@ pub async fn query_cdp_neighbors<T: SnmpWalkTransport>(
         // The LLDP/CDP claim is the device's own local identity, which is read later in the
         // collection than this walk, so the caller attaches it.
         claim: None,
+        local_port_is_if_index: false,
     })
 }
 
@@ -1994,6 +2163,7 @@ pub async fn query_bridge_port_mapping<T: SnmpWalkTransport>(
         discarded: 0,
         discard_reason: None,
         claim,
+        local_port_is_if_index: false,
     })
 }
 
@@ -2130,6 +2300,7 @@ pub async fn query_bridge_fdb<T: SnmpWalkTransport>(
         discarded: 0,
         discard_reason: None,
         claim: None,
+        local_port_is_if_index: false,
     })
 }
 
@@ -2202,6 +2373,7 @@ async fn walk_qbridge_fdb<T: SnmpWalkTransport>(
         discarded: 0,
         discard_reason: None,
         claim: None,
+        local_port_is_if_index: false,
     })
 }
 
@@ -2211,38 +2383,33 @@ pub async fn query_lldp_local<T: SnmpWalkTransport>(
     session: &mut T,
     ip: IpAddr,
 ) -> Result<Option<LldpLocalInfo>> {
-    // GET lldpLocChassisIdSubtype
-    let subtype = match session
-        .get_scalar(&oids::oid_parts(
-            oids::lldp::local::LLDP_LOC_CHASSIS_ID_SUBTYPE,
-        ))
-        .await
-    {
-        Ok(value) => value
-            .and_then(|value| value_to_i32(&value))
-            .map(|v| v as u8),
-        Err(e) => {
-            debug!(
-                "LLDP local chassis ID subtype GET failed from {}: {}",
-                ip, e
-            );
-            None
-        }
-    };
+    let (subtype, chassis_bytes) = get_lldp_local_chassis(
+        session,
+        ip,
+        oids::lldp::local::LLDP_LOC_CHASSIS_ID_SUBTYPE,
+        oids::lldp::local::LLDP_LOC_CHASSIS_ID,
+    )
+    .await;
 
-    // GET lldpLocChassisId
-    let chassis_bytes = match session
-        .get_scalar(&oids::oid_parts(oids::lldp::local::LLDP_LOC_CHASSIS_ID))
-        .await
-    {
-        Ok(value) => value.and_then(|value| match value {
-            Value::OctetString(bytes) => Some(bytes.to_vec()),
-            _ => None,
-        }),
-        Err(e) => {
-            debug!("LLDP local chassis ID GET failed from {}: {}", ip, e);
-            None
+    // The same fallback as `query_lldp_neighbors`, for the same agents (GH #688). A device whose
+    // LLDP lives only under the V2 root has no classic `lldpLocChassisId` either, and without its
+    // own identity it can sit in every other device's neighbour table yet never resolve as
+    // itself. Two scalar GETs, attempted only when the classic pair returned nothing.
+    let (subtype, chassis_bytes) = match (subtype, chassis_bytes) {
+        (None, None) => {
+            let v2 = get_lldp_local_chassis(
+                session,
+                ip,
+                oids::lldp_v2::local::LLDP_V2_LOC_CHASSIS_ID_SUBTYPE,
+                oids::lldp_v2::local::LLDP_V2_LOC_CHASSIS_ID,
+            )
+            .await;
+            if v2.0.is_some() || v2.1.is_some() {
+                debug!("LLDP local identity read from LLDP-V2-MIB for {}", ip);
+            }
+            v2
         }
+        classic => classic,
     };
 
     match (subtype, chassis_bytes) {
@@ -2263,6 +2430,42 @@ pub async fn query_lldp_local<T: SnmpWalkTransport>(
             Ok(None)
         }
     }
+}
+
+/// GET the two scalars that make up a device's own LLDP chassis identity, from whichever MIB
+/// revision `subtype_oid`/`chassis_oid` name. Either half is `None` when the agent does not
+/// serve it, answers with the wrong type, or fails the request.
+async fn get_lldp_local_chassis<T: SnmpWalkTransport>(
+    session: &mut T,
+    ip: IpAddr,
+    subtype_oid: &str,
+    chassis_oid: &str,
+) -> (Option<u8>, Option<Vec<u8>>) {
+    let subtype = match session.get_scalar(&oids::oid_parts(subtype_oid)).await {
+        Ok(value) => value
+            .and_then(|value| value_to_i32(&value))
+            .map(|v| v as u8),
+        Err(e) => {
+            debug!(
+                "LLDP local chassis ID subtype GET failed from {}: {}",
+                ip, e
+            );
+            None
+        }
+    };
+
+    let chassis_bytes = match session.get_scalar(&oids::oid_parts(chassis_oid)).await {
+        Ok(value) => value.and_then(|value| match value {
+            Value::OctetString(bytes) => Some(bytes.to_vec()),
+            _ => None,
+        }),
+        Err(e) => {
+            debug!("LLDP local chassis ID GET failed from {}: {}", ip, e);
+            None
+        }
+    };
+
+    (subtype, chassis_bytes)
 }
 
 /// Query VLAN table for VLAN IDs and names.
@@ -2358,6 +2561,7 @@ pub async fn query_port_vlan_membership<T: SnmpWalkTransport>(
             discarded: 0,
             discard_reason: None,
             claim: None,
+            local_port_is_if_index: false,
         });
     }
 
@@ -2468,6 +2672,7 @@ pub async fn query_port_vlan_membership<T: SnmpWalkTransport>(
         discarded: 0,
         discard_reason: None,
         claim: None,
+        local_port_is_if_index: false,
     })
 }
 
@@ -4168,5 +4373,323 @@ mod out_of_order_tests {
 
         assert_eq!(count, MAX_WALK_ENTRIES);
         assert!(!stop.is_complete(), "a capped walk is not a finished one");
+    }
+}
+
+#[cfg(test)]
+mod lldp_v2_tests {
+    use super::*;
+
+    /// A value an agent can return; `Value` borrows, so test data is `'static`.
+    #[derive(Clone)]
+    enum Canned {
+        Int(i64),
+        Str(&'static str),
+        Bytes(&'static [u8]),
+    }
+
+    /// Same shape as `if_table_tests::FakeAgent`: a sorted OID table answered the way a real
+    /// agent pages a walk, with EndOfMibView past the last row so absent subtrees read as
+    /// unsupported rather than truncated.
+    ///
+    /// A request under `stalls` gets no answer at all, which is how a walk of that subtree is
+    /// made to come up short without touching any other.
+    struct Agent {
+        rows: Vec<(Vec<u64>, Canned)>,
+        stalls: Option<Vec<u64>>,
+    }
+
+    impl Agent {
+        fn new(rows: &[(&str, Canned)]) -> Self {
+            let mut rows: Vec<(Vec<u64>, Canned)> = rows
+                .iter()
+                .map(|(oid, v)| (oids::oid_parts(oid), v.clone()))
+                .collect();
+            rows.sort_by(|a, b| a.0.cmp(&b.0));
+            Self { rows, stalls: None }
+        }
+
+        fn stalling_under(mut self, subtree: &str) -> Self {
+            self.stalls = Some(oids::oid_parts(subtree));
+            self
+        }
+
+        fn page(&self, from: &[u64]) -> Result<Varbinds<'_>> {
+            if let Some(stalled) = &self.stalls
+                && from.starts_with(stalled)
+            {
+                anyhow::bail!("timed out");
+            }
+            let page: Varbinds<'_> = self
+                .rows
+                .iter()
+                .filter(|(oid, _)| oid.as_slice() > from)
+                .take(BULK_MAX_REPETITIONS as usize)
+                .map(|(oid, v)| {
+                    let value = match v {
+                        Canned::Int(i) => Value::Integer(*i),
+                        Canned::Str(s) => Value::OctetString(s.as_bytes()),
+                        Canned::Bytes(b) => Value::OctetString(b),
+                    };
+                    (oid.clone(), value)
+                })
+                .collect();
+            if page.is_empty() {
+                return Ok(vec![(from.to_vec(), Value::EndOfMibView)]);
+            }
+            Ok(page)
+        }
+    }
+
+    #[async_trait::async_trait]
+    impl SnmpWalkTransport for Agent {
+        async fn walk_getbulk<'a>(&'a mut self, from: &[u64], _max: u32) -> Result<WalkPage<'a>> {
+            Ok(WalkPage::Varbinds(self.page(from)?))
+        }
+
+        async fn walk_getnext<'a>(&'a mut self, from: &[u64]) -> Result<Varbinds<'a>> {
+            self.page(from)
+        }
+    }
+
+    fn ip() -> IpAddr {
+        "192.0.2.1".parse().unwrap()
+    }
+
+    /// The rows an OcNOS 7.0.1 agent actually served (UfiSpace S9600-32X, `snmpwalk -On`,
+    /// 2026-08-24; identifiers rewritten): three neighbours indexed
+    /// `timeMark.ifIndex.destMacIndex.remIndex`, chassis ids as MAC octets, and a
+    /// management-address table with no address-length sub-id. Nothing under the classic root.
+    fn ocnos_rows() -> Vec<(&'static str, Canned)> {
+        const CORE: &[u8] = &[0x00, 0x1a, 0x2b, 0x00, 0x10, 0x00];
+        const SPINE1: &[u8] = &[0x00, 0x1a, 0x2b, 0x40, 0xe9, 0xca];
+        const SPINE2: &[u8] = &[0x00, 0x1a, 0x2b, 0x40, 0xd4, 0xca];
+        vec![
+            // chassis subtype (4 = macAddress)
+            ("1.3.111.2.802.1.1.13.1.4.1.1.5.0.3.1.4", Canned::Int(4)),
+            ("1.3.111.2.802.1.1.13.1.4.1.1.5.0.10009.1.6", Canned::Int(4)),
+            ("1.3.111.2.802.1.1.13.1.4.1.1.5.0.10073.1.2", Canned::Int(4)),
+            // chassis id
+            (
+                "1.3.111.2.802.1.1.13.1.4.1.1.6.0.3.1.4",
+                Canned::Bytes(CORE),
+            ),
+            (
+                "1.3.111.2.802.1.1.13.1.4.1.1.6.0.10009.1.6",
+                Canned::Bytes(SPINE1),
+            ),
+            (
+                "1.3.111.2.802.1.1.13.1.4.1.1.6.0.10073.1.2",
+                Canned::Bytes(SPINE2),
+            ),
+            // port id subtype / id
+            ("1.3.111.2.802.1.1.13.1.4.1.1.7.0.3.1.4", Canned::Int(7)),
+            ("1.3.111.2.802.1.1.13.1.4.1.1.7.0.10009.1.6", Canned::Int(5)),
+            ("1.3.111.2.802.1.1.13.1.4.1.1.7.0.10073.1.2", Canned::Int(5)),
+            (
+                "1.3.111.2.802.1.1.13.1.4.1.1.8.0.3.1.4",
+                Canned::Str("Ethernet5"),
+            ),
+            (
+                "1.3.111.2.802.1.1.13.1.4.1.1.8.0.10009.1.6",
+                Canned::Str("swp5"),
+            ),
+            (
+                "1.3.111.2.802.1.1.13.1.4.1.1.8.0.10073.1.2",
+                Canned::Str("swp5"),
+            ),
+            // sys name
+            (
+                "1.3.111.2.802.1.1.13.1.4.1.1.10.0.3.1.4",
+                Canned::Str("switch-core-01"),
+            ),
+            (
+                "1.3.111.2.802.1.1.13.1.4.1.1.10.0.10009.1.6",
+                Canned::Str("switch-arcos-01"),
+            ),
+            (
+                "1.3.111.2.802.1.1.13.1.4.1.1.10.0.10073.1.2",
+                Canned::Str("switch-arcos-02"),
+            ),
+            // management addresses: OcNOS layout, address bytes to the end of the index —
+            // and one row that carries a subtype but no address at all.
+            ("1.3.111.2.802.1.1.13.1.4.2.1.3.0.3.1.4.2", Canned::Int(2)),
+            (
+                "1.3.111.2.802.1.1.13.1.4.2.1.3.0.10009.1.6.1.192.0.2.102",
+                Canned::Int(2),
+            ),
+            (
+                "1.3.111.2.802.1.1.13.1.4.2.1.3.0.10073.1.2.1.192.0.2.103",
+                Canned::Int(2),
+            ),
+        ]
+    }
+
+    #[tokio::test]
+    async fn v2_only_agent_yields_neighbours_keyed_by_if_index() {
+        let mut agent = Agent::new(&ocnos_rows());
+
+        let got = query_lldp_neighbors(&mut agent, ip()).await.unwrap();
+
+        assert!(!got.unsupported, "an agent serving V2 rows has LLDP");
+        assert!(got.complete);
+        assert_eq!(got.discarded, 0);
+        assert!(
+            got.local_port_is_if_index,
+            "the caller must be told not to remap these"
+        );
+        let mut records = got.records;
+        records.sort_by_key(|n| n.local_port_index);
+        assert_eq!(
+            records
+                .iter()
+                .map(|n| n.local_port_index)
+                .collect::<Vec<_>>(),
+            vec![3, 10009, 10073],
+            "the V2 local identifier is the ifIndex, second from the front"
+        );
+        assert_eq!(
+            records[0].remote_sys_name.as_deref(),
+            Some("switch-core-01")
+        );
+        assert_eq!(
+            records[1].remote_sys_name.as_deref(),
+            Some("switch-arcos-01")
+        );
+        assert_eq!(
+            records[1].remote_port_id_bytes.as_deref(),
+            Some(b"swp5" as &[u8])
+        );
+        assert_eq!(
+            records[1].remote_mgmt_addr,
+            Some("192.0.2.102".parse().unwrap()),
+            "V2 management address reconstructed from a length-less index"
+        );
+        assert!(
+            records[0].remote_mgmt_addr.is_none(),
+            "a management row with no address bytes resolves to nothing, not garbage"
+        );
+    }
+
+    #[tokio::test]
+    async fn classic_agent_never_reaches_the_v2_walk() {
+        // One classic neighbour (index timeMark.localPortNum.remIndex = 0.5.1) — and V2 rows
+        // carrying different sys names. If the fallback ran anyway, the V2 rows would either
+        // merge or collide; the classic result must come back alone and untouched.
+        let mut rows = vec![
+            ("1.0.8802.1.1.2.1.4.1.1.4.0.5.1", Canned::Int(4)),
+            (
+                "1.0.8802.1.1.2.1.4.1.1.5.0.5.1",
+                Canned::Bytes(&[0x02, 0x00, 0x00, 0x00, 0x00, 0x01]),
+            ),
+            (
+                "1.0.8802.1.1.2.1.4.1.1.9.0.5.1",
+                Canned::Str("classic-peer"),
+            ),
+        ];
+        rows.extend(ocnos_rows());
+        let mut agent = Agent::new(&rows);
+
+        let got = query_lldp_neighbors(&mut agent, ip()).await.unwrap();
+
+        assert_eq!(got.records.len(), 1, "V2 rows must not be merged in");
+        assert_eq!(got.records[0].local_port_index, 5);
+        assert_eq!(
+            got.records[0].remote_sys_name.as_deref(),
+            Some("classic-peer")
+        );
+        assert!(
+            !got.local_port_is_if_index,
+            "a classic result still goes through the local-port remap"
+        );
+    }
+
+    #[tokio::test]
+    async fn an_agent_with_neither_mib_is_still_unsupported() {
+        // No rows at all: the fake then answers EndOfMibView at the first request of every
+        // column, which is the shape `is_unsupported` keys on.
+        let mut agent = Agent::new(&[]);
+
+        let got = query_lldp_neighbors(&mut agent, ip()).await.unwrap();
+
+        assert!(got.records.is_empty());
+        assert!(
+            got.unsupported,
+            "falling back must not turn a no-LLDP agent into a supported-but-empty one"
+        );
+        assert!(!got.local_port_is_if_index);
+    }
+
+    /// An empty classic result from a walk that did not finish is a failed read, not a device
+    /// with nothing — and not a licence to go looking elsewhere. The V2 rows are there to be
+    /// found; the point is that they must not be.
+    #[tokio::test]
+    async fn an_incomplete_classic_walk_does_not_fall_back() {
+        let mut agent = Agent::new(&ocnos_rows()).stalling_under(oids::lldp::LLDP_MIB);
+
+        let got = query_lldp_neighbors(&mut agent, ip()).await.unwrap();
+
+        assert!(
+            got.records.is_empty(),
+            "V2 rows read past a failed classic walk"
+        );
+        assert!(!got.complete);
+        assert!(!got.local_port_is_if_index);
+    }
+
+    /// The mirror image: on a V2-only device the classic result is complete and *not*
+    /// unsupported, which is the shape the server takes as authority to clear what it holds. A
+    /// V2 walk that stalls must not hand that back — it returns its own incomplete, empty result.
+    #[tokio::test]
+    async fn an_incomplete_v2_walk_is_not_an_authoritative_empty_result() {
+        let mut agent = Agent::new(&ocnos_rows()).stalling_under(oids::lldp_v2::LLDP_V2_MIB);
+
+        let got = query_lldp_neighbors(&mut agent, ip()).await.unwrap();
+
+        assert!(got.records.is_empty());
+        assert!(
+            !got.complete,
+            "a stalled fallback is a failed read, not an empty device"
+        );
+        assert!(!got.unsupported);
+        assert!(got.local_port_is_if_index);
+    }
+
+    /// The V2 index is front-relative and whole: four sub-ids or nothing. Three is the classic
+    /// layout, which the end-relative classic splitter would happily accept and mis-key; five is
+    /// a row from some other table.
+    #[test]
+    fn the_v2_rem_index_needs_exactly_four_sub_ids() {
+        assert_eq!(split_lldp_v2_rem_index(&[0, 10009, 1, 6]), Some((10009, 6)));
+        assert_eq!(split_lldp_v2_rem_index(&[10009, 1, 6]), None);
+        assert_eq!(split_lldp_v2_rem_index(&[0, 10009, 1, 6, 1]), None);
+        assert_eq!(split_lldp_v2_rem_index(&[]), None);
+    }
+
+    /// The same suffix through the classic splitter is the failure the V2 one exists to avoid:
+    /// every neighbour keyed on the destination-address index.
+    #[test]
+    fn the_classic_splitter_mis_keys_a_v2_index() {
+        assert_eq!(split_lldp_rem_index(&[0, 10009, 1, 6]), Some((1, 6)));
+    }
+
+    #[test]
+    fn the_v2_man_addr_index_is_read_with_or_without_a_length() {
+        // OcNOS: no length sub-id, address to the end.
+        assert_eq!(
+            split_lldp_v2_man_addr_index(&[0, 10009, 1, 6, 1, 192, 0, 2, 102]),
+            Some((10009, 6, vec![1, 192, 0, 2, 102]))
+        );
+        // Conformant: the length accounts for exactly what follows.
+        assert_eq!(
+            split_lldp_v2_man_addr_index(&[0, 10009, 1, 6, 1, 4, 192, 0, 2, 102]),
+            Some((10009, 6, vec![1, 192, 0, 2, 102]))
+        );
+        // A subtype with nothing after it: the row exists and carries no address.
+        assert_eq!(
+            split_lldp_v2_man_addr_index(&[0, 3, 1, 4, 2]),
+            Some((3, 4, vec![2]))
+        );
+        assert_eq!(split_lldp_v2_man_addr_index(&[0, 3, 1, 4]), None);
     }
 }

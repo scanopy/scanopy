@@ -234,6 +234,77 @@ pub mod lldp {
     }
 }
 
+/// LLDP-V2-MIB OIDs (IEEE 802.1AB-2009 revision, rooted at 1.3.111.2.802.1.1.13).
+///
+/// Some agents implement only this revision — IP Infusion OcNOS among them (GH #688): every
+/// classic `1.0.8802.1.1.2` remote-table column walks straight into the adjacent `lldpExtensions`
+/// subtree, while the same neighbours sit here, fully populated. The local tables keep the classic
+/// column numbering; the remote entry does not, because `lldpV2RemLocalIfIndex` is inserted as
+/// column 2 and every column after it moves up by one. Verified against OcNOS 7.0.1 on a UfiSpace
+/// S9600-32X.
+pub mod lldp_v2 {
+    /// The LLDP-V2-MIB root, which is the subtree an agent registers to serve it.
+    pub const LLDP_V2_MIB: &str = "1.3.111.2.802.1.1.13";
+
+    /// lldpV2LocalSystemData
+    pub mod local {
+        /// lldpV2LocChassisIdSubtype
+        pub const LLDP_V2_LOC_CHASSIS_ID_SUBTYPE: &str = "1.3.111.2.802.1.1.13.1.3.1.0";
+
+        /// lldpV2LocChassisId
+        pub const LLDP_V2_LOC_CHASSIS_ID: &str = "1.3.111.2.802.1.1.13.1.3.2.0";
+
+        /// lldpV2LocSysName
+        pub const LLDP_V2_LOC_SYS_NAME: &str = "1.3.111.2.802.1.1.13.1.3.3.0";
+
+        /// lldpV2LocSysDesc
+        pub const LLDP_V2_LOC_SYS_DESC: &str = "1.3.111.2.802.1.1.13.1.3.4.0";
+
+        /// lldpV2LocPortIdSubtype — `lldpV2LocPortTable` is indexed by `lldpV2LocPortIfIndex`,
+        /// a real ifIndex, unlike the classic table's `lldpLocPortNum`.
+        pub const LLDP_V2_LOC_PORT_ID_SUBTYPE: &str = "1.3.111.2.802.1.1.13.1.3.7.1.2";
+
+        /// lldpV2LocPortId
+        pub const LLDP_V2_LOC_PORT_ID: &str = "1.3.111.2.802.1.1.13.1.3.7.1.3";
+
+        /// lldpV2LocPortDesc
+        pub const LLDP_V2_LOC_PORT_DESC: &str = "1.3.111.2.802.1.1.13.1.3.7.1.4";
+    }
+
+    /// lldpV2RemoteSystemsData
+    pub mod remote {
+        /// lldpV2RemEntry columns. Each sits one above its classic counterpart, and the row index
+        /// is `lldpV2RemTimeMark.lldpV2RemLocalIfIndex.lldpV2RemLocalDestMACAddress.lldpV2RemIndex`
+        /// — four sub-ids, the third a row pointer into `lldpV2DestAddressTable`.
+        pub mod entry {
+            /// lldpV2RemChassisIdSubtype
+            pub const LLDP_V2_REM_CHASSIS_ID_SUBTYPE: &str = "1.3.111.2.802.1.1.13.1.4.1.1.5";
+
+            /// lldpV2RemChassisId
+            pub const LLDP_V2_REM_CHASSIS_ID: &str = "1.3.111.2.802.1.1.13.1.4.1.1.6";
+
+            /// lldpV2RemPortIdSubtype
+            pub const LLDP_V2_REM_PORT_ID_SUBTYPE: &str = "1.3.111.2.802.1.1.13.1.4.1.1.7";
+
+            /// lldpV2RemPortId
+            pub const LLDP_V2_REM_PORT_ID: &str = "1.3.111.2.802.1.1.13.1.4.1.1.8";
+
+            /// lldpV2RemPortDesc
+            pub const LLDP_V2_REM_PORT_DESC: &str = "1.3.111.2.802.1.1.13.1.4.1.1.9";
+
+            /// lldpV2RemSysName
+            pub const LLDP_V2_REM_SYS_NAME: &str = "1.3.111.2.802.1.1.13.1.4.1.1.10";
+
+            /// lldpV2RemSysDesc
+            pub const LLDP_V2_REM_SYS_DESC: &str = "1.3.111.2.802.1.1.13.1.4.1.1.11";
+
+            /// lldpV2RemManAddrIfSubtype — an accessible column of `lldpV2RemManAddrTable`; as in
+            /// the classic table, the address itself lives in the OID index.
+            pub const LLDP_V2_REM_MAN_ADDR_IF_SUBTYPE: &str = "1.3.111.2.802.1.1.13.1.4.2.1.3";
+        }
+    }
+}
+
 /// CDP-MIB OIDs (Cisco proprietary)
 pub mod cdp {
     /// The Cisco CDP MIB root, which is the subtree an agent registers to serve the cache table.

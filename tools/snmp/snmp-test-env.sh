@@ -1,8 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-# SNMP Test Environment — manages 22 snmpd instances on a Proxmox LXC
-# Subnet: 192.168.4.0/22 (hosts at 192.168.7.230–251)
+# SNMP Test Environment — manages 23 snmpd instances on a Proxmox LXC
+# Subnet: 192.168.4.0/22 (hosts at 192.168.7.230–252)
 # Usage: tools/snmp/snmp-test-env.sh deploy|verify|status
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

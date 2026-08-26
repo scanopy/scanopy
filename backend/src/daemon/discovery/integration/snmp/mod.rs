@@ -374,6 +374,7 @@ impl DiscoveryIntegration for SnmpIntegration {
         let lldp_authoritative = lldp.complete && !lldp.unsupported;
         let lldp_discarded = lldp.discarded;
         let lldp_discard_reason = lldp.discard_reason;
+        let lldp_local_port_is_if_index = lldp.local_port_is_if_index;
         let mut lldp_neighbors = lldp.records;
         tracing::debug!(
             ip = %ip,
@@ -438,8 +439,10 @@ impl DiscoveryIntegration for SnmpIntegration {
         // that reports lldpLocPortNum == ifIndex or omits the table). CDP is not
         // remapped: cdpCacheIfIndex is already a real ifIndex.
         // Not walked at all when there is no neighbour to place, so its outcome is "nothing to
-        // ask" rather than a complete read of an empty table.
-        let lldp_local_ports = if lldp_count > 0 {
+        // ask" rather than a complete read of an empty table. Nor when the neighbours came from
+        // the LLDP-V2-MIB (GH #688): `lldpV2RemLocalIfIndex` is already an ifIndex, and the
+        // classic `lldpLocPortTable` is not a table such a device serves.
+        let lldp_local_ports = if lldp_count > 0 && !lldp_local_port_is_if_index {
             query_or_default(
                 ip,
                 "lldp_local_ports",
@@ -456,8 +459,20 @@ impl DiscoveryIntegration for SnmpIntegration {
             claim: lldp_local_ports.claim,
         };
         let lldp_local_ports = lldp_local_ports.records;
-        let local_ports =
-            remap_lldp_local_ports(&mut lldp_neighbors, &lldp_local_ports, &snmp_if_entries);
+        let local_ports = if lldp_local_port_is_if_index {
+            // Nothing to translate, but the placement rule still applies: a neighbour on an
+            // ifIndex the interface walk did not return reaches no interface either way.
+            LocalPortOutcome {
+                unmatched: 0,
+                dropped: count_dropped_neighbours(
+                    &lldp_neighbors,
+                    &lldp_local_ports,
+                    &snmp_if_entries,
+                ),
+            }
+        } else {
+            remap_lldp_local_ports(&mut lldp_neighbors, &lldp_local_ports, &snmp_if_entries)
+        };
         if local_ports.unmatched > 0 || local_ports.dropped > 0 {
             tracing::warn!(
                 ip = %ip,

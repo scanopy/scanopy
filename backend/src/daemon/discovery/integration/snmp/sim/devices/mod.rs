@@ -26,6 +26,7 @@ pub mod switch_flaky_01;
 pub mod switch_macport_01;
 pub mod switch_mute_01;
 pub mod switch_netgear_01;
+pub mod switch_ocnos_01;
 pub mod switch_omada_01;
 pub mod switch_stuck_01;
 pub mod switch_tplink_01;
@@ -65,5 +66,6 @@ pub fn all() -> Vec<SimDevice> {
         switch_stuck_01::device(),
         switch_dell_01::device(),
         switch_cisco_01::device(),
+        switch_ocnos_01::device(),
     ]
 }

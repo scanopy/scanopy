@@ -109,8 +109,16 @@ pub async fn collect(device: &SimDevice) -> Collected {
     let mut neighbours = query_lldp_neighbors(&mut agent, ip)
         .await
         .unwrap_or_default();
-    let local_port_outcome =
-        remap_lldp_local_ports(&mut neighbours.records, &local_ports, &if_table.entries);
+    // As in `execute`: neighbours read from the LLDP-V2-MIB are keyed by ifIndex already and are
+    // not remapped (GH #688).
+    let local_port_outcome = if neighbours.local_port_is_if_index {
+        LocalPortOutcome {
+            unmatched: 0,
+            dropped: count_dropped_neighbours(&neighbours.records, &local_ports, &if_table.entries),
+        }
+    } else {
+        remap_lldp_local_ports(&mut neighbours.records, &local_ports, &if_table.entries)
+    };
     let dropped_neighbours =
         count_dropped_neighbours(&neighbours.records, &local_ports, &if_table.entries);
 
