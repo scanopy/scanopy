@@ -91,6 +91,14 @@ reqwest = { version = "0.12.24", default-features = false, features = ["json", "
 # it, AsyncSession keeps `[u8; 65_507]` inline; with deep_scan_concurrency * SNMP
 # session count nested in Tokio task futures, that blows the worker stack.
 snmp2 = { path = "vendor/snmp2", default-features = false, features = ["tokio", "v3", "crypto-rust", "heap_buffers"] }
+# gNMI collector: gRPC client stack. Stubs are pre-generated (see integration/gnmi/proto), so no
+# protoc or build.rs. Client-only (`channel`, not `server`/`router`), and TLS through `ring` with
+# the webpki roots -- `aws-lc-rs` must stay out of the tree (see tests/dependencies.rs).
+tonic = { version = "0.14", default-features = false, features = ["channel", "codegen", "tls-ring", "tls-webpki-roots"] }
+tonic-prost = "0.14"
+prost = "0.14"
+prost-types = "0.14"
+tokio-stream = "0.1"
 pnet = "0.35.0"
 ipnetwork = "0.20"
 cidr = { version = "0.3.1", features = ["serde"] }

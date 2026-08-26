@@ -45,6 +45,10 @@ fn default_docker_port() -> u16 {
     PortType::Docker.number()
 }
 
+pub(crate) fn default_gnmi_port() -> u16 {
+    9339
+}
+
 /// Universal credential type — tagged enum stored as JSONB.
 /// Each variant represents a different credential protocol/method.
 #[derive(
@@ -97,6 +101,26 @@ pub enum CredentialType {
         /// Optional context name (default/empty context used if unset).
         #[serde(default, skip_serializing_if = "Option::is_none")]
         context_name: Option<String>,
+    },
+    /// gNMI (gRPC Network Management Interface) credentials, for OpenConfig-speaking network
+    /// devices. Target IP determined from host ip_addresses at scan time, like SNMP.
+    #[schema(title = "Gnmi")]
+    Gnmi {
+        /// gNMI port. 9339 is IANA's; some NOSes listen on 6030 or 57400 instead.
+        #[serde(default = "default_gnmi_port")]
+        port: u16,
+        /// Username, sent as gRPC `username` metadata (the openconfig convention).
+        username: String,
+        /// Password, sent as gRPC `password` metadata.
+        password: SecretValue,
+        /// Use TLS. Off means plaintext gRPC (h2c) — the out-of-the-box mode of several NOSes
+        /// (ArcOS among them: its server stays plaintext until transport-security is enabled).
+        #[serde(default)]
+        tls: bool,
+        /// Accept any server certificate. Only meaningful with `tls` — NOS gRPC endpoints
+        /// commonly ship self-signed certs.
+        #[serde(default)]
+        skip_verify: bool,
     },
     /// Docker API proxy credentials. Target IP determined from host ip_addresses at scan time.
     #[schema(title = "DockerProxy")]
@@ -276,6 +300,17 @@ impl CredentialType {
                 }
             }
             (
+                Self::Gnmi { password, .. },
+                Self::Gnmi {
+                    password: existing_password,
+                    ..
+                },
+            ) => {
+                if password.is_redacted_sentinel() {
+                    *password = existing_password.clone();
+                }
+            }
+            (
                 Self::SnmpV3 {
                     auth_password,
                     priv_password,
@@ -358,6 +393,7 @@ impl CredentialType {
             | (Self::DockerSocket { .. }, _)
             | (Self::PodmanProxy { .. }, _)
             | (Self::PodmanSocket { .. }, _)
+            | (Self::Gnmi { .. }, _)
             | (Self::UnifiApiKey { .. }, _)
             | (Self::UnifiLocalAdmin { .. }, _)
             | (Self::InstantOnAccount { .. }, _) => {}
@@ -369,6 +405,7 @@ impl CredentialType {
             Self::SnmpV1 { .. } | Self::SnmpV2c { .. } | Self::SnmpV3 { .. } => {
                 CredentialCategory::NetworkMonitoring
             }
+            Self::Gnmi { .. } => CredentialCategory::NetworkMonitoring,
             Self::DockerProxy { .. }
             | Self::DockerSocket { .. }
             | Self::PodmanProxy { .. }
@@ -388,6 +425,8 @@ impl CredentialType {
             Self::SnmpV1 { .. } | Self::SnmpV2c { .. } | Self::SnmpV3 { .. } => {
                 vec![Target::DaemonHost, Target::Hosts, Target::Network]
             }
+            // gNMI behaves like SNMP: broadcastable, and a device credential.
+            Self::Gnmi { .. } => vec![Target::DaemonHost, Target::Hosts, Target::Network],
             // Docker/Podman proxy: on the daemon host (localhost proxy) or remote hosts.
             Self::DockerProxy { .. } | Self::PodmanProxy { .. } => {
                 vec![Target::DaemonHost, Target::Hosts]
@@ -440,6 +479,9 @@ impl CredentialType {
             // One Instant On site reports a given switch, and there is one way to reach it.
             | Self::InstantOnAccount { .. } => true,
             Self::SnmpV1 { .. } | Self::SnmpV2c { .. } | Self::SnmpV3 { .. } => false,
+            // Try-many like SNMP: two gNMI credentials (Arista on 6030, ArcOS on 9339) must be
+            // broadcastable on one network, which `true` would forbid.
+            Self::Gnmi { .. } => false,
         }
     }
 
@@ -458,6 +500,10 @@ impl CredentialType {
             } => match field_id {
                 "auth_password" => inline_secret(auth_password),
                 "priv_password" => inline_secret(priv_password),
+                _ => None,
+            },
+            Self::Gnmi { password, .. } => match field_id {
+                "password" => inline_secret(password),
                 _ => None,
             },
             Self::DockerProxy {
@@ -519,6 +565,7 @@ impl CredentialType {
             Self::SnmpV1 { .. } | Self::SnmpV2c { .. } | Self::SnmpV3 { .. } => {
                 Box::new(crate::server::services::definitions::snmp::Snmp)
             }
+            Self::Gnmi { .. } => Box::new(crate::server::services::definitions::gnmi::Gnmi),
             Self::DockerProxy { .. } | Self::DockerSocket { .. } => {
                 Box::new(crate::server::services::definitions::docker_daemon::Docker)
             }
@@ -537,7 +584,9 @@ impl CredentialType {
     /// Convert to wire format payload for daemon transmission.
     /// No wildcard match — compiler forces update when new variants added.
     pub fn to_query_payload(&self) -> CredentialQueryPayload {
-        use crate::server::credentials::r#impl::mapping::{SnmpQueryCredential, SnmpV3Params};
+        use crate::server::credentials::r#impl::mapping::{
+            GnmiQueryCredential, SnmpQueryCredential, SnmpV3Params,
+        };
         match self {
             CredentialType::SnmpV1 { community } => {
                 CredentialQueryPayload::Snmp(SnmpQueryCredential {
@@ -573,6 +622,19 @@ impl CredentialType {
                     priv_password: secret_to_resolvable(priv_password),
                     context_name: context_name.clone(),
                 }),
+            }),
+            CredentialType::Gnmi {
+                port,
+                username,
+                password,
+                tls,
+                skip_verify,
+            } => CredentialQueryPayload::Gnmi(GnmiQueryCredential {
+                port: *port,
+                username: username.clone(),
+                password: secret_to_resolvable(password),
+                tls: *tls,
+                skip_verify: *skip_verify,
             }),
             CredentialType::DockerProxy {
                 port,

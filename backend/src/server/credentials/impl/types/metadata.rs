@@ -19,7 +19,7 @@ use crate::server::{
 
 use super::{
     CredentialType, CredentialTypeDiscriminants, SecretValue, default_docker_port,
-    default_unifi_port, default_unifi_site,
+    default_gnmi_port, default_unifi_port, default_unifi_site,
 };
 
 /// Category grouping for credential types.
@@ -124,6 +124,15 @@ impl CredentialTypeDiscriminants {
                     value: SecretString::from(String::new()),
                 },
             },
+            Self::Gnmi => CredentialType::Gnmi {
+                port: default_gnmi_port(),
+                username: String::new(),
+                password: SecretValue::Inline {
+                    value: SecretString::from(String::new()),
+                },
+                tls: false,
+                skip_verify: false,
+            },
             Self::SnmpV3 => CredentialType::SnmpV3 {
                 security_name: String::new(),
                 auth_protocol: super::SnmpV3AuthProtocol::default(),
@@ -185,6 +194,7 @@ impl CredentialTypeDiscriminants {
             Self::SnmpV1
             | Self::SnmpV2c
             | Self::SnmpV3
+            | Self::Gnmi
             | Self::DockerProxy
             | Self::DockerSocket
             | Self::PodmanProxy
@@ -216,6 +226,7 @@ impl EntityMetadataProvider for CredentialTypeDiscriminants {
         // Fallback icon when the service logo is unavailable
         match self {
             Self::SnmpV1 | Self::SnmpV2c | Self::SnmpV3 => Concept::SNMP.icon(),
+            Self::Gnmi => Concept::L2.icon(),
             Self::DockerProxy | Self::DockerSocket | Self::PodmanProxy | Self::PodmanSocket => {
                 Concept::Containerization.icon()
             }
@@ -234,6 +245,7 @@ impl CredentialTypeDiscriminants {
             Self::SnmpV1 => "SNMP v1",
             Self::SnmpV2c => "SNMP v2c",
             Self::SnmpV3 => "SNMP v3",
+            Self::Gnmi => "gNMI",
             Self::DockerProxy => "Docker Proxy",
             Self::DockerSocket => "Docker Socket",
             Self::PodmanProxy => "Podman Proxy",
@@ -280,6 +292,7 @@ impl CredentialTypeDiscriminants {
             Self::SnmpV1 | Self::SnmpV2c | Self::SnmpV3 => {
                 "Discover a host's interfaces, system details, and CDP/LLDP neighbors."
             }
+            Self::Gnmi => "Discover a host's interfaces and LLDP neighbors over gNMI (OpenConfig).",
             Self::DockerProxy | Self::DockerSocket => {
                 "Discover Docker containers and the services they expose."
             }
@@ -308,6 +321,7 @@ impl CredentialTypeDiscriminants {
             Self::SnmpV1 => "Uses SNMPv1.",
             Self::SnmpV2c => "Uses SNMPv2c.",
             Self::SnmpV3 => "Uses SNMPv3.",
+            Self::Gnmi => "Connects over gRPC; username and password travel as request metadata.",
             Self::DockerProxy | Self::PodmanProxy => "Connects over TCP, optionally with TLS.",
             Self::DockerSocket | Self::PodmanSocket => "Connects via the daemon's local socket.",
             Self::UnifiApiKey => {
@@ -328,6 +342,7 @@ impl CredentialTypeDiscriminants {
             Self::SnmpV1 => "v1",
             Self::SnmpV2c => "v2c",
             Self::SnmpV3 => "v3",
+            Self::Gnmi => "gNMI",
             Self::DockerProxy | Self::PodmanProxy => "Proxy",
             Self::DockerSocket | Self::PodmanSocket => "Socket",
             Self::UnifiApiKey => "API Key",
@@ -372,6 +387,9 @@ impl CredentialTypeDiscriminants {
             Self::PodmanProxy | Self::PodmanSocket => semver::Version::new(0, 17, 2),
             // UniFi variants ship in 0.17.7.
             Self::UnifiApiKey | Self::UnifiLocalAdmin => semver::Version::new(0, 17, 7),
+            // gNMI ships in 0.17.12 (scanopy#690). An older daemon that receives this mapping
+            // deserializes the unknown wire tag to `Unknown` and skips it.
+            Self::Gnmi => semver::Version::new(0, 17, 12),
             // Instant On ships in 0.17.11.
             Self::InstantOnAccount => semver::Version::new(0, 17, 11),
         }
@@ -392,6 +410,10 @@ impl CredentialTypeDiscriminants {
             | Self::PodmanSocket
             | Self::UnifiApiKey
             | Self::UnifiLocalAdmin => CredentialStability::Stable,
+            // New; validated against ArcOS and DNOS over plaintext only. TLS is wired but not
+            // yet exercised against a TLS-enabled device, and `skip_verify` is not yet
+            // supported, so the field shape may still move.
+            Self::Gnmi => CredentialStability::Beta,
             // New and validated against one operator's 1960s only; the field shape may still move
             // once other Instant On models' payloads are seen.
             Self::InstantOnAccount => CredentialStability::Beta,

@@ -20049,6 +20049,7 @@
           "PodmanSocket",
           "UnifiController",
           "InstantOn",
+          "Gnmi",
           "Unknown"
         ]
       },
@@ -20149,6 +20150,46 @@
                 "enum": [
                   "SnmpV3"
                 ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Gnmi",
+            "description": "gNMI (gRPC Network Management Interface) credentials, for OpenConfig-speaking network\ndevices. Target IP determined from host ip_addresses at scan time, like SNMP.",
+            "required": [
+              "username",
+              "password",
+              "type"
+            ],
+            "properties": {
+              "password": {
+                "$ref": "#/components/schemas/SecretValue",
+                "description": "Password, sent as gRPC `password` metadata."
+              },
+              "port": {
+                "type": "integer",
+                "format": "int32",
+                "description": "gNMI port. 9339 is IANA's; some NOSes listen on 6030 or 57400 instead.",
+                "minimum": 0
+              },
+              "skip_verify": {
+                "type": "boolean",
+                "description": "Accept any server certificate. Only meaningful with `tls` — NOS gRPC endpoints\ncommonly ship self-signed certs."
+              },
+              "tls": {
+                "type": "boolean",
+                "description": "Use TLS. Off means plaintext gRPC (h2c) — the out-of-the-box mode of several NOSes\n(ArcOS among them: its server stays plaintext until transport-security is enabled)."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Gnmi"
+                ]
+              },
+              "username": {
+                "type": "string",
+                "description": "Username, sent as gRPC `username` metadata (the openconfig convention)."
               }
             }
           },
@@ -20431,6 +20472,7 @@
           "SnmpV1",
           "SnmpV2c",
           "SnmpV3",
+          "Gnmi",
           "DockerProxy",
           "DockerSocket",
           "PodmanProxy",

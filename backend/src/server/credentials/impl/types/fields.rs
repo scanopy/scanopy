@@ -177,6 +177,59 @@ impl CredentialType {
                     group: None,
                 }]
             }
+            Self::Gnmi {
+                port: _,
+                username: _,
+                password: _,
+                // API-settable only for now: no boolean field type exists in this form
+                // vocabulary, and the validated lab NOSes serve plaintext gRPC anyway.
+                tls: _,
+                skip_verify: _,
+            } => vec![
+                FieldDefinition {
+                    id: "port",
+                    label: "gNMI Port",
+                    field_type: FieldType::String,
+                    placeholder: Some("9339"),
+                    secret: false,
+                    optional: true,
+                    help_text: Some(
+                        "9339 is the IANA gNMI port; some NOSes listen on 6030 or 57400 instead.",
+                    ),
+                    options: None,
+                    default_value: Some("9339"),
+                    inline_format: None,
+                    group: Some("Connection"),
+                },
+                FieldDefinition {
+                    id: "username",
+                    label: "Username",
+                    field_type: FieldType::String,
+                    placeholder: Some("gnmi-user"),
+                    secret: false,
+                    optional: false,
+                    help_text: Some(
+                        "Sent as gRPC `username` metadata (the OpenConfig convention).",
+                    ),
+                    options: None,
+                    default_value: None,
+                    inline_format: None,
+                    group: Some("Authentication"),
+                },
+                FieldDefinition {
+                    id: "password",
+                    label: "Password",
+                    field_type: FieldType::SecretPathOrInline,
+                    placeholder: None,
+                    secret: true,
+                    optional: false,
+                    help_text: Some("Sent as gRPC `password` metadata."),
+                    options: None,
+                    default_value: None,
+                    inline_format: Some(InlineFormat::Plain),
+                    group: Some("Authentication"),
+                },
+            ],
             Self::SnmpV3 {
                 security_name: _,
                 auth_protocol: _,

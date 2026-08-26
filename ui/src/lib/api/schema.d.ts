@@ -5844,7 +5844,7 @@ export interface components {
         /** @enum {string} */
         CredentialOrderField: "created_at" | "name" | "updated_at";
         /** @enum {string} */
-        CredentialQueryPayloadDiscriminants: "Snmp" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiController" | "InstantOn" | "Unknown";
+        CredentialQueryPayloadDiscriminants: "Snmp" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiController" | "InstantOn" | "Gnmi" | "Unknown";
         /**
          * @description Release maturity of a credential type's integration.
          *
@@ -5885,6 +5885,28 @@ export interface components {
             security_name: string;
             /** @enum {string} */
             type: "SnmpV3";
+        } | {
+            /** @description Password, sent as gRPC `password` metadata. */
+            password: components["schemas"]["SecretValue"];
+            /**
+             * Format: int32
+             * @description gNMI port. 9339 is IANA's; some NOSes listen on 6030 or 57400 instead.
+             */
+            port?: number;
+            /**
+             * @description Accept any server certificate. Only meaningful with `tls` — NOS gRPC endpoints
+             *     commonly ship self-signed certs.
+             */
+            skip_verify?: boolean;
+            /**
+             * @description Use TLS. Off means plaintext gRPC (h2c) — the out-of-the-box mode of several NOSes
+             *     (ArcOS among them: its server stays plaintext until transport-security is enabled).
+             */
+            tls?: boolean;
+            /** @enum {string} */
+            type: "Gnmi";
+            /** @description Username, sent as gRPC `username` metadata (the openconfig convention). */
+            username: string;
         } | {
             /** @description Optional URL path prefix (e.g. "/v1.43") */
             path?: string | null;
@@ -5958,7 +5980,7 @@ export interface components {
             username: string;
         };
         /** @enum {string} */
-        CredentialTypeDiscriminants: "SnmpV1" | "SnmpV2c" | "SnmpV3" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiApiKey" | "UnifiLocalAdmin" | "InstantOnAccount";
+        CredentialTypeDiscriminants: "SnmpV1" | "SnmpV2c" | "SnmpV3" | "Gnmi" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiApiKey" | "UnifiLocalAdmin" | "InstantOnAccount";
         Daemon: components["schemas"]["DaemonBase"] & {
             /**
              * Format: date-time

@@ -30,6 +30,17 @@ pub struct ContainerSocketQueryCredential {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub socket_path: Option<String>,
 }
+/// gNMI query credential the daemon dials with. Username/password travel as gRPC metadata;
+/// the password uses the same [`ResolvableSecret`] resolution SNMP communities do.
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
+pub struct GnmiQueryCredential {
+    pub port: u16,
+    pub username: String,
+    pub password: ResolvableSecret,
+    pub tls: bool,
+    pub skip_verify: bool,
+}
+
 pub use super::types::snmp::{
     SnmpCredentialMapping, SnmpCredentialMappingExposed, SnmpIpOverrideExposed,
     SnmpQueryCredential, SnmpQueryCredentialExposed, SnmpV3AuthProtocol, SnmpV3Params,
@@ -222,6 +233,8 @@ pub enum CredentialQueryPayload {
     /// operator's network entirely — the daemon authenticates to HPE's cloud and reads the site
     /// inventory, while the credential stays bound to the switch it reports on.
     InstantOn(InstantOnQueryCredential),
+    /// gNMI (OpenConfig) devices — openconfig-interfaces and openconfig-lldp collection.
+    Gnmi(GnmiQueryCredential),
     /// Forward-compat fallback: a credential type from a newer server that this
     /// daemon doesn't recognize. `#[serde(other)]` deserializes any unknown `type`
     /// tag here (a unit variant, the only shape allowed for `other` on an
@@ -247,6 +260,7 @@ impl From<CredentialQueryPayloadDiscriminants> for super::types::CredentialTypeD
             CredentialQueryPayloadDiscriminants::PodmanSocket => Self::PodmanSocket,
             // Lossy but harmless: this reverse map only picks a representative
             // `CredentialType` for a wire tag, and both UniFi transports share one.
+            CredentialQueryPayloadDiscriminants::Gnmi => Self::Gnmi,
             CredentialQueryPayloadDiscriminants::UnifiController => Self::UnifiApiKey,
             CredentialQueryPayloadDiscriminants::InstantOn => Self::InstantOnAccount,
             // `Unknown` is the daemon-side forward-compat sentinel; the server only
@@ -273,6 +287,7 @@ impl CredentialQueryPayload {
     pub fn required_scan_ports(&self) -> Vec<u16> {
         match self {
             Self::Snmp(_) => vec![161, 1161],
+            Self::Gnmi(g) => vec![g.port],
             Self::DockerProxy(d) | Self::PodmanProxy(d) => vec![d.port],
             Self::DockerSocket(_) | Self::PodmanSocket(_) => vec![],
             Self::UnifiController(u) => vec![u.port],
@@ -286,6 +301,7 @@ impl CredentialQueryPayload {
     pub fn discovery_label(&self) -> &'static str {
         match self {
             Self::Snmp(_) => "SNMP queries",
+            Self::Gnmi(_) => "gNMI queries",
             Self::DockerProxy(_) => "Docker proxy connection",
             Self::DockerSocket(_) => "Docker socket connection",
             Self::PodmanProxy(_) => "Podman proxy connection",
@@ -335,6 +351,7 @@ impl TypeMetadataProvider for CredentialQueryPayloadDiscriminants {
             Self::PodmanSocket => "Podman socket",
             Self::UnifiController => "UniFi controller",
             Self::InstantOn => "Instant On portal",
+            Self::Gnmi => "gNMI",
             // Reachable only from a warning written by a newer binary than this one.
             Self::Unknown => "unrecognised",
         }
@@ -436,12 +453,20 @@ impl CredentialQueryPayload {
                 password: i.password.resolve_to_value("password", label)?,
                 site: i.site.clone(),
             })),
+            Self::Gnmi(g) => Ok(Self::Gnmi(GnmiQueryCredential {
+                port: g.port,
+                username: g.username.clone(),
+                password: g.password.resolve_to_value("password", label)?,
+                tls: g.tls,
+                skip_verify: g.skip_verify,
+            })),
             Self::Unknown => Ok(Self::Unknown),
         }
     }
 
     pub fn banner_lines(&self) -> Vec<BannerField> {
         match self {
+            Self::Gnmi(_) => vec![],
             Self::Snmp(snmp) => snmp.banner_lines(),
             Self::DockerProxy(c) | Self::PodmanProxy(c) => c.banner_lines(),
             Self::DockerSocket(_) | Self::PodmanSocket(_) => vec![],
