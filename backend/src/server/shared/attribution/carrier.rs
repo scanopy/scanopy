@@ -232,7 +232,11 @@ impl<T: AttributeValue> Attributed<T> {
                 // Skip rather than reject.
                 while let Some(key) = map.next_key::<Cow<'_, str>>()? {
                     match key.as_ref() {
-                        k if k == T::VALUE_KEY => value = Some(map.next_value()?),
+                        // A pre-provenance daemon posts an explicit JSON `null` for a value it
+                        // doesn't have (e.g. a loopback interface's `mac_address`) where a plain
+                        // `Option<T>` field used to swallow it. `next_value::<Option<T>>` keeps
+                        // that behavior instead of failing `T`'s deserializer on `null`.
+                        k if k == T::VALUE_KEY => value = map.next_value::<Option<T>>()?,
                         k if k == T::SOURCE_KEY => source = Some(map.next_value()?),
                         _ => {
                             map.next_value::<IgnoredAny>()?;
@@ -300,6 +304,44 @@ impl<T: AttributeValue> PartialSchema for Attributed<T> {
         }
 
         RefOr::T(Schema::Object(object.build()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::server::ip_addresses::r#impl::base::MacEvidenceValue;
+    use serde::Deserialize;
+
+    #[derive(Deserialize)]
+    struct Carrier {
+        #[serde(flatten, deserialize_with = "optional")]
+        mac_address: Option<Attributed<MacEvidenceValue>>,
+    }
+
+    /// A daemon predating provenance (or any interface/address genuinely without a MAC, like
+    /// loopback) posts an explicit JSON `null` rather than omitting the key. That must read as
+    /// absent, not fail `T`'s deserializer on `null`.
+    #[test]
+    fn an_explicit_null_reads_as_absent() {
+        let carrier: Carrier = serde_json::from_str(r#"{"mac_address": null}"#).unwrap();
+        assert!(carrier.mac_address.is_none());
+    }
+
+    #[test]
+    fn a_missing_key_reads_as_absent() {
+        let carrier: Carrier = serde_json::from_str("{}").unwrap();
+        assert!(carrier.mac_address.is_none());
+    }
+
+    #[test]
+    fn a_present_value_still_deserializes() {
+        let carrier: Carrier =
+            serde_json::from_str(r#"{"mac_address": "a4:bb:6d:12:34:56"}"#).unwrap();
+        assert_eq!(
+            carrier.mac_address.unwrap().value,
+            MacEvidenceValue("a4:bb:6d:12:34:56".parse().unwrap())
+        );
     }
 }
 
