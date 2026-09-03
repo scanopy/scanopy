@@ -154,9 +154,11 @@ pub enum AttributeSource {
     DaemonSelfReport,
 
     /// A value the thing emitted about itself, over whatever transport [`ClientProbe`] names.
+    #[schema(title = "Probe")]
     Probe(ClientProbe),
     /// A value a person entered into the thing we read it from, carried back over the same
     /// transport: SNMP `sysLocation`, a name set in a controller.
+    #[schema(title = "Authored")]
     Authored(ClientProbe),
 
     /// A person asserted it in Scanopy. Nothing discovery reads displaces it.

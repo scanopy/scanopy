@@ -19304,6 +19304,7 @@
           },
           {
             "type": "object",
+            "title": "Probe",
             "description": "A value the thing emitted about itself, over whatever transport [`ClientProbe`] names.",
             "required": [
               "Probe"
@@ -19317,6 +19318,7 @@
           },
           {
             "type": "object",
+            "title": "Authored",
             "description": "A value a person entered into the thing we read it from, carried back over the same\ntransport: SNMP `sysLocation`, a name set in a controller.",
             "required": [
               "Authored"

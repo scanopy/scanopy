@@ -159,7 +159,21 @@ erDiagram
   uuid first_discovery_id FK
   uuid snapshot_id FK
   uuid virtualization_service_id FK
-  text name_source
+  text firmware_revision
+  jsonb sys_descr_source
+  jsonb sys_object_id_source
+  jsonb sys_location_source
+  jsonb sys_contact_source
+  jsonb management_url_source
+  jsonb chassis_id_source
+  jsonb sys_name_source
+  jsonb manufacturer_source
+  jsonb model_source
+  jsonb serial_number_source
+  jsonb firmware_revision_source
+  jsonb name_source
+  text software_revision
+  jsonb software_revision_source
 }
 "public.subnets" {
   uuid id
@@ -179,6 +193,7 @@ erDiagram
   uuid first_discovery_id FK
   uuid snapshot_id FK
   uuid virtualization_service_id FK
+  jsonb cidr_source
 }
 "public.dependencies" {
   uuid id
@@ -355,6 +370,7 @@ erDiagram
   uuid last_discovery_id FK
   uuid first_discovery_id FK
   uuid snapshot_id FK
+  jsonb mac_address_source
 }
 "public.ports" {
   uuid id
@@ -471,6 +487,7 @@ erDiagram
   uuid first_discovery_id FK
   uuid snapshot_id FK
   timestamp_with_time_zone neighbor_seen_at
+  jsonb mac_address_source
 }
 "public.credentials" {
   uuid id
