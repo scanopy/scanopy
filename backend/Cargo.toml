@@ -1,6 +1,6 @@
 [package]
 name = "scanopy-server"
-version = "0.17.13"
+version = "0.17.14"
 edition = "2024"
 description = "Scanopy HTTP API server"
 
