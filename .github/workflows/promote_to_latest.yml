@@ -140,6 +140,8 @@ jobs:
           cp ui/src/lib/data/scan-settings.json website/src/lib/fixtures/
           cp ui/src/lib/data/element-rule-types.json website/src/lib/fixtures/
           cp ui/src/lib/data/views.json website/src/lib/fixtures/
+          cp ui/src/lib/data/warning-codes.json website/src/lib/fixtures/
+          cp ui/src/lib/data/warning-remedies.json website/src/lib/fixtures/
           cp ui/static/openapi-public.json website/src/lib/fixtures/openapi.json
           cp ui/static/schema.mermaid website/src/lib/fixtures/schema.mermaid
           cp ui/static/schema-er.mermaid website/src/lib/fixtures/schema-er.mermaid
