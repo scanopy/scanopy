@@ -91,10 +91,6 @@ pub enum ErrorCode {
     /// Email verification required for this feature
     AuthEmailVerificationRequired,
 
-    // === License ===
-    /// Server is in read-only mode due to license issue
-    LicenseLocked,
-
     // === Generic Entity Operations ===
     /// Entity was not found
     EntityNotFound { entity: String, id: String },
@@ -262,9 +258,6 @@ impl ErrorCode {
                 "This daemon must be provisioned before it can register. Provision it in the Scanopy UI and re-run the install command."
             }
             Self::AuthDemoMode => "This action is disabled in demo mode",
-            Self::LicenseLocked => {
-                "Your license has expired or is invalid. The server is in read-only mode."
-            }
             Self::AuthPasswordLoginDisabled => "Password login is disabled",
             Self::AuthRegistrationDisabled => "User registration is disabled",
             Self::AuthOrgLimitReached => {
@@ -393,7 +386,6 @@ impl ErrorCode {
             | Self::AuthDaemonKeyNotCreated
             | Self::AuthDaemonNotProvisioned
             | Self::AuthDemoMode
-            | Self::LicenseLocked
             | Self::AuthPasswordLoginDisabled
             | Self::AuthRegistrationDisabled
             | Self::AuthOrgLimitReached

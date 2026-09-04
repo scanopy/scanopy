@@ -152,7 +152,14 @@ impl Subscriber<BillingOperation> for OrganizationService {
                     is_downgrade,
                     next_renewal_at,
                 } => {
-                    if organization.base.plan.as_ref() != Some(to) {
+                    // Same discriminant-and-config test the reconcile pass
+                    // uses, since `BillingPlan`'s `PartialEq` only compares
+                    // caps and would call two differently-featured tiers equal.
+                    if !organization
+                        .base
+                        .plan
+                        .is_some_and(|p| p.discriminant() == to.discriminant() && p == *to)
+                    {
                         organization.base.plan = Some(*to);
                         changed = true;
                     }
@@ -168,13 +175,13 @@ impl Subscriber<BillingOperation> for OrganizationService {
                         changed = true;
                     }
                 }
-                BillingOperation::LicenseReconciled { to, .. } => {
-                    // Upgrade the org's stored plan to the license entitlement
-                    // (Community → CommercialSelfHosted). Idempotent: the
-                    // reconcile pass only emits this when the plans differ, and
-                    // the guard here makes a re-emission a no-op regardless. No
-                    // renewal/downgrade bookkeeping — self-hosted plans carry no
-                    // Stripe subscription and this is an upgrade.
+                BillingOperation::PlanReconciled { to, .. } => {
+                    // Move the org's stored plan onto the plan this deployment
+                    // runs on. Idempotent: the reconcile pass only emits this
+                    // when the plans differ, and the guard here makes a
+                    // re-emission a no-op regardless. No renewal/downgrade
+                    // bookkeeping — self-hosted plans carry no Stripe
+                    // subscription.
                     if organization.base.plan.as_ref() != Some(to) {
                         organization.base.plan = Some(*to);
                         changed = true;

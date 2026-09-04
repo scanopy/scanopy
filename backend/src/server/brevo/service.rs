@@ -132,10 +132,10 @@ impl BrevoService {
             | BillingOperation::CancellationFeedbackProvided { .. }
             | BillingOperation::PaymentMethodAdded
             | BillingOperation::PaymentMethodRemoved
-            // Instance-level license reconciliation of a self-hosted org. Brevo
+            // Instance-level plan reconciliation of a self-hosted org. Brevo
             // isn't the system of record for self-hosted plan state; the org
             // subscriber owns the plan write. No CRM sync needed.
-            | BillingOperation::LicenseReconciled { .. }
+            | BillingOperation::PlanReconciled { .. }
             | BillingOperation::StripeCustomerCreated { .. } => {}
         }
         Ok(())

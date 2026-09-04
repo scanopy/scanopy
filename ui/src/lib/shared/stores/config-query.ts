@@ -11,40 +11,9 @@ export type OidcProviderMetadata = components['schemas']['OidcProviderMetadata']
 export type DeploymentType = components['schemas']['DeploymentType'];
 export type PublicServerConfig = components['schemas']['PublicConfigResponse'];
 
-export const isLicenseLocked = (cfg: PublicServerConfig) =>
-	cfg.license_status === 'expired' || cfg.license_status === 'invalid';
-
-/**
- * Soft-warning threshold: show an "approaching expiry" banner when the
- * user-visible expiry is within this many days of now. Pre-grace only —
- * once past `intended_exp` the grace banner takes over.
- */
-const APPROACHING_EXPIRY_DAYS = 7;
-
-/**
- * True when the license is valid, not yet in grace, and within
- * `APPROACHING_EXPIRY_DAYS` of its user-visible expiry. The backend does
- * not emit this flag because it's a UX threshold we want to tune without
- * a server release.
- */
-export const isLicenseApproachingExpiry = (cfg: PublicServerConfig): boolean => {
-	if (cfg.license_status !== 'valid') return false;
-	if (cfg.license_in_grace_period) return false;
-	const intended = cfg.license_intended_expiry;
-	if (!intended) return false;
-	const intendedMs = Date.parse(intended);
-	if (Number.isNaN(intendedMs)) return false;
-	const msPerDay = 1000 * 60 * 60 * 24;
-	const daysUntil = (intendedMs - Date.now()) / msPerDay;
-	return daysUntil >= 0 && daysUntil <= APPROACHING_EXPIRY_DAYS;
-};
-
 // Helper functions for deployment type checks
 export const isCloud = (cfg: PublicServerConfig) => cfg.deployment_type === 'cloud';
-export const isCommercial = (cfg: PublicServerConfig) => cfg.deployment_type === 'commercial';
-export const isCommunity = (cfg: PublicServerConfig) => cfg.deployment_type === 'community';
-export const isSelfHosted = (cfg: PublicServerConfig) =>
-	cfg.deployment_type === 'commercial' || cfg.deployment_type === 'community';
+export const isSelfHosted = (cfg: PublicServerConfig) => cfg.deployment_type === 'self_hosted';
 
 /**
  * Query hook for fetching server configuration

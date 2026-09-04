@@ -83,8 +83,6 @@ FROM debian:bookworm-slim AS runtime
 LABEL service="scanopy"
 
 # OCI Image Spec labels — https://github.com/opencontainers/image-spec/blob/main/annotations.md
-# A single server image serves both the free community edition and the
-# commercial edition; commercial mode is enabled at runtime by a license key.
 ARG OCI_IMAGE_TITLE="Scanopy Server"
 ARG OCI_IMAGE_DESCRIPTION="Scanopy server — Network diagrams that update themselves."
 ARG OCI_IMAGE_LICENSES="AGPL-3.0-only"

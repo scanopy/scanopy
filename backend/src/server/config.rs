@@ -1,7 +1,4 @@
 use crate::server::auth::r#impl::oidc::OidcProviderMetadata;
-use crate::server::license::key::LicenseKey;
-use crate::server::license::service::LicenseService;
-use crate::server::license::types::LicenseStatusDiscriminants;
 use crate::server::openapi::tags as api_tags;
 use crate::server::shared::types::api::ApiResponse;
 use crate::server::{
@@ -167,9 +164,6 @@ pub struct ServerConfig {
     #[serde(default)]
     pub external_service_allowed_ips: HashMap<String, Vec<String>>,
 
-    // License key for commercial self-hosted deployments
-    pub license_key: Option<String>,
-
     /// Admin contact email shown to users who are blocked from creating a new
     /// organization on a self-hosted instance at its org cap. Populated from
     /// `SCANOPY_SERVER_ADMIN_CONTACT_EMAIL`; a malformed value fails config load.
@@ -189,14 +183,13 @@ pub struct ServerConfig {
 #[serde(rename_all = "snake_case")]
 pub enum DeploymentType {
     Cloud,
-    Commercial,
-    Community,
+    SelfHosted,
 }
 
 impl DeploymentType {
-    /// True for deployments the customer hosts themselves (Commercial /
-    /// Community). Cloud is the only Scanopy-LLC-operated deployment, so this
-    /// is the "is Scanopy LLC the sender" signal the email footer gates on.
+    /// True for deployments the customer hosts themselves. Cloud is the only
+    /// Scanopy-LLC-operated deployment, so this is the "is Scanopy LLC the
+    /// sender" signal the email footer gates on.
     pub fn is_self_hosted(&self) -> bool {
         !matches!(self, DeploymentType::Cloud)
     }
@@ -236,31 +229,17 @@ pub struct PublicConfigResponse {
     pub posthog_key: Option<String>,
     /// Whether the client should show a cookie-consent prompt.
     pub needs_cookie_consent: bool,
-    /// How this instance is run: cloud, commercial self-hosted, or community.
+    /// How this instance is run: cloud, or self-hosted.
     pub deployment_type: DeploymentType,
-    /// Runtime state of the configured license key. `None` on deployments
-    /// that don't require one (community and cloud).
-    pub license_status: Option<LicenseStatusDiscriminants>,
-    /// Hard expiry — the drop-dead date after which the server rejects
-    /// the key. Referenced by the grace-period banner.
-    #[schema(format = "date")]
-    pub license_expiry: Option<String>,
-    /// User-visible expiry — the date displayed to end users under
-    /// normal operation. 7 days earlier than `license_expiry` for keys
-    /// issued after grace-period support landed.
-    #[schema(format = "date")]
-    pub license_intended_expiry: Option<String>,
-    /// True when the license is past `intended_exp` but not yet past
-    /// the hard `exp` — the silent grace window.
-    pub license_in_grace_period: bool,
     /// `SCANOPY_SNAPSHOT_RETENTION_DAYS_OVERRIDE` if set on this instance.
     /// Frontend uses it inside the plan-comparison view to display the
     /// effective retention for this deployment rather than the per-plan
     /// fixture default.
     pub snapshot_retention_days_override: Option<u32>,
-    /// True when this self-hosted instance has reached its licensed
-    /// organization cap (`included_orgs`), so new-org registration is blocked.
-    /// Always false on cloud (multi-tenant) and on unlimited-org plans.
+    /// True when this self-hosted instance has reached the organization cap
+    /// (`included_orgs`) of the plan it runs on, so new-org registration is
+    /// blocked. Always false on cloud (multi-tenant) and on unlimited-org plans
+    /// — which is every self-hosted deployment unless the plan is edited.
     pub org_limit_reached: bool,
     /// Admin contact email to show users blocked by `org_limit_reached`,
     /// from `SCANOPY_SERVER_ADMIN_CONTACT_EMAIL`.
@@ -297,7 +276,6 @@ impl Default for ServerConfig {
             metrics_token: None,
             brevo_api_key: None,
             external_service_allowed_ips: HashMap::new(),
-            license_key: None,
             server_admin_contact_email: None,
             snapshot_retention_days_override: None,
         }
@@ -429,28 +407,12 @@ impl ServerConfig {
     pub fn database_url(&self) -> String {
         self.database_url.to_string()
     }
-
-    /// The license key that actually applies, wrapped as a [`LicenseKey`]. On
-    /// cloud (Stripe configured) licensing is irrelevant, so a stray
-    /// `SCANOPY_LICENSE_KEY` is ignored — it must never validate, lock, or
-    /// reconfigure a cloud deployment.
-    pub fn effective_license_key(&self) -> Option<LicenseKey> {
-        if self.stripe_secret.is_some() {
-            None
-        } else {
-            self.license_key.clone().map(LicenseKey::new)
-        }
-    }
 }
 
 pub struct AppState {
     pub config: ServerConfig,
     pub services: ServiceFactory,
     pub session_store: SessionManagerLayer<PostgresStore>,
-    /// Present only when a license key applies (self-hosted commercial). A
-    /// keyless deployment (community or cloud) has no license service —
-    /// licensing is "not required".
-    pub license_service: Option<Arc<LicenseService>>,
     pub pool: PgPool,
 }
 
@@ -460,20 +422,10 @@ impl AppState {
             StorageFactory::new(&config.database_url(), config.use_secure_session_cookies).await?;
         let services = ServiceFactory::new(&storage, config.clone()).await?;
 
-        // Commercial mode is driven by the presence of a license key at
-        // runtime — no separate build. No key => free community edition, and no
-        // license service at all. `effective_license_key` returns None on cloud,
-        // so a stray key can never validate, lock, or reconfigure a cloud
-        // deployment.
-        let license_service = config
-            .effective_license_key()
-            .map(|key| Arc::new(LicenseService::new(key)));
-
         Ok(Arc::new(Self {
             config,
             services,
             session_store: storage.sessions,
-            license_service,
             pool: storage.pool,
         }))
     }
@@ -483,14 +435,10 @@ pub fn get_deployment_type(config: &ServerConfig) -> DeploymentType {
     if config.stripe_secret.is_some() {
         // Stripe configured => the Scanopy-operated cloud.
         DeploymentType::Cloud
-    } else if config.license_key.is_some() {
-        // Self-hosted with a license key => commercial edition. Validity is a
-        // separate concern (LicenseService); an invalid key still reads as a
-        // commercial deployment and locks the server via license middleware.
-        DeploymentType::Commercial
     } else {
-        // Self-hosted, no key => free community edition.
-        DeploymentType::Community
+        // Everything else is the customer's own instance, running the full
+        // edition — there is no key to check and nothing to unlock.
+        DeploymentType::SelfHosted
     }
 }
 
@@ -514,22 +462,11 @@ pub async fn get_public_config(State(state): State<Arc<AppState>>) -> impl IntoR
         .unwrap_or_default();
 
     let deployment_type = get_deployment_type(&state.config);
-    let current_license = match &state.license_service {
-        Some(svc) => Some(svc.current_status().await),
-        None => None,
-    };
-    let license_status = current_license.as_ref().map(|s| s.kind());
-    let license_expiry = current_license.as_ref().and_then(|s| s.expiry_date());
-    let license_intended_expiry = current_license
-        .as_ref()
-        .and_then(|s| s.intended_expiry_date());
-    let license_in_grace_period = current_license
-        .as_ref()
-        .is_some_and(|s| s.in_grace_period());
 
     let billing_enabled = state.config.stripe_secret.is_some();
-    // Self-hosted only: is the instance at its licensed org cap? Cloud is
-    // multi-tenant, and unlimited-org plans (Commercial/Enterprise) never cap.
+    // Self-hosted only: is the instance at the org cap of the plan it runs on?
+    // Cloud is multi-tenant, and the self-hosted plan is unlimited-org, so this
+    // only ever fires if that plan is edited to carry a cap.
     // Fails open (false) so a transient DB error doesn't block registration.
     let org_limit_reached = if billing_enabled {
         false
@@ -538,11 +475,7 @@ pub async fn get_public_config(State(state): State<Arc<AppState>>) -> impl IntoR
         use crate::server::shared::services::traits::CrudService;
         use crate::server::shared::storage::filter::StorableFilter;
 
-        let included_orgs = state
-            .config
-            .effective_license_key()
-            .map(|key| key.self_hosted_plan())
-            .unwrap_or_default()
+        let included_orgs = crate::server::billing::plans::self_hosted_plan()
             .config()
             .included_orgs;
         match included_orgs {
@@ -581,10 +514,6 @@ pub async fn get_public_config(State(state): State<Arc<AppState>>) -> impl IntoR
             needs_cookie_consent: state.config.posthog_key.is_some()
                 || state.config.brevo_api_key.is_some(),
             deployment_type,
-            license_status,
-            license_expiry,
-            license_intended_expiry,
-            license_in_grace_period,
             snapshot_retention_days_override: state.config.snapshot_retention_days_override,
             org_limit_reached,
             server_admin_contact_email: state.config.server_admin_contact_email.clone(),

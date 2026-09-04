@@ -309,15 +309,17 @@ pub enum BillingOperation {
     StripeCustomerCreated {
         customer_id: String,
     },
-    /// A self-hosted org's plan was reconciled to the entitlement implied by a
-    /// now-present commercial license (Community → CommercialSelfHosted). Emitted
-    /// by the startup reconciliation pass, not by Stripe. The org subscriber
-    /// writes the new plan; email is deliberately not sent (the email subscriber
-    /// allowlists discriminants and excludes this one) so a silent instance-level
-    /// upgrade doesn't spam org owners. Transient/event-only — never persisted to
-    /// a `BillingOperation` DB column, so it is intentionally absent from the
-    /// `DbEnumContributor` baseline (matches `StripeCustomerCreated` etc.).
-    LicenseReconciled {
+    /// A self-hosted org's plan was reconciled to the plan the deployment runs
+    /// on (`plans::self_hosted_plan`). Emitted by the startup reconciliation
+    /// pass, not by Stripe — it exists so an org left on some other plan (an
+    /// old capped tier, say) is moved onto the current one without operator
+    /// action. The org subscriber writes the new plan; email is deliberately not
+    /// sent (the email subscriber allowlists discriminants and excludes this
+    /// one) so a silent instance-level change doesn't spam org owners.
+    /// Transient/event-only — never persisted to a `BillingOperation` DB column,
+    /// so it is intentionally absent from the `DbEnumContributor` baseline
+    /// (matches `StripeCustomerCreated` etc.).
+    PlanReconciled {
         from: BillingPlan,
         to: BillingPlan,
     },
@@ -339,7 +341,7 @@ impl BillingOperation {
             | Self::Paused { plan, .. }
             | Self::PaymentFailed { plan, .. }
             | Self::PaymentRecovered { plan, .. } => Some(plan),
-            Self::PlanChanged { to, .. } | Self::LicenseReconciled { to, .. } => Some(to),
+            Self::PlanChanged { to, .. } | Self::PlanReconciled { to, .. } => Some(to),
             _ => None,
         }
     }
@@ -419,13 +421,13 @@ impl BillingOperation {
             //   `PaymentRecovered` — which fires inside `handle_invoice_paid`
             //   BEFORE `PaymentSucceeded` for the was-past-due case, so we
             //   lose nothing.
-            // `LicenseReconciled` swaps the org's plan (Community →
+            // `PlanReconciled` swaps the org's plan (an old capped tier →
             // CommercialSelfHosted) but implies no status transition — both are
             // billing-exempt self-hosted plans. Like `PlanChanged`, the plan
             // write is owned by the org subscriber's arm, not `plan_status`.
             Self::CheckoutStarted { .. }
             | Self::PlanChanged { .. }
-            | Self::LicenseReconciled { .. }
+            | Self::PlanReconciled { .. }
             | Self::TrialWillEnd { .. }
             | Self::FeatureLimitHit { .. }
             | Self::PaymentSucceeded { .. }
@@ -542,19 +544,19 @@ mod tests {
     }
 
     #[test]
-    fn license_reconciled_round_trip() {
+    fn plan_reconciled_round_trip() {
         use crate::server::billing::plans::{get_commercial_self_hosted_plan, get_community_plan};
-        round_trip(BillingOperation::LicenseReconciled {
+        round_trip(BillingOperation::PlanReconciled {
             from: get_community_plan(),
             to: get_commercial_self_hosted_plan(),
         });
     }
 
     #[test]
-    fn license_reconciled_plan_reports_target() {
+    fn plan_reconciled_plan_reports_target() {
         use crate::server::billing::plans::{get_commercial_self_hosted_plan, get_community_plan};
         use crate::server::shared::types::metadata::TypeMetadataProvider;
-        let op = BillingOperation::LicenseReconciled {
+        let op = BillingOperation::PlanReconciled {
             from: get_community_plan(),
             to: get_commercial_self_hosted_plan(),
         };

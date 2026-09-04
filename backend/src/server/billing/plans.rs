@@ -1,5 +1,4 @@
 use super::types::base::{BillingPlan, BillingRate, PlanConfig};
-use crate::server::license::types::{LicenseClaims, LicensePlan};
 
 pub const YEARLY_DISCOUNT: f32 = 0.2;
 
@@ -88,6 +87,11 @@ pub fn get_free_plan() -> BillingPlan {
     })
 }
 
+/// The self-hosted edition. There is no license key and no billing on a
+/// self-hosted deployment, so this is the only plan it ever runs on and it
+/// carries no caps: `None` everywhere means unlimited seats, networks, hosts
+/// and organizations. Its feature matrix (`BillingPlan::features`) is likewise
+/// fully enabled.
 pub fn get_community_plan() -> BillingPlan {
     BillingPlan::Community(PlanConfig {
         base_cents: 0,
@@ -96,11 +100,18 @@ pub fn get_community_plan() -> BillingPlan {
         seat_cents: None,
         network_cents: None,
         host_cents: None,
-        included_seats: Some(1),
-        included_networks: Some(1),
+        included_seats: None,
+        included_networks: None,
         included_hosts: None,
-        included_orgs: Some(1),
+        included_orgs: None,
     })
+}
+
+/// The plan every organization on a self-hosted deployment is provisioned onto
+/// and reconciled to at startup. Named separately from `get_community_plan` so
+/// call sites read as "the self-hosted plan" rather than picking a tier.
+pub fn self_hosted_plan() -> BillingPlan {
+    get_community_plan()
 }
 
 pub fn get_commercial_self_hosted_plan() -> BillingPlan {
@@ -150,17 +161,6 @@ pub fn get_self_hosted_plus_plan() -> BillingPlan {
         included_hosts: None,
         included_orgs: Some(SELF_HOSTED_PLUS_ORGS),
     })
-}
-
-/// Resolve the self-hosted commercial plan a license key entitles. Claim-absent
-/// keys (legacy and custom/grandfathered) map to the unlimited
-/// CommercialSelfHosted plan, so existing customer keys keep working unchanged.
-pub fn plan_for_license(claims: &LicenseClaims) -> BillingPlan {
-    match claims.plan {
-        Some(LicensePlan::Standard) => get_self_hosted_standard_plan(),
-        Some(LicensePlan::Plus) => get_self_hosted_plus_plan(),
-        None => get_commercial_self_hosted_plan(),
-    }
 }
 
 pub fn get_website_fixture_plans() -> Vec<BillingPlan> {

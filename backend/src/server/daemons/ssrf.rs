@@ -128,14 +128,12 @@ mod tests {
     async fn guard_is_noop_for_self_hosted() {
         // Self-hosted deployments legitimately reach LAN daemons — the guard
         // must never block them, even for a private URL.
-        for dt in [DeploymentType::Commercial, DeploymentType::Community] {
-            assert!(
-                guard_daemon_url("http://192.168.1.50:8080", dt)
-                    .await
-                    .is_ok(),
-                "guard must be a no-op for {dt:?}"
-            );
-        }
+        assert!(
+            guard_daemon_url("http://192.168.1.50:8080", DeploymentType::SelfHosted)
+                .await
+                .is_ok(),
+            "guard must be a no-op for self-hosted deployments"
+        );
     }
 
     #[tokio::test]

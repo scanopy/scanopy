@@ -57,10 +57,10 @@ pub struct AuthService {
     /// Rate limiting for verification email resend (not token storage - tokens stored in DB)
     verification_resend_cooldown: Arc<RwLock<HashMap<EmailAddress, Instant>>>,
     event_bus: Arc<EventBus>,
-    /// Plan assigned to a new org on a self-hosted deployment, resolved once at
-    /// startup from the license key (`plan_for_license`). On cloud this is
-    /// unused (new orgs get `plan = None` until Stripe checkout). Its
-    /// `included_orgs` also drives the self-hosted org-creation cap.
+    /// Plan assigned to a new org on a self-hosted deployment
+    /// (`plans::self_hosted_plan`). On cloud this is unused (new orgs get
+    /// `plan = None` until Stripe checkout). Its `included_orgs` also drives
+    /// the self-hosted org-creation cap.
     default_self_hosted_plan: BillingPlan,
 }
 
@@ -241,10 +241,11 @@ impl AuthService {
             ProvisionOrg::New(PendingSetup {
                 use_case, org_name, ..
             }) => {
-                // Self-hosted org count is capped by the licensed plan's
-                // `included_orgs` (Community/Standard = 1, Plus = 5,
-                // Commercial/Enterprise = unlimited). `None` = unlimited = no
-                // cap. Cloud (billing_enabled) stays multi-tenant regardless.
+                // Self-hosted org count is capped by the plan's
+                // `included_orgs`. `None` = unlimited = no cap, which is what
+                // the self-hosted plan carries, so this gate is inert unless
+                // that plan is edited. Cloud (billing_enabled) stays
+                // multi-tenant regardless.
                 // Gates creation only — instances already above the cap keep
                 // their orgs. Invited users take the `Existing` arm and are
                 // unaffected. `billing_enabled == false` ⇔ self-hosted.
@@ -268,7 +269,7 @@ impl AuthService {
                 let onboarding = vec![OnboardingOperationDiscriminants::OnboardingModalCompleted];
 
                 // Cloud: no plan until user selects one via billing modal → Stripe checkout → webhook
-                // Self-hosted: assign the license-resolved plan and emit a
+                // Self-hosted: assign the self-hosted plan and emit a
                 // CheckoutCompleted event below so the ledger reflects it immediately.
                 let self_hosted_plan = if billing_enabled {
                     None

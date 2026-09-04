@@ -52,7 +52,6 @@
 	"errors_invite_already_accepted": "This invite has already been accepted",
 	"errors_invite_email_mismatch": "Invite email doesn't match your account",
 	"errors_ip_address_out_of_range": "IP address '{ip}' is not within subnet '{subnet}' range",
-	"errors_license_locked": "Your license has expired or is invalid. The server is in read-only mode.",
 	"errors_networks_access_denied": "You don't have access to network '{network}'",
 	"errors_organization_has_active_subscription": "Cancel your subscription before deleting your organization",
 	"errors_rate_limit_exceeded": "Too many requests, please try again later",

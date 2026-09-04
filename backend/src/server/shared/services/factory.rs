@@ -86,16 +86,11 @@ pub struct ServiceFactory {
 
 impl ServiceFactory {
     pub async fn new(storage: &StorageFactory, config: ServerConfig) -> Result<Self> {
-        // The plan a new self-hosted org is provisioned onto, resolved once from
-        // the license key (Standard/Plus/Commercial for a valid key, else the
-        // Community default). Its `included_orgs` also bounds the org-creation
-        // cap. `effective_license_key` is None on cloud, so the key is ignored
-        // there (new orgs get no plan until Stripe checkout). Computed up front,
-        // before `config`'s fields are moved out below.
-        let default_self_hosted_plan = config
-            .effective_license_key()
-            .map(|key| key.self_hosted_plan())
-            .unwrap_or_default();
+        // The plan a new self-hosted org is provisioned onto: the single,
+        // unrestricted self-hosted plan. Its `included_orgs` also bounds the
+        // org-creation cap (unlimited by default). Unused on cloud, where new
+        // orgs get no plan until Stripe checkout.
+        let default_self_hosted_plan = crate::server::billing::plans::self_hosted_plan();
 
         let event_bus = Arc::new(EventBus::new());
 

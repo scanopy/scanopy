@@ -4,9 +4,6 @@
 	import Toast from '$lib/shared/components/feedback/Toast.svelte';
 	import EmailVerificationBanner from '$lib/shared/components/feedback/EmailVerificationBanner.svelte';
 	import DemoBanner from '$lib/shared/components/feedback/DemoBanner.svelte';
-	import LicenseLockedBanner from '$lib/shared/components/feedback/LicenseLockedBanner.svelte';
-	import LicenseGraceBanner from '$lib/shared/components/feedback/LicenseGraceBanner.svelte';
-	import LicenseExpiringBanner from '$lib/shared/components/feedback/LicenseExpiringBanner.svelte';
 	import TrialEndingBanner from '$lib/shared/components/feedback/TrialEndingBanner.svelte';
 	import NoPaymentMethodBanner from '$lib/shared/components/feedback/NoPaymentMethodBanner.svelte';
 	import TrialExpiryModal from '$lib/shared/components/feedback/TrialExpiryModal.svelte';
@@ -25,7 +22,7 @@
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
 	import BillingPlanModal from '$lib/features/billing/BillingPlanModal.svelte';
 	import DaemonPromptModal from '$lib/features/daemons/components/DaemonPromptModal.svelte';
-	import { useConfigQuery, isLicenseApproachingExpiry } from '$lib/shared/stores/config-query';
+	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import {
 		useOrganizationQuery,
 		useDaemonPromptResponseMutation
@@ -268,16 +265,6 @@
 			<PostStripeWelcomeBanner />
 			{#if organization?.plan?.type === 'Demo'}
 				<DemoBanner />
-			{/if}
-			{#if configQuery.data?.license_status === 'expired' || configQuery.data?.license_status === 'invalid'}
-				<LicenseLockedBanner status={configQuery.data.license_status} />
-			{:else if configQuery.data?.license_in_grace_period && configQuery.data?.license_intended_expiry && configQuery.data?.license_expiry}
-				<LicenseGraceBanner
-					intendedExpiry={configQuery.data.license_intended_expiry}
-					hardExpiry={configQuery.data.license_expiry}
-				/>
-			{:else if configQuery.data && isLicenseApproachingExpiry(configQuery.data) && configQuery.data.license_intended_expiry}
-				<LicenseExpiringBanner intendedExpiry={configQuery.data.license_intended_expiry} />
 			{/if}
 			<div class="p-4 [&_.sticky]:sticky [&_.sticky]:top-0">
 				<!--

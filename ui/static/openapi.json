@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Scanopy API",
-    "description": "\nNetwork topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.13\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.13\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.17.13)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **network(s)**:\n\n- You can only access entities within your organization\n- Network-level entities (hosts, services, etc.) are filtered to networks you have access to\n- Use `?network_id=<UUID>` to filter list endpoints to a specific network\n- API keys can be scoped to a subset of your accessible networks\n",
+    "description": "\nNetwork topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.14\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.14\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.17.14)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **network(s)**:\n\n- You can only access entities within your organization\n- Network-level entities (hosts, services, etc.) are filtered to networks you have access to\n- Use `?network_id=<UUID>` to filter list endpoints to a specific network\n- API keys can be scoped to a subset of your accessible networks\n",
     "license": {
       "name": "Dual (AGPL3.0, Commercial License Available)"
     },
@@ -14678,12 +14678,12 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.17.13"
+            "example": "0.17.14"
           }
         },
         "example": {
           "api_version": 1,
-          "server_version": "0.17.13"
+          "server_version": "0.17.14"
         }
       },
       "ApiResponse": {
@@ -14813,19 +14813,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-08-28T15:33:32.433053Z",
+              "created_at": "2026-09-04T12:55:43.525924208Z",
               "first_discovery_id": null,
-              "id": "e0a1c70d-a31f-4375-867b-eed564b798b3",
+              "id": "a52050b0-742d-44a1-b0b6-dd16ed383337",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-08-28T15:33:32.433053Z",
+              "last_seen_at": "2026-09-04T12:55:43.525924208Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-08-28T15:33:32.433053Z",
-              "valid_from": "2026-08-28T15:33:32.433053Z",
+              "updated_at": "2026-09-04T12:55:43.525924208Z",
+              "valid_from": "2026-09-04T12:55:43.525924208Z",
               "valid_to": null
             }
           },
@@ -15916,7 +15916,8 @@
                   "string",
                   "null"
                 ],
-                "description": "Firmware or software revision of the device."
+                "description": "ENTITY-MIB entPhysicalFirmwareRev — firmware revision of the device. Read-only, as above.",
+                "readOnly": true
               },
               "firmware_revision_source": {
                 "$ref": "#/components/schemas/AttributeSource",
@@ -16236,19 +16237,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-08-28T15:33:32.412434Z",
+                      "created_at": "2026-09-04T12:55:43.456894306Z",
                       "first_discovery_id": null,
-                      "id": "265c7546-daf8-4cba-bd0d-59b1bd493d79",
+                      "id": "2db83ced-dc1a-4e7e-b2ce-51d19860df9b",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-08-28T15:33:32.412434Z",
+                      "last_seen_at": "2026-09-04T12:55:43.456894306Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-08-28T15:33:32.412434Z",
-                      "valid_from": "2026-08-28T15:33:32.412434Z",
+                      "updated_at": "2026-09-04T12:55:43.456894306Z",
+                      "valid_from": "2026-09-04T12:55:43.456894306Z",
                       "valid_to": null
                     }
                   ],
@@ -16262,7 +16263,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Ollama",
+                  "service_definition": "HyperFile Server",
                   "source": {
                     "type": "Manual"
                   },
@@ -17129,7 +17130,6 @@
               "public_url",
               "needs_cookie_consent",
               "deployment_type",
-              "license_in_grace_period",
               "org_limit_reached",
               "server_admin_contact_email"
             ],
@@ -17140,7 +17140,7 @@
               },
               "deployment_type": {
                 "$ref": "#/components/schemas/DeploymentType",
-                "description": "How this instance is run: cloud, commercial self-hosted, or community."
+                "description": "How this instance is run: cloud, or self-hosted."
               },
               "disable_password_login": {
                 "type": "boolean",
@@ -17166,37 +17166,6 @@
                 "type": "boolean",
                 "description": "Whether a daemon runs alongside the server, so no separate install is needed to start scanning."
               },
-              "license_expiry": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "format": "date",
-                "description": "Hard expiry — the drop-dead date after which the server rejects\nthe key. Referenced by the grace-period banner."
-              },
-              "license_in_grace_period": {
-                "type": "boolean",
-                "description": "True when the license is past `intended_exp` but not yet past\nthe hard `exp` — the silent grace window."
-              },
-              "license_intended_expiry": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "format": "date",
-                "description": "User-visible expiry — the date displayed to end users under\nnormal operation. 7 days earlier than `license_expiry` for keys\nissued after grace-period support landed."
-              },
-              "license_status": {
-                "oneOf": [
-                  {
-                    "type": "null"
-                  },
-                  {
-                    "$ref": "#/components/schemas/LicenseStatusDiscriminants",
-                    "description": "Runtime state of the configured license key. `None` on deployments\nthat don't require one (community and cloud)."
-                  }
-                ]
-              },
               "needs_cookie_consent": {
                 "type": "boolean",
                 "description": "Whether the client should show a cookie-consent prompt."
@@ -17210,7 +17179,7 @@
               },
               "org_limit_reached": {
                 "type": "boolean",
-                "description": "True when this self-hosted instance has reached its licensed\norganization cap (`included_orgs`), so new-org registration is blocked.\nAlways false on cloud (multi-tenant) and on unlimited-org plans."
+                "description": "True when this self-hosted instance has reached the organization cap\n(`included_orgs`) of the plan it runs on, so new-org registration is\nblocked. Always false on cloud (multi-tenant) and on unlimited-org plans\n— which is every self-hosted deployment unless the plan is edited."
               },
               "posthog_key": {
                 "type": [
@@ -17473,19 +17442,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-08-28T15:33:32.428206Z",
+                  "created_at": "2026-09-04T12:55:43.510173976Z",
                   "first_discovery_id": null,
-                  "id": "8877b1b0-2f43-4522-bf53-8b33a7c44e27",
+                  "id": "af1b667f-7be5-45e1-94bf-d1e1afc4b66b",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-08-28T15:33:32.428206Z",
+                  "last_seen_at": "2026-09-04T12:55:43.510173976Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-08-28T15:33:32.428206Z",
-                  "valid_from": "2026-08-28T15:33:32.428206Z",
+                  "updated_at": "2026-09-04T12:55:43.510173976Z",
+                  "valid_from": "2026-09-04T12:55:43.510173976Z",
                   "valid_to": null
                 }
               ],
@@ -17499,7 +17468,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Ollama",
+              "service_definition": "HyperFile Server",
               "source": {
                 "type": "Manual"
               },
@@ -18201,7 +18170,7 @@
                 "items": {
                   "$ref": "#/components/schemas/TopologyHost"
                 },
-                "description": "Hosts included in this topology."
+                "description": "Hosts included in this topology, each carrying the title the map and the host list share."
               },
               "interfaces": {
                 "type": "array",
@@ -19336,7 +19305,7 @@
             ]
           }
         ],
-        "description": "How a discovered value reached us.\n\nEvery variant here has something that writes it. Sources with no producer are deliberately\nabsent: a rung the applier can never see is a rung nothing can be tested against, and the tier\ndecision is better made by whoever writes the reader than guessed in advance.\n\n**Do not derive `Ord`.** A derive compares the variant and then the payload, which would make\n`Probe(Docker) < Probe(Snmp)` on declaration order alone. Ordering is only ever [`Self::rank`].\n\n**Externally tagged**, which is serde's default and is left unstated for that reason. Thirty-three\nof these variants carry nothing, and a tag on a variant with no content is a key that distinguishes\nnothing — `\"Unspecified\"`, not `{\"type\":\"Unspecified\"}`, in every row of fifteen columns. The two\nthat do carry a [`ClientProbe`] keep it under their own name, `{\"Probe\":\"Snmp\"}`, which tells them\napart from each other and from every bare name."
+        "description": "How a discovered value reached us.\n\nEvery variant here has something that writes it. Sources with no producer are deliberately\nabsent: a rung the applier can never see is a rung nothing can be tested against, and the tier\ndecision is better made by whoever writes the reader than guessed in advance.\n\n**Do not derive `Ord`.** A derive compares the variant and then the payload, which would make\n`Probe(Docker) < Probe(Snmp)` on declaration order alone. Ordering is only ever [`Self::rank`].\n\n**Externally tagged**, which is serde's default and is left unstated for that reason. Thirty-three\nof these variants carry nothing, and a tag on a variant with no content is a key that distinguishes\nnothing — `\"Unspecified\"`, not `{\"type\":\"Unspecified\"}`, in every row of every column. The two\nthat do carry a [`ClientProbe`] keep it under their own name, `{\"Probe\":\"Snmp\"}`, which tells them\napart from each other and from every bare name."
       },
       "BillingPlan": {
         "oneOf": [
@@ -19675,19 +19644,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-08-28T15:33:32.412860Z",
+          "created_at": "2026-09-04T12:55:43.458497620Z",
           "first_discovery_id": null,
-          "id": "ee498b23-59fa-4e74-bd7d-8dcdebffdb45",
+          "id": "6b676dc7-a697-4227-9cbe-139f1f0794e4",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-08-28T15:33:32.412860Z",
+          "last_seen_at": "2026-09-04T12:55:43.458497620Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-08-28T15:33:32.412860Z",
-          "valid_from": "2026-08-28T15:33:32.412860Z",
+          "updated_at": "2026-09-04T12:55:43.458497620Z",
+          "valid_from": "2026-09-04T12:55:43.458497620Z",
           "valid_to": null
         }
       },
@@ -20052,7 +20021,39 @@
           "InstantOn",
           "ModbusTcp",
           "OpcUa",
-          "EtherNetIp"
+          "EtherNetIp",
+          "Sip",
+          "Ssh",
+          "Ftp",
+          "Telnet",
+          "Rtsp",
+          "Nut",
+          "ZabbixAgent",
+          "CheckMkAgent",
+          "Smb",
+          "Ldap",
+          "Kerberos",
+          "MySql",
+          "PostgreSql",
+          "MsSql",
+          "MongoDb",
+          "Redis",
+          "Cassandra",
+          "Kafka",
+          "Amqp",
+          "Mqtt",
+          "OracleTns",
+          "Rdp",
+          "Nfs",
+          "DnsTcp",
+          "DockerSwarm",
+          "Tls",
+          "Ike",
+          "OpenVpn",
+          "Zmtp",
+          "Bacula",
+          "BeszelAgent",
+          "H323"
         ]
       },
       "Color": {
@@ -20350,7 +20351,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Ollama",
+              "service_definition": "HyperFile Server",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -21956,8 +21957,7 @@
         "type": "string",
         "enum": [
           "cloud",
-          "commercial",
-          "community"
+          "self_hosted"
         ]
       },
       "DeprecationSeverity": {
@@ -23650,6 +23650,36 @@
           },
           {
             "type": "object",
+            "title": "NeighbourResolutionIncomplete",
+            "description": "Link resolution ran out of its time budget, so this scan's links are incomplete.\n\nThe pass runs on the completion request, which the daemon will abandon at its own timeout —\nso it is bounded, and stopping has to be *said* rather than logged. Without this the\ndegraded result is indistinguishable from a network that genuinely has no neighbours.",
+            "required": [
+              "budget_seconds",
+              "neighbours",
+              "code"
+            ],
+            "properties": {
+              "budget_seconds": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Seconds the pass was allowed before it was stopped.",
+                "minimum": 0
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "NeighbourResolutionIncomplete"
+                ]
+              },
+              "neighbours": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Interfaces carrying neighbour data it was working through, so the reader can tell\n\"this network is large\" from \"something is wrong\".",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "type": "object",
             "title": "WarningsTruncated",
             "description": "The run produced more warnings than the scan record holds. Emitted rather than dropping\nthe tail silently — a list that simply stops reads as though that was all of them.",
             "required": [
@@ -24969,7 +24999,7 @@
         "properties": {
           "firmware_revision": {
             "type": "string",
-            "description": "Firmware or software revision of the device as a whole"
+            "description": "ENTITY-MIB entPhysicalFirmwareRev - firmware revision of the device as a whole"
           },
           "firmware_revision_source": {
             "$ref": "#/components/schemas/AttributeSource"
@@ -25112,7 +25142,8 @@
               "string",
               "null"
             ],
-            "description": "Firmware or software revision of the device."
+            "description": "ENTITY-MIB entPhysicalFirmwareRev — firmware revision of the device. Read-only, as above.",
+            "readOnly": true
           },
           "firmware_revision_source": {
             "$ref": "#/components/schemas/AttributeSource",
@@ -25432,19 +25463,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-08-28T15:33:32.411965Z",
+                  "created_at": "2026-09-04T12:55:43.454860850Z",
                   "first_discovery_id": null,
-                  "id": "63e41ca6-c29e-4dc6-afa7-ae5614e6c925",
+                  "id": "527d1310-0437-4012-8366-a4cdb9f37825",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-08-28T15:33:32.411965Z",
+                  "last_seen_at": "2026-09-04T12:55:43.454860850Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-08-28T15:33:32.411965Z",
-                  "valid_from": "2026-08-28T15:33:32.411965Z",
+                  "updated_at": "2026-09-04T12:55:43.454860850Z",
+                  "valid_from": "2026-09-04T12:55:43.454860850Z",
                   "valid_to": null
                 }
               ],
@@ -25458,7 +25489,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Ollama",
+              "service_definition": "HyperFile Server",
               "source": {
                 "type": "Manual"
               },
@@ -26770,15 +26801,6 @@
           }
         }
       },
-      "LicenseStatusDiscriminants": {
-        "type": "string",
-        "description": "Runtime license state as reported by the public config endpoint.",
-        "enum": [
-          "valid",
-          "expired",
-          "invalid"
-        ]
-      },
       "LldpChassisId": {
         "oneOf": [
           {
@@ -27980,7 +28002,7 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.17.13"
+            "example": "0.17.14"
           }
         },
         "example": {
@@ -27991,7 +28013,7 @@
             "offset": 0,
             "total_count": 142
           },
-          "server_version": "0.17.13"
+          "server_version": "0.17.14"
         }
       },
       "PaginatedApiResponse_Credential": {
@@ -28406,7 +28428,8 @@
                     "string",
                     "null"
                   ],
-                  "description": "Firmware or software revision of the device."
+                  "description": "ENTITY-MIB entPhysicalFirmwareRev — firmware revision of the device. Read-only, as above.",
+                  "readOnly": true
                 },
                 "firmware_revision_source": {
                   "$ref": "#/components/schemas/AttributeSource",
@@ -28726,19 +28749,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-08-28T15:33:32.402556Z",
+                        "created_at": "2026-09-04T12:55:43.422127065Z",
                         "first_discovery_id": null,
-                        "id": "7ac63578-f21f-4fc9-9237-d10cd5df373a",
+                        "id": "e507aadd-abfe-4417-b3b3-b41ab03cf5bc",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-08-28T15:33:32.402556Z",
+                        "last_seen_at": "2026-09-04T12:55:43.422127065Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-08-28T15:33:32.402556Z",
-                        "valid_from": "2026-08-28T15:33:32.402556Z",
+                        "updated_at": "2026-09-04T12:55:43.422127065Z",
+                        "valid_from": "2026-09-04T12:55:43.422127065Z",
                         "valid_to": null
                       }
                     ],
@@ -28752,7 +28775,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Ollama",
+                    "service_definition": "HyperFile Server",
                     "source": {
                       "type": "Manual"
                     },
@@ -28895,19 +28918,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-08-28T15:33:32.427330Z",
+                    "created_at": "2026-09-04T12:55:43.506682805Z",
                     "first_discovery_id": null,
-                    "id": "830a2bbd-e88b-43da-853c-6f04a8268017",
+                    "id": "93774aeb-564d-49c6-83ca-cc8c6891338d",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-08-28T15:33:32.427330Z",
+                    "last_seen_at": "2026-09-04T12:55:43.506682805Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-08-28T15:33:32.427330Z",
-                    "valid_from": "2026-08-28T15:33:32.427330Z",
+                    "updated_at": "2026-09-04T12:55:43.506682805Z",
+                    "valid_from": "2026-09-04T12:55:43.506682805Z",
                     "valid_to": null
                   }
                 ],
@@ -28921,7 +28944,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Ollama",
+                "service_definition": "HyperFile Server",
                 "source": {
                   "type": "Manual"
                 },
@@ -30184,7 +30207,6 @@
           "public_url",
           "needs_cookie_consent",
           "deployment_type",
-          "license_in_grace_period",
           "org_limit_reached",
           "server_admin_contact_email"
         ],
@@ -30195,7 +30217,7 @@
           },
           "deployment_type": {
             "$ref": "#/components/schemas/DeploymentType",
-            "description": "How this instance is run: cloud, commercial self-hosted, or community."
+            "description": "How this instance is run: cloud, or self-hosted."
           },
           "disable_password_login": {
             "type": "boolean",
@@ -30221,37 +30243,6 @@
             "type": "boolean",
             "description": "Whether a daemon runs alongside the server, so no separate install is needed to start scanning."
           },
-          "license_expiry": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date",
-            "description": "Hard expiry — the drop-dead date after which the server rejects\nthe key. Referenced by the grace-period banner."
-          },
-          "license_in_grace_period": {
-            "type": "boolean",
-            "description": "True when the license is past `intended_exp` but not yet past\nthe hard `exp` — the silent grace window."
-          },
-          "license_intended_expiry": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date",
-            "description": "User-visible expiry — the date displayed to end users under\nnormal operation. 7 days earlier than `license_expiry` for keys\nissued after grace-period support landed."
-          },
-          "license_status": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/LicenseStatusDiscriminants",
-                "description": "Runtime state of the configured license key. `None` on deployments\nthat don't require one (community and cloud)."
-              }
-            ]
-          },
           "needs_cookie_consent": {
             "type": "boolean",
             "description": "Whether the client should show a cookie-consent prompt."
@@ -30265,7 +30256,7 @@
           },
           "org_limit_reached": {
             "type": "boolean",
-            "description": "True when this self-hosted instance has reached its licensed\norganization cap (`included_orgs`), so new-org registration is blocked.\nAlways false on cloud (multi-tenant) and on unlimited-org plans."
+            "description": "True when this self-hosted instance has reached the organization cap\n(`included_orgs`) of the plan it runs on, so new-org registration is\nblocked. Always false on cloud (multi-tenant) and on unlimited-org plans\n— which is every self-hosted deployment unless the plan is edited."
           },
           "posthog_key": {
             "type": [
@@ -30978,19 +30969,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-08-28T15:33:32.412765Z",
+              "created_at": "2026-09-04T12:55:43.457961967Z",
               "first_discovery_id": null,
-              "id": "e835e864-7e60-41cd-8ecd-fbb0815ad8dd",
+              "id": "1c3d0c28-906b-4e5b-98ba-af21bfe8c7a3",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-08-28T15:33:32.412765Z",
+              "last_seen_at": "2026-09-04T12:55:43.457961967Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-08-28T15:33:32.412765Z",
-              "valid_from": "2026-08-28T15:33:32.412765Z",
+              "updated_at": "2026-09-04T12:55:43.457961967Z",
+              "valid_from": "2026-09-04T12:55:43.457961967Z",
               "valid_to": null
             }
           ],
@@ -31004,7 +30995,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Ollama",
+          "service_definition": "HyperFile Server",
           "source": {
             "type": "Manual"
           },
@@ -32099,7 +32090,7 @@
             "items": {
               "$ref": "#/components/schemas/TopologyHost"
             },
-            "description": "Hosts included in this topology."
+            "description": "Hosts included in this topology, each carrying the title the map and the host list share."
           },
           "interfaces": {
             "type": "array",
@@ -32262,7 +32253,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "a594d58e-21d1-4976-8682-51f8145b775c",
+                  "id": "980a46be-b14c-401c-a86c-e0b339119883",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -32272,23 +32263,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "23f56dde-0f88-43ce-b4b8-6e7adfc5adf1",
+                  "id": "1b20645d-7c43-4943-91cd-ece48f223e8b",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "94a61dfa-beed-4c6c-859c-8fc4bc5d6d32",
+                  "id": "01cddd1b-736e-4c8b-ab1e-e0da3b2edb63",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "a3cbbd18-b707-4ab8-aa57-2a3a46c5b641",
+                  "id": "21b5e6a7-14b0-4c65-9dd5-1f0397d4cce3",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "23f56dde-0f88-43ce-b4b8-6e7adfc5adf1",
+                  "id": "1b20645d-7c43-4943-91cd-ece48f223e8b",
                   "rule": "ByHost"
                 }
               ]
@@ -32318,19 +32309,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "561db9f1-9dd8-4715-82e2-c8f8fabe0f9c",
+                "id": "6fab7cbe-6df4-4eb3-9053-9be46944359e",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "ba1bfebc-a55d-427d-80d8-56a74c28e57b",
+                "id": "12a0406b-0e95-4584-9ef1-2df23309f088",
                 "rule": "ByVLAN"
               },
               {
-                "id": "26634ff3-29ad-4cdb-b007-bcc1a9366988",
+                "id": "5292a256-ff4e-493c-9d39-43f89ad7f4c4",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "48b7996c-7936-465b-9ced-46fa555eb175",
+                "id": "559d7a6c-3141-4357-9781-1e202db3d57f",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -32348,7 +32339,7 @@
                 }
               },
               {
-                "id": "7b7f986b-8215-4dda-8333-aca1883ac2f3",
+                "id": "7815f105-0a8b-4a50-95dd-ff30bbdd1364",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -32357,15 +32348,15 @@
                 }
               },
               {
-                "id": "d3751188-02f4-474c-8633-847f678c5fdc",
+                "id": "6e44d7e8-4f27-46d1-a4c8-6acdaedb1533",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "a09dec7d-58f7-46db-bf08-8902f7334580",
+                "id": "b3524008-0e19-40e2-a3fc-0f894dd73774",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "700d8eda-8756-4e1c-85fa-84c5adf5d959",
+                "id": "253a9ca1-2f18-47eb-9040-f011b57c8893",
                 "rule": "ByStack"
               }
             ]

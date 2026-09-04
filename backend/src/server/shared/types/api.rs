@@ -443,11 +443,6 @@ impl ApiError {
         Self::coded(StatusCode::FORBIDDEN, ErrorCode::AuthDemoMode)
     }
 
-    /// Forbidden (403) - action blocked because license is locked
-    pub fn license_locked() -> Self {
-        Self::coded(StatusCode::FORBIDDEN, ErrorCode::LicenseLocked)
-    }
-
     // === Generic entity operations ===
 
     /// Forbidden (403) - access denied to entity

@@ -91,15 +91,13 @@ impl Hash for BillingPlan {
 }
 
 impl Default for BillingPlan {
-    /// The conservative fallback plan. Self-hosted org provisioning uses the
-    /// license-resolved plan (`AuthService::default_self_hosted_plan`), not this;
-    /// `default()` only backstops `Option<BillingPlan>::unwrap_or_default()` for
-    /// rows with no plan set, where Community (the least-privileged self-hosted
-    /// plan) is the safe choice.
+    /// The self-hosted plan. It backstops `Option<BillingPlan>::unwrap_or_default()`
+    /// for rows with no plan set, which on a self-hosted deployment is what every
+    /// organization runs on anyway (see `plans::self_hosted_plan`).
     fn default() -> Self {
-        use crate::server::billing::plans::get_community_plan;
+        use crate::server::billing::plans::self_hosted_plan;
 
-        get_community_plan()
+        self_hosted_plan()
     }
 }
 
@@ -234,7 +232,7 @@ pub struct BillingPlanFeatures {
     pub onboarding_call: bool,
     pub custom_sso: bool,
     pub saml: bool,
-    /// License validated fully offline (no phone-home). Deployable air-gapped.
+    /// Runs fully offline (no phone-home). Deployable air-gapped.
     pub air_gapped_deployment: bool,
     pub managed_deployment: bool,
     pub whitelabeling: bool,
@@ -590,18 +588,22 @@ impl BillingPlan {
 
     pub fn features(&self) -> BillingPlanFeatures {
         match self {
+            // The self-hosted edition: every product capability is on. The
+            // remaining `false`s are services Scanopy LLC sells (onboarding
+            // call, managed deployment, support channels), not features of the
+            // software, so a self-hosted instance can't grant them to itself.
             BillingPlan::Community { .. } => BillingPlanFeatures {
-                saml: false,
-                air_gapped_deployment: false,
+                saml: true,
+                air_gapped_deployment: true,
                 share_views: true,
                 onboarding_call: false,
-                webhooks: false,
-                audit_logs: false,
-                remove_created_with: false,
+                webhooks: true,
+                audit_logs: true,
+                remove_created_with: true,
                 api_access: true,
                 custom_sso: true,
                 managed_deployment: false,
-                whitelabeling: false,
+                whitelabeling: true,
                 live_chat_support: false,
                 embeds: true,
                 email_support: false,
@@ -610,7 +612,7 @@ impl BillingPlan {
                 png_export: true,
                 svg_export: true,
                 mermaid_export: true,
-                confluence_export: false,
+                confluence_export: true,
                 pdf_export: true,
                 html_export: true,
                 scheduled_discovery: true,

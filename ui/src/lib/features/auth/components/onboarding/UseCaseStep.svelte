@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Home, Building2, Users, Boxes } from 'lucide-svelte';
 	import { type UseCase, getUseCases } from '../../types/base';
-	import { useConfigQuery, isCommunity } from '$lib/shared/stores/config-query';
+	import { useConfigQuery, isSelfHosted } from '$lib/shared/stores/config-query';
 	import { onboardingStore } from '../../stores/onboarding';
 	import { trackEvent } from '$lib/shared/utils/analytics';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
@@ -58,8 +58,8 @@
 	function selectUseCase(useCase: UseCase) {
 		selectedUseCase = useCase;
 
-		// For Community self-hosted + Company/MSP: show license warning
-		if (configData && isCommunity(configData) && useCase !== 'homelab') {
+		// Self-hosted + Company/MSP: surface the AGPL commercial-use notice.
+		if (configData && isSelfHosted(configData) && useCase !== 'homelab') {
 			showLicenseWarning = true;
 		} else {
 			showLicenseWarning = false;

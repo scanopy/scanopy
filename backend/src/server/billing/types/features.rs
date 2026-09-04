@@ -205,7 +205,7 @@ impl TypeMetadataProvider for Feature {
                 "Connect your SAML 2.0 identity provider for enterprise single sign-on"
             }
             Feature::AirGappedDeployment => {
-                "License validated fully offline. Deploy in networks with no outbound internet access"
+                "Runs fully offline. Deploy in networks with no outbound internet access"
             }
             Feature::ManagedDeployment => {
                 "We deploy, configure, and manage Scanopy for you on a dedicated instance"

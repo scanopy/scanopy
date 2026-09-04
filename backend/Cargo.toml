@@ -25,10 +25,6 @@ name = "generate-snmp-fixtures"
 path = "src/bin/generate-snmp-fixtures.rs"
 required-features = ["snmp-sim"]
 
-[[bin]]
-name = "license"
-path = "src/bin/license.rs"
-
 [lib]
 name = "scanopy"
 path = "src/lib.rs"

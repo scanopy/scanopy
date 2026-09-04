@@ -3176,7 +3176,7 @@ export interface components {
          * @description API metadata included in all responses
          * @example {
          *       "api_version": 1,
-         *       "server_version": "0.17.13"
+         *       "server_version": "0.17.14"
          *     }
          */
         ApiMeta: {
@@ -3187,7 +3187,7 @@ export interface components {
             api_version: number;
             /**
              * @description Server version (semver)
-             * @example 0.17.13
+             * @example 0.17.14
              */
             server_version: string;
         };
@@ -3205,19 +3205,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-08-28T15:33:32.433053Z",
+             *       "created_at": "2026-09-04T12:55:43.525924208Z",
              *       "first_discovery_id": null,
-             *       "id": "e0a1c70d-a31f-4375-867b-eed564b798b3",
+             *       "id": "a52050b0-742d-44a1-b0b6-dd16ed383337",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-08-28T15:33:32.433053Z",
+             *       "last_seen_at": "2026-09-04T12:55:43.525924208Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-08-28T15:33:32.433053Z",
-             *       "valid_from": "2026-08-28T15:33:32.433053Z",
+             *       "updated_at": "2026-09-04T12:55:43.525924208Z",
+             *       "valid_from": "2026-09-04T12:55:43.525924208Z",
              *       "valid_to": null
              *     }
              */
@@ -3842,19 +3842,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-08-28T15:33:32.412434Z",
+             *               "created_at": "2026-09-04T12:55:43.456894306Z",
              *               "first_discovery_id": null,
-             *               "id": "265c7546-daf8-4cba-bd0d-59b1bd493d79",
+             *               "id": "2db83ced-dc1a-4e7e-b2ce-51d19860df9b",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-08-28T15:33:32.412434Z",
+             *               "last_seen_at": "2026-09-04T12:55:43.456894306Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-08-28T15:33:32.412434Z",
-             *               "valid_from": "2026-08-28T15:33:32.412434Z",
+             *               "updated_at": "2026-09-04T12:55:43.456894306Z",
+             *               "valid_from": "2026-09-04T12:55:43.456894306Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -3868,7 +3868,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Ollama",
+             *           "service_definition": "HyperFile Server",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4444,7 +4444,7 @@ export interface components {
             data?: {
                 /** @description Whether this deployment has billing configured. */
                 billing_enabled: boolean;
-                /** @description How this instance is run: cloud, commercial self-hosted, or community. */
+                /** @description How this instance is run: cloud, or self-hosted. */
                 deployment_type: components["schemas"]["DeploymentType"];
                 /** @description Whether email/password login is turned off, leaving OIDC as the only method. */
                 disable_password_login: boolean;
@@ -4462,33 +4462,15 @@ export interface components {
                 has_email_service: boolean;
                 /** @description Whether a daemon runs alongside the server, so no separate install is needed to start scanning. */
                 has_integrated_daemon: boolean;
-                /**
-                 * Format: date
-                 * @description Hard expiry — the drop-dead date after which the server rejects
-                 *     the key. Referenced by the grace-period banner.
-                 */
-                license_expiry?: string | null;
-                /**
-                 * @description True when the license is past `intended_exp` but not yet past
-                 *     the hard `exp` — the silent grace window.
-                 */
-                license_in_grace_period: boolean;
-                /**
-                 * Format: date
-                 * @description User-visible expiry — the date displayed to end users under
-                 *     normal operation. 7 days earlier than `license_expiry` for keys
-                 *     issued after grace-period support landed.
-                 */
-                license_intended_expiry?: string | null;
-                license_status?: null | components["schemas"]["LicenseStatusDiscriminants"];
                 /** @description Whether the client should show a cookie-consent prompt. */
                 needs_cookie_consent: boolean;
                 /** @description Identity providers available on the login screen. */
                 oidc_providers: components["schemas"]["OidcProviderMetadata"][];
                 /**
-                 * @description True when this self-hosted instance has reached its licensed
-                 *     organization cap (`included_orgs`), so new-org registration is blocked.
-                 *     Always false on cloud (multi-tenant) and on unlimited-org plans.
+                 * @description True when this self-hosted instance has reached the organization cap
+                 *     (`included_orgs`) of the plan it runs on, so new-org registration is
+                 *     blocked. Always false on cloud (multi-tenant) and on unlimited-org plans
+                 *     — which is every self-hosted deployment unless the plan is edited.
                  */
                 org_limit_reached: boolean;
                 /** @description Public analytics key, when analytics is enabled. */
@@ -4583,19 +4565,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-08-28T15:33:32.428206Z",
+             *           "created_at": "2026-09-04T12:55:43.510173976Z",
              *           "first_discovery_id": null,
-             *           "id": "8877b1b0-2f43-4522-bf53-8b33a7c44e27",
+             *           "id": "af1b667f-7be5-45e1-94bf-d1e1afc4b66b",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-08-28T15:33:32.428206Z",
+             *           "last_seen_at": "2026-09-04T12:55:43.510173976Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-08-28T15:33:32.428206Z",
-             *           "valid_from": "2026-08-28T15:33:32.428206Z",
+             *           "updated_at": "2026-09-04T12:55:43.510173976Z",
+             *           "valid_from": "2026-09-04T12:55:43.510173976Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -4609,7 +4591,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Ollama",
+             *       "service_definition": "HyperFile Server",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -5000,7 +4982,7 @@ export interface components {
                 edges?: {
                     [key: string]: components["schemas"]["Edge"][];
                 };
-                /** @description Hosts included in this topology. */
+                /** @description Hosts included in this topology, each carrying the title the map and the host list share. */
                 hosts: components["schemas"]["TopologyHost"][];
                 /** @description Interfaces included in this topology. */
                 interfaces: components["schemas"]["Interface"][];
@@ -5391,7 +5373,7 @@ export interface components {
          *
          *     **Externally tagged**, which is serde's default and is left unstated for that reason. Thirty-three
          *     of these variants carry nothing, and a tag on a variant with no content is a key that distinguishes
-         *     nothing — `"Unspecified"`, not `{"type":"Unspecified"}`, in every row of fifteen columns. The two
+         *     nothing — `"Unspecified"`, not `{"type":"Unspecified"}`, in every row of every column. The two
          *     that do carry a [`ClientProbe`] keep it under their own name, `{"Probe":"Snmp"}`, which tells them
          *     apart from each other and from every bare name.
          */
@@ -5444,19 +5426,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-08-28T15:33:32.412860Z",
+         *       "created_at": "2026-09-04T12:55:43.458497620Z",
          *       "first_discovery_id": null,
-         *       "id": "ee498b23-59fa-4e74-bd7d-8dcdebffdb45",
+         *       "id": "6b676dc7-a697-4227-9cbe-139f1f0794e4",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-08-28T15:33:32.412860Z",
+         *       "last_seen_at": "2026-09-04T12:55:43.458497620Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-08-28T15:33:32.412860Z",
-         *       "valid_from": "2026-08-28T15:33:32.412860Z",
+         *       "updated_at": "2026-09-04T12:55:43.458497620Z",
+         *       "valid_from": "2026-09-04T12:55:43.458497620Z",
          *       "valid_to": null
          *     }
          */
@@ -5690,7 +5672,7 @@ export interface components {
          *     `every_client_probe_variant_has_a_producer` is what now says so.
          * @enum {string}
          */
-        ClientProbe: "Docker" | "Gnmi" | "Podman" | "Snmp" | "UnifiController" | "InstantOn" | "ModbusTcp" | "OpcUa" | "EtherNetIp" | "Sip" | "Ssh" | "Ftp" | "Telnet" | "Rtsp" | "Nut" | "ZabbixAgent" | "CheckMkAgent" | "Smb" | "Ldap" | "Kerberos" | "MySql" | "PostgreSql" | "MsSql" | "MongoDb" | "Redis" | "Cassandra" | "Kafka" | "Amqp" | "Mqtt" | "OracleTns" | "Rdp" | "Nfs" | "DnsTcp" | "DockerSwarm" | "Tls" | "Ike" | "OpenVpn" | "Zmtp" | "Bacula";
+        ClientProbe: "Docker" | "Gnmi" | "Podman" | "Snmp" | "UnifiController" | "InstantOn" | "ModbusTcp" | "OpcUa" | "EtherNetIp" | "Sip" | "Ssh" | "Ftp" | "Telnet" | "Rtsp" | "Nut" | "ZabbixAgent" | "CheckMkAgent" | "Smb" | "Ldap" | "Kerberos" | "MySql" | "PostgreSql" | "MsSql" | "MongoDb" | "Redis" | "Cassandra" | "Kafka" | "Amqp" | "Mqtt" | "OracleTns" | "Rdp" | "Nfs" | "DnsTcp" | "DockerSwarm" | "Tls" | "Ike" | "OpenVpn" | "Zmtp" | "Bacula" | "BeszelAgent" | "H323";
         /** @enum {string} */
         Color: "Pink" | "Rose" | "Red" | "Amber" | "Orange" | "Green" | "Emerald" | "Teal" | "Cyan" | "Blue" | "Indigo" | "Purple" | "Fuchsia" | "Violet" | "Sky" | "Gray" | "Lime" | "Yellow";
         /** @enum {string} */
@@ -5770,7 +5752,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Ollama",
+         *           "service_definition": "HyperFile Server",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -6556,7 +6538,7 @@ export interface components {
         /** @enum {string} */
         DependencyType: "RequestPath" | "HubAndSpoke";
         /** @enum {string} */
-        DeploymentType: "cloud" | "commercial" | "community";
+        DeploymentType: "cloud" | "self_hosted";
         /**
          * @description Severity level for deprecation warnings
          * @enum {string}
@@ -7697,7 +7679,7 @@ export interface components {
             chassis_id_source?: components["schemas"]["AttributeSource"];
         };
         HostFirmwareRevision: {
-            /** @description Firmware or software revision of the device as a whole */
+            /** @description ENTITY-MIB entPhysicalFirmwareRev - firmware revision of the device as a whole */
             firmware_revision?: string;
             firmware_revision_source?: components["schemas"]["AttributeSource"];
         };
@@ -7831,19 +7813,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-08-28T15:33:32.411965Z",
+         *               "created_at": "2026-09-04T12:55:43.454860850Z",
          *               "first_discovery_id": null,
-         *               "id": "63e41ca6-c29e-4dc6-afa7-ae5614e6c925",
+         *               "id": "527d1310-0437-4012-8366-a4cdb9f37825",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-08-28T15:33:32.411965Z",
+         *               "last_seen_at": "2026-09-04T12:55:43.454860850Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-08-28T15:33:32.411965Z",
-         *               "valid_from": "2026-08-28T15:33:32.411965Z",
+         *               "updated_at": "2026-09-04T12:55:43.454860850Z",
+         *               "valid_from": "2026-09-04T12:55:43.454860850Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -7857,7 +7839,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Ollama",
+         *           "service_definition": "HyperFile Server",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -8638,11 +8620,6 @@ export interface components {
             interfaced_subnet_ids: string[];
         };
         /**
-         * @description Runtime license state as reported by the public config endpoint.
-         * @enum {string}
-         */
-        LicenseStatusDiscriminants: "valid" | "expired" | "invalid";
-        /**
          * @description LLDP Chassis ID subtypes per IEEE 802.1AB.
          *
          *     The chassis ID identifies the remote device. Different network equipment
@@ -9144,7 +9121,7 @@ export interface components {
          *         "offset": 0,
          *         "total_count": 142
          *       },
-         *       "server_version": "0.17.13"
+         *       "server_version": "0.17.14"
          *     }
          */
         PaginatedApiMeta: {
@@ -9157,7 +9134,7 @@ export interface components {
             pagination: components["schemas"]["PaginationMeta"];
             /**
              * @description Server version (semver)
-             * @example 0.17.13
+             * @example 0.17.14
              */
             server_version: string;
         };
@@ -10138,7 +10115,7 @@ export interface components {
         PublicConfigResponse: {
             /** @description Whether this deployment has billing configured. */
             billing_enabled: boolean;
-            /** @description How this instance is run: cloud, commercial self-hosted, or community. */
+            /** @description How this instance is run: cloud, or self-hosted. */
             deployment_type: components["schemas"]["DeploymentType"];
             /** @description Whether email/password login is turned off, leaving OIDC as the only method. */
             disable_password_login: boolean;
@@ -10156,33 +10133,15 @@ export interface components {
             has_email_service: boolean;
             /** @description Whether a daemon runs alongside the server, so no separate install is needed to start scanning. */
             has_integrated_daemon: boolean;
-            /**
-             * Format: date
-             * @description Hard expiry — the drop-dead date after which the server rejects
-             *     the key. Referenced by the grace-period banner.
-             */
-            license_expiry?: string | null;
-            /**
-             * @description True when the license is past `intended_exp` but not yet past
-             *     the hard `exp` — the silent grace window.
-             */
-            license_in_grace_period: boolean;
-            /**
-             * Format: date
-             * @description User-visible expiry — the date displayed to end users under
-             *     normal operation. 7 days earlier than `license_expiry` for keys
-             *     issued after grace-period support landed.
-             */
-            license_intended_expiry?: string | null;
-            license_status?: null | components["schemas"]["LicenseStatusDiscriminants"];
             /** @description Whether the client should show a cookie-consent prompt. */
             needs_cookie_consent: boolean;
             /** @description Identity providers available on the login screen. */
             oidc_providers: components["schemas"]["OidcProviderMetadata"][];
             /**
-             * @description True when this self-hosted instance has reached its licensed
-             *     organization cap (`included_orgs`), so new-org registration is blocked.
-             *     Always false on cloud (multi-tenant) and on unlimited-org plans.
+             * @description True when this self-hosted instance has reached the organization cap
+             *     (`included_orgs`) of the plan it runs on, so new-org registration is
+             *     blocked. Always false on cloud (multi-tenant) and on unlimited-org plans
+             *     — which is every self-hosted deployment unless the plan is edited.
              */
             org_limit_reached: boolean;
             /** @description Public analytics key, when analytics is enabled. */
@@ -10550,19 +10509,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-08-28T15:33:32.412765Z",
+         *           "created_at": "2026-09-04T12:55:43.457961967Z",
          *           "first_discovery_id": null,
-         *           "id": "e835e864-7e60-41cd-8ecd-fbb0815ad8dd",
+         *           "id": "1c3d0c28-906b-4e5b-98ba-af21bfe8c7a3",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-08-28T15:33:32.412765Z",
+         *           "last_seen_at": "2026-09-04T12:55:43.457961967Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-08-28T15:33:32.412765Z",
-         *           "valid_from": "2026-08-28T15:33:32.412765Z",
+         *           "updated_at": "2026-09-04T12:55:43.457961967Z",
+         *           "valid_from": "2026-09-04T12:55:43.457961967Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -10576,7 +10535,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Ollama",
+         *       "service_definition": "HyperFile Server",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -11154,7 +11113,7 @@ export interface components {
             edges?: {
                 [key: string]: components["schemas"]["Edge"][];
             };
-            /** @description Hosts included in this topology. */
+            /** @description Hosts included in this topology, each carrying the title the map and the host list share. */
             hosts: components["schemas"]["TopologyHost"][];
             /** @description Interfaces included in this topology. */
             interfaces: components["schemas"]["Interface"][];
@@ -11248,7 +11207,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "a594d58e-21d1-4976-8682-51f8145b775c",
+             *           "id": "980a46be-b14c-401c-a86c-e0b339119883",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -11258,23 +11217,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "23f56dde-0f88-43ce-b4b8-6e7adfc5adf1",
+             *           "id": "1b20645d-7c43-4943-91cd-ece48f223e8b",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "94a61dfa-beed-4c6c-859c-8fc4bc5d6d32",
+             *           "id": "01cddd1b-736e-4c8b-ab1e-e0da3b2edb63",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "a3cbbd18-b707-4ab8-aa57-2a3a46c5b641",
+             *           "id": "21b5e6a7-14b0-4c65-9dd5-1f0397d4cce3",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "23f56dde-0f88-43ce-b4b8-6e7adfc5adf1",
+             *           "id": "1b20645d-7c43-4943-91cd-ece48f223e8b",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -11287,19 +11246,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "561db9f1-9dd8-4715-82e2-c8f8fabe0f9c",
+             *         "id": "6fab7cbe-6df4-4eb3-9053-9be46944359e",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "ba1bfebc-a55d-427d-80d8-56a74c28e57b",
+             *         "id": "12a0406b-0e95-4584-9ef1-2df23309f088",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "26634ff3-29ad-4cdb-b007-bcc1a9366988",
+             *         "id": "5292a256-ff4e-493c-9d39-43f89ad7f4c4",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "48b7996c-7936-465b-9ced-46fa555eb175",
+             *         "id": "559d7a6c-3141-4357-9781-1e202db3d57f",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -11317,7 +11276,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "7b7f986b-8215-4dda-8333-aca1883ac2f3",
+             *         "id": "7815f105-0a8b-4a50-95dd-ff30bbdd1364",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -11326,15 +11285,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "d3751188-02f4-474c-8633-847f678c5fdc",
+             *         "id": "6e44d7e8-4f27-46d1-a4c8-6acdaedb1533",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "a09dec7d-58f7-46db-bf08-8902f7334580",
+             *         "id": "b3524008-0e19-40e2-a3fc-0f894dd73774",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "700d8eda-8756-4e1c-85fa-84c5adf5d959",
+             *         "id": "253a9ca1-2f18-47eb-9040-f011b57c8893",
              *         "rule": "ByStack"
              *       }
              *     ]
