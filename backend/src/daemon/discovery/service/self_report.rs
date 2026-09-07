@@ -2,7 +2,8 @@
 //!
 //! Runs on first discovery only. Creates the daemon host with its ip_addresses, NIC rows,
 //! Scanopy service, and bindings on bound subnets. Later scans re-report only the NIC rows,
-//! through `run_daemon_host_interfaces_phase`.
+//! through `run_daemon_host_interfaces_phase`. Both decorate the NIC rows with whatever LLDP
+//! neighbours a local lldpd can name for them.
 
 use std::net::{IpAddr, Ipv4Addr};
 
@@ -11,6 +12,7 @@ use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 use crate::daemon::discovery::service::base::DiscoveryRunner;
+use crate::daemon::discovery::service::lldpd;
 use crate::daemon::discovery::service::ops::DiscoveryOps;
 use crate::daemon::utils::base::DaemonUtils;
 use crate::server::bindings::r#impl::base::Binding;
@@ -92,7 +94,7 @@ impl DiscoveryRunner {
             .await?
             .ok_or_else(|| anyhow::anyhow!("Network ID not set"))?;
 
-        let (ip_addresses, interfaces) = self
+        let (ip_addresses, mut interfaces) = self
             .own_addresses_and_interfaces(network_id, created_subnets)
             .await?;
 
@@ -100,6 +102,8 @@ impl DiscoveryRunner {
             tracing::debug!("No local NICs to report for the daemon host");
             return Ok(());
         }
+
+        let lldp_collected = self.apply_lldpd_neighbours(&mut interfaces).await;
 
         let mut host = Host::new(self.own_host_base(network_id));
         host.id = self.host_id;
@@ -114,13 +118,57 @@ impl DiscoveryRunner {
             // pnet enumerates NICs, not an ifTable, and skips container bridges — so this is
             // never authority to delete an interface some other collector recorded.
             false,
-            // ...and it reads no neighbour data at all, so every group must be preserved.
-            InterfaceDataComplete::none(),
+            // The LLDP group is authoritative only on a scan where lldpd actually answered: a
+            // neighbour it no longer lists has genuinely gone and must be cleared. Where it did
+            // not answer, nothing here read neighbour data, so every group must be preserved.
+            InterfaceDataComplete {
+                lldp: lldp_collected,
+                ..InterfaceDataComplete::none()
+            },
             cancel,
         )
         .await?;
 
         Ok(())
+    }
+
+    /// Lay the local lldpd's neighbour table onto the daemon host's NIC rows, if there is one.
+    /// Shared by self-report and the every-scan daemon-host phase.
+    ///
+    /// Returns whether lldpd answered, which is what decides if the LLDP group is authoritative
+    /// for this submission. Absence of a socket is the everyday case and stays quiet; a socket
+    /// that exists and does not serve is logged at the level its classification warrants, and
+    /// the rows go up undecorated — exactly as they did before this read existed (GH #689).
+    async fn apply_lldpd_neighbours(&self, interfaces: &mut [Interface]) -> bool {
+        let Some(socket) = lldpd::socket_path() else {
+            return false;
+        };
+        match lldpd::read_neighbors(&socket).await {
+            Ok(neighbors) => {
+                tracing::debug!(
+                    socket = %socket.display(),
+                    neighbours = neighbors.len(),
+                    "Read the daemon host's LLDP neighbours from lldpd"
+                );
+                lldpd::apply_neighbors(interfaces, neighbors);
+                true
+            }
+            // lldpd is running but the CLI package is not installed: nothing to warn about,
+            // the operator has not asked for this.
+            Err(e @ lldpd::LldpdError::CliMissing) => {
+                tracing::debug!(error = %e, "Not reading LLDP neighbours");
+                false
+            }
+            Err(e) => {
+                tracing::warn!(
+                    socket = %socket.display(),
+                    outcome = ?e.outcome(),
+                    error = %e,
+                    "lldpd socket exists but its neighbour table could not be read"
+                );
+                false
+            }
+        }
     }
 
     /// The daemon's own `HostBase`, named the way self-report names it.
@@ -188,13 +236,17 @@ impl DiscoveryRunner {
         let binding_address = self.service.config_store.get_bind_address().await?;
         let binding_ip = IpAddr::V4(binding_address.parse::<Ipv4Addr>()?);
 
-        let (ip_addresses, interfaces) = self
+        let (ip_addresses, mut interfaces) = self
             .own_addresses_and_interfaces(network_id, created_subnets)
             .await?;
 
         if cancel.is_cancelled() {
             return Err(anyhow::anyhow!("Discovery cancelled"));
         }
+
+        // Same decoration as every later scan, so the first scan after install already draws
+        // this host's side of its uplinks rather than waiting a cycle for it.
+        let lldp_collected = self.apply_lldpd_neighbours(&mut interfaces).await;
 
         let daemon_bound_subnet_ids: Vec<Uuid> =
             if binding_address == ALL_IP_ADDRESSES_IP.to_string() {
@@ -253,8 +305,11 @@ impl DiscoveryRunner {
             // pnet enumerates NICs, not an ifTable, and skips container bridges — so this is
             // never authority to delete an interface some other collector recorded.
             false,
-            // ...and it reads no neighbour data at all, so every group must be preserved.
-            InterfaceDataComplete::none(),
+            // LLDP is authoritative only when lldpd answered; see the daemon-host phase.
+            InterfaceDataComplete {
+                lldp: lldp_collected,
+                ..InterfaceDataComplete::none()
+            },
             cancel,
         )
         .await?;
