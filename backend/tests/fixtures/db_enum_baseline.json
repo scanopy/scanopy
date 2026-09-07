@@ -1,4 +1,20 @@
 {
+  "AttributeSource": [
+    "Unspecified",
+    "OwnAddress",
+    "ServiceMatch",
+    "LldpNeighbourAddress",
+    "CipVendorId",
+    "DnsSdInstanceName",
+    "LldpChassisId",
+    "ReverseDns",
+    "ForwardingTable",
+    "ArpReply",
+    "DaemonSelfReport",
+    "Probe",
+    "Authored",
+    "Manual"
+  ],
   "AuthenticatedEntity": [
     "User",
     "Daemon",
@@ -44,6 +60,49 @@
     "SysServicesBridgeBit",
     "LldpLocalIdentity",
     "Dot1dBaseNumPorts"
+  ],
+  "ClientProbe": [
+    "Docker",
+    "Gnmi",
+    "Podman",
+    "Snmp",
+    "UnifiController",
+    "InstantOn",
+    "ModbusTcp",
+    "OpcUa",
+    "EtherNetIp",
+    "Sip",
+    "Ssh",
+    "Ftp",
+    "Telnet",
+    "Rtsp",
+    "Nut",
+    "ZabbixAgent",
+    "CheckMkAgent",
+    "Smb",
+    "Ldap",
+    "Kerberos",
+    "MySql",
+    "PostgreSql",
+    "MsSql",
+    "MongoDb",
+    "Redis",
+    "Cassandra",
+    "Kafka",
+    "Amqp",
+    "Mqtt",
+    "OracleTns",
+    "Rdp",
+    "Nfs",
+    "DnsTcp",
+    "DockerSwarm",
+    "Tls",
+    "Ike",
+    "OpenVpn",
+    "Zmtp",
+    "Bacula",
+    "BeszelAgent",
+    "H323"
   ],
   "CredentialQueryPayloadDiscriminants": [
     "Snmp",
@@ -120,7 +179,11 @@
     "LldpPortNotFound",
     "LldpPortAmbiguous",
     "WarningsTruncated",
-    "Unknown"
+    "Unknown",
+    "LldpLocalPortDroppedReadCutShort",
+    "ConnectionsWithoutProtocolResponse",
+    "ProvisionalSubnetInferred",
+    "NeighbourResolutionIncomplete"
   ],
   "EdgeStyle": [
     "Straight",
@@ -157,17 +220,8 @@
     "System",
     "Discovery",
     "DiscoveryWithMatch",
-    "Unknown"
-  ],
-  "HostNameSource": [
-    "Unnamed",
-    "Unspecified",
-    "Ip",
-    "DetectedService",
-    "Hostname",
-    "Integration",
-    "Manual",
-    "DnsSd"
+    "Unknown",
+    "Inferred"
   ],
   "HostVirtualization": [
     "Proxmox",
