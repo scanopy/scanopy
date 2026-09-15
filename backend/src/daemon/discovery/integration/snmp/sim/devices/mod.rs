@@ -32,6 +32,7 @@ pub mod switch_mcast_rcv_01;
 pub mod switch_mcast_src_01;
 pub mod switch_mute_01;
 pub mod switch_netgear_01;
+pub mod switch_ocnos_01;
 pub mod switch_offsite_01;
 pub mod switch_omada_01;
 pub mod switch_quietcol_01;
@@ -96,5 +97,7 @@ pub fn all() -> Vec<SimDevice> {
         switch_quietcol_01::device(),
         // GH #710: getbulk above ten repetitions answered with genErr.
         switch_hikvision_01::device(),
+        // GH #688: LLDP-V2-MIB only, no classic LLDP tables.
+        switch_ocnos_01::device(),
     ]
 }

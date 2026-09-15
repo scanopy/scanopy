@@ -22,7 +22,8 @@ namespace decide which interface a neighbour lands on; `switch-cisco-01` is the 
 the only device here that serves different data per SNMPv3 context; `switch-mcast-rcv-01`/
 `switch-mcast-src-01`/`switch-segment-gw-01` are the shared L2 segment from #701, where every
 uplink hears two neighbours on one port; `switch-fdb-only-01` serves a bridge forwarding database
-and no LLDP remote table at all (#709).
+and no LLDP remote table at all (#709); `switch-ocnos-01` serves its neighbours only under the
+LLDP-V2-MIB (#688).
 
 Addresses below are current as of the last `make snmp-fixtures` run — look them up here, not in the
 prose above or elsewhere in this document, which names devices by identity rather than address for
@@ -64,6 +65,7 @@ exactly this reason: the lab has been renumbered before and will be again.
 | 192.168.7.222 | switch-segment-gw-01 | v2c | community `netdefault` |
 | 192.168.7.223 | switch-quietcol-01 | v2c | community `netdefault` |
 | 192.168.7.224 | switch-hikvision-01 | v2c | community `netdefault` |
+| 192.168.7.225 | switch-ocnos-01 | v2c | community `netdefault` |
 <!-- END GENERATED DEVICE TABLE -->
 
 **LLDP local-port remap (`.238`/`.239`).** ExtremeXOS reports its `lldpRemTable` local-port index as an `lldpLocPortNum` (1..N) that is a **separate namespace from `ifIndex`** (switch-exos-01 uses ifIndex 1001+, ifName `1:N`), so neighbours only resolve if the daemon walks `lldpLocPortTable` (`1.0.8802.1.1.2.1.3.7`) and suffix-matches `lldpLocPortId` against `ifName`. Before the Issue 2 fix, switch-exos-01 yields **zero** LLDP neighbours. Extreme VOSS (switch-voss-01) reports local-port == ifIndex with `lldpLocPortId` matching `ifName` exactly, so it stays correct on both old and new code — the regression guard for the fix.
@@ -231,6 +233,25 @@ Note that `1/0/3` and `1/0/4` name the same far-end device on purpose. The pair 
 **`1/0/2` is unresolvable on purpose.** It advertises a desk phone whose MAC and sysName belong to no device in this lab, so every host tier fails and it is the environment's only source of a non-zero `host_not_found`. That counter is otherwise permanently 0 here, which left the server-side summary that names unmatched far ends with no way to fire. Endpoints exactly like this are what `host_not_found` legitimately consists of on a real network (#668).
 
 > Every far-end value above is checked against what the lab actually reports. An earlier revision used a made-up chassis MAC for switch-netgear-01 and a port (`Gi0/4`) that switch-core-01 does not have; both still appeared to work — one fell through to the sysName tier, the other stopped at a device-level edge — so the profile passed without exercising what it documents. When adding a neighbour here, confirm the far end's `hosts.chassis_id`, `if_name` and `if_index` in the scanned data first.
+
+**A device that serves only the LLDP-V2-MIB (`switch-ocnos-01`).** Modelled on a UfiSpace S9600-32X running IP Infusion OcNOS 7.0.1, from an `snmpwalk` of the real switch (#688), identifiers rewritten for the lab. Its LLDP lives under the 802.1AB-2009 root `1.3.111.2.802.1.1.13` and nowhere else: a walk of the classic `1.0.8802.1.1.2.1.4.1` finds nothing, so before the fallback the device contributed no L2 edges at all. Three things differ from every other device here, and each is what the regression test checks:
+
+```
+.1.3.111.2.802.1.1.13.1.4.1.1.5.0.10009.1.6 = INTEGER: 4      # timeMark.ifIndex.destMacIndex.remIndex
+.1.3.111.2.802.1.1.13.1.4.1.1.6.0.10009.1.6 = Hex-STRING: 00 1A 2B 40 E9 CA
+```
+
+- The remote columns sit **one above** their classic numbers (`lldpV2RemLocalIfIndex` is inserted as column 2), so chassis subtype is `.5`, chassis id `.6`, and so on.
+- The row index has **four** sub-ids, the third a row pointer into `lldpV2DestAddressTable` (always 1 here). The classic end-relative parse reads `(1, remIndex)` off that and collapses every neighbour onto port 1.
+- The local identifier is a **real ifIndex** — 3, 10009, 10073 — not an `lldpLocPortNum`, and there is no classic `lldpLocPortTable` to remap through. The daemon must place the neighbours on those interfaces directly.
+
+The interface table is the device's own shape: `eth0` at ifIndex 3 and thirty-two 100G ports `ce0`–`ce31` at 10001, 10005, … 10125, with nothing in between, so the neighbour indices are only meaningful against a table with the same gaps. Verify with:
+
+```bash
+ADDR=...   # switch-ocnos-01's address, from the device table above
+snmpwalk -v2c -c netdefault $ADDR 1.0.8802.1.1.2.1.4.1.1.4    # nothing under the classic root
+snmpwalk -v2c -c netdefault $ADDR 1.3.111.2.802.1.1.13.1.4.1.1.6   # three neighbours, four-part index
+```
 
 > **The NUL half of #668 is not reproducible here.** The same D-Links NUL-terminate their port ids (`lldpRemPortId` arrives as `31 00`, i.e. `"1\0"`), which used to fail the write of the entire host. net-snmp's `pass` protocol is line-based — the handler prints OID, type and value as three lines — so an embedded `0x00` cannot survive the transport and no data file can express it. That half is covered by unit tests instead: `value_to_string`, `LldpPortId::from_snmp`, and `PgText`/`PgJson` in `server/shared/storage/pg_value.rs`.
 
