@@ -20,6 +20,7 @@ import viewsJson from '$lib/data/views.json';
 import serviceCategoriesJson from '$lib/data/service-categories.json';
 import attributeSourcesJson from '$lib/data/attribute-sources.json';
 import clientProbesJson from '$lib/data/client-probes.json';
+import licenseKeyTypesJson from '$lib/data/license-key-types.json';
 import {
 	createColorHelper,
 	createIconComponent,
@@ -105,6 +106,7 @@ export interface MetadataRegistry {
 	service_categories: TypeMetadata[];
 	attribute_sources: TypeMetadata[];
 	client_probes: TypeMetadata[];
+	license_key_types: TypeMetadata[];
 }
 
 // Utility type to add proper typing to the metadata field
@@ -139,6 +141,7 @@ export interface BillingPlanFeatures {
 	confluence_export: boolean;
 	pdf_export: boolean;
 	html_export: boolean;
+	air_gapped_deployment: boolean;
 	snapshot_retention_days: number;
 }
 
@@ -164,6 +167,10 @@ export interface BillingPlanMetadata {
 	custom_price: string | null;
 	incremental_features: string[];
 	previous_tier: string | null;
+	/** How the plan is obtained: 'stripe' (in-app checkout), 'contact' (inquiry), 'none'. */
+	purchase_flow: string;
+	/** License tier minted for this plan; non-null only for licensed self-hosted plans. */
+	license_plan: string | null;
 }
 
 export interface ServicedDefinitionMetadata {
@@ -286,7 +293,8 @@ export const metadata = writable<MetadataRegistry>({
 	views: viewsJson,
 	service_categories: serviceCategoriesJson,
 	attribute_sources: attributeSourcesJson,
-	client_probes: clientProbesJson
+	client_probes: clientProbesJson,
+	license_key_types: licenseKeyTypesJson
 } as unknown as MetadataRegistry);
 
 // Shared color helper functions that work for both TypeMetadata and EntityMetadata
@@ -498,6 +506,17 @@ export const containerTypes = createTypeMetadataHelpers<'container_types', Conta
 	'container_types'
 );
 export const views = createTypeMetadataHelpers<'views', object>('views');
+
+export interface LicenseKeyTypeMetadata {
+	/** Oldest Scanopy server release (semver) that accepts this key type; null when every
+	 *  release does. */
+	min_server_version: string | null;
+}
+/** Keyed by the backend `LicenseKeyType` variant. */
+export const licenseKeyTypes = createTypeMetadataHelpers<
+	'license_key_types',
+	LicenseKeyTypeMetadata
+>('license_key_types');
 
 export interface ServiceCategoryMetadata {
 	application_relevant_use_cases: string[];

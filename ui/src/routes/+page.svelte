@@ -30,7 +30,7 @@
 		useOrganizationQuery,
 		useDaemonPromptResponseMutation
 	} from '$lib/features/organizations/queries';
-	import { isBillingPlanActive } from '$lib/features/organizations/types';
+	import { hasLicensedPlan, isBillingPlanActive } from '$lib/features/organizations/types';
 	import { reopenSettingsAfterBilling } from '$lib/features/billing/stores';
 	import {
 		modalState,
@@ -49,15 +49,28 @@
 	let isAuthenticated = $derived(currentUserQuery.data != null);
 	let isCheckingAuth = $derived(currentUserQuery.isPending);
 
-	// TanStack Query for daemons - used to determine default tab
-	// Only fetch when authenticated to avoid 401 errors during onboarding
-	const daemonsQuery = useDaemonsQuery({ enabled: () => isAuthenticated });
-
 	// Billing modal: show when billing is enabled but user has no active plan
 	const configQuery = useConfigQuery();
 	const organizationQuery = useOrganizationQuery();
 	let billingEnabled = $derived(configQuery.data?.billing_enabled ?? false);
 	let organization = $derived(organizationQuery.data);
+	// A licensed self-hosted plan on a billing-enabled server locks the main app:
+	// the backend rejects main-app routes, and the org only gets Settings (license
+	// keys in Billing). Switching to a cloud plan unlocks it on the next org refetch.
+	let isSelfHostedPlanLocked = $derived(
+		billingEnabled && organization != null && hasLicensedPlan(organization)
+	);
+	// Main-app data (SSE streams, daemons) waits until the lock state is known.
+	let mainAppAvailable = $derived(
+		configQuery.data != null && organization != null && !isSelfHostedPlanLocked
+	);
+
+	// TanStack Query for daemons - used to determine default tab
+	// Only fetch when authenticated to avoid 401 errors during onboarding,
+	// and not while the main app is locked (the route would 403)
+	const daemonsQuery = useDaemonsQuery({
+		enabled: () => isAuthenticated && !isSelfHostedPlanLocked
+	});
 	let needsPlanSelection = $derived(
 		billingEnabled && organization != null && !isBillingPlanActive(organization)
 	);
@@ -75,6 +88,7 @@
 	// Don't nag Viewers (they can't install daemons) and never re-show the prompt once
 	// the user has responded to it (either CTA persists an onboarding milestone).
 	let isViewer = $derived(currentUserQuery.data?.permissions === 'Viewer');
+	let isOwner = $derived(currentUserQuery.data?.permissions === 'Owner');
 	let daemonPromptResponded = $derived(
 		(organization?.onboarding?.includes('DaemonPromptDismissed') ?? false) ||
 			(organization?.onboarding?.includes('DaemonPromptAccepted') ?? false)
@@ -87,11 +101,17 @@
 	let showSettings = $state(false);
 	// Billing-blocking states force the Settings modal open on the Billing tab
 	// and make it non-dismissible. Past-due users have to update payment; paused
-	// users have to click Resume Now before they can navigate elsewhere. The
-	// inline alerts in BillingTab carry the matching urgent copy.
+	// users have to click Resume Now before they can navigate elsewhere; orgs on
+	// a licensed self-hosted plan manage their license there. The inline alerts
+	// in BillingTab carry the matching urgent copy.
 	let isBillingBlocking = $derived(
-		organization?.plan_status === 'past_due' || organization?.plan_status === 'paused'
+		organization?.plan_status === 'past_due' ||
+			organization?.plan_status === 'paused' ||
+			isSelfHostedPlanLocked
 	);
+	// Only owners can see the Billing tab; everyone else is held on Account,
+	// where SettingsModal explains that an owner has to resolve billing.
+	let billingBlockingTab = $derived(isOwner ? 'billing' : 'account');
 	let allTabs = $state<
 		Array<{
 			id: string;
@@ -143,11 +163,34 @@
 		}
 	});
 
-	// Auto-open settings modal to billing tab when past_due or paused —
-	// either state requires user action before they can resume normal use.
+	// Auto-open settings modal to billing tab when past_due, paused, or on a
+	// licensed self-hosted plan — each requires owner action before normal use.
 	$effect(() => {
 		if (isBillingBlocking && appInitialized) {
-			openModal('settings', { tab: 'billing' });
+			openModal('settings', { tab: billingBlockingTab });
+		}
+	});
+
+	// A URL deep link (initModalFromUrl) can name a main-app modal, and the org may
+	// load after it opened. While locked, only the settings and billing modals stay.
+	const LOCKED_ORG_MODALS = ['settings', 'billing-plan', 'payment-method', 'support'];
+	$effect(() => {
+		const name = $modalState.name;
+		if (isSelfHostedPlanLocked && name && !LOCKED_ORG_MODALS.includes(name)) {
+			closeModal();
+		}
+	});
+
+	// Real-time streams are main-app routes: connect only once the org is known
+	// to be unlocked, and drop them if the org moves onto a licensed plan.
+	$effect(() => {
+		if (!appInitialized) return;
+		if (mainAppAvailable) {
+			topologySSEManager.connect();
+			discoverySSEManager.connect();
+		} else {
+			topologySSEManager.disconnect();
+			discoverySSEManager.disconnect();
 		}
 	});
 
@@ -188,10 +231,7 @@
 		if (dataLoadingStarted) return;
 		dataLoadingStarted = true;
 
-		// Connect SSE managers for real-time updates
-		topologySSEManager.connect();
-		discoverySSEManager.connect();
-
+		// SSE managers connect from the mainAppAvailable effect once the org loads.
 		appInitialized = true;
 		initModalFromUrl();
 
@@ -235,8 +275,9 @@
 				bind:collapsed={sidebarCollapsed}
 				bind:allTabs
 				bind:showSettings
-				settingsInitialTab={isBillingBlocking ? 'billing' : 'account'}
+				settingsInitialTab={isBillingBlocking ? billingBlockingTab : 'account'}
 				settingsDismissible={!isBillingBlocking}
+				mainAppLocked={isSelfHostedPlanLocked}
 			/>
 		</div>
 
@@ -294,22 +335,26 @@
 					zero-height wrapper the containing block, so those spans are clipped
 					with everything else.
 				-->
-				{#each allTabs as tab (tab.id)}
-					{#if tab.subTabIds && tab.subTabDefs}
-						<div class={!tab.subTabIds.includes(activeTab) ? 'relative h-0 overflow-hidden' : ''}>
-							<ContentSubTabs
-								tabs={tab.subTabDefs}
-								bind:activeTab
-								isReadOnly={tab.isReadOnly}
-								notifications={tab.subTabNotifications}
-							/>
-						</div>
-					{:else}
-						<div class={activeTab !== tab.id ? 'relative h-0 overflow-hidden' : ''}>
-							<tab.component isReadOnly={tab.isReadOnly} isActive={activeTab === tab.id} />
-						</div>
-					{/if}
-				{/each}
+				<!-- Main-app tabs mount only once the org is known to be unlocked; their
+				     queries hit routes a licensed self-hosted org is rejected from. -->
+				{#if mainAppAvailable}
+					{#each allTabs as tab (tab.id)}
+						{#if tab.subTabIds && tab.subTabDefs}
+							<div class={!tab.subTabIds.includes(activeTab) ? 'relative h-0 overflow-hidden' : ''}>
+								<ContentSubTabs
+									tabs={tab.subTabDefs}
+									bind:activeTab
+									isReadOnly={tab.isReadOnly}
+									notifications={tab.subTabNotifications}
+								/>
+							</div>
+						{:else}
+							<div class={activeTab !== tab.id ? 'relative h-0 overflow-hidden' : ''}>
+								<tab.component isReadOnly={tab.isReadOnly} isActive={activeTab === tab.id} />
+							</div>
+						{/if}
+					{/each}
+				{/if}
 			</div>
 
 			<Toast />

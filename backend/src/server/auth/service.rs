@@ -300,6 +300,9 @@ impl AuthService {
                             brevo_company_id: None,
                             notifications: Default::default(),
                             use_case,
+                            license_paid_through: None,
+                            license_last_checked_in_at: None,
+                            license_key_version: 0,
                         }),
                         AuthenticatedEntity::System,
                     )

@@ -103,13 +103,11 @@ impl BillingService {
         };
 
         for plan in plans {
-            // Skip self-hosted/contact-only plans — they don't need Stripe products
+            // Skip free and contact-only plans — they don't need Stripe products
             if matches!(
                 plan,
                 BillingPlan::Community(_)
                     | BillingPlan::CommercialSelfHosted(_)
-                    | BillingPlan::SelfHostedStandard(_)
-                    | BillingPlan::SelfHostedPlus(_)
                     | BillingPlan::Enterprise(_)
                     | BillingPlan::Demo(_)
             ) {

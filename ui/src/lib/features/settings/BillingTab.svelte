@@ -3,6 +3,8 @@
 	import ProgressTrack from '$lib/shared/components/data/ProgressTrack.svelte';
 	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { hasLicensedPlan } from '$lib/features/organizations/types';
+	import LicenseSection from './LicenseSection.svelte';
 	import { billingPlans, planStatuses } from '$lib/shared/stores/metadata';
 	import { isMissingPaymentMethod } from '$lib/shared/utils/trial';
 	import { trackEvent, trackOncePerSession } from '$lib/shared/utils/analytics';
@@ -76,14 +78,17 @@
 		dismissible?: boolean;
 	} = $props();
 
-	// Dashboard summary aggregates host/network/seat counts into one query —
-	// reuse it here instead of re-counting users/networks/hosts independently.
-	const dashboardQuery = useDashboardQuery();
-	let planUsage = $derived(dashboardQuery.data?.plan_usage);
-
 	// TanStack Query for organization
 	const organizationQuery = useOrganizationQuery();
 	let org = $derived(organizationQuery.data);
+	// Licensed self-hosted plans get license keys here instead of usage: the
+	// dashboard route is locked for them server-side.
+	let isLicensedPlan = $derived(org != null && hasLicensedPlan(org));
+
+	// Dashboard summary aggregates host/network/seat counts into one query —
+	// reuse it here instead of re-counting users/networks/hosts independently.
+	const dashboardQuery = useDashboardQuery({ enabled: () => org != null && !isLicensedPlan });
+	let planUsage = $derived(dashboardQuery.data?.plan_usage);
 
 	// Customer portal mutation
 	const customerPortalMutation = useCustomerPortalMutation();
@@ -562,8 +567,12 @@
 					</svelte:fragment>
 				</InfoCard>
 
+				{#if isLicensedPlan}
+					<LicenseSection {org} onChangePlan={openPlanPicker} />
+				{/if}
+
 				<!-- Usage -->
-				{#if hasAnyUsageRow && org.plan}
+				{#if hasAnyUsageRow && org.plan && !isLicensedPlan}
 					<InfoCard title={common_usage()}>
 						<div class="space-y-4">
 							{#if org.plan.included_seats !== null}

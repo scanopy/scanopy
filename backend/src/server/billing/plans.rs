@@ -15,6 +15,9 @@ pub const SELF_HOSTED_PLUS_NETWORKS: u64 = 100;
 pub const SELF_HOSTED_PLUS_SEATS: u64 = 50;
 pub const SELF_HOSTED_PLUS_ORGS: u64 = 5;
 
+/// Card-less trial length for both paid self-hosted tiers.
+pub const SELF_HOSTED_TRIAL_DAYS: u32 = 30;
+
 /// Returns the canonical list of billing plans for Scanopy.
 /// This is the single source of truth for plan definitions.
 fn get_default_plans() -> Vec<BillingPlan> {
@@ -124,7 +127,7 @@ pub fn get_self_hosted_standard_plan() -> BillingPlan {
     BillingPlan::SelfHostedStandard(PlanConfig {
         base_cents: SELF_HOSTED_STANDARD_ANNUAL_CENTS,
         rate: BillingRate::Year,
-        trial_days: 0,
+        trial_days: SELF_HOSTED_TRIAL_DAYS,
         seat_cents: None,
         network_cents: None,
         host_cents: None,
@@ -141,7 +144,7 @@ pub fn get_self_hosted_plus_plan() -> BillingPlan {
     BillingPlan::SelfHostedPlus(PlanConfig {
         base_cents: SELF_HOSTED_PLUS_ANNUAL_CENTS,
         rate: BillingRate::Year,
-        trial_days: 0,
+        trial_days: SELF_HOSTED_TRIAL_DAYS,
         seat_cents: None,
         network_cents: None,
         host_cents: None,
@@ -165,9 +168,10 @@ pub fn plan_for_license(claims: &LicenseClaims) -> BillingPlan {
 
 pub fn get_website_fixture_plans() -> Vec<BillingPlan> {
     // Enterprise and Community ship as monthly + yearly rows. The two paid
-    // self-hosted tiers are annual-only (added below). CommercialSelfHosted is
-    // intentionally excluded — it is a legacy/grandfather-only plan, no longer
-    // published; it remains available via billing-plans-all.json.
+    // self-hosted tiers are annual-only and come from get_purchasable_plans.
+    // CommercialSelfHosted is intentionally excluded — it is a
+    // legacy/grandfather-only plan, no longer published; it remains available
+    // via billing-plans-all.json.
     let non_saas_plans = [get_enterprise_plan(), get_community_plan()];
 
     let non_saas_yearly = non_saas_plans.iter().map(|p| p.to_yearly(YEARLY_DISCOUNT));
@@ -177,9 +181,6 @@ pub fn get_website_fixture_plans() -> Vec<BillingPlan> {
     all_plans.extend(non_saas_yearly);
     // Add Free yearly variant (monthly Free is already in get_purchasable_plans)
     all_plans.push(get_free_plan().to_yearly(YEARLY_DISCOUNT));
-    // Paid self-hosted tiers: annual-only, constructed directly as Year rows.
-    all_plans.push(get_self_hosted_standard_plan());
-    all_plans.push(get_self_hosted_plus_plan());
 
     all_plans
 }
@@ -197,6 +198,11 @@ pub fn get_purchasable_plans() -> Vec<BillingPlan> {
 
     // Free plan (no yearly variant needed)
     all_plans.push(get_free_plan());
+
+    // Paid self-hosted tiers: annual-only, constructed directly as Year rows
+    // (so they bypass the monthly → yearly discount above).
+    all_plans.push(get_self_hosted_standard_plan());
+    all_plans.push(get_self_hosted_plus_plan());
 
     all_plans
 }

@@ -1,5 +1,6 @@
 use crate::server::auth::r#impl::oidc::OidcProviderMetadata;
 use crate::server::license::key::LicenseKey;
+use crate::server::license::mint::LicenseIssuer;
 use crate::server::license::service::LicenseService;
 use crate::server::license::types::LicenseStatusDiscriminants;
 use crate::server::openapi::tags as api_tags;
@@ -170,6 +171,11 @@ pub struct ServerConfig {
     // License key for commercial self-hosted deployments
     pub license_key: Option<String>,
 
+    /// Ed25519 PEM private key the cloud signs license keys and entitlements
+    /// with, from `SCANOPY_LICENSE_SIGNING_KEY`. Cloud only; never set on
+    /// customer servers.
+    pub license_signing_key: Option<String>,
+
     /// Admin contact email shown to users who are blocked from creating a new
     /// organization on a self-hosted instance at its org cap. Populated from
     /// `SCANOPY_SERVER_ADMIN_CONTACT_EMAIL`; a malformed value fails config load.
@@ -298,6 +304,7 @@ impl Default for ServerConfig {
             brevo_api_key: None,
             external_service_allowed_ips: HashMap::new(),
             license_key: None,
+            license_signing_key: None,
             server_admin_contact_email: None,
             snapshot_retention_days_override: None,
         }
@@ -451,6 +458,9 @@ pub struct AppState {
     /// keyless deployment (community or cloud) has no license service —
     /// licensing is "not required".
     pub license_service: Option<Arc<LicenseService>>,
+    /// Present only when `license_signing_key` is configured (the cloud).
+    /// Mints license keys and entitlements for orgs on self-hosted plans.
+    pub license_issuer: Option<Arc<LicenseIssuer>>,
     pub pool: PgPool,
 }
 
@@ -469,11 +479,21 @@ impl AppState {
             .effective_license_key()
             .map(|key| Arc::new(LicenseService::new(key)));
 
+        // A configured but unparseable signing key fails startup rather than
+        // silently serving 500s from every mint.
+        let license_issuer = config
+            .license_signing_key
+            .as_deref()
+            .map(LicenseIssuer::from_pem)
+            .transpose()?
+            .map(Arc::new);
+
         Ok(Arc::new(Self {
             config,
             services,
             session_store: storage.sessions,
             license_service,
+            license_issuer,
             pool: storage.pool,
         }))
     }

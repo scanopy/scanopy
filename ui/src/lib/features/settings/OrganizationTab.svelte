@@ -15,6 +15,7 @@
 	import { queryClient } from '$lib/api/query-client';
 	import ConfirmationDialog from '$lib/shared/components/feedback/ConfirmationDialog.svelte';
 	import { billingPlans } from '$lib/shared/stores/metadata';
+	import { hasLicensedPlan } from '$lib/features/organizations/types';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { formatTimestamp } from '$lib/shared/utils/formatting';
@@ -102,6 +103,8 @@
 	let org = $derived(organizationQuery.data);
 	let isOwner = $derived(currentUser?.permissions === 'Owner');
 	let isDemoOrg = $derived(billingPlans.getMetadata(org?.plan?.type ?? null).is_demo === true);
+	// Reset and populate-demo hit main-app routes, which stay locked on a licensed plan.
+	let isLicensedPlan = $derived(org != null && hasLicensedPlan(org));
 
 	// TanStack Form
 	const form = createForm(() => ({
@@ -261,36 +264,38 @@
 					</InfoCard>
 
 					{#if isOwner}
-						<!-- Reset Organization Data (available to all org owners) -->
-						<InfoCard>
-							<div class="flex items-center justify-between">
-								<div>
-									<p class="text-primary text-sm font-medium">{settings_org_resetData()}</p>
-									<p class="text-secondary text-xs">
-										{settings_org_resetDataHelp()}
-									</p>
-								</div>
-								<button onclick={handleReset} disabled={resetting} class="btn-danger">
-									{resetting ? common_loading() : common_reset()}
-								</button>
-							</div>
-						</InfoCard>
-
-						{#if isDemoOrg}
-							<!-- Populate Demo Data (only for Demo orgs) -->
+						{#if !isLicensedPlan}
+							<!-- Reset Organization Data (available to all org owners) -->
 							<InfoCard>
 								<div class="flex items-center justify-between">
 									<div>
-										<p class="text-primary text-sm font-medium">{settings_org_populateDemo()}</p>
+										<p class="text-primary text-sm font-medium">{settings_org_resetData()}</p>
 										<p class="text-secondary text-xs">
-											{settings_org_populateDemoHelp()}
+											{settings_org_resetDataHelp()}
 										</p>
 									</div>
-									<button onclick={handlePopulateDemo} disabled={populating} class="btn-primary">
-										{populating ? common_populating() : common_populate()}
+									<button onclick={handleReset} disabled={resetting} class="btn-danger">
+										{resetting ? common_loading() : common_reset()}
 									</button>
 								</div>
 							</InfoCard>
+
+							{#if isDemoOrg}
+								<!-- Populate Demo Data (only for Demo orgs) -->
+								<InfoCard>
+									<div class="flex items-center justify-between">
+										<div>
+											<p class="text-primary text-sm font-medium">{settings_org_populateDemo()}</p>
+											<p class="text-secondary text-xs">
+												{settings_org_populateDemoHelp()}
+											</p>
+										</div>
+										<button onclick={handlePopulateDemo} disabled={populating} class="btn-primary">
+											{populating ? common_populating() : common_populate()}
+										</button>
+									</div>
+								</InfoCard>
+							{/if}
 						{/if}
 
 						<!-- Delete Organization -->

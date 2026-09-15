@@ -14,6 +14,7 @@ use crate::server::credentials::r#impl::types::CredentialTypeDiscriminants;
 use crate::server::dependencies::r#impl::types::DependencyType;
 use crate::server::discovery::r#impl::scan_settings::ScanSettings;
 use crate::server::discovery::r#impl::types::DiscoveryType;
+use crate::server::license::types::LicenseKeyType;
 use crate::server::ports::r#impl::base::PortType;
 use crate::server::services::definitions::ServiceDefinitionRegistry;
 use crate::server::services::r#impl::categories::ServiceCategory;
@@ -61,6 +62,10 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
 
     let feature_metadata: Vec<TypeMetadata> = Feature::iter().map(|f| f.to_metadata()).collect();
     write_fixture(&feature_metadata, output_dir, "features.json");
+
+    let license_key_types: Vec<TypeMetadata> =
+        LicenseKeyType::iter().map(|t| t.to_metadata()).collect();
+    write_fixture(&license_key_types, output_dir, "license-key-types.json");
 
     let all_services = ServiceDefinitionRegistry::all_service_definitions();
     let service_defs: Vec<TypeMetadata> = all_services.iter().map(|t| t.to_metadata()).collect();

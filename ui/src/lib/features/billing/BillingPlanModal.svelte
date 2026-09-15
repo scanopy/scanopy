@@ -2,7 +2,7 @@
 	import billingPlansJson from '$lib/data/billing-plans.json';
 	import featuresJson from '$lib/data/features.json';
 	import BillingPlanForm from '$lib/features/billing/BillingPlanForm.svelte';
-	import type { BillingPlan } from '$lib/features/billing/types';
+	import type { BillingPlan, PlanPickerHosting } from '$lib/features/billing/types';
 	import {
 		createStaticHelpers,
 		type BillingPlanMetadata,
@@ -15,7 +15,7 @@
 	import PlanInquiryModal from '$lib/features/billing/PlanInquiryModal.svelte';
 	import { trackEvent } from '$lib/shared/utils/analytics';
 	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
-	import { isBillingPlanActive } from '$lib/features/organizations/types';
+	import { hasLicensedPlan, isBillingPlanActive } from '$lib/features/organizations/types';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
 	import { upgradeContext } from '$lib/features/billing/stores';
 
@@ -38,11 +38,13 @@
 	);
 	const featureHelpers = createStaticHelpers<FeatureMetadata>('features', featuresJson);
 
-	// Transform fixture data to BillingPlan[] format (exclude self-hosted plans, deduplicate)
+	// Transform fixture data to BillingPlan[] format (exclude plans that can't be obtained
+	// in-app, deduplicate). purchase_flow 'none' is Community (GitHub) and Free; Free
+	// stays because it activates in-app.
 	const plansData = (() => {
 		const seen = new Set<string>(); // eslint-disable-line svelte/prefer-svelte-reactivity
 		return billingPlansJson
-			.filter((p) => p.metadata.hosting !== 'SelfHosted')
+			.filter((p) => p.metadata.purchase_flow !== 'none' || p.metadata.is_free)
 			.filter((p) => !(p.metadata.is_free && p.metadata.rate === 'Year'))
 			.map(
 				(p) =>
@@ -55,6 +57,8 @@
 						network_cents: p.metadata.network_cents,
 						included_seats: p.metadata.included_seats,
 						included_networks: p.metadata.included_networks,
+						// Checkout validates the full plan config; self-hosted plans carry an org cap.
+						included_orgs: p.metadata.included_orgs ?? null,
 						host_cents: p.metadata.host_cents ?? null,
 						included_hosts: p.metadata.included_hosts ?? null
 					}) as BillingPlan
@@ -94,6 +98,14 @@
 	// Determine initial filter based on use case from onboarding
 	let useCase = $derived($onboardingStore.useCase);
 
+	// Open on Self-Hosted for orgs already on a licensed plan, else the tab requested at
+	// signup (`?hosting=self_hosted`), else Cloud.
+	let initialHosting = $derived<PlanPickerHosting>(
+		organization && hasLicensedPlan(organization)
+			? 'self_hosted'
+			: ($onboardingStore.hosting ?? 'cloud')
+	);
+
 	// Recommended plan based on use case
 	let baseRecommendedPlan = $derived<string | null>(
 		useCase === 'internal_it' ? 'Team' : useCase === 'msp' ? 'Business' : null
@@ -125,6 +137,10 @@
 		// don't flash a blank tab for the in-app cases. A misprediction (e.g. a
 		// returning customer who already used their trial) falls back to a same-tab
 		// redirect below. (No 'noopener' — that makes window.open return null.)
+		// Poll until the selected plan lands, not just any active plan: a switch between
+		// two active plans (e.g. self-hosted ↔ cloud) would otherwise stop on the old one.
+		const planApplied = (org: Parameters<typeof isBillingPlanActive>[0]) =>
+			isBillingPlanActive(org) && org.plan?.type === plan.type;
 		const expectsStripeCheckout =
 			plan.base_cents > 0 && plan.trial_days === 0 && !(organization?.has_payment_method ?? false);
 		const stripeTab = expectsStripeCheckout ? window.open('', '_blank') : null;
@@ -146,7 +162,7 @@
 					stripeTab.location.href = result;
 					upgradeContext.set(null);
 					onClose();
-					void waitForOrgUpdate(isBillingPlanActive);
+					void waitForOrgUpdate(planApplied);
 				} else {
 					// No pre-opened tab (redirect not anticipated, or popup blocked) —
 					// fall back to a same-tab redirect.
@@ -162,7 +178,7 @@
 				// still null, so NoPaymentMethodBanner never appears until a reload). Poll
 				// like the Stripe-redirect branch until the org reflects the activation.
 				// Closing first is safe: onClose sets planJustActivated, suppressing reopen.
-				void waitForOrgUpdate(isBillingPlanActive);
+				void waitForOrgUpdate(planApplied);
 			}
 		} catch {
 			// Error handled by mutation
@@ -204,6 +220,8 @@
 				: plansData.filter((p) => billingPlanHelpers.getMetadata(p.type)?.is_free !== true)}
 			{billingPlanHelpers}
 			{featureHelpers}
+			showHosting={true}
+			{initialHosting}
 			onPlanSelect={handlePlanSelect}
 			onPlanInquiry={handlePlanInquiry}
 			{recommendedPlan}

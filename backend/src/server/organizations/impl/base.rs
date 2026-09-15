@@ -167,6 +167,21 @@ pub struct OrganizationBase {
     /// Use case selection (homelab, company, msp, other)
     #[serde(default, deserialize_with = "deserialize_use_case_from_option")]
     pub use_case: UseCase,
+    /// When the org's self-hosted license is paid through: the trial end
+    /// during a self-hosted trial, then the end of the last paid invoice's
+    /// service period. License keys and entitlements expire 7 days later.
+    #[serde(default)]
+    #[schema(read_only)]
+    pub license_paid_through: Option<DateTime<Utc>>,
+    /// Last time a self-hosted server fetched an entitlement with this org's
+    /// online license key.
+    #[serde(default)]
+    #[schema(read_only)]
+    pub license_last_checked_in_at: Option<DateTime<Utc>>,
+    /// Version embedded in online license keys - internal, not exposed to API.
+    /// Regenerating the key increments it, retiring every earlier key.
+    #[serde(default, skip_serializing)]
+    pub license_key_version: i64,
 }
 
 #[derive(

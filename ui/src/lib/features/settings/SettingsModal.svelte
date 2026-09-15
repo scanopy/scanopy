@@ -12,13 +12,15 @@
 	import BillingTab from './BillingTab.svelte';
 	import EmailTab from './EmailTab.svelte';
 	import SystemTab from './SystemTab.svelte';
+	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 	import {
 		common_account,
 		common_billing,
 		common_email,
 		common_organization,
 		common_settings,
-		common_system
+		common_system,
+		settings_billing_ownerMustResolve
 	} from '$lib/paraglide/messages';
 
 	let {
@@ -126,6 +128,13 @@
 	{/snippet}
 
 	<div class="flex h-[calc(100vh-16rem)] flex-col">
+		{#if !dismissible && !isOwner}
+			<!-- Billing-blocked org (past_due / paused / self-hosted plan): only an
+			     owner can see the Billing tab, so tell everyone else why they're held here. -->
+			<div class="shrink-0 px-6 pt-6">
+				<InlineWarning title="" body={settings_billing_ownerMustResolve()} />
+			</div>
+		{/if}
 		{#if activeTab === 'account'}
 			<AccountTab bind:subView={accountSubView} onClose={handleClose} {dismissible} />
 		{:else if activeTab === 'email'}

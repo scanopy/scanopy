@@ -38,6 +38,7 @@
 		billing_trialContinues,
 		billing_viewOnGithub,
 		billing_yourCurrentPlan,
+		common_cloud,
 		common_comingSoon,
 		common_custom,
 		common_feature,
@@ -54,7 +55,7 @@
 	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import ToggleGroup from './ToggleGroup.svelte';
-	import type { BillingPlan } from './types';
+	import type { BillingPlan, PlanPickerHosting } from './types';
 	import type { BillingPlanMetadata, FeatureMetadata } from '$lib/shared/stores/metadata';
 	import type { ColorStyle, Color } from '$lib/shared/utils/styling';
 	import type { IconComponent } from '$lib/shared/utils/types';
@@ -87,7 +88,10 @@
 		onPlanSelect: (plan: BillingPlan) => void | Promise<void>;
 		onPlanInquiry?: (plan: BillingPlan) => void | Promise<void>;
 		showGithubStars?: boolean;
+		/** Show the Cloud / Self-Hosted toggle (and hosting tags on each card). */
 		showHosting?: boolean;
+		/** Tab the Cloud / Self-Hosted toggle opens on (only used with showHosting). */
+		initialHosting?: PlanPickerHosting;
 		class?: string;
 		recommendedPlan?: string | null;
 		/** If true, user is a returning customer and should not see trial offers */
@@ -108,6 +112,7 @@
 		showGithubStars = true,
 		class: className = '',
 		showHosting = false,
+		initialHosting = 'cloud',
 		recommendedPlan = null,
 		isReturningCustomer = false,
 		isCurrentlyTrialing = false,
@@ -135,19 +140,43 @@
 		{ value: 'yearly', label: common_yearly(), badge: '-20%' }
 	];
 
+	// The modal content remounts on every open, so the initial tab is read once.
+	let hostingFilter = $state<PlanPickerHosting>(untrack(() => initialHosting));
+
+	const hostingOptions = [
+		{ value: 'cloud', label: common_cloud() },
+		{ value: 'self_hosted', label: billing_selfHosted() }
+	];
+
+	// Self-hosted is annual-only (the paid tiers ship yearly), so the Self-Hosted tab
+	// always renders yearly rows and locks the Monthly/Yearly toggle to Yearly (disabled).
+	let selfHostedActive = $derived(showHosting && hostingFilter === 'self_hosted');
+
 	let filteredPlans = $derived.by(() => {
 		let result = plans;
+		if (showHosting) {
+			result = result.filter((plan) => {
+				const hosting = getHosting(plan);
+				// Enterprise is hosting-agnostic ('Any') and tops both ladders.
+				if (hostingFilter === 'cloud') return hosting === 'Cloud' || hosting === 'Any';
+				return hosting === 'SelfHosted' || hosting === 'Any';
+			});
+		}
+		const period: BillingPeriod = selfHostedActive ? 'yearly' : billingPeriod;
 		result = result.filter((plan) => {
 			// Free plan is always monthly (no yearly variant)
 			if (billingPlanHelpers.getMetadata(plan.type)?.is_free) return true;
-			if (billingPeriod === 'monthly') return plan.rate === 'Month';
-			if (billingPeriod === 'yearly') return plan.rate === 'Year';
+			if (period === 'monthly') return plan.rate === 'Month';
+			if (period === 'yearly') return plan.rate === 'Year';
 			return true;
 		});
-		// Sort Free plan first
+		// Sort Free first and Enterprise last (Enterprise is hosting-agnostic and tops
+		// both ladders); everything else keeps fixture order (stable sort).
 		result = [...result].sort((a, b) => {
 			if (billingPlanHelpers.getMetadata(a.type)?.is_free) return -1;
 			if (billingPlanHelpers.getMetadata(b.type)?.is_free) return 1;
+			if (billingPlanHelpers.getMetadata(a.type)?.is_enterprise) return 1;
+			if (billingPlanHelpers.getMetadata(b.type)?.is_enterprise) return -1;
 			return 0;
 		});
 		return result;
@@ -322,10 +351,6 @@
 		return billingPlanHelpers.getMetadata(plan.type)?.hosting ?? '';
 	}
 
-	function isCommercial(plan: BillingPlan): boolean {
-		return billingPlanHelpers.getMetadata(plan.type)?.is_commercial === true;
-	}
-
 	function hasTrial(plan: BillingPlan): boolean {
 		return !isReturningCustomer && plan.trial_days > 0;
 	}
@@ -349,6 +374,8 @@
 
 	function getHostingLabel(hosting: string): string {
 		switch (hosting) {
+			case 'Cloud':
+				return common_cloud();
 			case 'SelfHosted':
 				return billing_selfHosted();
 			case 'Any':
@@ -414,15 +441,24 @@
 
 <div class="flex min-h-0 flex-1 flex-col {className}">
 	<!-- Header with Toggles (fixed, does not scroll) -->
-	<div class="flex shrink-0 flex-wrap items-center justify-center px-4 py-1 lg:px-6">
+	<div class="flex shrink-0 flex-wrap items-center justify-center gap-2 px-4 py-1 lg:px-6">
 		{#if showGithubStars}
 			<!-- <GithubStars /> -->
 		{/if}
 
+		{#if showHosting}
+			<ToggleGroup
+				options={hostingOptions}
+				selected={hostingFilter}
+				onchange={(value) => (hostingFilter = value as PlanPickerHosting)}
+			/>
+		{/if}
+
 		<ToggleGroup
 			options={billingPeriodOptions}
-			selected={billingPeriod}
+			selected={selfHostedActive ? 'yearly' : billingPeriod}
 			onchange={(value) => (billingPeriod = value as BillingPeriod)}
+			disabled={selfHostedActive}
 		/>
 	</div>
 
@@ -437,7 +473,6 @@
 					{@const isRecommended = recommendedPlan === plan.type}
 					{@const description = billingPlanHelpers.getDescription(plan.type)}
 					{@const hosting = getHosting(plan)}
-					{@const commercial = isCommercial(plan)}
 					{@const trial = hasTrial(plan)}
 					{@const enterprise = isEnterprise(plan)}
 					{@const metadata = billingPlanHelpers.getMetadata(plan.type)}
@@ -546,7 +581,8 @@
 								>
 									{billing_requestInformation()}
 								</button>
-							{:else if hosting === 'Cloud'}
+							{:else if metadata?.purchase_flow === 'stripe' || metadata?.is_free}
+								<!-- Free has purchase_flow 'none' but activates in-app like a Stripe plan -->
 								{#if plan.type === currentPlanType}
 									<InlineInfo title="" body={billing_yourCurrentPlan()} />
 								{:else}
@@ -570,8 +606,8 @@
 										</div>
 									{/if}
 								{/if}
-							{:else if hosting === 'SelfHosted'}
-								{#if commercial && onPlanInquiry}
+							{:else if metadata?.purchase_flow === 'contact'}
+								{#if onPlanInquiry}
 									<button
 										type="button"
 										onclick={() => onPlanInquiry(plan)}
@@ -580,25 +616,16 @@
 									>
 										{billing_contactUs()}
 									</button>
-								{:else}
-									<a
-										href="https://github.com/scanopy/scanopy"
-										target="_blank"
-										rel="noopener noreferrer"
-										class="btn-secondary inline-block w-full text-center text-sm"
-									>
-										{billing_viewOnGithub()}
-									</a>
 								{/if}
-							{:else if commercial && onPlanInquiry}
-								<button
-									type="button"
-									onclick={() => onPlanInquiry(plan)}
-									disabled={loadingPlanType !== null}
-									class="btn-primary w-full text-sm"
+							{:else}
+								<a
+									href="https://github.com/scanopy/scanopy"
+									target="_blank"
+									rel="noopener noreferrer"
+									class="btn-secondary inline-block w-full text-center text-sm"
 								>
-									Contact Us
-								</button>
+									{billing_viewOnGithub()}
+								</a>
 							{/if}
 						</div>
 

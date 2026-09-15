@@ -134,8 +134,12 @@ impl Subscriber<BillingOperation> for EmailService {
                 }
                 BillingOperation::PaymentSucceeded { invoice } => {
                     // Send usage summary for recurring billing cycles only
-                    // (skip the initial subscription invoice and one-off charges).
-                    if invoice.billing_reason == BillingReason::SubscriptionCycle {
+                    // (skip the initial subscription invoice and one-off
+                    // charges). Self-hosted license renewals have no cloud
+                    // usage to summarize.
+                    if invoice.billing_reason == BillingReason::SubscriptionCycle
+                        && invoice.license_paid_through().is_none()
+                    {
                         self.send_usage_summary_email(org_owner, &invoice).await?;
                     }
                 }

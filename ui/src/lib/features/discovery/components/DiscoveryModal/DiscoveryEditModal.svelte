@@ -25,6 +25,7 @@
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
 	import { pushError, pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
+	import { copyViaSelection } from '$lib/shared/utils/clipboard';
 	import type { Daemon } from '$lib/features/daemons/types/base';
 	import type { Host } from '$lib/features/hosts/types/base';
 	import { useSubnetsQuery } from '$lib/features/subnets/queries';
@@ -161,23 +162,6 @@
 			pushSuccess(common_copied());
 		} catch (error) {
 			pushWarning(common_failedToCopy({ error: String(error) }));
-		}
-	}
-
-	/** The pre-`navigator.clipboard` path, for a page served over plain HTTP. */
-	function copyViaSelection(text: string): boolean {
-		const field = document.createElement('textarea');
-		field.value = text;
-		// Off-screen rather than `display: none`: a hidden field cannot be selected.
-		field.setAttribute('readonly', '');
-		field.style.position = 'fixed';
-		field.style.opacity = '0';
-		document.body.appendChild(field);
-		try {
-			field.select();
-			return document.execCommand('copy');
-		} finally {
-			field.remove();
 		}
 	}
 

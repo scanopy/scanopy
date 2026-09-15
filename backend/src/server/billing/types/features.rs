@@ -38,6 +38,11 @@ pub enum Feature {
     DiscoveryIntegrations,
     CsvExport,
     SnapshotRetentionDays,
+    InvoiceBilling,
+    QuarterlyBilling,
+    ProcurementDocuments,
+    DeploymentAssistance,
+    SignedSla,
 }
 
 impl HasId for Feature {
@@ -69,6 +74,11 @@ impl HasId for Feature {
             Feature::DiscoveryIntegrations => "discovery_integrations",
             Feature::CsvExport => "csv_export",
             Feature::SnapshotRetentionDays => "snapshot_retention_days",
+            Feature::InvoiceBilling => "invoice_billing",
+            Feature::QuarterlyBilling => "quarterly_billing",
+            Feature::ProcurementDocuments => "procurement_documents",
+            Feature::DeploymentAssistance => "deployment_assistance",
+            Feature::SignedSla => "signed_sla",
         }
     }
 }
@@ -77,7 +87,12 @@ impl Feature {
     pub fn is_coming_soon(&self) -> bool {
         matches!(
             self,
-            Feature::Webhooks | Feature::AuditLogs | Feature::Saml | Feature::Whitelabeling
+            Feature::Webhooks
+                | Feature::AuditLogs
+                | Feature::Saml
+                | Feature::Whitelabeling
+                | Feature::InvoiceBilling
+                | Feature::QuarterlyBilling
         )
     }
 
@@ -136,14 +151,19 @@ impl TypeMetadataProvider for Feature {
             Feature::EmailSupport
             | Feature::LiveChatSupport
             | Feature::PrioritySupport
-            | Feature::OnboardingCall => "Support",
+            | Feature::OnboardingCall
+            | Feature::DeploymentAssistance
+            | Feature::SignedSla => "Support",
 
             Feature::CustomSso
             | Feature::Saml
             | Feature::AirGappedDeployment
             | Feature::ManagedDeployment
             | Feature::Whitelabeling
-            | Feature::AuditLogs => "Enterprise",
+            | Feature::AuditLogs
+            | Feature::InvoiceBilling
+            | Feature::QuarterlyBilling
+            | Feature::ProcurementDocuments => "Enterprise",
 
             Feature::CsvExport | Feature::Webhooks | Feature::ApiAccess => "Integrations",
         }
@@ -177,6 +197,11 @@ impl TypeMetadataProvider for Feature {
             Feature::DiscoveryIntegrations => "Discovery Integrations",
             Feature::CsvExport => "CSV Export",
             Feature::SnapshotRetentionDays => "Snapshot Retention",
+            Feature::InvoiceBilling => "Invoice & PO Billing",
+            Feature::QuarterlyBilling => "Quarterly Payments",
+            Feature::ProcurementDocuments => "Procurement Documents",
+            Feature::DeploymentAssistance => "Deployment Assistance",
+            Feature::SignedSla => "Signed SLA",
         }
     }
 
@@ -237,6 +262,17 @@ impl TypeMetadataProvider for Feature {
             }
             Feature::SnapshotRetentionDays => {
                 "How long captured snapshots are retained before automatic deletion"
+            }
+            Feature::InvoiceBilling => "Pay by invoice against a purchase order instead of by card",
+            Feature::QuarterlyBilling => "Pay the annual license in four quarterly installments",
+            Feature::ProcurementDocuments => {
+                "W-9, NDAA Section 889 attestation, and a data processing agreement for vendor onboarding"
+            }
+            Feature::DeploymentAssistance => {
+                "The Scanopy team helps you deploy and configure your self-hosted server"
+            }
+            Feature::SignedSla => {
+                "A signed service level agreement with committed support response times"
             }
         }
     }

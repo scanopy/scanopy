@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
 
+use crate::server::shared::types::metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider};
+use crate::server::shared::types::{Color, Icon};
+
 /// The self-hosted commercial tier a license key entitles. Absent on legacy
 /// keys (issued before tiers existed) and on custom/grandfathered keys — those
 /// resolve to `CommercialSelfHosted` via `plan_for_license`. Enterprise deals
@@ -10,6 +13,72 @@ use serde::{Deserialize, Serialize};
 pub enum LicensePlan {
     Standard,
     Plus,
+}
+
+/// The two keys an org owner can copy for a self-hosted server.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    Hash,
+    strum_macros::EnumIter,
+    strum_macros::IntoStaticStr,
+    utoipa::ToSchema,
+)]
+pub enum LicenseKeyType {
+    /// Permanent credential; the server fetches its entitlement from the cloud.
+    Online,
+    /// Self-contained key with its expiry baked in, for air-gapped servers.
+    Offline,
+}
+
+/// First Scanopy server release that accepts online license keys.
+pub const ONLINE_KEY_MIN_SERVER_VERSION: &str = "0.17.16";
+
+impl LicenseKeyType {
+    /// Oldest server release that accepts this key type. `None` means every
+    /// release that validates license keys accepts it.
+    pub fn min_server_version(&self) -> Option<&'static str> {
+        match self {
+            LicenseKeyType::Online => Some(ONLINE_KEY_MIN_SERVER_VERSION),
+            LicenseKeyType::Offline => None,
+        }
+    }
+}
+
+impl HasId for LicenseKeyType {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+impl EntityMetadataProvider for LicenseKeyType {
+    fn color(&self) -> Color {
+        Color::Blue
+    }
+
+    fn icon(&self) -> Icon {
+        Icon::Key
+    }
+}
+
+impl TypeMetadataProvider for LicenseKeyType {
+    fn name(&self) -> &'static str {
+        match self {
+            LicenseKeyType::Online => "Online key",
+            LicenseKeyType::Offline => "Offline key",
+        }
+    }
+
+    fn metadata(&self) -> serde_json::Value {
+        serde_json::json!({
+            "min_server_version": self.min_server_version(),
+        })
+    }
 }
 
 /// JWT claims encoded in a Scanopy license key.

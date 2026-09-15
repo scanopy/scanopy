@@ -23,6 +23,7 @@
 	"errors_billing_host_limit_reached": "You've reached the limit of {limit} hosts on your current plan. Upgrade for unlimited hosts.",
 	"errors_billing_payment_required": "Payment is required to continue",
 	"errors_billing_plan_limit_reached": "You've reached the limit of {limit} {resource} on your current plan",
+	"errors_billing_self_hosted_plan_locked": "This organization is on a self-hosted plan. Manage its license in Settings, or switch to a cloud plan to use the app.",
 	"errors_billing_setup_incomplete": "Billing setup is incomplete",
 	"errors_billing_subscription_required": "Active subscription required",
 	"errors_daemon_identity_mismatch": "Cannot send updates for a different daemon",

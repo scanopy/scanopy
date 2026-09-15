@@ -1,6 +1,7 @@
-use jsonwebtoken::{Algorithm, Validation};
+use jsonwebtoken::{Algorithm, DecodingKey, Validation};
 
 use super::crypto::decoding_key;
+use super::mint::{LICENSE_ISSUER, LICENSE_SUBJECT};
 use super::types::{LicenseClaims, LicenseStatus};
 use crate::server::billing::plans::plan_for_license;
 use crate::server::billing::types::base::BillingPlan;
@@ -32,14 +33,19 @@ impl LicenseKey {
     /// classify it. Expiry is checked manually to distinguish `Expired` (valid
     /// signature, past `exp`) from `Invalid` (bad signature/malformed).
     pub fn validate(&self) -> LicenseStatus {
+        self.validate_with(&decoding_key())
+    }
+
+    /// [`LicenseKey::validate`] against a caller-supplied verification key.
+    pub fn validate_with(&self, key: &DecodingKey) -> LicenseStatus {
         let mut validation = Validation::new(Algorithm::EdDSA);
-        validation.set_issuer(&["scanopy"]);
+        validation.set_issuer(&[LICENSE_ISSUER]);
         validation.set_required_spec_claims(&["sub", "iss", "iat", "exp"]);
         validation.validate_exp = false;
 
-        match jsonwebtoken::decode::<LicenseClaims>(&self.0, &decoding_key(), &validation) {
+        match jsonwebtoken::decode::<LicenseClaims>(&self.0, key, &validation) {
             Ok(token_data) => {
-                if token_data.claims.sub != "scanopy-license" {
+                if token_data.claims.sub != LICENSE_SUBJECT {
                     return LicenseStatus::Invalid("Invalid subject claim".to_string());
                 }
 

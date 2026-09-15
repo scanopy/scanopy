@@ -85,7 +85,8 @@
 		>([]),
 		showSettings = $bindable(false),
 		settingsInitialTab = 'account',
-		settingsDismissible = true
+		settingsDismissible = true,
+		mainAppLocked = false
 	}: {
 		activeTab?: string;
 		collapsed?: boolean;
@@ -101,6 +102,10 @@
 		showSettings?: boolean;
 		settingsInitialTab?: string;
 		settingsDismissible?: boolean;
+		/** Org is locked out of the main app (licensed self-hosted plan on a
+		 * billing-enabled server): hide main navigation and skip main-app queries,
+		 * which the backend rejects. Settings and Support stay available. */
+		mainAppLocked?: boolean;
 	} = $props();
 
 	// TanStack Query for current user and organization
@@ -149,17 +154,17 @@
 	});
 
 	// Active discovery sessions — used for notification dot on sidebar and sub-tabs
-	const activeSessionsQuery = useActiveSessionsQuery(() => true);
+	const activeSessionsQuery = useActiveSessionsQuery(() => !mainAppLocked);
 	let hasActiveSessions = $derived((activeSessionsQuery.data?.length ?? 0) > 0);
 
 	// Daemons needing a version update (Deprecated/Unsupported) — drives the
 	// Daemons nav dot, same mechanism as the Scans active-sessions dot.
-	const daemonsQuery = useDaemonsQuery();
+	const daemonsQuery = useDaemonsQuery({ enabled: () => !mainAppLocked });
 	let hasDaemonUpdatesNeeded = $derived((daemonsQuery.data ?? []).some(hasSunsetWarning));
 
 	// Legacy (unbound) daemon API keys. When none exist, the Daemon API Keys sub-tab is
 	// hidden and the Daemons group collapses to a single-entity page (no tab strip).
-	const daemonApiKeysQuery = useApiKeysQuery();
+	const daemonApiKeysQuery = useApiKeysQuery({ enabled: () => !mainAppLocked });
 	let hasLegacyDaemonKeys = $derived(
 		(daemonApiKeysQuery.data ?? []).some((k) => k.daemon_id == null)
 	);
@@ -561,7 +566,7 @@
 		});
 	}
 
-	let mainNavItems = $derived(filterByPosition(navConfig, 'main'));
+	let mainNavItems = $derived(mainAppLocked ? [] : filterByPosition(navConfig, 'main'));
 	let bottomNavItems = $derived(filterByPosition(navConfig, 'bottom'));
 
 	onMount(() => {
@@ -703,7 +708,7 @@
 		</div>
 
 		<!-- Sidebar Checklist -->
-		{#if showSidebarChecklist}
+		{#if showSidebarChecklist && !mainAppLocked}
 			<SidebarChecklist
 				{onboarding}
 				{collapsed}

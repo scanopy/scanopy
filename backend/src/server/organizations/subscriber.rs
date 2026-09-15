@@ -71,6 +71,12 @@ impl Subscriber<BillingOperation> for OrganizationService {
     async fn handle(&self, events: Vec<Event<BillingOperation>>) -> Result<(), Error> {
         for event in events {
             let org_id = event.scope.organization_id;
+            // This handler writes the whole row back, so hold the org lock
+            // across the read and the write: otherwise a license key
+            // regeneration landing in between would be reverted, reviving
+            // the retired key. Dropping the guard (the `continue` below)
+            // releases it.
+            let lock = self.lock_organization(org_id).await?;
             let Some(mut organization) = self.get_by_id(&org_id).await? else {
                 continue;
             };
@@ -116,6 +122,13 @@ impl Subscriber<BillingOperation> for OrganizationService {
                         organization.base.next_renewal_at = Some(*trial_end);
                         changed = true;
                     }
+                    // A self-hosted trial licenses its servers until trial end.
+                    if plan.license_plan().is_some()
+                        && organization.base.license_paid_through != Some(*trial_end)
+                    {
+                        organization.base.license_paid_through = Some(*trial_end);
+                        changed = true;
+                    }
                 }
                 BillingOperation::TrialExtended { new_trial_end, .. } => {
                     if !organization.base.trial_extended_used {
@@ -129,6 +142,15 @@ impl Subscriber<BillingOperation> for OrganizationService {
                     // Trial extension shifts the trialing sub's period_end too.
                     if organization.base.next_renewal_at != Some(*new_trial_end) {
                         organization.base.next_renewal_at = Some(*new_trial_end);
+                        changed = true;
+                    }
+                    if organization
+                        .base
+                        .plan
+                        .is_some_and(|plan| plan.license_plan().is_some())
+                        && organization.base.license_paid_through != Some(*new_trial_end)
+                    {
+                        organization.base.license_paid_through = Some(*new_trial_end);
                         changed = true;
                     }
                 }
@@ -165,6 +187,27 @@ impl Subscriber<BillingOperation> for OrganizationService {
                         && organization.base.next_renewal_at != *next_renewal_at
                     {
                         organization.base.next_renewal_at = *next_renewal_at;
+                        changed = true;
+                    }
+                    // Switching onto a self-hosted plan mid-trial keeps the
+                    // trial running and raises no invoice, so the trial end
+                    // is the only paid-through date there will be until the
+                    // first invoice is paid.
+                    if to.license_plan().is_some()
+                        && organization.base.plan_status
+                            == Some(crate::server::billing::types::base::PlanStatus::Trialing)
+                        && let Some(trial_end) = organization.base.trial_end_date
+                        && organization.base.license_paid_through != Some(trial_end)
+                    {
+                        organization.base.license_paid_through = Some(trial_end);
+                        changed = true;
+                    }
+                }
+                BillingOperation::PaymentSucceeded { invoice } => {
+                    if let Some(paid_through) = invoice.license_paid_through()
+                        && organization.base.license_paid_through != Some(paid_through)
+                    {
+                        organization.base.license_paid_through = Some(paid_through);
                         changed = true;
                     }
                 }
@@ -288,6 +331,7 @@ impl Subscriber<BillingOperation> for OrganizationService {
                 self.update(&mut organization, AuthenticatedEntity::System)
                     .await?;
             }
+            lock.release().await?;
         }
 
         Ok(())
