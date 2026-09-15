@@ -17319,6 +17319,25 @@
                 "format": "date",
                 "description": "User-visible expiry — the date displayed to end users under\nnormal operation. 7 days earlier than `license_expiry` for keys\nissued after grace-period support landed."
               },
+              "license_key_type": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/LicenseKeyTypeDiscriminants",
+                    "description": "Whether the configured key is an offline key or an online key that\nfetches its entitlement from Scanopy Cloud. `None` when no key applies."
+                  }
+                ]
+              },
+              "license_last_checked": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time",
+                "description": "When Scanopy Cloud last answered this instance's license check-in.\nOnline keys only."
+              },
               "license_status": {
                 "oneOf": [
                   {
@@ -27296,13 +27315,22 @@
           }
         }
       },
+      "LicenseKeyTypeDiscriminants": {
+        "type": "string",
+        "description": "Kind of license key configured, as reported by the public config endpoint.",
+        "enum": [
+          "offline",
+          "online"
+        ]
+      },
       "LicenseStatusDiscriminants": {
         "type": "string",
         "description": "Runtime license state as reported by the public config endpoint.",
         "enum": [
           "valid",
           "expired",
-          "invalid"
+          "invalid",
+          "pending"
         ]
       },
       "LldpChassisId": {
@@ -30809,6 +30837,25 @@
             ],
             "format": "date",
             "description": "User-visible expiry — the date displayed to end users under\nnormal operation. 7 days earlier than `license_expiry` for keys\nissued after grace-period support landed."
+          },
+          "license_key_type": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LicenseKeyTypeDiscriminants",
+                "description": "Whether the configured key is an offline key or an online key that\nfetches its entitlement from Scanopy Cloud. `None` when no key applies."
+              }
+            ]
+          },
+          "license_last_checked": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When Scanopy Cloud last answered this instance's license check-in.\nOnline keys only."
           },
           "license_status": {
             "oneOf": [

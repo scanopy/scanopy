@@ -1,5 +1,6 @@
 use crate::server::auth::r#impl::base::ProvisionOrg;
 use crate::server::billing::types::base::BillingPlan;
+use crate::server::license::service::{LicenseService, self_hosted_plan};
 use crate::server::shared::events::types::{
     EmailAndToken, OnboardingOperation, OnboardingOperationDiscriminants,
 };
@@ -57,11 +58,12 @@ pub struct AuthService {
     /// Rate limiting for verification email resend (not token storage - tokens stored in DB)
     verification_resend_cooldown: Arc<RwLock<HashMap<EmailAddress, Instant>>>,
     event_bus: Arc<EventBus>,
-    /// Plan assigned to a new org on a self-hosted deployment, resolved once at
-    /// startup from the license key (`plan_for_license`). On cloud this is
-    /// unused (new orgs get `plan = None` until Stripe checkout). Its
+    /// Resolves the plan assigned to a new org on a self-hosted deployment,
+    /// read at org creation so an online key's swapped entitlement applies
+    /// without a restart. `None` when no license key applies. On cloud the
+    /// plan is unused (new orgs get `plan = None` until Stripe checkout). Its
     /// `included_orgs` also drives the self-hosted org-creation cap.
-    default_self_hosted_plan: BillingPlan,
+    license_service: Option<Arc<LicenseService>>,
 }
 
 impl AuthService {
@@ -83,7 +85,7 @@ impl AuthService {
         organization_service: Arc<OrganizationService>,
         has_email_service: bool,
         event_bus: Arc<EventBus>,
-        default_self_hosted_plan: BillingPlan,
+        license_service: Option<Arc<LicenseService>>,
     ) -> Self {
         Self {
             user_service,
@@ -92,7 +94,7 @@ impl AuthService {
             login_attempts: Arc::new(RwLock::new(HashMap::new())),
             verification_resend_cooldown: Arc::new(RwLock::new(HashMap::new())),
             event_bus,
-            default_self_hosted_plan,
+            license_service,
         }
     }
 
@@ -248,9 +250,8 @@ impl AuthService {
                 // Gates creation only — instances already above the cap keep
                 // their orgs. Invited users take the `Existing` arm and are
                 // unaffected. `billing_enabled == false` ⇔ self-hosted.
-                if !billing_enabled
-                    && let Some(max_orgs) = self.default_self_hosted_plan.config().included_orgs
-                {
+                let license_plan = self_hosted_plan(self.license_service.as_deref()).await;
+                if !billing_enabled && let Some(max_orgs) = license_plan.config().included_orgs {
                     let org_count = self
                         .organization_service
                         .get_all(StorableFilter::<Organization>::new())
@@ -273,7 +274,7 @@ impl AuthService {
                 let self_hosted_plan = if billing_enabled {
                     None
                 } else {
-                    Some(self.default_self_hosted_plan)
+                    Some(license_plan)
                 };
                 new_org_plan = self_hosted_plan;
 
@@ -298,6 +299,8 @@ impl AuthService {
                             discount_save_offer_active_until: None,
                             next_renewal_at: None,
                             brevo_company_id: None,
+                            license_entitlement: None,
+                            license_checked_at: None,
                             notifications: Default::default(),
                             use_case,
                         }),

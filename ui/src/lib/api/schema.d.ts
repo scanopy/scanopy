@@ -4540,6 +4540,13 @@ export interface components {
                  *     issued after grace-period support landed.
                  */
                 license_intended_expiry?: string | null;
+                license_key_type?: null | components["schemas"]["LicenseKeyTypeDiscriminants"];
+                /**
+                 * Format: date-time
+                 * @description When Scanopy Cloud last answered this instance's license check-in.
+                 *     Online keys only.
+                 */
+                license_last_checked?: string | null;
                 license_status?: null | components["schemas"]["LicenseStatusDiscriminants"];
                 /** @description Whether the client should show a cookie-consent prompt. */
                 needs_cookie_consent: boolean;
@@ -8907,10 +8914,15 @@ export interface components {
             interfaced_subnet_ids: string[];
         };
         /**
+         * @description Kind of license key configured, as reported by the public config endpoint.
+         * @enum {string}
+         */
+        LicenseKeyTypeDiscriminants: "offline" | "online";
+        /**
          * @description Runtime license state as reported by the public config endpoint.
          * @enum {string}
          */
-        LicenseStatusDiscriminants: "valid" | "expired" | "invalid";
+        LicenseStatusDiscriminants: "valid" | "expired" | "invalid" | "pending";
         /**
          * @description LLDP Chassis ID subtypes per IEEE 802.1AB.
          *
@@ -10450,6 +10462,13 @@ export interface components {
              *     issued after grace-period support landed.
              */
             license_intended_expiry?: string | null;
+            license_key_type?: null | components["schemas"]["LicenseKeyTypeDiscriminants"];
+            /**
+             * Format: date-time
+             * @description When Scanopy Cloud last answered this instance's license check-in.
+             *     Online keys only.
+             */
+            license_last_checked?: string | null;
             license_status?: null | components["schemas"]["LicenseStatusDiscriminants"];
             /** @description Whether the client should show a cookie-consent prompt. */
             needs_cookie_consent: boolean;

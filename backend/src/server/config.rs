@@ -1,6 +1,6 @@
 use crate::server::auth::r#impl::oidc::OidcProviderMetadata;
-use crate::server::license::key::LicenseKey;
-use crate::server::license::service::LicenseService;
+use crate::server::license::key::{LicenseKey, LicenseKeyTypeDiscriminants};
+use crate::server::license::service::{LicenseService, self_hosted_plan};
 use crate::server::license::types::LicenseStatusDiscriminants;
 use crate::server::openapi::tags as api_tags;
 use crate::server::shared::types::api::ApiResponse;
@@ -12,6 +12,7 @@ use axum::Json;
 use axum::extract::State;
 use axum::http::header::CACHE_CONTROL;
 use axum::response::IntoResponse;
+use chrono::{DateTime, Utc};
 use clap::Parser;
 use email_address::EmailAddress;
 use figment::{
@@ -241,6 +242,12 @@ pub struct PublicConfigResponse {
     /// Runtime state of the configured license key. `None` on deployments
     /// that don't require one (community and cloud).
     pub license_status: Option<LicenseStatusDiscriminants>,
+    /// Whether the configured key is an offline key or an online key that
+    /// fetches its entitlement from Scanopy Cloud. `None` when no key applies.
+    pub license_key_type: Option<LicenseKeyTypeDiscriminants>,
+    /// When Scanopy Cloud last answered this instance's license check-in.
+    /// Online keys only.
+    pub license_last_checked: Option<DateTime<Utc>>,
     /// Hard expiry — the drop-dead date after which the server rejects
     /// the key. Referenced by the grace-period banner.
     #[schema(format = "date")]
@@ -460,14 +467,9 @@ impl AppState {
             StorageFactory::new(&config.database_url(), config.use_secure_session_cookies).await?;
         let services = ServiceFactory::new(&storage, config.clone()).await?;
 
-        // Commercial mode is driven by the presence of a license key at
-        // runtime — no separate build. No key => free community edition, and no
-        // license service at all. `effective_license_key` returns None on cloud,
-        // so a stray key can never validate, lock, or reconfigure a cloud
-        // deployment.
-        let license_service = config
-            .effective_license_key()
-            .map(|key| Arc::new(LicenseService::new(key)));
+        // Built by the service factory, which gives it the org service it
+        // persists entitlements and reconciles plans through.
+        let license_service = services.license_service.clone();
 
         Ok(Arc::new(Self {
             config,
@@ -514,8 +516,14 @@ pub async fn get_public_config(State(state): State<Arc<AppState>>) -> impl IntoR
         .unwrap_or_default();
 
     let deployment_type = get_deployment_type(&state.config);
-    let current_license = match &state.license_service {
+    let license_service = state.license_service.as_deref();
+    let current_license = match license_service {
         Some(svc) => Some(svc.current_status().await),
+        None => None,
+    };
+    let license_key_type = license_service.map(|svc| svc.key_type());
+    let license_last_checked = match license_service {
+        Some(svc) => svc.last_checked().await,
         None => None,
     };
     let license_status = current_license.as_ref().map(|s| s.kind());
@@ -538,11 +546,8 @@ pub async fn get_public_config(State(state): State<Arc<AppState>>) -> impl IntoR
         use crate::server::shared::services::traits::CrudService;
         use crate::server::shared::storage::filter::StorableFilter;
 
-        let included_orgs = state
-            .config
-            .effective_license_key()
-            .map(|key| key.self_hosted_plan())
-            .unwrap_or_default()
+        let included_orgs = self_hosted_plan(license_service)
+            .await
             .config()
             .included_orgs;
         match included_orgs {
@@ -582,6 +587,8 @@ pub async fn get_public_config(State(state): State<Arc<AppState>>) -> impl IntoR
                 || state.config.brevo_api_key.is_some(),
             deployment_type,
             license_status,
+            license_key_type,
+            license_last_checked,
             license_expiry,
             license_intended_expiry,
             license_in_grace_period,

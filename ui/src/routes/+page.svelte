@@ -7,6 +7,7 @@
 	import LicenseLockedBanner from '$lib/shared/components/feedback/LicenseLockedBanner.svelte';
 	import LicenseGraceBanner from '$lib/shared/components/feedback/LicenseGraceBanner.svelte';
 	import LicenseExpiringBanner from '$lib/shared/components/feedback/LicenseExpiringBanner.svelte';
+	import LicensePendingBanner from '$lib/shared/components/feedback/LicensePendingBanner.svelte';
 	import TrialEndingBanner from '$lib/shared/components/feedback/TrialEndingBanner.svelte';
 	import NoPaymentMethodBanner from '$lib/shared/components/feedback/NoPaymentMethodBanner.svelte';
 	import TrialExpiryModal from '$lib/shared/components/feedback/TrialExpiryModal.svelte';
@@ -271,6 +272,8 @@
 			{/if}
 			{#if configQuery.data?.license_status === 'expired' || configQuery.data?.license_status === 'invalid'}
 				<LicenseLockedBanner status={configQuery.data.license_status} />
+			{:else if configQuery.data?.license_status === 'pending'}
+				<LicensePendingBanner />
 			{:else if configQuery.data?.license_in_grace_period && configQuery.data?.license_intended_expiry && configQuery.data?.license_expiry}
 				<LicenseGraceBanner
 					intendedExpiry={configQuery.data.license_intended_expiry}

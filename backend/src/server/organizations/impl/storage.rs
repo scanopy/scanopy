@@ -71,6 +71,8 @@ impl Storable for Organization {
                     discount_save_offer_active_until,
                     next_renewal_at,
                     brevo_company_id,
+                    license_entitlement,
+                    license_checked_at,
                     notifications,
                     use_case,
                 },
@@ -97,6 +99,8 @@ impl Storable for Organization {
                 "discount_save_offer_active_until",
                 "next_renewal_at",
                 "brevo_company_id",
+                "license_entitlement",
+                "license_checked_at",
                 "notifications",
                 "use_case",
             ],
@@ -120,6 +124,8 @@ impl Storable for Organization {
                 SqlValue::OptionTimestamp(discount_save_offer_active_until),
                 SqlValue::OptionTimestamp(next_renewal_at),
                 SqlValue::OptionalString(brevo_company_id),
+                SqlValue::OptionalString(license_entitlement),
+                SqlValue::OptionTimestamp(license_checked_at),
                 SqlValue::OrgNotifications(notifications),
                 SqlValue::OptionalString(Some(
                     serde_json::to_value(use_case)
@@ -179,6 +185,8 @@ impl Storable for Organization {
                     .unwrap_or(None),
                 next_renewal_at: row.try_get("next_renewal_at").unwrap_or(None),
                 brevo_company_id: row.get("brevo_company_id"),
+                license_entitlement: row.try_get("license_entitlement").unwrap_or(None),
+                license_checked_at: row.try_get("license_checked_at").unwrap_or(None),
                 notifications: row
                     .try_get::<serde_json::Value, _>("notifications")
                     .ok()
@@ -262,5 +270,8 @@ impl Entity for Organization {
         self.base.onboarding = existing.base.onboarding.clone();
         // Brevo company ID is server-managed
         self.base.brevo_company_id = existing.base.brevo_company_id.clone();
+        // License check-in state is written only by the license service
+        self.base.license_entitlement = existing.base.license_entitlement.clone();
+        self.base.license_checked_at = existing.base.license_checked_at;
     }
 }

@@ -309,9 +309,9 @@ pub enum BillingOperation {
     StripeCustomerCreated {
         customer_id: String,
     },
-    /// A self-hosted org's plan was reconciled to the entitlement implied by a
-    /// now-present commercial license (Community → CommercialSelfHosted). Emitted
-    /// by the startup reconciliation pass, not by Stripe. The org subscriber
+    /// A self-hosted org's plan was reconciled to the tier its license entitles,
+    /// in either direction. Emitted at startup and each time an online key's
+    /// entitlement is swapped in, never by Stripe. The org subscriber
     /// writes the new plan; email is deliberately not sent (the email subscriber
     /// allowlists discriminants and excludes this one) so a silent instance-level
     /// upgrade doesn't spam org owners. Transient/event-only — never persisted to
