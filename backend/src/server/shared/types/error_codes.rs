@@ -202,6 +202,9 @@ pub enum ErrorCode {
     BillingHostLimitReached { limit: u64 },
     /// Feature not available on current plan
     BillingFeatureNotAvailable { feature: String },
+    /// Organization is on a self-hosted plan, so the cloud app's main routes
+    /// are closed to it
+    BillingSelfHostedPlanLocked,
 
     // === Rate Limiting ===
     /// Too many requests
@@ -358,6 +361,9 @@ impl ErrorCode {
             Self::BillingFeatureNotAvailable { .. } => {
                 "Your current plan does not include {feature}. Upgrade your plan to access this feature."
             }
+            Self::BillingSelfHostedPlanLocked => {
+                "This organization is on a self-hosted plan. Manage its license in Settings, or switch to a cloud plan to use the app."
+            }
 
             // Rate Limiting
             Self::RateLimitExceeded => "Too many requests, please try again later",
@@ -414,6 +420,7 @@ impl ErrorCode {
             | Self::BillingPaymentRequired
             | Self::BillingSubscriptionRequired
             | Self::BillingSetupIncomplete
+            | Self::BillingSelfHostedPlanLocked
             | Self::RateLimitExceeded
             | Self::DatabaseError => None,
 

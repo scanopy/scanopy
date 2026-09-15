@@ -8728,6 +8728,161 @@
         ]
       }
     },
+    "/api/v1/licenses/entitlement": {
+      "post": {
+        "tags": [
+          "billing",
+          "internal"
+        ],
+        "summary": "Exchange an online license key for an entitlement",
+        "description": "Called by self-hosted Scanopy servers. The key is the credential, so the\nendpoint takes no session or API key. Every success records the check-in\nand returns an entitlement minted from the organization's current plan and\npaid-through date.",
+        "operationId": "get_entitlement",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntitlementRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Entitlement for the key's organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_EntitlementResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed key, bad signature, or not an online key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Key was regenerated, or the organization is not on a self-hosted plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests for this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/licenses/keys": {
+      "post": {
+        "tags": [
+          "billing",
+          "internal"
+        ],
+        "summary": "Mint a license key for this organization's self-hosted servers",
+        "description": "Online keys work on any plan with a self-hosted license. Offline keys need\na plan with air-gapped deployment.",
+        "operationId": "create_license_key",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLicenseKeyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Signed license key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_LicenseKeyResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an owner, or the plan does not include this key type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "user_api_key": []
+          },
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/licenses/keys/regenerate": {
+      "post": {
+        "tags": [
+          "billing",
+          "internal"
+        ],
+        "summary": "Regenerate this organization's online license key",
+        "description": "Retires every online key issued so far: servers still using one get 403\nfrom the entitlement endpoint.",
+        "operationId": "regenerate_license_key",
+        "responses": {
+          "200": {
+            "description": "Key regenerated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an owner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "user_api_key": []
+          },
+          {
+            "session": []
+          }
+        ]
+      }
+    },
     "/api/v1/networks": {
       "get": {
         "tags": [
@@ -14895,19 +15050,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-15T04:26:40.604851Z",
+              "created_at": "2026-09-15T17:15:56.325218Z",
               "first_discovery_id": null,
-              "id": "60da91a1-4fb6-442a-ac84-842ed10a9d65",
+              "id": "23ab9eb5-448b-46dc-933a-8229e2689390",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-15T04:26:40.604851Z",
+              "last_seen_at": "2026-09-15T17:15:56.325218Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-15T04:26:40.604851Z",
-              "valid_from": "2026-09-15T04:26:40.604851Z",
+              "updated_at": "2026-09-15T17:15:56.325218Z",
+              "valid_from": "2026-09-15T17:15:56.325218Z",
               "valid_to": null
             }
           },
@@ -15927,6 +16082,43 @@
           }
         }
       },
+      "ApiResponse_EntitlementResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Data returned inside `ApiResponse` by [`ENTITLEMENT_PATH`].",
+            "required": [
+              "entitlement"
+            ],
+            "properties": {
+              "entitlement": {
+                "type": "string",
+                "description": "An offline-format license key (claims: [`super::types::LicenseClaims`])\nwith `org_id` and `plan` set from the organization's current state."
+              }
+            }
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-readable failure message. Omitted on success."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+          }
+        }
+      },
       "ApiResponse_HostResponse": {
         "type": "object",
         "required": [
@@ -16361,19 +16553,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-15T04:26:40.579904Z",
+                      "created_at": "2026-09-15T17:15:56.304418Z",
                       "first_discovery_id": null,
-                      "id": "ea877464-d131-41cd-8dda-d27df443e170",
+                      "id": "97efc214-fc34-4ad0-9e92-01f4b45b8989",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-15T04:26:40.579904Z",
+                      "last_seen_at": "2026-09-15T17:15:56.304418Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-15T04:26:40.579904Z",
-                      "valid_from": "2026-09-15T04:26:40.579904Z",
+                      "updated_at": "2026-09-15T17:15:56.304418Z",
+                      "valid_from": "2026-09-15T17:15:56.304418Z",
                       "valid_to": null
                     }
                   ],
@@ -16387,7 +16579,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Immich",
+                  "service_definition": "OPNsense",
                   "source": {
                     "type": "Manual"
                   },
@@ -16779,6 +16971,43 @@
               }
             ],
             "description": "The result payload. Omitted on failure."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-readable failure message. Omitted on success."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+          }
+        }
+      },
+      "ApiResponse_LicenseKeyResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "The result payload. Omitted on failure.",
+            "required": [
+              "key"
+            ],
+            "properties": {
+              "key": {
+                "type": "string",
+                "description": "Signed key to set as `SCANOPY_LICENSE_KEY` on a self-hosted server."
+              }
+            }
           },
           "error": {
             "type": [
@@ -17606,19 +17835,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-15T04:26:40.599252Z",
+                  "created_at": "2026-09-15T17:15:56.320249Z",
                   "first_discovery_id": null,
-                  "id": "1017ea44-d358-4685-b08a-fba19ced9cb7",
+                  "id": "bf5ba080-483c-4a39-9eb2-3f2f4885c89f",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-15T04:26:40.599252Z",
+                  "last_seen_at": "2026-09-15T17:15:56.320249Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-15T04:26:40.599252Z",
-                  "valid_from": "2026-09-15T04:26:40.599252Z",
+                  "updated_at": "2026-09-15T17:15:56.320249Z",
+                  "valid_from": "2026-09-15T17:15:56.320249Z",
                   "valid_to": null
                 }
               ],
@@ -17632,7 +17861,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Immich",
+              "service_definition": "OPNsense",
               "source": {
                 "type": "Manual"
               },
@@ -19887,19 +20116,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-15T04:26:40.580635Z",
+          "created_at": "2026-09-15T17:15:56.304915Z",
           "first_discovery_id": null,
-          "id": "a53c890f-19f5-4849-83b9-d820587a8504",
+          "id": "24a141f0-57dc-4c5d-8dc8-008b7f833261",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-15T04:26:40.580635Z",
+          "last_seen_at": "2026-09-15T17:15:56.304915Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-15T04:26:40.580635Z",
-          "valid_from": "2026-09-15T04:26:40.580635Z",
+          "updated_at": "2026-09-15T17:15:56.304915Z",
+          "valid_from": "2026-09-15T17:15:56.304915Z",
           "valid_to": null
         }
       },
@@ -20594,7 +20823,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Immich",
+              "service_definition": "OPNsense",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -20638,6 +20867,18 @@
               "null"
             ],
             "description": "Address to email the invite to. Omit to create a link without sending."
+          }
+        }
+      },
+      "CreateLicenseKeyRequest": {
+        "type": "object",
+        "description": "The license key to mint.",
+        "required": [
+          "key_type"
+        ],
+        "properties": {
+          "key_type": {
+            "$ref": "#/components/schemas/LicenseKeyType"
           }
         }
       },
@@ -24696,6 +24937,32 @@
           }
         }
       },
+      "EntitlementRequest": {
+        "type": "object",
+        "description": "Body the instance POSTs to [`ENTITLEMENT_PATH`].",
+        "required": [
+          "key"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The online key configured via `SCANOPY_LICENSE_KEY`."
+          }
+        }
+      },
+      "EntitlementResponse": {
+        "type": "object",
+        "description": "Data returned inside `ApiResponse` by [`ENTITLEMENT_PATH`].",
+        "required": [
+          "entitlement"
+        ],
+        "properties": {
+          "entitlement": {
+            "type": "string",
+            "description": "An offline-format license key (claims: [`super::types::LicenseClaims`])\nwith `org_id` and `plan` set from the organization's current state."
+          }
+        }
+      },
       "EntityDiscriminants": {
         "type": "string",
         "enum": [
@@ -25867,19 +26134,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-15T04:26:40.579188Z",
+                  "created_at": "2026-09-15T17:15:56.303886Z",
                   "first_discovery_id": null,
-                  "id": "d9307169-026b-493e-a3be-125f86deb9e5",
+                  "id": "ec344d39-08b1-457d-a504-f0e5c0567cd2",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-15T04:26:40.579188Z",
+                  "last_seen_at": "2026-09-15T17:15:56.303886Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-15T04:26:40.579188Z",
-                  "valid_from": "2026-09-15T04:26:40.579188Z",
+                  "updated_at": "2026-09-15T17:15:56.303886Z",
+                  "valid_from": "2026-09-15T17:15:56.303886Z",
                   "valid_to": null
                 }
               ],
@@ -25893,7 +26160,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Immich",
+              "service_definition": "OPNsense",
               "source": {
                 "type": "Manual"
               },
@@ -27296,6 +27563,26 @@
           }
         }
       },
+      "LicenseKeyResponse": {
+        "type": "object",
+        "required": [
+          "key"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Signed key to set as `SCANOPY_LICENSE_KEY` on a self-hosted server."
+          }
+        }
+      },
+      "LicenseKeyType": {
+        "type": "string",
+        "description": "The two keys an org owner can copy for a self-hosted server.",
+        "enum": [
+          "Online",
+          "Offline"
+        ]
+      },
       "LicenseStatusDiscriminants": {
         "type": "string",
         "description": "Runtime license state as reported by the public config endpoint.",
@@ -28422,6 +28709,24 @@
             "description": "Most recent `Paused` billing event's timestamp; powers the 6-month\nrolling pause cooldown.",
             "readOnly": true
           },
+          "license_last_checked_in_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Last time a self-hosted server fetched an entitlement with this org's\nonline license key.",
+            "readOnly": true
+          },
+          "license_paid_through": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the org's self-hosted license is paid through: the trial end\nduring a self-hosted trial, then the end of the last paid invoice's\nservice period. License keys and entitlements expire 7 days later.",
+            "readOnly": true
+          },
           "name": {
             "type": "string",
             "description": "Human-facing name for this organization."
@@ -29295,19 +29600,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-15T04:26:40.564130Z",
+                        "created_at": "2026-09-15T17:15:56.294219Z",
                         "first_discovery_id": null,
-                        "id": "dfecadc2-b2e4-4978-a8a5-b4fc9d978e7a",
+                        "id": "0894f209-f059-4c58-9619-15d6c8a97a72",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-15T04:26:40.564130Z",
+                        "last_seen_at": "2026-09-15T17:15:56.294219Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-15T04:26:40.564130Z",
-                        "valid_from": "2026-09-15T04:26:40.564130Z",
+                        "updated_at": "2026-09-15T17:15:56.294219Z",
+                        "valid_from": "2026-09-15T17:15:56.294219Z",
                         "valid_to": null
                       }
                     ],
@@ -29321,7 +29626,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Immich",
+                    "service_definition": "OPNsense",
                     "source": {
                       "type": "Manual"
                     },
@@ -29464,19 +29769,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-15T04:26:40.598282Z",
+                    "created_at": "2026-09-15T17:15:56.319396Z",
                     "first_discovery_id": null,
-                    "id": "24587099-de81-4011-ace7-4a7f25bbc59c",
+                    "id": "231f1573-9729-4328-b7d7-8b2ee1b7649b",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-15T04:26:40.598282Z",
+                    "last_seen_at": "2026-09-15T17:15:56.319396Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-15T04:26:40.598282Z",
-                    "valid_from": "2026-09-15T04:26:40.598282Z",
+                    "updated_at": "2026-09-15T17:15:56.319396Z",
+                    "valid_from": "2026-09-15T17:15:56.319396Z",
                     "valid_to": null
                   }
                 ],
@@ -29490,7 +29795,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Immich",
+                "service_definition": "OPNsense",
                 "source": {
                   "type": "Manual"
                 },
@@ -31547,19 +31852,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-15T04:26:40.580437Z",
+              "created_at": "2026-09-15T17:15:56.304768Z",
               "first_discovery_id": null,
-              "id": "c883efb8-c99b-4bbe-8a99-f54e21a5b582",
+              "id": "8931b5e9-b665-4687-92cd-c3cc8919e1c1",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-15T04:26:40.580437Z",
+              "last_seen_at": "2026-09-15T17:15:56.304768Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-15T04:26:40.580437Z",
-              "valid_from": "2026-09-15T04:26:40.580437Z",
+              "updated_at": "2026-09-15T17:15:56.304768Z",
+              "valid_from": "2026-09-15T17:15:56.304768Z",
               "valid_to": null
             }
           ],
@@ -31573,7 +31878,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Immich",
+          "service_definition": "OPNsense",
           "source": {
             "type": "Manual"
           },
@@ -32894,7 +33199,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "02c0590b-be43-446d-9349-75c3b5542504",
+                  "id": "003febe5-3f56-4ab7-9262-66f85c946305",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -32904,23 +33209,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "5dab559f-ec54-4d54-960e-ecd1bc66317d",
+                  "id": "3e89c707-f1ed-4dc3-988c-e710afafbc5e",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "5452814a-cdce-47f7-8383-eef0f0fa3da9",
+                  "id": "79386842-d4ff-4bb2-870a-baf2f02b9baf",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "660ad9b5-eb7a-486e-b539-7907e5d3844d",
+                  "id": "57d9c7c8-f0a6-4730-8025-993034ca3c01",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "5dab559f-ec54-4d54-960e-ecd1bc66317d",
+                  "id": "3e89c707-f1ed-4dc3-988c-e710afafbc5e",
                   "rule": "ByHost"
                 }
               ]
@@ -32950,19 +33255,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "b1074ed9-9b53-4d9f-9d1d-da039ac71232",
+                "id": "18ced04d-d988-4881-aec5-a3f63695daca",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "614a6214-9559-4bd7-b3a7-24ca8529a197",
+                "id": "d9fe2232-0abc-4119-8426-f2c33cf99c45",
                 "rule": "ByVLAN"
               },
               {
-                "id": "8c78d06c-f800-4a11-84f1-bb0c3b159df8",
+                "id": "3a06314a-9307-420b-8c55-8403c60fecfe",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "799eec85-0535-4a98-ad82-6bf0ca6e3e1d",
+                "id": "623507cc-bad6-4cc3-96a3-0302504fbbbf",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -32980,7 +33285,7 @@
                 }
               },
               {
-                "id": "2871e02b-2da2-467a-8bfa-8c373c2c4dbb",
+                "id": "cb2250b0-cce5-450d-81d0-9f05be8ff3cd",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -32989,15 +33294,15 @@
                 }
               },
               {
-                "id": "15b8a129-24bf-4249-a1ad-dfaeb744510a",
+                "id": "6744de3f-4c1c-461a-bb28-1b72ce42a34c",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "2961f1a5-7b7a-414f-a5b4-4b6d964ce2e3",
+                "id": "13669eb1-11bb-46f7-aa97-2f55df752b10",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "95593178-1b40-4c69-bda6-3858e0db384d",
+                "id": "86e1dd37-461c-4a07-827c-bd64b1547a6f",
                 "rule": "ByStack"
               }
             ]

@@ -79,6 +79,8 @@ export const ERROR_CODES = {
 		"You've reached the limit of {limit} hosts on your current plan. Upgrade for unlimited hosts.",
 	billing_feature_not_available:
 		'Your current plan does not include {feature}. Upgrade your plan to access this feature.',
+	billing_self_hosted_plan_locked:
+		'This organization is on a self-hosted plan. Manage its license in Settings, or switch to a cloud plan to use the app.',
 	rate_limit_exceeded: 'Too many requests, please try again later',
 	external_service_error: 'Error from {service}: {reason}',
 	database_error: 'A database error occurred',
@@ -154,6 +156,7 @@ export interface ErrorParams {
 	billing_setup_incomplete: Record<string, never>;
 	billing_host_limit_reached: { limit: string | number };
 	billing_feature_not_available: { feature: string | number };
+	billing_self_hosted_plan_locked: Record<string, never>;
 	rate_limit_exceeded: Record<string, never>;
 	external_service_error: { service: string | number; reason: string | number };
 	database_error: Record<string, never>;

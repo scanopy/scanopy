@@ -1,15 +1,11 @@
 use chrono::{Duration, Utc};
 use clap::{Parser, Subcommand};
-use jsonwebtoken::{Algorithm, Header};
 use scanopy::server::license::{
     crypto::encoding_key_from_env,
     key::LicenseKey,
-    types::{LicenseClaims, LicensePlan},
+    mint::{license_claims, sign_license},
+    types::LicensePlan,
 };
-
-/// Silent grace window added past the user-visible expiry. Hard-coded —
-/// per-tier grace is explicitly out of scope.
-const GRACE_PERIOD_DAYS: i64 = 7;
 
 #[derive(Parser)]
 #[command(name = "scanopy-license")]
@@ -47,21 +43,8 @@ fn main() -> anyhow::Result<()> {
             // `intended_exp` is the user-visible expiry. `exp` is the hard
             // enforcement boundary, 7 days later — a silent grace window.
             let intended_exp = now + Duration::days(days as i64);
-            let exp = intended_exp + Duration::days(GRACE_PERIOD_DAYS);
-
-            let claims = LicenseClaims {
-                sub: "scanopy-license".to_string(),
-                iss: "scanopy".to_string(),
-                iat: now.timestamp(),
-                exp: exp.timestamp(),
-                intended_exp: intended_exp.timestamp(),
-                org_id: None,
-                plan,
-            };
-
-            let header = Header::new(Algorithm::EdDSA);
-            let key = encoding_key_from_env()?;
-            let token = jsonwebtoken::encode(&header, &claims, &key)?;
+            let claims = license_claims(now, intended_exp, None, plan);
+            let token = sign_license(&claims, &encoding_key_from_env()?)?;
 
             println!("{}", token);
             eprintln!(
@@ -70,7 +53,9 @@ fn main() -> anyhow::Result<()> {
             );
             eprintln!(
                 "                Hard expiry (with grace): {}",
-                exp.format("%Y-%m-%d")
+                chrono::DateTime::from_timestamp(claims.exp, 0)
+                    .map(|d| d.format("%Y-%m-%d").to_string())
+                    .unwrap_or_default()
             );
 
             Ok(())

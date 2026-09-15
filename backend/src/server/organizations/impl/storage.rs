@@ -73,6 +73,9 @@ impl Storable for Organization {
                     brevo_company_id,
                     notifications,
                     use_case,
+                    license_paid_through,
+                    license_last_checked_in_at,
+                    license_key_version,
                 },
         } = self.clone();
 
@@ -99,6 +102,9 @@ impl Storable for Organization {
                 "brevo_company_id",
                 "notifications",
                 "use_case",
+                "license_paid_through",
+                "license_last_checked_in_at",
+                "license_key_version",
             ],
             vec![
                 SqlValue::Uuid(id),
@@ -127,6 +133,9 @@ impl Storable for Organization {
                         .and_then(|v| v.as_str().map(String::from))
                         .unwrap_or_else(|| "other".to_string()),
                 )),
+                SqlValue::OptionTimestamp(license_paid_through),
+                SqlValue::OptionTimestamp(license_last_checked_in_at),
+                SqlValue::I64(license_key_version),
             ],
         ))
     }
@@ -190,6 +199,11 @@ impl Storable for Organization {
                     .flatten()
                     .and_then(|s| serde_json::from_value(serde_json::json!(s)).ok())
                     .unwrap_or_default(),
+                license_paid_through: row.try_get("license_paid_through").unwrap_or(None),
+                license_last_checked_in_at: row
+                    .try_get("license_last_checked_in_at")
+                    .unwrap_or(None),
+                license_key_version: row.try_get("license_key_version").unwrap_or(0),
             },
         })
     }
@@ -262,5 +276,11 @@ impl Entity for Organization {
         self.base.onboarding = existing.base.onboarding.clone();
         // Brevo company ID is server-managed
         self.base.brevo_company_id = existing.base.brevo_company_id.clone();
+        // License state is server-managed. The key version is never
+        // serialized, so a PUT body always carries the default and would
+        // otherwise reset it (reviving retired online keys).
+        self.base.license_paid_through = existing.base.license_paid_through;
+        self.base.license_last_checked_in_at = existing.base.license_last_checked_in_at;
+        self.base.license_key_version = existing.base.license_key_version;
     }
 }

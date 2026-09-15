@@ -3,7 +3,7 @@
  */
 
 import { createQuery, createMutation } from '@tanstack/svelte-query';
-import { queryKeys } from '$lib/api/query-client';
+import { queryKeys, queryClient } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
 import type { BillingPlan, BillingRate } from './types';
 import type { components } from '$lib/api/schema';
@@ -24,6 +24,7 @@ import {
 type PauseDuration = components['schemas']['PauseDuration'];
 type CancelSubscriptionRequest = components['schemas']['CancelSubscriptionRequest'];
 type CancelSubscriptionResponse = components['schemas']['CancelSubscriptionResponse'];
+type LicenseKeyType = components['schemas']['LicenseKeyType'];
 
 /**
  * Query hook for fetching current billing plans
@@ -287,6 +288,43 @@ export function useApplyDiscountSaveOfferMutation() {
 		// downstream write rather than the Stripe acknowledgement.
 		onError: (error: Error) => {
 			pushError(billing_errorApplyingDiscount({ message: error.message }));
+		}
+	}));
+}
+
+/**
+ * Mutation hook that mints a license key for this org's self-hosted servers.
+ * A plan without the key type returns 403; the API client toasts it.
+ */
+export function useCreateLicenseKeyMutation() {
+	return createMutation(() => ({
+		mutationFn: async (key_type: LicenseKeyType) => {
+			const { data } = await apiClient.POST('/api/v1/licenses/keys', {
+				body: { key_type }
+			});
+			if (!data?.success || !data.data) {
+				throw new Error(data?.error || 'Failed to create license key');
+			}
+			return data.data.key;
+		}
+	}));
+}
+
+/**
+ * Mutation hook that retires every online key issued so far. Servers still on an
+ * old key stop receiving entitlements until they're given a newly copied one.
+ */
+export function useRegenerateLicenseKeyMutation() {
+	return createMutation(() => ({
+		mutationFn: async () => {
+			const { data } = await apiClient.POST('/api/v1/licenses/keys/regenerate', {});
+			if (!data?.success) {
+				throw new Error(data?.error || 'Failed to regenerate license key');
+			}
+			return true;
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: queryKeys.organizations.current() });
 		}
 	}));
 }

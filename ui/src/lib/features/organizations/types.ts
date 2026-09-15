@@ -23,6 +23,16 @@ export function isBillingPlanActive(organization: Organization): boolean {
 }
 
 /**
+ * The org is on a licensed self-hosted plan (SelfHostedStandard / SelfHostedPlus).
+ * On a billing-enabled server these orgs get license keys, not the main app.
+ */
+export function hasLicensedPlan(organization: Organization): boolean {
+	const type = organization.plan?.type;
+	if (type == null) return false;
+	return billingPlans.getMetadata(type).license_plan != null;
+}
+
+/**
  * A genuine paid subscription is live. Stricter than {@link isBillingPlanActive}
  * (which is the permissive hard-gate predicate): this gates the
  * "Subscription activated successfully!" toast so it doesn't fire for

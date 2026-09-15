@@ -6,6 +6,8 @@ use crate::server::shared::events::traits::{Event, OrgScope};
 use crate::server::shared::events::types::BillingOperation;
 use crate::server::shared::services::traits::EventBusService;
 use crate::server::shared::storage::filter::StorableFilter;
+use crate::server::shared::storage::lock::{DEFAULT_LOCK_TIMEOUT, LockKey, SessionLockGuard};
+use crate::server::shared::storage::traits::Storage;
 use crate::server::shared::types::metadata::HasId;
 use crate::server::tags::entity_tags::EntityTagService;
 use crate::server::{
@@ -14,7 +16,7 @@ use crate::server::{
 };
 use anyhow::Error;
 use async_trait::async_trait;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -49,6 +51,60 @@ impl CrudService<Organization> for OrganizationService {
 
     fn entity_tag_service(&self) -> Option<&Arc<EntityTagService>> {
         None
+    }
+}
+
+impl OrganizationService {
+    /// Hold the organization row's advisory lock. Every read-modify-write of
+    /// an org that can race another (the billing event mirror, license key
+    /// regeneration, license check-ins) takes it, because each writes the
+    /// whole row back and would otherwise revert the other's change.
+    pub(crate) async fn lock_organization(
+        &self,
+        organization_id: Uuid,
+    ) -> Result<SessionLockGuard, Error> {
+        Ok(self
+            .storage
+            .session_lock(LockKey::Organization(organization_id), DEFAULT_LOCK_TIMEOUT)
+            .await?)
+    }
+
+    /// Record that a self-hosted server fetched an entitlement. Publishes no
+    /// entity event: check-ins are frequent and change nothing a user edits.
+    pub async fn record_license_check_in(
+        &self,
+        organization_id: Uuid,
+        at: DateTime<Utc>,
+    ) -> Result<(), Error> {
+        let lock = self.lock_organization(organization_id).await?;
+        if let Some(mut organization) = self.get_by_id(&organization_id).await? {
+            organization.base.license_last_checked_in_at = Some(at);
+            self.storage.update(&mut organization).await?;
+        }
+        lock.release().await?;
+        Ok(())
+    }
+
+    /// Increment the org's license key version, retiring every online key
+    /// issued so far.
+    pub async fn regenerate_license_key(
+        &self,
+        organization_id: Uuid,
+        authentication: AuthenticatedEntity,
+    ) -> Result<Organization, Error> {
+        let lock = self.lock_organization(organization_id).await?;
+        let mut organization = self
+            .get_by_id(&organization_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Organization {organization_id} not found"))?;
+        organization.base.license_key_version = organization
+            .base
+            .license_key_version
+            .checked_add(1)
+            .ok_or_else(|| anyhow::anyhow!("License key version overflow"))?;
+        let updated = self.update(&mut organization, authentication).await?;
+        lock.release().await?;
+        Ok(updated)
     }
 }
 

@@ -12,7 +12,7 @@ import { utcTimeZoneSentinel, uuidv4Sentinel } from '$lib/shared/utils/formattin
 /**
  * Query hook for fetching all daemon API keys
  */
-export function useApiKeysQuery() {
+export function useApiKeysQuery(options?: { enabled?: () => boolean }) {
 	return createQuery(() => ({
 		queryKey: queryKeys.apiKeys.all,
 		queryFn: async () => {
@@ -23,7 +23,8 @@ export function useApiKeysQuery() {
 				throw new Error(data?.error || 'Failed to fetch API keys');
 			}
 			return data.data;
-		}
+		},
+		enabled: options?.enabled?.() ?? true
 	}));
 }
 

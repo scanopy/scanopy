@@ -64,6 +64,9 @@ pub enum LockKey {
     },
     /// Serialize API key rotation (read → set_key → update).
     ApiKey(Uuid),
+    /// Serialize read-modify-writes of one organization row: the billing
+    /// event mirror, license key regeneration, and license check-ins.
+    Organization(Uuid),
 }
 
 impl LockKey {
@@ -85,6 +88,7 @@ impl LockKey {
                 format!("junction-sync:{parent}:{parent_id}")
             }
             LockKey::ApiKey(id) => format!("api-key:{id}"),
+            LockKey::Organization(id) => format!("organization:{id}"),
         }
     }
 

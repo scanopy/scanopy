@@ -13,13 +13,14 @@ use crate::server::{
     dashboard::handlers as dashboard_handlers, dependencies::handlers as dependency_handlers,
     discovery::handlers as discovery_handlers, hosts::handlers as host_handlers,
     interfaces::handlers as if_entry_handlers, invites::handlers as invite_handlers,
-    ip_addresses::handlers as interface_handlers, metrics::handlers as metrics_handlers,
-    networks::handlers as network_handlers, organizations::handlers as organization_handlers,
-    ports::handlers as port_handlers, services::handlers as service_handlers,
-    shares::handlers as share_handlers, snapshots::handlers as snapshot_handlers,
-    subnets::handlers as subnet_handlers, tags::handlers as tag_handlers,
-    topology::handlers as topology_handlers, user_api_keys::handlers as user_api_key_handlers,
-    users::handlers as user_handlers, vlans::handlers as vlan_handlers,
+    ip_addresses::handlers as interface_handlers, license::handlers as license_handlers,
+    metrics::handlers as metrics_handlers, networks::handlers as network_handlers,
+    organizations::handlers as organization_handlers, ports::handlers as port_handlers,
+    services::handlers as service_handlers, shares::handlers as share_handlers,
+    snapshots::handlers as snapshot_handlers, subnets::handlers as subnet_handlers,
+    tags::handlers as tag_handlers, topology::handlers as topology_handlers,
+    user_api_keys::handlers as user_api_key_handlers, users::handlers as user_handlers,
+    vlans::handlers as vlan_handlers,
 };
 use axum::Json;
 use axum::Router;
@@ -110,6 +111,9 @@ fn create_exempt_openapi_routes() -> OpenApiRouter<Arc<AppState>> {
         .nest("/api/v1/shares", share_handlers::create_router())
         .nest("/api/auth", auth_handlers::create_router())
         .nest("/api/daemons", daemon_handlers::create_internal_router())
+        // License keys and the entitlement endpoint. Orgs on a self-hosted
+        // plan need these while the billed routes are closed to them.
+        .nest("/api/v1/licenses", license_handlers::create_router())
         .routes(utoipa_axum::routes!(get_version))
         // Metrics endpoint for Prometheus scraping (external service auth)
         .route(

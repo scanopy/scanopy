@@ -448,6 +448,15 @@ impl ApiError {
         Self::coded(StatusCode::FORBIDDEN, ErrorCode::LicenseLocked)
     }
 
+    /// Forbidden (403) - org is on a self-hosted plan, so the cloud app's main
+    /// routes are closed to it
+    pub fn self_hosted_plan_locked() -> Self {
+        Self::coded(
+            StatusCode::FORBIDDEN,
+            ErrorCode::BillingSelfHostedPlanLocked,
+        )
+    }
+
     // === Generic entity operations ===
 
     /// Forbidden (403) - access denied to entity

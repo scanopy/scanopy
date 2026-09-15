@@ -48,6 +48,7 @@ pub mod host_interface_sync;
 pub mod host_naming;
 pub mod interface_neighbor_candidates;
 pub mod lldp_resolution;
+pub mod self_hosted_licensing;
 pub mod snmp_sim_resolution;
 pub mod subnet_placement;
 

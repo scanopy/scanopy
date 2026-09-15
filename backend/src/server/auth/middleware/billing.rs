@@ -5,20 +5,23 @@
 //! - For unauthenticated requests: Passes through (handler auth will reject if needed)
 //!
 //! Exemptions (always allowed regardless of billing):
-//! - Community plan
-//! - CommercialSelfHosted plan
-//! - Demo plan
+//! - Community, Free, CommercialSelfHosted, and Demo plans
 //! - Self-hosted instances (no stripe_secret configured)
+//!
+//! Orgs on a self-hosted license plan (SelfHostedStandard / SelfHostedPlus)
+//! run Scanopy on their own servers, so on the cloud they only reach the
+//! routes the Settings modal needs; everything else returns 403.
 
 use crate::server::{
     auth::middleware::{auth::AuthenticatedEntity, cache::CachedNetwork},
     billing::types::base::BillingPlan,
     config::AppState,
+    shared::types::api::ApiError,
 };
 use axum::{
     body::Body,
     extract::{FromRequestParts, State},
-    http::{Request, StatusCode},
+    http::{Method, Request, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -96,13 +99,17 @@ pub async fn require_billing_for_users(
     // lets `/api/v1/organizations` succeed. The frontend reads the resulting
     // `plan = null` and opens BillingPlanModal to force plan selection.
     let plan = organization.base.plan.unwrap_or_default();
+    if plan.license_plan().is_some() {
+        if settings_route(request.method(), request.uri().path()) {
+            return next.run(request).await;
+        }
+        return ApiError::self_hosted_plan_locked().into_response();
+    }
     if matches!(
         plan,
         BillingPlan::Community(_)
             | BillingPlan::Free(_)
             | BillingPlan::CommercialSelfHosted(_)
-            | BillingPlan::SelfHostedStandard(_)
-            | BillingPlan::SelfHostedPlus(_)
             | BillingPlan::Demo(_)
     ) {
         return next.run(request).await;
@@ -120,6 +127,27 @@ pub async fn require_billing_for_users(
         }
         Some(_) => next.run(request).await,
         None => billing_error_response("Active billing plan required. Please select a plan."),
+    }
+}
+
+/// Billed routes the Settings modal calls, which stay open to an org on a
+/// self-hosted license plan: reading, renaming, and deleting the org, and
+/// editing the current user. Everything else Settings needs (auth, billing,
+/// licenses, config) sits outside this middleware already.
+fn settings_route(method: &Method, path: &str) -> bool {
+    const ORGANIZATIONS: &str = "/api/v1/organizations";
+    const USERS: &str = "/api/v1/users";
+    let single_entity = |prefix: &str| {
+        path.strip_prefix(prefix)
+            .and_then(|rest| rest.strip_prefix('/'))
+            .is_some_and(|id| !id.is_empty() && !id.contains('/'))
+    };
+
+    match *method {
+        Method::GET => path == ORGANIZATIONS,
+        Method::PUT => single_entity(ORGANIZATIONS) || single_entity(USERS),
+        Method::DELETE => single_entity(ORGANIZATIONS),
+        _ => false,
     }
 }
 

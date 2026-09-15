@@ -2022,6 +2022,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/licenses/entitlement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Exchange an online license key for an entitlement
+         * @description Called by self-hosted Scanopy servers. The key is the credential, so the
+         *     endpoint takes no session or API key. Every success records the check-in
+         *     and returns an entitlement minted from the organization's current plan and
+         *     paid-through date.
+         */
+        post: operations["get_entitlement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mint a license key for this organization's self-hosted servers
+         * @description Online keys work on any plan with a self-hosted license. Offline keys need
+         *     a plan with air-gapped deployment.
+         */
+        post: operations["create_license_key"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/keys/regenerate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Regenerate this organization's online license key
+         * @description Retires every online key issued so far: servers still using one get 403
+         *     from the entitlement endpoint.
+         */
+        post: operations["regenerate_license_key"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/networks": {
         parameters: {
             query?: never;
@@ -3226,19 +3291,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-15T04:26:40.604851Z",
+             *       "created_at": "2026-09-15T17:15:56.325218Z",
              *       "first_discovery_id": null,
-             *       "id": "60da91a1-4fb6-442a-ac84-842ed10a9d65",
+             *       "id": "23ab9eb5-448b-46dc-933a-8229e2689390",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-15T04:26:40.604851Z",
+             *       "last_seen_at": "2026-09-15T17:15:56.325218Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-15T04:26:40.604851Z",
-             *       "valid_from": "2026-09-15T04:26:40.604851Z",
+             *       "updated_at": "2026-09-15T17:15:56.325218Z",
+             *       "valid_from": "2026-09-15T17:15:56.325218Z",
              *       "valid_to": null
              *     }
              */
@@ -3759,6 +3824,22 @@ export interface components {
             /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
             success: boolean;
         };
+        ApiResponse_EntitlementResponse: {
+            /** @description Data returned inside `ApiResponse` by [`ENTITLEMENT_PATH`]. */
+            data?: {
+                /**
+                 * @description An offline-format license key (claims: [`super::types::LicenseClaims`])
+                 *     with `org_id` and `plan` set from the organization's current state.
+                 */
+                entitlement: string;
+            };
+            /** @description Human-readable failure message. Omitted on success. */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            success: boolean;
+        };
         ApiResponse_HostResponse: {
             /**
              * @description Response type for host endpoints.
@@ -3883,19 +3964,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-15T04:26:40.579904Z",
+             *               "created_at": "2026-09-15T17:15:56.304418Z",
              *               "first_discovery_id": null,
-             *               "id": "ea877464-d131-41cd-8dda-d27df443e170",
+             *               "id": "97efc214-fc34-4ad0-9e92-01f4b45b8989",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-15T04:26:40.579904Z",
+             *               "last_seen_at": "2026-09-15T17:15:56.304418Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-15T04:26:40.579904Z",
-             *               "valid_from": "2026-09-15T04:26:40.579904Z",
+             *               "updated_at": "2026-09-15T17:15:56.304418Z",
+             *               "valid_from": "2026-09-15T17:15:56.304418Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -3909,7 +3990,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Immich",
+             *           "service_definition": "OPNsense",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4266,6 +4347,19 @@ export interface components {
                  * @description When this record was last modified.
                  */
                 readonly updated_at: string;
+            };
+            /** @description Human-readable failure message. Omitted on success. */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            success: boolean;
+        };
+        ApiResponse_LicenseKeyResponse: {
+            /** @description The result payload. Omitted on failure. */
+            data?: {
+                /** @description Signed key to set as `SCANOPY_LICENSE_KEY` on a self-hosted server. */
+                key: string;
             };
             /** @description Human-readable failure message. Omitted on success. */
             error?: string | null;
@@ -4643,19 +4737,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-15T04:26:40.599252Z",
+             *           "created_at": "2026-09-15T17:15:56.320249Z",
              *           "first_discovery_id": null,
-             *           "id": "1017ea44-d358-4685-b08a-fba19ced9cb7",
+             *           "id": "bf5ba080-483c-4a39-9eb2-3f2f4885c89f",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-15T04:26:40.599252Z",
+             *           "last_seen_at": "2026-09-15T17:15:56.320249Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-15T04:26:40.599252Z",
-             *           "valid_from": "2026-09-15T04:26:40.599252Z",
+             *           "updated_at": "2026-09-15T17:15:56.320249Z",
+             *           "valid_from": "2026-09-15T17:15:56.320249Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -4669,7 +4763,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Immich",
+             *       "service_definition": "OPNsense",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -5534,19 +5628,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-15T04:26:40.580635Z",
+         *       "created_at": "2026-09-15T17:15:56.304915Z",
          *       "first_discovery_id": null,
-         *       "id": "a53c890f-19f5-4849-83b9-d820587a8504",
+         *       "id": "24a141f0-57dc-4c5d-8dc8-008b7f833261",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-15T04:26:40.580635Z",
+         *       "last_seen_at": "2026-09-15T17:15:56.304915Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-15T04:26:40.580635Z",
-         *       "valid_from": "2026-09-15T04:26:40.580635Z",
+         *       "updated_at": "2026-09-15T17:15:56.304915Z",
+         *       "valid_from": "2026-09-15T17:15:56.304915Z",
          *       "valid_to": null
          *     }
          */
@@ -5860,7 +5954,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Immich",
+         *           "service_definition": "OPNsense",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -5928,6 +6022,10 @@ export interface components {
             permissions: components["schemas"]["UserOrgPermissions"];
             /** @description Address to email the invite to. Omit to create a link without sending. */
             send_to?: string | null;
+        };
+        /** @description The license key to mint. */
+        CreateLicenseKeyRequest: {
+            key_type: components["schemas"]["LicenseKeyType"];
         };
         /**
          * @description Request type for creating a service.
@@ -7560,6 +7658,19 @@ export interface components {
             team_size: components["schemas"]["TeamSize"];
             urgency?: null | components["schemas"]["InquiryTimeline"];
         };
+        /** @description Body the instance POSTs to [`ENTITLEMENT_PATH`]. */
+        EntitlementRequest: {
+            /** @description The online key configured via `SCANOPY_LICENSE_KEY`. */
+            key: string;
+        };
+        /** @description Data returned inside `ApiResponse` by [`ENTITLEMENT_PATH`]. */
+        EntitlementResponse: {
+            /**
+             * @description An offline-format license key (claims: [`super::types::LicenseClaims`])
+             *     with `org_id` and `plan` set from the organization's current state.
+             */
+            entitlement: string;
+        };
         /** @enum {string} */
         EntityDiscriminants: "Organization" | "Invite" | "Share" | "Network" | "DaemonApiKey" | "UserApiKey" | "User" | "Tag" | "Discovery" | "Daemon" | "Host" | "Service" | "Port" | "Binding" | "IPAddress" | "Interface" | "Credential" | "Subnet" | "Vlan" | "Dependency" | "Topology" | "Snapshot" | "Unknown";
         /**
@@ -7984,19 +8095,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-15T04:26:40.579188Z",
+         *               "created_at": "2026-09-15T17:15:56.303886Z",
          *               "first_discovery_id": null,
-         *               "id": "d9307169-026b-493e-a3be-125f86deb9e5",
+         *               "id": "ec344d39-08b1-457d-a504-f0e5c0567cd2",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-15T04:26:40.579188Z",
+         *               "last_seen_at": "2026-09-15T17:15:56.303886Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-15T04:26:40.579188Z",
-         *               "valid_from": "2026-09-15T04:26:40.579188Z",
+         *               "updated_at": "2026-09-15T17:15:56.303886Z",
+         *               "valid_from": "2026-09-15T17:15:56.303886Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8010,7 +8121,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Immich",
+         *           "service_definition": "OPNsense",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -8906,6 +9017,15 @@ export interface components {
             /** @description Subnets the daemon has an interface on, as reported by older daemons. */
             interfaced_subnet_ids: string[];
         };
+        LicenseKeyResponse: {
+            /** @description Signed key to set as `SCANOPY_LICENSE_KEY` on a self-hosted server. */
+            key: string;
+        };
+        /**
+         * @description The two keys an org owner can copy for a self-hosted server.
+         * @enum {string}
+         */
+        LicenseKeyType: "Online" | "Offline";
         /**
          * @description Runtime license state as reported by the public config endpoint.
          * @enum {string}
@@ -9375,6 +9495,19 @@ export interface components {
              *     rolling pause cooldown.
              */
             readonly last_paused_at?: string | null;
+            /**
+             * Format: date-time
+             * @description Last time a self-hosted server fetched an entitlement with this org's
+             *     online license key.
+             */
+            readonly license_last_checked_in_at?: string | null;
+            /**
+             * Format: date-time
+             * @description When the org's self-hosted license is paid through: the trial end
+             *     during a self-hosted trial, then the end of the last paid invoice's
+             *     service period. License keys and entitlements expire 7 days later.
+             */
+            readonly license_paid_through?: string | null;
             /** @description Human-facing name for this organization. */
             name: string;
             /**
@@ -10826,19 +10959,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-15T04:26:40.580437Z",
+         *           "created_at": "2026-09-15T17:15:56.304768Z",
          *           "first_discovery_id": null,
-         *           "id": "c883efb8-c99b-4bbe-8a99-f54e21a5b582",
+         *           "id": "8931b5e9-b665-4687-92cd-c3cc8919e1c1",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-15T04:26:40.580437Z",
+         *           "last_seen_at": "2026-09-15T17:15:56.304768Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-15T04:26:40.580437Z",
-         *           "valid_from": "2026-09-15T04:26:40.580437Z",
+         *           "updated_at": "2026-09-15T17:15:56.304768Z",
+         *           "valid_from": "2026-09-15T17:15:56.304768Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -10852,7 +10985,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Immich",
+         *       "service_definition": "OPNsense",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -11554,7 +11687,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "02c0590b-be43-446d-9349-75c3b5542504",
+             *           "id": "003febe5-3f56-4ab7-9262-66f85c946305",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -11564,23 +11697,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "5dab559f-ec54-4d54-960e-ecd1bc66317d",
+             *           "id": "3e89c707-f1ed-4dc3-988c-e710afafbc5e",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "5452814a-cdce-47f7-8383-eef0f0fa3da9",
+             *           "id": "79386842-d4ff-4bb2-870a-baf2f02b9baf",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "660ad9b5-eb7a-486e-b539-7907e5d3844d",
+             *           "id": "57d9c7c8-f0a6-4730-8025-993034ca3c01",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "5dab559f-ec54-4d54-960e-ecd1bc66317d",
+             *           "id": "3e89c707-f1ed-4dc3-988c-e710afafbc5e",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -11593,19 +11726,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "b1074ed9-9b53-4d9f-9d1d-da039ac71232",
+             *         "id": "18ced04d-d988-4881-aec5-a3f63695daca",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "614a6214-9559-4bd7-b3a7-24ca8529a197",
+             *         "id": "d9fe2232-0abc-4119-8426-f2c33cf99c45",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "8c78d06c-f800-4a11-84f1-bb0c3b159df8",
+             *         "id": "3a06314a-9307-420b-8c55-8403c60fecfe",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "799eec85-0535-4a98-ad82-6bf0ca6e3e1d",
+             *         "id": "623507cc-bad6-4cc3-96a3-0302504fbbbf",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -11623,7 +11756,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "2871e02b-2da2-467a-8bfa-8c373c2c4dbb",
+             *         "id": "cb2250b0-cce5-450d-81d0-9f05be8ff3cd",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -11632,15 +11765,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "15b8a129-24bf-4249-a1ad-dfaeb744510a",
+             *         "id": "6744de3f-4c1c-461a-bb28-1b72ce42a34c",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "2961f1a5-7b7a-414f-a5b4-4b6d964ce2e3",
+             *         "id": "13669eb1-11bb-46f7-aa97-2f55df752b10",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "95593178-1b40-4c69-bda6-3858e0db384d",
+             *         "id": "86e1dd37-461c-4a07-827c-bd64b1547a6f",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -16835,6 +16968,119 @@ export interface operations {
             };
             /** @description IP address not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_entitlement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntitlementRequest"];
+            };
+        };
+        responses: {
+            /** @description Entitlement for the key's organization */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_EntitlementResponse"];
+                };
+            };
+            /** @description Malformed key, bad signature, or not an online key */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Key was regenerated, or the organization is not on a self-hosted plan */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Too many requests for this organization */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    create_license_key: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLicenseKeyRequest"];
+            };
+        };
+        responses: {
+            /** @description Signed license key */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_LicenseKeyResponse"];
+                };
+            };
+            /** @description Not an owner, or the plan does not include this key type */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    regenerate_license_key: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Key regenerated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Not an owner */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

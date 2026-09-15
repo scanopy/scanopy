@@ -9,6 +9,7 @@ import createClient, { type Middleware } from 'openapi-fetch';
 import type { paths, components } from './schema';
 import { pushError } from '$lib/shared/stores/feedback';
 import { translateError, type ApiErrorResponse } from '$lib/i18n/errors';
+import type { ErrorCode } from '$lib/generated/error-codes';
 import { common_httpError } from '$lib/paraglide/messages';
 import { env } from '$env/dynamic/public';
 
@@ -278,6 +279,8 @@ const cachingMiddleware: Middleware = {
  * Uses translateError to display localized error messages when the backend
  * provides an error code. Falls back to the raw error message or HTTP status.
  */
+const BILLING_SELF_HOSTED_PLAN_LOCKED: ErrorCode = 'billing_self_hosted_plan_locked';
+
 const errorMiddleware: Middleware = {
 	async onResponse({ response, options }) {
 		if (!response.ok) {
@@ -297,6 +300,11 @@ const errorMiddleware: Middleware = {
 			}
 			try {
 				const errorData: ApiErrorResponse = await response.clone().json();
+				// Expected while the org is on a self-hosted plan: the UI already
+				// holds the app behind the Settings billing gate, so no toast.
+				if (errorData.code === BILLING_SELF_HOSTED_PLAN_LOCKED) {
+					return response;
+				}
 				const errorMsg = translateError(errorData);
 				// Only show error if not silenced
 				if (!(options as { silenceErrors?: boolean }).silenceErrors) {
