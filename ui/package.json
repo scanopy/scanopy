@@ -97,7 +97,7 @@
 		"openapi-fetch": "^0.15.0",
 		"openapi-typescript": "^7.10.1",
 		"postcss": "^8.5.15",
-		"posthog-js": "^1.405.3",
+		"posthog-js": "^1.430.3",
 		"semver": "^7.7.4",
 		"svelte-forms": "^2.3.1",
 		"svelte-prism": "^1.1.6",
