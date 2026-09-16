@@ -452,10 +452,10 @@ pub(crate) async fn collect(
 ) -> anyhow::Result<Collection> {
     let selected = LldpModelProfile::select(models);
     if selected.is_none() {
-        tracing::warn!(
+        tracing::debug!(
             advertised_models = models.len(),
-            "gNMI device advertises no LLDP model this collector can read; reading \
-             openconfig-lldp anyway, but expect no neighbours"
+            "gNMI device advertises no LLDP model this collector has a profile for; reading \
+             openconfig-lldp regardless"
         );
     }
     let mut coll = Collection {
