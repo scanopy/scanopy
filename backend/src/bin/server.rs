@@ -597,9 +597,9 @@ async fn main() -> anyhow::Result<()> {
                         tracing::error!(target: LOG_TARGET, "  License:         INVALID ({}) — server is in read-only mode", reason);
                     }
                     scanopy::server::license::types::LicenseStatus::Pending => {
-                        tracing::info!(
+                        tracing::warn!(
                             target: LOG_TARGET,
-                            "  License:         pending (online key, waiting for first check-in with {})",
+                            "  License:         PENDING — server is in read-only mode until it reaches {} for its first entitlement",
                             scanopy::server::license::service::CLOUD_BASE_URL,
                         );
                     }

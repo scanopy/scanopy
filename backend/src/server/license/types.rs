@@ -129,14 +129,19 @@ pub enum LicenseStatus {
     /// online key the cloud rejected
     Invalid(String),
     /// Online key with no entitlement yet (first boot, cloud unreachable).
-    /// Grants Community entitlements and does not lock.
+    /// Locks the server until the first successful check-in. The guard still
+    /// allows auth and reads, so a new instance can register a user, see the
+    /// banner, and recover once it reaches the cloud.
     Pending,
 }
 
 impl LicenseStatus {
     /// Whether the server should be in read-only locked state.
     pub fn is_locked(&self) -> bool {
-        matches!(self, LicenseStatus::Expired(_) | LicenseStatus::Invalid(_))
+        matches!(
+            self,
+            LicenseStatus::Expired(_) | LicenseStatus::Invalid(_) | LicenseStatus::Pending
+        )
     }
 
     /// Status string for the public config API response.

@@ -265,9 +265,7 @@ impl ErrorCode {
                 "This daemon must be provisioned before it can register. Provision it in the Scanopy UI and re-run the install command."
             }
             Self::AuthDemoMode => "This action is disabled in demo mode",
-            Self::LicenseLocked => {
-                "Your license has expired or is invalid. The server is in read-only mode."
-            }
+            Self::LicenseLocked => "Your license is not active. The server is in read-only mode.",
             Self::AuthPasswordLoginDisabled => "Password login is disabled",
             Self::AuthRegistrationDisabled => "User registration is disabled",
             Self::AuthOrgLimitReached => {

@@ -533,11 +533,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn online_key_without_entitlement_is_pending_and_unlocked() {
+    async fn online_key_without_entitlement_is_pending_and_locked() {
         let service = service(online_key(ORG_ID)).await;
         let status = service.current_status().await;
         assert!(matches!(status, LicenseStatus::Pending));
-        assert!(!status.is_locked());
+        assert!(status.is_locked());
         assert_eq!(service.effective_plan().await, BillingPlan::default());
         assert!(service.entitlement_at().await.is_none());
     }
