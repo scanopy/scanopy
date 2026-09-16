@@ -325,9 +325,9 @@ pub(crate) struct LldpModelProfile {
     ///
     /// INVARIANT, unenforced by the type: `subtrees.contains(&neighbors)` must hold. Nothing
     /// checks the two literals agree; see `every_profile_names_a_neighbours_subtree_it_actually_reads`
-    /// in `tests.rs`, and note the failure mode if they drift apart — `is_lldp` is never true,
-    /// `lldp_complete` keeps its `true` initialiser in [`collect`], and a device whose neighbours
-    /// read was refused or garbled is reported authoritative anyway.
+    /// in `tests.rs`. If they drift apart, `is_lldp` is never true and `lldp_complete` stays
+    /// `false` in [`collect`]: every device on this profile reports non-authoritative, and its
+    /// neighbours stop ageing out until the two literals are put back in step.
     pub neighbors: Subtree,
 }
 
@@ -458,14 +458,24 @@ pub(crate) async fn collect(
              openconfig-lldp regardless"
         );
     }
+    let lldp_model = match selected {
+        Some(profile) => LldpModel::Advertised(profile.module),
+        None => LldpModel::NoneAdvertised,
+    };
+    collect_profile(transport, selected.unwrap_or(&OPENCONFIG_LLDP), lldp_model).await
+}
+
+/// [`collect`] once the profile is settled. Split out so a profile the selector cannot return —
+/// one whose `neighbors` names a subtree its own `subtrees` omit — can be driven from a test.
+async fn collect_profile(
+    transport: &mut dyn GnmiTransport,
+    profile: &LldpModelProfile,
+    lldp_model: LldpModel,
+) -> anyhow::Result<Collection> {
     let mut coll = Collection {
-        lldp_model: match selected {
-            Some(profile) => LldpModel::Advertised(profile.module),
-            None => LldpModel::NoneAdvertised,
-        },
+        lldp_model,
         ..Default::default()
     };
-    let profile = selected.unwrap_or(&OPENCONFIG_LLDP);
     // Only the profile's `neighbors` subtree gates authority, not every subtree it names:
     // `/lldp/state` is the device's own identity, and ArcOS refuses that path outright while
     // serving a complete neighbour list, so folding it in would leave a real device
@@ -473,7 +483,12 @@ pub(crate) async fn collect(
     // so for that profile `neighbors` names that same subtree, and keying on a single FIXED
     // variant (as the openconfig-only version did) would leave a device that answered perfectly
     // reporting an incomplete read forever.
-    let mut lldp_complete = true;
+    //
+    // False until that subtree is read and parsed, so authority follows a read that happened.
+    // A profile whose `neighbors` matches none of its `subtrees` never sets it and the device
+    // reports non-authoritative, which costs a scan's worth of pruning; the reverse would delete
+    // stored neighbours on the strength of a read that never ran.
+    let mut lldp_complete = false;
     for subtree in Subtree::BASE.iter().chain(profile.subtrees).copied() {
         let is_lldp = subtree == profile.neighbors;
         match transport.subscribe_once(vec![subtree.path()]).await {
@@ -483,7 +498,7 @@ pub(crate) async fn collect(
                     parsed &= absorb_notification(&mut coll, profile, n);
                 }
                 if is_lldp {
-                    lldp_complete &= parsed;
+                    lldp_complete = parsed;
                 }
                 if !parsed {
                     tracing::debug!(?subtree, "gNMI subtree had updates that did not parse");
@@ -493,9 +508,6 @@ pub(crate) async fn collect(
                 return Err(e.context("openconfig-interfaces is required and was not served"));
             }
             Err(e) => {
-                if is_lldp {
-                    lldp_complete = false;
-                }
                 tracing::debug!(?subtree, error = %e, "gNMI subtree not served; continuing");
             }
         }

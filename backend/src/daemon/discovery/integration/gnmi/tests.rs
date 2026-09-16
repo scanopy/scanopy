@@ -778,8 +778,9 @@ fn advertising_no_known_lldp_model_selects_nothing() {
 
 /// `neighbors` names a path that must also be in `subtrees` -- two literals that have to agree,
 /// with nothing but this test making them. A profile whose `neighbors` matches none of the
-/// subtrees it reads never sets `is_lldp`, so `lldp_complete` keeps its `true` initialiser and
-/// the device claims authority over a neighbour set it may never have read.
+/// subtrees it reads never sets `is_lldp`, so `lldp_complete` stays false and every device on
+/// that profile reports non-authoritative, its neighbours never ageing out (see
+/// `a_profile_that_never_reads_its_neighbours_subtree_is_not_authoritative` for that behaviour).
 #[test]
 fn every_profile_names_a_neighbours_subtree_it_actually_reads() {
     for p in LldpModelProfile::KNOWN {
@@ -789,6 +790,37 @@ fn every_profile_names_a_neighbours_subtree_it_actually_reads() {
             p.module
         );
     }
+}
+
+/// Which way the invariant above fails when it does fail: a profile that reads the openconfig
+/// subtrees but names a `neighbors` path none of them is. The device answers every subtree and
+/// its neighbours parse, and the collection is still non-authoritative, because nothing read
+/// the subtree this profile says decides that. Costing a device its pruning is recoverable;
+/// claiming authority over a set that was never read deletes stored neighbours.
+#[tokio::test]
+async fn a_profile_that_never_reads_its_neighbours_subtree_is_not_authoritative() {
+    let drifted = LldpModelProfile {
+        module: "openconfig-lldp",
+        subtrees: OPENCONFIG_LLDP.subtrees,
+        root: &[],
+        state_container: "state",
+        // One element longer than the subtree that is actually read.
+        neighbors: Subtree::default_origin(&["lldp", "interfaces", "interface[name=*]", "state"]),
+    };
+    let mut device = arcos();
+    let coll = collect_profile(
+        &mut device,
+        &drifted,
+        LldpModel::Advertised("openconfig-lldp"),
+    )
+    .await
+    .expect("collection succeeds");
+
+    assert!(!coll.neighbors.is_empty(), "the neighbours were read");
+    assert!(
+        !coll.lldp_complete,
+        "no subtree the profile calls its neighbours was read, so it holds no authority"
+    );
 }
 
 /// `Subtree::path()` is the only place `origin` is actually put on the wire — nothing else
