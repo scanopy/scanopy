@@ -1,18 +1,18 @@
-use super::Collection;
 use super::proto::gnmi::{Notification, PathElem, TypedValue, typed_value};
+use super::{Collection, LldpModelProfile};
 use crate::server::interfaces::r#impl::base::{IfAdminStatus, IfOperStatus, if_type};
 use crate::server::lldp::{LldpChassisId, LldpPortId, canonical_mac};
 use crate::server::snmp::generated::get_if_type_number;
 
 /// A flattened update: the full path (prefix + update path, JSON keys appended) and the
 /// leaf's value as text.
-struct Leaf {
-    elems: Vec<PathElem>,
-    value: String,
+pub(super) struct Leaf {
+    pub(super) elems: Vec<PathElem>,
+    pub(super) value: String,
 }
 
 /// Strip the YANG module prefix json_ietf puts on names: `openconfig-interfaces:ifindex`.
-fn unqualified(name: &str) -> &str {
+pub(super) fn unqualified(name: &str) -> &str {
     name.rsplit(':').next().unwrap_or(name)
 }
 
@@ -105,7 +105,11 @@ fn json_scalar(v: &serde_json::Value) -> Option<String> {
 
 /// Fold one notification's updates into the collection. Returns `false` when an update did not
 /// parse, so the caller knows the subtree was not read in full.
-pub(crate) fn absorb_notification(coll: &mut Collection, notification: &Notification) -> bool {
+pub(crate) fn absorb_notification(
+    coll: &mut Collection,
+    profile: &LldpModelProfile,
+    notification: &Notification,
+) -> bool {
     let prefix = notification.prefix.as_ref().map(|p| p.elem.as_slice());
     let mut parsed = true;
     for update in &notification.update {
@@ -116,7 +120,7 @@ pub(crate) fn absorb_notification(coll: &mut Collection, notification: &Notifica
         match flatten_update(prefix.unwrap_or(&[]), path.unwrap_or(&[]), val) {
             Some(leaves) => {
                 for leaf in leaves {
-                    absorb_leaf(coll, &leaf);
+                    absorb_leaf(coll, profile, &leaf);
                 }
             }
             None => parsed = false,
@@ -125,8 +129,30 @@ pub(crate) fn absorb_notification(coll: &mut Collection, notification: &Notifica
     parsed
 }
 
-fn absorb_leaf(coll: &mut Collection, leaf: &Leaf) {
-    let names: Vec<&str> = leaf.elems.iter().map(|e| unqualified(&e.name)).collect();
+/// The path element names to match on, with the device's LLDP model folded onto the openconfig
+/// shape it mirrors: the profile's root stripped, its state container read as `state`. For
+/// [`OPENCONFIG_LLDP`] both are no-ops and every name passes through untouched.
+///
+/// The fold is applied only to paths that ARE this model's LLDP tree. Applied to every leaf
+/// instead, the state-container rewrite clobbers the real `state` leaves of any device that has
+/// its own meaning for the name — last writer winning, silently — and `/interfaces/…/state` is
+/// subscribed on exactly the devices whose profile renames the container.
+pub(super) fn normalised_names<'a>(profile: &LldpModelProfile, leaf: &'a Leaf) -> Vec<&'a str> {
+    let mut names: Vec<&str> = leaf.elems.iter().map(|e| unqualified(&e.name)).collect();
+    if !names.starts_with(profile.root) || names.get(profile.root.len()) != Some(&"lldp") {
+        return names;
+    }
+    names.drain(..profile.root.len());
+    for name in names.iter_mut() {
+        if *name == profile.state_container {
+            *name = "state";
+        }
+    }
+    names
+}
+
+fn absorb_leaf(coll: &mut Collection, profile: &LldpModelProfile, leaf: &Leaf) {
+    let names = normalised_names(profile, leaf);
     let Some((&leaf_name, containers)) = names.split_last() else {
         return;
     };

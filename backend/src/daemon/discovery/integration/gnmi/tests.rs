@@ -1,3 +1,4 @@
+use super::parse::{Leaf, normalised_names};
 use super::*;
 use crate::server::interfaces::r#impl::base::{IfAdminStatus, IfOperStatus, if_type};
 use crate::server::lldp::LldpPortId;
@@ -10,9 +11,10 @@ use proto::gnmi::{Notification, TypedValue, Update, typed_value};
 /// (`lldp/interfaces/interface[name=swp1]/neighbors/neighbor[id=1]/state/port-id`).
 #[derive(Default)]
 struct ScriptedDevice {
-    served: BTreeMap<&'static str, &'static str>,
+    served: BTreeMap<String, &'static str>,
     /// Subtrees whose Subscribe fails with this error rather than a refusal.
-    failures: BTreeMap<&'static str, &'static str>,
+    failures: BTreeMap<String, &'static str>,
+    models: Vec<String>,
 }
 
 impl ScriptedDevice {
@@ -25,26 +27,29 @@ impl ScriptedDevice {
         self.failures.insert(subtree_key(subtree), error);
         self
     }
-}
 
-fn subtree_key(subtree: Subtree) -> &'static str {
-    match subtree {
-        Subtree::InterfaceState => "interfaces/interface[name=*]/state",
-        Subtree::EthernetState => "interfaces/interface[name=*]/ethernet/state",
-        Subtree::LldpLocal => "lldp/state",
-        Subtree::LldpNeighbors => "lldp/interfaces/interface[name=*]",
+    /// The YANG modules this device names in its `Capabilities` reply.
+    fn advertising(mut self, models: &[&str]) -> Self {
+        self.models = models.iter().map(|m| m.to_string()).collect();
+        self
     }
 }
 
+fn subtree_key(subtree: Subtree) -> String {
+    format!("{}:{}", subtree.origin, subtree.elems.join("/"))
+}
+
 fn render_path(path: &Path) -> String {
-    path.elem
+    let elems = path
+        .elem
         .iter()
         .map(|e| {
             let keys: String = e.key.iter().map(|(k, v)| format!("[{k}={v}]")).collect();
             format!("{}{keys}", e.name)
         })
         .collect::<Vec<_>>()
-        .join("/")
+        .join("/");
+    format!("{}:{}", path.origin, elems)
 }
 
 /// Split on `/` outside brackets only: key values carry slashes (`[name=ge10-0/0/0]`).
@@ -119,8 +124,8 @@ fn script_to_notifications(script: &str) -> Vec<Notification> {
 
 #[async_trait]
 impl GnmiTransport for ScriptedDevice {
-    async fn capabilities(&mut self) -> anyhow::Result<()> {
-        Ok(())
+    async fn capabilities(&mut self) -> anyhow::Result<Vec<String>> {
+        Ok(self.models.clone())
     }
     async fn subscribe_once(&mut self, paths: Vec<Path>) -> anyhow::Result<Vec<Notification>> {
         let [path] = paths.as_slice() else {
@@ -191,9 +196,22 @@ const ARCOS_ETHERNET_STATE: &str = "
     interfaces/interface[name=ma1]/ethernet/state/effective-speed = 1000
 ";
 
-/// No `chassis-id` leaf on any neighbour. A Linux lldpd peer (netlab-server) shows up
-/// twice on swp1 and swp53, one entry per chassis-id subtype it advertises; only one
-/// carries the management address and system name.
+/// No `chassis-id` leaf on any neighbour, so the remote identity comes from the
+/// management address or a MAC-shaped port-id.
+///
+/// `swp53` hears one peer twice: both entries carry port-id `98:03:9b:7f:6f:58`, which is
+/// netlab-server's `ens1f0np0`, and only one of them also carries the management address and
+/// system name. That is a double listing — the neighbor id's `6-`/`7-` prefix is the LLDP
+/// port-id *subtype* (agent circuit id vs. locally assigned), so the device is advertising the
+/// same value under two different subtypes rather than reporting two distinct peers.
+///
+/// `swp1` is NOT that, though an earlier version of this comment said it was. Its two entries
+/// carry DIFFERENT port-ids: `34:80:0d:44:44:f5` is netlab-server's `eno2` (confirmed from the
+/// far end -- `lldpcli` on eno2 reports netlab-leaf1:swp1), while `34:80:0d:44:45:05` is not
+/// netlab-server at all -- not one of its NICs, not its chassis id (`34:80:0d:44:44:f4`, eno1),
+/// and absent from the management network's ARP and FDB when checked on 2026-09-15. So swp1
+/// heard two different devices: a shared segment, which is GH #701's own case, captured here
+/// by accident on 2026-08-30 and mislabelled until now.
 const ARCOS_LLDP_NEIGHBORS: &str = "
     lldp/interfaces/interface[name=swp1]/name = swp1
     lldp/interfaces/interface[name=swp1]/neighbors/neighbor[id=5-34:80:0d:44:45:05]/id = 5-34:80:0d:44:45:05
@@ -223,13 +241,14 @@ const ARCOS_LLDP_NEIGHBORS: &str = "
 fn arcos() -> ScriptedDevice {
     // `/lldp/state` is what leaf1 refuses: "Requested Path 'lldp/state' is not supported".
     ScriptedDevice::default()
-        .serve(Subtree::InterfaceState, ARCOS_INTERFACE_STATE)
-        .serve(Subtree::EthernetState, ARCOS_ETHERNET_STATE)
-        .serve(Subtree::LldpNeighbors, ARCOS_LLDP_NEIGHBORS)
+        .serve(Subtree::INTERFACE_STATE, ARCOS_INTERFACE_STATE)
+        .serve(Subtree::ETHERNET_STATE, ARCOS_ETHERNET_STATE)
+        .serve(OPENCONFIG_LLDP.subtrees[1], ARCOS_LLDP_NEIGHBORS)
 }
 
 async fn rows(device: &mut ScriptedDevice) -> (Collection, Vec<Interface>) {
-    let coll = collect(device).await.expect("collection succeeds");
+    let models = device.capabilities().await.expect("capabilities");
+    let coll = collect(device, &models).await.expect("collection succeeds");
     let rows = collection_to_interfaces(&coll, uuid::Uuid::new_v4(), uuid::Uuid::new_v4());
     (coll, rows)
 }
@@ -340,17 +359,29 @@ async fn arcos_rows_join_interfaces_and_lldp() {
 
 /// A device whose LLDP read fails, refused or timed out, still yields its rows but not an
 /// authoritative neighbour set, so the server keeps the neighbours it holds instead of
-/// clearing them on one bad read.
+/// clearing them on one bad read. Both LLDP models get this: openconfig's dedicated neighbours
+/// subtree refusing or timing out, and DriveNets' single combined subtree doing the same.
 #[tokio::test]
 async fn failed_lldp_read_keeps_rows_and_is_not_authoritative() {
     let refused = ScriptedDevice::default()
-        .serve(Subtree::InterfaceState, ARCOS_INTERFACE_STATE)
-        .serve(Subtree::EthernetState, ARCOS_ETHERNET_STATE);
+        .serve(Subtree::INTERFACE_STATE, ARCOS_INTERFACE_STATE)
+        .serve(Subtree::ETHERNET_STATE, ARCOS_ETHERNET_STATE);
     let timed_out = ScriptedDevice::default()
-        .serve(Subtree::InterfaceState, ARCOS_INTERFACE_STATE)
-        .serve(Subtree::EthernetState, ARCOS_ETHERNET_STATE)
-        .fail(Subtree::LldpNeighbors, "gNMI Subscribe stream timed out");
-    for (case, mut device) in [("refused", refused), ("timed out", timed_out)] {
+        .serve(Subtree::INTERFACE_STATE, ARCOS_INTERFACE_STATE)
+        .serve(Subtree::ETHERNET_STATE, ARCOS_ETHERNET_STATE)
+        .fail(
+            OPENCONFIG_LLDP.subtrees[1],
+            "gNMI Subscribe stream timed out",
+        );
+    let native_failed = ScriptedDevice::default()
+        .serve(Subtree::INTERFACE_STATE, CDNOS_INTERFACE_STATE)
+        .fail(DN_LLDP.subtrees[0], "gNMI Subscribe stream timed out")
+        .advertising(&["openconfig-interfaces", "dn-lldp"]);
+    for (case, mut device, expected_rows) in [
+        ("refused", refused, 7),
+        ("timed out", timed_out, 7),
+        ("native tree failed", native_failed, 2),
+    ] {
         let (coll, rows) = rows(&mut device).await;
         assert!(
             !coll.data_complete().lldp,
@@ -358,7 +389,7 @@ async fn failed_lldp_read_keeps_rows_and_is_not_authoritative() {
         );
         assert_eq!(
             rows.len(),
-            7,
+            expected_rows,
             "{case}: interface rows come through without LLDP"
         );
         assert!(
@@ -382,7 +413,11 @@ fn unparseable_json_update_is_reported() {
         }],
         ..Default::default()
     };
-    assert!(!absorb_notification(&mut Collection::default(), &n));
+    assert!(!absorb_notification(
+        &mut Collection::default(),
+        &OPENCONFIG_LLDP,
+        &n
+    ));
 }
 
 /// A device serving LLDP but not `openconfig-interfaces` is an error naming the refused
@@ -390,12 +425,13 @@ fn unparseable_json_update_is_reported() {
 /// statuses) would shadow a real ifTable when SNMP runs against the same device.
 #[tokio::test]
 async fn interfaces_refused_is_an_error_even_with_lldp_present() {
-    let mut device = ScriptedDevice::default().serve(Subtree::LldpNeighbors, ARCOS_LLDP_NEIGHBORS);
-    let err = collect(&mut device).await.expect_err("no /interfaces");
+    let mut device =
+        ScriptedDevice::default().serve(OPENCONFIG_LLDP.subtrees[1], ARCOS_LLDP_NEIGHBORS);
+    let err = collect(&mut device, &[]).await.expect_err("no /interfaces");
     let msg = format!("{err:#}");
     assert!(msg.contains("openconfig-interfaces is required"), "{msg}");
     assert!(
-        msg.contains("'interfaces/interface[name=*]/state' is not supported"),
+        msg.contains("':interfaces/interface[name=*]/state' is not supported"),
         "{msg}"
     );
 }
@@ -439,7 +475,7 @@ fn json_ietf_blob_flattens_to_the_same_leaves() {
         ..Default::default()
     };
     let mut coll = Collection::default();
-    absorb_notification(&mut coll, &n);
+    absorb_notification(&mut coll, &OPENCONFIG_LLDP, &n);
     let rows = collection_to_interfaces(&coll, uuid::Uuid::new_v4(), uuid::Uuid::new_v4());
     let eth1 = row(&rows, "Ethernet1");
     assert_eq!(
@@ -493,10 +529,11 @@ fn explicit_chassis_type_maps_and_prefix_is_honoured() {
         ..Default::default()
     };
     let mut coll = Collection::default();
-    absorb_notification(&mut coll, &n);
+    absorb_notification(&mut coll, &OPENCONFIG_LLDP, &n);
     // The row itself comes from `/interfaces`; the neighbour only decorates it.
     absorb_notification(
         &mut coll,
+        &OPENCONFIG_LLDP,
         &Notification {
             update: vec![Update {
                 path: Some(parse_path("interfaces/interface[name=eth0]/state/ifindex")),
@@ -590,7 +627,8 @@ const DNOS_INTERFACE_STATE: &str = "
 /// `unsupported`, which never clears.
 #[tokio::test]
 async fn dnos_interfaces_without_any_lldp_model() {
-    let mut device = ScriptedDevice::default().serve(Subtree::InterfaceState, DNOS_INTERFACE_STATE);
+    let mut device =
+        ScriptedDevice::default().serve(Subtree::INTERFACE_STATE, DNOS_INTERFACE_STATE);
     let (coll, rows) = rows(&mut device).await;
     assert!(!coll.data_complete().lldp);
     assert_eq!(rows.len(), 6);
@@ -603,4 +641,223 @@ async fn dnos_interfaces_without_any_lldp_model() {
     assert_eq!(row(&rows, "irb100").if_type, Some(if_type::OTHER));
     assert_eq!(row(&rows, "mgmt-ncc-0/0").if_type, Some(if_type::OTHER));
     assert_eq!(row(&rows, "lo0").if_alias.as_deref(), Some("loopback"));
+}
+
+// Captured 2026-08-30 from clab-ml-20-edge-dnos (DriveNets cDNOS 26.2), Subscribe ONCE,
+// PROTO encoding, via gnmic. DNOS serves NO openconfig-lldp -- it is absent from Capabilities
+// and every openconfig `/lldp` path is refused with InvalidArgument -- and puts LLDP under its
+// own model instead. Verbatim except for trimming to the two ports that have neighbours.
+//
+// The refusal message recorded at capture time was "Path does not exist: /lldp"; re-checked
+// against the same NOS version on 2026-09-15 it was "No valid requests in the session". The
+// collector keys off the advertised model list, not this string, which is why that drift is
+// harmless -- but do not turn either message into an assertion.
+const CDNOS_INTERFACE_STATE: &str = "
+    interfaces/interface[name=ge100-0/0/1]/state/ifindex = 2
+    interfaces/interface[name=ge100-0/0/1]/state/type = ethernetCsmacd
+    interfaces/interface[name=ge100-0/0/1]/state/admin-status = UP
+    interfaces/interface[name=ge100-0/0/1]/state/oper-status = UP
+    interfaces/interface[name=ge100-0/0/1]/state/description = edge-dnos -> core2
+    interfaces/interface[name=ge100-0/0/2]/state/ifindex = 3
+    interfaces/interface[name=ge100-0/0/2]/state/type = ethernetCsmacd
+    interfaces/interface[name=ge100-0/0/2]/state/admin-status = UP
+    interfaces/interface[name=ge100-0/0/2]/state/oper-status = UP
+    interfaces/interface[name=ge100-0/0/2]/state/description = edge-dnos -> [mcast-src,mcast-rcv]
+";
+
+// The same device's LLDP, under `drivenets-top`. Note `oper-items` where openconfig writes
+// `state`, and that the list keys are IDENTICAL to openconfig's -- which is what lets one
+// routing table read both.
+const DNOS_LLDP_NATIVE: &str = "
+    drivenets-top/protocols/lldp/oper-items/chassis-id = 84:40:76:56:95:25
+    drivenets-top/protocols/lldp/oper-items/chassis-id-type = MAC_ADDRESS
+    drivenets-top/protocols/lldp/oper-items/system-name = edge-dnos
+    drivenets-top/protocols/lldp/interfaces/interface[name=ge100-0/0/1]/name = ge100-0/0/1
+    drivenets-top/protocols/lldp/interfaces/interface[name=ge100-0/0/1]/neighbors/neighbor[id=0]/oper-items/chassis-id = aa:c1:ab:1a:bf:7a
+    drivenets-top/protocols/lldp/interfaces/interface[name=ge100-0/0/1]/neighbors/neighbor[id=0]/oper-items/chassis-id-type = MAC_ADDRESS
+    drivenets-top/protocols/lldp/interfaces/interface[name=ge100-0/0/1]/neighbors/neighbor[id=0]/oper-items/port-id = eth3
+    drivenets-top/protocols/lldp/interfaces/interface[name=ge100-0/0/1]/neighbors/neighbor[id=0]/oper-items/port-id-type = INTERFACE_NAME
+    drivenets-top/protocols/lldp/interfaces/interface[name=ge100-0/0/1]/neighbors/neighbor[id=0]/oper-items/system-name = core2
+    drivenets-top/protocols/lldp/interfaces/interface[name=ge100-0/0/1]/oper-items/counters/lldp-in-pkts = 1239
+    drivenets-top/protocols/lldp/interfaces/interface[name=ge100-0/0/2]/neighbors/neighbor[id=0]/oper-items/chassis-id = aa:c1:ab:1f:3b:e8
+    drivenets-top/protocols/lldp/interfaces/interface[name=ge100-0/0/2]/neighbors/neighbor[id=0]/oper-items/port-id = eth1
+    drivenets-top/protocols/lldp/interfaces/interface[name=ge100-0/0/2]/neighbors/neighbor[id=0]/oper-items/system-name = mcast-src
+";
+
+fn cdnos() -> ScriptedDevice {
+    ScriptedDevice::default()
+        .serve(Subtree::INTERFACE_STATE, CDNOS_INTERFACE_STATE)
+        .serve(DN_LLDP.subtrees[0], DNOS_LLDP_NATIVE)
+}
+
+/// The design decision this module settles: `lldp_complete` is true only when the profile's
+/// `neighbors` subtree answered and parsed. DriveNets serves local identity and neighbours in
+/// ONE subtree, so a DriveNets router that answers its native tree perfectly must be
+/// authoritative -- keying this on a FIXED variant (as the openconfig-only version did, always
+/// checking the openconfig neighbours path) would leave it reporting an incomplete read
+/// forever, and its neighbours would never age out.
+#[tokio::test]
+async fn a_drivenets_device_reading_its_native_tree_is_authoritative() {
+    let mut device = cdnos().advertising(&["openconfig-interfaces", "dn-lldp", "dn-interfaces"]);
+    let models = device.capabilities().await.expect("capabilities");
+    let coll = collect(&mut device, &models).await.expect("collection");
+
+    assert_eq!(coll.lldp_model, LldpModel::Advertised("dn-lldp"));
+    assert!(
+        coll.data_complete().lldp,
+        "the native tree answered and parsed, so its neighbour set is authoritative"
+    );
+    assert!(
+        !coll.neighbors.is_empty(),
+        "the native tree yields neighbours"
+    );
+}
+
+#[tokio::test]
+async fn a_device_advertising_no_known_model_reads_openconfig_and_says_so() {
+    let mut device = arcos().advertising(&["openconfig-interfaces"]);
+    let models = device.capabilities().await.expect("capabilities");
+    let coll = collect(&mut device, &models).await.expect("collection");
+
+    assert_eq!(coll.lldp_model, LldpModel::NoneAdvertised);
+    assert!(
+        !coll.neighbors.is_empty(),
+        "openconfig is read anyway: a device may serve a model it does not advertise"
+    );
+}
+
+/// ArcOS refuses `/lldp/state` and serves a complete neighbour list anyway. The device's own
+/// chassis identity is not its neighbour set, so a refusal there must not cost it authority --
+/// if it did, every ArcOS neighbour would be kept forever on the theory it might still be there.
+#[tokio::test]
+async fn refusing_the_local_identity_path_does_not_cost_a_device_its_authority() {
+    let mut device = arcos().advertising(&["openconfig-interfaces"]);
+    let models = device.capabilities().await.expect("capabilities");
+    let coll = collect(&mut device, &models).await.expect("collection");
+
+    assert!(!coll.neighbors.is_empty(), "the neighbour list was served");
+    assert!(
+        coll.data_complete().lldp,
+        "/lldp/state is the device's own identity, not its neighbours"
+    );
+}
+
+#[tokio::test]
+async fn capabilities_reports_the_models_the_device_advertises() {
+    let mut device = ScriptedDevice::default().advertising(&["openconfig-interfaces", "dn-lldp"]);
+    let models = device.capabilities().await.expect("capabilities");
+    assert_eq!(models, vec!["openconfig-interfaces", "dn-lldp"]);
+}
+
+#[test]
+fn a_device_advertising_dn_lldp_selects_the_drivenets_profile() {
+    let models = vec!["openconfig-interfaces".to_string(), "dn-lldp".to_string()];
+    let profile = LldpModelProfile::select(&models).expect("a known profile");
+    assert_eq!(profile.module, "dn-lldp");
+    assert_eq!(profile.root, &["drivenets-top", "protocols"]);
+    assert_eq!(profile.state_container, "oper-items");
+}
+
+#[test]
+fn advertising_both_reads_openconfig() {
+    let models = vec!["dn-lldp".to_string(), "openconfig-lldp".to_string()];
+    assert_eq!(
+        LldpModelProfile::select(&models)
+            .expect("a known profile")
+            .module,
+        "openconfig-lldp",
+        "openconfig is the model this collector was built against"
+    );
+}
+
+#[test]
+fn advertising_no_known_lldp_model_selects_nothing() {
+    let models = vec!["openconfig-interfaces".to_string()];
+    assert!(LldpModelProfile::select(&models).is_none());
+}
+
+/// `neighbors` names a path that must also be in `subtrees` -- two literals that have to agree,
+/// with nothing but this test making them. A profile whose `neighbors` matches none of the
+/// subtrees it reads never sets `is_lldp`, so `lldp_complete` keeps its `true` initialiser and
+/// the device claims authority over a neighbour set it may never have read.
+#[test]
+fn every_profile_names_a_neighbours_subtree_it_actually_reads() {
+    for p in LldpModelProfile::KNOWN {
+        assert!(
+            p.subtrees.contains(&p.neighbors),
+            "{} names a neighbors subtree it does not read",
+            p.module
+        );
+    }
+}
+
+/// `Subtree::path()` is the only place `origin` is actually put on the wire — nothing else
+/// reads the field. Every profile above sets it empty (openconfig and DriveNets both answer
+/// their tree under the device's default schema tree), so nothing exercises the non-empty
+/// case without a synthetic subtree here. Guards against `path()` silently dropping the field,
+/// which `subtree_key`/`render_path` (both origin-aware, see above) would not by itself catch.
+#[test]
+fn a_non_empty_origin_reaches_the_rendered_path() {
+    let subtree = Subtree {
+        origin: "srl_nokia",
+        elems: &["lldp", "interfaces", "interface[name=*]"],
+    };
+    let path = subtree.path();
+    assert_eq!(path.origin, "srl_nokia");
+    assert_eq!(
+        render_path(&path),
+        "srl_nokia:lldp/interfaces/interface[name=*]"
+    );
+}
+
+/// Parse a gnmic-style path into a `Leaf` with no value, reusing the same path-parsing the
+/// fixtures above rely on.
+fn leaf_from(path: &str) -> Leaf {
+    Leaf {
+        elems: parse_path(path).elem,
+        value: String::new(),
+    }
+}
+
+/// The scoping bug this fold has to avoid: a device whose profile renames the state
+/// container must not have that rename applied to its `/interfaces` tree, where `state`
+/// is already `state` and an `oper-items` container means something else entirely.
+#[test]
+fn the_state_rewrite_is_scoped_to_the_models_own_lldp_tree() {
+    let leaf = leaf_from("interfaces/interface[name=ge100-0/0/1]/oper-items/ifindex");
+    let names = normalised_names(&DN_LLDP, &leaf);
+    assert_eq!(
+        names,
+        vec!["interfaces", "interface", "oper-items", "ifindex"],
+        "not this model's LLDP tree: nothing is stripped and nothing is renamed"
+    );
+}
+
+#[test]
+fn the_drivenets_root_is_stripped_and_oper_items_reads_as_state() {
+    let leaf = leaf_from(
+        "drivenets-top/protocols/lldp/interfaces/interface[name=ge100-0/0/2]\
+         /neighbors/neighbor[id=0]/oper-items/system-name",
+    );
+    let names = normalised_names(&DN_LLDP, &leaf);
+    assert_eq!(
+        names,
+        vec![
+            "lldp",
+            "interfaces",
+            "interface",
+            "neighbors",
+            "neighbor",
+            "state",
+            "system-name"
+        ],
+    );
+}
+
+#[test]
+fn openconfig_normalisation_is_the_identity() {
+    let leaf =
+        leaf_from("lldp/interfaces/interface[name=swp1]/neighbors/neighbor[id=1]/state/port-id");
+    let before: Vec<&str> = leaf.elems.iter().map(|e| e.name.as_str()).collect();
+    assert_eq!(normalised_names(&OPENCONFIG_LLDP, &leaf), before);
 }
