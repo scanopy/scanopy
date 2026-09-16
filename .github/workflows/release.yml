@@ -491,6 +491,23 @@ jobs:
             cargo build --release --bin daemon --target ${{ matrix.target }}
           fi
       
+      # ---- Windows code signing (thin front-end over the `install` subcommand) ----
+      # Signing runs only when the OSSign config secret is provisioned, so releases still succeed
+      # (with unsigned binaries) before signing is wired up.
+      - name: Check Windows signing availability
+        id: signing
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        shell: bash
+        env:
+          OSSIGN_CONFIG: ${{ secrets.OSSIGN_CONFIG }}
+        run: |
+          if [ -n "$OSSIGN_CONFIG" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::OSSign signing secret not set — Windows binaries will be built unsigned."
+          fi
+
       - name: Prepare binary
         shell: bash
         run: |
@@ -500,7 +517,17 @@ jobs:
             cp backend/target/${{ matrix.target }}/release/daemon ${{ matrix.binary }}
             chmod +x ${{ matrix.binary }}
           fi
-      
+
+      - name: Sign daemon exe (standalone binary, OSSign)
+        if: matrix.target == 'x86_64-pc-windows-msvc' && steps.signing.outputs.enabled == 'true'
+        uses: ossign/ossign@7265121e500b3e8c36a60044a5f79684a8224f8e # 1.1.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config: ${{ secrets.OSSIGN_CONFIG }}
+          inputFile: ${{ matrix.binary }}
+          outputFile: ${{ matrix.binary }}
+          fileType: pecoff
+
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
@@ -508,62 +535,26 @@ jobs:
           path: ${{ matrix.binary }}
           retention-days: 1
 
-      # ---- Windows MSI (thin front-end over the `install` subcommand) ----
-      # Signing runs only when Certum SimplySign cloud secrets are provisioned, so releases still
-      # succeed (with an unsigned MSI) before the certificate is wired up.
-      - name: Check MSI signing availability
-        id: signing
-        if: matrix.target == 'x86_64-pc-windows-msvc'
-        shell: bash
-        env:
-          CERTUM_STOREPASS: ${{ secrets.CERTUM_STOREPASS }}
-        run: |
-          if [ -n "$CERTUM_STOREPASS" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::Certum signing secrets not set — MSI will be built unsigned."
-          fi
-
       - name: Install cargo-wix
         if: matrix.target == 'x86_64-pc-windows-msvc'
         shell: bash
         run: cargo install cargo-wix --version 0.3.9 --locked
-
-      - name: Setup Java (jsign)
-        if: matrix.target == 'x86_64-pc-windows-msvc' && steps.signing.outputs.enabled == 'true'
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
 
       - name: Stage daemon exe for WiX
         if: matrix.target == 'x86_64-pc-windows-msvc'
         shell: bash
         run: cp backend/target/${{ matrix.target }}/release/daemon.exe backend/wix/scanopy-daemon.exe
 
-      - name: Download jsign
-        if: matrix.target == 'x86_64-pc-windows-msvc' && steps.signing.outputs.enabled == 'true'
-        shell: bash
-        run: curl -fL -o jsign.jar https://github.com/ebourg/jsign/releases/download/6.0/jsign-6.0.jar
-
       # Sign the .exe BEFORE it is embedded in the MSI so the binary inside is trusted too.
-      - name: Sign daemon exe (Certum SimplySign cloud)
+      - name: Sign daemon exe (WiX-staged, OSSign)
         if: matrix.target == 'x86_64-pc-windows-msvc' && steps.signing.outputs.enabled == 'true'
-        shell: bash
-        env:
-          CERTUM_KEYSTORE: ${{ secrets.CERTUM_KEYSTORE }}
-          CERTUM_KEY_ALIAS: ${{ secrets.CERTUM_KEY_ALIAS }}
-          CERTUM_STOREPASS: ${{ secrets.CERTUM_STOREPASS }}
-        run: |
-          java -jar jsign.jar \
-            --storetype CRYPTOCERTUM \
-            --keystore "$CERTUM_KEYSTORE" \
-            --alias "$CERTUM_KEY_ALIAS" \
-            --storepass "$CERTUM_STOREPASS" \
-            --tsaurl http://time.certum.pl \
-            --tsmode RFC3161 \
-            backend/wix/scanopy-daemon.exe
+        uses: ossign/ossign@7265121e500b3e8c36a60044a5f79684a8224f8e # 1.1.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config: ${{ secrets.OSSIGN_CONFIG }}
+          inputFile: backend/wix/scanopy-daemon.exe
+          outputFile: backend/wix/scanopy-daemon.exe
+          fileType: pecoff
 
       - name: Build MSI (cargo-wix)
         if: matrix.target == 'x86_64-pc-windows-msvc'
@@ -579,22 +570,15 @@ jobs:
             --install-version "$VERSION" \
             --output "../scanopy-daemon-windows-amd64.msi"
 
-      - name: Sign MSI (Certum SimplySign cloud)
+      - name: Sign MSI (OSSign)
         if: matrix.target == 'x86_64-pc-windows-msvc' && steps.signing.outputs.enabled == 'true'
-        shell: bash
-        env:
-          CERTUM_KEYSTORE: ${{ secrets.CERTUM_KEYSTORE }}
-          CERTUM_KEY_ALIAS: ${{ secrets.CERTUM_KEY_ALIAS }}
-          CERTUM_STOREPASS: ${{ secrets.CERTUM_STOREPASS }}
-        run: |
-          java -jar jsign.jar \
-            --storetype CRYPTOCERTUM \
-            --keystore "$CERTUM_KEYSTORE" \
-            --alias "$CERTUM_KEY_ALIAS" \
-            --storepass "$CERTUM_STOREPASS" \
-            --tsaurl http://time.certum.pl \
-            --tsmode RFC3161 \
-            scanopy-daemon-windows-amd64.msi
+        uses: ossign/ossign@7265121e500b3e8c36a60044a5f79684a8224f8e # 1.1.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config: ${{ secrets.OSSIGN_CONFIG }}
+          inputFile: scanopy-daemon-windows-amd64.msi
+          outputFile: scanopy-daemon-windows-amd64.msi
+          fileType: msi
 
       - name: Upload MSI artifact
         if: matrix.target == 'x86_64-pc-windows-msvc'

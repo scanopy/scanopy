@@ -97,6 +97,8 @@ impl Storable for SubnetVlanRecord {
         "subnet_vlans"
     }
 
+    const HAS_SCD2: bool = true;
+
     fn new(base: Self::BaseData) -> Self {
         SubnetVlanRecord::new(base)
     }

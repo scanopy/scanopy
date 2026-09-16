@@ -30,6 +30,7 @@ use std::net::IpAddr;
 use uuid::Uuid;
 
 use crate::daemon::discovery::integration::controller::{ControllerIdentity, MappedClient};
+use crate::server::interface_neighbors::r#impl::base::InterfaceNeighborEvidence;
 use crate::server::interfaces::r#impl::base::{
     IfAdminStatus, IfOperStatus, Interface, InterfaceBase,
 };
@@ -182,7 +183,7 @@ fn map_interfaces(
             host_id: Uuid::nil(),
             network_id,
             if_index: Some(1),
-            if_descr: name.clone(),
+            if_descr: Some(name.clone()),
             if_name: Some(name),
             if_type: Some(IF_TYPE_ETHERNET),
             admin_status: Some(IfAdminStatus::Up),
@@ -252,7 +253,7 @@ fn port_to_interface(port: &InstantOnPort, position: usize, network_id: Uuid) ->
         host_id: Uuid::nil(),
         network_id,
         if_index: Some(if_index),
-        if_descr: name.clone(),
+        if_descr: Some(name.clone()),
         if_name: Some(name),
         if_type: Some(IF_TYPE_ETHERNET),
         speed_bps: port
@@ -317,21 +318,27 @@ fn apply_uplink(
         return;
     };
 
-    interface.base.lldp_chassis_id = Some(LldpChassisId::MacAddress(parent_mac));
-    // `LocallyAssigned` holding the parent's *if_index*, not its port id string: the resolver
-    // tries a name lookup and then parses the value as an ifIndex, and the parent's interfaces are
-    // numbered by the same `port_if_index`, so the index tier hits. Passing the raw `"1/1/1"`
-    // would dead-end in both tiers.
-    interface.base.lldp_port_id = uplink
-        .remote_port_id
-        .as_deref()
-        .map(str::trim)
-        .zip(parent)
-        .and_then(|(remote, parent)| index_of_port(parent, remote))
-        .map(|idx| LldpPortId::LocallyAssigned(idx.to_string()));
-    interface.base.lldp_sys_name = parent
-        .and_then(|p| p.name.clone())
-        .filter(|n| !n.trim().is_empty());
+    // One candidate, replacing whatever this port already held — this function is authoritative
+    // for the port it names (mirrors the pre-GH #701 scalar-overwrite semantics `InterfaceBase.
+    // lldp_*` had).
+    interface.base.neighbor_candidates = vec![InterfaceNeighborEvidence {
+        lldp_chassis_id: Some(LldpChassisId::MacAddress(parent_mac)),
+        // `LocallyAssigned` holding the parent's *if_index*, not its port id string: the resolver
+        // tries a name lookup and then parses the value as an ifIndex, and the parent's
+        // interfaces are numbered by the same `port_if_index`, so the index tier hits. Passing
+        // the raw `"1/1/1"` would dead-end in both tiers.
+        lldp_port_id: uplink
+            .remote_port_id
+            .as_deref()
+            .map(str::trim)
+            .zip(parent)
+            .and_then(|(remote, parent)| index_of_port(parent, remote))
+            .map(|idx| LldpPortId::LocallyAssigned(idx.to_string())),
+        lldp_sys_name: parent
+            .and_then(|p| p.name.clone())
+            .filter(|n| !n.trim().is_empty()),
+        ..Default::default()
+    }];
 }
 
 /// The `if_index` this device's port with `port_id` was mapped to.
@@ -547,6 +554,12 @@ mod tests {
             .unwrap_or_else(|| panic!("expected an interface at index {if_index}"))
     }
 
+    /// The single candidate `apply_uplink` writes for a port — it is authoritative for the port
+    /// it names, so a mapped port never carries more than one.
+    fn candidate(port: &Interface) -> Option<&InterfaceNeighborEvidence> {
+        port.base.neighbor_candidates.first()
+    }
+
     /// The rule that stacking depends on. A stack numbers ports per member, so `"1/1/1"` and
     /// `"2/1/1"` are different physical ports on different member switches. Keying on
     /// `portNumber` would collapse them onto one interface and silently lose half the stack's
@@ -568,7 +581,10 @@ mod tests {
         );
         // The member-qualified id survives as the interface name, so an operator can find the
         // port on the physical switch.
-        assert_eq!(interface(stack, 2_001_001).base.if_descr, "2/1/1");
+        assert_eq!(
+            interface(stack, 2_001_001).base.if_descr.as_deref(),
+            Some("2/1/1")
+        );
     }
 
     /// A standalone switch numbers ports flatly, and must keep doing so — the stack handling
@@ -577,9 +593,9 @@ mod tests {
     fn standalone_switch_ports_keep_their_own_numbering() {
         let devices = map();
         let edge = find(&devices, "Edge Switch");
-        assert_eq!(interface(edge, 24).base.if_descr, "Uplink");
+        assert_eq!(interface(edge, 24).base.if_descr.as_deref(), Some("Uplink"));
         // An unnamed port falls back to its port id rather than a synthesized label.
-        assert_eq!(interface(edge, 2).base.if_descr, "2");
+        assert_eq!(interface(edge, 2).base.if_descr.as_deref(), Some("2"));
     }
 
     /// An access point reports no ports at all. It must map cleanly to one synthesized uplink
@@ -590,7 +606,7 @@ mod tests {
         let devices = map();
         let ap = find(&devices, "Office AP");
         assert_eq!(ap.interfaces.len(), 1);
-        assert_eq!(ap.interfaces[0].base.if_descr, "eth0");
+        assert_eq!(ap.interfaces[0].base.if_descr.as_deref(), Some("eth0"));
         assert_eq!(ap.device_type.as_deref(), Some("ACCESS_POINT"));
     }
 
@@ -604,17 +620,17 @@ mod tests {
         let uplink_port = interface(edge, 24);
 
         assert_eq!(
-            uplink_port.base.lldp_chassis_id,
+            candidate(uplink_port).and_then(|c| c.lldp_chassis_id.clone()),
             Some(LldpChassisId::MacAddress("aa:bb:cc:00:00:01".to_string()))
         );
         // "1/1/2" on the parent stack maps to if_index 1_001_002.
         assert_eq!(
-            uplink_port.base.lldp_port_id,
+            candidate(uplink_port).and_then(|c| c.lldp_port_id.clone()),
             Some(LldpPortId::LocallyAssigned("1001002".to_string()))
         );
         assert_eq!(
-            uplink_port.base.lldp_sys_name.as_deref(),
-            Some("Core Stack")
+            candidate(uplink_port).and_then(|c| c.lldp_sys_name.clone()),
+            Some("Core Stack".to_string())
         );
     }
 

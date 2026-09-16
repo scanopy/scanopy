@@ -107,7 +107,7 @@ impl Lab {
             host_id,
             network_id: self.network_id,
             if_index: Some(if_index),
-            if_descr: if_descr.to_string(),
+            if_descr: Some(if_descr.to_string()),
             if_name: if_name.map(str::to_string),
             if_alias: if_alias.map(str::to_string),
             if_type: Some(if_type),
@@ -145,6 +145,37 @@ impl Lab {
         .await
     }
 
+    /// A physical ethernet port the device's own SNMP `ipAddrTable` binds an address to — the
+    /// tie-break `find_if_entry_by_mac` falls back to among several MAC-sharing physical rows
+    /// (GH #668, a Windows NIC and its NDIS filter/LWF pseudo-interfaces).
+    async fn ip_configured_port(
+        &self,
+        host_id: Uuid,
+        if_index: i32,
+        descr: &str,
+        mac: Option<&str>,
+    ) -> Interface {
+        let entry = Interface::new(InterfaceBase {
+            host_id,
+            network_id: self.network_id,
+            if_index: Some(if_index),
+            if_descr: Some(descr.to_string()),
+            if_type: Some(if_type::ETHERNET_CSMA_CD),
+            mac_address: mac.map(|m| {
+                MacEvidence::new(
+                    MacEvidenceValue(m.parse().unwrap()),
+                    AttributeSource::ArpReply,
+                )
+            }),
+            admin_status: Some(IfAdminStatus::Up),
+            oper_status: Some(IfOperStatus::Up),
+            ip_configured: true,
+            ..Default::default()
+        });
+        self.storage.interfaces.create(&entry).await.unwrap();
+        entry
+    }
+
     async fn ip(&self, host_id: Uuid, addr: Ipv4Addr, mac: Option<&str>) -> IPAddress {
         let ip = IPAddress::new(IPAddressBase {
             network_id: self.network_id,
@@ -162,6 +193,25 @@ impl Lab {
         });
         self.storage.ip_addresses.create(&ip).await.unwrap();
         ip
+    }
+
+    /// Exactly what `NetworkScan::submit_dcp_host` builds: no `if_index`/`if_descr`/`if_type`/
+    /// admin or oper status — a PROFINET DCP Identify carries none of that, only the MAC the
+    /// device answered with. Distinct from `port`/`interface` above, which always set those
+    /// fields, because a test using them here would not actually be exercising DCP's shape.
+    async fn profinet_dcp_port(&self, host_id: Uuid, mac: &str) -> Interface {
+        let entry = Interface::new(InterfaceBase {
+            host_id,
+            network_id: self.network_id,
+            if_descr: None,
+            mac_address: Some(MacEvidence::new(
+                MacEvidenceValue(mac.parse().unwrap()),
+                AttributeSource::ProfinetDcp,
+            )),
+            ..Default::default()
+        });
+        self.storage.interfaces.create(&entry).await.unwrap();
+        entry
     }
 }
 
@@ -185,6 +235,28 @@ async fn a_host_resolves_by_the_mac_on_one_of_its_addresses() {
             .find_host_by_mac("00:1a:2b:00:10:01", lab.network_id)
             .await,
         IdentityResolution::Resolved(switch.id)
+    );
+}
+
+/// A no-IP PROFINET device found only via DCP Identify (`AttributeSource::ProfinetDcp`) resolves
+/// through the same MAC tier as any other interface — `find_host_by_mac`'s fallback query has no
+/// `AttributeSource` filter at all, so a neighbouring switch's LLDP-reported chassis MAC matches
+/// it exactly as it would an SNMP- or ARP-discovered one. This is the fact the whole "does a
+/// managed switch's LLDP table already place a no-IP PROFINET device" story depends on — see
+/// tools/dcp/DCP-TEST-ENV.md and the switch-access-01 SNMP fixture, which advertises this same
+/// device's MAC as a neighbour for exactly this reason.
+#[tokio::test]
+async fn a_no_ip_dcp_discovered_device_resolves_through_the_mac_tier_like_any_other_source() {
+    let lab = Lab::new().await;
+    let device = lab.host("scanopy-dcp-sim").await;
+    lab.profinet_dcp_port(device.id, "00:1a:2b:dc:90:01").await;
+
+    assert_eq!(
+        lab.resolver
+            .find_host_by_mac("00:1a:2b:dc:90:01", lab.network_id)
+            .await,
+        IdentityResolution::Resolved(device.id),
+        "a DCP-attributed MAC must resolve exactly like an SNMP- or ARP-attributed one"
     );
 }
 
@@ -463,6 +535,91 @@ async fn virtual_interfaces_sharing_a_mac_do_not_make_a_physical_port_ambiguous(
     );
 }
 
+/// GH #668: a Windows host exposes one MAC on its real NIC and on several NDIS filter/LWF
+/// pseudo-interfaces layered on top of it (WFP Native MAC Layer, QoS Packet Scheduler, WFP 802.3
+/// filters). All of them report an ordinary ethernet `if_type`, so `physical_if_types()` alone
+/// cannot tell them apart — before the fix this is exactly
+/// `a_mac_on_several_ports_of_one_device_is_ambiguous_not_arbitrary`'s shape and stays `Ambiguous`.
+/// `ipAddrTable` only ever binds the device's own IP address to the real adapter, never to a
+/// filter driver riding on top of it, so `ip_configured` breaks the tie.
+#[tokio::test]
+async fn the_ip_configured_physical_port_resolves_among_mac_sharing_siblings() {
+    let lab = Lab::new().await;
+    let pc = lab.host("pc-069").await;
+    let nic = lab
+        .ip_configured_port(
+            pc.id,
+            7,
+            "Realtek Gaming 2.5GbE Family Controller",
+            Some("50:eb:f6:26:54:79"),
+        )
+        .await;
+    for (idx, if_index) in (18..21).enumerate() {
+        lab.port(
+            pc.id,
+            if_index,
+            &format!("Realtek Gaming 2.5GbE Family Controller-Filter-{idx}"),
+            Some("50:eb:f6:26:54:79"),
+        )
+        .await;
+    }
+
+    assert_eq!(
+        lab.resolver
+            .find_if_entry_by_mac("50:eb:f6:26:54:79", pc.id)
+            .await,
+        IdentityResolution::Resolved(nic.id),
+        "the ipAddrTable-bound interface is the physical NIC, not one of its filter siblings"
+    );
+}
+
+/// The other half of the same rule: the tie-break must not guess. Two physical rows sharing a MAC
+/// where *neither* carries the device's own IP binding is exactly as unresolvable today as it was
+/// before `ip_configured` existed — trading a missing link for a wrong one is the one thing this
+/// fix must never do.
+#[tokio::test]
+async fn mac_sharing_ports_with_no_ip_configured_candidate_stay_ambiguous() {
+    let lab = Lab::new().await;
+    let switch = lab.host("d-link").await;
+    for if_index in 1..=3 {
+        lab.port(
+            switch.id,
+            if_index,
+            &format!("Slot0/{if_index}"),
+            Some("00:ad:24:af:4e:00"),
+        )
+        .await;
+    }
+
+    assert_eq!(
+        lab.resolver
+            .find_if_entry_by_mac("00:ad:24:af:4e:00", switch.id)
+            .await,
+        IdentityResolution::Ambiguous
+    );
+}
+
+/// And the symmetric case: if the tie-break signal itself is tied — two candidates both carrying
+/// an IP binding, e.g. a NIC-teaming misconfiguration or a non-native SNMP agent exposing more
+/// than one adapter as IP-bound — that is still not a basis for picking one arbitrarily.
+#[tokio::test]
+async fn two_ip_configured_candidates_sharing_a_mac_stay_ambiguous() {
+    let lab = Lab::new().await;
+    let host = lab.host("teamed-nics").await;
+    lab.ip_configured_port(host.id, 1, "nic-a", Some("00:1a:2b:00:10:00"))
+        .await;
+    lab.ip_configured_port(host.id, 2, "nic-b", Some("00:1a:2b:00:10:00"))
+        .await;
+
+    assert_eq!(
+        lab.resolver
+            .find_if_entry_by_mac("00:1a:2b:00:10:00", host.id)
+            .await,
+        IdentityResolution::Ambiguous,
+        "two equally-plausible candidates must not be resolved arbitrarily"
+    );
+}
+
 #[tokio::test]
 async fn an_unparseable_or_unknown_mac_is_not_found_rather_than_ambiguous() {
     let lab = Lab::new().await;
@@ -586,7 +743,7 @@ async fn a_port_resolves_by_the_ip_bound_to_it() {
         host_id: switch.id,
         network_id: lab.network_id,
         if_index: Some(1),
-        if_descr: "Vlan10".to_string(),
+        if_descr: Some("Vlan10".to_string()),
         if_type: Some(if_type::ETHERNET_CSMA_CD),
         ip_address_id: Some(addr.id),
         admin_status: Some(IfAdminStatus::Up),
@@ -742,6 +899,14 @@ async fn the_snapshot_resolver_answers_exactly_as_the_queries_do() {
     let mikrotik = lab.host_with("mikrotik", None, Some("mikrotik")).await;
     lab.port(mikrotik.id, 1, "ether4-Center", None).await;
 
+    // GH #668: two physical ports sharing a MAC, one of them ipAddrTable-bound — the DB-backed
+    // and in-memory resolvers must agree on the tie-break, not just on the plain-ambiguous case.
+    let pc = lab.host("pc-069").await;
+    lab.ip_configured_port(pc.id, 7, "Realtek NIC", Some("50:eb:f6:26:54:79"))
+        .await;
+    lab.port(pc.id, 18, "Realtek NIC-Filter-0", Some("50:eb:f6:26:54:79"))
+        .await;
+
     let snapshot = LldpInventorySnapshot::new(
         &lab.storage.hosts.get_all(Default::default()).await.unwrap(),
         &lab.storage
@@ -805,6 +970,7 @@ async fn the_snapshot_resolver_answers_exactly_as_the_queries_do() {
         (switch.id, "00:11:22:33:44:00"), // virtual only, so invisible here
         (switch.id, "00:11:22:33:44:09"), // two physical ports
         (switch.id, "00:00:00:00:00:99"),
+        (pc.id, "50:eb:f6:26:54:79"), // two physical ports, one ip_configured
     ] {
         assert_eq!(
             snapshot.find_if_entry_by_mac(mac, host_id).await,

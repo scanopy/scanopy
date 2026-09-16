@@ -18,9 +18,11 @@ use crate::server::ports::r#impl::base::PortType;
 use crate::server::services::definitions::ServiceDefinitionRegistry;
 use crate::server::services::r#impl::categories::ServiceCategory;
 use crate::server::services::r#impl::definitions::ServiceDefinition;
-use crate::server::shared::attribution::AttributeMethod;
+use crate::server::services::r#impl::patterns::ClientProbe;
+use crate::server::shared::attribution::{AttributeMethod, AttributeSourceDiscriminants};
 use crate::server::shared::concepts::Concept;
 use crate::server::shared::entities::EntityDiscriminants;
+use crate::server::shared::types::entities::EntitySourceDiscriminants;
 use crate::server::shared::types::metadata::{EntityMetadata, MetadataProvider, TypeMetadata};
 use crate::server::subnets::r#impl::types::SubnetType;
 use crate::server::topology::types::edges::EdgeType;
@@ -146,6 +148,13 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
         .collect();
     write_fixture(&entities, output_dir, "entities.json");
 
+    // How an entity came to exist. Keyed by the `source.type` tag every entity carries, so the
+    // UI labels, colours and filters on it without restating the variants.
+    let entity_sources: Vec<TypeMetadata> = EntitySourceDiscriminants::iter()
+        .map(|s| s.to_metadata())
+        .collect();
+    write_fixture(&entity_sources, output_dir, "entity-sources.json");
+
     let concepts: Vec<EntityMetadata> = Concept::iter().map(|e| e.to_metadata()).collect();
     write_fixture(&concepts, output_dir, "concepts.json");
 
@@ -202,6 +211,16 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
     let attribute_methods: Vec<TypeMetadata> =
         AttributeMethod::iter().map(|m| m.to_metadata()).collect();
     write_fixture(&attribute_methods, output_dir, "attribute-methods.json");
+
+    // Where one value came from, by name. Keyed by the source's discriminant: `Probe` and
+    // `Authored` are templates whose `{probe}` slot is filled from `client-probes.json`.
+    let attribute_sources: Vec<TypeMetadata> = AttributeSourceDiscriminants::iter()
+        .map(|s| s.to_metadata())
+        .collect();
+    write_fixture(&attribute_sources, output_dir, "attribute-sources.json");
+
+    let client_probes: Vec<TypeMetadata> = ClientProbe::iter().map(|p| p.to_metadata()).collect();
+    write_fixture(&client_probes, output_dir, "client-probes.json");
 
     println!("Done! Generated all metadata fixtures.");
 }

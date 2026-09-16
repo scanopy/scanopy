@@ -1,5 +1,5 @@
 use crate::server::auth::middleware::permissions::{Authorized, Member, Viewer};
-use crate::server::hosts::r#impl::base::{Host, host_display_name_sql, host_primary_address_join};
+use crate::server::hosts::r#impl::base::{Host, host_primary_address_join};
 use crate::server::services::definitions::ServiceDefinitionRegistry;
 use crate::server::services::r#impl::categories::ServiceCategory;
 use crate::server::shared::handlers::ordering::OrderField;
@@ -59,6 +59,11 @@ pub enum ServiceOrderField {
     LastSeenAt,
 }
 
+/// The owning host's title in SQL, built once: `to_sql` hands out `&'static str`.
+static SERVICE_HOST_TITLE_SQL: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
+    crate::server::hosts::r#impl::name_ladder::display_name_sql("service_host", "primary_interface")
+});
+
 impl OrderField for ServiceOrderField {
     fn to_sql(&self) -> &'static str {
         match self {
@@ -69,7 +74,7 @@ impl OrderField for ServiceOrderField {
             Self::Position => "services.position",
             Self::ServiceDefinition => "services.service_definition",
             Self::LastSeenAt => "services.last_seen_at",
-            Self::Host => host_display_name_sql!("service_host", "primary_interface"),
+            Self::Host => SERVICE_HOST_TITLE_SQL.as_str(),
         }
     }
 

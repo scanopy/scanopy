@@ -93,16 +93,17 @@ impl SnmpWalkGroup {
 
     /// Whether the rows a short read *did* return are thrown away rather than recorded.
     ///
-    /// The four fields of `InterfaceDataComplete`. For these, `preserve_uncollected_data` restores
-    /// the stored value on every interface when the walk fell short, so a partial read contributes
-    /// nothing — deliberately, because an absent neighbour and an unread one look identical and
-    /// losing a chassis id drops the row out of L2 resolution for good. Everything else here is
-    /// recorded as far as it got: a half-read ARP cache still creates the hosts it named.
+    /// Bridge forwarding and VLAN membership: for these, `preserve_uncollected_data` restores the
+    /// stored value on every interface when the walk fell short, so a partial read contributes
+    /// nothing. Everything else here is recorded as far as it got: a half-read ARP cache still
+    /// creates the hosts it named.
+    ///
+    /// LLDP and CDP were on this list until GH #701 moved neighbour evidence into per-row
+    /// candidates. `replace_candidates_from_discovery` now records every row a partial walk read
+    /// and carries stored rows forward only for ports that got none, so a warning saying the rows
+    /// were not recorded was false (GH #685).
     pub fn partial_read_is_discarded(self) -> bool {
-        matches!(
-            self,
-            Self::Lldp | Self::Cdp | Self::BridgeForwarding | Self::VlanMembership
-        )
+        matches!(self, Self::BridgeForwarding | Self::VlanMembership)
     }
 }
 

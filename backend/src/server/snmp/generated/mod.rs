@@ -9,4 +9,4 @@ mod enterprise_numbers;
 mod if_types;
 
 pub use enterprise_numbers::{extract_enterprise_number, get_enterprise_name};
-pub use if_types::get_if_type_name;
+pub use if_types::{get_if_type_name, get_if_type_number};

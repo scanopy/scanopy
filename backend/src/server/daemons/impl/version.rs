@@ -232,18 +232,75 @@ pub fn has_correct_docker_volume_mount(version: Option<&Version>) -> bool {
     version.is_some_and(|v| v >= &minimum_correct_docker_volume_mount())
 }
 
-/// Every capability floor owned by this module. The rot-guard test asserts each
-/// is ≤ the current server version, so a floor can never quietly reference a
-/// version this build doesn't know about.
+/// The last release whose daemon submits the pre-#701 scalar LLDP/CDP shape — twelve fields flat
+/// on each interface, rather than the `neighbor_candidates` array that replaced them.
+///
+/// A ceiling, not a floor, which is why it is not in [`capability_floors`]: every other constant
+/// here says "this version and above can do X", and this one says "this version and below still
+/// speaks the old shape". Keyed on the last old release rather than the first new one so it names
+/// a version that exists — the first release carrying #701 is unpublished, and a floor above
+/// `own_version()` would fail `capability_floors_within_server_version` on day one.
+///
+/// Read by `legacy_neighbor_wire_shim_still_needed`, which fails once the enforced floor passes
+/// it. That is the whole end-condition: see
+/// [`DiscoveryInterface`](crate::server::interfaces::r#impl::wire::DiscoveryInterface).
+pub fn last_legacy_neighbor_wire() -> Version {
+    Version::new(0, 17, 14)
+}
+
+/// Every capability floor this build enforces, labelled so a failure names the
+/// offender. The rot-guard test asserts each is ≤ the current server version, so
+/// a floor can never quietly reference a version this build doesn't know about.
+///
+/// Covers two sets, because a floor is a floor wherever it is declared:
+///
+/// * the shim floors owned by this module, and
+/// * every credential type's [`minimum_daemon_version`], which gates server→daemon
+///   credential dispatch in `retain_daemon_compatible`.
+///
+/// The second set is here because omitting it hid a live one. A credential floor
+/// above `own_version()` is not inert like a too-new shim floor — it silently drops
+/// that credential from every dispatch, so the integration behind it does nothing at
+/// all, on every deployment of the branch, with no operator-visible signal beyond one
+/// server-side warning.
+///
+/// [`minimum_daemon_version`]: crate::server::credentials::r#impl::types::CredentialTypeDiscriminants::minimum_daemon_version
 #[cfg(test)]
-fn capability_floors() -> Vec<Version> {
-    vec![
-        minimum_unified_discovery(),
-        minimum_full_server_poll(),
-        minimum_server_provisioned_identity(),
-        minimum_correct_docker_volume_mount(),
-        minimum_targeted_rescan(),
-    ]
+fn capability_floors() -> Vec<(String, Version)> {
+    use crate::server::credentials::r#impl::types::CredentialTypeDiscriminants;
+    use strum::IntoEnumIterator;
+
+    let mut floors = vec![
+        (
+            "minimum_unified_discovery".to_string(),
+            minimum_unified_discovery(),
+        ),
+        (
+            "minimum_full_server_poll".to_string(),
+            minimum_full_server_poll(),
+        ),
+        (
+            "minimum_server_provisioned_identity".to_string(),
+            minimum_server_provisioned_identity(),
+        ),
+        (
+            "minimum_correct_docker_volume_mount".to_string(),
+            minimum_correct_docker_volume_mount(),
+        ),
+        (
+            "minimum_targeted_rescan".to_string(),
+            minimum_targeted_rescan(),
+        ),
+    ];
+
+    floors.extend(CredentialTypeDiscriminants::iter().map(|disc| {
+        (
+            format!("{} credential", disc.display_name()),
+            disc.minimum_daemon_version(),
+        )
+    }));
+
+    floors
 }
 
 // ===========================================================================
@@ -672,12 +729,33 @@ mod tests {
     #[test]
     fn capability_floors_within_server_version() {
         let own = own_version();
-        for floor in capability_floors() {
+        for (name, floor) in capability_floors() {
             assert!(
                 floor <= own,
-                "capability floor {floor} exceeds server version {own} — a shim references a \
-                 version this build doesn't know; move the floor or delete the shim"
+                "capability floor {name} is {floor}, above server version {own} — it references a \
+                 version this build doesn't know. A shim floor: move it or delete the shim. A \
+                 credential floor: this build dispatches that credential to nobody, so bump the \
+                 crate version to the release it ships in, or lower the floor."
             );
         }
+    }
+
+    /// The pre-#701 neighbour wire shim outlives its usefulness the moment no supported daemon
+    /// can still send that shape. Nothing else notices when that happens: the shim keeps
+    /// compiling, keeps passing, and keeps costing every reader of the ingest path an
+    /// explanation. So this fails instead, on the date `scheduled_sunsets()` says, with no one
+    /// having to remember.
+    #[test]
+    fn legacy_neighbor_wire_shim_still_needed() {
+        let floor = enforced_floor(Utc::now());
+        let last = last_legacy_neighbor_wire();
+        assert!(
+            floor <= last,
+            "the enforced daemon floor is {floor}, above {last}: every supported daemon now \
+             submits `neighbor_candidates`, so the pre-#701 scalar LLDP/CDP shape is dead. \
+             Delete `DiscoveryInterface`'s `legacy_neighbor_evidence` field and its translation \
+             (server/interfaces/impl/wire.rs), the `OutdatedDaemonFormat` warning if nothing \
+             else raises it, `last_legacy_neighbor_wire`, and this test."
+        );
     }
 }

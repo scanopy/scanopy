@@ -9,6 +9,7 @@ use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::auth::service::hash_password;
 use crate::server::bindings::r#impl::base::Binding;
 use crate::server::hosts::r#impl::base::Host;
+use crate::server::interface_neighbors::r#impl::base::Neighbor;
 use crate::server::organizations::demo_data::DemoData;
 use crate::server::services::r#impl::base::Service;
 use crate::server::shared::services::factory::ServiceFactory;
@@ -20,6 +21,7 @@ use crate::server::subnets::r#impl::base::Subnet;
 use crate::server::tags::entity_tags::EntityTag;
 use crate::server::users::r#impl::base::{User, UserBase};
 use crate::server::users::r#impl::permissions::UserOrgPermissions;
+use chrono::{DateTime, Utc};
 use email_address::EmailAddress;
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
@@ -328,26 +330,32 @@ pub(crate) async fn insert_demo_data(
         .await?;
     collect_entity_tags(&created_hosts, &mut all_entity_tags);
 
-    // 5.3. Resolve interface neighbor links in memory, so neighbor_interface_id
-    // is set at insert time and we avoid N post-insert UPDATEs.
-    let interfaces = {
-        use crate::server::interfaces::r#impl::base::Neighbor;
-        use std::collections::HashMap;
-
+    // 5.3. Resolve interface neighbor links in memory. GH #701 moved resolved adjacencies off
+    // `interfaces` into `interface_neighbor_interfaces`, which FKs to `interfaces(id)` — so the
+    // pairing is computed here (while everything is still keyed by host name / if_index) but
+    // written via `InterfaceNeighborService::reconcile_interface_neighbors` only after the
+    // interfaces themselves exist (5.5 below). Demo data authors each pairing directly, so this
+    // is a full resolution — `Neighbor::Interface`, never `Neighbor::Host` — and there is no raw
+    // LLDP/CDP evidence to fabricate into `interface_neighbor_candidates` to justify it.
+    let neighbor_links: Vec<(Uuid, Uuid, Uuid, DateTime<Utc>)> = {
+        // By title rather than stored name: demo neighbour pairings name hosts the way the UI
+        // does, and some demo hosts are nameless and titled by an identifier.
         let host_id_to_name: HashMap<Uuid, String> = all_hosts
             .iter()
-            .map(|h| (h.id, h.base.name.to_string()))
+            .map(|h| (h.id, h.display_name(&[]).unwrap_or_default()))
             .collect();
 
         let mut if_entry_lookup: HashMap<(String, Option<i32>), Uuid> = HashMap::new();
+        let mut interface_context: HashMap<Uuid, (Uuid, DateTime<Utc>)> = HashMap::new();
         for entry in &demo_data.interfaces {
             if let Some(host_name) = host_id_to_name.get(&entry.base.host_id) {
                 if_entry_lookup.insert((host_name.clone(), entry.base.if_index), entry.id);
             }
+            interface_context.insert(entry.id, (entry.base.network_id, entry.last_seen_at));
         }
 
-        // Build a map of source interface ID -> target interface ID
-        let mut neighbor_map: HashMap<Uuid, Uuid> = HashMap::new();
+        // Build (network_id, source_interface_id, target_interface_id, scan_time) tuples.
+        let mut links = Vec::new();
         for neighbor_update in &demo_data.neighbor_updates {
             let source_key = (
                 neighbor_update.source_host_name.clone(),
@@ -360,20 +368,14 @@ pub(crate) async fn insert_demo_data(
             if let (Some(&source_id), Some(&target_id)) = (
                 if_entry_lookup.get(&source_key),
                 if_entry_lookup.get(&target_key),
-            ) {
-                neighbor_map.insert(source_id, target_id);
+            ) && let Some(&(network_id, scan_time)) = interface_context.get(&source_id)
+            {
+                links.push((network_id, source_id, target_id, scan_time));
             }
         }
-
-        // Apply neighbors to interfaces before inserting
-        let mut interfaces = demo_data.interfaces;
-        for entry in &mut interfaces {
-            if let Some(&target_id) = neighbor_map.get(&entry.id) {
-                entry.base.neighbor = Some(Neighbor::Interface(target_id));
-            }
-        }
-        interfaces
+        links
     };
+    let interfaces = demo_data.interfaces;
 
     // 5.4. ip_addresses must be committed before interfaces: interfaces.ip_address_id
     // FKs into ip_addresses(id), and create_many is not transactional — each chunk
@@ -413,6 +415,23 @@ pub(crate) async fn insert_demo_data(
         },
     )?;
     collect_entity_tags(&created_services, &mut all_entity_tags);
+
+    // 5.5b. Write the resolved neighbour rows computed in 5.3, now that the interfaces they
+    // reference exist. One `reconcile_interface_neighbors` call per source interface — demo data
+    // is not a real discovery run, so `discovery_id` is `None`.
+    for (network_id, source_id, target_id, scan_time) in neighbor_links {
+        services
+            .interface_neighbor_service
+            .reconcile_interface_neighbors(
+                network_id,
+                source_id,
+                &[(Neighbor::Interface(target_id), Some(scan_time))],
+                scan_time,
+                None,
+            )
+            .await
+            .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+    }
 
     // 5.6. Bindings (child entities of services, stored in a separate table).
     // Spans both halves of the hoist: a hoisted runtime service has bindings of its own.

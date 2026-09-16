@@ -230,7 +230,11 @@ impl EdgeBuilder {
                                 subnet_ids,
                                 containerized_service_ids,
                             },
-                            label: Some(format!("{} on {}", s.base.name, host.base.name)),
+                            label: Some(format!(
+                                "{} on {}",
+                                s.base.name,
+                                ctx.host_container_header(host).unwrap_or_default()
+                            )),
                             source_handle: EdgeHandle::Bottom,
                             target_handle: EdgeHandle::Top,
                             is_multi_hop,
@@ -446,7 +450,7 @@ impl EdgeBuilder {
                                 if origin_ip_address.base.subnet_id == ip_address.base.subnet_id {
                                     None
                                 } else {
-                                    Some(host.base.name.to_string())
+                                    ctx.host_container_header(host)
                                 };
 
                             Some(Edge {
@@ -472,35 +476,53 @@ impl EdgeBuilder {
 
     /// Create physical link edges from LLDP/CDP neighbor discovery
     /// Only creates edges when both endpoints have associated ip_addresses (nodes)
+    ///
+    /// Two dedup passes, not one. The first collapses two reports of the same *interface* pair
+    /// (A→B and B→A). The second collapses onto the resolved *ip_address* pair: GH #701 lets a
+    /// port anchor several adjacencies, so two distinct interface pairs between the same host
+    /// pair can now both survive the first dedup and then resolve onto the same ip pair via
+    /// `resolve_ip_address_for_interface`'s single-IP-host fallback — previously impossible, since
+    /// a port could anchor at most one edge.
     pub fn create_physical_link_edges(ctx: &TopologyContext) -> Vec<Edge> {
         // Track processed pairs to avoid duplicate edges (A→B and B→A)
-        let mut processed_pairs: HashSet<(Uuid, Uuid)> = HashSet::new();
+        let mut processed_interface_pairs: HashSet<(Uuid, Uuid)> = HashSet::new();
+        let mut processed_ip_pairs: HashSet<(Uuid, Uuid)> = HashSet::new();
 
         ctx.get_interfaces_with_neighbor()
             .into_iter()
-            .filter_map(|source_entry| {
+            .filter_map(|row| {
+                let source_id = row.interface_id;
                 // Get the target Interface ID from resolved neighbor
-                let target_interface_id = match &source_entry.base.neighbor {
-                    Some(Neighbor::Interface(id)) => *id,
-                    _ => return None, // Already filtered by get_interfaces_with_neighbor
+                let target_interface_id = match row.neighbor {
+                    Neighbor::Interface(id) => id,
+                    Neighbor::Host(_) => return None, // Already filtered by get_interfaces_with_neighbor
                 };
 
                 // Skip if we've already processed this pair (in either direction)
-                let pair_key = if source_entry.id < target_interface_id {
-                    (source_entry.id, target_interface_id)
+                let pair_key = if source_id < target_interface_id {
+                    (source_id, target_interface_id)
                 } else {
-                    (target_interface_id, source_entry.id)
+                    (target_interface_id, source_id)
                 };
 
-                if processed_pairs.contains(&pair_key) {
+                if !processed_interface_pairs.insert(pair_key) {
                     return None;
                 }
-                processed_pairs.insert(pair_key);
 
+                let source_entry = ctx.get_interface_by_id(source_id)?;
                 // Resolve interface IDs with single-interface host fallback
                 let source_ip_address_id = ctx.resolve_ip_address_for_interface(source_entry)?;
                 let target_entry = ctx.get_interface_by_id(target_interface_id)?;
                 let target_ip_address_id = ctx.resolve_ip_address_for_interface(target_entry)?;
+
+                let ip_pair_key = if source_ip_address_id < target_ip_address_id {
+                    (source_ip_address_id, target_ip_address_id)
+                } else {
+                    (target_ip_address_id, source_ip_address_id)
+                };
+                if !processed_ip_pairs.insert(ip_pair_key) {
+                    return None;
+                }
 
                 let is_multi_hop =
                     ctx.edge_is_multi_hop(&source_ip_address_id, &target_ip_address_id);
@@ -512,6 +534,14 @@ impl EdgeBuilder {
                     target_entry.display_name()
                 ));
 
+                // The specific adjacency row's own evidence, not an interface-level predicate —
+                // see `TopologyContext::interface_has_lldp_evidence`.
+                let protocol = if ctx.interface_has_lldp_evidence(source_id) {
+                    DiscoveryProtocol::LLDP
+                } else {
+                    DiscoveryProtocol::CDP
+                };
+
                 Some(Edge {
                     id: Uuid::new_v4(),
                     source: source_ip_address_id,
@@ -519,7 +549,7 @@ impl EdgeBuilder {
                     edge_type: EdgeType::PhysicalLink {
                         source_entity_id: source_entry.id,
                         target_entity_id: target_entry.id,
-                        protocol: DiscoveryProtocol::LLDP, // TODO: Support CDP when implemented
+                        protocol,
                     },
                     label,
                     source_handle: EdgeHandle::Bottom,
@@ -581,11 +611,12 @@ impl EdgeBuilder {
 
         ctx.get_interfaces_with_host_neighbor()
             .into_iter()
-            .filter_map(|source_entry| {
-                let target_host_id = match &source_entry.base.neighbor {
-                    Some(Neighbor::Host(id)) => *id,
-                    _ => return None, // Already filtered by get_interfaces_with_host_neighbor
+            .filter_map(|row| {
+                let target_host_id = match row.neighbor {
+                    Neighbor::Host(id) => id,
+                    Neighbor::Interface(_) => return None, // Already filtered by get_interfaces_with_host_neighbor
                 };
+                let source_entry = ctx.get_interface_by_id(row.interface_id)?;
                 let source_host_id = source_entry.base.host_id;
                 if source_host_id == target_host_id {
                     return None;
@@ -603,7 +634,9 @@ impl EdgeBuilder {
                     return None;
                 }
 
-                let protocol = if source_entry.has_lldp_data() {
+                // The specific adjacency row's own evidence, not an interface-level predicate — see
+                // `TopologyContext::interface_has_lldp_evidence`.
+                let protocol = if ctx.interface_has_lldp_evidence(row.interface_id) {
                     DiscoveryProtocol::LLDP
                 } else {
                     DiscoveryProtocol::CDP
@@ -620,7 +653,8 @@ impl EdgeBuilder {
                     },
                     label: Some(format!(
                         "{} ↔ {}",
-                        source_host.base.name, target_host.base.name
+                        ctx.host_container_header(source_host).unwrap_or_default(),
+                        ctx.host_container_header(target_host).unwrap_or_default()
                     )),
                     source_handle: EdgeHandle::Bottom,
                     target_handle: EdgeHandle::Top,

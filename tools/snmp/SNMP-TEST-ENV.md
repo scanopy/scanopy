@@ -6,32 +6,67 @@
 > the data files and agent configs from those definitions and ships what it generated, so there is
 > no committed artifact that can drift. To add or change a device, see **Adding a device** below.
 
-22 simulated network devices running on a Proxmox VM, each on port 161. Most speak SNMPv2c; `.236`/`.237` are version-locked to exercise the SNMPv1 and SNMPv3 paths (#557); `.238`/`.239` are Extreme switches that exercise the LLDP local-port remap (Issue 2, July 2026); `.240`–`.242` reproduce the L2-topology failures from #664, #649 and #614; `.243` serves a deliberately malformed neighbour record; `.244` serves the port-id shapes from #668 and repeats one MAC across every port; `.245` serves that report's last device, whose neighbour table is indexed one sub-id short; `.246`/`.247` cover #674 and the Westermo local-port report; `.248`/`.249` are the two failure shapes the partial-failure reporting exists for; `.250` is the Dell OS10 switch from #685, whose breakout-port names and 568+ local-port namespace decide which interface a neighbour lands on; `.251` is the Cisco from #686 and the only device here that serves different data per SNMPv3 context.
+31 simulated network devices running on a Proxmox VM, each on port 161, addressed out of a
+reserved `192.168.7.192`–`.254` block (63 addresses — see **Addressing** below for why that range
+is the lab's to take). Most speak SNMPv2c; `legacy-switch-01`/`secure-switch-01` are version-locked
+to exercise the SNMPv1 and SNMPv3 paths (#557); `switch-exos-01`/`switch-voss-01` are Extreme
+switches that exercise the LLDP local-port remap (Issue 2, July 2026); `switch-netgear-01`/
+`switch-aruba-01`/`switch-omada-01` reproduce the L2-topology failures from #664, #649 and #614;
+`switch-flaky-01` serves a deliberately malformed neighbour record; `switch-dlink-01` serves the
+port-id shapes from #668 and repeats one MAC across every port; `switch-tplink-01` serves that
+report's last device, whose neighbour table is indexed one sub-id short; `switch-unsorted-01`/
+`switch-macport-01` cover #674 and the Westermo local-port report; `switch-mute-01`/
+`switch-stuck-01` are the two failure shapes the partial-failure reporting exists for;
+`switch-dell-01` is the Dell OS10 switch from #685, whose breakout-port names and 568+ local-port
+namespace decide which interface a neighbour lands on; `switch-cisco-01` is the Cisco from #686 and
+the only device here that serves different data per SNMPv3 context; `switch-mcast-rcv-01`/
+`switch-mcast-src-01`/`switch-segment-gw-01` are the shared L2 segment from #701, where every
+uplink hears two neighbours on one port; `switch-fdb-only-01` serves a bridge forwarding database
+and no LLDP remote table at all (#709); `switch-ocnos-01` serves its neighbours only under the
+LLDP-V2-MIB (#688).
 
-| IP | Host | Version | Credential | Device |
-|---|---|---|---|---|
-| 192.168.7.230 | switch-core-01 | v2c | community `netdefault` | Cisco C2960 |
-| 192.168.7.231 | switch-access-01 | v2c | community `netdefault` | Cisco C3750 |
-| 192.168.7.232 | router-gw-01 | v2c | community `secret42` | Juniper MX204 |
-| 192.168.7.233 | firewall-01 | v2c | community `secret42` | FortiGate 60F |
-| 192.168.7.234 | printer-lobby | v2c | community `public` | HP LaserJet M428 |
-| 192.168.7.235 | ap-wireless-01 | v2c | community `netdefault` | Ubiquiti UniFi AP |
-| 192.168.7.236 | legacy-switch-01 | **v1 only** | community `legacyv1` | Cisco C2950 |
-| 192.168.7.237 | secure-switch-01 | **v3 only** | user `scanopyv3` (see below) | Huawei S5000 |
-| 192.168.7.238 | switch-exos-01 | v2c | community `netdefault` | Extreme X435 (EXOS) |
-| 192.168.7.239 | switch-voss-01 | v2c | community `netdefault` | Extreme VSP-7400 (VOSS) |
-| 192.168.7.240 | switch-netgear-01 | v2c | community `netdefault` | Netgear GS724Tv3 |
-| 192.168.7.241 | switch-aruba-01 | v2c | community `netdefault` | HP/Aruba ProCurve 2910al |
-| 192.168.7.242 | switch (Omada) | v2c | community `public` | TP-Link Omada TL-SG3216 |
-| 192.168.7.243 | switch-flaky-01 | v2c | community `netdefault` | Malformed-LLDP profile (see below) |
-| 192.168.7.244 | switch-dlink-01 | v2c | community `netdefault` | D-Link DGS-1210-48 (see below) |
-| 192.168.7.245 | switch-tplink-01 | v2c | community `netdefault` | TP-Link TL-SX3016F (see below) |
-| 192.168.7.246 | switch-unsorted-01 | v2c | community `netdefault` | Out-of-order ARP table (see below) |
-| 192.168.7.247 | switch-macport-01 | v2c | community `netdefault` | Westermo WeOS, from the customer's walk (see below) |
-| 192.168.7.248 | switch-mute-01 | v2c | community `netdefault` | Answers the credential, serves nothing (see below) |
-| 192.168.7.249 | switch-stuck-01 | v2c | community `netdefault` | ARP table never advances (see below) |
-| 192.168.7.250 | switch-dell-01 | v2c | community `netdefault` | Dell PowerSwitch S4112T-ON, OS10 breakout ports (see below) |
-| 192.168.7.251 | switch-cisco-01 | **v3 only** | user `scanopyctx`, context `vlan-20` | Cisco Catalyst 3850, per-VLAN bridge context (see below) |
+Addresses below are current as of the last `make snmp-fixtures` run — look them up here, not in the
+prose above or elsewhere in this document, which names devices by identity rather than address for
+exactly this reason: the lab has been renumbered before and will be again.
+
+<!-- BEGIN GENERATED DEVICE TABLE -->
+| IP | Host | Version | Credential |
+|---|---|---|---|
+| 192.168.7.192 | switch-core-01 | v2c | community `netdefault` |
+| 192.168.7.193 | switch-access-01 | v2c | community `netdefault` |
+| 192.168.7.194 | router-gw-01 | v2c | community `secret42` |
+| 192.168.7.195 | firewall-01 | v2c | community `secret42` |
+| 192.168.7.196 | printer-lobby | v2c | community `public` |
+| 192.168.7.197 | ap-wireless-01 | v2c | community `netdefault` |
+| 192.168.7.198 | legacy-switch-01 | v1 | community `legacyv1` |
+| 192.168.7.199 | secure-switch-01 | v3 | user `scanopyv3` |
+| 192.168.7.200 | switch-exos-01 | v2c | community `netdefault` |
+| 192.168.7.201 | switch-voss-01 | v2c | community `netdefault` |
+| 192.168.7.202 | switch-netgear-01 | v2c | community `netdefault` |
+| 192.168.7.203 | switch-aruba-01 | v2c | community `netdefault` |
+| 192.168.7.204 | switch-omada-01 | v2c | community `public` |
+| 192.168.7.205 | switch-flaky-01 | v2c | community `netdefault` |
+| 192.168.7.206 | switch-dlink-01 | v2c | community `netdefault` |
+| 192.168.7.207 | switch-dlink-02 | v2c | community `netdefault` |
+| 192.168.7.208 | pc-windows-nic-filters | v2c | community `public` |
+| 192.168.7.209 | switch-tplink-01 | v2c | community `netdefault` |
+| 192.168.7.210 | switch-unsorted-01 | v2c | community `netdefault` |
+| 192.168.7.211 | switch-macport-01 | v2c | community `netdefault` |
+| 192.168.7.212 | switch-mute-01 | v2c | community `netdefault` |
+| 192.168.7.213 | switch-stuck-01 | v2c | community `netdefault` |
+| 192.168.7.214 | switch-dell-01 | v2c | community `netdefault` |
+| 192.168.7.215 | switch-cisco-01 | v3 | user `scanopyctx` |
+| 192.168.7.216 | switch-slowbulk-01 | v2c | community `netdefault` |
+| 192.168.7.217 | switch-shortports-01 | v2c | community `netdefault` |
+| 192.168.7.218 | switch-offsite-01 | v2c | community `netdefault` |
+| 192.168.7.219 | switch-fdb-only-01 | v2c | community `netdefault` |
+| 192.168.7.220 | switch-mcast-rcv-01 | v2c | community `netdefault` |
+| 192.168.7.221 | switch-mcast-src-01 | v2c | community `netdefault` |
+| 192.168.7.222 | switch-segment-gw-01 | v2c | community `netdefault` |
+| 192.168.7.223 | switch-quietcol-01 | v2c | community `netdefault` |
+| 192.168.7.224 | switch-hikvision-01 | v2c | community `netdefault` |
+| 192.168.7.225 | switch-ocnos-01 | v2c | community `netdefault` |
+<!-- END GENERATED DEVICE TABLE -->
 
 **LLDP local-port remap (`.238`/`.239`).** ExtremeXOS reports its `lldpRemTable` local-port index as an `lldpLocPortNum` (1..N) that is a **separate namespace from `ifIndex`** (switch-exos-01 uses ifIndex 1001+, ifName `1:N`), so neighbours only resolve if the daemon walks `lldpLocPortTable` (`1.0.8802.1.1.2.1.3.7`) and suffix-matches `lldpLocPortId` against `ifName`. Before the Issue 2 fix, switch-exos-01 yields **zero** LLDP neighbours. Extreme VOSS (switch-voss-01) reports local-port == ifIndex with `lldpLocPortId` matching `ifName` exactly, so it stays correct on both old and new code — the regression guard for the fix.
 
@@ -199,6 +234,25 @@ Note that `1/0/3` and `1/0/4` name the same far-end device on purpose. The pair 
 
 > Every far-end value above is checked against what the lab actually reports. An earlier revision used a made-up chassis MAC for switch-netgear-01 and a port (`Gi0/4`) that switch-core-01 does not have; both still appeared to work — one fell through to the sysName tier, the other stopped at a device-level edge — so the profile passed without exercising what it documents. When adding a neighbour here, confirm the far end's `hosts.chassis_id`, `if_name` and `if_index` in the scanned data first.
 
+**A device that serves only the LLDP-V2-MIB (`switch-ocnos-01`).** Modelled on a UfiSpace S9600-32X running IP Infusion OcNOS 7.0.1, from an `snmpwalk` of the real switch (#688), identifiers rewritten for the lab. Its LLDP lives under the 802.1AB-2009 root `1.3.111.2.802.1.1.13` and nowhere else: a walk of the classic `1.0.8802.1.1.2.1.4.1` finds nothing, so before the fallback the device contributed no L2 edges at all. Three things differ from every other device here, and each is what the regression test checks:
+
+```
+.1.3.111.2.802.1.1.13.1.4.1.1.5.0.10009.1.6 = INTEGER: 4      # timeMark.ifIndex.destMacIndex.remIndex
+.1.3.111.2.802.1.1.13.1.4.1.1.6.0.10009.1.6 = Hex-STRING: 00 1A 2B 40 E9 CA
+```
+
+- The remote columns sit **one above** their classic numbers (`lldpV2RemLocalIfIndex` is inserted as column 2), so chassis subtype is `.5`, chassis id `.6`, and so on.
+- The row index has **four** sub-ids, the third a row pointer into `lldpV2DestAddressTable` (always 1 here). The classic end-relative parse reads `(1, remIndex)` off that and collapses every neighbour onto port 1.
+- The local identifier is a **real ifIndex** — 3, 10009, 10073 — not an `lldpLocPortNum`, and there is no classic `lldpLocPortTable` to remap through. The daemon must place the neighbours on those interfaces directly.
+
+The interface table is the device's own shape: `eth0` at ifIndex 3 and thirty-two 100G ports `ce0`–`ce31` at 10001, 10005, … 10125, with nothing in between, so the neighbour indices are only meaningful against a table with the same gaps. Verify with:
+
+```bash
+ADDR=...   # switch-ocnos-01's address, from the device table above
+snmpwalk -v2c -c netdefault $ADDR 1.0.8802.1.1.2.1.4.1.1.4    # nothing under the classic root
+snmpwalk -v2c -c netdefault $ADDR 1.3.111.2.802.1.1.13.1.4.1.1.6   # three neighbours, four-part index
+```
+
 > **The NUL half of #668 is not reproducible here.** The same D-Links NUL-terminate their port ids (`lldpRemPortId` arrives as `31 00`, i.e. `"1\0"`), which used to fail the write of the entire host. net-snmp's `pass` protocol is line-based — the handler prints OID, type and value as three lines — so an embedded `0x00` cannot survive the transport and no data file can express it. That half is covered by unit tests instead: `value_to_string`, `LldpPortId::from_snmp`, and `PgText`/`PgJson` in `server/shared/storage/pg_value.rs`.
 
 **Dell OS10 breakout ports (`.250`).** A Dell PowerSwitch S4112T-ON running OS10 10.4.3.4, from #685, where a switch that discovers cleanly in every other respect showed **no physical connections at all**. Two properties of this device decide whether a neighbour reaches an interface, and nothing else in the lab has either.
@@ -249,6 +303,12 @@ snmpwalk -v2c -c 'netdefault@20' 192.168.7.251 1.3.6.1.2.1.17.4.3.1.1
 **It is on its own USM user (`scanopyctx`), and that is load-bearing.** Every seeded credential is Broadcast-scoped to every network, and only one SNMP credential per host ever executes — the last mapping that authenticates wins. If both the context-bearing credential and the plain `scanopyv3` one answered here, a scan would report nine FDB entries or one depending on mapping order. For the same reason it serves no seeded community: `netdefault@20` is reachable from the command line and is deliberately not a credential, so no v2c mapping can win against this device.
 
 **ifTable, ifXTable and the system MIB stay in the default context**, as they do on the real switch. That is why the daemon scopes only its bridge and VLAN walks to the credential's context rather than the whole session — a context-wide session would find no interfaces at all here, which is the regression that shape would have introduced.
+
+**A shared L2 segment (`.227`–`.229`) — #701.** A simplified SNMP stand-in for the report's topology: a router (`switch-segment-gw-01`) and two hosts behind a bridge (`switch-mcast-rcv-01`, `switch-mcast-src-01`), each with one uplink port that hears **both** of the other two devices. The real report's router spoke gNMI/DriveNets, which is `roc-ops`'s side entirely and out of scope here — this trio exists to exercise the *shape* (a port that must carry more than one neighbour, and a far-end port that must anchor more than one link), not to reproduce DriveNets.
+
+Each device's uplink (`ifIndex` 2) serves **two** `lldpRemTable` rows naming the other two devices — same `lldpRemLocalPortNum`, distinct `lldpRemIndex` (`.index(1)`/`.index(2)` on the fixture). Chassis and port MACs are cross-referenced exactly: each device's neighbour entries for the other two use the exact `LldpChassisId`/`LldpPortId` values those devices serve about themselves (`CHASSIS_MAC`/`UPLINK_PORT_MAC` constants in each module), per the "confirm every far end exists" rule below — there is no made-up chassis id or port pointing at nothing here.
+
+**What this proves, and what it does not.** `convert_snmp_if_entry` used to keep only the first LLDP entry per local port (`.find()`), so scanning any one of these three devices lost half its neighbours; the per-device `harness::scan` tests assert both survive collection (`neighbours.records.len() == 2`, `dropped_neighbours == 0`), and the trio-wide test sums to 6 records across all three. That is the collection-layer half of #701. The resolution-layer half — that the far end no longer caps at one link, and that the stored adjacency stops flipping between identical scans — is proven separately, at the unit level, by `reciprocal_tests::a_three_node_shared_segment_resolves_identically_across_repeated_runs` (`hosts/service/topology/reciprocal.rs`) and `l2_builder::tests::a_three_node_shared_segment_renders_three_physical_links` (`topology/service/l2_builder.rs`) against a synthetic fixture of the same shape, rather than through this lab: `harness::scan` deliberately persists nothing (see its own doc comment), and the persisted-resolution properties need a database, which is `crate::tests::snmp_sim_resolution`'s territory, not this trio's.
 
 ## Self-reported counts — what a device claims vs what it serves
 
@@ -332,6 +392,74 @@ Three properties decide whether these are worth anything:
 > table because the scan was asking in the wrong context. That half is `.251`'s, and the check
 > there is the comparison between contexts rather than any single count.
 
+## FDB-only link resolution (switch-fdb-only-01) — #709
+
+`resolve_fdb_links` (`backend/src/server/hosts/service/topology/mod.rs`) resolves single-MAC FDB
+ports to physical links server-side, but until #709 nothing ever called it — session completion
+ran only LLDP/CDP resolution, so a switch with no LLDP remote table produced no physical link at
+all even though its forwarding database named the far end unambiguously.
+
+`switch-fdb-only-01` is that shape: a real ifTable and a real forwarding database, and no `lldp`
+table registered at all — not a malformed or cut-short walk, `1.0.8802.1.1.2.1.4` simply isn't
+served, matching the reporter's TP-Link T1700G-28TQ returning "No such object" for it. Its one
+learned MAC (`00:1a:2b:00:10:03`) is switch-core-01's Gi0/3, an existing lab device, so a
+resolution test against it exercises real seeded data on both ends rather than an address nothing
+else in the network recognises. This is distinct from the four devices in the Bridge forwarding
+tables section above: those cover whether the daemon *collects* an FDB correctly; this one covers
+whether the server *resolves* one into a link at all when LLDP/CDP has nothing to offer.
+
+## Addressing
+
+The lab reserves `192.168.7.192`–`192.168.7.254` (63 addresses) on the `/22` the daemon already
+scans — the top block of `192.168.7.0/24`, clear of every real host on that network (checked
+against the live database, not just memory) and of `.255`, which is the `/22`'s own broadcast
+address. 63 is roughly double the lab's current 31 devices, so it can keep growing for a while
+without asking Maya for more space or shrinking a floor by hand again.
+
+No device chooses its own address. `assign_addresses`
+(`backend/src/daemon/discovery/integration/snmp/sim/allocation.rs`) walks `devices::all()`'s Vec in
+order and gives device `i` `192.168.7.192 + i` — a device module sets `ip: Ipv4Addr::UNSPECIFIED`
+and nothing else; setting a real address there is a hard test failure, not a style nit. Two
+branches that each add a device therefore cannot collide: they each append to the end of the same
+Vec, and whatever order git merges them in, the two new devices land at different positions and get
+different addresses. **`devices::all()` is append-only** — reordering or removing an entry
+renumbers everything after it.
+
+A peer's address (a CDP or LLDP management-address neighbour naming another lab device) is never a
+literal either, for the same reason: it does not exist yet while the naming device is being built.
+Name the peer — `router_gw_01::NAME`, `.mgmt_addr_of(switch_mute_01::NAME)` — and
+`resolve_peer_addresses` fills in the real address once every device has one.
+
+### How an address reaches the VM
+
+`snmp-lab-network.service` owns the whole address plane. It is a `RemainAfterExit` oneshot running
+`/usr/local/bin/snmp-lab-network-up.sh` (installed from `lxc/lab-network-up.sh`) at every boot and
+on every deploy, ordered before every `snmpd-*` unit, which `Requires=` it. Device `i` gets a
+macvlan `mv-snmp<i>` on `eth0` holding `HOSTS[i]/22` and nothing else. The host list arrives in
+`/etc/snmp-test/lab-network.env`, written from the generated `lab.env`, so the script itself names
+no device.
+
+**It reconciles, so a renumber needs no cleanup.** It deletes addresses on an `mv-snmp*` link that
+are not the device's current one, and deletes links past the end of the device list, before adding
+what is missing. Renumbering the lab or removing a device leaves nothing behind. It used to only
+add, and every renumbering left the previous range configured alongside the new one — 75 addresses
+for 31 devices at the worst, two addresses behind each MAC, which is exactly the input that merges
+distinct devices onto one host record.
+
+Two things it deliberately does not touch. `eth0`'s own addresses: the durable management address
+and the DHCP lease live there, and losing them locks everyone out of the box, so no command in the
+script names anything but `mv-snmp*`. And IPv6: the links pick up SLAAC addresses from the
+segment's router advertisements, and deleting one just invites it back on the next RA.
+
+**ARP is scoped to the interface that owns the address**, via `arp_ignore=1` and `arp_announce=2`.
+At the kernel default the VM answers an ARP request for any local address from any interface, so
+`eth0` replies for all 31 lab addresses with its own MAC, every device shares one MAC on the wire,
+and the lab collapses onto a single host record however carefully the macvlans are built. `setup.sh`
+writes the `conf/all` knobs to `/etc/sysctl.d/60-snmp-lab-arp.conf`; the kernel takes the max of
+`conf/all` and `conf/<interface>`, so that covers links created later, and there is nothing to
+update when the device count changes. `lab-network-up.sh` sets each link's own knobs as well, so the
+unit is still correct on a box where that file was never applied.
+
 ## Adding a device
 
 Every device is defined once, as a typed Rust value, in
@@ -359,8 +487,9 @@ files and its agent config from that definition — there is no second copy to k
    ```
 
 2. **Write the device.** Copy the nearest existing module in `sim/devices/`, give it a `Purpose`
-   naming the issue and what breaks without it, and add it to `all()` in `sim/devices/mod.rs`.
-   `Purpose` is required: a device with no established defect must say `Purpose::Control`.
+   naming the issue and what breaks without it, and add it to `all()` in `sim/devices/mod.rs` —
+   always at the end; see **Addressing** above. `Purpose` is required: a device with no established
+   defect must say `Purpose::Control`. Set `ip: Ipv4Addr::UNSPECIFIED` — do not pick an address.
 
    **Rewrite identifiers consistently** — same value, same replacement, everywhere. MACs, the
    management address and neighbour hostnames all carry customer information, and all of them are
@@ -394,6 +523,8 @@ listed unit tests fail if one is broken:
 | "A data file no config serves / a config naming a file nobody wrote" | Registrations are derived from the tables held. `every_served_file_has_a_registration_and_vice_versa` |
 | "An ifTable served without its `ifNumber` registration" | Derived. `a_device_serving_an_if_table_registers_its_own_count` |
 | "Record what the fixture is for" | `Purpose` is a required field |
+| "Pick a free address, check nobody else has it" | Allocated by position in `devices::all()`. `assign_addresses` panics on a hand-set address; `every_device_has_its_own_address_and_name` |
+| "An agent must serve only its own address" | Synthesised automatically into `ipAddrTable`. `every_device_serves_only_its_own_addresses` |
 
 Two things the type system cannot check, and that still need care:
 
@@ -495,45 +626,23 @@ The credential values live in `backend/scripts/seed-snmp-credentials.sql` and mu
 
 ## Setup
 
-Paste the contents of `tools/snmp/lxc/setup.sh` into a root shell on a Debian/Ubuntu VM with primary IP 192.168.7.230/22.
-
-Before pasting, verify:
-- Interface is `eth0` (`ip link`) — edit `IFACE=` if different
-- Primary IP is 192.168.7.230 — edit `HOSTS=()` if different
-
-## Patch: migrate secondary IPs to macvlan (unique MACs)
-
-If each device shares the host's MAC (secondary IPs on eth0), run on the VM:
-
 ```bash
-IFACE=eth0; CIDR=22; HOSTS=(192.168.7.230 192.168.7.231 192.168.7.232 192.168.7.233 192.168.7.234 192.168.7.235 192.168.7.236 192.168.7.237 192.168.7.238 192.168.7.239 192.168.7.240 192.168.7.241 192.168.7.242); for i in "${!HOSTS[@]}"; do ip addr del "${HOSTS[$i]}/$CIDR" dev "$IFACE" 2>/dev/null; ip link del "mv-snmp${i}" 2>/dev/null; ip link add "mv-snmp${i}" link "$IFACE" type macvlan mode bridge; ip addr add "${HOSTS[$i]}/$CIDR" dev "mv-snmp${i}"; ip link set "mv-snmp${i}" up; done && sysctl -w net.ipv4.conf.all.arp_ignore=1 net.ipv4.conf.all.arp_announce=2 && for i in "${!HOSTS[@]}"; do sysctl -w net.ipv4.conf.mv-snmp${i}.arp_ignore=1 net.ipv4.conf.mv-snmp${i}.arp_announce=2; done && sysctl -w net.ipv4.conf.${IFACE}.arp_ignore=1 net.ipv4.conf.${IFACE}.arp_announce=2
+make snmp-deploy
 ```
 
-Then flush the ARP cache on the scanning host (`sudo arp -a -d` on macOS).
+That is the only path, for a fresh VM and an existing one alike. It generates the devices from their typed definitions, copies the tree to the VM and runs `lxc/setup.sh` there. `setup.sh` cannot be pasted into a root shell: it exits immediately without the `lxc/generated/` tree that `make snmp-fixtures` produces, and its host list comes from the generated `lab.env` rather than an editable `HOSTS=()`.
 
-## Patch: fix duplicate MIB registration
-
-If snmpd logs show `duplicate registration: MIB modules ifTable and pass`, run:
-
-```bash
-for f in /etc/systemd/system/snmpd-*.service; do sed -i 's|snmpd -f -Lo -C|snmpd -f -Lo -I -ifTable,-ifXTable -C|' "$f"; done && systemctl daemon-reload && for f in /etc/systemd/system/snmpd-*.service; do systemctl restart "$(basename "$f" .service)"; done
-```
+The VM is reached at `192.168.4.21` — the durable management address `setup.sh` pins on `eth0` in addition to the DHCP lease, deliberately not a lab address, so a deploy still lands when the lab itself is broken. Override with `SNMP_VM_HOST`. Only `IFACE` and `CIDR` (`setup.sh:36-37`) are literals.
 
 ## Updating an already-running VM
 
-`lxc/setup.sh` is idempotent — existing macvlan interfaces are left alone, while MIB data files, snmpd configs and systemd units are rewritten and every agent is restarted. So a full re-run is always the update path; there is no separate partial script.
+`make snmp-deploy` again. MIB data files, snmpd configs and systemd units are rewritten and every agent is restarted; a device whose content did not change is a no-op. Configs and units for a device that no longer exists are removed, and `snmp-lab-network.service` reconciles the macvlan links and addresses to the current device list, so a renumber or a removal needs no hand cleanup on the VM.
 
-```bash
-ssh -i ~/.ssh/snmp-test-vm root@192.168.7.230 'rm -rf /root/snmp-test' \
-  && scp -i ~/.ssh/snmp-test-vm -r tools/snmp root@192.168.7.230:/root/snmp-test \
-  && ssh -i ~/.ssh/snmp-test-vm root@192.168.7.230 'bash /root/snmp-test/lxc/setup.sh'
-```
+> **The deploy's `rm -rf /root/snmp-test` is required, not tidiness.** `scp -r tools/snmp <host>:/root/snmp-test` only lands at that path the *first* time. Once `/root/snmp-test` exists, scp copies *into* it — the new tree lands at `/root/snmp-test/snmp/` while `bash /root/snmp-test/lxc/setup.sh` re-runs the **stale** copy. Every agent restarts and the run reports success, so this fails silently and looks like a broken fixture rather than a stale deploy. `cmd_deploy` (`snmp-test-env.sh`) does the `rm -rf` for this reason; if you ever run the steps by hand, keep it.
 
-Hosts that gained nothing are effectively no-ops; anything whose data file, config or unit changed comes back with the new content.
+> **`snmp-lab-network.service` needs `restart`, not `enable --now`.** It is a `RemainAfterExit=yes` oneshot, so once it has run it stays `active (exited)` forever and `--now` does nothing. `setup.sh` restarts it unconditionally. Three agents once came up dead on a deploy that reported every unit "started", because the addresses they bind were never created.
 
-> **The `rm -rf` is required, not tidiness.** `scp -r tools/snmp <host>:/root/snmp-test` only lands at that path the *first* time. Once `/root/snmp-test` exists, scp copies *into* it — the new tree lands at `/root/snmp-test/snmp/` while `bash /root/snmp-test/lxc/setup.sh` re-runs the **stale** copy. Every agent restarts and the run reports success, so this fails silently and looks like a broken fixture rather than a stale deploy. Sanity-check with `grep -c br-guest /root/snmp-test/lxc/setup.sh` before running it.
-
-> **SSH key.** The VM accepts publickey only (password auth is disabled) and there is no `~/.ssh/config` entry, so `-i ~/.ssh/snmp-test-vm` is required or you get `Permission denied (publickey)`. Add a `Host 192.168.7.2*` / `IdentityFile ~/.ssh/snmp-test-vm` block to `~/.ssh/config` to drop the flag.
+> **SSH key.** The VM accepts publickey only (password auth is disabled) and there is no `~/.ssh/config` entry, so `-i ~/.ssh/snmp-test-vm` is required for a manual `ssh` or you get `Permission denied (publickey)`. `SNMP_SSH_KEY` overrides the path the tooling uses.
 
 Afterwards, flush the scanning host's ARP cache (`sudo arp -a -d` on macOS) so any new MACs are learned, then run `make snmp-verify` from your Mac.
 
@@ -549,22 +658,22 @@ From your Mac:
 make snmp-verify
 ```
 
-Or manually — note the per-version flags:
+Or manually — note the per-version flags. Take the addresses from the generated device table at the top of this document, not from these examples: the lab has been renumbered before and will be again.
 
 ```bash
-# v2c
-snmpget -v2c -c secret42 -t 2 -r 1 192.168.7.232 sysName.0
+# v2c (router-gw-01)
+snmpget -v2c -c secret42 -t 2 -r 1 192.168.7.194 sysName.0
 # v1 (legacy-switch-01)
-snmpget -v1 -c legacyv1 -t 2 -r 1 192.168.7.236 sysName.0
+snmpget -v1 -c legacyv1 -t 2 -r 1 192.168.7.198 sysName.0
 # v3 (secure-switch-01) — SHA-256 / AES-128 AuthPriv
-snmpget -v3 -l authPriv -u scanopyv3 -a SHA-256 -A authpass12345 -x AES -X privpass12345 -t 2 -r 1 192.168.7.237 sysName.0
+snmpget -v3 -l authPriv -u scanopyv3 -a SHA-256 -A authpass12345 -x AES -X privpass12345 -t 2 -r 1 192.168.7.199 sysName.0
 ```
 
 To prove the version lock, confirm the wrong version is refused:
 
 ```bash
-snmpget -v2c -c legacyv1 192.168.7.236 sysName.0   # should time out (v1-only)
-snmpget -v2c -c public   192.168.7.237 sysName.0   # should time out (v3-only)
+snmpget -v2c -c legacyv1 192.168.7.198 sysName.0   # should time out (v1-only)
+snmpget -v2c -c public   192.168.7.199 sysName.0   # should time out (v3-only)
 ```
 
 ## Manage services

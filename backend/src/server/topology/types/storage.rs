@@ -23,6 +23,7 @@ pub struct TopologyCsvRow {
 }
 
 impl Storable for Topology {
+    const HAS_SCD2: bool = false;
     type BaseData = TopologyBase;
 
     fn table_name() -> &'static str {

@@ -20,7 +20,7 @@ use strum::EnumCount;
 
 use super::{
     AttemptOutcome, ContradictedClaim, CredentialIssue, CredentialIssueReason, DeviceClaim,
-    IncompleteInterfaceWalk, IncompleteSnmpWalk, LocalPortPlacementReason,
+    EqualReachIntegrations, IncompleteInterfaceWalk, IncompleteSnmpWalk, LocalPortPlacementReason,
     MalformedNeighbourReason, MalformedNeighbours, ShortfallReason, SnmpCollectedNothing,
     UnresolvedLldpPorts, VlanRecordingFailed,
 };
@@ -245,6 +245,19 @@ pub fn warn_vlan_recording_failures(records: &[VlanRecordingFailed]) -> Vec<Disc
     records
         .iter()
         .map(|record| DiscoveryWarning::VlanRecordingFailed { address: record.ip })
+        .collect()
+}
+
+/// One warning per host, carrying which integration answered first. The order is the substance:
+/// it says whose row stands on every port both describe.
+pub fn warn_equal_reach_integrations(records: &[EqualReachIntegrations]) -> Vec<DiscoveryWarning> {
+    records
+        .iter()
+        .map(|record| DiscoveryWarning::EqualReachIntegrationsMerged {
+            address: record.ip,
+            first: record.first,
+            second: record.second,
+        })
         .collect()
 }
 
@@ -530,8 +543,12 @@ mod tests {
     /// answered (GH #685).
     #[test]
     fn a_partial_read_that_is_kept_is_a_different_code_from_one_that_is_discarded() {
-        let discarded =
-            warn_incomplete_snmp_walks(&[walk("10.0.0.1", SnmpWalkGroup::Lldp, true, None)]);
+        let discarded = warn_incomplete_snmp_walks(&[walk(
+            "10.0.0.1",
+            SnmpWalkGroup::BridgeForwarding,
+            true,
+            None,
+        )]);
         let recorded =
             warn_incomplete_snmp_walks(&[walk("10.0.0.1", SnmpWalkGroup::ArpTable, true, None)]);
 
@@ -1208,8 +1225,30 @@ mod tests {
         );
     }
 
+    /// The order two integrations answered in is what the warning is for: it says whose row
+    /// stands on a port both describe. Swapping `first` and `second` on the way to the wire would
+    /// send someone chasing a missing link to the wrong integration.
+    #[test]
+    fn equal_reach_integrations_keep_the_order_they_answered_in() {
+        let warnings = warn_equal_reach_integrations(&[EqualReachIntegrations {
+            ip: ip("192.168.7.250"),
+            first: CredentialQueryPayloadDiscriminants::Snmp,
+            second: CredentialQueryPayloadDiscriminants::Gnmi,
+        }]);
+
+        assert_eq!(
+            warnings,
+            vec![DiscoveryWarning::EqualReachIntegrationsMerged {
+                address: ip("192.168.7.250"),
+                first: CredentialQueryPayloadDiscriminants::Snmp,
+                second: CredentialQueryPayloadDiscriminants::Gnmi,
+            }]
+        );
+    }
+
     #[test]
     fn no_records_produces_no_warnings() {
+        assert!(warn_equal_reach_integrations(&[]).is_empty());
         assert!(warn_incomplete_snmp_walks(&[]).is_empty());
         assert!(warn_incomplete_interface_walks(&[]).is_empty());
         assert!(warn_credential_issues(&[]).is_empty());

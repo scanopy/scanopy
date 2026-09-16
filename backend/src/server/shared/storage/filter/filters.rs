@@ -1,5 +1,8 @@
 //! Column qualification, pagination, joins, and the core entity/column/timestamp/tag filter builders.
 use super::*;
+use crate::server::shared::types::entities::EntitySourceDiscriminants;
+use crate::server::shared::types::metadata::HasId;
+use strum::IntoEnumIterator;
 
 impl<T: Storable> StorableFilter<T> {
     /// Qualify a column name with the table name.
@@ -643,8 +646,15 @@ impl<T: Storable> StorableFilter<T> {
         let network_col = self.qualify_column("network_id");
         let seen_col = self.qualify_column("last_seen_at");
         let source_col = self.qualify_column("source");
-        // Only entities discovery actually refreshes can go stale.
-        let managed = format!("{source_col}->>'type' IN ('Discovery', 'DiscoveryWithMatch')");
+        // Only entities discovery actually refreshes can go stale. Taken from
+        // `is_from_discovery` rather than listed, so an inferred host ages out
+        // here exactly as the digest says it does. The ids are static variant
+        // names, so inlining them is safe.
+        let managed_ids: Vec<String> = EntitySourceDiscriminants::iter()
+            .filter(|s| s.is_from_discovery())
+            .map(|s| format!("'{}'", s.id()))
+            .collect();
+        let managed = format!("{source_col}->>'type' IN ({})", managed_ids.join(", "));
         let comparison = if stale { "<" } else { ">=" };
 
         let mut clauses = Vec::with_capacity(cutoffs.len());
@@ -665,6 +675,33 @@ impl<T: Storable> StorableFilter<T> {
             // Not stale = inside its window, or not discovery-managed at all.
             format!("(NOT ({managed}) OR ({per_network}))")
         });
+        self
+    }
+
+    /// Entities whose `source` tag is one of `sources`.
+    ///
+    /// `source` is JSONB, so the predicate reads the `type` tag out, as
+    /// [`Self::discovery_type_in`] does. An empty selection matches nothing.
+    pub fn source_type_in(mut self, sources: &[EntitySourceDiscriminants]) -> Self {
+        if sources.is_empty() {
+            self.conditions.push("FALSE".to_string());
+            return self;
+        }
+
+        let col = self.qualify_column("source");
+        let placeholders: Vec<String> = sources
+            .iter()
+            .enumerate()
+            .map(|(i, _)| format!("${}", self.values.len() + i + 1))
+            .collect();
+
+        self.conditions
+            .push(format!("{}->>'type' IN ({})", col, placeholders.join(", ")));
+
+        for source in sources {
+            self.values.push(SqlValue::String(source.id().to_string()));
+        }
+
         self
     }
 

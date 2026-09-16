@@ -13,7 +13,7 @@
 	import { useTopology } from '../../../context';
 	import { getTopologyEditState, getOptionDisabledTooltip } from '../../../state';
 	import { edgeTypes, views } from '$lib/shared/stores/metadata';
-	import { activeView, defaultHiddenValuesFor, isDefaultHiddenValue } from '../../../queries';
+	import { activeView, clearedHideSetFor, declaredMetadataFiltersFor } from '../../../queries';
 	import { type Color } from '$lib/shared/utils/styling';
 	import { useServicesCacheQuery } from '$lib/features/services/queries';
 	import { useSubnetsQuery } from '$lib/features/subnets/queries';
@@ -203,6 +203,7 @@
 	type MetadataFilterDef = {
 		filter_type: string;
 		label: string;
+		applies: string;
 		values: Array<{ id: string; label: string; color: string; icon: string | null }>;
 	};
 	let metadataFiltersByEntity = $derived(
@@ -215,8 +216,18 @@
 	 * would either show everything or hide everything. Undefined means the
 	 * present-value scan hasn't run yet (no topology loaded), in which case the
 	 * group is shown rather than flickering out.
+	 *
+	 * A `Server` filter is always offered, because the response is not evidence of which values
+	 * exist: its hidden entities were dropped before the bundle was built. `presentFilterValues`
+	 * folds the hidden values back in to compensate, but that only holds while something is
+	 * hidden — clear the filter and the fold-back contributes nothing, so the group is judged on
+	 * a bundle that has not been refetched yet and disappears, taking with it the only control
+	 * that could put the filter back. `hide_metadata_values` reaching the server, the rebuild and
+	 * the refetch are three round trips; the panel must not blink out for the length of them.
 	 */
 	function filterOffersAChoice(entityType: string, filterType: string): boolean {
+		const filter = metadataFiltersByEntity[entityType]?.find((f) => f.filter_type === filterType);
+		if (filter?.applies === 'Server') return true;
 		const present = $presentFilterValues[entityType]?.[filterType];
 		return present === undefined || present.length > 1;
 	}
@@ -256,51 +267,29 @@
 		return [];
 	}
 
-	// A view's declared defaults (OpenPorts under Service.Category everywhere, Unlinked under
-	// Interface.LinkState in L2) are product-level defaults, not user filters — they shouldn't
-	// count toward the "filters applied" badge, and Clear-all preserves them. Read from the view
-	// fixture so this agrees with the hide-set the backend seeds.
-	function isDefaultMetadataValue(
-		entityType: string,
-		filterType: string,
-		valueId: string
-	): boolean {
-		return isDefaultHiddenValue($activeView, entityType, filterType, valueId);
-	}
-
-	/**
-	 * What an entity's hide-set should become when its filters are cleared.
-	 *
-	 * Returns the view's defaults for that entity, and — importantly — an explicit empty list for
-	 * every other filter that had values, rather than dropping the key. An absent key means "no
-	 * opinion", which the server fills in from the defaults on the next read; an empty list means
-	 * "show everything", which it leaves alone. Deleting the key would make a cleared filter
-	 * silently re-hide itself.
-	 */
 	function clearedFiltersFor(
 		entityType: string,
 		existing: Record<string, string[]> | undefined
 	): Record<string, string[]> {
-		const cleared: Record<string, string[]> = {};
-		for (const filterType of Object.keys(existing ?? {})) cleared[filterType] = [];
-		const defaults = defaultHiddenValuesFor($activeView)[entityType] ?? {};
-		for (const [filterType, values] of Object.entries(defaults)) cleared[filterType] = [...values];
-		return cleared;
+		return clearedHideSetFor($activeView, entityType, existing);
 	}
 
-	function countUserMetadataValues(entityType: EntityType): number {
+	function countHiddenMetadataValues(entityType: EntityType): number {
 		const perFilter = hiddenMetadataForView[entityType] ?? {};
 		let count = 0;
-		for (const filterType of Object.keys(perFilter)) {
-			for (const v of perFilter[filterType]) {
-				if (!isDefaultMetadataValue(entityType, filterType, v)) count++;
-			}
-		}
+		for (const filterType of Object.keys(perFilter)) count += perFilter[filterType].length;
 		return count;
 	}
 
+	/**
+	 * Hidden values counted for the badge, defaults included.
+	 *
+	 * A product default is a filter in force, and the badge is where a user finds out one is —
+	 * without it the count reads 0 on a view that is hiding 103 ports, and Clear all (gated on
+	 * this) never renders, so there is nothing to press.
+	 */
 	function userFilterCountFor(entityType: EntityType): number {
-		return hiddenTagIdsForEntity(entityType).length + countUserMetadataValues(entityType);
+		return hiddenTagIdsForEntity(entityType).length + countHiddenMetadataValues(entityType);
 	}
 
 	let userFilterTotal = $derived(
@@ -355,7 +344,7 @@
 			const byEntity = { ...(hideMeta[view] ?? {}) };
 			for (const entityType of new Set([
 				...Object.keys(byEntity),
-				...Object.keys(defaultHiddenValuesFor(view))
+				...Object.keys(declaredMetadataFiltersFor(view))
 			])) {
 				byEntity[entityType] = clearedFiltersFor(entityType, byEntity[entityType]);
 			}

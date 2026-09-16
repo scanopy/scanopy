@@ -14,10 +14,14 @@ use crate::server::lldp::{LldpChassisId, LldpPortId};
 
 use super::inline;
 
+/// This device's identity, for a peer that names it rather than typing its address — see
+/// `switch_core_01::cdp_table`.
+pub const NAME: &str = "router-gw-01";
+
 pub fn device() -> SimDevice {
     SimDevice {
-        name: "router-gw-01",
-        ip: Ipv4Addr::new(192, 168, 7, 232),
+        name: NAME,
+        ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Control {
             role: "a far end named by switch-core-01's Gi0/2 and by CDP",
         },
@@ -38,6 +42,7 @@ pub fn device() -> SimDevice {
         tables: tables(),
         arp_handler: Handler::Normal,
         suppresses: Vec::new(),
+        rejects_getbulk: None,
     }
 }
 

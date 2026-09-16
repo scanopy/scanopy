@@ -5,16 +5,11 @@
 	import { setContext } from 'svelte';
 	import '@xyflow/svelte/dist/style.css';
 	import './visualization/topology-viewer.css';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
+	import TopologyOverlay from './TopologyOverlay.svelte';
 	import ChecklistItem from '$lib/shared/components/data/ChecklistItem.svelte';
 	import ElementNode from './visualization/ElementNode.svelte';
 	import CustomEdge from './visualization/CustomEdge.svelte';
-	import {
-		selectedNodes,
-		previewEdges,
-		OPTIONS_PANEL_WIDTH_PX,
-		OPTIONS_PANEL_LEFT_OFFSET_PX
-	} from '../queries';
+	import { selectedNodes, previewEdges } from '../queries';
 	import { dependencyTypes } from '$lib/shared/stores/metadata';
 	import { browser } from '$app/environment';
 	import {
@@ -42,7 +37,6 @@
 	} = $props();
 
 	const modifier = browser && navigator.platform.includes('Mac') ? '⌘' : 'Ctrl';
-	const modalLeftOffset = OPTIONS_PANEL_WIDTH_PX + OPTIONS_PANEL_LEFT_OFFSET_PX + 16;
 
 	// Provide tutorial topology via context so ElementNode resolves services
 	const topologyStore = writable(TUTORIAL_TOPOLOGY);
@@ -89,20 +83,8 @@
 	let selectionDots = $derived(TUTORIAL_SERVICES.map((n) => clickedNodeIds.has(n.id)));
 </script>
 
-<!-- Shroud over the topology viewer -->
-<div class="absolute inset-0 z-20 bg-black/60 backdrop-blur-sm"></div>
-
-<!-- Modal anchored to topology view -->
-<div class="tutorial-anchor" style="--tutorial-offset: {modalLeftOffset}px;">
-	<GenericModal
-		title={topology_tutorialTitle()}
-		isOpen={true}
-		showCloseButton={false}
-		preventCloseOnClickOutside={true}
-		showBackdrop={false}
-		size="lg"
-		fixedHeight={true}
-	>
+<div class="tutorial-flow-border">
+	<TopologyOverlay title={topology_tutorialTitle()} size="lg" fixedHeight offsetForPanel>
 		<div class="flex min-h-0 flex-1 flex-col">
 			<!-- Explainer -->
 			<div class="flex-shrink-0 px-6 py-3">
@@ -182,20 +164,13 @@
 				</div>
 			</div>
 		</div>
-	</GenericModal>
+	</TopologyOverlay>
 </div>
 
 <style>
-	.tutorial-anchor :global(.modal-page) {
-		position: absolute;
-		z-index: 20;
-		left: var(--tutorial-offset);
-		right: 0;
-		top: 0;
-		bottom: 0;
-	}
-
-	.tutorial-anchor :global(.svelte-flow) {
+	/* The tutorial embeds a live SvelteFlow inside the modal; the viewer's own border reads as a
+	   frame around the miniature and does not belong there. */
+	.tutorial-flow-border :global(.svelte-flow) {
 		border: none;
 	}
 </style>

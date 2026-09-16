@@ -11,14 +11,20 @@
 //! that stops reporting the identifiers a neighbour is matched on breaks the test that depends on
 //! it. Collection-side behaviour is covered without a database in each device's own module.
 
+use std::collections::{HashMap, HashSet};
 use std::net::IpAddr;
 
 use mac_address::MacAddress;
 use uuid::Uuid;
 
+use crate::daemon::discovery::integration::snmp::convert_snmp_if_entry;
 use crate::daemon::discovery::integration::snmp::sim::harness::{self, Collected};
 use crate::daemon::discovery::integration::snmp::types::{IfTableEntry, LldpNeighbor};
+use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::hosts::r#impl::name::{HostName, HostNameSources};
+use crate::server::interface_neighbors::service::InterfaceNeighborService;
+use crate::server::interfaces::r#impl::base::InterfaceDataComplete;
+use crate::server::interfaces::r#impl::wire::DiscoveryInterface;
 use crate::server::{
     hosts::r#impl::base::Host,
     interfaces::r#impl::base::{IfAdminStatus, IfOperStatus, Interface, InterfaceBase},
@@ -43,6 +49,8 @@ const SNMP_READ: AttributeSource = AttributeSource::Probe(ClientProbe::Snmp);
 /// database.
 struct Lab {
     resolver: LldpResolverImpl,
+    interfaces: std::sync::Arc<crate::server::interfaces::service::InterfaceService>,
+    neighbours: std::sync::Arc<InterfaceNeighborService>,
     storage: crate::server::shared::storage::factory::StorageFactory,
     network_id: Uuid,
     _subnet_id: Uuid,
@@ -68,6 +76,8 @@ impl Lab {
 
         Self {
             resolver,
+            interfaces: services.interface_service.clone(),
+            neighbours: services.interface_neighbor_service.clone(),
             network_id: network.id,
             _subnet_id: subnet.id,
             storage,
@@ -84,11 +94,14 @@ impl Lab {
         let device = crate::daemon::discovery::integration::snmp::sim::device(name);
         let collected = harness::collect(&device).await;
 
-        let lldp = device.tables.lldp.as_ref();
-        let (subtype, value) = lldp
-            .map(|table| table.chassis.id.to_snmp(table.chassis.encoding))
-            .expect("every device in these tests advertises LLDP");
-        let chassis_id = LldpChassisId::from_snmp(subtype, &value).map(|id| id.identifier());
+        // Most devices in this lab advertise LLDP; a stock Windows SNMP service does not answer
+        // `lldpLocalSystemData` about itself (GH #668's `pc-windows-nic-filters`), which must still
+        // be a scannable host — its resolution as a neighbour rests entirely on its interfaces'
+        // MACs, not on a self-reported chassis id.
+        let chassis_id = device.tables.lldp.as_ref().and_then(|table| {
+            let (subtype, value) = table.chassis.id.to_snmp(table.chassis.encoding);
+            LldpChassisId::from_snmp(subtype, &value).map(|id| id.identifier())
+        });
 
         let mut record = host(&self.network_id);
         record.base.name = HostName::manual(name.to_string());
@@ -101,8 +114,22 @@ impl Lab {
             .map(|v| Attributed::new(HostSysNameValue(v), SNMP_READ));
         self.storage.hosts.create(&record).await.unwrap();
 
+        // Which ifIndexes the device's own ipAddrTable binds an address to — see
+        // `InterfaceBase::ip_configured`. Computed once per scan, exactly as `convert_snmp_if_
+        // entry` does daemon-side, so a seeded interface's tie-break signal matches what a real
+        // scan of this device would have set.
+        let ip_configured_if_indexes: std::collections::HashSet<i32> = collected
+            .ip_addr_table
+            .values()
+            .map(|e| e.if_index)
+            .collect();
         for entry in &collected.if_table.entries {
-            self.interface(record.id, entry).await;
+            self.interface(
+                record.id,
+                entry,
+                ip_configured_if_indexes.contains(&entry.if_index),
+            )
+            .await;
         }
 
         Scanned {
@@ -137,12 +164,17 @@ impl Lab {
         record
     }
 
-    async fn interface(&self, host_id: Uuid, entry: &IfTableEntry) -> Interface {
+    async fn interface(
+        &self,
+        host_id: Uuid,
+        entry: &IfTableEntry,
+        ip_configured: bool,
+    ) -> Interface {
         let interface = Interface::new(InterfaceBase {
             host_id,
             network_id: self.network_id,
             if_index: Some(entry.if_index),
-            if_descr: entry.if_descr.clone().unwrap_or_default(),
+            if_descr: entry.if_descr.clone(),
             if_name: entry.if_name.clone(),
             if_alias: entry.if_alias.clone(),
             if_type: Some(entry.if_type.unwrap_or_default()),
@@ -151,6 +183,7 @@ impl Lab {
                 .map(|m| MacEvidence::new(MacEvidenceValue(m), SNMP_READ)),
             admin_status: Some(IfAdminStatus::Up),
             oper_status: Some(IfOperStatus::Up),
+            ip_configured,
             ..Default::default()
         });
         self.storage.interfaces.create(&interface).await.unwrap();
@@ -179,6 +212,86 @@ impl Scanned {
             neighbour.remote_port_id_bytes.as_ref().expect("a value"),
         )
         .expect("a port id")
+    }
+}
+
+/// GH #685: a neighbour walk that stopped part way keeps every row it read.
+///
+/// The reporter's switch lost its whole neighbour set to a walk that did not finish, and the
+/// warning said so. Driven end to end: the daemon's collection of a device whose walk stops, the
+/// interfaces it would submit, the JSON they cross the wire as, and the server's ingest with LLDP
+/// marked not authoritative — each step one that dropped the rows at some point.
+#[tokio::test]
+async fn a_neighbour_walk_that_stopped_part_way_keeps_every_row_it_read() {
+    let lab = Lab::new().await;
+    let device = crate::daemon::discovery::integration::snmp::sim::device("switch-quietcol-01");
+    let collected = harness::collect(&device).await;
+    assert!(
+        !collected.neighbours.complete && !collected.neighbours.records.is_empty(),
+        "the fixture has to stop part way having read something, or this proves nothing"
+    );
+
+    let mut record = host(&lab.network_id);
+    record.base.name = HostName::manual(device.name.to_string());
+    lab.storage.hosts.create(&record).await.unwrap();
+
+    // What `execute` submits: neighbours on the interfaces they sit on, and LLDP marked
+    // authoritative only when the walk finished.
+    let collected_groups = InterfaceDataComplete {
+        lldp: collected.neighbours.complete && !collected.neighbours.unsupported,
+        ..Default::default()
+    };
+    assert!(!collected_groups.lldp);
+
+    let mut claimed = HashSet::new();
+    let mut persisted = HashMap::new();
+    for entry in &collected.if_table.entries {
+        let submitted = convert_snmp_if_entry(
+            entry,
+            lab.network_id,
+            &collected.neighbours.records,
+            &collected.cdp.records,
+            &[],
+            &[],
+            &HashMap::new(),
+            &HashSet::new(),
+        );
+        let wire = serde_json::to_value(&submitted).unwrap();
+        let mut received: Interface = serde_json::from_value::<DiscoveryInterface>(wire)
+            .unwrap()
+            .into();
+        received.base.host_id = record.id;
+
+        let stored = lab
+            .interfaces
+            .create_or_update_from_discovery(
+                received,
+                &claimed,
+                collected_groups,
+                AuthenticatedEntity::System,
+            )
+            .await
+            .unwrap();
+        claimed.insert(stored.id);
+        persisted.insert(entry.if_index, stored.id);
+    }
+
+    for neighbour in &collected.neighbours.records {
+        let interface_id = persisted[&neighbour.local_port_index];
+        let chassis: Vec<LldpChassisId> = lab
+            .neighbours
+            .candidates_for_interface(&interface_id)
+            .await
+            .unwrap()
+            .into_iter()
+            .filter_map(|c| c.base.evidence.lldp_chassis_id)
+            .collect();
+        assert_eq!(
+            chassis,
+            vec![Scanned::advertised_chassis(neighbour)],
+            "the neighbour read on local port {} was not recorded",
+            neighbour.local_port_index
+        );
     }
 }
 
@@ -494,6 +607,62 @@ async fn a_mac_that_identifies_exactly_one_port_still_resolves() {
     );
 }
 
+/// GH #668's last reported symptom, and the acceptance case for `ip_configured`.
+///
+/// `pc-windows-nic-filters` exposes one MAC on a real NIC (ifIndex 7) and on three NDIS filter/LWF
+/// pseudo-interfaces layered on top of it (18-20) — all four report an ordinary ethernet
+/// `if_type`, so `physical_if_types()`'s exclusion does not separate them and, before the fix,
+/// this is exactly `a_mac_on_every_port_of_the_far_end_resolves_to_no_port`'s shape:
+/// `switch-dlink-02`'s neighbour on port 7 resolves the host but leaves the port `Ambiguous`. The
+/// one thing that does separate the four candidates, confirmed against the reporting customer's
+/// own debug log: `ipAddrTable` binds the host's address to the real NIC's ifIndex only.
+#[tokio::test]
+async fn the_ip_configured_nic_resolves_among_its_own_filter_pseudo_interfaces() {
+    let lab = Lab::new().await;
+    let pc = lab.scan("pc-windows-nic-filters").await;
+    let switch = lab.scan("switch-dlink-02").await;
+
+    let neighbour = switch
+        .collected
+        .neighbours_on(7)
+        .into_iter()
+        .next()
+        .expect("a neighbour on local port 7");
+    let port_id = Scanned::advertised_port(neighbour);
+    assert!(matches!(port_id, LldpPortId::MacAddress(_)));
+
+    // The host resolves via the MAC on its interfaces — this device never advertises its own
+    // chassis id, matching the real PC-069's `has_lldp_local=false`.
+    assert_eq!(
+        Scanned::advertised_chassis(neighbour)
+            .resolve_host_id(&lab.resolver, lab.network_id, AdvertisedIdentity::default())
+            .await,
+        IdentityResolution::Resolved(pc.host.id)
+    );
+
+    let resolved = port_id.resolve_if_entry_id(&lab.resolver, pc.host.id).await;
+    let IdentityResolution::Resolved(interface_id) = resolved else {
+        panic!("the ipAddrTable-bound NIC must resolve the tie, got {resolved:?}");
+    };
+
+    let interface = lab
+        .storage
+        .interfaces
+        .get_by_id(&interface_id)
+        .await
+        .unwrap()
+        .expect("the interface exists");
+    assert_eq!(
+        interface.base.if_index,
+        Some(7),
+        "it must land on the real NIC, not one of its filter pseudo-interfaces"
+    );
+    assert!(
+        interface.base.ip_configured,
+        "the resolved interface must be the one ipAddrTable actually bound"
+    );
+}
+
 /// GH #664's other half, and the one that decides whether the fixture is worth anything.
 ///
 /// `switch-netgear-01`'s chassis id is on none of its *physical* ports — but its own scanned rows
@@ -562,6 +731,49 @@ async fn a_far_end_nobody_scanned_resolves_to_nothing() {
         IdentityResolution::NotFound,
         "an endpoint nobody scanned is not found, which is not the same as unresolvable"
     );
+}
+
+/// GH #685: the neighbours `switch-quietcol-01` reads before its walk stops reach the ports they
+/// name, so the partial read it exists to exercise draws port-level links in the lab.
+///
+/// Its first fixture borrowed identifiers from another device: one chassis id belonged to
+/// `router-gw-01` and two far-end ports did not exist, so a scan drew host-level links, one of them
+/// to the wrong device, and nothing failed.
+#[tokio::test]
+async fn the_quietcol_neighbours_reach_the_ports_they_name() {
+    let lab = Lab::new().await;
+    let quietcol = lab.scan("switch-quietcol-01").await;
+    let mut far_ends = std::collections::HashMap::new();
+    for name in ["switch-voss-01", "switch-dell-01", "switch-exos-01"] {
+        far_ends.insert(name, lab.scan(name).await.host.id);
+    }
+
+    assert_eq!(quietcol.collected.neighbours.records.len(), 3);
+    for neighbour in &quietcol.collected.neighbours.records {
+        let name = neighbour.remote_sys_name.as_deref().expect("a sysName");
+        let expected = *far_ends.get(name).unwrap_or_else(|| {
+            panic!("{name} is not one of the far ends this device is cabled to")
+        });
+
+        let host = Scanned::advertised_chassis(neighbour)
+            .resolve_host_id(&lab.resolver, lab.network_id, AdvertisedIdentity::default())
+            .await;
+        assert_eq!(
+            host,
+            IdentityResolution::Resolved(expected),
+            "the chassis id advertised for {name} must identify {name}"
+        );
+
+        assert!(
+            matches!(
+                Scanned::advertised_port(neighbour)
+                    .resolve_if_entry_id(&lab.resolver, expected)
+                    .await,
+                IdentityResolution::Resolved(_)
+            ),
+            "the port advertised for {name} must be a port {name} has"
+        );
+    }
 }
 
 /// A sanity check on the seeding itself: the far ends really are in the database with the

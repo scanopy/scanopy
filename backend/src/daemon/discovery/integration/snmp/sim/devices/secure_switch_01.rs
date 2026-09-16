@@ -19,7 +19,7 @@ use super::inline;
 pub fn device() -> SimDevice {
     SimDevice {
         name: "secure-switch-01",
-        ip: Ipv4Addr::new(192, 168, 7, 237),
+        ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Regression {
             issue: "#557",
             defect: "SNMPv3 AuthPriv — the USM handshake and an encrypted session",
@@ -46,6 +46,7 @@ pub fn device() -> SimDevice {
         tables: tables(),
         arp_handler: Handler::Normal,
         suppresses: Vec::new(),
+        rejects_getbulk: None,
     }
 }
 

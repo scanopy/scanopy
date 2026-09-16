@@ -15,7 +15,7 @@ use super::inline;
 pub fn device() -> SimDevice {
     SimDevice {
         name: "switch-cisco-01",
-        ip: Ipv4Addr::new(192, 168, 7, 251),
+        ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Regression {
             issue: "#686",
             defect: "IOS-XE partitions its forwarding database per VLAN, so a scan that cannot name a context reads the wrong table and is told nothing is wrong",
@@ -41,6 +41,7 @@ pub fn device() -> SimDevice {
         tables: tables(),
         arp_handler: Handler::Normal,
         suppresses: Vec::new(),
+        rejects_getbulk: None,
     }
 }
 

@@ -5,6 +5,7 @@ import subnetTypesJson from '$lib/data/subnet-types.json';
 import edgeTypesJson from '$lib/data/edge-types.json';
 import dependencyTypesJson from '$lib/data/dependency-types.json';
 import entitiesJson from '$lib/data/entities.json';
+import entitySourcesJson from '$lib/data/entity-sources.json';
 import portsJson from '$lib/data/ports.json';
 import discoveryTypesJson from '$lib/data/discovery-types.json';
 import discoveryPhasesJson from '$lib/data/discovery-phases.json';
@@ -17,6 +18,8 @@ import conceptsJson from '$lib/data/concepts.json';
 import containerTypesJson from '$lib/data/container-types.json';
 import viewsJson from '$lib/data/views.json';
 import serviceCategoriesJson from '$lib/data/service-categories.json';
+import attributeSourcesJson from '$lib/data/attribute-sources.json';
+import clientProbesJson from '$lib/data/client-probes.json';
 import {
 	createColorHelper,
 	createIconComponent,
@@ -87,6 +90,7 @@ export interface MetadataRegistry {
 	edge_types: TypeMetadata[];
 	dependency_types: TypeMetadata[];
 	entities: TypeMetadata[];
+	entity_sources: TypeMetadata[];
 	ports: TypeMetadata[];
 	discovery_types: TypeMetadata[];
 	discovery_phases: TypeMetadata[];
@@ -99,6 +103,8 @@ export interface MetadataRegistry {
 	container_types: TypeMetadata[];
 	views: TypeMetadata[];
 	service_categories: TypeMetadata[];
+	attribute_sources: TypeMetadata[];
+	client_probes: TypeMetadata[];
 }
 
 // Utility type to add proper typing to the metadata field
@@ -266,6 +272,7 @@ export const metadata = writable<MetadataRegistry>({
 	edge_types: edgeTypesJson,
 	dependency_types: dependencyTypesJson,
 	entities: entitiesJson,
+	entity_sources: entitySourcesJson,
 	ports: portsJson,
 	discovery_types: discoveryTypesJson,
 	discovery_phases: discoveryPhasesJson,
@@ -277,7 +284,9 @@ export const metadata = writable<MetadataRegistry>({
 	credential_types: credentialTypesJson,
 	container_types: containerTypesJson,
 	views: viewsJson,
-	service_categories: serviceCategoriesJson
+	service_categories: serviceCategoriesJson,
+	attribute_sources: attributeSourcesJson,
+	client_probes: clientProbesJson
 } as unknown as MetadataRegistry);
 
 // Shared color helper functions that work for both TypeMetadata and EntityMetadata
@@ -453,6 +462,17 @@ interface EntityTypeMetadata {
 	entity_name_plural?: string;
 }
 export const entities = createTypeMetadataHelpers<'entities', EntityTypeMetadata>('entities');
+/** How an entity came to exist, keyed by `source.type`. */
+export const entitySources = createTypeMetadataHelpers<'entity_sources', object>('entity_sources');
+/**
+ * Per-source labels, keyed by the source's variant. `Probe` and `Authored` are templates: read
+ * them through `attributeSourceLabel`, not `getName`.
+ */
+export const attributeSources = createTypeMetadataHelpers<'attribute_sources', object>(
+	'attribute_sources'
+);
+/** The probe names that fill `attributeSources`' `{probe}` slot. */
+export const clientProbes = createTypeMetadataHelpers<'client_probes', object>('client_probes');
 export const ports = createTypeMetadataHelpers<'ports', PortTypeMetadata>('ports');
 export const discoveryTypes = createTypeMetadataHelpers<'discovery_types', DiscoveryTypeMetadata>(
 	'discovery_types'

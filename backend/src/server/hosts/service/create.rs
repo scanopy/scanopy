@@ -133,7 +133,9 @@ impl HostService {
         let mut host_base = HostBase {
             name: HostName::unnamed(),
             network_id,
-            hostname,
+            hostname: hostname
+                .filter(|v| !v.trim().is_empty())
+                .map(|v| Attributed::new(HostHostnameValue(v), AttributeSource::Manual)),
             description,
             source: source.clone(),
             virtualization_metadata,

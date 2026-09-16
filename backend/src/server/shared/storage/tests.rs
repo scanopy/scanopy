@@ -6,6 +6,9 @@ use crate::server::{
     dependencies::{dependency_members::DependencyMemberRecord, r#impl::base::Dependency},
     discovery::r#impl::base::Discovery,
     hosts::r#impl::base::Host,
+    interface_neighbors::r#impl::base::{
+        InterfaceNeighborCandidate, InterfaceNeighborHost, InterfaceNeighborInterface,
+    },
     interfaces::r#impl::base::Interface,
     invites::r#impl::base::Invite,
     ip_addresses::r#impl::base::IPAddress,
@@ -230,6 +233,30 @@ fn get_entity_deserializers() -> HashMap<&'static str, DeserializeFn> {
         Interface::table_name(),
         Box::new(|row| {
             Interface::from_row(row)?;
+            Ok(())
+        }),
+    );
+
+    map.insert(
+        InterfaceNeighborCandidate::table_name(),
+        Box::new(|row| {
+            InterfaceNeighborCandidate::from_row(row)?;
+            Ok(())
+        }),
+    );
+
+    map.insert(
+        InterfaceNeighborInterface::table_name(),
+        Box::new(|row| {
+            InterfaceNeighborInterface::from_row(row)?;
+            Ok(())
+        }),
+    );
+
+    map.insert(
+        InterfaceNeighborHost::table_name(),
+        Box::new(|row| {
+            InterfaceNeighborHost::from_row(row)?;
             Ok(())
         }),
     );

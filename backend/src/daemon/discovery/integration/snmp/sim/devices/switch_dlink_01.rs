@@ -17,7 +17,7 @@ use super::inline;
 pub fn device() -> SimDevice {
     SimDevice {
         name: "switch-dlink-01",
-        ip: Ipv4Addr::new(192, 168, 7, 244),
+        ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Regression {
             issue: "#668",
             defect: "four neighbour records each needing a different route to their far end, and one chassis MAC repeated across every port",
@@ -39,6 +39,7 @@ pub fn device() -> SimDevice {
         tables: tables(),
         arp_handler: Handler::Normal,
         suppresses: Vec::new(),
+        rejects_getbulk: None,
     }
 }
 

@@ -30,6 +30,7 @@ pub struct UserApiKeyCsvRow {
 }
 
 impl Storable for UserApiKey {
+    const HAS_SCD2: bool = false;
     type BaseData = UserApiKeyBase;
 
     fn table_name() -> &'static str {

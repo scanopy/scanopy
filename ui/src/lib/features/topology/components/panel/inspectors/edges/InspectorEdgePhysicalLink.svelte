@@ -46,17 +46,31 @@
 	// on a link, "last seen" reads as a claim about the port, which is the confusion this row
 	// exists to end. Shown whether or not it is stale, so the timestamp is reachable here even
 	// where the edge label (and its chip) was stripped.
+	//
+	// GH #701: `neighbor_seen_at` moved off `Interface` onto the per-adjacency `InterfaceNeighborRow`
+	// — a port can resolve to several neighbours now, so "the row for this edge" is the one naming
+	// the *other* endpoint specifically, not a generic per-interface value. Checked from both
+	// directions since a link is recorded on one side and either endpoint's row could be it.
 	const networksQuery = useNetworksQuery();
-	let evidenceEndpoint = $derived(
-		[sourceInterface, targetInterface]
-			.filter((i) => i?.neighbor_seen_at)
-			.sort((a, b) => (a!.neighbor_seen_at! < b!.neighbor_seen_at! ? -1 : 1))[0]
+	let evidenceRow = $derived(
+		(topology?.neighbours ?? [])
+			.filter(
+				(n) =>
+					((n.interface_id === sourceEntityId && n.neighbor.id === targetEntityId) ||
+						(n.interface_id === targetEntityId && n.neighbor.id === sourceEntityId)) &&
+					n.neighbor.type === 'Interface'
+			)
+			.filter((n) => n.neighbor_seen_at)
+			.sort((a, b) => (a.neighbor_seen_at! < b.neighbor_seen_at! ? -1 : 1))[0]
+	);
+	let evidenceInterface = $derived(
+		evidenceRow ? topology?.interfaces.find((i) => i.id === evidenceRow!.interface_id) : undefined
 	);
 	let evidenceNetwork = $derived(
-		(networksQuery.data ?? []).find((n) => n.id === evidenceEndpoint?.network_id)
+		(networksQuery.data ?? []).find((n) => n.id === evidenceInterface?.network_id)
 	);
 	let evidenceTag = $derived(
-		evidenceEndpoint ? neighborEvidenceTag(evidenceEndpoint, evidenceNetwork) : null
+		evidenceRow ? neighborEvidenceTag(evidenceRow, evidenceNetwork) : null
 	);
 </script>
 
@@ -67,10 +81,10 @@
 		</div>
 	{/if}
 
-	{#if evidenceEndpoint?.neighbor_seen_at}
+	{#if evidenceRow?.neighbor_seen_at}
 		<div class="flex items-center gap-2 text-sm">
 			<span class="text-secondary font-medium">{topology_neighborEvidence()}</span>
-			<span>{formatRelativeTime(evidenceEndpoint.neighbor_seen_at)}</span>
+			<span>{formatRelativeTime(evidenceRow.neighbor_seen_at)}</span>
 			{#if evidenceTag}
 				<Tag {...evidenceTag} pill />
 			{/if}

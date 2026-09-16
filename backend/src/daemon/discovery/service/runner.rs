@@ -375,6 +375,9 @@ impl DiscoveryRunner {
         )
         .await?;
 
+        ops.record_equal_reach_integrations(localhost_ip, &host_data)
+            .await;
+
         // Persist results
         tracing::info!(
             services = host_data.services.len(),

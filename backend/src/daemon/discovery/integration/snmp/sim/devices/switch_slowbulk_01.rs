@@ -30,7 +30,7 @@ use super::inline;
 pub fn device() -> SimDevice {
     SimDevice {
         name: "switch-slowbulk-01",
-        ip: Ipv4Addr::new(192, 168, 7, 252),
+        ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Regression {
             issue: "#668",
             defect: "getbulk on the LLDP remote tables never answers while getnext does; before the fallback the chassis-id column returned nothing and every neighbour was discarded, so the switch reported no LLDP at all",
@@ -52,6 +52,7 @@ pub fn device() -> SimDevice {
         tables: tables(),
         arp_handler: Default::default(),
         suppresses: Vec::new(),
+        rejects_getbulk: None,
     }
 }
 

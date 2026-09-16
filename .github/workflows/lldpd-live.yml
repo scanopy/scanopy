@@ -1,0 +1,68 @@
+# Scheduled check that lldpcli's JSON still has the shape our parser expects (GH #689).
+#
+# The fixture tests in backend/src/daemon/discovery/service/lldpd.rs prove the parser
+# handles a capture; they cannot prove the capture still matches what lldpcli emits.
+# This job rebuilds the daemon image (which installs Debian's lldpd package), lets two
+# lldpd instances exchange real LLDP over a veth pair inside one container, captures
+# `lldpcli -f json` from one of them, and feeds the captures to the repository's own
+# parser — so drift in a new lldpd package breaks on our types, not on a jq path.
+#
+# Needs no secrets and no privilege beyond `--cap-add NET_ADMIN` on the capture
+# container, so it runs on a fork as-is via workflow_dispatch; the schedule fires once
+# the file is on the default branch.
+name: lldpd live shape check
+
+on:
+  schedule:
+    # Weekly. Drift arrives with Debian package updates, not with our commits.
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture-and-parse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@1.90.0
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libssl-dev pkg-config
+
+      - name: Build the daemon image
+        # The Dockerfile copies a pre-built daemon binary into the image. This job only
+        # needs the image's lldpd package, so an empty placeholder stands in for it.
+        run: |
+          cd backend
+          : > scanopy-daemon-linux-amd64
+          docker build -f Dockerfile.daemon --build-arg TARGETARCH=amd64 \
+            -t scanopy-daemon-lldpd-check .
+
+      - name: Capture lldpcli JSON from two live lldpd instances
+        run: |
+          mkdir -p /tmp/lldpd-out
+          docker run --rm --cap-add NET_ADMIN \
+            -v "$PWD/.github/scripts/lldpd-live-capture.sh:/capture.sh:ro" \
+            -v /tmp/lldpd-out:/out \
+            --entrypoint /bin/sh \
+            scanopy-daemon-lldpd-check /capture.sh
+
+      - name: Parse the captures with our parser
+        run: |
+          cd backend
+          SCANOPY_LLDPD_NEIGHBORS_CAPTURE=/tmp/lldpd-out/neighbors.json \
+          SCANOPY_LLDPD_EMPTY_CAPTURE=/tmp/lldpd-out/neighbors-empty.json \
+          cargo test --lib -- lldpd::tests::live --ignored --nocapture

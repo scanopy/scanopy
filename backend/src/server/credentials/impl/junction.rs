@@ -44,6 +44,7 @@ impl Display for NetworkCredential {
 }
 
 impl Storable for NetworkCredential {
+    const HAS_SCD2: bool = false;
     type BaseData = (Uuid, Uuid);
 
     fn table_name() -> &'static str {
@@ -102,6 +103,7 @@ impl Display for HostCredential {
 }
 
 impl Storable for HostCredential {
+    const HAS_SCD2: bool = false;
     type BaseData = (Uuid, Uuid, Option<Vec<Uuid>>);
 
     fn table_name() -> &'static str {

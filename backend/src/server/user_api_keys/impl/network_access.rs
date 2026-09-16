@@ -69,6 +69,7 @@ impl Display for UserApiKeyNetworkAccess {
 }
 
 impl Storable for UserApiKeyNetworkAccess {
+    const HAS_SCD2: bool = false;
     type BaseData = UserApiKeyNetworkAccessBase;
 
     fn table_name() -> &'static str {

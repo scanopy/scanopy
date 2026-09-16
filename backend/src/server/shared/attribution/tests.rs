@@ -142,6 +142,19 @@ fn a_devices_own_protocol_outranks_a_mib_which_outranks_a_controller() {
     assert!(queried < native, "a native protocol must outrank SNMP");
 }
 
+/// PROFINET DCP is a bare `AttributeSource` variant, not `Probe(ClientProbe)` (`ClientProbe` is
+/// scoped to TCP/UDP application probes reached over an already-open port; DCP is raw L2 with no
+/// port at all), but it must still land at the same `Native` tier a device's own protocol
+/// occupies via the `Probe` path above — outranking `ArpReply`, a third-party inference about the
+/// same MAC, for the same reason EtherNetIp outranks SNMP: the protocol is the subject's own.
+#[test]
+fn profinet_dcp_outranks_arp_for_the_same_field() {
+    assert!(
+        AttributeSource::ArpReply.rank() < AttributeSource::ProfinetDcp.rank(),
+        "a directed DCP identify exchange must outrank an inferred ARP reply"
+    );
+}
+
 /// A value we synthesised from an identifier is an inference, whatever transport carried the
 /// identifier. `"CIP vendor 1"` is our own construction, so it must not displace a manufacturer
 /// name SNMP read off the device — even though EtherNet/IP outranks SNMP for what the device
@@ -548,4 +561,28 @@ fn the_published_tier_table_covers_every_source_exactly_once() {
     expected.sort_by_key(|s| s.to_string());
 
     assert_eq!(published, expected);
+}
+
+/// Every source renders with a label, and the `{probe}` slot sits exactly where there is a probe
+/// to fill it. A probe-carrying label without the slot would read the same for SNMP and Docker, and
+/// a slot anywhere else would reach the operator as a literal `{probe}`.
+#[test]
+fn every_source_has_a_label_with_a_probe_slot_exactly_where_it_carries_a_probe() {
+    use crate::server::shared::types::metadata::TypeMetadataProvider;
+
+    for source in AttributeSource::all() {
+        let discriminant = AttributeSourceDiscriminants::from(&source);
+        let name = discriminant.name();
+        assert!(!name.trim().is_empty(), "{source} has no label");
+
+        let carries_probe = matches!(
+            source,
+            AttributeSource::Probe(_) | AttributeSource::Authored(_)
+        );
+        assert_eq!(
+            name.contains("{probe}"),
+            carries_probe,
+            "{source} is labelled {name:?}"
+        );
+    }
 }

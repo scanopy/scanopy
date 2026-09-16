@@ -50,8 +50,26 @@ export function metaDescriptionWith(
 	fallback: string
 ): string {
 	if (!id) return interpolate(fallback, params);
+	return resolveMetaWith(`meta_${fixtureKey}_${id}_description`, params, fallback);
+}
 
-	const key = `meta_${fixtureKey}_${id}_description`;
+/**
+ * Resolve a fixture item's translated name and fill its slots.
+ *
+ * The name-side counterpart of `metaDescriptionWith`, for fixtures whose names are templates:
+ * `attribute-sources.json` names `Probe` and `Authored` as `{probe}` sentences.
+ */
+export function metaNameWith(
+	fixtureKey: string,
+	id: string | null,
+	params: Record<string, unknown>,
+	fallback: string
+): string {
+	if (!id) return interpolate(fallback, params);
+	return resolveMetaWith(`meta_${fixtureKey}_${id}_name`, params, fallback);
+}
+
+function resolveMetaWith(key: string, params: Record<string, unknown>, fallback: string): string {
 	const messageFn = m[key as keyof typeof m] as
 		| ((inputs: Record<string, unknown>) => string)
 		| undefined;

@@ -16,9 +16,9 @@
 mod coding;
 
 pub use coding::{
-    warn_contradicted_claims, warn_credential_issues, warn_incomplete_interface_walks,
-    warn_incomplete_snmp_walks, warn_malformed_neighbours, warn_snmp_collected_nothing,
-    warn_unresolved_lldp_ports, warn_vlan_recording_failures,
+    warn_contradicted_claims, warn_credential_issues, warn_equal_reach_integrations,
+    warn_incomplete_interface_walks, warn_incomplete_snmp_walks, warn_malformed_neighbours,
+    warn_snmp_collected_nothing, warn_unresolved_lldp_ports, warn_vlan_recording_failures,
 };
 
 use std::net::IpAddr;
@@ -232,6 +232,20 @@ pub enum MalformedNeighbourReason {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VlanRecordingFailed {
     pub ip: IpAddr,
+}
+
+/// A host whose interfaces two full-ifTable integrations both collected in one scan.
+///
+/// Not a fault: running SNMP and gNMI against one switch is supported, and every row either one
+/// offered is kept. What the operator gets from this is where a port's row came from. On a port
+/// both describe, `first` supplies the row and its neighbour candidates, and `second`'s copy is
+/// dropped, so a link only `second` saw on that port is not drawn.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EqualReachIntegrations {
+    pub ip: IpAddr,
+    /// The integration that contributed first, and so won every port both describe.
+    pub first: CredentialQueryPayloadDiscriminants,
+    pub second: CredentialQueryPayloadDiscriminants,
 }
 
 /// One SNMP data group that a walk could not read in full, for one device.

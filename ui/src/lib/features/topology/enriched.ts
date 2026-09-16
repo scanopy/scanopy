@@ -19,14 +19,25 @@ import type {
 	TopologyNode,
 	TopologyEdge,
 	Binding,
-	Vlan
+	Vlan,
+	FilteredOutCounts
 } from './types/base';
 import type { TopologyView } from './queries';
-import type { Host, IPAddress, Interface, Port } from '$lib/features/hosts/types/base';
+import type { components } from '$lib/api/schema';
+import type {
+	Host,
+	IPAddress,
+	Interface,
+	Port,
+	InterfaceNeighborRow,
+	InterfaceNeighborCandidate
+} from '$lib/features/hosts/types/base';
 import type { Service } from '$lib/features/services/types/base';
 import type { Subnet } from '$lib/features/subnets/types/base';
 import type { Dependency } from '$lib/features/dependencies/types/base';
 import type { Tag } from '$lib/features/tags/types/base';
+
+type TopologyData = components['schemas']['TopologyData'];
 
 export interface EntityBundle {
 	hosts: Host[];
@@ -36,6 +47,20 @@ export interface EntityBundle {
 	ports: Port[];
 	bindings: Binding[];
 	interfaces: Interface[];
+	/**
+	 * GH #701: resolved adjacencies + their raw evidence, built on request alongside `nodes`/`edges`
+	 * — see `TopologyData.neighbours`/`.candidates`.
+	 *
+	 * Required, not optional. These were optional "for a caller that never asked for them", and
+	 * that is exactly how the topology tab came to build its bundle without them: the literal
+	 * compiled, every interface then classified `Unlinked` for want of a single neighbour row, and
+	 * hiding `Unlinked` emptied every host container in L2. Build a bundle with
+	 * `entityBundleFrom` rather than by hand.
+	 */
+	neighbours: InterfaceNeighborRow[];
+	candidates: InterfaceNeighborCandidate[];
+	/** Server-side filter drop tally — see `RenderableTopology.filtered_out`. */
+	filtered_out: FilteredOutCounts;
 	dependencies: Dependency[];
 	vlans: Vlan[];
 	entity_tags: Tag[];
@@ -52,10 +77,34 @@ export const EMPTY_ENTITY_BUNDLE: EntityBundle = {
 	ports: [],
 	bindings: [],
 	interfaces: [],
+	neighbours: [],
+	candidates: [],
+	filtered_out: {},
 	dependencies: [],
 	vlans: [],
 	entity_tags: []
 };
+
+/**
+ * The entity bundle for a `TopologyData` response — the one place that response is mapped.
+ *
+ * The app tab and the share viewer each used to spell the mapping out field by field, and the two
+ * copies drifted: the share viewer passed `neighbours` through and the tab did not. A spread
+ * carries every field the backend adds without anyone having to remember to list it; the only
+ * real translation is `tags` → `entity_tags`.
+ */
+export function entityBundleFrom(data: TopologyData): EntityBundle {
+	const { tags, neighbours, candidates, filtered_out, ...rest } = data;
+	return {
+		...rest,
+		// Absent only on a response from a backend older than the field — `#[serde(default)]`
+		// makes them optional in the generated schema, not in what a current server sends.
+		neighbours: neighbours ?? [],
+		candidates: candidates ?? [],
+		filtered_out: filtered_out ?? {},
+		entity_tags: tags
+	};
+}
 
 /**
  * Combine a slim `Topology` row with the entity arrays + built graph from the
@@ -90,6 +139,12 @@ export function toRenderableTopology(
 	const ipAddresses = bundle.ip_addresses.filter((i) => hostIds.has(i.host_id));
 	const ports = bundle.ports.filter((p) => hostIds.has(p.host_id));
 	const interfaces = bundle.interfaces.filter((i) => hostIds.has(i.host_id));
+	// Resolved adjacencies + raw evidence are scoped through the interfaces they belong to, the
+	// same way ports/ip_addresses are scoped through hosts above — neither row carries its own
+	// host or interface array to filter against directly.
+	const interfaceIds = new Set(interfaces.map((i) => i.id));
+	const neighbours = (bundle.neighbours ?? []).filter((n) => interfaceIds.has(n.interface_id));
+	const candidates = (bundle.candidates ?? []).filter((c) => interfaceIds.has(c.base.interface_id));
 	const bindings = bundle.bindings.filter((b) => b.network_id === networkId);
 	// Tags are org-scoped; keep the ones referenced by entities here, plus tags
 	// referenced by grouping rules (ByTag / ByApplication) — those may apply to no
@@ -122,6 +177,11 @@ export function toRenderableTopology(
 		ports,
 		bindings,
 		interfaces,
+		neighbours,
+		candidates,
+		// Network-scoped already: the bundle is fetched per network, so its tally needs no
+		// filtering the way the entity arrays above do.
+		filtered_out: bundle.filtered_out ?? {},
 		dependencies,
 		vlans,
 		entity_tags: entityTags,

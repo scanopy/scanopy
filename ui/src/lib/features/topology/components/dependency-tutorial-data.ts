@@ -43,6 +43,8 @@ export const TUTORIAL_TOPOLOGY: RenderableTopology = {
 	ports: [],
 	ip_addresses: [],
 	interfaces: [],
+	neighbours: [],
+	candidates: [],
 	vlans: [],
 	options: {
 		request: { element_rules: [], container_rules: [] },

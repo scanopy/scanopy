@@ -13,6 +13,7 @@ pub mod discovery;
 pub mod email;
 pub mod github;
 pub mod hosts;
+pub mod interface_neighbors;
 pub mod interfaces;
 pub mod invites;
 pub mod ip_addresses;

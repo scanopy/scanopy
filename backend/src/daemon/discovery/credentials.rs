@@ -89,7 +89,7 @@ pub fn summarize_credential_assignments(
 ) -> HashMap<String, Vec<String>> {
     let host_name_by_ip: HashMap<IpAddr, String> = hosts
         .iter()
-        .map(|(ip, host)| (*ip, host.base.name.to_string()))
+        .map(|(ip, host)| (*ip, host.display_name(&[]).unwrap_or_default()))
         .collect();
 
     let mut by_type: HashMap<String, Vec<String>> = HashMap::new();

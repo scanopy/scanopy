@@ -212,11 +212,19 @@ pub trait Storable: Sized + Clone + Send + Sync + 'static + Default {
     }
 
     /// Whether this entity carries SCD2 columns (`valid_from` / `valid_to`).
-    /// When `true`, frontend-facing GET handlers automatically filter to live
-    /// rows (`valid_to IS NULL`) so closed historical copies don't leak into
-    /// list responses, and direct `GET /{id}` of a closed row returns 404.
-    /// Default `false`; the 13 Snapshotable entity types override to `true`.
-    const HAS_SCD2: bool = false;
+    ///
+    /// When `true`, reads filter to live rows (`valid_to IS NULL`) so closed historical
+    /// copies don't leak: frontend-facing GET handlers drop them from list responses,
+    /// `GET /{id}` of a closed row 404s, and [`ChildStorage`] excludes them when loading
+    /// children for a parent.
+    ///
+    /// **Deliberately has no default.** It used to default to `false`, which meant an entity
+    /// whose table had the columns but whose impl stayed silent was indistinguishable from one
+    /// that genuinely had none. Three of them accumulated that way (`dependency_members`,
+    /// `entity_tags`, `subnet_vlans`), unnoticed only because `ChildStorage` hard-coded the
+    /// filter instead of consulting this. Answer it for every entity; the value must match
+    /// what the table actually has.
+    const HAS_SCD2: bool;
 
     /// Whether this entity instance is a live row (i.e. `valid_to IS NULL`).
     /// Default `true` for non-SCD2 entities; SCD2 types override to consult

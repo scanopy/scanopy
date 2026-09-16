@@ -39,6 +39,7 @@ impl Display for DaemonInterfacedSubnet {
 }
 
 impl Storable for DaemonInterfacedSubnet {
+    const HAS_SCD2: bool = false;
     type BaseData = (Uuid, Uuid);
 
     fn table_name() -> &'static str {

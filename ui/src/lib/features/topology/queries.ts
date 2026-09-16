@@ -107,10 +107,14 @@ const ALL_VIEWS: TopologyView[] = viewsJson.map((p) => p.id as TopologyView);
 /**
  * Filter values a view hides before the user has touched anything.
  *
- * Read from the generated view fixture rather than restated here. These are product defaults —
- * "clear all filters" preserves them and the filters-applied badge ignores them — so the list has
- * to be the same one the backend seeds a new topology's hide-set from, and it used to be written
- * out separately in both places.
+ * Read from the generated view fixture rather than restated here, so it is the same list the
+ * backend seeds a new topology's hide-set from — it used to be written out separately in both
+ * places.
+ *
+ * These seed a topology that has never stored an opinion, and nothing else. A default in force is
+ * counted by the filters-applied badge and removed by Clear all, exactly like a value the user
+ * hid: a default nothing surfaces and nothing clears is a view that filters itself to empty with
+ * no way back, which is what `Interface/LinkState = [Unlinked]` did in L2.
  */
 export function defaultHiddenValuesFor(view: string): Record<string, Record<string, string[]>> {
 	const meta = viewsJson.find((v) => v.id === view)?.metadata as
@@ -119,14 +123,40 @@ export function defaultHiddenValuesFor(view: string): Record<string, Record<stri
 	return meta?.element_config?.default_hidden_values ?? {};
 }
 
-/** Whether a hidden value is a product default rather than something the user chose to hide. */
-export function isDefaultHiddenValue(
+/** The metadata filters a view declares, keyed by entity type — from the generated view fixture. */
+export function declaredMetadataFiltersFor(
+	view: string
+): Record<string, Array<{ filter_type: string }>> {
+	const meta = viewsJson.find((v) => v.id === view)?.metadata as
+		| { element_config?: { metadata_filters?: Record<string, Array<{ filter_type: string }>> } }
+		| undefined;
+	return meta?.element_config?.metadata_filters ?? {};
+}
+
+/**
+ * What one entity's hide-set becomes when its filters are cleared: every filter the view declares,
+ * emptied, plus an empty list for any stored key the view no longer declares.
+ *
+ * Explicit empty lists rather than removed keys. An absent key means "no opinion", which the
+ * server refills from the view's defaults on the next read
+ * (`TopologyRequestOptions::merge_missing_hide_defaults`); an empty list means "show everything",
+ * which it leaves alone. Dropping the key would make a cleared filter re-hide itself on reload —
+ * so the view's declared filters are the source here, not just the keys that happen to be stored.
+ *
+ * Defaults are cleared like anything else. A default Clear all put straight back was a button that
+ * visibly did nothing, and it left a user who wanted to see unlinked ports no way to get them.
+ */
+export function clearedHideSetFor(
 	view: string,
 	entityType: string,
-	filterType: string,
-	valueId: string
-): boolean {
-	return (defaultHiddenValuesFor(view)[entityType]?.[filterType] ?? []).includes(valueId);
+	existing: Record<string, string[]> | undefined
+): Record<string, string[]> {
+	const cleared: Record<string, string[]> = {};
+	for (const filter of declaredMetadataFiltersFor(view)[entityType] ?? []) {
+		cleared[filter.filter_type] = [];
+	}
+	for (const filterType of Object.keys(existing ?? {})) cleared[filterType] = [];
+	return cleared;
 }
 
 /** Default local options for a given view (UI-only, not sent to backend as rules) */
@@ -559,6 +589,58 @@ export function updateTopologyOptions(
 			perViewLocal: {
 				...store.perViewLocal,
 				[view]: updated.local
+			}
+		};
+	});
+}
+
+/**
+ * Clear every control that can hide a node in `view`: the metadata hide-set, the entity-type
+ * hides, and the tag filter.
+ *
+ * Broader than the options panel's Clear all, which covers metadata and tags. This one backs the
+ * empty state's way out, so it has to guarantee the view repopulates — leaving an eye toggle set
+ * would put the user back where they started, on a button that said it would fix it.
+ *
+ * Every filter the view declares is written as an explicit empty list rather than having its key
+ * removed: an absent key means "no opinion", which the server refills from the view's defaults on
+ * the next read (`TopologyRequestOptions::merge_missing_hide_defaults`), while an empty list means
+ * "show everything" and is left alone.
+ */
+export function showEverythingIn(view: string): void {
+	const declared = declaredMetadataFiltersFor(view);
+
+	updateTopologyOptions((opts) => {
+		const hideMeta = { ...(opts.request.hide_metadata_values ?? {}) } as Record<
+			string,
+			Record<string, Record<string, string[]>>
+		>;
+		const cleared: Record<string, Record<string, string[]>> = {};
+		for (const entityType of new Set([
+			...Object.keys(declared),
+			...Object.keys(hideMeta[view] ?? {})
+		])) {
+			cleared[entityType] = clearedHideSetFor(view, entityType, hideMeta[view]?.[entityType]);
+		}
+		hideMeta[view] = cleared;
+
+		const hideEntities = { ...(opts.request.hide_entities ?? {}) };
+		hideEntities[view] = [];
+
+		return {
+			...opts,
+			request: {
+				...opts.request,
+				hide_metadata_values: hideMeta,
+				hide_entities: hideEntities
+			},
+			local: {
+				...opts.local,
+				tag_filter: {
+					hidden_host_tag_ids: [],
+					hidden_service_tag_ids: [],
+					hidden_subnet_tag_ids: []
+				}
 			}
 		};
 	});

@@ -28,6 +28,7 @@ pub struct DaemonApiKeyCsvRow {
 }
 
 impl Storable for DaemonApiKey {
+    const HAS_SCD2: bool = false;
     type BaseData = DaemonApiKeyBase;
 
     fn table_name() -> &'static str {

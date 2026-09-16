@@ -142,6 +142,11 @@ impl DiscoveryWarningCode {
             | Self::SnmpCollectedNothing
             | Self::VlanRecordingFailed => &["addresses"],
 
+            // Shaped like the credential family: the integrations identify the statement and the
+            // addresses aggregate, so hosts read by the same pair in the same order share a
+            // sentence and a different pair gets its own.
+            Self::EqualReachIntegrationsMerged => &["addresses", "first", "second"],
+
             Self::SnmpWalkEntryCap => &["addresses", "groups", "limit"],
 
             Self::SnmpWalkUnsupported
@@ -200,6 +205,9 @@ impl DiscoveryWarningCode {
             Self::ProvisionalSubnetInferred => &["count"],
 
             Self::NeighbourResolutionIncomplete => &["budget_seconds", "neighbours"],
+            Self::FdbResolutionIncomplete => &["budget_seconds", "interfaces"],
+
+            Self::OutdatedDaemonFormat => &["daemon_version"],
 
             Self::WarningsTruncated => &["elided"],
             Self::Unknown => &["detail"],
@@ -263,10 +271,17 @@ impl DiscoveryWarningCode {
             // A range Scanopy proposes, not a fault: the segment is probably real and the operator
             // is being asked to confirm it, which is a different thing from something going wrong.
             | Self::ProvisionalSubnetInferred
+            // The old format was translated, so this scan lost nothing. It reports a daemon
+            // that will lose something once the compatibility window closes.
+            | Self::OutdatedDaemonFormat
+            // Running two full-ifTable integrations against one device is supported. Nothing was
+            // lost that the configuration did not choose.
+            | Self::EqualReachIntegrationsMerged
             | Self::Unknown => Severity::Informational,
             // Links are missing that the device did advertise, which is data loss for this scan
             // rather than something for the operator to confirm.
-            Self::NeighbourResolutionIncomplete => Severity::Degraded,
+            Self::NeighbourResolutionIncomplete
+            | Self::FdbResolutionIncomplete => Severity::Degraded,
         }
     }
 
@@ -307,7 +322,10 @@ impl DiscoveryWarningCode {
             // shipped action.
             | Self::LldpNeighbourAmbiguous
             // Narrowing what one scan covers is the lever that brings the pass back inside budget.
-            | Self::NeighbourResolutionIncomplete => WarningRemedy::FixInScanopy,
+            | Self::NeighbourResolutionIncomplete
+            | Self::FdbResolutionIncomplete
+            // Upgrading the daemon is the fix, and the daemon is Scanopy's own component.
+            | Self::OutdatedDaemonFormat => WarningRemedy::FixInScanopy,
 
             // The device says one thing and serves another. No Scanopy setting reaches these:
             // what has to change is the agent's view of its own tables.
@@ -343,6 +361,8 @@ impl DiscoveryWarningCode {
             | Self::LldpPortNotFound
             | Self::LldpPortAmbiguous
             | Self::LldpPortNoStrategy
+            // A supported configuration, reported so a missing link can be traced to the merge.
+            | Self::EqualReachIntegrationsMerged
             // Carries whatever a newer binary sent, so there is nothing here to classify.
             | Self::Unknown => WarningRemedy::NothingToDo,
         }
@@ -399,6 +419,7 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
             Self::MalformedNeighboursUnreadableIndex => "Neighbour position unreadable",
             Self::SnmpCollectedNothing => "SNMP answered but returned nothing",
             Self::VlanRecordingFailed => "VLANs could not be saved",
+            Self::EqualReachIntegrationsMerged => "Interfaces merged from two integrations",
             Self::CredentialTargetNotScanned => "Credential target outside the scan",
             Self::CredentialTargetNotResponding => "Credential target did not respond",
             Self::CredentialGateClosed => "Credential port not open",
@@ -420,6 +441,8 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
             Self::LldpPortAmbiguous => "Advertised port not unique",
             Self::ProvisionalSubnetInferred => "Address range assumed, please confirm",
             Self::NeighbourResolutionIncomplete => "Link resolution did not finish",
+            Self::FdbResolutionIncomplete => "FDB link resolution did not finish",
+            Self::OutdatedDaemonFormat => "Daemon is outdated",
             Self::WarningsTruncated => "Some warnings not recorded",
             Self::Unknown => "Warning from another version",
         }
@@ -498,6 +521,9 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
             Self::VlanRecordingFailed => {
                 "The VLANs reported by {addresses} could not be saved, so VLAN membership is missing from their interfaces. The devices answered correctly — this is a failure recording the result, and the daemon log has the underlying error."
             }
+            Self::EqualReachIntegrationsMerged => {
+                "{addresses} answered both {first} and {second}, and both integrations reported a full interface table. Scanopy merged the two sets. On a port both describe, {first} answered first, so Scanopy used its row and its neighbours. Running both is supported."
+            }
             Self::CredentialTargetNotScanned => {
                 "The {credential} credential for {addresses} was never contacted, because no subnet this scan covers reaches there — add the subnet to the discovery, or move the credential to a host inside it."
             }
@@ -560,6 +586,12 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
             }
             Self::NeighbourResolutionIncomplete => {
                 "Matching LLDP/CDP neighbours to the devices and ports they name was stopped after {budget_seconds}s, with {neighbours} interface(s) advertising a neighbour on this network. Physical Topology is missing links this scan would otherwise have drawn; the next scan retries from scratch. Narrow what the scan covers, or split the network across daemons, if it keeps happening."
+            }
+            Self::FdbResolutionIncomplete => {
+                "Matching single-MAC forwarding-table entries to the devices they name was stopped after {budget_seconds}s, with {interfaces} interface(s) still carrying one. Physical Topology is missing links this scan would otherwise have drawn; the next scan retries from scratch. Narrow what the scan covers, or split the network across daemons, if it keeps happening."
+            }
+            Self::OutdatedDaemonFormat => {
+                "The daemon that ran this scan is on {daemon_version}. Upgrade it."
             }
             Self::WarningsTruncated => {
                 "{elided} further warnings from this scan were not recorded, because it produced more than the scan record holds. Narrow what the scan covers to see the rest."

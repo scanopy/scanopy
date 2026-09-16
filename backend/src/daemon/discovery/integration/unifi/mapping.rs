@@ -20,6 +20,7 @@ use std::net::IpAddr;
 use uuid::Uuid;
 
 use crate::daemon::discovery::integration::controller::{ControllerIdentity, MappedClient};
+use crate::server::interface_neighbors::r#impl::base::InterfaceNeighborEvidence;
 use crate::server::interfaces::r#impl::base::{
     IfAdminStatus, IfOperStatus, Interface, InterfaceBase,
 };
@@ -154,7 +155,7 @@ fn map_interfaces(
             host_id: Uuid::nil(),
             network_id,
             if_index: Some(if_index),
-            if_descr: name.clone(),
+            if_descr: Some(name.clone()),
             if_name: Some(name),
             if_type: Some(IF_TYPE_ETHERNET),
             admin_status: Some(IfAdminStatus::Up),
@@ -220,7 +221,7 @@ fn port_to_interface(port: &UnifiPort, network_id: Uuid, device_mac: Option<&str
         host_id: Uuid::nil(),
         network_id,
         if_index: Some(if_index),
-        if_descr: name.clone(),
+        if_descr: Some(name.clone()),
         if_name: Some(name),
         if_type: Some(IF_TYPE_ETHERNET),
         speed_bps: port
@@ -259,18 +260,26 @@ fn apply_uplink(interfaces: &mut [Interface], device: &UnifiDevice) {
         return;
     };
 
-    interface.base.lldp_chassis_id = Some(LldpChassisId::MacAddress(parent_mac));
-    // `LocallyAssigned` rather than `InterfaceName`: the resolver tries a name lookup *and
-    // then* parses the value as an ifIndex, and we set the parent's `if_index` from its own
-    // `port_idx`, so the index tier hits. `InterfaceName` would only try the name and
-    // dead-end on a bare number.
-    interface.base.lldp_port_id = uplink
-        .uplink_remote_port
-        .map(|p| LldpPortId::LocallyAssigned(p.as_i32().to_string()));
-    interface.base.lldp_sys_name = uplink
-        .uplink_device_name
-        .clone()
-        .filter(|n| !n.trim().is_empty());
+    // One candidate, replacing whatever this port already held: this function (like
+    // `apply_downlinks`/`apply_lldp_table`) is authoritative for the port it names, mirroring the
+    // scalar-overwrite semantics `InterfaceBase.lldp_*` had before GH #701 moved evidence into
+    // `neighbor_candidates` — see `apply_lldp_table`'s doc comment ("overwriting any
+    // uplink/downlink synthesis").
+    interface.base.neighbor_candidates = vec![InterfaceNeighborEvidence {
+        lldp_chassis_id: Some(LldpChassisId::MacAddress(parent_mac)),
+        // `LocallyAssigned` rather than `InterfaceName`: the resolver tries a name lookup *and
+        // then* parses the value as an ifIndex, and we set the parent's `if_index` from its own
+        // `port_idx`, so the index tier hits. `InterfaceName` would only try the name and
+        // dead-end on a bare number.
+        lldp_port_id: uplink
+            .uplink_remote_port
+            .map(|p| LldpPortId::LocallyAssigned(p.as_i32().to_string())),
+        lldp_sys_name: uplink
+            .uplink_device_name
+            .clone()
+            .filter(|n| !n.trim().is_empty()),
+        ..Default::default()
+    }];
 }
 
 /// Record each adopted child on the port it hangs off.
@@ -293,19 +302,23 @@ fn apply_downlinks(
             continue;
         };
 
-        interface.base.lldp_chassis_id = Some(LldpChassisId::MacAddress(child_mac.clone()));
-        // The downlink entry names the child but not which of *its* ports faces us. The child
-        // is usually in the same payload and its `uplink.port_idx` is exactly that port, so
-        // cross-reference it — otherwise this resolves only to a host, not a `PhysicalLink`.
-        interface.base.lldp_port_id = by_mac
-            .get(&child_mac)
-            .and_then(|child| child.uplink.as_ref())
-            .and_then(|u| u.port_idx)
-            .map(|p| LldpPortId::LocallyAssigned(p.as_i32().to_string()));
-        interface.base.lldp_sys_name = by_mac
-            .get(&child_mac)
-            .and_then(|child| child.name.clone())
-            .filter(|n| !n.trim().is_empty());
+        interface.base.neighbor_candidates = vec![InterfaceNeighborEvidence {
+            lldp_chassis_id: Some(LldpChassisId::MacAddress(child_mac.clone())),
+            // The downlink entry names the child but not which of *its* ports faces us. The
+            // child is usually in the same payload and its `uplink.port_idx` is exactly that
+            // port, so cross-reference it — otherwise this resolves only to a host, not a
+            // `PhysicalLink`.
+            lldp_port_id: by_mac
+                .get(&child_mac)
+                .and_then(|child| child.uplink.as_ref())
+                .and_then(|u| u.port_idx)
+                .map(|p| LldpPortId::LocallyAssigned(p.as_i32().to_string())),
+            lldp_sys_name: by_mac
+                .get(&child_mac)
+                .and_then(|child| child.name.clone())
+                .filter(|n| !n.trim().is_empty()),
+            ..Default::default()
+        }];
     }
 }
 
@@ -331,16 +344,19 @@ fn apply_lldp_table(interfaces: &mut [Interface], device: &UnifiDevice) {
         let chassis = LldpChassisId::from_identifier_str(chassis_raw);
         // When the chassis ID is a name rather than a MAC, it is also the best `sysName` we
         // have — and `sys_name` is the resolver's last-resort matching strategy.
-        if matches!(chassis, LldpChassisId::LocallyAssigned(_)) {
-            interface.base.lldp_sys_name = Some(chassis_raw.to_string());
-        }
-        interface.base.lldp_chassis_id = Some(chassis);
-        interface.base.lldp_port_id = entry
-            .port_id
-            .as_deref()
-            .map(str::trim)
-            .filter(|p| !p.is_empty())
-            .map(LldpPortId::from_identifier_str);
+        let sys_name =
+            matches!(chassis, LldpChassisId::LocallyAssigned(_)).then(|| chassis_raw.to_string());
+        interface.base.neighbor_candidates = vec![InterfaceNeighborEvidence {
+            lldp_chassis_id: Some(chassis),
+            lldp_port_id: entry
+                .port_id
+                .as_deref()
+                .map(str::trim)
+                .filter(|p| !p.is_empty())
+                .map(LldpPortId::from_identifier_str),
+            lldp_sys_name: sys_name,
+            ..Default::default()
+        }];
     }
 }
 
@@ -510,6 +526,13 @@ mod tests {
             .unwrap_or_else(|| panic!("expected an interface at index {if_index}"))
     }
 
+    /// The single candidate `apply_uplink`/`apply_downlinks`/`apply_lldp_table` write for a port
+    /// — each is authoritative for the port it names (see their doc comments), so a mapped
+    /// UniFi port never carries more than one.
+    fn candidate(port: &Interface) -> Option<&InterfaceNeighborEvidence> {
+        port.base.neighbor_candidates.first()
+    }
+
     fn find<'a>(devices: &'a [MappedDevice], name: &str) -> &'a MappedDevice {
         devices
             .iter()
@@ -528,7 +551,7 @@ mod tests {
         assert_eq!(port.base.oper_status, Some(IfOperStatus::Up));
         assert_eq!(port.base.admin_status, Some(IfAdminStatus::Up));
         // "port_idx": "24" on the uplink still lands the neighbor on port 24.
-        assert!(interface(switch, 24).base.lldp_chassis_id.is_some());
+        assert!(candidate(interface(switch, 24)).is_some());
     }
 
     /// `if_descr` is validated non-empty, so an unnamed port must still get a label or the
@@ -540,8 +563,17 @@ mod tests {
             .iter()
             .find(|d| d.ip.to_string() == "192.168.20.50")
             .expect("degenerate switch should be mapped");
-        assert_eq!(interface(device, 3).base.if_descr, "Port 3");
-        assert!(!interface(device, 8).base.if_descr.is_empty());
+        assert_eq!(
+            interface(device, 3).base.if_descr.as_deref(),
+            Some("Port 3")
+        );
+        assert!(
+            interface(device, 8)
+                .base
+                .if_descr
+                .as_ref()
+                .is_some_and(|d| !d.is_empty())
+        );
     }
 
     /// UniFi repeats the chassis MAC on every port. Recording it would make the MAC tier of
@@ -572,7 +604,7 @@ mod tests {
         let devices = map(USW_UPLINK);
         let switch = find(&devices, "Core Switch");
         assert_eq!(
-            interface(switch, 24).base.lldp_chassis_id,
+            candidate(interface(switch, 24)).and_then(|c| c.lldp_chassis_id.clone()),
             Some(LldpChassisId::MacAddress("00:1a:2b:3c:4d:5e".to_string())),
             "the fixture's mixed-case unpadded '0:1A:2b:3C:4d:5E' must canonicalize"
         );
@@ -588,20 +620,20 @@ mod tests {
         let switch = find(&devices, "Core Switch");
         let uplink_port = interface(switch, 24);
         assert_eq!(
-            uplink_port.base.lldp_port_id,
+            candidate(uplink_port).and_then(|c| c.lldp_port_id.clone()),
             Some(LldpPortId::LocallyAssigned("4".to_string())),
             "LocallyAssigned resolves by name then ifIndex; InterfaceName would dead-end"
         );
         assert_eq!(
-            uplink_port.base.lldp_sys_name.as_deref(),
-            Some("Border Gateway")
+            candidate(uplink_port).and_then(|c| c.lldp_sys_name.clone()),
+            Some("Border Gateway".to_string())
         );
         // No other port picked up the parent.
         assert_eq!(
             switch
                 .interfaces
                 .iter()
-                .filter(|i| i.base.lldp_chassis_id.is_some())
+                .filter(|i| candidate(i).is_some_and(|c| c.lldp_chassis_id.is_some()))
                 .count(),
             2, // port 24 (uplink) and port 12 (lldp_table neighbor)
         );
@@ -615,11 +647,11 @@ mod tests {
         let gateway = find(&devices, "Border Gateway");
         let port = interface(gateway, 4);
         assert_eq!(
-            port.base.lldp_chassis_id,
+            candidate(port).and_then(|c| c.lldp_chassis_id.clone()),
             Some(LldpChassisId::MacAddress("78:8a:20:11:22:33".to_string()))
         );
         assert_eq!(
-            port.base.lldp_port_id,
+            candidate(port).and_then(|c| c.lldp_port_id.clone()),
             Some(LldpPortId::LocallyAssigned("24".to_string())),
             "the switch's own uplink.port_idx is the far end of this link"
         );
@@ -636,11 +668,12 @@ mod tests {
         let gateway = find(&mapped, "Border Gateway");
         let port = interface(gateway, 4);
         assert!(
-            port.base.lldp_chassis_id.is_some(),
+            candidate(port).is_some_and(|c| c.lldp_chassis_id.is_some()),
             "we still know which device is down there"
         );
         assert_eq!(
-            port.base.lldp_port_id, None,
+            candidate(port).and_then(|c| c.lldp_port_id.clone()),
+            None,
             "but not which of its ports, so claim nothing"
         );
     }
@@ -656,19 +689,19 @@ mod tests {
             .expect("degenerate switch should be mapped");
         let port = interface(device, 8);
         assert_eq!(
-            port.base.lldp_chassis_id,
+            candidate(port).and_then(|c| c.lldp_chassis_id.clone()),
             Some(LldpChassisId::LocallyAssigned(
                 "legacy-switch.lan".to_string()
             )),
             "a hostname-shaped chassis ID must not be coerced into a MAC"
         );
         assert_eq!(
-            port.base.lldp_sys_name.as_deref(),
-            Some("legacy-switch.lan"),
+            candidate(port).and_then(|c| c.lldp_sys_name.clone()),
+            Some("legacy-switch.lan".to_string()),
             "it is also the best sysName we have, which is the resolver's last resort"
         );
         assert_eq!(
-            port.base.lldp_port_id,
+            candidate(port).and_then(|c| c.lldp_port_id.clone()),
             Some(LldpPortId::LocallyAssigned("1/1/8".to_string()))
         );
     }
@@ -729,7 +762,7 @@ mod tests {
             "an AP's eth0 MAC is genuinely distinct, unlike a switch's repeated port MACs"
         );
         assert_eq!(
-            uplink.base.lldp_chassis_id,
+            candidate(uplink).and_then(|c| c.lldp_chassis_id.clone()),
             Some(LldpChassisId::MacAddress("78:8a:20:11:22:33".to_string()))
         );
     }

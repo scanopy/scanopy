@@ -30,6 +30,7 @@ pub struct DaemonCsvRow {
 }
 
 impl Storable for Daemon {
+    const HAS_SCD2: bool = false;
     type BaseData = DaemonBase;
 
     fn table_name() -> &'static str {

@@ -363,7 +363,8 @@ mod tests {
     /// be the one L3 renders, not a bridge address that got merged into another box.
     #[test]
     fn l3_physical_link_endpoints_are_rendered_nodes() {
-        use crate::server::interfaces::r#impl::base::{Interface, InterfaceBase, Neighbor};
+        use crate::server::interface_neighbors::r#impl::base::{InterfaceNeighborRow, Neighbor};
+        use crate::server::interfaces::r#impl::base::{Interface, InterfaceBase};
         use crate::server::subnets::r#impl::types::SubnetType;
         use crate::server::topology::types::edges::EdgeType;
         use crate::server::topology::types::views::TopologyView;
@@ -423,7 +424,7 @@ mod tests {
                 host_id,
                 network_id,
                 if_index: Some(if_index),
-                if_descr: format!("eth{if_index}"),
+                if_descr: Some(format!("eth{if_index}")),
                 if_type: Some(6),
                 ip_address_id: Some(ip_address_id),
                 ..Default::default()
@@ -441,8 +442,13 @@ mod tests {
         let host_bridge_ip = make_ip(container_host.id, bridge_subnet_id, 30, 1);
 
         let host_if = make_if(container_host.id, 1, host_ip.id);
-        let mut switch_if = make_if(switch.id, 5, switch_ip.id);
-        switch_if.base.neighbor = Some(Neighbor::Interface(host_if.id));
+        let switch_if = make_if(switch.id, 5, switch_ip.id);
+        let neighbours = vec![InterfaceNeighborRow {
+            id: Uuid::new_v4(),
+            interface_id: switch_if.id,
+            neighbor: Neighbor::Interface(host_if.id),
+            neighbor_seen_at: None,
+        }];
 
         let hosts = vec![switch, container_host];
         let ip_addresses = vec![switch_ip, host_ip, host_bridge_ip];
@@ -467,7 +473,8 @@ mod tests {
             &[],
             &options,
             TopologyView::L3Logical,
-        );
+        )
+        .with_neighbours(&neighbours);
         let grouping =
             GroupingConfig::from_request_options(&ctx.options.request, TopologyView::L3Logical);
         let (nodes, edges) = L3Builder.build(&ctx, &grouping);

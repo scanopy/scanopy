@@ -48,6 +48,17 @@ pub struct DiscoveryService {
     /// In-memory only — crash drops any in-flight manual-snapshot intent,
     /// which is acceptable since callers retry.
     running_snapshots: RwLock<HashSet<Uuid>>,
+    /// Daemon IDs seen submitting a wire shape a current daemon no longer produces, since their
+    /// last completed session.
+    ///
+    /// Entity submission and session completion are separate requests, and the raw shape is only
+    /// visible on the first — so the observation is latched here and drained into the terminal
+    /// payload's warnings. Keyed by daemon rather than session because a submission carries no
+    /// session id (see `DiscoveryHostRequest`, which has none).
+    ///
+    /// In-memory only, and deliberately: it describes one scan, and a restart that loses it costs
+    /// a warning the next scan raises again.
+    superseded_wire_daemons: RwLock<HashSet<Uuid>>,
     session_last_updated: RwLock<HashMap<Uuid, chrono::DateTime<Utc>>>,
     update_tx: broadcast::Sender<DiscoveryUpdatePayload>,
     scheduler: Option<Arc<JobScheduler>>,

@@ -61,6 +61,12 @@ pub trait ChangeTriggersTopologyStaleness<T> {
     Default,
     VariantNames,
 ))]
+// Every match on this enum reads the discriminant and discards the payload — it exists to carry a
+// type tag through name lookup and `EntityDiscriminants`, and is never held in a collection. Boxing
+// the widest variant would cost an allocation on a value that is only ever pattern-matched, to
+// even out a size difference nothing pays for. The gap became visible when `Interface` shrank; it
+// was always here.
+#[allow(clippy::large_enum_variant)]
 pub enum Entity {
     Organization(Organization),
     Invite(Invite),

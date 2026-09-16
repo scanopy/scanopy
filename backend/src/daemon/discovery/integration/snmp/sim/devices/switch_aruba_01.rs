@@ -17,7 +17,7 @@ use super::inline;
 pub fn device() -> SimDevice {
     SimDevice {
         name: "switch-aruba-01",
-        ip: Ipv4Addr::new(192, 168, 7, 241),
+        ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Regression {
             issue: "#649",
             defect: "neighbours advertised with locally-assigned port ids (subtype 7); treating those as unresolvable stops at the host and draws no edge",
@@ -39,6 +39,7 @@ pub fn device() -> SimDevice {
         tables: tables(),
         arp_handler: Handler::Normal,
         suppresses: Vec::new(),
+        rejects_getbulk: None,
     }
 }
 

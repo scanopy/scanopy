@@ -20,6 +20,11 @@ import {
 import type { Network } from '$lib/features/networks/types';
 import { entityFreshness, type FreshnessSubject } from '$lib/shared/utils/freshness';
 import { buildFullParentMap, resolveCollapsedAncestor } from './collapse';
+import { formatEntityLabelTitle } from './labels';
+import { common_byTag, common_untagged } from '$lib/paraglide/messages';
+import type { components } from '$lib/api/schema';
+
+type Entity = components['schemas']['EntityDiscriminants'];
 
 // Shared stores for hover state across all component instances
 export const groupHoverState = writable<Map<string, boolean>>(new Map());
@@ -138,8 +143,40 @@ export const hoveredEdgeType = writable<HoveredEdgeType | null>(null);
  * Written by the pipeline immediately *before* the node store, so a node can never gain an edge
  * ahead of the handle it needs — that ordering is what stops "Couldn't create edge for source
  * handle id", which is how SvelteFlow reports a handle it cannot find.
+ *
+ * Real edges only. Node components read it with `previewEdgeHandlesByNode` merged over it.
  */
 export const edgeHandlesByNode = writable<Map<string, Set<string>>>(new Map());
+
+/**
+ * The same map for the dependency editor's preview edges.
+ *
+ * A new dependency's preview picks its sides by geometry, so it usually names a handle no real edge
+ * on that node uses, and the node never rendered it. Kept apart from `edgeHandlesByNode` so the
+ * pipeline's map stays a pure function of the real edges. A preview only touches selected nodes, so
+ * this adds at most two handles to each of a handful of nodes.
+ */
+export const previewEdgeHandlesByNode = writable<Map<string, Set<string>>>(new Map());
+
+/**
+ * `real` with `extra` unioned in.
+ *
+ * Only the node ids `extra` names get a new set. Every other entry keeps its original `Set`, and an
+ * empty `extra` returns `real` itself, so a node the preview does not touch renders exactly what it
+ * did without one.
+ */
+export function mergeEdgeHandles(
+	real: Map<string, Set<string>>,
+	extra: Map<string, Set<string>>
+): Map<string, Set<string>> {
+	if (extra.size === 0) return real;
+	const merged = new Map(real);
+	for (const [nodeId, handles] of extra) {
+		const existing = real.get(nodeId);
+		merged.set(nodeId, existing ? new Set([...existing, ...handles]) : handles);
+	}
+	return merged;
+}
 
 /**
  * Build that map from the edges about to be drawn.
@@ -289,34 +326,47 @@ export interface FilterValueContext {
 }
 
 /**
- * Interfaces that some other interface names as its neighbour, per topology.
+ * Which interfaces are "linked", per topology: those with a resolved adjacency row of their own
+ * (`own`), and those some other interface's row names as its `Interface`-type target (`referenced`)
+ * — GH #701 replaced the old single-valued `Interface.neighbor` with a `Vec` of rows on the
+ * topology bundle (`neighbours`), so both halves now come from iterating that array rather than a
+ * per-interface field.
  *
  * A link is recorded on one side. In the seeded reproduction 728 interfaces carry a neighbour and
  * 721 are the *target* of one, but only 12 have it set both ways — so judging "linked" from an
- * interface's own `neighbor` alone marks the far end of nearly every link as unlinked. With the
+ * interface's own resolution alone marks the far end of nearly every link as unlinked. With the
  * link-state filter hiding unlinked ports that silently deleted one endpoint of almost every
  * physical link, and `buildFlowEdges` drops an edge whose endpoint is not in the node set: 11 edges
  * drew where there were ~704, which is exactly the count of the 12 bidirectional pairs.
  *
- * Cached per topology object so the reverse pass runs once rather than per interface.
+ * Cached per topology object so the pass over `neighbours` runs once rather than per interface.
  */
-const linkTargetsByTopology = new WeakMap<RenderableTopology, Set<string>>();
+interface NeighbourIndex {
+	/** Interfaces with at least one resolved adjacency row of their own. */
+	own: ReadonlySet<string>;
+	/** Interfaces some other row names as its `Interface`-type target — see doc above. */
+	referenced: ReadonlySet<string>;
+}
 
-/** Shared empty set for the no-topology-in-context case, so the extractor allocates nothing. */
-const EMPTY_ID_SET: ReadonlySet<string> = new Set<string>();
+const neighbourIndexByTopology = new WeakMap<RenderableTopology, NeighbourIndex>();
 
-function interfacesReferencedAsNeighbours(topology: RenderableTopology): Set<string> {
-	const cached = linkTargetsByTopology.get(topology);
+/** Shared empty index for the no-topology-in-context case, so the extractor allocates nothing. */
+const EMPTY_NEIGHBOUR_INDEX: NeighbourIndex = { own: new Set(), referenced: new Set() };
+
+function neighbourIndex(topology: RenderableTopology): NeighbourIndex {
+	const cached = neighbourIndexByTopology.get(topology);
 	if (cached) return cached;
 
-	const targets = new Set<string>();
-	for (const iface of topology.interfaces ?? []) {
-		const neighbor = (iface as { neighbor?: { type?: string; id?: string } | null }).neighbor;
+	const own = new Set<string>();
+	const referenced = new Set<string>();
+	for (const row of topology.neighbours ?? []) {
+		if (row.interface_id) own.add(row.interface_id);
 		// Only a port-level resolution makes a specific port linked; `Host` names a device, not a port.
-		if (neighbor?.type === 'Interface' && neighbor.id) targets.add(neighbor.id);
+		if (row.neighbor?.type === 'Interface' && row.neighbor.id) referenced.add(row.neighbor.id);
 	}
-	linkTargetsByTopology.set(topology, targets);
-	return targets;
+	const index: NeighbourIndex = { own, referenced };
+	neighbourIndexByTopology.set(topology, index);
+	return index;
 }
 
 export type FilterValueExtractor = (entity: unknown, ctx: FilterValueContext) => string | null;
@@ -341,14 +391,16 @@ export const FILTER_VALUE_EXTRACTORS: Record<string, Record<string, FilterValueE
 		// values. A partial resolution (`Neighbor::Host` — the remote device known but not the
 		// port) counts as linked: it still draws an edge, so hiding it would break the diagram.
 		//
-		// Linked in *either* direction. A link is recorded on one side, so an interface with no
-		// neighbour of its own is still linked if another interface names it — see
-		// `interfacesReferencedAsNeighbours`.
+		// Linked in *either* direction: a port with a resolved row of its own (`own`), or one no
+		// row names but that some other interface's row targets (`referenced`) — a link is
+		// recorded on one side, so an interface with no neighbour of its own is still linked if
+		// another interface names it. See `neighbourIndex`.
 		LinkState: (i, ctx) => {
-			const iface = i as { id: string; neighbor?: unknown | null };
-			if (iface.neighbor != null) return 'Linked';
-			const targets = ctx.topology ? interfacesReferencedAsNeighbours(ctx.topology) : EMPTY_ID_SET;
-			return targets.has(iface.id) ? 'Linked' : 'Unlinked';
+			const iface = i as { id: string };
+			const { own, referenced } = ctx.topology
+				? neighbourIndex(ctx.topology)
+				: EMPTY_NEIGHBOUR_INDEX;
+			return own.has(iface.id) || referenced.has(iface.id) ? 'Linked' : 'Unlinked';
 		}
 	}
 };
@@ -640,6 +692,111 @@ function hasAnyMetadataFilter(m: Record<string, Record<string, string[]>> | unde
 		}
 	}
 	return false;
+}
+
+/** One control currently hiding something, named the way the options panel names it. */
+export interface ActiveFilterSummary {
+	/** The control's own label: "By link", or the entity's plural name for an eye toggle. */
+	label: string;
+	/** Value labels it is hiding. Empty for a control that hides a whole entity type. */
+	values: string[];
+	/** Entities it removed from this view, where that is knowable. */
+	count?: number;
+}
+
+type MetadataFilterDef = {
+	filter_type: string;
+	label: string;
+	values: Array<{ id: string; label: string }>;
+};
+
+/** The metadata filters a view declares, keyed by entity type — from the generated view fixture. */
+function declaredMetadataFilters(view: string): Record<string, MetadataFilterDef[]> {
+	const meta = views.getMetadata(view) as {
+		element_config?: { metadata_filters?: Record<string, MetadataFilterDef[]> };
+	} | null;
+	return meta?.element_config?.metadata_filters ?? {};
+}
+
+/**
+ * Which controls are hiding something in `view`, and how much.
+ *
+ * The point of it is an emptied view that can say what emptied it. A server-applied filter removes
+ * its entities from the response entirely, so the browser cannot count what it never received —
+ * `topology.filtered_out` is the backend's tally of exactly that, and the client-side hidden sets
+ * cover the rest.
+ *
+ * Edge-type hides are deliberately absent: they remove edges, never nodes, so they cannot be the
+ * reason a view has nothing in it.
+ */
+export function activeViewFilters(
+	view: string,
+	topology: RenderableTopology | undefined,
+	hiddenMetadataValues: Record<string, Record<string, string[]>> | undefined,
+	hiddenEntityTypes: string[] | undefined,
+	tagFilter: TagFilter | undefined,
+	network?: Network
+): ActiveFilterSummary[] {
+	const summaries: ActiveFilterSummary[] = [];
+	if (!topology) return summaries;
+
+	const declared = declaredMetadataFilters(view);
+	const serverDropped = topology.filtered_out ?? {};
+
+	for (const [entityType, byFilter] of Object.entries(hiddenMetadataValues ?? {})) {
+		for (const [filterType, hiddenValues] of Object.entries(byFilter)) {
+			if (!hiddenValues.length) continue;
+			const def = declared[entityType]?.find((f) => f.filter_type === filterType);
+			// A hide entry for a filter this view no longer declares matches nothing and is not
+			// hiding anything, so it has no business being named as a cause.
+			if (!def) continue;
+
+			// Entities this filter removed: those dropped before the response was built, plus
+			// those still in the bundle that the browser is hiding. Counted per filter with the
+			// same extractor the hide pass uses, so two filters on one entity type each report
+			// their own share rather than both claiming the total.
+			let count = serverDropped[entityType]?.[filterType] ?? 0;
+			const extract = FILTER_VALUE_EXTRACTORS[entityType]?.[filterType];
+			if (extract) {
+				for (const entity of entityCollection(topology, entityType) ?? []) {
+					const value = extract(entity, { network, topology });
+					if (value && hiddenValues.includes(value)) count++;
+				}
+			}
+
+			summaries.push({
+				label: def.label,
+				values: hiddenValues.map((id) => def.values.find((v) => v.id === id)?.label ?? id),
+				count
+			});
+		}
+	}
+
+	for (const entityType of hiddenEntityTypes ?? []) {
+		summaries.push({
+			label: formatEntityLabelTitle([entityType as Entity]),
+			values: [],
+			count: entityCollection(topology, entityType)?.length
+		});
+	}
+
+	if (tagFilter && !isTagFilterEmpty(tagFilter)) {
+		const hiddenTagIds = [
+			...(tagFilter.hidden_host_tag_ids ?? []),
+			...(tagFilter.hidden_service_tag_ids ?? []),
+			...(tagFilter.hidden_subnet_tag_ids ?? [])
+		];
+		summaries.push({
+			label: common_byTag(),
+			values: hiddenTagIds.map(
+				(id) =>
+					topology.entity_tags.find((t) => t.id === id)?.name ??
+					(id === UNTAGGED_SENTINEL ? common_untagged() : id)
+			)
+		});
+	}
+
+	return summaries;
 }
 
 /** For non-Service metadata filters: check that an Element node represents

@@ -14,7 +14,13 @@ import {
 	type DiagnosablePayload
 } from '$lib/features/topology/diagnostics';
 
-/** A payload that reports how many times its collections were walked. */
+/**
+ * A payload that reports how many times its collections were walked.
+ *
+ * GH #701: an interface's resolution is a `Vec` of rows on `neighbours` rather than a scalar
+ * `neighbor` field, so `interfaces` here carries only ids and the resolved kind lives on the
+ * separate `neighbours` array, matched by `interface_id`.
+ */
 function countingPayload(): { payload: DiagnosablePayload; reads: () => number } {
 	let reads = 0;
 	const edges = [
@@ -22,10 +28,10 @@ function countingPayload(): { payload: DiagnosablePayload; reads: () => number }
 		{ edge_type: 'PhysicalLink' },
 		{ edge_type: 'NeighborLink' }
 	];
-	const interfaces = [
-		{ neighbor: { type: 'Interface' as const, id: 'a' } },
-		{ neighbor: { type: 'Host' as const, id: 'b' } },
-		{ neighbor: null }
+	const interfaces = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+	const neighbours = [
+		{ interface_id: 'a', neighbor: { type: 'Interface' as const, id: 'x' } },
+		{ interface_id: 'b', neighbor: { type: 'Host' as const, id: 'y' } }
 	];
 	const payload = {
 		get edges() {
@@ -34,6 +40,9 @@ function countingPayload(): { payload: DiagnosablePayload; reads: () => number }
 		},
 		get interfaces() {
 			return interfaces;
+		},
+		get neighbours() {
+			return neighbours;
 		}
 	} as DiagnosablePayload;
 	return { payload, reads: () => reads };
@@ -49,6 +58,24 @@ describe('summarisePayload', () => {
 
 		expect(summary.edgesByType).toEqual({ PhysicalLink: 2, NeighborLink: 1 });
 		expect(summary.interfaceNeighborKinds).toEqual({ Interface: 1, Host: 1, none: 1 });
+	});
+
+	it('counts a port with several resolved rows in every bucket its rows fall into', () => {
+		// GH #701: a port can now carry more than one adjacency row (e.g. an LLDP entry and a CDP
+		// entry resolving to different neighbours), so it is no longer a partition of the interface
+		// set the way a single `neighbor` field was — one interface can land in both buckets.
+		const payload = {
+			edges: [],
+			interfaces: [{ id: 'a' }],
+			neighbours: [
+				{ interface_id: 'a', neighbor: { type: 'Interface' as const, id: 'x' } },
+				{ interface_id: 'a', neighbor: { type: 'Host' as const, id: 'y' } }
+			]
+		} as DiagnosablePayload;
+
+		const summary = summarisePayload(payload);
+
+		expect(summary.interfaceNeighborKinds).toEqual({ Interface: 1, Host: 1, none: 0 });
 	});
 
 	it('walks a payload once however many samples are taken from it', () => {

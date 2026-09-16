@@ -383,8 +383,19 @@ impl Subnet {
 
 impl PartialEq for Subnet {
     fn eq(&self, other: &Self) -> bool {
-        let network_match =
-            self.base.cidr == other.base.cidr && self.base.network_id == other.base.network_id;
+        // On the CIDR *value*, never on the carrier. `cidr` is `Attributed<SubnetCidrValue>` and
+        // `Attributed` derives `PartialEq` over both halves, so a bare `==` on the field asks
+        // whether the two rows learned the range the same way -- not whether it is the same range.
+        // That is the distinction `ip_addresses_match` already draws for MAC: the question is the
+        // hardware, not the paperwork.
+        //
+        // It matters on every upgrade of a populated database. The attribution backfill stamps
+        // stored rows `Unspecified` while a daemon reports its interfaced subnets as
+        // `DaemonSelfReport`, so the first registration afterwards matched nothing and inserted a
+        // second live row for every interfaced CIDR. Duplicate subnet ids then break host
+        // matching, which compares IP *and* `subnet_id`.
+        let network_match = self.base.cidr.value() == other.base.cidr.value()
+            && self.base.network_id == other.base.network_id;
 
         network_match || self.id == other.id
     }
@@ -392,7 +403,11 @@ impl PartialEq for Subnet {
 
 impl Hash for Subnet {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.base.cidr.hash(state);
+        // The value alone, matching what `eq` above compares. `Attributed` hashes value and source
+        // together, so hashing the field whole would give two subnets that compare equal different
+        // hashes, and any set or map keyed on `Subnet` would hold both. Nothing hashes `Subnet`
+        // today; this keeps the contract true for whatever does first.
+        self.base.cidr.value().hash(state);
     }
 }
 

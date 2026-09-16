@@ -34,6 +34,7 @@
 		isOpen = false,
 		onClose = null,
 		size = 'lg',
+		anchor = 'viewport',
 		preventCloseOnClickOutside = false,
 		showCloseButton = true,
 		showBackdrop = true,
@@ -59,6 +60,12 @@
 		isOpen?: boolean;
 		onClose?: (() => void) | null;
 		size?: 'sm' | 'md' | 'lg' | 'xl' | 'full' | 'max';
+		/**
+		 * What the modal is positioned against. `viewport` covers the whole window; `container`
+		 * fills the nearest positioned ancestor instead, for a modal that belongs to one region of
+		 * the page rather than to the app.
+		 */
+		anchor?: 'viewport' | 'container';
 		preventCloseOnClickOutside?: boolean;
 		showCloseButton?: boolean;
 		showBackdrop?: boolean;
@@ -213,9 +220,9 @@
 {#if isOpen}
 	<!-- Modal backdrop -->
 	<div
-		class="{showBackdrop ? 'modal-page modal-background' : 'modal-page'} {compactPadding
-			? '!px-2 !py-1 sm:!px-4 sm:!py-4'
-			: ''}"
+		class="{showBackdrop ? 'modal-page modal-background' : 'modal-page'} {anchor === 'container'
+			? 'modal-page-anchored'
+			: ''} {compactPadding ? '!px-2 !py-1 sm:!px-4 sm:!py-4' : ''}"
 		onclick={handleBackdropClick}
 		role="dialog"
 		aria-modal="true"

@@ -26,6 +26,7 @@ pub struct OrganizationCsvRow {
 }
 
 impl Storable for Organization {
+    const HAS_SCD2: bool = false;
     type BaseData = OrganizationBase;
 
     fn table_name() -> &'static str {

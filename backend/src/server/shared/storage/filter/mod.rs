@@ -43,10 +43,12 @@ mod tests {
     use crate::server::discovery::r#impl::base::Discovery;
     use crate::server::discovery::r#impl::types::{DiscoveryType, RunType};
     use crate::server::hosts::r#impl::base::Host;
+    use crate::server::shared::types::entities::EntitySourceDiscriminants;
+    use crate::server::shared::types::metadata::HasId;
     use crate::server::snapshots::types::base::Snapshot;
     use crate::server::tags::r#impl::base::Tag;
     use chrono::TimeZone;
-    use strum::VariantNames;
+    use strum::{IntoEnumIterator, VariantNames};
 
     /// `live_configs` matches serde tags as raw strings in JSONB, so no amount
     /// of Rust exhaustiveness covers it. Drive the check off the derived
@@ -195,7 +197,10 @@ mod tests {
 
     // Staleness is only meaningful for entities discovery actually refreshes;
     // both directions of the filter must respect that, or a hand-created host
-    // shows up as stale the moment it ages past the window.
+    // shows up as stale the moment it ages past the window. The guard must also
+    // cover exactly what `is_from_discovery` covers: it once listed Discovery
+    // and DiscoveryWithMatch only, so an inferred host never went stale here
+    // while the digest reported it stale.
     #[test]
     fn stale_by_network_excludes_entities_discovery_never_refreshes() {
         let cutoffs = vec![(uuid::Uuid::new_v4(), ts(0))];
@@ -207,6 +212,13 @@ mod tests {
                 where_clause.contains("hosts.source->>'type'"),
                 "expected the discovery-managed guard in: {where_clause}"
             );
+            for source in EntitySourceDiscriminants::iter() {
+                assert_eq!(
+                    where_clause.contains(&format!("'{}'", source.id())),
+                    source.is_from_discovery(),
+                    "{source:?} in the discovery-managed guard: {where_clause}"
+                );
+            }
         }
     }
 
@@ -502,6 +514,23 @@ mod tests {
         assert_eq!(filter.values().len(), 1);
     }
 
+    /// `source` is JSONB too; the host list filters on its tag, bound rather
+    /// than inlined.
+    #[test]
+    fn source_type_in_reads_the_json_discriminant() {
+        let filter = StorableFilter::<Host>::new_unfiltered().source_type_in(&[
+            EntitySourceDiscriminants::Inferred,
+            EntitySourceDiscriminants::Manual,
+        ]);
+        let clause = filter.to_where_clause();
+
+        assert!(
+            clause.contains("hosts.source->>'type' IN ($1, $2)"),
+            "expected a JSON tag comparison, got: {clause}"
+        );
+        assert_eq!(filter.values().len(), 2);
+    }
+
     /// Every inclusion filter added for server-side field filtering shares the
     /// house rule that an empty selection matches nothing rather than silently
     /// dropping the constraint — otherwise a filter could widen its result.
@@ -519,6 +548,9 @@ mod tests {
                 .to_where_clause(),
             StorableFilter::<Discovery>::new_unfiltered()
                 .discovery_type_in(&[])
+                .to_where_clause(),
+            StorableFilter::<Host>::new_unfiltered()
+                .source_type_in(&[])
                 .to_where_clause(),
         ];
 

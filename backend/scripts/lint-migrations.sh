@@ -58,6 +58,10 @@ DOWNTIME_FILES=(
     # v0.17.6-v0.17.8 containers dual-write the dropped column, so this is NOT a
     # no-reader drop -- it is only safe because v0.17.9 ships as a downtime deploy.
     "$MIGRATIONS_DIR/20260803120000_drop_organizations_plan_limit_notifications.sql"
+    # GH #701 multi-neighbour schema: drops the 12 legacy neighbour/LLDP/CDP
+    # columns on `interfaces` in the same migration that creates their
+    # replacement tables. No expand/contract -- ships as a downtime deploy.
+    "$MIGRATIONS_DIR/20260903120001_interface_neighbor_tables.sql"
 )
 FK_BACKFILL_FILES=("$MIGRATIONS_DIR/20260502120001_add_snapshot_id_fks.sql")
 # Columns dropped that have NO live code readers at the currently-deployed release,
@@ -73,6 +77,7 @@ NO_READER_DROP_FILES=(
 # in each migration documents this. Suppress ban-drop-not-null.
 DROP_NOT_NULL_FILES=(
     "$MIGRATIONS_DIR/20260827130000_interfaces_unknown_port_facts.sql"
+    "$MIGRATIONS_DIR/20260903120000_interfaces_if_descr_optional.sql"
 )
 
 # Filter file lists.

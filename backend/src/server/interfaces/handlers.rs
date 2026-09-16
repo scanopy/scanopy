@@ -7,7 +7,7 @@ use uuid::Uuid;
 use crate::server::auth::middleware::permissions::{Authorized, Member};
 use crate::server::config::AppState;
 use crate::server::hosts::r#impl::base::Host;
-use crate::server::interfaces::r#impl::base::{Interface, Neighbor};
+use crate::server::interfaces::r#impl::base::Interface;
 use crate::server::interfaces::service::InterfaceService;
 use crate::server::shared::handlers::query::HostChildQuery;
 use crate::server::shared::handlers::traits::{CrudHandlers, create_handler, update_handler};
@@ -64,34 +64,6 @@ async fn validate_if_entry_network_consistency(
     Ok(())
 }
 
-/// Validate Neighbor::Host references (requires HostService access, not available in InterfaceService)
-async fn validate_neighbor_host(state: &AppState, interface: &Interface) -> Result<(), ApiError> {
-    if let Some(Neighbor::Host(neighbor_host_id)) = &interface.base.neighbor {
-        // Cannot connect to self (same host)
-        if *neighbor_host_id == interface.base.host_id {
-            return Err(ApiError::bad_request(
-                "Interface cannot have a neighbor pointing to its own host",
-            ));
-        }
-
-        // Verify the neighbor host exists and is in the same network
-        let neighbor_host = state
-            .services
-            .host_service
-            .get_by_id(neighbor_host_id)
-            .await?
-            .ok_or_else(|| ApiError::bad_request("neighbor references a non-existent host"))?;
-
-        if neighbor_host.base.network_id != interface.base.network_id {
-            return Err(ApiError::bad_request(
-                "neighbor host must be in the same network",
-            ));
-        }
-    }
-
-    Ok(())
-}
-
 /// Create a new Interface
 ///
 /// Creates an SNMP ifTable entry for a host. These are typically created by
@@ -119,7 +91,6 @@ async fn create_if_entry(
         .validate_relationships(&interface)
         .await
         .map_err(|e| ApiError::bad_request(&e.to_string()))?;
-    validate_neighbor_host(&state, &interface).await?;
     create_handler::<Interface>(State(state), auth, Json(interface)).await
 }
 
@@ -150,6 +121,5 @@ async fn update_if_entry(
         .validate_relationships(&interface)
         .await
         .map_err(|e| ApiError::bad_request(&e.to_string()))?;
-    validate_neighbor_host(&state, &interface).await?;
     update_handler::<Interface>(State(state), auth, path, Json(interface)).await
 }

@@ -704,6 +704,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/install/windows-msi": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the Windows daemon MSI
+         * @description Proxies the Windows daemon MSI from GitHub so the browser can save it under a caller-chosen filename. Cached for an hour to avoid refetching from GitHub on every request.
+         */
+        get: operations["get_windows_msi"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/daemon": {
         parameters: {
             query?: never;
@@ -1729,8 +1749,9 @@ export interface paths {
         get: operations["get_host_by_id"];
         /**
          * Update a host
-         * @description Updates host properties. Children (ip_addresses, ports, services)
-         *     are managed via their own endpoints.
+         * @description Updates host properties. Children (ip_addresses, ports, services, interfaces) are synced
+         *     from the fields on this same request body when provided — omit a field to leave that child
+         *     set untouched.
          *
          *     ### Tag Validation
          *
@@ -3176,7 +3197,7 @@ export interface components {
          * @description API metadata included in all responses
          * @example {
          *       "api_version": 1,
-         *       "server_version": "0.17.13"
+         *       "server_version": "0.17.14"
          *     }
          */
         ApiMeta: {
@@ -3187,7 +3208,7 @@ export interface components {
             api_version: number;
             /**
              * @description Server version (semver)
-             * @example 0.17.13
+             * @example 0.17.14
              */
             server_version: string;
         };
@@ -3205,19 +3226,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-08-28T15:33:32.433053Z",
+             *       "created_at": "2026-09-15T04:26:40.604851Z",
              *       "first_discovery_id": null,
-             *       "id": "e0a1c70d-a31f-4375-867b-eed564b798b3",
+             *       "id": "60da91a1-4fb6-442a-ac84-842ed10a9d65",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-08-28T15:33:32.433053Z",
+             *       "last_seen_at": "2026-09-15T04:26:40.604851Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-08-28T15:33:32.433053Z",
-             *       "valid_from": "2026-08-28T15:33:32.433053Z",
+             *       "updated_at": "2026-09-15T04:26:40.604851Z",
+             *       "valid_from": "2026-09-15T04:26:40.604851Z",
              *       "valid_to": null
              *     }
              */
@@ -3748,19 +3769,18 @@ export interface components {
              *       "credential_assignments": [],
              *       "description": "Primary web server",
              *       "display_name": "web-server-01",
+             *       "display_name_rung": "Name",
              *       "firmware_revision": null,
              *       "firmware_revision_source": "Unspecified",
              *       "hidden": false,
              *       "hostname": "web-server-01.local",
+             *       "hostname_source": "Manual",
              *       "id": "550e8400-e29b-41d4-a716-446655440003",
              *       "interfaces": [
              *         {
              *           "admin_status": "Up",
-             *           "cdp_address": null,
-             *           "cdp_device_id": null,
-             *           "cdp_platform": null,
-             *           "cdp_port_id": null,
              *           "created_at": "2026-01-15T10:30:00Z",
+             *           "display_name": "Uplink to Core Switch",
              *           "first_discovery_id": null,
              *           "host_id": "550e8400-e29b-41d4-a716-446655440003",
              *           "id": "550e8400-e29b-41d4-a716-44665544000f",
@@ -3770,19 +3790,13 @@ export interface components {
              *           "if_name": "Gi0/1",
              *           "if_type": 6,
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
+             *           "ip_configured": true,
              *           "last_discovery_id": null,
              *           "last_seen_at": "2026-01-15T10:30:00Z",
              *           "lineage_id": null,
-             *           "lldp_chassis_id": null,
-             *           "lldp_mgmt_addr": null,
-             *           "lldp_port_desc": null,
-             *           "lldp_port_id": null,
-             *           "lldp_sys_desc": null,
-             *           "lldp_sys_name": null,
              *           "mac_address": "DE:AD:BE:EF:CA:FE",
              *           "mac_address_source": "ArpReply",
-             *           "neighbor": null,
-             *           "neighbor_seen_at": null,
+             *           "neighbor_candidates": [],
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "oper_status": "Up",
              *           "speed_bps": 1000000000,
@@ -3817,6 +3831,33 @@ export interface components {
              *       "manufacturer_source": "Unspecified",
              *       "model_source": "Unspecified",
              *       "name": "web-server-01",
+             *       "name_ladder": [
+             *         {
+             *           "rung": "Name",
+             *           "source": "Manual",
+             *           "value": "web-server-01"
+             *         },
+             *         {
+             *           "rung": "Hostname",
+             *           "source": "Manual",
+             *           "value": "web-server-01.local"
+             *         },
+             *         {
+             *           "rung": "SysName",
+             *           "source": null,
+             *           "value": null
+             *         },
+             *         {
+             *           "rung": "ChassisId",
+             *           "source": null,
+             *           "value": null
+             *         },
+             *         {
+             *           "rung": "Address",
+             *           "source": null,
+             *           "value": "192.168.1.100"
+             *         }
+             *       ],
              *       "name_source": "Manual",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "ports": [
@@ -3842,19 +3883,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-08-28T15:33:32.412434Z",
+             *               "created_at": "2026-09-15T04:26:40.579904Z",
              *               "first_discovery_id": null,
-             *               "id": "265c7546-daf8-4cba-bd0d-59b1bd493d79",
+             *               "id": "ea877464-d131-41cd-8dda-d27df443e170",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-08-28T15:33:32.412434Z",
+             *               "last_seen_at": "2026-09-15T04:26:40.579904Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-08-28T15:33:32.412434Z",
-             *               "valid_from": "2026-08-28T15:33:32.412434Z",
+             *               "updated_at": "2026-09-15T04:26:40.579904Z",
+             *               "valid_from": "2026-09-15T04:26:40.579904Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -3868,7 +3909,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Ollama",
+             *           "service_definition": "Immich",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -3921,6 +3962,7 @@ export interface components {
                  *     list and another on the map.
                  */
                 readonly display_name?: string | null;
+                display_name_rung?: null | components["schemas"]["HostNameRung"];
                 /** @description ENTITY-MIB entPhysicalFirmwareRev — firmware revision of the device. Read-only, as above. */
                 readonly firmware_revision: string | null;
                 /** @description What produced the firmware revision. Read-only: decided by whichever source read it. */
@@ -3929,6 +3971,11 @@ export interface components {
                 hidden: boolean;
                 /** @description Hostname as resolved or reported by the host. */
                 hostname?: string | null;
+                /**
+                 * @description What produced `hostname`: a PTR lookup, the host's own OS, a controller, mDNS, or a person.
+                 *     Read-only: decided by whichever source read it.
+                 */
+                hostname_source?: components["schemas"]["AttributeSource"];
                 /**
                  * Format: uuid
                  * @description Server-assigned unique identifier.
@@ -3959,6 +4006,8 @@ export interface components {
                 model_source?: components["schemas"]["AttributeSource"];
                 /** @description Human-facing name for the host. */
                 name: string;
+                /** @description Every rung of the display-name ladder for this host, highest first, with what each holds. */
+                name_ladder?: components["schemas"]["HostNameLadderEntry"][];
                 /**
                  * @description What produced `name`. Read-only: it is decided by whoever supplied the name, not by the
                  *     caller.
@@ -4140,6 +4189,17 @@ export interface components {
                  * @description When this record was first created.
                  */
                 readonly created_at: string;
+                /**
+                 * @description What to call this interface when it has no `if_alias`/`if_descr`: the MAC it was
+                 *     identified by, or "Interface" when it has neither.
+                 *
+                 *     Read-only and computed from [`Interface::display_name`] — the same ladder topology port
+                 *     labels an interface with, so it cannot be called one thing in a list and another on the
+                 *     map. Only set on outbound responses nested under a host (`HostResponse::interfaces`);
+                 *     absent on a daemon's own submission and on the standalone `/interfaces` CRUD endpoints,
+                 *     which return `Interface` directly without this computation.
+                 */
+                readonly display_name?: string | null;
                 /**
                  * Format: uuid
                  * @description The discovery that first observed this entity.
@@ -4583,19 +4643,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-08-28T15:33:32.428206Z",
+             *           "created_at": "2026-09-15T04:26:40.599252Z",
              *           "first_discovery_id": null,
-             *           "id": "8877b1b0-2f43-4522-bf53-8b33a7c44e27",
+             *           "id": "1017ea44-d358-4685-b08a-fba19ced9cb7",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-08-28T15:33:32.428206Z",
+             *           "last_seen_at": "2026-09-15T04:26:40.599252Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-08-28T15:33:32.428206Z",
-             *           "valid_from": "2026-08-28T15:33:32.428206Z",
+             *           "updated_at": "2026-09-15T04:26:40.599252Z",
+             *           "valid_from": "2026-09-15T04:26:40.599252Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -4609,7 +4669,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Ollama",
+             *       "service_definition": "Immich",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -4994,18 +5054,48 @@ export interface components {
                 available_views?: components["schemas"]["TopologyView"][];
                 /** @description Service bindings included in this topology. */
                 bindings: components["schemas"]["Binding"][];
+                /**
+                 * @description Raw LLDP/CDP candidate evidence behind `neighbours` (GH #701) — for the admin/debug
+                 *     unresolved-evidence display and per-adjacency protocol derivation
+                 *     (`TopologyContext::interface_has_lldp_evidence`), neither of which the resolved rows alone
+                 *     can answer (they carry no raw evidence, by design — see `interface_neighbors`).
+                 */
+                candidates?: components["schemas"]["InterfaceNeighborCandidate"][];
                 /** @description Dependencies included in this topology. */
                 dependencies: components["schemas"]["Dependency"][];
                 /** @description Connections between the nodes of the built graph. */
                 edges?: {
                     [key: string]: components["schemas"]["Edge"][];
                 };
-                /** @description Hosts included in this topology. */
+                /**
+                 * @description How many entities of each type a server-side metadata filter removed, by the filter that
+                 *     removed them.
+                 *
+                 *     Server-filtered entities never reach the browser, so this is the only way the frontend can
+                 *     say "171 interfaces hidden by By link" rather than presenting an empty view as an empty
+                 *     network. Keyed by entity and filter only, with no view: the hide-set is per view but a drop
+                 *     is not — an entity is removed from the one shared bundle only when *every* view that could
+                 *     render it hides it (see `metadata_filter`).
+                 *
+                 *     Empty when nothing was filtered, which is the common case.
+                 */
+                filtered_out?: {
+                    [key: string]: {
+                        [key: string]: number;
+                    };
+                };
+                /** @description Hosts included in this topology, each carrying the title the map and the host list share. */
                 hosts: components["schemas"]["TopologyHost"][];
                 /** @description Interfaces included in this topology. */
                 interfaces: components["schemas"]["Interface"][];
                 /** @description IP addresses included in this topology. */
                 ip_addresses: components["schemas"]["IPAddress"][];
+                /**
+                 * @description Resolved LLDP/CDP neighbour adjacencies (GH #701): the merged read-model of
+                 *     `interface_neighbor_interfaces` + `interface_neighbor_hosts`, replacing the old
+                 *     `Interface.neighbor` scalar now that a port can anchor several links.
+                 */
+                neighbours?: components["schemas"]["InterfaceNeighborRow"][];
                 /**
                  * @description Per-view graph built on request from the entities above + grouping
                  *     options. Keyed by view so switching the active perspective is a
@@ -5391,11 +5481,11 @@ export interface components {
          *
          *     **Externally tagged**, which is serde's default and is left unstated for that reason. Thirty-three
          *     of these variants carry nothing, and a tag on a variant with no content is a key that distinguishes
-         *     nothing — `"Unspecified"`, not `{"type":"Unspecified"}`, in every row of fifteen columns. The two
+         *     nothing — `"Unspecified"`, not `{"type":"Unspecified"}`, in every row of every column. The two
          *     that do carry a [`ClientProbe`] keep it under their own name, `{"Probe":"Snmp"}`, which tells them
          *     apart from each other and from every bare name.
          */
-        AttributeSource: "Unspecified" | "OwnAddress" | "ServiceMatch" | "LldpNeighbourAddress" | "CipVendorId" | "DnsSdInstanceName" | "LldpChassisId" | "ReverseDns" | "ForwardingTable" | "ArpReply" | "DaemonSelfReport" | {
+        AttributeSource: "Unspecified" | "OwnAddress" | "ServiceMatch" | "LldpNeighbourAddress" | "CipVendorId" | "DnsSdInstanceName" | "DnsSdHostname" | "LldpChassisId" | "ReverseDns" | "ForwardingTable" | "ArpReply" | "DaemonSelfReport" | "ProfinetDcp" | {
             /** @description A value the thing emitted about itself, over whatever transport [`ClientProbe`] names. */
             Probe: components["schemas"]["ClientProbe"];
         } | {
@@ -5444,19 +5534,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-08-28T15:33:32.412860Z",
+         *       "created_at": "2026-09-15T04:26:40.580635Z",
          *       "first_discovery_id": null,
-         *       "id": "ee498b23-59fa-4e74-bd7d-8dcdebffdb45",
+         *       "id": "a53c890f-19f5-4849-83b9-d820587a8504",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-08-28T15:33:32.412860Z",
+         *       "last_seen_at": "2026-09-15T04:26:40.580635Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-08-28T15:33:32.412860Z",
-         *       "valid_from": "2026-08-28T15:33:32.412860Z",
+         *       "updated_at": "2026-09-15T04:26:40.580635Z",
+         *       "valid_from": "2026-09-15T04:26:40.580635Z",
          *       "valid_to": null
          *     }
          */
@@ -5690,7 +5780,7 @@ export interface components {
          *     `every_client_probe_variant_has_a_producer` is what now says so.
          * @enum {string}
          */
-        ClientProbe: "Docker" | "Gnmi" | "Podman" | "Snmp" | "UnifiController" | "InstantOn" | "ModbusTcp" | "OpcUa" | "EtherNetIp" | "Sip" | "Ssh" | "Ftp" | "Telnet" | "Rtsp" | "Nut" | "ZabbixAgent" | "CheckMkAgent" | "Smb" | "Ldap" | "Kerberos" | "MySql" | "PostgreSql" | "MsSql" | "MongoDb" | "Redis" | "Cassandra" | "Kafka" | "Amqp" | "Mqtt" | "OracleTns" | "Rdp" | "Nfs" | "DnsTcp" | "DockerSwarm" | "Tls" | "Ike" | "OpenVpn" | "Zmtp" | "Bacula";
+        ClientProbe: "Docker" | "Gnmi" | "Podman" | "Snmp" | "UnifiController" | "InstantOn" | "ModbusTcp" | "OpcUa" | "EtherNetIp" | "Sip" | "Ssh" | "Ftp" | "Telnet" | "Rtsp" | "Nut" | "ZabbixAgent" | "CheckMkAgent" | "Smb" | "Ldap" | "Kerberos" | "MySql" | "PostgreSql" | "MsSql" | "MongoDb" | "Redis" | "Cassandra" | "Kafka" | "Amqp" | "Mqtt" | "OracleTns" | "Rdp" | "Nfs" | "DnsTcp" | "DockerSwarm" | "Tls" | "Ike" | "OpenVpn" | "Zmtp" | "Bacula" | "BeszelAgent" | "H323";
         /** @enum {string} */
         Color: "Pink" | "Rose" | "Red" | "Amber" | "Orange" | "Green" | "Emerald" | "Teal" | "Cyan" | "Blue" | "Indigo" | "Purple" | "Fuchsia" | "Violet" | "Sky" | "Gray" | "Lime" | "Yellow";
         /** @enum {string} */
@@ -5770,7 +5860,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Ollama",
+         *           "service_definition": "Immich",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -5974,7 +6064,7 @@ export interface components {
         /** @enum {string} */
         CredentialOrderField: "created_at" | "name" | "updated_at";
         /** @enum {string} */
-        CredentialQueryPayloadDiscriminants: "Snmp" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiController" | "InstantOn" | "Unknown";
+        CredentialQueryPayloadDiscriminants: "Snmp" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiController" | "InstantOn" | "Gnmi" | "Unknown";
         /**
          * @description Release maturity of a credential type's integration.
          *
@@ -6015,6 +6105,28 @@ export interface components {
             security_name: string;
             /** @enum {string} */
             type: "SnmpV3";
+        } | {
+            /** @description Password, sent as gRPC `password` metadata. */
+            password: components["schemas"]["SecretValue"];
+            /**
+             * Format: int32
+             * @description gNMI port. 9339 is IANA's; some NOSes listen on 6030 or 57400 instead.
+             */
+            port?: number;
+            /**
+             * @description Accept any server certificate. Only meaningful with `tls` — NOS gRPC endpoints
+             *     commonly ship self-signed certs.
+             */
+            skip_verify?: boolean;
+            /**
+             * @description Use TLS. Off means plaintext gRPC (h2c) — the out-of-the-box mode of several NOSes
+             *     (ArcOS among them: its server stays plaintext until transport-security is enabled).
+             */
+            tls?: boolean;
+            /** @enum {string} */
+            type: "Gnmi";
+            /** @description Username, sent as gRPC `username` metadata (the openconfig convention). */
+            username: string;
         } | {
             /** @description Optional URL path prefix (e.g. "/v1.43") */
             path?: string | null;
@@ -6088,7 +6200,7 @@ export interface components {
             username: string;
         };
         /** @enum {string} */
-        CredentialTypeDiscriminants: "SnmpV1" | "SnmpV2c" | "SnmpV3" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiApiKey" | "UnifiLocalAdmin" | "InstantOnAccount";
+        CredentialTypeDiscriminants: "SnmpV1" | "SnmpV2c" | "SnmpV3" | "Gnmi" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiApiKey" | "UnifiLocalAdmin" | "InstantOnAccount";
         Daemon: components["schemas"]["DaemonBase"] & {
             /**
              * Format: date-time
@@ -7010,6 +7122,15 @@ export interface components {
             /** @enum {string} */
             code: "VlanRecordingFailed";
         } | {
+            /** @description The device both integrations read. */
+            address: string;
+            /** @enum {string} */
+            code: "EqualReachIntegrationsMerged";
+            /** @description The integration that answered first. Its row stands on every port both describe. */
+            first: components["schemas"]["CredentialQueryPayloadDiscriminants"];
+            /** @description The integration that answered second. */
+            second: components["schemas"]["CredentialQueryPayloadDiscriminants"];
+        } | {
             /** @description The address the credential is bound to. */
             address: string;
             /** @enum {string} */
@@ -7143,6 +7264,28 @@ export interface components {
              *     "this network is large" from "something is wrong".
              */
             neighbours: number;
+        } | {
+            /**
+             * Format: int32
+             * @description Seconds the pass was allowed before it was stopped.
+             */
+            budget_seconds: number;
+            /** @enum {string} */
+            code: "FdbResolutionIncomplete";
+            /**
+             * Format: int32
+             * @description Interfaces with an unresolved single-MAC FDB entry it was working through.
+             */
+            interfaces: number;
+        } | {
+            /** @enum {string} */
+            code: "OutdatedDaemonFormat";
+            /**
+             * @description The submitting daemon's version, so the reader knows which one to upgrade. `None` for
+             *     a daemon too old to report one at all.
+             * @example 0.17.14
+             */
+            daemon_version?: string | null;
         } | {
             /** @enum {string} */
             code: "WarningsTruncated";
@@ -7486,6 +7629,8 @@ export interface components {
             /** @enum {string} */
             type: "Unknown";
         };
+        /** @enum {string} */
+        EntitySourceDiscriminants: "Manual" | "System" | "Discovery" | "DiscoveryWithMatch" | "Inferred" | "Unknown";
         EsxiVirtualization: {
             /** @description ESXi identifier of the guest. */
             vm_id?: string | null;
@@ -7582,6 +7727,7 @@ export interface components {
          *       "first_discovery_id": null,
          *       "hidden": false,
          *       "hostname": "web-server-01.local",
+         *       "hostname_source": "Manual",
          *       "id": "550e8400-e29b-41d4-a716-446655440003",
          *       "last_discovery_id": null,
          *       "last_seen_at": "2026-01-15T10:30:00Z",
@@ -7661,15 +7807,13 @@ export interface components {
          *     Child entities (ip_addresses, ports, services) are stored in their own tables
          *     and queried by `host_id`. They are NOT stored on the host.
          */
-        HostBase: components["schemas"]["HostName"] & components["schemas"]["HostSysDescr"] & components["schemas"]["HostSysObjectId"] & components["schemas"]["HostSysLocation"] & components["schemas"]["HostSysContact"] & components["schemas"]["HostManagementUrl"] & components["schemas"]["HostChassisId"] & components["schemas"]["HostSysName"] & components["schemas"]["HostManufacturer"] & components["schemas"]["HostModel"] & components["schemas"]["HostSerialNumber"] & components["schemas"]["HostFirmwareRevision"] & components["schemas"]["HostSoftwareRevision"] & {
+        HostBase: components["schemas"]["HostName"] & components["schemas"]["HostHostname"] & components["schemas"]["HostSysDescr"] & components["schemas"]["HostSysObjectId"] & components["schemas"]["HostSysLocation"] & components["schemas"]["HostSysContact"] & components["schemas"]["HostManagementUrl"] & components["schemas"]["HostChassisId"] & components["schemas"]["HostSysName"] & components["schemas"]["HostManufacturer"] & components["schemas"]["HostModel"] & components["schemas"]["HostSerialNumber"] & components["schemas"]["HostFirmwareRevision"] & components["schemas"]["HostSoftwareRevision"] & {
             /** @description Credential assignments for this host (hydrated from junction table). */
             credential_assignments: components["schemas"]["CredentialAssignment"][];
             /** @description Free-text notes about the host. */
             description: string | null;
             /** @description Whether the host is hidden from topology views. */
             hidden: boolean;
-            /** @description Hostname as resolved or reported by the host. */
-            hostname: string | null;
             /**
              * Format: uuid
              * @description The network this entity belongs to.
@@ -7697,9 +7841,14 @@ export interface components {
             chassis_id_source?: components["schemas"]["AttributeSource"];
         };
         HostFirmwareRevision: {
-            /** @description Firmware or software revision of the device as a whole */
+            /** @description ENTITY-MIB entPhysicalFirmwareRev - firmware revision of the device as a whole */
             firmware_revision?: string;
             firmware_revision_source?: components["schemas"]["AttributeSource"];
+        };
+        HostHostname: {
+            /** @description Hostname as resolved or reported for the host */
+            hostname?: string;
+            hostname_source?: components["schemas"]["AttributeSource"];
         };
         HostManagementUrl: {
             /** @description URL for device management interface (manual or discovered) */
@@ -7721,6 +7870,21 @@ export interface components {
             name: string;
             name_source?: components["schemas"]["AttributeSource"];
         };
+        /** @description What one rung of the ladder holds for a particular host. */
+        HostNameLadderEntry: {
+            rung: components["schemas"]["HostNameRung"];
+            source: null | components["schemas"]["AttributeSource"];
+            /**
+             * @description The rung's value, or `None` when the host has nothing there. A value holding only
+             *     whitespace counts as nothing.
+             */
+            value: string | null;
+        };
+        /**
+         * @description One rung of the display-name ladder.
+         * @enum {string}
+         */
+        HostNameRung: "Name" | "Hostname" | "SysName" | "ChassisId" | "Address";
         /** @enum {string} */
         HostNamingFallback: "Ip" | "BestService";
         /**
@@ -7737,19 +7901,18 @@ export interface components {
          *       "credential_assignments": [],
          *       "description": "Primary web server",
          *       "display_name": "web-server-01",
+         *       "display_name_rung": "Name",
          *       "firmware_revision": null,
          *       "firmware_revision_source": "Unspecified",
          *       "hidden": false,
          *       "hostname": "web-server-01.local",
+         *       "hostname_source": "Manual",
          *       "id": "550e8400-e29b-41d4-a716-446655440003",
          *       "interfaces": [
          *         {
          *           "admin_status": "Up",
-         *           "cdp_address": null,
-         *           "cdp_device_id": null,
-         *           "cdp_platform": null,
-         *           "cdp_port_id": null,
          *           "created_at": "2026-01-15T10:30:00Z",
+         *           "display_name": "Uplink to Core Switch",
          *           "first_discovery_id": null,
          *           "host_id": "550e8400-e29b-41d4-a716-446655440003",
          *           "id": "550e8400-e29b-41d4-a716-44665544000f",
@@ -7759,19 +7922,13 @@ export interface components {
          *           "if_name": "Gi0/1",
          *           "if_type": 6,
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
+         *           "ip_configured": true,
          *           "last_discovery_id": null,
          *           "last_seen_at": "2026-01-15T10:30:00Z",
          *           "lineage_id": null,
-         *           "lldp_chassis_id": null,
-         *           "lldp_mgmt_addr": null,
-         *           "lldp_port_desc": null,
-         *           "lldp_port_id": null,
-         *           "lldp_sys_desc": null,
-         *           "lldp_sys_name": null,
          *           "mac_address": "DE:AD:BE:EF:CA:FE",
          *           "mac_address_source": "ArpReply",
-         *           "neighbor": null,
-         *           "neighbor_seen_at": null,
+         *           "neighbor_candidates": [],
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "oper_status": "Up",
          *           "speed_bps": 1000000000,
@@ -7806,6 +7963,33 @@ export interface components {
          *       "manufacturer_source": "Unspecified",
          *       "model_source": "Unspecified",
          *       "name": "web-server-01",
+         *       "name_ladder": [
+         *         {
+         *           "rung": "Name",
+         *           "source": "Manual",
+         *           "value": "web-server-01"
+         *         },
+         *         {
+         *           "rung": "Hostname",
+         *           "source": "Manual",
+         *           "value": "web-server-01.local"
+         *         },
+         *         {
+         *           "rung": "SysName",
+         *           "source": null,
+         *           "value": null
+         *         },
+         *         {
+         *           "rung": "ChassisId",
+         *           "source": null,
+         *           "value": null
+         *         },
+         *         {
+         *           "rung": "Address",
+         *           "source": null,
+         *           "value": "192.168.1.100"
+         *         }
+         *       ],
          *       "name_source": "Manual",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "ports": [
@@ -7831,19 +8015,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-08-28T15:33:32.411965Z",
+         *               "created_at": "2026-09-15T04:26:40.579188Z",
          *               "first_discovery_id": null,
-         *               "id": "63e41ca6-c29e-4dc6-afa7-ae5614e6c925",
+         *               "id": "d9307169-026b-493e-a3be-125f86deb9e5",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-08-28T15:33:32.411965Z",
+         *               "last_seen_at": "2026-09-15T04:26:40.579188Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-08-28T15:33:32.411965Z",
-         *               "valid_from": "2026-08-28T15:33:32.411965Z",
+         *               "updated_at": "2026-09-15T04:26:40.579188Z",
+         *               "valid_from": "2026-09-15T04:26:40.579188Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -7857,7 +8041,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Ollama",
+         *           "service_definition": "Immich",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -7910,6 +8094,7 @@ export interface components {
              *     list and another on the map.
              */
             readonly display_name?: string | null;
+            display_name_rung?: null | components["schemas"]["HostNameRung"];
             /** @description ENTITY-MIB entPhysicalFirmwareRev — firmware revision of the device. Read-only, as above. */
             readonly firmware_revision: string | null;
             /** @description What produced the firmware revision. Read-only: decided by whichever source read it. */
@@ -7918,6 +8103,11 @@ export interface components {
             hidden: boolean;
             /** @description Hostname as resolved or reported by the host. */
             hostname?: string | null;
+            /**
+             * @description What produced `hostname`: a PTR lookup, the host's own OS, a controller, mDNS, or a person.
+             *     Read-only: decided by whichever source read it.
+             */
+            hostname_source?: components["schemas"]["AttributeSource"];
             /**
              * Format: uuid
              * @description Server-assigned unique identifier.
@@ -7948,6 +8138,8 @@ export interface components {
             model_source?: components["schemas"]["AttributeSource"];
             /** @description Human-facing name for the host. */
             name: string;
+            /** @description Every rung of the display-name ladder for this host, highest first, with what each holds. */
+            name_ladder?: components["schemas"]["HostNameLadderEntry"][];
             /**
              * @description What produced `name`. Read-only: it is decided by whoever supplied the name, not by the
              *     caller.
@@ -8367,6 +8559,17 @@ export interface components {
              */
             readonly created_at: string;
             /**
+             * @description What to call this interface when it has no `if_alias`/`if_descr`: the MAC it was
+             *     identified by, or "Interface" when it has neither.
+             *
+             *     Read-only and computed from [`Interface::display_name`] — the same ladder topology port
+             *     labels an interface with, so it cannot be called one thing in a list and another on the
+             *     map. Only set on outbound responses nested under a host (`HostResponse::interfaces`);
+             *     absent on a daemon's own submission and on the standalone `/interfaces` CRUD endpoints,
+             *     which return `Interface` directly without this computation.
+             */
+            readonly display_name?: string | null;
+            /**
              * Format: uuid
              * @description The discovery that first observed this entity.
              */
@@ -8410,17 +8613,6 @@ export interface components {
         InterfaceBase: components["schemas"]["MacEvidence"] & {
             admin_status?: null | components["schemas"]["IfAdminStatus"];
             /**
-             * @description Remote management IP from CDP (cdpCacheAddress). IPv4 or IPv6.
-             * @example 192.168.1.1
-             */
-            cdp_address?: string | null;
-            /** @description Remote device ID from CDP (typically hostname, locally unique) */
-            cdp_device_id?: string | null;
-            /** @description Remote platform from CDP (e.g., "Cisco IOS") */
-            cdp_platform?: string | null;
-            /** @description Remote port ID from CDP */
-            cdp_port_id?: string | null;
-            /**
              * @description Bridge FDB: learned MAC addresses on this switch port.
              *     Single-MAC ports can be resolved to neighbor links server-side.
              *     Multi-MAC ports indicate uplinks where LLDP/CDP is the better source.
@@ -8433,8 +8625,14 @@ export interface components {
             host_id: string;
             /** @description SNMP ifAlias - user-configured description */
             if_alias?: string | null;
-            /** @description SNMP ifDescr - interface description (e.g., GigabitEthernet0/1) */
-            if_descr: string;
+            /**
+             * @description SNMP ifDescr - interface description (e.g., GigabitEthernet0/1), where one was read.
+             *
+             *     `None` for a source with nothing to put here — PROFINET DCP Identify carries no per-port
+             *     description at all. Same principle as `if_index`/`if_type`: an absent value is `None`, never
+             *     a fabricated string standing in for it.
+             */
+            if_descr?: string | null;
             /**
              * Format: int32
              * @description SNMP ifIndex — stable identifier within device, where one was read.
@@ -8465,38 +8663,39 @@ export interface components {
              *     Old daemons send this as "interface_id".
              */
             ip_address_id?: string | null;
-            lldp_chassis_id?: null | components["schemas"]["LldpChassisId"];
             /**
-             * @description Remote management IP from LLDP neighbor (lldpRemManAddr). IPv4 or IPv6.
-             * @example 192.168.1.1
+             * @description Whether the device's own SNMP `ipAddrTable` lists this ifIndex as carrying one of its
+             *     configured IP addresses.
+             *
+             *     Independent of `ip_address_id`: that FK is set server-side and requires the interface's MAC
+             *     to be unique on the host before it links anything (`plan_interface_ip_links`), so it stays
+             *     `NULL` on exactly the hosts this field exists to help — a Windows NIC and its NDIS
+             *     filter/LWF pseudo-interfaces sharing one MAC (GH #668). `ipAddrTable` only ever binds an
+             *     address to a real IP-stack adapter; a filter driver is never a separate one, so this
+             *     distinguishes the physical interface among MAC-sharing candidates. `#[serde(default)]` so a
+             *     daemon predating this field is read as `false` on every row — never worse than today's
+             *     behavior.
              */
-            lldp_mgmt_addr?: string | null;
-            /** @description Remote port description from LLDP neighbor (lldpRemPortDesc) */
-            lldp_port_desc?: string | null;
-            lldp_port_id?: null | components["schemas"]["LldpPortId"];
-            /** @description Remote system description from LLDP neighbor (lldpRemSysDesc) - platform info */
-            lldp_sys_desc?: string | null;
-            /** @description Remote system name from LLDP neighbor (lldpRemSysName) */
-            lldp_sys_name?: string | null;
+            ip_configured?: boolean;
             /**
              * Format: uuid
              * @description Native/untagged VLAN entity ID on this port (resolved from Q-BRIDGE dot1qPvid)
              */
             native_vlan_id?: string | null;
-            neighbor?: null | components["schemas"]["Neighbor"];
             /**
-             * Format: date-time
-             * @description When a scan last carried evidence that something is adjacent to this port.
-             *
-             *     The freshness subject for the *link*, as `last_seen_at` is for the port. A port keeps
-             *     appearing in the ifTable long after its neighbour record stops arriving, so `last_seen_at`
-             *     cannot tell a live adjacency from one whose evidence has vanished. Judged against the same
-             *     `Network::stale_cutoff` as every other freshness verdict.
-             *
-             *     `None` means no scan has ever carried evidence for this row, and reads as *unknown* —
-             *     never as stale. Server-owned: stamped on the discovery ingest path, never sent by a daemon.
+             * @description Raw LLDP/CDP evidence this scan heard on the port — the wire shape a **current** daemon
+             *     submits, one entry per distinct LLDP or CDP record. Drained into `interface_neighbor_
+             *     candidates` by the discovery ingest path (`InterfaceService::create_or_update_from_
+             *     discovery`); never read anywhere else. Not `skip_serializing`: this field is the daemon's
+             *     *outgoing* discovery payload as much as it is the server's read model, and that attribute
+             *     has no notion of direction — it silently dropped every daemon's submitted evidence before
+             *     the request ever left the process (found investigating the GH #701 candidate-persistence
+             *     regression; nothing downstream of the wire was ever at fault). Harmless for API responses:
+             *     `create_or_update_from_discovery` takes this field via `mem::take` before returning or
+             *     persisting `Interface`, and it is not a stored column, so nothing read back from the
+             *     database or echoed in a response ever has it populated.
              */
-            readonly neighbor_seen_at?: string | null;
+            neighbor_candidates?: components["schemas"]["InterfaceNeighborEvidence"][];
             /**
              * Format: uuid
              * @description The network this entity belongs to.
@@ -8537,12 +8736,18 @@ export interface components {
             vlan_membership?: boolean;
         };
         /**
-         * @description Input for creating an SNMP interface entry (ifTable data).
-         *     Used in CreateHostRequest. Server assigns UUIDs since nothing references
-         *     Interface IDs at creation time (neighbor resolution is done server-side).
+         * @description Input for manually creating or updating an interface entry.
+         *     Used in `UpdateHostRequest`, synced the same way as `ip_addresses`/`ports`/`services`:
+         *     a client-provided `id` that already exists on this host is updated, one that doesn't is
+         *     created, and an existing row missing from the list is deleted.
          */
         InterfaceInput: {
             admin_status?: null | components["schemas"]["IfAdminStatus"];
+            /**
+             * Format: uuid
+             * @description Client-provided UUID for this interface.
+             */
+            id: string;
             /** @description SNMP ifAlias - user-configured description */
             if_alias?: string | null;
             /** @description SNMP ifDescr - interface description (e.g., GigabitEthernet0/1) */
@@ -8573,6 +8778,101 @@ export interface components {
              * @description Interface speed in bits per second
              */
             speed_bps?: number | null;
+        };
+        InterfaceNeighborCandidate: {
+            base: components["schemas"]["InterfaceNeighborCandidateBase"];
+            /**
+             * Format: date-time
+             * @description When a scan last reported this evidence. Resolution reads it as the evidence's freshness,
+             *     so a group a scan could not finish reading keeps its previous value.
+             */
+            created_at: string;
+            /**
+             * Format: uuid
+             * @description This candidate row's own id. Candidates are replaced wholesale on every scan, so the id
+             *     does not survive from one scan to the next.
+             */
+            id: string;
+        };
+        InterfaceNeighborCandidateBase: {
+            evidence: components["schemas"]["InterfaceNeighborEvidence"];
+            /**
+             * Format: uuid
+             * @description The local interface that heard this neighbour advertisement.
+             */
+            interface_id: string;
+            /**
+             * Format: uuid
+             * @description The network the reporting interface belongs to.
+             */
+            network_id: string;
+        };
+        /**
+         * @description The raw identity one LLDP or CDP record advertised about a neighbour on one port.
+         *
+         *     One candidate is one record — an LLDP entry and a CDP entry for the same physical neighbour are
+         *     never merged into a single row, even when they name the same device. That is what lets the
+         *     reciprocal resolution tier dedup by remote host rather than by candidate count (see
+         *     `hosts/service/topology/reciprocal.rs`), and what lets `edge_builder.rs` read each adjacency's
+         *     own evidence-derived protocol instead of an interface-level predicate.
+         *
+         *     This is both the wire shape a daemon submits (nested under
+         *     `InterfaceBase::neighbor_candidates`) and `InterfaceNeighborCandidate`'s stored field set — see
+         *     `InterfaceNeighborCandidateBase`, which pairs this with the `(network_id, interface_id)` the
+         *     wire submission does not need to repeat per candidate.
+         */
+        InterfaceNeighborEvidence: {
+            /**
+             * @description Remote management IP from CDP (cdpCacheAddress). IPv4 or IPv6.
+             * @example 192.168.1.1
+             */
+            cdp_address?: string | null;
+            /** @description Remote device ID from CDP (typically hostname, locally unique) */
+            cdp_device_id?: string | null;
+            /** @description Remote platform from CDP (e.g., "Cisco IOS") */
+            cdp_platform?: string | null;
+            /** @description Remote port ID from CDP */
+            cdp_port_id?: string | null;
+            lldp_chassis_id?: null | components["schemas"]["LldpChassisId"];
+            /**
+             * @description Remote management IP from LLDP neighbor (lldpRemManAddr). IPv4 or IPv6.
+             * @example 192.168.1.1
+             */
+            lldp_mgmt_addr?: string | null;
+            /** @description Remote port description from LLDP neighbor (lldpRemPortDesc) */
+            lldp_port_desc?: string | null;
+            lldp_port_id?: null | components["schemas"]["LldpPortId"];
+            /** @description Remote system description from LLDP neighbor (lldpRemSysDesc) - platform info */
+            lldp_sys_desc?: string | null;
+            /** @description Remote system name from LLDP neighbor (lldpRemSysName) */
+            lldp_sys_name?: string | null;
+        };
+        /**
+         * @description One row of the merged read model: an interface's adjacency to one neighbour, whichever of the
+         *     two resolved tables it lives in. `TopologyContext` loads a `Vec` of these per network
+         *     (`live_or_as_of`-pinned the same way `interfaces` is) instead of reading a scalar field —
+         *     `InterfaceNeighborRow` is what every topology file downstream of resolution actually iterates.
+         */
+        InterfaceNeighborRow: {
+            /**
+             * Format: uuid
+             * @description The resolved row's own id (from whichever of the two tables it came from) — carried so a
+             *     row can be told apart from another row naming the same pair (not possible today, since the
+             *     natural key is unique per table, but keeps the type honest about which row backs it).
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The local interface this adjacency belongs to.
+             */
+            interface_id: string;
+            neighbor: components["schemas"]["Neighbor"];
+            /**
+             * Format: date-time
+             * @description When a scan last saw the evidence behind this adjacency. Absent when no scan has recorded
+             *     a time for it.
+             */
+            neighbor_seen_at?: string | null;
         };
         Invite: components["schemas"]["InviteBase"] & {
             /**
@@ -8820,10 +9120,9 @@ export interface components {
             omitted_config_keys: string[];
         };
         /**
-         * @description Resolved LLDP/CDP neighbor connection.
-         *
-         *     Represents the remote endpoint this port connects to, discovered via LLDP or CDP.
-         *     The two variants are mutually exclusive and represent different resolution states.
+         * @description One resolved adjacency, tagged by which of the two tables it came from — the same shape
+         *     `Neighbor` gave a single interface before GH #701, now one per row rather than at most one per
+         *     interface.
          */
         Neighbor: {
             /**
@@ -9144,7 +9443,7 @@ export interface components {
          *         "offset": 0,
          *         "total_count": 142
          *       },
-         *       "server_version": "0.17.13"
+         *       "server_version": "0.17.14"
          *     }
          */
         PaginatedApiMeta: {
@@ -9157,7 +9456,7 @@ export interface components {
             pagination: components["schemas"]["PaginationMeta"];
             /**
              * @description Server version (semver)
-             * @example 0.17.13
+             * @example 0.17.14
              */
             server_version: string;
         };
@@ -9340,6 +9639,7 @@ export interface components {
                  *     list and another on the map.
                  */
                 readonly display_name?: string | null;
+                display_name_rung?: null | components["schemas"]["HostNameRung"];
                 /** @description ENTITY-MIB entPhysicalFirmwareRev — firmware revision of the device. Read-only, as above. */
                 readonly firmware_revision: string | null;
                 /** @description What produced the firmware revision. Read-only: decided by whichever source read it. */
@@ -9348,6 +9648,11 @@ export interface components {
                 hidden: boolean;
                 /** @description Hostname as resolved or reported by the host. */
                 hostname?: string | null;
+                /**
+                 * @description What produced `hostname`: a PTR lookup, the host's own OS, a controller, mDNS, or a person.
+                 *     Read-only: decided by whichever source read it.
+                 */
+                hostname_source?: components["schemas"]["AttributeSource"];
                 /**
                  * Format: uuid
                  * @description Server-assigned unique identifier.
@@ -9378,6 +9683,8 @@ export interface components {
                 model_source?: components["schemas"]["AttributeSource"];
                 /** @description Human-facing name for the host. */
                 name: string;
+                /** @description Every rung of the display-name ladder for this host, highest first, with what each holds. */
+                name_ladder?: components["schemas"]["HostNameLadderEntry"][];
                 /**
                  * @description What produced `name`. Read-only: it is decided by whoever supplied the name, not by the
                  *     caller.
@@ -10550,19 +10857,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-08-28T15:33:32.412765Z",
+         *           "created_at": "2026-09-15T04:26:40.580437Z",
          *           "first_discovery_id": null,
-         *           "id": "e835e864-7e60-41cd-8ecd-fbb0815ad8dd",
+         *           "id": "c883efb8-c99b-4bbe-8a99-f54e21a5b582",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-08-28T15:33:32.412765Z",
+         *           "last_seen_at": "2026-09-15T04:26:40.580437Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-08-28T15:33:32.412765Z",
-         *           "valid_from": "2026-08-28T15:33:32.412765Z",
+         *           "updated_at": "2026-09-15T04:26:40.580437Z",
+         *           "valid_from": "2026-09-15T04:26:40.580437Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -10576,7 +10883,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Ollama",
+         *       "service_definition": "Immich",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -11148,18 +11455,48 @@ export interface components {
             available_views?: components["schemas"]["TopologyView"][];
             /** @description Service bindings included in this topology. */
             bindings: components["schemas"]["Binding"][];
+            /**
+             * @description Raw LLDP/CDP candidate evidence behind `neighbours` (GH #701) — for the admin/debug
+             *     unresolved-evidence display and per-adjacency protocol derivation
+             *     (`TopologyContext::interface_has_lldp_evidence`), neither of which the resolved rows alone
+             *     can answer (they carry no raw evidence, by design — see `interface_neighbors`).
+             */
+            candidates?: components["schemas"]["InterfaceNeighborCandidate"][];
             /** @description Dependencies included in this topology. */
             dependencies: components["schemas"]["Dependency"][];
             /** @description Connections between the nodes of the built graph. */
             edges?: {
                 [key: string]: components["schemas"]["Edge"][];
             };
-            /** @description Hosts included in this topology. */
+            /**
+             * @description How many entities of each type a server-side metadata filter removed, by the filter that
+             *     removed them.
+             *
+             *     Server-filtered entities never reach the browser, so this is the only way the frontend can
+             *     say "171 interfaces hidden by By link" rather than presenting an empty view as an empty
+             *     network. Keyed by entity and filter only, with no view: the hide-set is per view but a drop
+             *     is not — an entity is removed from the one shared bundle only when *every* view that could
+             *     render it hides it (see `metadata_filter`).
+             *
+             *     Empty when nothing was filtered, which is the common case.
+             */
+            filtered_out?: {
+                [key: string]: {
+                    [key: string]: number;
+                };
+            };
+            /** @description Hosts included in this topology, each carrying the title the map and the host list share. */
             hosts: components["schemas"]["TopologyHost"][];
             /** @description Interfaces included in this topology. */
             interfaces: components["schemas"]["Interface"][];
             /** @description IP addresses included in this topology. */
             ip_addresses: components["schemas"]["IPAddress"][];
+            /**
+             * @description Resolved LLDP/CDP neighbour adjacencies (GH #701): the merged read-model of
+             *     `interface_neighbor_interfaces` + `interface_neighbor_hosts`, replacing the old
+             *     `Interface.neighbor` scalar now that a port can anchor several links.
+             */
+            neighbours?: components["schemas"]["InterfaceNeighborRow"][];
             /**
              * @description Per-view graph built on request from the entities above + grouping
              *     options. Keyed by view so switching the active perspective is a
@@ -11248,7 +11585,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "a594d58e-21d1-4976-8682-51f8145b775c",
+             *           "id": "02c0590b-be43-446d-9349-75c3b5542504",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -11258,23 +11595,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "23f56dde-0f88-43ce-b4b8-6e7adfc5adf1",
+             *           "id": "5dab559f-ec54-4d54-960e-ecd1bc66317d",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "94a61dfa-beed-4c6c-859c-8fc4bc5d6d32",
+             *           "id": "5452814a-cdce-47f7-8383-eef0f0fa3da9",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "a3cbbd18-b707-4ab8-aa57-2a3a46c5b641",
+             *           "id": "660ad9b5-eb7a-486e-b539-7907e5d3844d",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "23f56dde-0f88-43ce-b4b8-6e7adfc5adf1",
+             *           "id": "5dab559f-ec54-4d54-960e-ecd1bc66317d",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -11287,19 +11624,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "561db9f1-9dd8-4715-82e2-c8f8fabe0f9c",
+             *         "id": "b1074ed9-9b53-4d9f-9d1d-da039ac71232",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "ba1bfebc-a55d-427d-80d8-56a74c28e57b",
+             *         "id": "614a6214-9559-4bd7-b3a7-24ca8529a197",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "26634ff3-29ad-4cdb-b007-bcc1a9366988",
+             *         "id": "8c78d06c-f800-4a11-84f1-bb0c3b159df8",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "48b7996c-7936-465b-9ced-46fa555eb175",
+             *         "id": "799eec85-0535-4a98-ad82-6bf0ca6e3e1d",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -11317,7 +11654,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "7b7f986b-8215-4dda-8333-aca1883ac2f3",
+             *         "id": "2871e02b-2da2-467a-8bfa-8c373c2c4dbb",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -11326,15 +11663,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "d3751188-02f4-474c-8633-847f678c5fdc",
+             *         "id": "15b8a129-24bf-4249-a1ad-dfaeb744510a",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "a09dec7d-58f7-46db-bf08-8902f7334580",
+             *         "id": "2961f1a5-7b7a-414f-a5b4-4b6d964ce2e3",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "700d8eda-8756-4e1c-85fa-84c5adf5d959",
+             *         "id": "95593178-1b40-4c69-bda6-3858e0db384d",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -11498,6 +11835,12 @@ export interface components {
              * @description Server-assigned unique identifier.
              */
             id: string;
+            /**
+             * @description Interfaces to sync with this host.
+             *     If Some, server will create/update/delete to match this list.
+             *     If None, existing interfaces are preserved.
+             */
+            interfaces?: components["schemas"]["InterfaceInput"][] | null;
             /**
              * @description Interfaces to sync with this host.
              *     If Some, server will create/update/delete to match this list.
@@ -13074,6 +13417,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponse_u32"];
+                };
+            };
+        };
+    };
+    get_windows_msi: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Windows daemon MSI installer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": number[];
+                };
+            };
+            /** @description Failed to fetch the MSI from GitHub */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
         };
@@ -15312,6 +15684,11 @@ export interface operations {
                 include_unvirtualized?: boolean | null;
                 /** @description Filter to hosts running a service with one of these names. */
                 service_names?: string[] | null;
+                /**
+                 * @description Filter by how the host came to exist (`source.type`). Repeat for several;
+                 *     `Inferred` alone lists the hosts only a neighbour advertised.
+                 */
+                sources?: components["schemas"]["EntitySourceDiscriminants"][] | null;
                 /** @description Filter by tag IDs (returns hosts that have ANY of the specified tags) */
                 tag_ids?: string[] | null;
                 /**
@@ -15500,6 +15877,11 @@ export interface operations {
                 include_unvirtualized?: boolean | null;
                 /** @description Filter to hosts running a service with one of these names. */
                 service_names?: string[] | null;
+                /**
+                 * @description Filter by how the host came to exist (`source.type`). Repeat for several;
+                 *     `Inferred` alone lists the hosts only a neighbour advertised.
+                 */
+                sources?: components["schemas"]["EntitySourceDiscriminants"][] | null;
                 /** @description Filter by tag IDs (returns hosts that have ANY of the specified tags) */
                 tag_ids?: string[] | null;
                 /**
@@ -15579,6 +15961,11 @@ export interface operations {
                 include_unvirtualized?: boolean | null;
                 /** @description Filter to hosts running a service with one of these names. */
                 service_names?: string[] | null;
+                /**
+                 * @description Filter by how the host came to exist (`source.type`). Repeat for several;
+                 *     `Inferred` alone lists the hosts only a neighbour advertised.
+                 */
+                sources?: components["schemas"]["EntitySourceDiscriminants"][] | null;
                 /** @description Filter by tag IDs (returns hosts that have ANY of the specified tags) */
                 tag_ids?: string[] | null;
                 /**

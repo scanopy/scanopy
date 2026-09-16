@@ -40,18 +40,22 @@ impl UnresolvedReason {
 /// device that should have been scanned or one that never will be: which of our devices saw it, on
 /// which port, and the identifier the far end advertised. That evidence used to exist only in a
 /// log line, where the operator who needed it could not read it.
+///
+/// GH #701: takes the candidate's own [`InterfaceNeighborEvidence`] rather than reading it off
+/// `interface` — one warning per candidate now, not per interface.
 fn unmatched_neighbour_warning(
     interface: &Interface,
+    evidence: &InterfaceNeighborEvidence,
     identifier: String,
     sys_name: Option<String>,
     reason: UnresolvedReason,
 ) -> Option<DiscoveryWarning> {
     let detail = UnmatchedNeighbour {
         host_id: interface.base.host_id,
-        if_descr: interface.base.if_descr.clone(),
+        if_descr: interface.base.if_descr.clone().unwrap_or_default(),
         identifier,
         sys_name,
-        address: interface
+        address: evidence
             .advertised_identity()
             .address
             .map(|addr| addr.to_string()),
@@ -74,32 +78,34 @@ fn unmatched_neighbour_warning(
 /// common shape — and one is still a device nothing has contacted, which is the whole of what
 /// `EntitySource::Inferred` claims. An address only decides whether the minted host can be placed
 /// in a subnet, and that question belongs to range inference rather than to this gate.
-fn unplaced_far_end(interface: &Interface, reason: UnresolvedReason) -> Option<UnplacedFarEnd> {
+fn unplaced_far_end(
+    interface: &Interface,
+    evidence: &InterfaceNeighborEvidence,
+    reason: UnresolvedReason,
+) -> Option<UnplacedFarEnd> {
     if reason != UnresolvedReason::NotFound {
         return None;
     }
     // The chassis id for LLDP, the device id for CDP. Both are what the far end calls itself, and
     // both are stored the way a scanned device's own identity is, so either can be the hinge the
     // minted host later merges on.
-    let chassis_id = interface
-        .base
+    let chassis_id = evidence
         .lldp_chassis_id
         .as_ref()
         .map(|id| id.identifier())
-        .or_else(|| interface.base.cdp_device_id.clone())
+        .or_else(|| evidence.cdp_device_id.clone())
         .filter(|id| !id.trim().is_empty())?;
 
-    let far_end_port = interface.advertised_far_end_port();
+    let far_end_port = evidence.advertised_far_end_port();
     Some(UnplacedFarEnd {
         host_id: interface.base.host_id,
-        if_descr: interface.base.if_descr.clone(),
-        sys_name: interface
-            .base
+        if_descr: interface.base.if_descr.clone().unwrap_or_default(),
+        sys_name: evidence
             .lldp_sys_name
             .clone()
-            .or_else(|| interface.base.cdp_device_id.clone()),
+            .or_else(|| evidence.cdp_device_id.clone()),
         chassis_id,
-        address: interface.advertised_identity().address,
+        address: evidence.advertised_identity().address,
         port_name: far_end_port.name.map(str::to_string),
         port_mac: far_end_port.mac.map(str::to_string),
         vlan_id: interface.base.native_vlan_id,
@@ -114,19 +120,20 @@ fn unplaced_far_end(interface: &Interface, reason: UnresolvedReason) -> Option<U
 /// reported, because each names a different fix.
 fn unresolved_port_warning(
     interface: &Interface,
+    evidence: &InterfaceNeighborEvidence,
     remote_host_id: Uuid,
     port_id: Option<String>,
     reason: UnresolvedReason,
 ) -> DiscoveryWarning {
     let detail = UnresolvedPort {
         host_id: interface.base.host_id,
-        if_descr: interface.base.if_descr.clone(),
+        if_descr: interface.base.if_descr.clone().unwrap_or_default(),
         remote_host_id,
         port_id,
         // `lldpRemPortDesc`, the last-resort tier. Carried because "the id failed and the
         // description was empty" and "both were tried and neither matched" call for different
         // fixes.
-        port_desc: interface.base.lldp_port_desc.clone(),
+        port_desc: evidence.lldp_port_desc.clone(),
     };
     match reason {
         UnresolvedReason::NoStrategy => DiscoveryWarning::LldpPortNoStrategy(detail),
@@ -137,19 +144,25 @@ fn unresolved_port_warning(
 
 /// Who names whom across a network's LLDP/CDP adjacencies, and the port pairs that follow from it.
 ///
-/// Built once per resolution pass from *every* interface that names a neighbour — not just the
-/// unresolved ones. The count of ports joining two devices is the whole basis of the reciprocal
-/// tier, and counting only the unresolved half would pair one leg of a LAG whose other leg happened
-/// to resolve, which is exactly the arbitrary-port outcome the shared-MAC guard exists to prevent.
+/// Built once per resolution pass from *every* candidate in the network — not just the unresolved
+/// ones. The count of ports joining two devices is the whole basis of the reciprocal tier, and
+/// counting only the unresolved half would pair one leg of a LAG whose other leg happened to
+/// resolve, which is exactly the arbitrary-port outcome the shared-MAC guard exists to prevent.
 struct NeighborAdjacency {
-    /// Every interface in the network that names a neighbour, in whatever resolution state.
+    /// Every interface in the network with at least one live candidate, in whatever resolution
+    /// state.
     interfaces: Vec<Interface>,
-    /// The far-end *device* verdict per interface, computed once here and reused by the resolution
-    /// pass so the chassis ladder is not run twice for the same row.
+    /// Each interface's own candidates, loaded once here and reused by the resolution pass so it
+    /// is not re-queried per interface.
+    candidates: HashMap<Uuid, Vec<InterfaceNeighborCandidate>>,
+    /// The far-end *device* verdict per candidate (keyed on the candidate's own id), computed once
+    /// here and reused by the resolution pass so the chassis ladder is not run twice for the same
+    /// row.
     host_of: HashMap<Uuid, IdentityResolution>,
-    /// Interface id -> `(far-end interface, that interface's host)`, for pairs where each side
-    /// names the other on exactly one port.
-    reciprocal: HashMap<Uuid, (Uuid, Uuid)>,
+    /// `(local_interface_id, remote_host_id) -> remote_interface_id`, for pairs where each side
+    /// names the other on exactly one port. See `reciprocal.rs`'s module docs for why this is keyed
+    /// on the pair rather than on the local interface alone.
+    reciprocal: HashMap<(Uuid, Uuid), Uuid>,
 }
 
 /// What one resolution pass concluded.
@@ -164,6 +177,9 @@ struct NeighbourPass {
 mod inference;
 mod reciprocal;
 
+use crate::server::interface_neighbors::r#impl::base::{
+    InterfaceNeighborCandidate, InterfaceNeighborEvidence, Neighbor,
+};
 use crate::server::interfaces::r#impl::base::InterfaceBase;
 use crate::server::ip_addresses::r#impl::base::{MacEvidence, MacEvidenceValue};
 use crate::server::subnets::r#impl::inference::UnplacedFarEnd;
@@ -192,6 +208,11 @@ impl HostService {
     /// subnets and hosts have been minted: those hosts are resolvable the moment they exist, and
     /// re-running here is the difference between a link appearing now and appearing after the next
     /// scan.
+    ///
+    /// GH #701: a port can carry several candidates now, so this loops per candidate (grouped by
+    /// interface where interface-level context — existing bindings, `fdb_macs`, host id — is
+    /// needed) and writes the whole desired adjacency set for an interface in one
+    /// `reconcile_interface_neighbors` call, rather than one `interface.base.neighbor` field write.
     async fn resolve_neighbours_once(&self, network_id: Uuid) -> Result<NeighbourPass> {
         let resolver = self.lldp_inventory_snapshot(network_id).await?;
 
@@ -211,22 +232,40 @@ impl HostService {
         // Who names whom, and which of those pairs are unambiguous in both directions. Computed
         // before anything is written, because it is the authority both for the reciprocal tier
         // below and for deciding whether an existing MAC-matched binding still stands.
-        let mut adjacency = self
+        let adjacency = self
             .build_neighbor_adjacency(network_id, &resolver, evidence_cutoff)
             .await?;
-        let reciprocal = std::mem::take(&mut adjacency.reciprocal);
-        let host_of = std::mem::take(&mut adjacency.host_of);
+        let reciprocal = adjacency.reciprocal;
+        let host_of = adjacency.host_of;
+        let candidates_by_interface = adjacency.candidates;
+        let interfaces = adjacency.interfaces;
+
+        // Existing resolved rows, batched once for the whole pass rather than per interface.
+        let interface_ids: Vec<Uuid> = interfaces.iter().map(|i| i.id).collect();
+        let mut existing_by_interface = self
+            .interface_neighbor_service
+            .resolved_for_interfaces(&interface_ids)
+            .await?;
+
+        // The host behind every already-bound far-end port, in one query rather than one each —
+        // needed to re-key an existing full-resolution row's bound interface back to the remote
+        // host `reciprocal`/`re_examine_port_binding` key on.
+        let bound_ids: Vec<Uuid> = existing_by_interface
+            .values()
+            .flatten()
+            .filter_map(|row| row.neighbor.interface_id())
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .collect();
+        let mut host_of_interface: HashMap<Uuid, Uuid> = HashMap::new();
+        if !bound_ids.is_empty() {
+            let filter = StorableFilter::<Interface>::new_from_entity_ids(&bound_ids).live();
+            for bound in self.interface_service.get_all(filter).await? {
+                host_of_interface.insert(bound.id, bound.base.host_id);
+            }
+        }
 
         let mut stats = LldpResolutionStats::default();
-        // Every far end no strategy could place, kept so the summary below can name them.
-        //
-        // `host_not_found` on its own says only how many there were, and it is the one counter
-        // that does not move between scans: an unresolvable row keeps `neighbor_interface_id`
-        // NULL, so the filter re-selects it every pass and the count is a standing population
-        // rather than a per-run delta. A reporter seeing the same figure twice cannot tell a
-        // stable set of genuinely-unknown neighbours (endpoints, phones, unmanaged gear — the
-        // expected case) from a resolution defect without knowing *which* devices they are
-        // (GH #668).
         let mut warnings: Vec<DiscoveryWarning> = Vec::new();
         // Far ends that told us where they live and still matched nothing. Pooled across the whole
         // network rather than per device: two switches naming far ends in one range must produce
@@ -238,240 +277,261 @@ impl HostService {
         let mut advertised_ports: Vec<(Uuid, Option<String>, Option<String>)> = Vec::new();
         let mut reopened = 0usize;
         let mut rebound = 0usize;
+        let scan_time = Utc::now();
 
-        for mut interface in std::mem::take(&mut adjacency.interfaces) {
-            // What the row held on the way in. The tiers below may downgrade a binding and then
-            // re-resolve it to the same value, and only a comparison against the *original* can
-            // tell that apart from a change worth writing.
-            let original_neighbor = interface.base.neighbor.clone();
+        for interface in &interfaces {
+            let candidates = candidates_by_interface
+                .get(&interface.id)
+                .cloned()
+                .unwrap_or_default();
+            let existing_rows = existing_by_interface
+                .remove(&interface.id)
+                .unwrap_or_default();
+
+            // Seed with every currently-stored adjacency, keyed by remote host — "stale beats
+            // deleted": a remote host this pass gets no chance to re-confirm (no live candidate
+            // names it any more) is carried forward unchanged rather than dropped, the same
+            // direction `create.rs`'s interface prune takes when a scan is incomplete.
+            let mut desired: HashMap<Uuid, (Neighbor, Option<DateTime<Utc>>)> = HashMap::new();
+            for row in &existing_rows {
+                let remote_host_id = match row.neighbor {
+                    Neighbor::Interface(id) => host_of_interface.get(&id).copied(),
+                    Neighbor::Host(id) => Some(id),
+                };
+                if let Some(remote_host_id) = remote_host_id {
+                    desired.insert(remote_host_id, (row.neighbor, row.neighbor_seen_at));
+                }
+            }
 
             // A row that already names a port is re-examined rather than resolved: it is not a
             // link that failed, it is one that may have been placed on a MAC the far end repeats
             // across every port, which looks authoritative and is not.
-            if let Some(Neighbor::Interface(bound_id)) = interface.base.neighbor {
+            for row in existing_rows
+                .iter()
+                .filter(|r| r.neighbor.is_full_resolution())
+            {
+                let bound_id = row.neighbor.interface_id().expect("full resolution");
+                let Some(&remote_host_id) = host_of_interface.get(&bound_id) else {
+                    continue;
+                };
                 match self
-                    .re_examine_port_binding(&interface, bound_id, &reciprocal, &resolver)
+                    .re_examine_port_binding(
+                        interface,
+                        bound_id,
+                        remote_host_id,
+                        &candidates,
+                        &reciprocal,
+                        &resolver,
+                    )
                     .await?
                 {
-                    PortBinding::Stands => continue,
+                    PortBinding::Stands => {}
                     PortBinding::Rebind(paired) => {
                         rebound += 1;
-                        interface.base.neighbor = Some(Neighbor::Interface(paired));
-                        self.interface_service
-                            .update(&mut interface, AuthenticatedEntity::System)
-                            .await?;
-                        continue;
+                        desired.insert(
+                            remote_host_id,
+                            (Neighbor::Interface(paired), row.neighbor_seen_at),
+                        );
                     }
                     // Downgraded to the far-end device, which was never in doubt, and then run
                     // through the tiers below in this same pass so a tier that *can* name a port
                     // gets its turn immediately rather than a scan later.
                     PortBinding::Reopen(remote_host_id) => {
                         reopened += 1;
-                        interface.base.neighbor = Some(Neighbor::Host(remote_host_id));
+                        desired.insert(
+                            remote_host_id,
+                            (Neighbor::Host(remote_host_id), row.neighbor_seen_at),
+                        );
                     }
                 }
             }
 
-            // Rows admitted only because they already carry a resolved neighbour — an FDB-matched
-            // port, say — have no protocol identity to run the tiers against. Persist a downgrade
-            // if one just happened and move on.
-            if interface.base.lldp_chassis_id.is_none()
-                && interface.base.cdp_device_id.is_none()
-                && interface.base.cdp_address.is_none()
-            {
-                self.persist_neighbor(&mut interface, &original_neighbor)
-                    .await?;
-                continue;
-            }
-
-            stats.total += 1;
-
-            // A previous pass may already have identified the remote host but not the port. Keep
-            // that result and retry only the port, so a partial can never regress to nothing.
-            let known_host_id = match interface.base.neighbor {
-                Some(Neighbor::Host(host_id)) => Some(host_id),
-                _ => None,
-            };
-
-            // Only chassis_id and port_id are used for neighbor resolution — they represent
-            // actual physical connections. lldp_mgmt_addr / cdp_address are where you manage the
-            // device, not necessarily the physical connection point.
-            let resolved_neighbor = if let Some(ref chassis_id) = interface.base.lldp_chassis_id {
-                let host = match known_host_id {
-                    Some(host_id) => IdentityResolution::Resolved(host_id),
-                    // Already run once while building the adjacency — reusing the verdict is what
-                    // keeps this pass at the same query cost it had before the extra tier.
-                    None => host_of
-                        .get(&interface.id)
-                        .copied()
-                        .unwrap_or(IdentityResolution::NoStrategy),
-                };
-                if let Some(reason) = UnresolvedReason::from_resolution(host) {
-                    warnings.extend(unmatched_neighbour_warning(
-                        &interface,
-                        chassis_id.identifier(),
-                        interface.base.lldp_sys_name.clone(),
-                        reason,
-                    ));
-                    unplaced.extend(unplaced_far_end(&interface, reason));
+            // Resolve every candidate independently. Two candidates naming the same remote host
+            // (an LLDP entry and a CDP entry for one device) both contribute to the *same*
+            // adjacency — `desired` is keyed by remote host, so the second one to resolve wins the
+            // slot, which is fine: they describe one link, not two.
+            for candidate in &candidates {
+                let evidence = &candidate.base.evidence;
+                if evidence.lldp_chassis_id.is_none()
+                    && evidence.cdp_device_id.is_none()
+                    && evidence.cdp_address.is_none()
+                {
+                    continue;
                 }
-                match stats.record_host(host) {
-                    None => None,
-                    Some(host_id) => {
-                        let port = match interface.base.lldp_port_id {
-                            Some(ref port_id) => {
-                                port_id.resolve_if_entry_id(&resolver, host_id).await
-                            }
-                            None => IdentityResolution::NoStrategy,
-                        };
-                        // Last resort: the port *description*. Distinct from the port id and
-                        // sometimes the only one that matches — a D-Link DGS-1210-48 advertises
-                        // the id as a bare port number but describes the port as
-                        // "D-Link DGS-1210-48 Rev.GX/7.20.003 Port 9", which is byte-identical to
-                        // that switch's own ifDescr (GH #668). Only consulted once the id has
-                        // failed, so a device whose id resolves is unaffected, and scoped to the
-                        // already-resolved host like every other tier.
-                        let port = match port {
-                            IdentityResolution::Resolved(id) => IdentityResolution::Resolved(id),
-                            unresolved => match interface.base.lldp_port_desc.as_deref() {
-                                Some(desc) if !desc.trim().is_empty() => {
-                                    match resolver.find_if_entry_by_name(desc, host_id).await {
-                                        Some(id) => IdentityResolution::Resolved(id),
-                                        // Keep the port id's own verdict rather than overwriting
-                                        // it: `NoStrategy` and `NotFound` are counted separately
-                                        // and mean different things to whoever reads the stats.
-                                        None => unresolved,
+
+                stats.total += 1;
+
+                let resolved_neighbor = if let Some(ref chassis_id) = evidence.lldp_chassis_id {
+                    let host = host_of
+                        .get(&candidate.id)
+                        .copied()
+                        .unwrap_or(IdentityResolution::NoStrategy);
+                    if let Some(reason) = UnresolvedReason::from_resolution(host) {
+                        warnings.extend(unmatched_neighbour_warning(
+                            interface,
+                            evidence,
+                            chassis_id.identifier(),
+                            evidence.lldp_sys_name.clone(),
+                            reason,
+                        ));
+                        unplaced.extend(unplaced_far_end(interface, evidence, reason));
+                    }
+                    match stats.record_host(host) {
+                        None => None,
+                        Some(host_id) => {
+                            let port = match evidence.lldp_port_id {
+                                Some(ref port_id) => {
+                                    port_id.resolve_if_entry_id(&resolver, host_id).await
+                                }
+                                None => IdentityResolution::NoStrategy,
+                            };
+                            // Last resort: the port *description*.
+                            let port = match port {
+                                IdentityResolution::Resolved(id) => {
+                                    IdentityResolution::Resolved(id)
+                                }
+                                unresolved => match evidence.lldp_port_desc.as_deref() {
+                                    Some(desc) if !desc.trim().is_empty() => {
+                                        match resolver.find_if_entry_by_name(desc, host_id).await {
+                                            Some(id) => IdentityResolution::Resolved(id),
+                                            None => unresolved,
+                                        }
                                     }
-                                }
-                                _ => unresolved,
-                            },
-                        };
-                        let port =
-                            match Self::pair_reciprocally(port, interface.id, host_id, &reciprocal)
-                            {
+                                    _ => unresolved,
+                                },
+                            };
+                            let port = match HostService::pair_reciprocally(
+                                port,
+                                interface.id,
+                                host_id,
+                                &reciprocal,
+                            ) {
                                 Some(paired) => {
                                     stats.ports_resolved_reciprocal += 1;
                                     paired
                                 }
                                 None => port,
                             };
-                        if let Some(reason) = UnresolvedReason::from_resolution(port) {
-                            warnings.push(unresolved_port_warning(
-                                &interface,
-                                host_id,
-                                interface
-                                    .base
-                                    .lldp_port_id
-                                    .as_ref()
-                                    .map(|p| format!("{p:?}")),
-                                reason,
-                            ));
+                            if let Some(reason) = UnresolvedReason::from_resolution(port) {
+                                warnings.push(unresolved_port_warning(
+                                    interface,
+                                    evidence,
+                                    host_id,
+                                    evidence.lldp_port_id.as_ref().map(|p| format!("{p:?}")),
+                                    reason,
+                                ));
+                            }
+                            Some((host_id, stats.record_port(port, host_id)))
                         }
-                        Some(stats.record_port(port, host_id))
                     }
-                }
-            } else if let Some(ref device_id) = interface.base.cdp_device_id {
-                // CDP device_id is typically sysName, resolve against sys_name field
-                let host = match known_host_id {
-                    Some(host_id) => IdentityResolution::Resolved(host_id),
-                    None => host_of
-                        .get(&interface.id)
+                } else if let Some(ref device_id) = evidence.cdp_device_id {
+                    let host = host_of
+                        .get(&candidate.id)
                         .copied()
-                        .unwrap_or(IdentityResolution::NoStrategy),
-                };
-                if let Some(reason) = UnresolvedReason::from_resolution(host) {
-                    warnings.extend(unmatched_neighbour_warning(
-                        &interface,
-                        device_id.clone(),
-                        None,
-                        reason,
-                    ));
-                    unplaced.extend(unplaced_far_end(&interface, reason));
-                }
-                match stats.record_host(host) {
-                    None => None,
-                    Some(host_id) => {
-                        // CDP port ids are the long ifDescr form
-                        let port = match interface.base.cdp_port_id {
-                            Some(ref port_id) => IdentityResolution::found(
-                                resolver.find_if_entry_by_name(port_id, host_id).await,
-                            ),
-                            None => IdentityResolution::NoStrategy,
-                        };
-                        let port =
-                            match Self::pair_reciprocally(port, interface.id, host_id, &reciprocal)
-                            {
+                        .unwrap_or(IdentityResolution::NoStrategy);
+                    if let Some(reason) = UnresolvedReason::from_resolution(host) {
+                        warnings.extend(unmatched_neighbour_warning(
+                            interface,
+                            evidence,
+                            device_id.clone(),
+                            None,
+                            reason,
+                        ));
+                        unplaced.extend(unplaced_far_end(interface, evidence, reason));
+                    }
+                    match stats.record_host(host) {
+                        None => None,
+                        Some(host_id) => {
+                            let port = match evidence.cdp_port_id {
+                                Some(ref port_id) => IdentityResolution::found(
+                                    resolver.find_if_entry_by_name(port_id, host_id).await,
+                                ),
+                                None => IdentityResolution::NoStrategy,
+                            };
+                            let port = match HostService::pair_reciprocally(
+                                port,
+                                interface.id,
+                                host_id,
+                                &reciprocal,
+                            ) {
                                 Some(paired) => {
                                     stats.ports_resolved_reciprocal += 1;
                                     paired
                                 }
                                 None => port,
                             };
-                        if let Some(reason) = UnresolvedReason::from_resolution(port) {
-                            warnings.push(unresolved_port_warning(
-                                &interface,
+                            if let Some(reason) = UnresolvedReason::from_resolution(port) {
+                                warnings.push(unresolved_port_warning(
+                                    interface,
+                                    evidence,
+                                    host_id,
+                                    evidence
+                                        .cdp_port_id
+                                        .as_ref()
+                                        .map(|id| format!("CdpPortId({id:?})")),
+                                    reason,
+                                ));
+                            }
+                            Some((host_id, stats.record_port(port, host_id)))
+                        }
+                    }
+                } else {
+                    // Admitted by the loop only because `cdp_address` is set. It is a management
+                    // address, so it names no *port* — but it does name a device.
+                    let host = host_of
+                        .get(&candidate.id)
+                        .copied()
+                        .unwrap_or(IdentityResolution::NoStrategy);
+                    if let Some(reason) = UnresolvedReason::from_resolution(host) {
+                        warnings.extend(unmatched_neighbour_warning(
+                            interface,
+                            evidence,
+                            evidence
+                                .cdp_address
+                                .map(|addr| addr.to_string())
+                                .unwrap_or_default(),
+                            None,
+                            reason,
+                        ));
+                        unplaced.extend(unplaced_far_end(interface, evidence, reason));
+                    }
+                    stats
+                        .record_host(host)
+                        .map(|host_id| (host_id, Neighbor::Host(host_id)))
+                };
+
+                if let Some((host_id, neighbor)) = resolved_neighbor {
+                    // Evidence freshness for this adjacency = when this candidate's evidence was
+                    // last confirmed by a scan (its `created_at` — see
+                    // `InterfaceNeighborService::replace_candidates_from_discovery`).
+                    desired.insert(host_id, (neighbor, Some(candidate.created_at)));
+
+                    // Resolved to a device but to no port of it. The advertisement still names
+                    // that port, and for a device nothing can walk that is the only description
+                    // of it there will ever be.
+                    if let Neighbor::Host(host_id) = neighbor {
+                        let port = evidence.advertised_far_end_port();
+                        if port.name.is_some() || port.mac.is_some() {
+                            advertised_ports.push((
                                 host_id,
-                                interface
-                                    .base
-                                    .cdp_port_id
-                                    .as_ref()
-                                    .map(|id| format!("CdpPortId({id:?})")),
-                                reason,
+                                port.name.map(str::to_string),
+                                port.mac.map(str::to_string),
                             ));
                         }
-                        Some(stats.record_port(port, host_id))
                     }
                 }
-            } else {
-                // Admitted by the filter on `cdp_address` alone. It is a management address, so it
-                // names no *port* — but it does name a device, and `find_host_by_ip` can place it.
-                // Treating the row as unresolvable was the reason a CDP-only neighbour could sit in
-                // `host_no_strategy` for ever while the address identifying it was already stored.
-                let host = match known_host_id {
-                    Some(host_id) => IdentityResolution::Resolved(host_id),
-                    None => host_of
-                        .get(&interface.id)
-                        .copied()
-                        .unwrap_or(IdentityResolution::NoStrategy),
-                };
-                if let Some(reason) = UnresolvedReason::from_resolution(host) {
-                    warnings.extend(unmatched_neighbour_warning(
-                        &interface,
-                        interface
-                            .base
-                            .cdp_address
-                            .map(|addr| addr.to_string())
-                            .unwrap_or_default(),
-                        None,
-                        reason,
-                    ));
-                    unplaced.extend(unplaced_far_end(&interface, reason));
-                }
-                // No port id of any kind on this row, so a resolved device stays device-level.
-                stats.record_host(host).map(Neighbor::Host)
-            };
-
-            // Persist the resolved neighbor. `None` leaves the row as it was: an existing partial
-            // is preserved, and an unresolved row stays eligible for the next pass.
-            if let Some(neighbor) = resolved_neighbor {
-                interface.base.neighbor = Some(neighbor);
             }
 
-            // Resolved to a device but to no port of it. The advertisement still names that port,
-            // and for a device nothing can walk that is the only description of it there will ever
-            // be — see `record_advertised_far_end_ports`, which decides whether to keep it.
-            if let Some(Neighbor::Host(host_id)) = interface.base.neighbor {
-                let port = interface.advertised_far_end_port();
-                if port.name.is_some() || port.mac.is_some() {
-                    advertised_ports.push((
-                        host_id,
-                        port.name.map(str::to_string),
-                        port.mac.map(str::to_string),
-                    ));
-                }
-            }
-
-            self.persist_neighbor(&mut interface, &original_neighbor)
+            let final_desired: Vec<(Neighbor, Option<DateTime<Utc>>)> =
+                desired.into_values().collect();
+            self.interface_neighbor_service
+                .reconcile_interface_neighbors(
+                    network_id,
+                    interface.id,
+                    &final_desired,
+                    scan_time,
+                    None,
+                )
                 .await?;
         }
 
@@ -607,7 +667,7 @@ impl HostService {
             let interface = Interface::new(InterfaceBase {
                 network_id,
                 host_id,
-                if_descr: descr,
+                if_descr: Some(descr),
                 if_name: name,
                 // The port id a neighbour advertised for itself. Announced on a link anything
                 // could have spoken on, not something we asked the far end for.
@@ -623,7 +683,7 @@ impl HostService {
             {
                 Ok(created) => tracing::info!(
                     host_id = %host_id,
-                    port = %created.base.if_descr,
+                    port = %created.base.if_descr.as_deref().unwrap_or("?"),
                     "Recorded the port a neighbour named for a device that describes none itself"
                 ),
                 Err(e) => tracing::warn!(
@@ -635,29 +695,15 @@ impl HostService {
         }
     }
 
-    /// Write `interface` back only when its neighbor actually changed.
-    async fn persist_neighbor(
-        &self,
-        interface: &mut Interface,
-        original: &Option<Neighbor>,
-    ) -> Result<()> {
-        if &interface.base.neighbor == original {
-            return Ok(());
-        }
-        self.interface_service
-            .update(interface, AuthenticatedEntity::System)
-            .await?;
-        Ok(())
-    }
-
     /// Read this network's identity columns once, for the pass to resolve against.
     ///
     /// The pass asks the same few questions per neighbour-bearing interface, and answering each
     /// with its own query made it scale with round-trips: ~330 ms on 145 interfaces, and the
     /// completion request is what waits for it. Three loads replace thousands of round-trips.
     ///
-    /// Safe to hold across the whole pass because every lookup keys on an identity column and none
-    /// reads the `neighbor_*` columns the pass writes as it goes — see `lldp::snapshot`.
+    /// Safe to hold across the whole pass because every lookup keys on an identity column, and
+    /// resolution now writes to `interface_neighbor_interfaces`/`interface_neighbor_hosts` rather
+    /// than to any column this snapshot reads.
     async fn lldp_inventory_snapshot(&self, network_id: Uuid) -> Result<LldpInventorySnapshot> {
         let network = [network_id];
         let hosts = self
@@ -682,18 +728,38 @@ impl HostService {
     /// normally and nothing asks. Best-effort — a warning that cannot say "how many" is still
     /// worth raising, so a failure here reports zero rather than suppressing the warning.
     pub async fn neighbour_bearing_interface_count(&self, network_id: Uuid) -> u32 {
-        let filter = StorableFilter::<Interface>::new_for_lldp_neighbors_in_network(network_id);
-        self.interface_service
-            .get_all(filter)
+        self.interface_neighbor_service
+            .candidates_for_network(network_id)
             .await
-            .map(|found| found.len() as u32)
+            .map(|candidates| {
+                candidates
+                    .iter()
+                    .map(|c| c.base.interface_id)
+                    .collect::<HashSet<_>>()
+                    .len() as u32
+            })
             .unwrap_or(0)
+    }
+
+    /// Interfaces with an unresolved single-MAC FDB entry — cheaper than `resolve_fdb_links`
+    /// itself since it never fetches or hydrates a row. Only for the warning raised when
+    /// resolution is cut short, the same reasoning as `neighbour_bearing_interface_count` above.
+    pub async fn unresolved_fdb_interface_count(&self, network_id: Uuid) -> u32 {
+        self.interface_service
+            .storage()
+            .count(StorableFilter::<Interface>::new_for_unresolved_fdb_in_network(network_id))
+            .await
+            .unwrap_or(0) as u32
     }
 
     /// Resolve FDB (bridge forwarding database) single-MAC ports to neighbor links.
     /// Called after resolve_lldp_links — only processes ports without LLDP/CDP data
     /// that have exactly one learned MAC address (direct physical connection).
-    pub async fn resolve_fdb_links(&self, network_id: Uuid) -> Result<u32> {
+    pub async fn resolve_fdb_links(
+        &self,
+        network_id: Uuid,
+        scan_time: DateTime<Utc>,
+    ) -> Result<u32> {
         let resolver = LldpResolverImpl::new(
             self.interface_service.clone(),
             self.ip_address_service.clone(),
@@ -705,7 +771,10 @@ impl HostService {
 
         let mut resolved_count: u32 = 0;
 
-        for mut interface in unresolved {
+        for interface in unresolved {
+            // The SQL filter above already restricts to exactly one learned MAC
+            // (`jsonb_array_length(fdb_col) = 1`); this re-check is defense-in-depth against a
+            // future filter regression, not a path a passing filter can reach.
             let mac = match &interface.base.fdb_macs {
                 Some(macs) if macs.len() == 1 => &macs[0],
                 _ => continue,
@@ -727,9 +796,14 @@ impl HostService {
                 _ => Neighbor::Host(host_id),
             };
 
-            interface.base.neighbor = Some(neighbor);
-            self.interface_service
-                .update(&mut interface, AuthenticatedEntity::System)
+            self.interface_neighbor_service
+                .reconcile_interface_neighbors(
+                    network_id,
+                    interface.id,
+                    &[(neighbor, Some(scan_time))],
+                    scan_time,
+                    None,
+                )
                 .await?;
             resolved_count += 1;
         }

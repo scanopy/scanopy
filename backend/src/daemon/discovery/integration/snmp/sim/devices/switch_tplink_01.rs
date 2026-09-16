@@ -18,7 +18,7 @@ use super::inline;
 pub fn device() -> SimDevice {
     SimDevice {
         name: "switch-tplink-01",
-        ip: Ipv4Addr::new(192, 168, 7, 245),
+        ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Regression {
             issue: "#668",
             defect: "lldpRemTable indexed without lldpRemTimeMark, so every row arrives one sub-id short and the device vanishes raising no warning at all",
@@ -40,6 +40,7 @@ pub fn device() -> SimDevice {
         tables: tables(),
         arp_handler: Handler::Normal,
         suppresses: Vec::new(),
+        rejects_getbulk: None,
     }
 }
 

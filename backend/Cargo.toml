@@ -1,6 +1,6 @@
 [package]
 name = "scanopy-server"
-version = "0.17.14"
+version = "0.17.16"
 edition = "2024"
 description = "Scanopy HTTP API server"
 
@@ -91,6 +91,14 @@ reqwest = { version = "0.12.24", default-features = false, features = ["json", "
 # it, AsyncSession keeps `[u8; 65_507]` inline; with deep_scan_concurrency * SNMP
 # session count nested in Tokio task futures, that blows the worker stack.
 snmp2 = { path = "vendor/snmp2", default-features = false, features = ["tokio", "v3", "crypto-rust", "heap_buffers"] }
+# gNMI collector: gRPC client stack. Stubs are pre-generated (see integration/gnmi/proto), so no
+# protoc or build.rs. Client-only (`channel`, not `server`/`router`), and TLS through `ring` with
+# the webpki roots -- `aws-lc-rs` must stay out of the tree (see tests/dependencies.rs).
+tonic = { version = "0.14", default-features = false, features = ["channel", "codegen", "tls-ring", "tls-webpki-roots"] }
+tonic-prost = "0.14"
+prost = "0.14"
+prost-types = "0.14"
+tokio-stream = "0.1"
 pnet = "0.35.0"
 ipnetwork = "0.20"
 cidr = { version = "0.3.1", features = ["serde"] }
@@ -297,6 +305,17 @@ net-route = "0.4.6"
 
 [target.'cfg(any(target_os = "freebsd", target_os = "openbsd"))'.dependencies]
 netdev = "0.45.0"
+
+# Vendored pnet_datalink 0.35.0 (see vendor/pnet_datalink/README.md): macOS/BSD's raw-socket
+# backend calls libc::FD_SET on a fixed 1024-slot bitmap during channel construction, which
+# panics-and-aborts the whole process for any fd >= 1024 — reachable under this daemon's own
+# raised fd limit during real scan load. Patched to poll(), the identical fix libpnet already
+# shipped upstream for the Linux backend (PR #681) but never ported to this one. `pnet_datalink`
+# is transitive (pulled in by the `pnet` facade every caller already imports as
+# `pnet::datalink::...`), so this needs `[patch.crates-io]` rather than a plain `path =`
+# dependency the way vendor/snmp2 uses — no existing `pnet::` import anywhere changes.
+[patch.crates-io]
+pnet_datalink = { path = "vendor/pnet_datalink" }
 
 [dev-dependencies]
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }

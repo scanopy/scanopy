@@ -4,7 +4,7 @@ use strum::IntoDiscriminant;
 use uuid::Uuid;
 
 use crate::server::{
-    hosts::r#impl::base::Host,
+    hosts::r#impl::{base::Host, name_ladder::HostNameRung},
     ip_addresses::r#impl::base::IPAddress,
     shared::entities::EntityDiscriminants,
     subnets::r#impl::types::{SubnetType, SubnetTypeDiscriminants},
@@ -110,14 +110,21 @@ impl SubnetGraphBuilder {
         subnet_type: &SubnetType,
     ) -> Option<String> {
         let host_interfaces = ctx.get_ip_addresses_for_host(host.id);
-        // The "Unknown Device" seed this used to also test for is gone: `build_host_from_scan`
-        // now starts a host at `HostName::unnamed()` and every branch applies a real rung.
-        let host_has_name = !host.base.name.is_blank();
+        // The host's title, from the display ladder: a name, or an identifier such as its
+        // hostname. A host titled only by its address counts as having no name here, because
+        // every branch below either shows the address itself or suppresses a header that would
+        // repeat it.
+        let title = host
+            .resolved_name(host_interfaces.iter().copied())
+            .filter(|(_, rung)| *rung != HostNameRung::Address)
+            .map(|(value, _)| value);
+        let host_has_name = title.is_some();
+        let title = title.unwrap_or_default();
 
         // P1: container-bridge interfaces — always show "<Runtime> @", never VM header
         if let Some(runtime) = subnet_type.container_runtime_label() {
             let header_text = if host_has_name {
-                Some(format!("{runtime} @ {}", host.base.name))
+                Some(format!("{runtime} @ {title}"))
             } else {
                 // Generate a label from a non-container-bridge ip_address, if there is one
                 host_interfaces
@@ -136,19 +143,18 @@ impl SubnetGraphBuilder {
         // P2: Virtualized hosts — show the VM's own hostname
         // (VM status is indicated via colored text in the frontend)
         if ctx.get_host_is_virtualized_by(&host.id).is_some() && host_has_name {
-            return Some(host.base.name.to_string());
+            return Some(title);
         }
 
         // P3: Show host if it differs from the first service name + isn't shown via interface edges
         // and if it also isn't just the interface IP
         let host_services = ctx.get_services_for_host(host.id);
         let first_service_name_matches_host_name = match host_services.first() {
-            Some(first_service) => first_service.base.name == host.base.name.value().as_str(),
+            Some(first_service) => first_service.base.name == title,
             None => false,
         };
 
-        let host_name_is_interface_ip =
-            ip_address.base.ip_address.to_string() == host.base.name.value().as_str();
+        let host_name_is_interface_ip = ip_address.base.ip_address.to_string() == title;
 
         // Count of other ip_addresses that will actually have a node (ie services on that interface > 0)
         // so an interface edge will be created
@@ -162,7 +168,7 @@ impl SubnetGraphBuilder {
             && host_has_name
             && ip_addresses_with_node.len() < 2
         {
-            return Some(host.base.name.to_string());
+            return Some(title);
         }
 
         None

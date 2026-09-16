@@ -41,6 +41,20 @@ export interface ReloadInputs {
 	 * either hidden-id store, so nothing else here would notice them change.
 	 */
 	hiddenMetadata: string;
+	/**
+	 * The topology the run laid out, compared by identity.
+	 *
+	 * Every other input here is a filter or view setting; this is the graph itself. Leaving it out
+	 * meant a refetched bundle that landed mid-run queued a reload, the run ended, the filter
+	 * inputs matched, and the reload was suppressed as a no-op — so the new nodes were never laid
+	 * out until a page refresh. A server-side filter makes that the normal sequence, not a race:
+	 * clearing it rewrites the options immediately (starting a run) and the bundle carrying the
+	 * restored entities arrives a round trip later.
+	 *
+	 * Identity, not content: an unchanged run of the idle path already re-lays out on every new
+	 * topology object, so this only makes the in-flight path agree with it.
+	 */
+	topology: unknown;
 }
 
 /** Order-independent set equality. */
@@ -80,6 +94,7 @@ export function reloadInputsDiff(previous: ReloadInputs, next: ReloadInputs): st
 	if (!sameSet(previous.tagHidden, next.tagHidden)) changed.push('tagHidden');
 	if (!sameSet(previous.hiddenEntities, next.hiddenEntities)) changed.push('hiddenEntities');
 	if (previous.hiddenMetadata !== next.hiddenMetadata) changed.push('hiddenMetadata');
+	if (previous.topology !== next.topology) changed.push('topology');
 	return changed;
 }
 
@@ -93,6 +108,8 @@ export function snapshotReloadInputs(inputs: ReloadInputs): ReloadInputs {
 		hiddenEdgeTypes: inputs.hiddenEdgeTypes,
 		tagHidden: new Set(inputs.tagHidden),
 		hiddenEntities: new Set(inputs.hiddenEntities),
-		hiddenMetadata: inputs.hiddenMetadata
+		hiddenMetadata: inputs.hiddenMetadata,
+		// A reference on purpose: identity is the comparison, and copying would break it.
+		topology: inputs.topology
 	};
 }

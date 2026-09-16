@@ -1,0 +1,199 @@
+{
+  "version": "0.17.14-neighbours",
+  "exchanges": [
+    {
+      "method": "POST",
+      "path": "/api/v1/subnets",
+      "request_body": {
+        "cidr": "127.0.0.0/8",
+        "cidr_source": "DaemonSelfReport",
+        "created_at": "2026-09-03T17:55:43.564750186Z",
+        "description": null,
+        "first_discovery_id": null,
+        "id": "1905a4f3-30a1-4208-b770-087cf1e22ebe",
+        "last_discovery_id": null,
+        "last_seen_at": "2026-09-03T17:55:43.564750186Z",
+        "lineage_id": null,
+        "name": "127.0.0.0/8",
+        "network_id": "d558305a-dc8b-423b-88d6-3cb138d8c51d",
+        "source": {
+          "type": "Discovery"
+        },
+        "subnet_type": "Loopback",
+        "tags": [],
+        "updated_at": "2026-09-03T17:55:43.564750186Z",
+        "valid_from": "2026-09-03T17:55:43.564750186Z",
+        "valid_to": null,
+        "virtualization_service_id": null
+      },
+      "response_status": 200,
+      "response_body": {
+        "data": {
+          "cidr": "127.0.0.0/8",
+          "cidr_source": "DaemonSelfReport",
+          "created_at": "2026-09-03T17:55:33.491824Z",
+          "description": null,
+          "first_discovery_id": null,
+          "id": "76bb5e02-a0d0-45a7-b1fe-60935e1d8df2",
+          "last_discovery_id": null,
+          "last_seen_at": "2026-09-03T17:55:43.564750186Z",
+          "lineage_id": null,
+          "name": "127.0.0.0/8",
+          "network_id": "d558305a-dc8b-423b-88d6-3cb138d8c51d",
+          "source": {
+            "type": "Discovery"
+          },
+          "subnet_type": "Loopback",
+          "tags": [],
+          "updated_at": "2026-09-03T17:55:33.491824Z",
+          "valid_from": "2026-09-03T17:55:33.491824Z",
+          "valid_to": null,
+          "virtualization_service_id": null
+        },
+        "meta": {
+          "api_version": 1,
+          "server_version": "0.17.14"
+        },
+        "success": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/hosts/discovery",
+      "request_body": {
+        "host": {
+          "created_at": "2026-09-03T17:55:43.583054835Z",
+          "credential_assignments": [],
+          "description": "Pre-#701 switch reporting LLDP neighbours",
+          "first_discovery_id": null,
+          "hidden": false,
+          "hostname": "core-sw-compat",
+          "id": "1c0d4e8a-6f2b-4a17-9c3e-5b8d2a0f7e41",
+          "last_discovery_id": null,
+          "last_seen_at": "2026-09-03T17:55:43.583054835Z",
+          "lineage_id": null,
+          "name": "core-sw-compat",
+          "name_source": "ReverseDns",
+          "network_id": "d558305a-dc8b-423b-88d6-3cb138d8c51d",
+          "source": {
+            "type": "Discovery"
+          },
+          "tags": [],
+          "updated_at": "2026-09-03T17:55:43.583054835Z",
+          "valid_from": "2026-09-03T17:55:43.583054835Z",
+          "valid_to": null,
+          "virtualization_metadata": null,
+          "virtualization_service_id": null
+        },
+        "if_entries": [],
+        "interface_data_complete": {
+          "cdp": true,
+          "fdb": true,
+          "lldp": true,
+          "vlan_membership": true
+        },
+        "interfaces": [
+          {
+            "admin_status": "Up",
+            "cdp_address": null,
+            "cdp_device_id": null,
+            "cdp_platform": null,
+            "cdp_port_id": null,
+            "created_at": "2026-09-03T17:55:43.583011381Z",
+            "first_discovery_id": null,
+            "host_id": "1c0d4e8a-6f2b-4a17-9c3e-5b8d2a0f7e41",
+            "id": "2f9b7c41-08ad-4e6f-b25c-91d7a4e3c806",
+            "if_alias": null,
+            "if_descr": "GigabitEthernet0/1",
+            "if_index": 1,
+            "if_name": "GigabitEthernet0/1",
+            "if_type": 6,
+            "ip_address_id": null,
+            "last_discovery_id": null,
+            "last_seen_at": "2026-09-03T17:55:43.583011381Z",
+            "lineage_id": null,
+            "lldp_chassis_id": {
+              "subtype": "MacAddress",
+              "value": "00:1A:2B:00:11:00"
+            },
+            "lldp_mgmt_addr": "192.168.1.1",
+            "lldp_port_desc": "uplink to distribution",
+            "lldp_port_id": {
+              "subtype": "InterfaceName",
+              "value": "Gi0/24"
+            },
+            "lldp_sys_desc": "Cisco IOS Software, C2960 Software",
+            "lldp_sys_name": "dist-sw-01",
+            "neighbor": null,
+            "neighbor_seen_at": null,
+            "network_id": "d558305a-dc8b-423b-88d6-3cb138d8c51d",
+            "oper_status": "Up",
+            "speed_bps": 1000000000,
+            "updated_at": "2026-09-03T17:55:43.583011381Z",
+            "valid_from": "2026-09-03T17:55:43.583011381Z",
+            "valid_to": null
+          },
+          {
+            "admin_status": "Up",
+            "cdp_address": "192.168.1.2",
+            "cdp_device_id": "edge-rtr-01",
+            "cdp_platform": "cisco WS-C2960-24TT-L",
+            "cdp_port_id": "FastEthernet0/1",
+            "created_at": "2026-09-03T17:55:43.583013398Z",
+            "first_discovery_id": null,
+            "host_id": "1c0d4e8a-6f2b-4a17-9c3e-5b8d2a0f7e41",
+            "id": "7a3e15d9-4c60-42bb-8f19-c05e6d84a273",
+            "if_alias": null,
+            "if_descr": "GigabitEthernet0/2",
+            "if_index": 2,
+            "if_name": "GigabitEthernet0/2",
+            "if_type": 6,
+            "ip_address_id": null,
+            "last_discovery_id": null,
+            "last_seen_at": "2026-09-03T17:55:43.583013398Z",
+            "lineage_id": null,
+            "lldp_chassis_id": null,
+            "lldp_mgmt_addr": null,
+            "lldp_port_desc": null,
+            "lldp_port_id": null,
+            "lldp_sys_desc": null,
+            "lldp_sys_name": null,
+            "neighbor": null,
+            "neighbor_seen_at": null,
+            "network_id": "d558305a-dc8b-423b-88d6-3cb138d8c51d",
+            "oper_status": "Up",
+            "speed_bps": 1000000000,
+            "updated_at": "2026-09-03T17:55:43.583013398Z",
+            "valid_from": "2026-09-03T17:55:43.583013398Z",
+            "valid_to": null
+          }
+        ],
+        "interfaces_complete": true,
+        "ip_addresses": [
+          {
+            "created_at": "2026-09-03T17:55:43.582912959Z",
+            "first_discovery_id": null,
+            "host_id": "00000000-0000-0000-0000-000000000000",
+            "id": "cf3f57fa-da53-42d5-b51b-0e59047e4b6b",
+            "ip_address": "127.0.0.1",
+            "last_discovery_id": null,
+            "last_seen_at": "2026-09-03T17:55:43.582912959Z",
+            "lineage_id": null,
+            "name": "lo",
+            "network_id": "d558305a-dc8b-423b-88d6-3cb138d8c51d",
+            "position": 0,
+            "subnet_id": "76bb5e02-a0d0-45a7-b1fe-60935e1d8df2",
+            "updated_at": "2026-09-03T17:55:43.582912959Z",
+            "valid_from": "2026-09-03T17:55:43.582912959Z",
+            "valid_to": null
+          }
+        ],
+        "ports": [],
+        "services": [],
+        "subnets": []
+      },
+      "response_status": 200,
+      "response_body": {}
+    }
+  ]
+}

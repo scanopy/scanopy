@@ -17,7 +17,7 @@ use super::inline;
 pub fn device() -> SimDevice {
     SimDevice {
         name: "switch-flaky-01",
-        ip: Ipv4Addr::new(192, 168, 7, 243),
+        ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Regression {
             issue: "#668",
             defect: "malformed neighbour records — each variant drives a different discard counter and a different piece of operator advice",
@@ -39,6 +39,7 @@ pub fn device() -> SimDevice {
         tables: tables(),
         arp_handler: Handler::Normal,
         suppresses: Vec::new(),
+        rejects_getbulk: None,
     }
 }
 

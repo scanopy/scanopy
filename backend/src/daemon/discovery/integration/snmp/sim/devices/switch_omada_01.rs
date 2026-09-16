@@ -16,7 +16,7 @@ use super::inline;
 pub fn device() -> SimDevice {
     SimDevice {
         name: "switch-omada-01",
-        ip: Ipv4Addr::new(192, 168, 7, 242),
+        ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Regression {
             issue: "#614",
             defect: "16 ports at ifIndex 49153+ with no ifName and one shared chassis MAC; all 17 interfaces must persist rather than collapsing via the MAC tier",
@@ -40,6 +40,7 @@ pub fn device() -> SimDevice {
         tables: tables(),
         arp_handler: Handler::Normal,
         suppresses: Vec::new(),
+        rejects_getbulk: None,
     }
 }
 

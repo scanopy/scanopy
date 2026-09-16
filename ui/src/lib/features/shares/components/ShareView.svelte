@@ -14,7 +14,7 @@
 	import PasswordGate from './PasswordGate.svelte';
 	import ReadOnlyTopologyViewer from './ReadOnlyTopologyViewer.svelte';
 	import { AlertTriangle } from 'lucide-svelte';
-	import { toRenderableTopology } from '$lib/features/topology/enriched';
+	import { entityBundleFrom, toRenderableTopology } from '$lib/features/topology/enriched';
 	import type { TopologyView } from '$lib/features/topology/queries';
 
 	const SHARE_TOKEN_INVALID: ErrorCode = 'share_token_invalid';
@@ -36,20 +36,7 @@
 		const d = topologyData.data;
 		return toRenderableTopology(
 			topologyData.topology,
-			{
-				hosts: d.hosts,
-				services: d.services,
-				subnets: d.subnets,
-				ip_addresses: d.ip_addresses,
-				ports: d.ports,
-				bindings: d.bindings,
-				interfaces: d.interfaces,
-				dependencies: d.dependencies,
-				vlans: d.vlans,
-				entity_tags: d.tags,
-				nodes: d.nodes,
-				edges: d.edges
-			},
+			entityBundleFrom(d),
 			topologyData.share.name,
 			currentView as TopologyView
 		);

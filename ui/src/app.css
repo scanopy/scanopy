@@ -259,6 +259,14 @@
 		@apply fixed inset-0 z-50 flex items-center justify-center overscroll-contain px-3 py-4 sm:px-0 sm:py-16;
 	}
 
+	/* GenericModal `anchor="container"`: fill the nearest positioned ancestor instead of the
+	   viewport, for a modal that belongs to one region of the page rather than to the whole app
+	   (the topology view's overlays). Must stay after `.modal-page` — same specificity, so source
+	   order is what lets it win on `position` and `z-index`. */
+	.modal-page-anchored {
+		@apply absolute z-30;
+	}
+
 	.modal-container {
 		@apply w-full rounded-lg shadow-2xl;
 		border: 1px solid var(--color-border);

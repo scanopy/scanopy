@@ -220,6 +220,15 @@ mod tests {
         assert!(may_mint(&e));
     }
 
+    /// The acceptance bar for the PROFINET DCP item: a device with no IP address reaches a
+    /// `Host` at a provenance rung that permits minting one — DCP's directed identify exchange is
+    /// `Native`, which `binds_claim_to_subject()` treats the same as `Queried`/`Manual`.
+    #[test]
+    fn a_mac_identified_over_profinet_dcp_mints() {
+        let e = evidence(burned_in(), AttributeSource::ProfinetDcp);
+        assert!(may_mint(&e));
+    }
+
     /// A row written before the provenance column existed claims nothing, so it may not mint —
     /// but it still names the host it is already attached to.
     #[test]
@@ -291,6 +300,37 @@ mod tests {
                 ],
             ),
             Some(host)
+        );
+    }
+
+    /// Merge behaviour across sources, order-independent: a PROFINET DCP submission resolves onto
+    /// a host an earlier ARP submission already established (an `IPAddress` row carrying the same
+    /// MAC), and the reverse — an ARP submission resolves onto a host DCP already established (an
+    /// `Interface` row). `select_matching_host_by_mac` draws candidates from both entity types and
+    /// is blind to which discovery method produced either side, so which one ran first cannot
+    /// change the outcome.
+    #[test]
+    fn a_dcp_submission_and_an_arp_submission_resolve_to_one_host_regardless_of_order() {
+        let host = Uuid::new_v4();
+
+        // DCP arrives after ARP already put the MAC on an `IPAddress` row.
+        assert_eq!(
+            select_matching_host_by_mac(
+                &[evidence(burned_in(), AttributeSource::ProfinetDcp)],
+                &[(host, burned_in())], // stands in for an existing ip_addresses row
+            ),
+            Some(host),
+            "a DCP submission must resolve onto a host ARP already established"
+        );
+
+        // ARP arrives after DCP already put the MAC on an `Interface` row.
+        assert_eq!(
+            select_matching_host_by_mac(
+                &[evidence(burned_in(), AttributeSource::ArpReply)],
+                &[(host, burned_in())], // stands in for an existing interfaces row
+            ),
+            Some(host),
+            "an ARP submission must resolve onto a host DCP already established"
         );
     }
 

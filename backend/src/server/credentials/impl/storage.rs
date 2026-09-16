@@ -29,6 +29,7 @@ pub struct CredentialCsvRow {
 }
 
 impl Storable for Credential {
+    const HAS_SCD2: bool = false;
     type BaseData = CredentialBase;
 
     fn table_name() -> &'static str {

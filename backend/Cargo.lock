@@ -5292,13 +5292,12 @@ dependencies = [
 [[package]]
 name = "pnet_datalink"
 version = "0.35.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e79e70ec0be163102a332e1d2d5586d362ad76b01cec86f830241f2b6452a7b7"
 dependencies = [
  "ipnetwork",
  "libc",
  "pnet_base",
  "pnet_sys",
+ "tracing",
  "winapi",
 ]
 
@@ -6387,7 +6386,7 @@ checksum = "ece8e78b2f38ec51c51f5d475df0a7187ba5111b2a28bdc761ee05b075d40a71"
 
 [[package]]
 name = "scanopy-server"
-version = "0.17.14"
+version = "0.17.16"
 dependencies = [
  "anstyle-query",
  "anyhow",
@@ -6481,6 +6480,8 @@ dependencies = [
  "postgres-protocol",
  "posthog-rs",
  "procfs",
+ "prost",
+ "prost-types",
  "psl",
  "rand 0.9.3",
  "rand_core 0.9.3",
@@ -6515,7 +6516,10 @@ dependencies = [
  "tokio",
  "tokio-cron-scheduler",
  "tokio-rustls 0.26.4",
+ "tokio-stream",
  "tokio-util",
+ "tonic",
+ "tonic-prost",
  "top-english-words",
  "tower 0.4.13",
  "tower-http 0.5.2",
@@ -7921,11 +7925,13 @@ dependencies = [
  "socket2 0.6.1",
  "sync_wrapper 1.0.2",
  "tokio",
+ "tokio-rustls 0.26.4",
  "tokio-stream",
  "tower 0.5.2",
  "tower-layer",
  "tower-service",
  "tracing",
+ "webpki-roots 1.0.4",
 ]
 
 [[package]]

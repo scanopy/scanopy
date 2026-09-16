@@ -16,6 +16,22 @@
 //! an [`Attributed`] like any of them. What remains here is the part that is genuinely about names:
 //! the typed `Ip` payload, and the source-specific constructors that keep a value and its rung from
 //! being paired wrongly.
+//!
+//! # What goes in `name`
+//!
+//! A host's title comes from two kinds of value, and each kind has one home:
+//!
+//! - **Identifiers** are facts about the host with uses beyond naming it: its hostname, SNMP
+//!   sysName, chassis ID and addresses. Each has its own column with its own source, and none is
+//!   ever copied into `name`.
+//! - **Names** exist only to name the host: a person's override (`Manual`), a name assigned in a
+//!   controller (`Authored`), an mDNS instance label (`DnsSdInstanceName`), a guess from the best
+//!   detected service (`ServiceMatch`), and a placeholder we cannot attribute (`Unspecified`). They
+//!   live in `name`, where source rank settles which one is kept.
+//!
+//! [`Host::name_ladder`](super::base::Host::name_ladder) is the only place the two kinds are
+//! ordered against each other: a vouched-for name, then the identifiers, then a guessed name, then
+//! the address.
 
 use std::borrow::Cow;
 use std::net::IpAddr;
@@ -96,25 +112,15 @@ pub trait HostNameSources {
     /// The absence of a name. Not a rung: an unnamed host is a host whose name we have no source
     /// for, which is exactly what `Unspecified` means.
     fn unnamed() -> Self;
-    /// A name from a daemon predating provenance: real, but with no source we can name.
+    /// A name with no source we can name: from a daemon predating provenance, or a placeholder
+    /// such as a daemon's provisioning name. Ranks as a guess, so it yields to any identifier.
     fn unattributed(name: String) -> Self;
-    /// The host's own address, standing in for a name it does not have.
-    fn from_ip(ip: IpAddr) -> Self;
-    /// Reverse DNS: a known speaker that is not the subject.
-    fn from_hostname(hostname: String) -> Self;
-    /// A hostname a controller observed for a device it manages — a DHCP client's advertised
-    /// name, typically. The same rung as reverse DNS, and for the same reason: somebody else
-    /// telling us about the subject. Distinct from [`Self::from_controller`], which is a name a
-    /// person deliberately assigned.
-    fn from_controller_hostname(hostname: String, probe: ClientProbe) -> Self;
-    /// Named after the best non-generic service detected on it.
+    /// Named after the best non-generic service detected on it. A guess.
     fn from_service(service: String) -> Self;
     /// An mDNS instance label, typed by a person during device setup.
     fn from_dns_sd(label: String) -> Self;
     /// A name a person assigned in a controller, read back over that controller's API.
     fn from_controller(name: String, probe: ClientProbe) -> Self;
-    /// `sysName`, read from the device itself.
-    fn from_sys_name(name: String) -> Self;
     /// A name a person typed into Scanopy. Only the server can assert this.
     fn manual(name: String) -> Self;
 }
@@ -131,18 +137,6 @@ impl HostNameSources for HostName {
         Self::new(HostNameValue::Text(name), AttributeSource::Unspecified)
     }
 
-    fn from_ip(ip: IpAddr) -> Self {
-        Self::new(HostNameValue::Ip(ip), AttributeSource::OwnAddress)
-    }
-
-    fn from_hostname(hostname: String) -> Self {
-        Self::new(HostNameValue::Text(hostname), AttributeSource::ReverseDns)
-    }
-
-    fn from_controller_hostname(hostname: String, probe: ClientProbe) -> Self {
-        Self::new(HostNameValue::Text(hostname), AttributeSource::Probe(probe))
-    }
-
     fn from_service(service: String) -> Self {
         Self::new(HostNameValue::Text(service), AttributeSource::ServiceMatch)
     }
@@ -156,13 +150,6 @@ impl HostNameSources for HostName {
 
     fn from_controller(name: String, probe: ClientProbe) -> Self {
         Self::new(HostNameValue::Text(name), AttributeSource::Authored(probe))
-    }
-
-    fn from_sys_name(name: String) -> Self {
-        Self::new(
-            HostNameValue::Text(name),
-            AttributeSource::Probe(ClientProbe::Snmp),
-        )
     }
 
     fn manual(name: String) -> Self {
@@ -184,11 +171,39 @@ pub fn host_name_from_parts(value: String, source: AttributeSource) -> HostName 
     }
     if source == AttributeSource::OwnAddress {
         return match value.parse::<IpAddr>() {
-            Ok(ip) => HostName::from_ip(ip),
+            Ok(ip) => HostName::new(HostNameValue::Ip(ip), AttributeSource::OwnAddress),
             Err(_) => HostName::new(HostNameValue::Text(value), AttributeSource::Unspecified),
         };
     }
     HostName::new(HostNameValue::Text(value), source)
+}
+
+/// Whether a name carrying this source is really an identifier copied into `name`.
+///
+/// The placement rule in the module doc keeps identifiers in their own columns, and nothing on
+/// this server writes these copies any more. Daemons up to v0.17.14 still send them: the hostname
+/// as `ReverseDns`, a controller's DHCP hostname as `Probe(..)`, and the address as `OwnAddress`.
+/// Exhaustive, so a new source cannot be added without answering whether it can name a host.
+pub fn is_identifier_copy(source: AttributeSource) -> bool {
+    use AttributeSource as S;
+    match source {
+        // Where hostnames and addresses come from.
+        S::ReverseDns | S::OwnAddress | S::Probe(_) | S::DnsSdHostname | S::DaemonSelfReport => {
+            true
+        }
+        // Names, including a PROFINET station name, and sources no writer puts on a name.
+        S::Unspecified
+        | S::ServiceMatch
+        | S::DnsSdInstanceName
+        | S::Authored(_)
+        | S::ProfinetDcp
+        | S::Manual
+        | S::LldpNeighbourAddress
+        | S::CipVendorId
+        | S::LldpChassisId
+        | S::ForwardingTable
+        | S::ArpReply => false,
+    }
 }
 
 /// The flattened read path for `HostBase.name`.
@@ -262,43 +277,48 @@ mod tests {
     /// ceiling at the floor would strip the provenance off every inbound name.
     #[test]
     fn clamping_leaves_a_rung_below_the_ceiling_alone() {
-        let untouched = HostName::from_hostname("switch.lan".to_string())
+        let untouched = HostName::from_service("SSH".to_string())
             .clamped_to(AttributeSource::Authored(ClientProbe::UnifiController));
-        assert_eq!(untouched.source(), AttributeSource::ReverseDns);
+        assert_eq!(untouched.source(), AttributeSource::ServiceMatch);
     }
 
-    /// The rungs a name can occupy, in the order the naming ladder used to hard-code. Asserted as
-    /// an ordering rather than per-rung values: what matters is that an operator's deliberate name
-    /// still outranks anything a scan derives, which is the property the shipped ladder had.
+    /// The names a host can carry, in the order their sources rank. Asserted as an ordering rather
+    /// than per-rung values: what matters is that an operator's deliberate name still outranks
+    /// everything else, and that a guess from a service yields to any name a person chose.
     #[test]
     fn the_naming_ladder_survives_the_generalisation() {
-        let ip = HostName::from_ip("192.168.1.20".parse().unwrap());
         let service = HostName::from_service("SSH".to_string());
-        let reverse_dns = HostName::from_hostname("nas.lan".to_string());
-        let sys_name = HostName::from_sys_name("core-sw-1".to_string());
         let dns_sd = HostName::from_dns_sd("Living Room TV".to_string());
         let controller =
             HostName::from_controller("Core Switch".to_string(), ClientProbe::UnifiController);
         let manual = HostName::manual("Rack 3 Top".to_string());
 
-        // An address and a detected service are both derivations, and neither beats a real name.
-        assert_eq!(ip.rank(), service.rank());
-        assert!(ip.rank() < reverse_dns.rank());
-        // Reverse DNS and `sysName` used to share one rung; they separate correctly here, because
-        // we asked the device for one of them and a third party for the other.
-        assert!(reverse_dns.rank() < sys_name.rank());
-        // Both of these are names a person chose, so both outrank everything a machine emitted.
-        assert!(sys_name.rank() < dns_sd.rank());
+        // Both of these are names a person chose, so both outrank a guess.
+        assert!(service.rank() < dns_sd.rank());
         assert!(dns_sd.rank() < controller.rank());
         assert!(controller.rank() < manual.rank());
+    }
+
+    /// Every constructor produces a name, never a copied identifier. Ingest drops the latter, so a
+    /// constructor that produced one would have its own names thrown away.
+    #[test]
+    fn no_name_constructor_produces_an_identifier_copy() {
+        for name in [
+            HostName::unnamed(),
+            HostName::unattributed("office-daemon".to_string()),
+            HostName::from_service("SSH".to_string()),
+            HostName::from_dns_sd("Living Room TV".to_string()),
+            HostName::from_controller("Lobby AP".to_string(), ClientProbe::UnifiController),
+            HostName::manual("Rack 3 Top".to_string()),
+        ] {
+            assert!(!is_identifier_copy(name.source()), "{name:?}");
+        }
     }
 
     /// An unattributable name is displaced by anything that knows where it came from, and displaces
     /// nothing itself.
     #[test]
     fn an_unattributed_name_yields_to_anything_attributed() {
-        assert!(
-            unattributed("nas.lan").rank() < HostName::from_ip("10.0.0.2".parse().unwrap()).rank()
-        );
+        assert!(unattributed("nas.lan").rank() < HostName::from_service("SSH".to_string()).rank());
     }
 }

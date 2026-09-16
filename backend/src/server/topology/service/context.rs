@@ -5,7 +5,10 @@ use crate::server::{
     bindings::r#impl::base::Binding,
     dependencies::r#impl::base::Dependency,
     hosts::r#impl::base::Host,
-    interfaces::r#impl::base::Interface,
+    interface_neighbors::r#impl::base::{
+        InterfaceNeighborCandidate, InterfaceNeighborRow, Neighbor,
+    },
+    interfaces::r#impl::base::{Interface, InterfaceLinkState},
     ip_addresses::r#impl::base::IPAddress,
     ports::r#impl::base::Port,
     services::r#impl::base::Service,
@@ -33,6 +36,16 @@ pub struct TopologyContext<'a> {
     pub interfaces: &'a [Interface],
     pub entity_tags: &'a [Tag],
     pub vlans: &'a [Vlan],
+    /// The merged neighbour read-model (GH #701): every resolved adjacency in the network,
+    /// `live_or_as_of`-pinned the same way `interfaces` is. Defaults to `&[]` via [`Self::new`];
+    /// production callers attach the real set via [`Self::with_neighbours`]. A separate builder
+    /// method rather than a 13th positional constructor argument, so the many test call sites that
+    /// don't exercise neighbour behaviour don't all need updating.
+    pub neighbours: &'a [InterfaceNeighborRow],
+    /// Raw candidate rows, for the handful of callers that need per-candidate evidence (e.g. the
+    /// LLDP-vs-CDP protocol label on a `NeighborLink` edge) rather than the resolved outcome.
+    /// Defaults to `&[]`; attach via [`Self::with_candidates`].
+    pub candidates: &'a [InterfaceNeighborCandidate],
     pub options: &'a TopologyOptions,
     /// View this context is building — drives grouping rule selection.
     pub view: TopologyView,
@@ -65,9 +78,33 @@ impl<'a> TopologyContext<'a> {
             interfaces,
             entity_tags,
             vlans,
+            neighbours: &[],
+            candidates: &[],
             options,
             view,
         }
+    }
+
+    pub fn with_neighbours(mut self, neighbours: &'a [InterfaceNeighborRow]) -> Self {
+        self.neighbours = neighbours;
+        self
+    }
+
+    pub fn with_candidates(mut self, candidates: &'a [InterfaceNeighborCandidate]) -> Self {
+        self.candidates = candidates;
+        self
+    }
+
+    /// Whether any of `interface_id`'s current candidates carry LLDP evidence. Approximates "this
+    /// specific adjacency's own protocol" — the true per-row answer would need a protocol column
+    /// on the resolved tables, which is a schema decision outside this pass's scope — but is exact
+    /// for the common case of one candidate per port, and strictly better than the old
+    /// interface-level `has_lldp_data()` it replaces.
+    pub fn interface_has_lldp_evidence(&self, interface_id: Uuid) -> bool {
+        self.candidates
+            .iter()
+            .filter(|c| c.base.interface_id == interface_id)
+            .any(|c| c.base.evidence.has_lldp_data())
     }
 
     // ============================================================================
@@ -185,23 +222,50 @@ impl<'a> TopologyContext<'a> {
             .collect()
     }
 
-    /// Get all interfaces that have a resolved neighbor (full resolution only)
-    pub fn get_interfaces_with_neighbor(&self) -> Vec<&'a Interface> {
-        use crate::server::interfaces::r#impl::base::Neighbor;
-        self.interfaces
+    /// Every resolved full adjacency (specific remote port known) — one row per
+    /// `(interface, neighbour interface)` pair, so a port may appear more than once here now
+    /// (GH #701: a port can anchor several links).
+    pub fn get_interfaces_with_neighbor(&self) -> Vec<&'a InterfaceNeighborRow> {
+        self.neighbours
             .iter()
-            .filter(|e| matches!(e.base.neighbor, Some(Neighbor::Interface(_))))
+            .filter(|n| matches!(n.neighbor, Neighbor::Interface(_)))
             .collect()
     }
 
     /// Interfaces whose LLDP/CDP neighbour resolved to a host but not to a specific port.
     /// The adjacency is known, the remote port is not — see `EdgeType::NeighborLink`.
-    pub fn get_interfaces_with_host_neighbor(&self) -> Vec<&'a Interface> {
-        use crate::server::interfaces::r#impl::base::Neighbor;
-        self.interfaces
+    pub fn get_interfaces_with_host_neighbor(&self) -> Vec<&'a InterfaceNeighborRow> {
+        self.neighbours
             .iter()
-            .filter(|e| matches!(e.base.neighbor, Some(Neighbor::Host(_))))
+            .filter(|n| matches!(n.neighbor, Neighbor::Host(_)))
             .collect()
+    }
+
+    /// Whether `interface_id` has at least one live row of its own in either resolved-neighbour
+    /// table — the successor to reading `Interface.neighbor.is_some()` directly.
+    ///
+    /// The **outbound direction only**. Almost every caller wants
+    /// [`Self::interface_link_state`] instead: a link is recorded on one side, so this answers
+    /// `false` for the far end of most links.
+    pub fn interface_has_neighbor(&self, interface_id: Uuid) -> bool {
+        self.neighbours
+            .iter()
+            .any(|n| n.interface_id == interface_id)
+    }
+
+    /// Whether `interface_id` is linked, judged in **both** directions.
+    ///
+    /// Delegates to [`InterfaceLinkState::classify`], so a port is classified the same way here as
+    /// it is by the server-side metadata filter — the graph cannot drop a port the filter kept.
+    /// Judging the outbound direction alone is the mistake that drew 11 edges where there were
+    /// ~720; see `FilterValueContext`.
+    pub fn interface_link_state(&self, interface_id: Uuid) -> InterfaceLinkState {
+        InterfaceLinkState::classify(
+            self.interface_has_neighbor(interface_id),
+            self.neighbours
+                .iter()
+                .any(|n| n.neighbor.interface_id() == Some(interface_id)),
+        )
     }
 
     // ============================================================================

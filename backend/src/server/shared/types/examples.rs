@@ -122,7 +122,12 @@ pub fn host() -> Host {
         first_discovery_id: None,
         base: HostBase {
             name: HostName::manual("web-server-01".to_string()),
-            hostname: Some("web-server-01.local".to_string()),
+            hostname: Some(crate::server::shared::attribution::Attributed::new(
+                crate::server::hosts::r#impl::attributes::HostHostnameValue(
+                    "web-server-01.local".to_string(),
+                ),
+                crate::server::shared::attribution::AttributeSource::Manual,
+            )),
             network_id: ids::NETWORK,
             description: Some("Primary web server".to_string()),
             source: EntitySource::Manual,
@@ -443,11 +448,14 @@ pub fn interface() -> Interface {
         last_seen_at: example_timestamp(),
         last_discovery_id: None,
         first_discovery_id: None,
+        // Matches the ladder `Interface::display_name` would compute for the `if_alias` below —
+        // an example should show what a real response actually looks like.
+        display_name: Some("Uplink to Core Switch".to_string()),
         base: InterfaceBase {
             host_id: ids::HOST,
             network_id: ids::NETWORK,
             if_index: Some(1),
-            if_descr: "GigabitEthernet0/1".to_string(),
+            if_descr: Some("GigabitEthernet0/1".to_string()),
             if_name: Some("Gi0/1".to_string()),
             if_alias: Some("Uplink to Core Switch".to_string()),
             if_type: Some(6),               // ethernet
@@ -459,18 +467,8 @@ pub fn interface() -> Interface {
                 AttributeSource::ArpReply,
             )),
             ip_address_id: Some(ids::INTERFACE),
-            neighbor: None,
-            neighbor_seen_at: None,
-            lldp_chassis_id: None,
-            lldp_port_id: None,
-            lldp_sys_name: None,
-            lldp_port_desc: None,
-            lldp_mgmt_addr: None,
-            lldp_sys_desc: None,
-            cdp_device_id: None,
-            cdp_port_id: None,
-            cdp_platform: None,
-            cdp_address: None,
+            ip_configured: true,
+            neighbor_candidates: Vec::new(),
             fdb_macs: None,
             native_vlan_id: None,
             vlan_ids: None,

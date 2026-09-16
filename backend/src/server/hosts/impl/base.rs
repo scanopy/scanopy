@@ -1,13 +1,13 @@
 use crate::server::credentials::r#impl::types::CredentialAssignment;
 use crate::server::hosts::r#impl::attributes::{
-    HostChassisIdAttributed, HostFirmwareRevisionAttributed, HostManagementUrlAttributed,
-    HostManufacturerAttributed, HostModelAttributed, HostSerialNumberAttributed,
-    HostSoftwareRevisionAttributed, HostSysContactAttributed, HostSysDescrAttributed,
-    HostSysLocationAttributed, HostSysNameAttributed, HostSysObjectIdAttributed,
+    HostChassisIdAttributed, HostFirmwareRevisionAttributed, HostHostnameAttributed,
+    HostManagementUrlAttributed, HostManufacturerAttributed, HostModelAttributed,
+    HostSerialNumberAttributed, HostSoftwareRevisionAttributed, HostSysContactAttributed,
+    HostSysDescrAttributed, HostSysLocationAttributed, HostSysNameAttributed,
+    HostSysObjectIdAttributed,
 };
 use crate::server::hosts::r#impl::name::{HostName, HostNameSources};
 use crate::server::hosts::r#impl::virtualization::HostVirtualization;
-use crate::server::ip_addresses::r#impl::base::IPAddress;
 use crate::server::shared::attribution::{self, AttributeSource, Attributed};
 use crate::server::shared::entities::ChangeTriggersTopologyStaleness;
 use crate::server::shared::types::api::deserialize_empty_string_as_none;
@@ -47,9 +47,14 @@ pub struct HostBase {
     pub name: HostName,
     /// The network this entity belongs to.
     pub network_id: Uuid,
-    /// Hostname as resolved or reported by the host.
-    #[schema(required)]
-    pub hostname: Option<String>,
+    /// The host's hostname, with the source that produced it.
+    ///
+    /// An identifier rather than a name, so it is never copied into `name`: see the placement rule
+    /// in [`super::name`]. Two flat wire keys, `hostname` and `hostname_source`, so a daemon that
+    /// sends only `hostname` still deserialises, at `Unspecified`.
+    #[serde(flatten, deserialize_with = "attribution::optional")]
+    #[schema(value_type = HostHostnameAttributed)]
+    pub hostname: Option<HostHostnameAttributed>,
     /// Free-text notes about the host.
     #[validate(length(min = 0, max = 500))]
     #[serde(deserialize_with = "deserialize_empty_string_as_none")]
@@ -174,116 +179,21 @@ impl Default for HostBase {
     }
 }
 
-impl Host {
-    /// What to call this host: its name, or the best identifying evidence we hold when it has
-    /// none.
-    ///
-    /// `None` rather than `Some("")` when nothing identifies it. A `HostName::Unnamed` formats as
-    /// the empty string, so returning it would put a name on the host that every consumer's `??`
-    /// fallback then reads as present — a row or a node titled with nothing at all. Absence has to
-    /// be expressible for those fallbacks to fire.
-    ///
-    /// The rungs below `name` are what a device that never got one still carries: a far end known
-    /// only through LLDP has a chassis id, and a controller-imported device has a sysName. They are
-    /// deliberately *not* rungs of [`HostName`] — that ladder decides what is stored in `name`, and
-    /// copying a chassis id into it would duplicate a column this reads from and then have to be
-    /// displaced when a real name arrives.
-    ///
-    /// On `Host` rather than on the topology context that first needed it, because the host list
-    /// and the same host drawn in topology must not disagree about what it is called. One ladder,
-    /// every surface.
-    pub fn display_name<'a>(
-        &self,
-        addresses: impl IntoIterator<Item = &'a IPAddress>,
-    ) -> Option<String> {
-        fn non_blank(value: &str) -> Option<String> {
-            let trimmed = value.trim();
-            (!trimmed.is_empty()).then(|| trimmed.to_string())
-        }
-
-        if !self.base.name.is_blank() {
-            return Some(self.base.name.to_string());
-        }
-        self.base
-            .hostname
-            .as_deref()
-            .and_then(non_blank)
-            .or_else(|| {
-                attribution::text_of(&self.base.sys_name)
-                    .as_deref()
-                    .and_then(non_blank)
-            })
-            .or_else(|| {
-                attribution::text_of(&self.base.chassis_id)
-                    .as_deref()
-                    .and_then(non_blank)
-            })
-            .or_else(|| {
-                addresses
-                    .into_iter()
-                    .next()
-                    .map(|ip| ip.base.ip_address.to_string())
-            })
-    }
-}
-
-/// SQL mirror of [`Host::display_name`], for ordering and grouping a host list by the title it
-/// actually renders.
+/// The primary-address subquery the last rung of
+/// [`display_name_sql`](crate::server::hosts::r#impl::name_ladder::display_name_sql) resolves
+/// through, joined against whichever alias holds the `hosts` row.
 ///
-/// A column labelled Name that sorts on `hosts.name` while showing the ladder's result puts every
-/// nameless-but-titled host under the empty string — visibly ordering on something other than what
-/// it draws. Sorting has to walk the same rungs, and the database is the only place that can do it
-/// across a page it hasn't sent yet.
-///
-/// One macro rather than a literal per call site: this is the ladder written a second time, in a
-/// second language, and the two can only be kept honest by there being exactly one of the second.
-/// **Same rungs, same order as [`Host::display_name`] — change both or neither.**
-///
-/// Takes the alias of the `hosts` row and the alias of its primary-address join; the caller must
-/// put [`host_primary_address_join`] for the same host alias in scope.
-///
-/// **All five rungs, always.** A four-rung variant that skipped the address join was tempting for
-/// secondary sorts, but grouping is what makes it wrong: a host titled by its address would group
-/// under the empty string alongside a host with no title at all, the two sets of rows would
-/// interleave, and the client — which renders group headers from the full ladder — would draw two
-/// alternating headers over them.
-///
-/// `NULLIF(…, '')` on every text rung because a host's `name` is stored as the empty string when
-/// [`HostName::Unnamed`], not as NULL — `COALESCE` alone would stop at the first rung every time.
-macro_rules! host_display_name_sql {
-    ($hosts:literal, $primary_ip:literal) => {
-        concat!(
-            "COALESCE(NULLIF(",
-            $hosts,
-            ".name, ''), NULLIF(",
-            $hosts,
-            ".hostname, ''), ",
-            "NULLIF(",
-            $hosts,
-            ".sys_name, ''), NULLIF(",
-            $hosts,
-            ".chassis_id, ''), ",
-            "host(",
-            $primary_ip,
-            ".ip_address), '')"
-        )
-    };
-}
-pub(crate) use host_display_name_sql;
-
-/// The primary-address subquery [`host_display_name_sql`]'s last rung resolves through, joined
-/// against whichever alias holds the `hosts` row.
-///
-/// `position ASC` is what makes the SQL faithful: it is the order
-/// `IPAddressService::get_for_hosts` loads addresses in, so "first address" means the same address
-/// here as it does when [`Host::display_name`] walks a loaded host's own list.
+/// `last_seen_at DESC, position ASC` over live rows is what makes the SQL faithful: it is the
+/// choice [`Host::name_ladder`] makes for its address rung, so a host whose lease moved is sorted
+/// under the address it is titled by, not the stale one it still holds.
 macro_rules! host_primary_address_join {
     ($hosts:literal) => {
         concat!(
             "LEFT JOIN (\
                 SELECT DISTINCT ON (host_id) host_id, ip_address \
                 FROM ip_addresses \
-                ORDER BY host_id, position ASC\
+                WHERE valid_to IS NULL \
+                ORDER BY host_id, last_seen_at DESC, position ASC\
             ) AS primary_interface ON ",
             $hosts,
             ".id = primary_interface.host_id"
@@ -304,9 +214,9 @@ impl HostBase {
     /// Assign the host's name if `candidate` is at least as authoritative as what is stored.
     /// Returns whether anything changed.
     ///
-    /// **This is the only place the name and its source are written.** The ordering lives entirely
-    /// in [`AttributeSource::rank`], so there is no per-call-site precedence to keep in sync — a
-    /// caller only has to say where its name came from.
+    /// **This and [`Self::clear_name`] are the only places the name and its source are written.**
+    /// The ordering lives entirely in [`AttributeSource::rank`], so there is no per-call-site
+    /// precedence to keep in sync — a caller only has to say where its name came from.
     ///
     /// Equal rank from the same source wins, which is what makes a re-sync idempotent in the useful
     /// direction: a controller rename propagates on the next discovery, while a lower rung (reverse
@@ -314,6 +224,22 @@ impl HostBase {
     /// [`AttributeSource::Manual`].
     pub fn apply_name(&mut self, candidate: HostName) -> bool {
         self.name.apply_in_place(candidate)
+    }
+
+    /// Drop the stored name. Returns whether anything changed.
+    ///
+    /// A person clearing the name field. The host then displays the next rung of
+    /// [`Host::name_ladder`], and the next discovery can name it again, because a blank incumbent
+    /// never blocks [`Self::apply_name`].
+    ///
+    /// Separate from `apply_name` because that applier reads a blank candidate as a scan that
+    /// learned no name, and keeps what is stored. Here the blank is the instruction.
+    pub fn clear_name(&mut self) -> bool {
+        if self.name.is_blank() {
+            return false;
+        }
+        self.name = HostName::unnamed();
+        true
     }
 
     /// Merge every discovered attribute from `incoming`, returning whether anything changed.
@@ -344,11 +270,8 @@ impl HostBase {
             hidden: _,
             tags: _,
             credential_assignments: _,
-            // Filled earlier in `upsert_host`, before the naming ladder reads it: a hostname that
-            // arrived on this scan has to be present when `apply_name(HostName::from_hostname(..))`
-            // runs, or the host goes one whole scan without the name its hostname would give it.
-            hostname: _,
             // Discovered attributes.
+            hostname,
             sys_descr,
             sys_object_id,
             sys_location,
@@ -378,6 +301,7 @@ impl HostBase {
             };
         }
         merge!(
+            hostname,
             sys_descr,
             sys_object_id,
             sys_location,
@@ -410,6 +334,21 @@ impl HostBase {
             return false;
         }
         self.name = self.name.clone().clamped_to(AttributeSource::Unspecified);
+        true
+    }
+
+    /// Drop a name that is really an identifier copied into `name`. Returns whether anything
+    /// changed.
+    ///
+    /// Daemons up to v0.17.14 sent the hostname again as the name, and the address as an
+    /// `OwnAddress` name. The same payload carries each in its own column, which is where the
+    /// placement rule in [`super::name`] keeps identifiers, so the copy is dropped rather than
+    /// stored twice.
+    pub fn drop_identifier_copy(&mut self) -> bool {
+        if !crate::server::hosts::r#impl::name::is_identifier_copy(self.name.source()) {
+            return false;
+        }
+        self.name = HostName::unnamed();
         true
     }
 }
@@ -506,7 +445,9 @@ impl Host {
 impl ChangeTriggersTopologyStaleness<Host> for Host {
     fn triggers_staleness(&self, other: Option<Host>) -> bool {
         if let Some(other_host) = other {
-            self.base.hostname != other_host.base.hostname
+            // The value only: a better source for the same hostname redraws nothing.
+            attribution::text_of(&self.base.hostname)
+                != attribution::text_of(&other_host.base.hostname)
                 || self.base.virtualization_metadata != other_host.base.virtualization_metadata
                 || self.base.virtualization_service_id != other_host.base.virtualization_service_id
                 || self.base.hidden != other_host.base.hidden
@@ -520,8 +461,9 @@ impl ChangeTriggersTopologyStaleness<Host> for Host {
 mod tests {
     use super::*;
     use crate::server::hosts::r#impl::attributes::{
-        HostChassisIdValue, HostModelValue, HostSysNameValue,
+        HostChassisIdValue, HostHostnameValue, HostModelValue, HostSysNameValue,
     };
+    use crate::server::hosts::r#impl::name_ladder::HostNameRung;
     use crate::server::services::r#impl::patterns::ClientProbe;
 
     fn controller_name(name: &str) -> HostName {
@@ -549,43 +491,63 @@ mod tests {
     /// Written as one walk down rather than a case per rung: what matters is the *ordering* between
     /// them — that a sysName never displaces a hostname, and an address never displaces either —
     /// and an assertion per rung in isolation would pass even if the `or_else` chain were shuffled.
+    ///
+    /// Each step also asserts the rung. The editor tells a person which piece of evidence named the
+    /// host, so a rung that disagreed with the value would explain the title wrongly.
     #[test]
     fn display_name_stops_at_the_highest_rung_the_host_carries() {
         let addresses = [crate::server::shared::types::examples::ip_address()];
         let mut host = nameless_host();
+        let titled = |value: &str, rung| Some((value.to_string(), rung));
 
         // Nothing at all: absence, not `Some("")`. This is what every caller's fallback hangs on —
         // a blank title would be read as a name the host actually has.
         assert_eq!(host.display_name(&addresses[..0]), None);
+        assert_eq!(host.resolved_name(&addresses[..0]), None);
 
         // The bottom rung, reached only because the four above are empty.
         assert_eq!(
-            host.display_name(&addresses),
-            Some("192.168.1.100".to_string())
+            host.resolved_name(&addresses),
+            titled("192.168.1.100", HostNameRung::Address)
         );
 
         host.base.chassis_id = Some(probed(HostChassisIdValue("00:1a:2b:3c:4d:5e".to_string())));
         assert_eq!(
-            host.display_name(&addresses),
-            Some("00:1a:2b:3c:4d:5e".to_string())
+            host.resolved_name(&addresses),
+            titled("00:1a:2b:3c:4d:5e", HostNameRung::ChassisId)
         );
 
         host.base.sys_name = Some(probed(HostSysNameValue("core-sw-01".to_string())));
         assert_eq!(
-            host.display_name(&addresses),
-            Some("core-sw-01".to_string())
+            host.resolved_name(&addresses),
+            titled("core-sw-01", HostNameRung::SysName)
         );
 
-        host.base.hostname = Some("switch.lan".to_string());
+        host.base.hostname = Some(Attributed::new(
+            HostHostnameValue("switch.lan".to_string()),
+            AttributeSource::ReverseDns,
+        ));
         assert_eq!(
-            host.display_name(&addresses),
-            Some("switch.lan".to_string())
+            host.resolved_name(&addresses),
+            titled("switch.lan", HostNameRung::Hostname)
         );
 
         host.base.name = HostName::manual("Core Switch".to_string());
         assert_eq!(
+            host.resolved_name(&addresses),
+            titled("Core Switch", HostNameRung::Name)
+        );
+        assert_eq!(
             host.display_name(&addresses),
             Some("Core Switch".to_string())
+        );
+
+        // A person clearing the name hands the title back to the evidence below it.
+        assert!(host.base.clear_name());
+        assert_eq!(host.base.name.source(), AttributeSource::Unspecified);
+        assert_eq!(
+            host.resolved_name(&addresses),
+            titled("switch.lan", HostNameRung::Hostname)
         );
     }
 
@@ -598,13 +560,16 @@ mod tests {
     fn display_name_treats_a_blank_rung_as_absent() {
         let addresses = [crate::server::shared::types::examples::ip_address()];
         let mut host = nameless_host();
-        host.base.hostname = Some("   ".to_string());
+        host.base.hostname = Some(Attributed::new(
+            HostHostnameValue("   ".to_string()),
+            AttributeSource::ReverseDns,
+        ));
         host.base.sys_name = Some(probed(HostSysNameValue(String::new())));
         host.base.chassis_id = Some(probed(HostChassisIdValue("  ".to_string())));
 
         assert_eq!(
-            host.display_name(&addresses),
-            Some("192.168.1.100".to_string())
+            host.resolved_name(&addresses),
+            Some(("192.168.1.100".to_string(), HostNameRung::Address))
         );
     }
 
@@ -624,7 +589,7 @@ mod tests {
     #[test]
     fn the_same_name_from_a_higher_rung_is_recorded() {
         let mut base = HostBase::default();
-        base.apply_name(HostName::from_hostname("switch.lan".to_string()));
+        base.apply_name(HostName::from_service("switch.lan".to_string()));
         assert!(base.apply_name(controller_name("switch.lan")));
         assert_eq!(
             base.name.source(),

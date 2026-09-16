@@ -21,8 +21,8 @@ use crate::server::{
     credentials::r#impl::types::CredentialAssignment,
     hosts::r#impl::{
         attributes::{
-            HostChassisIdValue, HostFirmwareRevisionValue, HostManagementUrlValue,
-            HostManufacturerValue, HostModelValue, HostSerialNumberValue,
+            HostChassisIdValue, HostFirmwareRevisionValue, HostHostnameValue,
+            HostManagementUrlValue, HostManufacturerValue, HostModelValue, HostSerialNumberValue,
             HostSoftwareRevisionValue, HostSysContactValue, HostSysDescrValue,
             HostSysLocationValue, HostSysNameValue, HostSysObjectIdValue,
         },
@@ -33,6 +33,7 @@ use crate::server::{
     interfaces::r#impl::base::{
         IfAdminStatus, IfOperStatus, Interface, InterfaceBase, InterfaceDataComplete,
     },
+    interfaces::r#impl::wire::DiscoveryInterface,
     ip_addresses::r#impl::base::{IPAddress, IPAddressBase, MacEvidence, MacEvidenceValue},
     ports::r#impl::base::{Port, PortBase, PortConfig, PortType, TransportProtocol},
     services::r#impl::{
@@ -108,6 +109,16 @@ pub struct DiscoveryHostRequest {
     /// Daemons predating this field omit it; it defaults to all-complete so they behave as before.
     #[serde(default)]
     pub interface_data_complete: InterfaceDataComplete,
+    /// Whether any interface in this submission arrived in a wire shape a current daemon no
+    /// longer produces — today, the pre-#701 scalar LLDP/CDP fields (see
+    /// [`DiscoveryInterface`](crate::server::interfaces::r#impl::wire::DiscoveryInterface)).
+    ///
+    /// Set by the deserializer, never by a daemon: it is `skip`ped on the wire in both
+    /// directions and exists only to carry the observation from the boundary, where the raw
+    /// shape is visible, to the discovery session, where a warning can be attached. Read once,
+    /// in the discovery handlers, then discarded.
+    #[serde(skip)]
+    pub superseded_wire_shape: bool,
 }
 
 /// Serde default for `interfaces_complete`: absent (old daemon) ⇒ treat as a complete/authoritative
@@ -133,8 +144,13 @@ struct DiscoveryHostRequestWire {
     #[serde(default)]
     interfaces: Vec<serde_json::Value>,
     /// Old field name for SNMP Interface data (< v0.16.0). Absent in new payloads.
+    ///
+    /// Untyped for the same reason `interfaces` is: both are read as `DiscoveryInterface` in the
+    /// branch below, and that type is deserialize-only while this struct is also the outgoing
+    /// wire format. A daemon this old also predates #701, so its interfaces carry the scalar
+    /// LLDP/CDP shape and need the same translation the new-format branch applies.
     #[serde(default)]
-    if_entries: Vec<crate::server::interfaces::r#impl::base::Interface>,
+    if_entries: Vec<serde_json::Value>,
     #[serde(default)]
     subnets: Vec<crate::server::subnets::r#impl::base::Subnet>,
     #[serde(default = "default_interfaces_complete")]
@@ -170,13 +186,32 @@ impl<'de> serde::Deserialize<'de> for DiscoveryHostRequest {
     {
         let wire = DiscoveryHostRequestWire::deserialize(deserializer)?;
 
-        if let Some(ip_addresses) = wire.ip_addresses {
-            // New format (v0.16.0+): ip_addresses present, interfaces = SNMP data
-            let interfaces: Vec<crate::server::interfaces::r#impl::base::Interface> = wire
-                .interfaces
+        /// Read one submission's interfaces, translating any superseded per-interface wire shape
+        /// into the current one and reporting whether it had to.
+        fn read_interfaces<E: serde::de::Error>(
+            raw: Vec<serde_json::Value>,
+        ) -> Result<
+            (
+                Vec<crate::server::interfaces::r#impl::base::Interface>,
+                bool,
+            ),
+            E,
+        > {
+            let wire: Vec<DiscoveryInterface> = raw
                 .into_iter()
                 .map(|v| serde_json::from_value(v).map_err(serde::de::Error::custom))
-                .collect::<Result<_, _>>()?;
+                .collect::<Result<_, E>>()?;
+
+            let superseded = wire
+                .iter()
+                .any(DiscoveryInterface::submitted_legacy_neighbor_evidence);
+
+            Ok((wire.into_iter().map(Into::into).collect(), superseded))
+        }
+
+        if let Some(ip_addresses) = wire.ip_addresses {
+            // New format (v0.16.0+): ip_addresses present, interfaces = SNMP data
+            let (interfaces, superseded_wire_shape) = read_interfaces(wire.interfaces)?;
 
             Ok(DiscoveryHostRequest {
                 host: wire.host,
@@ -187,6 +222,7 @@ impl<'de> serde::Deserialize<'de> for DiscoveryHostRequest {
                 subnets: wire.subnets,
                 interfaces_complete: wire.interfaces_complete,
                 interface_data_complete: wire.interface_data_complete,
+                superseded_wire_shape,
             })
         } else {
             // Old format (< v0.16.0): interfaces = IPAddress data, if_entries = SNMP data
@@ -196,15 +232,20 @@ impl<'de> serde::Deserialize<'de> for DiscoveryHostRequest {
                 .map(|v| serde_json::from_value(v).map_err(serde::de::Error::custom))
                 .collect::<Result<_, _>>()?;
 
+            let (interfaces, _) = read_interfaces(wire.if_entries)?;
+
             Ok(DiscoveryHostRequest {
                 host: wire.host,
                 ip_addresses,
                 ports: wire.ports,
                 services: wire.services,
-                interfaces: wire.if_entries,
+                interfaces,
                 subnets: wire.subnets,
                 interfaces_complete: wire.interfaces_complete,
                 interface_data_complete: wire.interface_data_complete,
+                // Reaching this branch at all is the stronger signal: only a pre-0.16.0 daemon
+                // sends this layout, whatever its interfaces happened to carry.
+                superseded_wire_shape: true,
             })
         }
     }
@@ -224,6 +265,7 @@ mod discovery_request_interfaces_complete_tests {
             subnets: vec![],
             interfaces_complete,
             interface_data_complete: InterfaceDataComplete::default(),
+            superseded_wire_shape: false,
         }
     }
 
@@ -527,11 +569,14 @@ impl BindingInput {
 // EXTERNAL API - IF ENTRY INPUT
 // =============================================================================
 
-/// Input for creating an SNMP interface entry (ifTable data).
-/// Used in CreateHostRequest. Server assigns UUIDs since nothing references
-/// Interface IDs at creation time (neighbor resolution is done server-side).
+/// Input for manually creating or updating an interface entry.
+/// Used in `UpdateHostRequest`, synced the same way as `ip_addresses`/`ports`/`services`:
+/// a client-provided `id` that already exists on this host is updated, one that doesn't is
+/// created, and an existing row missing from the list is deleted.
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct InterfaceInput {
+    /// Client-provided UUID for this interface.
+    pub id: Uuid,
     /// SNMP ifIndex - stable identifier within device
     pub if_index: i32,
     /// SNMP ifDescr - interface description (e.g., GigabitEthernet0/1)
@@ -565,7 +610,7 @@ impl InterfaceInput {
     pub fn into_interface(self, host_id: Uuid, network_id: Uuid) -> Interface {
         let now = chrono::Utc::now();
         Interface {
-            id: Uuid::new_v4(),
+            id: self.id,
             created_at: now,
             updated_at: now,
             valid_from: now,
@@ -574,11 +619,12 @@ impl InterfaceInput {
             last_seen_at: now,
             last_discovery_id: None,
             first_discovery_id: None,
+            display_name: None,
             base: InterfaceBase {
                 host_id,
                 network_id,
                 if_index: Some(self.if_index),
-                if_descr: self.if_descr,
+                if_descr: Some(self.if_descr),
                 if_name: None,
                 if_alias: self.if_alias,
                 // Straight through. These were coerced to "other"/Up/Up, which recorded a
@@ -592,19 +638,10 @@ impl InterfaceInput {
                     .mac_address
                     .map(|m| MacEvidence::new(MacEvidenceValue(m), AttributeSource::Manual)),
                 ip_address_id: self.ip_address_id,
-                // Neighbor resolution fields - not set from API, resolved server-side
-                neighbor: None,
-                neighbor_seen_at: None,
-                lldp_chassis_id: None,
-                lldp_port_id: None,
-                lldp_sys_name: None,
-                lldp_port_desc: None,
-                lldp_mgmt_addr: None,
-                lldp_sys_desc: None,
-                cdp_device_id: None,
-                cdp_port_id: None,
-                cdp_platform: None,
-                cdp_address: None,
+                // Not an SNMP walk — no ipAddrTable to read, so this signal is unavailable here.
+                ip_configured: false,
+                // Neighbor resolution — not set from API, resolved server-side.
+                neighbor_candidates: Vec::new(),
                 fdb_macs: None,
                 native_vlan_id: None,
                 vlan_ids: None,
@@ -737,6 +774,12 @@ pub struct UpdateHostRequest {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub services: Option<Vec<ServiceInput>>,
 
+    /// Interfaces to sync with this host.
+    /// If Some, server will create/update/delete to match this list.
+    /// If None, existing interfaces are preserved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interfaces: Option<Vec<InterfaceInput>>,
+
     /// Credential assignments for this host.
     /// If provided, replaces all existing credential assignments.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -778,6 +821,17 @@ pub struct HostResponse {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schema(read_only)]
     pub display_name: Option<String>,
+    /// Which rung of the ladder produced `display_name`. `None` exactly when `display_name` is.
+    ///
+    /// Resolved from the same [`Host::name_ladder`] call as `display_name`, so the UI can say
+    /// where a host's title came from without walking the rungs itself.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schema(read_only)]
+    pub display_name_rung: Option<crate::server::hosts::r#impl::name_ladder::HostNameRung>,
+    /// Every rung of the display-name ladder for this host, highest first, with what each holds.
+    #[serde(default)]
+    #[schema(read_only)]
+    pub name_ladder: Vec<crate::server::hosts::r#impl::name_ladder::HostNameLadderEntry>,
     /// What produced `name`. Read-only: it is decided by whoever supplied the name, not by the
     /// caller.
     #[serde(default)]
@@ -787,6 +841,11 @@ pub struct HostResponse {
     pub network_id: Uuid,
     /// Hostname as resolved or reported by the host.
     pub hostname: Option<String>,
+    /// What produced `hostname`: a PTR lookup, the host's own OS, a controller, mDNS, or a person.
+    /// Read-only: decided by whichever source read it.
+    #[serde(default)]
+    #[schema(read_only)]
+    pub hostname_source: AttributeSource,
     /// Free-text notes about the host.
     pub description: Option<String>,
     /// How this host came to be known — discovered, imported, or created by hand.

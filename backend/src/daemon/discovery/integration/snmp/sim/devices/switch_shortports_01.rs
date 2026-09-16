@@ -30,7 +30,7 @@ use super::inline;
 pub fn device() -> SimDevice {
     SimDevice {
         name: "switch-shortports-01",
-        ip: Ipv4Addr::new(192, 168, 7, 253),
+        ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Regression {
             issue: "#668",
             defect: "the lldpLocPortTable read stops part way, so neighbours cannot be placed — and the operator is told the device numbers its LLDP ports separately, which is a different fault with a different fix",
@@ -52,6 +52,7 @@ pub fn device() -> SimDevice {
         tables: tables(),
         arp_handler: Handler::Normal,
         suppresses: Vec::new(),
+        rejects_getbulk: None,
     }
 }
 

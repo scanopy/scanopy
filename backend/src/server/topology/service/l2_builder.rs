@@ -10,7 +10,7 @@ use super::{
     view::ViewBuilder,
 };
 use crate::server::{
-    interfaces::r#impl::base::{Neighbor, if_type::EXCLUDED_IF_TYPES},
+    interfaces::r#impl::base::{InterfaceLinkState, Neighbor, if_type::EXCLUDED_IF_TYPES},
     shared::entities::EntityDiscriminants,
     topology::types::{
         edges::{DiscoveryProtocol, Edge, EdgeHandle, EdgeType, EdgeViewConfig},
@@ -37,22 +37,26 @@ impl ViewBuilder for L2Builder {
         //    (unlike create_physical_link_edges which uses ip_address_id)
         let mut processed_pairs: HashSet<(Uuid, Uuid)> = HashSet::new();
 
-        for source_entry in ctx.get_interfaces_with_neighbor() {
-            let target_interface_id = match &source_entry.base.neighbor {
-                Some(Neighbor::Interface(id)) => *id,
-                _ => continue,
+        for row in ctx.get_interfaces_with_neighbor() {
+            let source_id = row.interface_id;
+            let target_interface_id = match row.neighbor {
+                Neighbor::Interface(id) => id,
+                Neighbor::Host(_) => continue,
             };
 
             // Dedup bidirectional pairs
-            let pair_key = if source_entry.id < target_interface_id {
-                (source_entry.id, target_interface_id)
+            let pair_key = if source_id < target_interface_id {
+                (source_id, target_interface_id)
             } else {
-                (target_interface_id, source_entry.id)
+                (target_interface_id, source_id)
             };
             if !processed_pairs.insert(pair_key) {
                 continue;
             }
 
+            let Some(source_entry) = ctx.get_interface_by_id(source_id) else {
+                continue;
+            };
             let target_entry = match ctx.get_interface_by_id(target_interface_id) {
                 Some(e) => e,
                 None => continue,
@@ -105,8 +109,10 @@ impl ViewBuilder for L2Builder {
         let mut qualifying_host_ids: HashSet<Uuid> = HashSet::new();
 
         // Hosts with neighbor data
-        for entry in ctx.get_interfaces_with_neighbor() {
-            qualifying_host_ids.insert(entry.base.host_id);
+        for row in ctx.get_interfaces_with_neighbor() {
+            if let Some(entry) = ctx.get_interface_by_id(row.interface_id) {
+                qualifying_host_ids.insert(entry.base.host_id);
+            }
         }
 
         for edge in &neighbor_link_edges {
@@ -131,6 +137,29 @@ impl ViewBuilder for L2Builder {
                 && let Some(entry) = ctx.get_interface_by_id(*target_entity_id)
             {
                 qualifying_host_ids.insert(entry.base.host_id);
+            }
+        }
+
+        // Hosts with no IP address at all, identified only by an interface carrying MAC
+        // evidence — a PROFINET DCP identify is the case this exists for. Neither of the two
+        // conditions above ever fires for such a host: it has no neighbour data (DCP is a
+        // broadcast identify, not a directed LLDP/CDP exchange) and is never the target of a
+        // resolved link, so without this it appears in **no view at all** — L3 is structurally
+        // blind to it too, since `subnet_graph_builder` iterates `ip_addresses`.
+        //
+        // Gated on "no IP" specifically so this never changes behaviour for any host that
+        // already has one: those are already visible via L3, and already require neighbour data
+        // to additionally qualify for L2 — that rule is untouched. Drawn as a standalone
+        // container with no edges, the same as any other qualifying host whose interfaces happen
+        // to carry no resolved neighbour.
+        for host in ctx.hosts {
+            if ctx.get_ip_addresses_for_host(host.id).is_empty()
+                && ctx
+                    .get_interfaces_for_host(host.id)
+                    .iter()
+                    .any(|entry| entry.base.mac_address.is_some())
+            {
+                qualifying_host_ids.insert(host.id);
             }
         }
 
@@ -177,11 +206,15 @@ impl ViewBuilder for L2Builder {
                 // An unread type is not an excluded one. A port learned from a neighbour's
                 // advertisement has no ifType, and dropping it for that would remove exactly the
                 // far ends this view exists to draw.
+                // Linked in *either* direction, not just outbound: a link is recorded on one side,
+                // so the far end of nearly every link reports no neighbour of its own. Judging the
+                // outbound direction here dropped exactly the ports the metadata filter had kept,
+                // and `EdgeBuilder` then dropped the link that named them.
                 if entry
                     .base
                     .if_type
                     .is_some_and(|if_type| EXCLUDED_IF_TYPES.contains(&if_type))
-                    && !entry.has_neighbor()
+                    && ctx.interface_link_state(entry.id) == InterfaceLinkState::Unlinked
                 {
                     continue;
                 }
@@ -253,12 +286,16 @@ mod tests {
     use super::*;
     use crate::server::hosts::r#impl::attributes::HostChassisIdValue;
     use crate::server::hosts::r#impl::name::{HostName, HostNameSources};
+    use crate::server::interface_neighbors::r#impl::base::{
+        InterfaceNeighborCandidate, InterfaceNeighborCandidateBase, InterfaceNeighborEvidence,
+        InterfaceNeighborRow,
+    };
     use crate::server::services::r#impl::patterns::ClientProbe;
     use crate::server::shared::attribution::{AttributeSource, Attributed};
     use crate::server::{
         hosts::r#impl::base::{Host, HostBase},
         interfaces::r#impl::base::{Interface, InterfaceBase, Neighbor, if_type},
-        ip_addresses::r#impl::base::{IPAddress, IPAddressBase},
+        ip_addresses::r#impl::base::{IPAddress, IPAddressBase, MacEvidence, MacEvidenceValue},
         lldp::LldpChassisId,
         topology::{
             service::context::TopologyContext,
@@ -284,12 +321,7 @@ mod tests {
         }
     }
 
-    fn make_if_entry(
-        host_id: Uuid,
-        if_index: i32,
-        if_type: i32,
-        neighbor: Option<Neighbor>,
-    ) -> Interface {
+    fn make_if_entry(host_id: Uuid, if_index: i32, if_type: i32) -> Interface {
         Interface {
             id: Uuid::new_v4(),
             created_at: Utc::now(),
@@ -297,15 +329,38 @@ mod tests {
             base: InterfaceBase {
                 host_id,
                 if_index: Some(if_index),
-                if_descr: format!("GigabitEthernet0/{if_index}"),
+                if_descr: Some(format!("GigabitEthernet0/{if_index}")),
                 if_name: Some(format!("Gi0/{if_index}")),
                 if_type: Some(if_type),
                 speed_bps: Some(1_000_000_000),
-                neighbor,
                 ..Default::default()
             },
             ..Default::default()
         }
+    }
+
+    /// A resolved-neighbour row for `interface_id`, matching the shape `TopologyContext.neighbours`
+    /// now carries instead of `Interface.base.neighbor`.
+    fn neighbor_row(interface_id: Uuid, neighbor: Neighbor) -> InterfaceNeighborRow {
+        InterfaceNeighborRow {
+            id: Uuid::new_v4(),
+            interface_id,
+            neighbor,
+            neighbor_seen_at: None,
+        }
+    }
+
+    /// A candidate carrying LLDP evidence for `interface_id`, for tests asserting the protocol a
+    /// `NeighborLink` edge is labelled with (`TopologyContext::interface_has_lldp_evidence`).
+    fn lldp_candidate(interface_id: Uuid) -> InterfaceNeighborCandidate {
+        InterfaceNeighborCandidate::new(InterfaceNeighborCandidateBase::new(
+            Uuid::nil(),
+            interface_id,
+            InterfaceNeighborEvidence {
+                lldp_chassis_id: Some(LldpChassisId::MacAddress("00:1a:2b:3c:4d:63".to_string())),
+                ..Default::default()
+            },
+        ))
     }
 
     fn l2_grouping() -> GroupingConfig {
@@ -341,7 +396,7 @@ mod tests {
     #[test]
     fn test_hosts_without_neighbors_excluded() {
         let h1 = make_host("server-1");
-        let ie1 = make_if_entry(h1.id, 1, 6, None);
+        let ie1 = make_if_entry(h1.id, 1, 6);
         let hosts = vec![h1];
         let interfaces = vec![ie1];
         let options = TopologyOptions::default();
@@ -367,6 +422,55 @@ mod tests {
         assert!(edges.is_empty());
     }
 
+    /// A host with no IP address at all and no neighbour data — a PROFINET DCP identify, the
+    /// case §7 of the DCP plan exists for — still qualifies for L2, drawn as a standalone
+    /// container with no edges. The interface carries only a MAC, no neighbour: the "hosts with
+    /// neighbor data" condition above never fires for it, and it is never a link target, so
+    /// without this it would join `test_hosts_without_neighbors_excluded`'s host in appearing in
+    /// no view at all — except that host also has no MAC, which is the one thing distinguishing
+    /// the two cases.
+    #[test]
+    fn a_no_ip_host_identified_only_by_a_mac_still_gets_a_standalone_container() {
+        let h1 = make_host("press-line-3");
+        let mut ie1 = make_if_entry(h1.id, 1, 6);
+        ie1.base.if_type = None; // DCP reports no ifType — unread, not a claim
+        ie1.base.mac_address = Some(MacEvidence::new(
+            MacEvidenceValue("00:ad:24:af:4e:00".parse().unwrap()),
+            AttributeSource::ProfinetDcp,
+        ));
+        let hosts = vec![h1.clone()];
+        let interfaces = vec![ie1];
+        let options = TopologyOptions::default();
+        let ctx = TopologyContext::new(
+            &hosts,
+            &[], // no ip_addresses — the condition this test exists for
+            &[],
+            &[],
+            &[],
+            &[],
+            &[],
+            &interfaces,
+            &[],
+            &[],
+            &options,
+            crate::server::topology::types::views::TopologyView::L3Logical,
+        );
+
+        let builder = L2Builder;
+        let (nodes, edges) = builder.build(&ctx, &l2_grouping());
+
+        assert!(edges.is_empty(), "no neighbour, so no edge to draw");
+        let container = nodes
+            .iter()
+            .find(|n| matches!(n.node_type, NodeType::Container { entity_id: Some(id), .. } if id == h1.id))
+            .expect("the no-IP, MAC-identified host must still get a container");
+        assert_eq!(container.header.as_deref(), Some("press-line-3"));
+        let port = nodes
+            .iter()
+            .find(|n| matches!(n.node_type, NodeType::Element { host_id, .. } if host_id == h1.id));
+        assert!(port.is_some(), "its interface must still render as a port");
+    }
+
     /// A host container says which device it is even when the host carries no name.
     ///
     /// `HostName::unnamed()` formats as the empty string, so the header used to be `Some("")`. That
@@ -389,11 +493,13 @@ mod tests {
         anonymous.base.name = HostName::unnamed();
 
         // A neighbour on each of the other two qualifies all three: the far end is a link target.
-        let anchor = make_if_entry(by_chassis.id, 1, if_type::ETHERNET_CSMA_CD, None);
-        let mut from_address = make_if_entry(by_address.id, 1, if_type::ETHERNET_CSMA_CD, None);
-        from_address.base.neighbor = Some(Neighbor::Interface(anchor.id));
-        let mut from_anonymous = make_if_entry(anonymous.id, 2, if_type::ETHERNET_CSMA_CD, None);
-        from_anonymous.base.neighbor = Some(Neighbor::Interface(anchor.id));
+        let anchor = make_if_entry(by_chassis.id, 1, if_type::ETHERNET_CSMA_CD);
+        let from_address = make_if_entry(by_address.id, 1, if_type::ETHERNET_CSMA_CD);
+        let from_anonymous = make_if_entry(anonymous.id, 2, if_type::ETHERNET_CSMA_CD);
+        let neighbours = vec![
+            neighbor_row(from_address.id, Neighbor::Interface(anchor.id)),
+            neighbor_row(from_anonymous.id, Neighbor::Interface(anchor.id)),
+        ];
 
         let address = IPAddress::new(IPAddressBase {
             network_id: Uuid::nil(),
@@ -425,7 +531,8 @@ mod tests {
             &[],
             &options,
             crate::server::topology::types::views::TopologyView::L2Physical,
-        );
+        )
+        .with_neighbours(&neighbours);
 
         let (nodes, _) = L2Builder.build(&ctx, &l2_grouping());
         let header_for = |host_id: Uuid| -> Option<String> {
@@ -476,14 +583,13 @@ mod tests {
         let h2 = make_host("daemon-host");
 
         // The far end is an ordinary port; the near end is virtual-typed, as a daemon host's is.
-        let physical = make_if_entry(h1.id, 1, if_type::ETHERNET_CSMA_CD, None);
-        let virtual_linked = make_if_entry(
-            h2.id,
-            1,
-            if_type::PROP_VIRTUAL,
-            Some(Neighbor::Interface(physical.id)),
-        );
-        let virtual_bare = make_if_entry(h2.id, 2, if_type::PROP_VIRTUAL, None);
+        let physical = make_if_entry(h1.id, 1, if_type::ETHERNET_CSMA_CD);
+        let virtual_linked = make_if_entry(h2.id, 1, if_type::PROP_VIRTUAL);
+        let virtual_bare = make_if_entry(h2.id, 2, if_type::PROP_VIRTUAL);
+        let neighbours = vec![neighbor_row(
+            virtual_linked.id,
+            Neighbor::Interface(physical.id),
+        )];
 
         let hosts = vec![h1, h2];
         let interfaces = vec![physical, virtual_linked.clone(), virtual_bare.clone()];
@@ -501,7 +607,8 @@ mod tests {
             &[],
             &options,
             crate::server::topology::types::views::TopologyView::L3Logical,
-        );
+        )
+        .with_neighbours(&neighbours);
 
         let (nodes, edges) = L2Builder.build(&ctx, &l2_grouping());
         let drawn: Vec<Uuid> = nodes.iter().map(|n| n.id).collect();
@@ -521,20 +628,28 @@ mod tests {
         }
     }
 
+    /// The far end of a link is virtual-typed and reports no neighbour of its own.
+    ///
+    /// A link is recorded on one side, so the remote port of most links has no row of its own —
+    /// judging the virtual-type exemption on the outbound direction alone therefore drew no node
+    /// for it, and `EdgeBuilder` then dropped the very link that named it. The metadata filter had
+    /// already classified that port `Linked` and kept it in the bundle, so the graph and the
+    /// filter disagreed about the same port.
     #[test]
-    fn test_physical_link_creates_containers_and_edges() {
+    fn a_virtual_interface_named_only_as_a_neighbour_is_drawn() {
         let h1 = make_host("switch-1");
-        let h2 = make_host("switch-2");
+        let h2 = make_host("westermo");
 
-        let ie1 = make_if_entry(h1.id, 1, 6, None);
-        let ie2 = make_if_entry(h2.id, 1, 6, None);
-
-        // ie1 has neighbor pointing to ie2
-        let mut ie1_with_neighbor = ie1.clone();
-        ie1_with_neighbor.base.neighbor = Some(Neighbor::Interface(ie2.id));
+        let physical = make_if_entry(h1.id, 1, if_type::ETHERNET_CSMA_CD);
+        // Named by the switch, reports nothing itself, and carries an excluded ifType.
+        let virtual_far_end = make_if_entry(h2.id, 1, if_type::PROP_VIRTUAL);
+        let neighbours = vec![neighbor_row(
+            physical.id,
+            Neighbor::Interface(virtual_far_end.id),
+        )];
 
         let hosts = vec![h1, h2];
-        let interfaces = vec![ie1_with_neighbor, ie2];
+        let interfaces = vec![physical.clone(), virtual_far_end.clone()];
         let options = TopologyOptions::default();
         let ctx = TopologyContext::new(
             &hosts,
@@ -549,7 +664,132 @@ mod tests {
             &[],
             &options,
             crate::server::topology::types::views::TopologyView::L3Logical,
+        )
+        .with_neighbours(&neighbours);
+
+        let (nodes, edges) = L2Builder.build(&ctx, &l2_grouping());
+        let drawn: Vec<Uuid> = nodes.iter().map(|n| n.id).collect();
+
+        assert!(
+            drawn.contains(&virtual_far_end.id),
+            "a port named as another port's neighbour is linked and must be drawn"
         );
+        assert!(
+            edges
+                .iter()
+                .any(|e| e.source == physical.id && e.target == virtual_far_end.id),
+            "the link that named it must survive"
+        );
+    }
+
+    /// The default hide-set in front of the graph builder — the pairing the two halves are each
+    /// tested for separately and neither covers.
+    ///
+    /// `retain_visible` runs over the bundle before any view is built, so `L2Builder` sees only
+    /// the ports that survived it. If the two disagree about which ports are linked, the view
+    /// draws host containers with nothing inside them: the hosts qualify off the neighbour rows,
+    /// which are never filtered, while every port they own has already been dropped.
+    #[test]
+    fn hiding_unlinked_ports_still_draws_the_linked_ones() {
+        let h1 = make_host("switch-1");
+        let h2 = make_host("switch-2");
+
+        let linked_out = make_if_entry(h1.id, 1, if_type::ETHERNET_CSMA_CD);
+        let unlinked = make_if_entry(h1.id, 2, if_type::ETHERNET_CSMA_CD);
+        // The far end: named by `linked_out`, reports no neighbour of its own.
+        let linked_in = make_if_entry(h2.id, 1, if_type::ETHERNET_CSMA_CD);
+
+        let neighbours = vec![neighbor_row(
+            linked_out.id,
+            Neighbor::Interface(linked_in.id),
+        )];
+
+        let mut interfaces = vec![linked_out.clone(), unlinked.clone(), linked_in.clone()];
+        let options = TopologyOptions::default();
+
+        // Exactly what `apply_server_metadata_filters` does to the bundle first.
+        let ctx_values = crate::server::topology::types::views::FilterValueContext {
+            interfaces_referenced_as_neighbours:
+                crate::server::topology::service::metadata_filter::referenced_neighbour_interfaces(
+                    neighbours.iter(),
+                ),
+            interfaces_with_neighbours:
+                crate::server::topology::service::metadata_filter::interfaces_with_neighbours(
+                    neighbours.iter(),
+                ),
+        };
+        let hide_sets =
+            crate::server::topology::service::metadata_filter::server_hide_sets(&options);
+        crate::server::topology::service::metadata_filter::retain_visible(
+            &mut interfaces,
+            hide_sets.get(&EntityDiscriminants::Interface),
+            &ctx_values,
+        );
+
+        assert_eq!(
+            interfaces.len(),
+            2,
+            "only the unlinked port should have been dropped"
+        );
+
+        let hosts = vec![h1.clone(), h2.clone()];
+        let ctx = TopologyContext::new(
+            &hosts,
+            &[],
+            &[],
+            &[],
+            &[],
+            &[],
+            &[],
+            &interfaces,
+            &[],
+            &[],
+            &options,
+            crate::server::topology::types::views::TopologyView::L3Logical,
+        )
+        .with_neighbours(&neighbours);
+
+        let (nodes, _edges) = L2Builder.build(&ctx, &l2_grouping());
+        let drawn: Vec<Uuid> = nodes.iter().map(|n| n.id).collect();
+
+        assert!(
+            drawn.contains(&linked_out.id),
+            "a linked port must survive both the filter and the builder"
+        );
+        assert!(
+            drawn.contains(&linked_in.id),
+            "so must the far end it names"
+        );
+        assert!(!drawn.contains(&unlinked.id));
+    }
+
+    #[test]
+    fn test_physical_link_creates_containers_and_edges() {
+        let h1 = make_host("switch-1");
+        let h2 = make_host("switch-2");
+
+        let ie1 = make_if_entry(h1.id, 1, 6);
+        let ie2 = make_if_entry(h2.id, 1, 6);
+        let neighbours = vec![neighbor_row(ie1.id, Neighbor::Interface(ie2.id))];
+
+        let hosts = vec![h1, h2];
+        let interfaces = vec![ie1, ie2];
+        let options = TopologyOptions::default();
+        let ctx = TopologyContext::new(
+            &hosts,
+            &[],
+            &[],
+            &[],
+            &[],
+            &[],
+            &[],
+            &interfaces,
+            &[],
+            &[],
+            &options,
+            crate::server::topology::types::views::TopologyView::L3Logical,
+        )
+        .with_neighbours(&neighbours);
 
         let builder = L2Builder;
         let (nodes, edges) = builder.build(&ctx, &l2_grouping());
@@ -589,8 +829,9 @@ mod tests {
         let h1 = make_host("switch-aruba-01");
         let h2 = make_host("switch-netgear-01");
 
-        let mut ie1 = make_if_entry(h1.id, 1, 6, Some(Neighbor::Host(h2.id)));
-        ie1.base.lldp_chassis_id = Some(LldpChassisId::MacAddress("00:1a:2b:3c:4d:63".to_string()));
+        let ie1 = make_if_entry(h1.id, 1, 6);
+        let neighbours = vec![neighbor_row(ie1.id, Neighbor::Host(h2.id))];
+        let candidates = vec![lldp_candidate(ie1.id)];
 
         let hosts = vec![h1.clone(), h2.clone()];
         let interfaces = vec![ie1];
@@ -608,7 +849,9 @@ mod tests {
             &[],
             &options,
             crate::server::topology::types::views::TopologyView::L3Logical,
-        );
+        )
+        .with_neighbours(&neighbours)
+        .with_candidates(&candidates);
 
         let builder = L2Builder;
         let (nodes, edges) = builder.build(&ctx, &l2_grouping());
@@ -655,10 +898,14 @@ mod tests {
         let h1 = make_host("switch-1");
         let h2 = make_host("switch-2");
 
-        let ie2 = make_if_entry(h2.id, 1, 6, None);
-        let ie1 = make_if_entry(h1.id, 1, 6, Some(Neighbor::Interface(ie2.id)));
+        let ie2 = make_if_entry(h2.id, 1, 6);
+        let ie1 = make_if_entry(h1.id, 1, 6);
         // A second port on the same switch pair, resolved only as far as the device.
-        let ie3 = make_if_entry(h1.id, 2, 6, Some(Neighbor::Host(h2.id)));
+        let ie3 = make_if_entry(h1.id, 2, 6);
+        let neighbours = vec![
+            neighbor_row(ie1.id, Neighbor::Interface(ie2.id)),
+            neighbor_row(ie3.id, Neighbor::Host(h2.id)),
+        ];
 
         let hosts = vec![h1, h2];
         let interfaces = vec![ie1, ie2, ie3];
@@ -676,7 +923,8 @@ mod tests {
             &[],
             &options,
             crate::server::topology::types::views::TopologyView::L3Logical,
-        );
+        )
+        .with_neighbours(&neighbours);
 
         let builder = L2Builder;
         let (_nodes, edges) = builder.build(&ctx, &l2_grouping());
@@ -690,8 +938,12 @@ mod tests {
         let h1 = make_host("switch-1");
         let h2 = make_host("switch-2");
 
-        let ie1 = make_if_entry(h1.id, 1, 6, Some(Neighbor::Host(h2.id)));
-        let ie2 = make_if_entry(h2.id, 1, 6, Some(Neighbor::Host(h1.id)));
+        let ie1 = make_if_entry(h1.id, 1, 6);
+        let ie2 = make_if_entry(h2.id, 1, 6);
+        let neighbours = vec![
+            neighbor_row(ie1.id, Neighbor::Host(h2.id)),
+            neighbor_row(ie2.id, Neighbor::Host(h1.id)),
+        ];
 
         let hosts = vec![h1, h2];
         let interfaces = vec![ie1, ie2];
@@ -709,7 +961,8 @@ mod tests {
             &[],
             &options,
             crate::server::topology::types::views::TopologyView::L3Logical,
-        );
+        )
+        .with_neighbours(&neighbours);
 
         let builder = L2Builder;
         let (_nodes, edges) = builder.build(&ctx, &l2_grouping());
@@ -723,7 +976,8 @@ mod tests {
     #[test]
     fn a_neighbor_host_outside_the_topology_draws_no_edge() {
         let h1 = make_host("switch-1");
-        let ie1 = make_if_entry(h1.id, 1, 6, Some(Neighbor::Host(Uuid::new_v4())));
+        let ie1 = make_if_entry(h1.id, 1, 6);
+        let neighbours = vec![neighbor_row(ie1.id, Neighbor::Host(Uuid::new_v4()))];
 
         let hosts = vec![h1];
         let interfaces = vec![ie1];
@@ -741,7 +995,8 @@ mod tests {
             &[],
             &options,
             crate::server::topology::types::views::TopologyView::L3Logical,
-        );
+        )
+        .with_neighbours(&neighbours);
 
         let builder = L2Builder;
         let (_nodes, edges) = builder.build(&ctx, &l2_grouping());
@@ -754,18 +1009,17 @@ mod tests {
         let h1 = make_host("switch-1");
         let h2 = make_host("switch-2");
 
-        let ie_eth = make_if_entry(h1.id, 1, 6, None); // ethernet - included
-        let ie_lo = make_if_entry(h1.id, 2, 24, None); // loopback - excluded
-        let ie_vlan = make_if_entry(h1.id, 3, 135, None); // l2vlan - excluded
-        let ie_tun = make_if_entry(h1.id, 4, 131, None); // tunnel - excluded
-        let ie2 = make_if_entry(h2.id, 1, 6, None);
+        let ie_eth = make_if_entry(h1.id, 1, 6); // ethernet - included
+        let ie_lo = make_if_entry(h1.id, 2, 24); // loopback - excluded
+        let ie_vlan = make_if_entry(h1.id, 3, 135); // l2vlan - excluded
+        let ie_tun = make_if_entry(h1.id, 4, 131); // tunnel - excluded
+        let ie2 = make_if_entry(h2.id, 1, 6);
 
         // Create neighbor link
-        let mut ie_eth_linked = ie_eth.clone();
-        ie_eth_linked.base.neighbor = Some(Neighbor::Interface(ie2.id));
+        let neighbours = vec![neighbor_row(ie_eth.id, Neighbor::Interface(ie2.id))];
 
         let hosts = vec![h1, h2];
-        let interfaces = vec![ie_eth_linked, ie_lo, ie_vlan, ie_tun, ie2];
+        let interfaces = vec![ie_eth, ie_lo, ie_vlan, ie_tun, ie2];
         let options = TopologyOptions::default();
         let ctx = TopologyContext::new(
             &hosts,
@@ -780,7 +1034,8 @@ mod tests {
             &[],
             &options,
             crate::server::topology::types::views::TopologyView::L3Logical,
-        );
+        )
+        .with_neighbours(&neighbours);
 
         let builder = L2Builder;
         let (nodes, _edges) = builder.build(&ctx, &l2_grouping());
@@ -799,17 +1054,17 @@ mod tests {
         let h1 = make_host("switch-1");
         let h2 = make_host("switch-2");
 
-        let ie1 = make_if_entry(h1.id, 1, 6, None);
-        let ie2 = make_if_entry(h2.id, 1, 6, None);
+        let ie1 = make_if_entry(h1.id, 1, 6);
+        let ie2 = make_if_entry(h2.id, 1, 6);
 
         // Both entries point to each other (bidirectional LLDP)
-        let mut ie1_linked = ie1.clone();
-        ie1_linked.base.neighbor = Some(Neighbor::Interface(ie2.id));
-        let mut ie2_linked = ie2.clone();
-        ie2_linked.base.neighbor = Some(Neighbor::Interface(ie1_linked.id));
+        let neighbours = vec![
+            neighbor_row(ie1.id, Neighbor::Interface(ie2.id)),
+            neighbor_row(ie2.id, Neighbor::Interface(ie1.id)),
+        ];
 
         let hosts = vec![h1, h2];
-        let interfaces = vec![ie1_linked, ie2_linked];
+        let interfaces = vec![ie1, ie2];
         let options = TopologyOptions::default();
         let ctx = TopologyContext::new(
             &hosts,
@@ -824,12 +1079,72 @@ mod tests {
             &[],
             &options,
             crate::server::topology::types::views::TopologyView::L3Logical,
-        );
+        )
+        .with_neighbours(&neighbours);
 
         let builder = L2Builder;
         let (_nodes, edges) = builder.build(&ctx, &l2_grouping());
 
         // Only 1 edge despite bidirectional discovery
         assert_eq!(edges.len(), 1);
+    }
+
+    /// GH #701: a shared L2 segment where a router and two hosts behind a bridge each hear both
+    /// others. Before the multi-neighbour schema this rendered 2 edges (a port could anchor only
+    /// one link) and flipped between scans (the reciprocal tier's adjacency map was keyed on local
+    /// interface id alone). With one resolved row per interface-neighbour pair, all three pairwise
+    /// adjacencies must render as distinct `PhysicalLink` edges.
+    #[test]
+    fn a_three_node_shared_segment_renders_three_physical_links() {
+        let router = make_host("edge-router");
+        let host_a = make_host("mcast-rcv");
+        let host_b = make_host("mcast-src");
+
+        let router_port = make_if_entry(router.id, 1, 6);
+        let host_a_port = make_if_entry(host_a.id, 1, 6);
+        let host_b_port = make_if_entry(host_b.id, 1, 6);
+
+        // Every port resolved a full Interface adjacency to each of the other two — the shape a
+        // real reciprocal-tier resolution pass produces once each side names the other.
+        let neighbours = vec![
+            neighbor_row(router_port.id, Neighbor::Interface(host_a_port.id)),
+            neighbor_row(router_port.id, Neighbor::Interface(host_b_port.id)),
+            neighbor_row(host_a_port.id, Neighbor::Interface(router_port.id)),
+            neighbor_row(host_a_port.id, Neighbor::Interface(host_b_port.id)),
+            neighbor_row(host_b_port.id, Neighbor::Interface(router_port.id)),
+            neighbor_row(host_b_port.id, Neighbor::Interface(host_a_port.id)),
+        ];
+
+        let hosts = vec![router, host_a, host_b];
+        let interfaces = vec![router_port, host_a_port, host_b_port];
+        let options = TopologyOptions::default();
+        let ctx = TopologyContext::new(
+            &hosts,
+            &[],
+            &[],
+            &[],
+            &[],
+            &[],
+            &[],
+            &interfaces,
+            &[],
+            &[],
+            &options,
+            crate::server::topology::types::views::TopologyView::L3Logical,
+        )
+        .with_neighbours(&neighbours);
+
+        let (_nodes, edges) = L2Builder.build(&ctx, &l2_grouping());
+
+        let physical_links: Vec<&Edge> = edges
+            .iter()
+            .filter(|e| matches!(e.edge_type, EdgeType::PhysicalLink { .. }))
+            .collect();
+        assert_eq!(
+            physical_links.len(),
+            3,
+            "a shared segment must render all three pairwise adjacencies, not collapse any far-end \
+             port onto a single link: {edges:?}"
+        );
     }
 }

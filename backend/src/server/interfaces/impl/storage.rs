@@ -8,7 +8,7 @@ use crate::server::ip_addresses::r#impl::base::{MacEvidenceValue, mac_of};
 use crate::server::shared::attribution::Attributed;
 use crate::server::shared::storage::attributed;
 use crate::server::{
-    interfaces::r#impl::base::{IfAdminStatus, IfOperStatus, Interface, InterfaceBase, Neighbor},
+    interfaces::r#impl::base::{IfAdminStatus, IfOperStatus, Interface, InterfaceBase},
     shared::{
         entities::EntityDiscriminants,
         entity_metadata::EntityCategory,
@@ -35,7 +35,7 @@ pub struct InterfaceCsvRow {
     pub host_id: Uuid,
     pub network_id: Uuid,
     pub if_index: Option<i32>,
-    pub if_descr: String,
+    pub if_descr: Option<String>,
     pub if_name: Option<String>,
     pub if_alias: Option<String>,
     pub if_type: Option<i32>,
@@ -44,17 +44,7 @@ pub struct InterfaceCsvRow {
     pub oper_status: String,
     pub mac_address: Option<String>,
     pub ip_address_id: Option<Uuid>,
-    pub neighbor: Option<String>,
-    pub lldp_chassis_id: Option<String>,
-    pub lldp_port_id: Option<String>,
-    pub lldp_sys_name: Option<String>,
-    pub lldp_port_desc: Option<String>,
-    pub lldp_mgmt_addr: Option<String>,
-    pub lldp_sys_desc: Option<String>,
-    pub cdp_device_id: Option<String>,
-    pub cdp_port_id: Option<String>,
-    pub cdp_platform: Option<String>,
-    pub cdp_address: Option<String>,
+    pub ip_configured: bool,
     pub fdb_macs: Option<String>,
     pub native_vlan_id: Option<Uuid>,
     pub vlan_ids: Option<String>,
@@ -88,6 +78,7 @@ impl Storable for Interface {
             last_seen_at: now,
             last_discovery_id: None,
             first_discovery_id: None,
+            display_name: None,
             base,
         }
     }
@@ -107,6 +98,7 @@ impl Storable for Interface {
             last_seen_at,
             last_discovery_id,
             first_discovery_id,
+            display_name: _,
             base:
                 Self::BaseData {
                     host_id,
@@ -121,30 +113,16 @@ impl Storable for Interface {
                     oper_status,
                     mac_address,
                     ip_address_id,
-                    neighbor,
-                    neighbor_seen_at,
-                    lldp_chassis_id,
-                    lldp_port_id,
-                    lldp_sys_name,
-                    lldp_port_desc,
-                    lldp_mgmt_addr,
-                    lldp_sys_desc,
-                    cdp_device_id,
-                    cdp_port_id,
-                    cdp_platform,
-                    cdp_address,
+                    ip_configured,
+                    // Wire-only (daemon submission), never a column on `interfaces` — drained into
+                    // `interface_neighbor_candidates` by `InterfaceService::create_or_update_from_
+                    // discovery` before this ever runs. See `interface_neighbors`.
+                    neighbor_candidates: _,
                     fdb_macs,
                     native_vlan_id,
                     vlan_ids,
                 },
         } = self.clone();
-
-        // Convert Neighbor enum to two mutually exclusive columns
-        let (neighbor_interface_id, neighbor_host_id) = match neighbor {
-            Some(Neighbor::Interface(id)) => (Some(id), None),
-            Some(Neighbor::Host(id)) => (None, Some(id)),
-            None => (None, None),
-        };
 
         let [mac_value, mac_source] = attributed::optional_params(&mac_address);
 
@@ -163,19 +141,7 @@ impl Storable for Interface {
             "mac_address",
             "mac_address_source",
             "ip_address_id",
-            "neighbor_interface_id",
-            "neighbor_host_id",
-            "neighbor_seen_at",
-            "lldp_chassis_id",
-            "lldp_port_id",
-            "lldp_sys_name",
-            "lldp_port_desc",
-            "lldp_mgmt_addr",
-            "lldp_sys_desc",
-            "cdp_device_id",
-            "cdp_port_id",
-            "cdp_platform",
-            "cdp_address",
+            "ip_configured",
             "fdb_macs",
             "native_vlan_id",
             "vlan_ids",
@@ -194,7 +160,7 @@ impl Storable for Interface {
             SqlValue::Uuid(host_id),
             SqlValue::Uuid(network_id),
             SqlValue::OptionalI32(if_index),
-            SqlValue::String(if_descr),
+            SqlValue::OptionalString(if_descr),
             SqlValue::OptionalString(if_name),
             SqlValue::OptionalString(if_alias),
             SqlValue::OptionalI32(if_type),
@@ -204,19 +170,7 @@ impl Storable for Interface {
             mac_value,
             mac_source,
             SqlValue::OptionalUuid(ip_address_id),
-            SqlValue::OptionalUuid(neighbor_interface_id),
-            SqlValue::OptionalUuid(neighbor_host_id),
-            SqlValue::OptionTimestamp(neighbor_seen_at),
-            SqlValue::OptionalLldpChassisId(lldp_chassis_id),
-            SqlValue::OptionalLldpPortId(lldp_port_id),
-            SqlValue::OptionalString(lldp_sys_name),
-            SqlValue::OptionalString(lldp_port_desc),
-            SqlValue::OptionalIpAddr(lldp_mgmt_addr),
-            SqlValue::OptionalString(lldp_sys_desc),
-            SqlValue::OptionalString(cdp_device_id),
-            SqlValue::OptionalString(cdp_port_id),
-            SqlValue::OptionalString(cdp_platform),
-            SqlValue::OptionalIpAddr(cdp_address),
+            SqlValue::Bool(ip_configured),
             SqlValue::OptionalFdbMacs(fdb_macs),
             SqlValue::OptionalUuid(native_vlan_id),
             SqlValue::OptionVecUuid(vlan_ids),
@@ -234,8 +188,6 @@ impl Storable for Interface {
     }
 
     fn from_row(row: &PgRow) -> Result<Self, anyhow::Error> {
-        use crate::server::lldp::{LldpChassisId, LldpPortId};
-
         // Read as `Option` because the columns are nullable: a port learned from a neighbour's
         // advertisement carries no status, and `row.get::<i32>` *panics* on NULL rather than
         // returning an error, so a non-optional read here would take the request down.
@@ -248,41 +200,6 @@ impl Storable for Interface {
         // Read mac_address from MACADDR column
         let mac_address = attributed::read_optional::<MacEvidenceValue>(row)?;
 
-        // Parse neighbor columns into Neighbor enum
-        let neighbor_interface_id: Option<Uuid> = row.get("neighbor_interface_id");
-        let neighbor_host_id: Option<Uuid> = row.get("neighbor_host_id");
-        let neighbor = match (neighbor_interface_id, neighbor_host_id) {
-            (Some(id), None) => Some(Neighbor::Interface(id)),
-            (None, Some(id)) => Some(Neighbor::Host(id)),
-            (None, None) => None,
-            // DB constraint should prevent this, but handle gracefully
-            (Some(_), Some(_)) => {
-                tracing::warn!(
-                    "Interface has both neighbor_interface_id and neighbor_host_id set, using neighbor_interface_id"
-                );
-                Some(Neighbor::Interface(neighbor_interface_id.unwrap()))
-            }
-        };
-
-        // Parse LLDP JSON fields - they may be null
-        let lldp_chassis_json: Option<serde_json::Value> = row.get("lldp_chassis_id");
-        let lldp_chassis_id: Option<LldpChassisId> = lldp_chassis_json.and_then(|v| {
-            if v.is_null() {
-                None
-            } else {
-                serde_json::from_value(v).ok()
-            }
-        });
-
-        let lldp_port_json: Option<serde_json::Value> = row.get("lldp_port_id");
-        let lldp_port_id: Option<LldpPortId> = lldp_port_json.and_then(|v| {
-            if v.is_null() {
-                None
-            } else {
-                serde_json::from_value(v).ok()
-            }
-        });
-
         Ok(Interface {
             id: row.get("id"),
             created_at: row.get("created_at"),
@@ -293,6 +210,9 @@ impl Storable for Interface {
             last_seen_at: row.get("last_seen_at"),
             last_discovery_id: row.get("last_discovery_id"),
             first_discovery_id: row.get("first_discovery_id"),
+            // Never stored — computed at response-serialization time, see
+            // `HostResponse::from_host_with_children`.
+            display_name: None,
             base: InterfaceBase {
                 host_id: row.get("host_id"),
                 network_id: row.get("network_id"),
@@ -306,18 +226,8 @@ impl Storable for Interface {
                 oper_status: oper_status_raw.map(IfOperStatus::from),
                 mac_address,
                 ip_address_id: row.get("ip_address_id"),
-                neighbor,
-                neighbor_seen_at: row.get("neighbor_seen_at"),
-                lldp_chassis_id,
-                lldp_port_id,
-                lldp_sys_name: row.get("lldp_sys_name"),
-                lldp_port_desc: row.get("lldp_port_desc"),
-                lldp_mgmt_addr: row.try_get("lldp_mgmt_addr").ok().flatten(),
-                lldp_sys_desc: row.get("lldp_sys_desc"),
-                cdp_device_id: row.get("cdp_device_id"),
-                cdp_port_id: row.get("cdp_port_id"),
-                cdp_platform: row.get("cdp_platform"),
-                cdp_address: row.try_get("cdp_address").ok().flatten(),
+                ip_configured: row.get("ip_configured"),
+                neighbor_candidates: Vec::new(),
                 fdb_macs: row
                     .try_get::<Option<serde_json::Value>, _>("fdb_macs")
                     .ok()
@@ -368,28 +278,7 @@ impl Entity for Interface {
             oper_status: csv_status(self.base.oper_status),
             mac_address: mac_of(&self.base.mac_address).map(|m| m.to_string()),
             ip_address_id: self.base.ip_address_id,
-            neighbor: self.base.neighbor.as_ref().map(|n| match n {
-                Neighbor::Interface(id) => format!("Interface:{}", id),
-                Neighbor::Host(id) => format!("Host:{}", id),
-            }),
-            lldp_chassis_id: self
-                .base
-                .lldp_chassis_id
-                .as_ref()
-                .and_then(|c| serde_json::to_string(c).ok()),
-            lldp_port_id: self
-                .base
-                .lldp_port_id
-                .as_ref()
-                .and_then(|p| serde_json::to_string(p).ok()),
-            lldp_sys_name: self.base.lldp_sys_name.clone(),
-            lldp_port_desc: self.base.lldp_port_desc.clone(),
-            lldp_mgmt_addr: self.base.lldp_mgmt_addr.map(|a| a.to_string()),
-            lldp_sys_desc: self.base.lldp_sys_desc.clone(),
-            cdp_device_id: self.base.cdp_device_id.clone(),
-            cdp_port_id: self.base.cdp_port_id.clone(),
-            cdp_platform: self.base.cdp_platform.clone(),
-            cdp_address: self.base.cdp_address.map(|a| a.to_string()),
+            ip_configured: self.base.ip_configured,
             fdb_macs: self
                 .base
                 .fdb_macs
@@ -452,22 +341,34 @@ impl Entity for Interface {
         if existing.base.if_name.is_some() && self.base.if_name.is_none() {
             self.base.if_name = existing.base.if_name.clone();
         }
-        // Preserve the server-derived L2 neighbor. Daemons never send `neighbor` —
-        // it is resolved server-side after a scan completes (resolve_lldp_links /
-        // resolve_fdb_links). Without this, every re-scan overwrites the resolved
-        // neighbor with the daemon's None, tearing down the whole L2 topology until
-        // the post-completion re-resolution pass rebuilds it (which races the client
-        // refetch and only restores fully-resolved ports). See GH #649.
-        if existing.base.neighbor.is_some() && self.base.neighbor.is_none() {
-            self.base.neighbor = existing.base.neighbor.clone();
+        // The rest of the ifTable-shaped fields, guarded the same way and for the same reason:
+        // `None` on an *incoming* row means "this source has nothing to say about it", never "the
+        // device stopped reporting it" — the two are indistinguishable at this layer, and only the
+        // first is safe to assume. Without this, a match resolved on Tier 3 (MAC) by a source that
+        // carries only a MAC — the PROFINET DCP case, which reports none of these — replaces the
+        // whole row with its own near-empty one, silently erasing an SNMP walk's if_index/if_type/
+        // statuses/if_descr the moment DCP and SNMP see the same device. A real SNMP re-walk still
+        // overwrites its own prior reading, exactly as it always has — the guard only stops a
+        // narrower source from clobbering fields it never claimed to know.
+        if existing.base.if_index.is_some() && self.base.if_index.is_none() {
+            self.base.if_index = existing.base.if_index;
         }
-        // Server-owned in the same way, and set on the discovery path by
-        // `stamp_neighbor_evidence` before this runs — so this only ever guards the generic CRUD
-        // update, where an incoming payload that omits the field would otherwise erase the last
-        // scan that saw a neighbour and make a long-stale link read as never-evidenced.
-        if self.base.neighbor_seen_at.is_none() {
-            self.base.neighbor_seen_at = existing.base.neighbor_seen_at;
+        if existing.base.if_type.is_some() && self.base.if_type.is_none() {
+            self.base.if_type = existing.base.if_type;
         }
+        if existing.base.admin_status.is_some() && self.base.admin_status.is_none() {
+            self.base.admin_status = existing.base.admin_status;
+        }
+        if existing.base.oper_status.is_some() && self.base.oper_status.is_none() {
+            self.base.oper_status = existing.base.oper_status;
+        }
+        if existing.base.if_descr.is_some() && self.base.if_descr.is_none() {
+            self.base.if_descr = existing.base.if_descr.clone();
+        }
+        // GH #649's neighbor-preservation guard no longer applies: neighbours moved off
+        // `Interface` entirely in GH #701, into `interface_neighbor_interfaces`/
+        // `interface_neighbor_hosts`, which the resolution ladder writes directly and which no
+        // discovery submission (old or new) can touch through this struct at all.
     }
 }
 
@@ -507,6 +408,12 @@ impl Snapshotable for Interface {
         self.lineage_id = id;
     }
 
+    /// GH #701 removed `neighbor` from this struct entirely, so `interfaces` no longer carries a
+    /// self-reference or an `Interface->Host` FK — both moved to `interface_neighbor_interfaces`/
+    /// `interface_neighbor_hosts`, which remap against `maps.interfaces`/`maps.hosts` directly in
+    /// their own `remap_fks_for_clone` (neither is a self-reference from where it lives now, so
+    /// neither needs the `own_clone_ref` two-pass dance `Interface` used to require). Only the
+    /// FKs that stayed on this table remain here.
     fn remap_fks_for_clone(&mut self, maps: &FkMaps) {
         if let Some(closed) = maps.hosts.get(&self.base.host_id) {
             self.base.host_id = *closed;
@@ -521,33 +428,8 @@ impl Snapshotable for Interface {
         {
             self.base.native_vlan_id = Some(*closed);
         }
-        // An Interface→Host `neighbor` can be remapped here (hosts clone before
-        // interfaces, so `maps.hosts` is ready). An Interface→Interface neighbor
-        // self-references the set being cloned, so it's deferred to
-        // `remap_own_clone_refs` once the full interface map exists. `vlan_ids`
-        // (JSONB array) stays as-is — a cross-host reference that may point
-        // outside this network's snapshot; as-of joins handle resolution.
-        if let Some(Neighbor::Host(host_id)) = self.base.neighbor
-            && let Some(closed) = maps.hosts.get(&host_id)
-        {
-            self.base.neighbor = Some(Neighbor::Host(*closed));
-        }
-    }
-
-    fn own_clone_ref(&self) -> Option<Uuid> {
-        // LLDP/CDP `neighbor` pointing at another interface. Its closed copy is
-        // what the snapshot's L2 view resolves against: leave a live id here and
-        // the topology read's `get_interface_by_id` lookup misses, dropping the
-        // PhysicalLink edge. `Neighbor::Host` is a different column, remapped in
-        // the per-row `remap_fks_for_clone` pass.
-        match self.base.neighbor {
-            Some(Neighbor::Interface(id)) => Some(id),
-            _ => None,
-        }
-    }
-
-    fn set_own_clone_ref(&mut self, id: Uuid) {
-        self.base.neighbor = Some(Neighbor::Interface(id));
+        // `vlan_ids` (JSONB array) stays as-is — a cross-host reference that may point outside
+        // this network's snapshot; as-of joins handle resolution.
     }
 }
 
@@ -656,36 +538,45 @@ mod tests {
     }
 
     #[test]
-    fn preserve_immutable_fields_keeps_existing_neighbor_when_incoming_is_none() {
-        // GH #649: daemons never send `neighbor` (it is resolved server-side after a
-        // scan). Before the fix, a re-scan's incoming None wiped the resolved neighbor,
-        // dropping the host off the L2 topology map every scan. It must survive.
+    fn preserve_immutable_fields_keeps_existing_iftable_fields_when_incoming_has_none_of_them() {
+        // The shape a PROFINET DCP submission takes: matched onto an existing SNMP-walked row by
+        // MAC alone, carrying none of the ifTable fields that row already has.
         let mut existing = make_interface(5, Some("eth0"), None);
-        existing.base.neighbor = Some(Neighbor::Interface(Uuid::new_v4()));
-        let mut incoming = make_interface(5, Some("eth0"), None);
-        assert!(incoming.base.neighbor.is_none());
+        existing.base.if_type = Some(6);
+        existing.base.admin_status = Some(IfAdminStatus::Up);
+        existing.base.oper_status = Some(IfOperStatus::Up);
+        existing.base.if_descr = Some("GigabitEthernet0/1".to_string());
+
+        let mut incoming = InterfaceBase::default();
+        incoming.host_id = existing.base.host_id;
+        incoming.network_id = existing.base.network_id;
+        let mut incoming = Interface::new(incoming);
 
         incoming.preserve_immutable_fields(&existing);
 
-        assert_eq!(
-            incoming.base.neighbor, existing.base.neighbor,
-            "Server-resolved L2 neighbor must survive a re-scan that reports neighbor=None; otherwise the L2 topology is torn down on every scan."
-        );
+        assert_eq!(incoming.base.if_index, existing.base.if_index);
+        assert_eq!(incoming.base.if_type, existing.base.if_type);
+        assert_eq!(incoming.base.admin_status, existing.base.admin_status);
+        assert_eq!(incoming.base.oper_status, existing.base.oper_status);
+        assert_eq!(incoming.base.if_descr, existing.base.if_descr);
     }
 
     #[test]
-    fn preserve_immutable_fields_allows_neighbor_to_be_updated_when_incoming_has_value() {
-        // Re-resolution must still be able to change the neighbor: an incoming Some
-        // wins over the existing value.
+    fn preserve_immutable_fields_allows_iftable_fields_to_be_updated_when_incoming_has_them() {
+        // A real SNMP re-walk still overwrites its own prior reading — the guard only protects a
+        // narrower source from clobbering fields it never claimed to know, never a real update.
         let mut existing = make_interface(5, Some("eth0"), None);
-        existing.base.neighbor = Some(Neighbor::Host(Uuid::new_v4()));
-        let new_neighbor = Neighbor::Interface(Uuid::new_v4());
+        existing.base.if_type = Some(6);
+        existing.base.oper_status = Some(IfOperStatus::Up);
+
         let mut incoming = make_interface(5, Some("eth0"), None);
-        incoming.base.neighbor = Some(new_neighbor.clone());
+        incoming.base.if_type = Some(117);
+        incoming.base.oper_status = Some(IfOperStatus::Down);
 
         incoming.preserve_immutable_fields(&existing);
 
-        assert_eq!(incoming.base.neighbor, Some(new_neighbor));
+        assert_eq!(incoming.base.if_type, Some(117));
+        assert_eq!(incoming.base.oper_status, Some(IfOperStatus::Down));
     }
 
     #[test]
@@ -703,71 +594,28 @@ mod tests {
 }
 
 /// A scan that could not finish reading a group of data must not erase what is already stored.
+///
+/// LLDP/CDP preservation moved to `InterfaceNeighborService::replace_candidates_from_discovery`
+/// (see `interface_neighbors/service.rs`'s own tests) along with the fields it guards. What stays
+/// here is FDB and VLAN membership — the two groups `preserve_uncollected_data` still covers.
 #[cfg(test)]
 mod preserve_uncollected_tests {
-    use super::*;
     use crate::server::interfaces::r#impl::base::{
         Interface, InterfaceBase, InterfaceDataComplete,
     };
-    use crate::server::lldp::{LldpChassisId, LldpPortId};
 
-    fn with_lldp(chassis: Option<&str>) -> Interface {
+    fn with_fdb(mac: Option<&str>) -> Interface {
         let mut base = InterfaceBase::default();
-        base.lldp_chassis_id = chassis.map(|c| LldpChassisId::MacAddress(c.to_string()));
-        base.lldp_port_id = chassis.map(|_| LldpPortId::LocallyAssigned("41".to_string()));
-        base.lldp_sys_name = chassis.map(|_| "switch-core-01".to_string());
-        base.fdb_macs = chassis.map(|_| vec!["00:1a:2b:00:10:00".to_string()]);
+        base.fdb_macs = mac.map(|m| vec![m.to_string()]);
         Interface::new(base)
     }
 
-    /// The reported failure: a truncated chassis column produced an incoming row with no chassis
-    /// id, which overwrote a good one. That row then no longer matches the L2 resolution filter
-    /// (it requires a chassis id or CDP device id), so the link froze at whatever it had last
-    /// resolved to and no rescan could repair it.
-    #[test]
-    fn an_incomplete_lldp_walk_keeps_the_stored_neighbour() {
-        let existing = with_lldp(Some("00:1a:2b:00:12:00"));
-        let mut incoming = with_lldp(None);
-
-        incoming.preserve_uncollected_data(
-            &existing,
-            InterfaceDataComplete {
-                lldp: false,
-                ..Default::default()
-            },
-        );
-
-        assert_eq!(
-            incoming.base.lldp_chassis_id, existing.base.lldp_chassis_id,
-            "a chassis id must survive a walk that never read it"
-        );
-        assert_eq!(incoming.base.lldp_port_id, existing.base.lldp_port_id);
-        assert_eq!(incoming.base.lldp_sys_name, existing.base.lldp_sys_name);
-    }
-
-    /// The other direction, which is why this cannot simply preserve whenever the incoming value
-    /// is absent: a device that genuinely lost its neighbour reports nothing, and that has to
-    /// clear — otherwise a decommissioned link is drawn for ever.
-    #[test]
-    fn a_complete_lldp_walk_clears_a_neighbour_that_is_gone() {
-        let existing = with_lldp(Some("00:1a:2b:00:12:00"));
-        let mut incoming = with_lldp(None);
-
-        incoming.preserve_uncollected_data(&existing, InterfaceDataComplete::default());
-
-        assert!(
-            incoming.base.lldp_chassis_id.is_none(),
-            "a complete walk reporting no neighbour is authoritative"
-        );
-        assert!(incoming.base.lldp_sys_name.is_none());
-    }
-
-    /// FDB has the same exposure and more field evidence: in the #649 export, 18 neighbours are
-    /// resolved from `fdb_macs` alone, and losing it drops them out of FDB re-resolution.
+    /// The reported failure, at the group that stayed on `Interface`: a truncated FDB walk
+    /// produced an incoming row with no learned MACs, which overwrote a good one.
     #[test]
     fn an_incomplete_fdb_walk_keeps_the_stored_macs() {
-        let existing = with_lldp(Some("00:1a:2b:00:12:00"));
-        let mut incoming = with_lldp(None);
+        let existing = with_fdb(Some("00:1a:2b:00:10:00"));
+        let mut incoming = with_fdb(None);
 
         incoming.preserve_uncollected_data(
             &existing,
@@ -778,24 +626,21 @@ mod preserve_uncollected_tests {
         );
 
         assert_eq!(incoming.base.fdb_macs, existing.base.fdb_macs);
-        assert!(
-            incoming.base.lldp_chassis_id.is_none(),
-            "only the group that was cut short is preserved; LLDP completed and must clear"
-        );
     }
 
-    /// The guard must not freeze a row: a complete walk carrying new data still replaces the old.
+    /// The other direction, which is why this cannot simply preserve whenever the incoming value
+    /// is absent: a device that genuinely lost its learned MACs reports nothing, and that has to
+    /// clear — otherwise a decommissioned link is drawn for ever.
     #[test]
-    fn a_complete_walk_still_applies_changed_neighbour_data() {
-        let existing = with_lldp(Some("00:1a:2b:00:12:00"));
-        let mut incoming = with_lldp(Some("00:1a:2b:00:99:99"));
+    fn a_complete_fdb_walk_clears_macs_that_are_gone() {
+        let existing = with_fdb(Some("00:1a:2b:00:10:00"));
+        let mut incoming = with_fdb(None);
 
         incoming.preserve_uncollected_data(&existing, InterfaceDataComplete::default());
 
-        assert_eq!(
-            incoming.base.lldp_chassis_id,
-            Some(LldpChassisId::MacAddress("00:1a:2b:00:99:99".to_string())),
-            "a device that moved must not be pinned to its old neighbour"
+        assert!(
+            incoming.base.fdb_macs.is_none(),
+            "a complete walk reporting no learned MACs is authoritative"
         );
     }
 
@@ -805,59 +650,5 @@ mod preserve_uncollected_tests {
     fn an_old_daemon_payload_defaults_to_authoritative() {
         let parsed: InterfaceDataComplete = serde_json::from_str("{}").unwrap();
         assert!(parsed.all());
-    }
-}
-
-#[cfg(test)]
-mod clone_remap_tests {
-    use super::*;
-    use crate::server::shared::storage::snapshot::{FkMaps, Snapshotable};
-    use std::collections::HashMap;
-
-    fn iface_with(neighbor: Option<Neighbor>) -> Interface {
-        Interface::new(InterfaceBase {
-            neighbor,
-            ..Default::default()
-        })
-    }
-
-    #[test]
-    fn only_an_interface_neighbor_is_a_self_reference() {
-        // `Neighbor::Host` lives in a different column and is remapped by
-        // `remap_fks_for_clone` against the host map. Exposing it here too would
-        // send a host id through the interface self-reference pass, which would
-        // look it up in the wrong map.
-        let target = Uuid::new_v4();
-
-        assert_eq!(
-            iface_with(Some(Neighbor::Interface(target))).own_clone_ref(),
-            Some(target)
-        );
-        assert_eq!(
-            iface_with(Some(Neighbor::Host(target))).own_clone_ref(),
-            None
-        );
-        assert_eq!(iface_with(None).own_clone_ref(), None);
-    }
-
-    #[test]
-    fn setting_the_self_reference_keeps_it_an_interface_neighbor() {
-        let closed = Uuid::new_v4();
-        let mut iface = iface_with(Some(Neighbor::Interface(Uuid::new_v4())));
-        iface.set_own_clone_ref(closed);
-        assert_eq!(iface.base.neighbor, Some(Neighbor::Interface(closed)));
-    }
-
-    #[test]
-    fn remaps_host_neighbor_via_parent_maps() {
-        let live = Uuid::new_v4();
-        let closed = Uuid::new_v4();
-        let maps = FkMaps {
-            hosts: HashMap::from([(live, closed)]),
-            ..Default::default()
-        };
-        let mut iface = iface_with(Some(Neighbor::Host(live)));
-        iface.remap_fks_for_clone(&maps);
-        assert_eq!(iface.base.neighbor, Some(Neighbor::Host(closed)));
     }
 }

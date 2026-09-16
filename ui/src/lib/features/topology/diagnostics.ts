@@ -500,9 +500,15 @@ export interface ViewerSample {
 	 */
 	edgesByType: Record<string, number>;
 	/**
-	 * The payload's interfaces by how far their neighbour resolved: `Interface` is port-precise
-	 * (draws a solid `PhysicalLink`), `Host` is device-level (a dashed `NeighborLink`), `none`
-	 * never resolved and draws nothing. Keyed by the backend's own discriminants.
+	 * The payload's resolved-adjacency rows (`neighbours`, GH #701) by kind: `Interface` is
+	 * port-precise (draws a solid `PhysicalLink`), `Host` is device-level (a dashed `NeighborLink`).
+	 * `none` counts *interfaces* with zero rows of their own, since a port with no adjacency draws
+	 * nothing. Keyed by the backend's own discriminants.
+	 *
+	 * Rows, not interfaces, for `Interface`/`Host`: a port can now carry several adjacency rows
+	 * (an LLDP entry and a CDP entry resolving to different neighbours), so one interface can
+	 * contribute to both buckets — this is no longer a partition of the interface set the way it
+	 * was before a port's resolution became a `Vec`.
 	 *
 	 * The upstream half of `edgesByType`: it says whether the edge mix the renderer was handed is
 	 * what the data supports, so "almost everything is dashed" can be attributed to resolution
@@ -556,7 +562,9 @@ interface SampleInputs {
  *  neighbour discriminants stay the backend's. */
 export interface DiagnosablePayload {
 	edges?: { edge_type?: unknown }[];
-	interfaces?: { neighbor?: components['schemas']['Neighbor'] | null }[];
+	interfaces?: { id?: string }[];
+	/** GH #701: resolved adjacency rows, replacing the old per-interface `neighbor` scalar. */
+	neighbours?: { interface_id?: string; neighbor?: components['schemas']['Neighbor'] | null }[];
 }
 
 type NeighborKind = components['schemas']['Neighbor']['type'];
@@ -620,10 +628,14 @@ function summariseNeighborKinds(
 	payload: DiagnosablePayload | null
 ): ViewerSample['interfaceNeighborKinds'] {
 	const out: ViewerSample['interfaceNeighborKinds'] = { Interface: 0, Host: 0, none: 0 };
-	for (const iface of payload?.interfaces ?? []) {
-		const kind = iface.neighbor?.type;
+	const interfacesWithRows = new Set<string>();
+	for (const row of payload?.neighbours ?? []) {
+		const kind = row.neighbor?.type;
 		if (kind && NEIGHBOR_KINDS.includes(kind)) out[kind] += 1;
-		else out.none += 1;
+		if (row.interface_id) interfacesWithRows.add(row.interface_id);
+	}
+	for (const iface of payload?.interfaces ?? []) {
+		if (!iface.id || !interfacesWithRows.has(iface.id)) out.none += 1;
 	}
 	return out;
 }

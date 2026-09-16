@@ -215,22 +215,53 @@ impl LldpResolver for LldpResolverImpl {
             return IdentityResolution::NotFound;
         };
 
-        // A MAC names a port only when exactly one physical interface on the host carries it.
-        // The lookup this replaced had no ORDER BY and no LIMIT, so on a device that repeats one
-        // MAC across its ports it returned an arbitrary port and the link looked port-precise.
+        // A MAC names a port only when exactly one physical interface on the host carries it, or
+        // when exactly one of several physical candidates is also the one the device's own
+        // ipAddrTable binds an address to.
         //
         // Virtual rows are excluded because they contest a lookup they can never win: a VLAN or
         // loopback interface is not the far end of a cable, and on the customer's Westermo six
         // `propVirtual` VLAN rows share the chassis base MAC while all ten physical ports have
         // unique addresses. Counting them turned every such lookup `Ambiguous` and cost the port.
+        //
+        // That guard alone isn't enough for a Windows host whose NDIS filter/LWF pseudo-interfaces
+        // (WFP Native MAC Layer, QoS Packet Scheduler, WFP 802.3 filters) sit on top of the same
+        // miniport and report the identical MAC with an ordinary ethernet `if_type` (GH #668) —
+        // there is no wire a filter driver terminates, so among these candidates exactly one is
+        // capable of being the far end of the cable, but `if_type` cannot say which. `ip_configured`
+        // can: `ipAddrTable` only ever binds the device's IP to a real IP-stack adapter, never to
+        // a filter driver riding on top of one, so it survives as a tie-break where MAC and type
+        // alone leave several physical rows standing. See `InterfaceBase::ip_configured`'s doc comment
+        // for what the flag asserts and why.
+        //
+        // Fetching every match (rather than the uniqueness-only `get_unique` this replaced) is
+        // needed because there is a decision to make once there is more than one row — the same
+        // fetch-then-narrow-in-Rust shape `mac_identity::select_matching_host_by_mac`'s caller and
+        // `build_neighbor_adjacency` already use, because SQL alone can't express it.
         let filter = StorableFilter::<Interface>::new_from_host_ids(&[host_id])
             .mac_address(&mac_addr)
             .physical_if_types()
             .live();
-        match self.interface_service.get_unique(filter).await {
-            Ok(Unique::One(entry)) => IdentityResolution::Resolved(entry.id),
-            Ok(Unique::None) | Err(_) => IdentityResolution::NotFound,
-            Ok(Unique::Multiple) => IdentityResolution::Ambiguous,
+        let Ok(candidates) = self.interface_service.get_all(filter).await else {
+            return IdentityResolution::NotFound;
+        };
+        match candidates.len() {
+            0 => IdentityResolution::NotFound,
+            1 => IdentityResolution::Resolved(candidates[0].id),
+            _ => {
+                let ip_configured: Vec<&Interface> =
+                    candidates.iter().filter(|c| c.base.ip_configured).collect();
+                match ip_configured.len() {
+                    // Exactly one candidate carries the device's own IP binding — that's the
+                    // physical NIC. Zero (nothing bound yet, or a non-Windows device this signal
+                    // doesn't apply to) or more than one (e.g. two NICs sharing a MAC through a
+                    // teaming misconfiguration, or a non-native SNMP agent exposing more than one
+                    // adapter as IP-bound) leaves the tie unresolved — never guess between
+                    // equally-plausible candidates.
+                    1 => IdentityResolution::Resolved(ip_configured[0].id),
+                    _ => IdentityResolution::Ambiguous,
+                }
+            }
         }
     }
 

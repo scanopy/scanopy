@@ -159,6 +159,7 @@ impl ChangeTriggersTopologyStaleness<Network> for Network {
 }
 
 impl Storable for Network {
+    const HAS_SCD2: bool = false;
     type BaseData = NetworkBase;
 
     fn table_name() -> &'static str {

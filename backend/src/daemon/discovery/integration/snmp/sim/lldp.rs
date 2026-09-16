@@ -17,7 +17,7 @@ use std::net::IpAddr;
 
 use super::transport::Handler;
 use super::wire::{MacEncoding, PassValue, Row};
-use crate::daemon::discovery::integration::snmp::oids::lldp;
+use crate::daemon::discovery::integration::snmp::oids::{lldp, lldp_v2};
 use crate::server::lldp::{LldpChassisId, LldpPortId};
 
 /// Which LLDP MIB a simulated table serves.
@@ -28,10 +28,10 @@ use crate::server::lldp::{LldpChassisId, LldpPortId};
 /// the lab has to be able to describe it — which means the OIDs and the index layout are values
 /// here rather than constants baked into `wire_rows`.
 ///
-/// Only [`CLASSIC`] exists today. A second one is a table of constants plus an index composer;
-/// nothing else in the simulator needs to know it arrived — `data_files` and `registrations`
-/// derive the filename and the served subtree from `root`/`file_suffix`, and `SimAgent` serves
-/// whatever it is registered for.
+/// [`CLASSIC`] and [`V2`] are each a table of constants plus an index composer; nothing else in
+/// the simulator knows which a device serves — `data_files` and `registrations` derive the
+/// filename and the served subtree from `root`/`file_suffix`, and `SimAgent` serves whatever it
+/// is registered for.
 #[derive(Debug)]
 pub struct SimLldpMib {
     /// Subtree the agent registers, and the whole of what a walk of this MIB can reach.
@@ -113,6 +113,60 @@ pub static CLASSIC: SimLldpMib = SimLldpMib {
     },
     rem_suffix: classic_rem_suffix,
 };
+
+/// The LLDP-V2-MIB, `1.3.111.2.802.1.1.13` (GH #688).
+///
+/// The local tables keep the classic column numbering; the remote entry inserts
+/// `lldpV2RemLocalIfIndex` as column 2, so every remote column sits one above its classic
+/// counterpart, and its index gains a fourth sub-id — see [`v2_rem_suffix`].
+pub static V2: SimLldpMib = SimLldpMib {
+    root: lldp_v2::LLDP_V2_MIB,
+    local_port_table: lldp_v2::local::LLDP_V2_LOC_PORT_TABLE,
+    // `lldpV2RemTable` and `lldpV2RemManAddrTable`, as for [`CLASSIC`].
+    remote_root: "1.3.111.2.802.1.1.13.1.4",
+    file_suffix: "lldpv2",
+    local: SimLldpLocalColumns {
+        chassis_id_subtype: lldp_v2::local::LLDP_V2_LOC_CHASSIS_ID_SUBTYPE,
+        chassis_id: lldp_v2::local::LLDP_V2_LOC_CHASSIS_ID,
+        sys_name: lldp_v2::local::LLDP_V2_LOC_SYS_NAME,
+        sys_desc: lldp_v2::local::LLDP_V2_LOC_SYS_DESC,
+        port_id_subtype: lldp_v2::local::LLDP_V2_LOC_PORT_ID_SUBTYPE,
+        port_id: lldp_v2::local::LLDP_V2_LOC_PORT_ID,
+        port_desc: lldp_v2::local::LLDP_V2_LOC_PORT_DESC,
+    },
+    remote: SimLldpRemoteColumns {
+        chassis_id_subtype: lldp_v2::remote::entry::LLDP_V2_REM_CHASSIS_ID_SUBTYPE,
+        chassis_id: lldp_v2::remote::entry::LLDP_V2_REM_CHASSIS_ID,
+        port_id_subtype: lldp_v2::remote::entry::LLDP_V2_REM_PORT_ID_SUBTYPE,
+        port_id: lldp_v2::remote::entry::LLDP_V2_REM_PORT_ID,
+        port_desc: lldp_v2::remote::entry::LLDP_V2_REM_PORT_DESC,
+        sys_name: lldp_v2::remote::entry::LLDP_V2_REM_SYS_NAME,
+        sys_desc: lldp_v2::remote::entry::LLDP_V2_REM_SYS_DESC,
+        man_addr_if_subtype: lldp_v2::remote::entry::LLDP_V2_REM_MAN_ADDR_IF_SUBTYPE,
+    },
+    rem_suffix: v2_rem_suffix,
+};
+
+/// The `lldpV2DestAddressTable` row every neighbour in the lab is learned through: 1, the
+/// nearest-bridge group address, which is the only destination the firmware this models uses.
+const NEAREST_BRIDGE_DEST_INDEX: u64 = 1;
+
+/// `lldpV2RemTimeMark.lldpV2RemLocalIfIndex.lldpV2RemLocalDestMACAddress.lldpV2RemIndex` — four
+/// sub-ids, the second a real ifIndex and the third a row pointer, not six octets of MAC. No V2
+/// firmware has been seen omitting the time mark, so [`TimeMark::Omitted`] serves it as 0 rather
+/// than inventing a three-sub-id layout the daemon deliberately rejects.
+fn v2_rem_suffix(neighbour: &RemoteNeighbour) -> Vec<u64> {
+    let mark = match neighbour.time_mark {
+        TimeMark::At(mark) => mark as u64,
+        TimeMark::Omitted => 0,
+    };
+    vec![
+        mark,
+        neighbour.local_port as u64,
+        NEAREST_BRIDGE_DEST_INDEX,
+        neighbour.index as u64,
+    ]
+}
 
 /// The `lldpRemManAddrTable` index sub-ids that follow a neighbour's own key:
 /// `lldpRemManAddrSubtype.lldpRemManAddrLen.lldpRemManAddr`.
@@ -218,6 +272,10 @@ pub struct RemoteNeighbour {
     /// absence is itself a case worth covering: it is the difference between a far end this
     /// network could place if it were scanned and one that cannot be placed at all.
     pub mgmt_addr: Option<IpAddr>,
+    /// A lab peer's address to publish as [`Self::mgmt_addr`], resolved once every device has its
+    /// own — set through [`Self::mgmt_addr_of`] rather than [`Self::mgmt_addr`] directly, because
+    /// the peer's address does not exist yet while this table is being built.
+    pub mgmt_addr_of: Option<&'static str>,
     /// Set only where the malformed shape is the point.
     pub defect: Option<ChassisDefect>,
 }
@@ -239,6 +297,7 @@ impl RemoteNeighbour {
             sys_name: None,
             sys_desc: None,
             mgmt_addr: None,
+            mgmt_addr_of: None,
             defect: None,
         }
     }
@@ -273,6 +332,14 @@ impl RemoteNeighbour {
         self
     }
 
+    /// Publish a lab peer's own address as this neighbour's management address, by name — never
+    /// by a literal the peer's renumbering would silently strand. Resolved once every device in
+    /// the lab has its final address (see `allocation::resolve_peer_addresses`).
+    pub fn mgmt_addr_of(mut self, name: &'static str) -> Self {
+        self.mgmt_addr_of = Some(name);
+        self
+    }
+
     pub fn defect(mut self, defect: ChassisDefect) -> Self {
         self.defect = Some(defect);
         self
@@ -296,7 +363,7 @@ impl RemoteNeighbour {
                 }
                 Some(ChassisDefect::SubtypeWrongType(text)) => {
                     rows.push(Row::at(
-                        lldp::remote::entry::LLDP_REM_CHASSIS_ID_SUBTYPE,
+                        mib.remote.chassis_id_subtype,
                         &suffix,
                         PassValue::Str(text.to_string()),
                     ));
@@ -308,7 +375,7 @@ impl RemoteNeighbour {
                 }
                 None => {
                     rows.push(Row::at(
-                        lldp::remote::entry::LLDP_REM_CHASSIS_ID_SUBTYPE,
+                        mib.remote.chassis_id_subtype,
                         &suffix,
                         PassValue::Integer(subtype as i64),
                     ));
@@ -439,6 +506,12 @@ pub struct LldpTable {
     /// so a handler slow enough to fail a bulk page occupies the agent long enough to fail the
     /// getnext queued behind it, and the device fails both ways instead of one.
     pub neighbours_refuse_getbulk: bool,
+    /// One `lldpRemEntry` column the device answers nothing for, by either PDU type.
+    ///
+    /// A selector rather than an OID so it names the column in whichever MIB the table is served
+    /// under. Like the bulk refusal this is the shim's doing, not a handler's, and for the same
+    /// reason: a handler slow enough to fail one column stalls the agent for every column after it.
+    pub silent_column: Option<fn(&SimLldpRemoteColumns) -> &'static str>,
 }
 
 impl LldpTable {
@@ -463,7 +536,14 @@ impl LldpTable {
             neighbours: Vec::new(),
             local_port_handler: Handler::Normal,
             neighbours_refuse_getbulk: false,
+            silent_column: None,
         }
+    }
+
+    /// Answer nothing for one neighbour column, while every other column reads normally.
+    pub fn column_goes_silent(mut self, column: fn(&SimLldpRemoteColumns) -> &'static str) -> Self {
+        self.silent_column = Some(column);
+        self
     }
 
     /// Serve `lldpLocPortTable` through a handler of its own.
@@ -581,32 +661,63 @@ mod tests {
     /// legitimately renamed.
     #[test]
     fn a_table_serves_the_oids_its_own_mib_names() {
-        let rows = LldpTable::new(
-            Advertised::octets(LldpChassisId::MacAddress("00:11:22:33:44:55".into())),
-            "switch-somewhere",
-        )
-        .local_ports(vec![LocalPort::new(
-            1,
-            Advertised::text(
-                LldpPortId::InterfaceName("Gi0/1".into()),
-                MacEncoding::AsciiLower,
-            ),
-        )])
-        .neighbours(vec![RemoteNeighbour::new(
-            1,
-            Advertised::octets(LldpChassisId::MacAddress("00:aa:bb:cc:dd:ee".into())),
-            Advertised::text(
-                LldpPortId::InterfaceName("Gi0/2".into()),
-                MacEncoding::AsciiLower,
-            ),
-        )])
-        .wire_rows();
+        for mib in [&CLASSIC, &V2] {
+            let rows = LldpTable::new(
+                Advertised::octets(LldpChassisId::MacAddress("00:11:22:33:44:55".into())),
+                "switch-somewhere",
+            )
+            .in_mib(mib)
+            .local_ports(vec![LocalPort::new(
+                1,
+                Advertised::text(
+                    LldpPortId::InterfaceName("Gi0/1".into()),
+                    MacEncoding::AsciiLower,
+                ),
+            )])
+            .neighbours(vec![
+                RemoteNeighbour::new(
+                    1,
+                    Advertised::octets(LldpChassisId::MacAddress("00:aa:bb:cc:dd:ee".into())),
+                    Advertised::text(
+                        LldpPortId::InterfaceName("Gi0/2".into()),
+                        MacEncoding::AsciiLower,
+                    ),
+                ),
+                // The wrong-typed subtype is the one row that used to name a classic column
+                // regardless of the MIB the table was in.
+                RemoteNeighbour::new(
+                    2,
+                    Advertised::octets(LldpChassisId::MacAddress("00:aa:bb:cc:dd:ef".into())),
+                    Advertised::text(
+                        LldpPortId::InterfaceName("Gi0/3".into()),
+                        MacEncoding::AsciiLower,
+                    ),
+                )
+                .defect(ChassisDefect::SubtypeWrongType("macAddress")),
+            ])
+            .wire_rows();
 
-        assert!(!rows.is_empty());
-        let root = crate::daemon::discovery::integration::snmp::oids::oid_parts(CLASSIC.root);
-        assert!(
-            rows.iter().all(|row| row.oid.starts_with(&root)),
-            "every row must fall under the MIB the table names"
+            assert!(!rows.is_empty());
+            let root = crate::daemon::discovery::integration::snmp::oids::oid_parts(mib.root);
+            assert!(
+                rows.iter().all(|row| row.oid.starts_with(&root)),
+                "every row must fall under {}, the MIB the table names",
+                mib.root
+            );
+        }
+    }
+
+    /// The V2 index has four sub-ids, the third of them the destination-address row rather than
+    /// anything the neighbour carries. It is the shape the classic end-relative splitter mis-reads
+    /// (GH #688), so a fixture that served three would not be testing the fallback at all.
+    #[test]
+    fn a_v2_neighbour_is_keyed_by_time_mark_if_index_dest_address_and_index() {
+        let rows = RemoteNeighbour::new(10009, chassis(), port())
+            .index(6)
+            .wire_rows(&V2);
+        assert_eq!(
+            suffixes(&rows, lldp_v2::remote::entry::LLDP_V2_REM_CHASSIS_ID),
+            vec![vec![0, 10009, 1, 6]]
         );
     }
 

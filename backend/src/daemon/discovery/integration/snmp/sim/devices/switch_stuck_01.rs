@@ -12,7 +12,7 @@ use super::inline;
 pub fn device() -> SimDevice {
     SimDevice {
         name: "switch-stuck-01",
-        ip: Ipv4Addr::new(192, 168, 7, 249),
+        ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Regression {
             issue: "the walk's retry-then-stop guard",
             defect: "answers every request for its ARP table with the same row, whatever was asked",
@@ -34,6 +34,7 @@ pub fn device() -> SimDevice {
         tables: tables(),
         arp_handler: Handler::Stuck,
         suppresses: Vec::new(),
+        rejects_getbulk: None,
     }
 }
 

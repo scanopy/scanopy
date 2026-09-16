@@ -17,7 +17,7 @@ use super::inline;
 pub fn device() -> SimDevice {
     SimDevice {
         name: "legacy-switch-01",
-        ip: Ipv4Addr::new(192, 168, 7, 236),
+        ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Regression {
             issue: "#557",
             defect: "SNMPv1 has no getbulk, so every table must come back over getnext",
@@ -39,6 +39,7 @@ pub fn device() -> SimDevice {
         tables: tables(),
         arp_handler: Handler::Normal,
         suppresses: Vec::new(),
+        rejects_getbulk: None,
     }
 }
 
@@ -130,5 +131,26 @@ mod tests {
         assert!(scan.fdb.complete);
         assert_eq!(scan.neighbours.records.len(), 1);
         assert!(scan.neighbours.complete);
+    }
+
+    /// SNMPv1 has no `endOfMibView`. An agent answers a v1 GETNEXT past the end of its MIB view
+    /// with `noSuchName` and the request echoed back (RFC 3584 §4.2.2.2.2), and read as a row that
+    /// echo is an answer to some other question: the column base, which the walk re-asked and
+    /// then reported desynchronised. The ENTITY and CDP walks both start past this device's last
+    /// table, so both get that answer.
+    #[tokio::test]
+    async fn walking_off_the_end_of_its_mib_view_is_a_natural_end() {
+        let scan = harness::scan("legacy-switch-01").await;
+
+        assert!(
+            scan.entity.complete,
+            "the device has no ENTITY-MIB, which noSuchName says in full; got {:?}",
+            scan.entity.reason
+        );
+        assert!(
+            scan.cdp.complete,
+            "the device has no CDP-MIB, which noSuchName says in full; got {:?}",
+            scan.cdp.reason
+        );
     }
 }

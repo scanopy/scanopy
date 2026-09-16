@@ -1,22 +1,28 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import type { DaemonOS } from '../utils';
+	import OsIcon from './OsIcon.svelte';
 	import {
 		common_binary,
 		common_docker,
+		common_exe,
 		common_linux,
 		common_macos,
+		common_msi,
 		common_windows,
 		daemons_operatingSystem
 	} from '$lib/paraglide/messages';
 
 	type LinuxMethod = 'binary' | 'docker';
+	type WindowsMethod = 'exe' | 'msi';
 
 	interface Props {
 		selectedOS: DaemonOS;
 		onOsSelect: (os: DaemonOS) => void;
 		linuxMethod?: LinuxMethod;
 		onLinuxMethodChange?: (method: LinuxMethod) => void;
+		windowsMethod?: WindowsMethod;
+		onWindowsMethodChange?: (method: WindowsMethod) => void;
 		afterLabel?: Snippet;
 		afterButtons?: Snippet;
 		children?: Snippet;
@@ -27,6 +33,8 @@
 		onOsSelect,
 		linuxMethod = 'binary',
 		onLinuxMethodChange,
+		windowsMethod = 'exe',
+		onWindowsMethodChange,
 		afterLabel,
 		afterButtons,
 		children
@@ -43,6 +51,11 @@
 		{ id: 'binary' as LinuxMethod, label: common_binary() },
 		{ id: 'docker' as LinuxMethod, label: common_docker() }
 	]);
+
+	let windowsMethodOptions = $derived([
+		{ id: 'exe' as WindowsMethod, label: common_exe() },
+		{ id: 'msi' as WindowsMethod, label: common_msi() }
+	]);
 </script>
 
 <!-- OS Selector: Desktop layout -->
@@ -56,9 +69,12 @@
 			{#each osOptions as option (option.id)}
 				<button
 					type="button"
-					class="btn-secondary {selectedOS === option.id ? 'ring-primary ring-2' : ''}"
+					class="btn-secondary flex items-center gap-1.5 {selectedOS === option.id
+						? 'ring-primary ring-2'
+						: ''}"
 					onclick={() => onOsSelect(option.id)}
 				>
+					<OsIcon os={option.id} class="h-4 w-4 flex-shrink-0" />
 					{option.label}
 				</button>
 			{/each}
@@ -97,6 +113,22 @@
 				type="button"
 				class="btn-secondary btn-sm flex-1 {linuxMethod === option.id ? 'ring-primary ring-2' : ''}"
 				onclick={() => onLinuxMethodChange?.(option.id)}
+			>
+				{option.label}
+			</button>
+		{/each}
+	</div>
+{:else if selectedOS === 'windows' && onWindowsMethodChange}
+	<!-- Windows: Install method sub-toggle (exe vs msi) — only shown when the caller wires it up,
+	     since not every OsSelector consumer has distinct content for each method. -->
+	<div class="flex gap-1 sm:w-[calc((100%-3*0.5rem)/4)]">
+		{#each windowsMethodOptions as option (option.id)}
+			<button
+				type="button"
+				class="btn-secondary btn-sm flex-1 {windowsMethod === option.id
+					? 'ring-primary ring-2'
+					: ''}"
+				onclick={() => onWindowsMethodChange?.(option.id)}
 			>
 				{option.label}
 			</button>

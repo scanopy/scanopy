@@ -30,17 +30,21 @@ use crate::server::{
             DaemonStartupRequest, LegacyCapabilities, ServerCapabilities,
         },
         base::{Daemon, DaemonMode},
-        install_artifacts::InstallCommandKind,
+        install_artifacts::{InstallCommandKind, WINDOWS_MSI_URL},
         version::DaemonVersionPolicy,
     },
-    shared::types::api::{
-        ApiError, ApiResponse, ApiResult, EmptyApiResponse, PaginatedApiResponse,
+    shared::{
+        handlers::cache::AppCache,
+        types::api::{ApiError, ApiResponse, ApiResult, EmptyApiResponse, PaginatedApiResponse},
     },
 };
 use axum::http::StatusCode;
 use axum::{
+    Extension,
+    body::Body,
     extract::{Path, State},
-    response::Json,
+    http::{HeaderMap, HeaderValue, header},
+    response::{IntoResponse, Json},
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -321,6 +325,69 @@ async fn get_install_command(
     );
 
     Ok(Json(ApiResponse::success(artifacts)))
+}
+
+/// Cache key for the proxied Windows MSI bytes (see [`get_windows_msi`]).
+const WINDOWS_MSI_CACHE_KEY: &str = "windows_msi_bytes";
+
+/// Proxy the Windows daemon MSI through our own origin.
+///
+/// The MSI itself carries no tenant-specific data (it's already a public, unauthenticated GitHub
+/// release asset) — only the *filename* a client saves it under is per-daemon, and that's encoded
+/// entirely client-side by the caller from the value `get_install_command` already returned. This
+/// endpoint exists solely so a same-origin download can set that filename: linking directly to
+/// GitHub doesn't work because its signed asset URL bakes in a fixed `Content-Disposition`, which
+/// browsers always prefer over an `<a download>` attribute.
+#[utoipa::path(
+    get,
+    path = "/api/install/windows-msi",
+    tag = Daemon::ENTITY_NAME_PLURAL,
+    operation_id = "get_windows_msi",
+    summary = "Download the Windows daemon MSI",
+    description = "Proxies the Windows daemon MSI from GitHub so the browser can save it under a caller-chosen filename. Cached for an hour to avoid refetching from GitHub on every request.",
+    responses(
+        (status = 200, description = "Windows daemon MSI installer", content_type = "application/octet-stream", body = Vec<u8>),
+        (status = 502, description = "Failed to fetch the MSI from GitHub", body = ApiErrorResponse),
+    )
+)]
+pub async fn get_windows_msi(
+    Extension(cache): Extension<Arc<AppCache>>,
+) -> ApiResult<impl IntoResponse> {
+    let bytes = match cache.get::<bytes::Bytes>(WINDOWS_MSI_CACHE_KEY).await {
+        Some(cached) => cached,
+        None => {
+            let response = reqwest::get(WINDOWS_MSI_URL).await.map_err(|e| {
+                ApiError::bad_gateway(format!("Failed to fetch MSI from GitHub: {e}"))
+            })?;
+
+            if !response.status().is_success() {
+                return Err(ApiError::bad_gateway(format!(
+                    "GitHub returned {} fetching the MSI",
+                    response.status()
+                )));
+            }
+
+            let fetched = response
+                .bytes()
+                .await
+                .map_err(|e| ApiError::bad_gateway(format!("Failed to read MSI body: {e}")))?;
+
+            cache.set(WINDOWS_MSI_CACHE_KEY, fetched.clone(), 1).await;
+            fetched
+        }
+    };
+
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        header::CONTENT_TYPE,
+        HeaderValue::from_static("application/octet-stream"),
+    );
+    headers.insert(
+        header::CONTENT_DISPOSITION,
+        HeaderValue::from_static("attachment; filename=\"scanopy-daemon-windows-amd64.msi\""),
+    );
+
+    Ok((headers, Body::from(bytes)))
 }
 
 /// Delete daemon — blocks if daemon has active discovery sessions.

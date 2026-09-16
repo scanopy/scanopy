@@ -17,7 +17,7 @@ use super::inline;
 pub fn device() -> SimDevice {
     SimDevice {
         name: "switch-exos-01",
-        ip: Ipv4Addr::new(192, 168, 7, 238),
+        ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Regression {
             issue: "Issue 2, July 2026",
             defect: "ExtremeXOS numbers lldpRemTable local ports in a namespace distinct from ifIndex, so without the lldpLocPortTable remap this switch yields zero neighbours",
@@ -39,6 +39,7 @@ pub fn device() -> SimDevice {
         tables: tables(),
         arp_handler: Handler::Normal,
         suppresses: Vec::new(),
+        rejects_getbulk: None,
     }
 }
 

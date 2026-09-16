@@ -67,11 +67,9 @@ erDiagram
 "public.entity_tags" }o--o| "public.snapshots" : "FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE"
 "public.interfaces" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
 "public.interfaces" }o--|| "public.hosts" : "FOREIGN KEY (host_id) REFERENCES hosts(id) ON DELETE CASCADE"
-"public.interfaces" }o--o| "public.hosts" : "FOREIGN KEY (neighbor_host_id) REFERENCES hosts(id) ON DELETE SET NULL"
 "public.interfaces" }o--o| "public.discovery" : "FOREIGN KEY (first_discovery_id) REFERENCES discovery(id) ON DELETE SET NULL"
 "public.interfaces" }o--o| "public.discovery" : "FOREIGN KEY (last_discovery_id) REFERENCES discovery(id) ON DELETE SET NULL"
 "public.interfaces" }o--o| "public.ip_addresses" : "FOREIGN KEY (ip_address_id) REFERENCES ip_addresses(id) ON DELETE SET NULL"
-"public.interfaces" }o--o| "public.interfaces" : "FOREIGN KEY (neighbor_interface_id) REFERENCES interfaces(id) ON DELETE SET NULL"
 "public.interfaces" }o--o| "public.vlans" : "FOREIGN KEY (native_vlan_id) REFERENCES vlans(id) ON DELETE SET NULL"
 "public.interfaces" }o--o| "public.snapshots" : "FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE"
 "public.credentials" }o--|| "public.organizations" : "FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE"
@@ -91,6 +89,16 @@ erDiagram
 "public.snapshots" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
 "public.daemon_interfaced_subnets" }o--|| "public.subnets" : "FOREIGN KEY (subnet_id) REFERENCES subnets(id) ON DELETE CASCADE"
 "public.daemon_interfaced_subnets" }o--|| "public.daemons" : "FOREIGN KEY (daemon_id) REFERENCES daemons(id) ON DELETE CASCADE"
+"public.interface_neighbor_candidates" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.interface_neighbor_candidates" }o--|| "public.interfaces" : "FOREIGN KEY (interface_id) REFERENCES interfaces(id) ON DELETE CASCADE"
+"public.interface_neighbor_interfaces" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.interface_neighbor_interfaces" }o--|| "public.interfaces" : "FOREIGN KEY (interface_id) REFERENCES interfaces(id) ON DELETE CASCADE"
+"public.interface_neighbor_interfaces" }o--|| "public.interfaces" : "FOREIGN KEY (neighbor_interface_id) REFERENCES interfaces(id) ON DELETE CASCADE"
+"public.interface_neighbor_interfaces" }o--o| "public.snapshots" : "FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE"
+"public.interface_neighbor_hosts" }o--|| "public.networks" : "FOREIGN KEY (network_id) REFERENCES networks(id) ON DELETE CASCADE"
+"public.interface_neighbor_hosts" }o--|| "public.hosts" : "FOREIGN KEY (neighbor_host_id) REFERENCES hosts(id) ON DELETE CASCADE"
+"public.interface_neighbor_hosts" }o--|| "public.interfaces" : "FOREIGN KEY (interface_id) REFERENCES interfaces(id) ON DELETE CASCADE"
+"public.interface_neighbor_hosts" }o--o| "public.snapshots" : "FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE"
 
 "public._sqlx_migrations" {
   bigint version
@@ -159,7 +167,22 @@ erDiagram
   uuid first_discovery_id FK
   uuid snapshot_id FK
   uuid virtualization_service_id FK
-  text name_source
+  text firmware_revision
+  jsonb sys_descr_source
+  jsonb sys_object_id_source
+  jsonb sys_location_source
+  jsonb sys_contact_source
+  jsonb management_url_source
+  jsonb chassis_id_source
+  jsonb sys_name_source
+  jsonb manufacturer_source
+  jsonb model_source
+  jsonb serial_number_source
+  jsonb firmware_revision_source
+  jsonb name_source
+  text software_revision
+  jsonb software_revision_source
+  jsonb hostname_source
 }
 "public.subnets" {
   uuid id
@@ -179,6 +202,7 @@ erDiagram
   uuid first_discovery_id FK
   uuid snapshot_id FK
   uuid virtualization_service_id FK
+  jsonb cidr_source
 }
 "public.dependencies" {
   uuid id
@@ -355,6 +379,7 @@ erDiagram
   uuid last_discovery_id FK
   uuid first_discovery_id FK
   uuid snapshot_id FK
+  jsonb mac_address_source
 }
 "public.ports" {
   uuid id
@@ -447,18 +472,6 @@ erDiagram
   integer oper_status
   macaddr mac_address
   uuid ip_address_id FK
-  uuid neighbor_interface_id FK
-  uuid neighbor_host_id FK
-  jsonb lldp_chassis_id
-  jsonb lldp_port_id
-  text lldp_sys_name
-  text lldp_port_desc
-  inet lldp_mgmt_addr
-  text lldp_sys_desc
-  text cdp_device_id
-  text cdp_port_id
-  text cdp_platform
-  inet cdp_address
   text if_name
   jsonb fdb_macs
   uuid native_vlan_id FK
@@ -470,7 +483,8 @@ erDiagram
   uuid last_discovery_id FK
   uuid first_discovery_id FK
   uuid snapshot_id FK
-  timestamp_with_time_zone neighbor_seen_at
+  jsonb mac_address_source
+  boolean ip_configured
 }
 "public.credentials" {
   uuid id
@@ -528,6 +542,54 @@ erDiagram
 "public.daemon_interfaced_subnets" {
   uuid daemon_id FK
   uuid subnet_id FK
+}
+"public.interface_neighbor_candidates" {
+  uuid id
+  uuid network_id FK
+  uuid interface_id FK
+  jsonb lldp_chassis_id
+  jsonb lldp_port_id
+  text lldp_sys_name
+  text lldp_port_desc
+  inet lldp_mgmt_addr
+  text lldp_sys_desc
+  text cdp_device_id
+  text cdp_port_id
+  text cdp_platform
+  inet cdp_address
+  timestamp_with_time_zone created_at
+}
+"public.interface_neighbor_interfaces" {
+  uuid id
+  uuid network_id FK
+  uuid interface_id FK
+  uuid neighbor_interface_id FK
+  timestamp_with_time_zone neighbor_seen_at
+  timestamp_with_time_zone created_at
+  timestamp_with_time_zone updated_at
+  timestamp_with_time_zone valid_from
+  timestamp_with_time_zone valid_to
+  uuid lineage_id
+  timestamp_with_time_zone last_seen_at
+  uuid last_discovery_id
+  uuid first_discovery_id
+  uuid snapshot_id FK
+}
+"public.interface_neighbor_hosts" {
+  uuid id
+  uuid network_id FK
+  uuid interface_id FK
+  uuid neighbor_host_id FK
+  timestamp_with_time_zone neighbor_seen_at
+  timestamp_with_time_zone created_at
+  timestamp_with_time_zone updated_at
+  timestamp_with_time_zone valid_from
+  timestamp_with_time_zone valid_to
+  uuid lineage_id
+  timestamp_with_time_zone last_seen_at
+  uuid last_discovery_id
+  uuid first_discovery_id
+  uuid snapshot_id FK
 }
 "tower_sessions.session" {
   text id

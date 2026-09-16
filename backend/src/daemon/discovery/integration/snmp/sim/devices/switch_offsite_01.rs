@@ -10,7 +10,7 @@ use crate::daemon::discovery::integration::snmp::types::SystemInfo;
 use crate::server::credentials::r#impl::types::CredentialType;
 use crate::server::lldp::{LldpChassisId, LldpPortId};
 
-use super::inline;
+use super::{inline, switch_mute_01};
 
 /// The uplink neighbours' management addresses, on a range no device in the lab holds.
 ///
@@ -18,12 +18,6 @@ use super::inline;
 /// nowhere the daemon can see, which is the case the whole management-address tier exists for.
 const OFFSITE_CORE: &str = "10.20.30.11";
 const OFFSITE_EDGE: &str = "10.20.30.24";
-
-/// `switch-mute-01`'s own address — a device this lab *does* scan, and which serves nothing but its
-/// system MIB. It is the GH #668 "Switch1" shape: in the host list, no ifTable to carry the chassis
-/// MAC its neighbours advertise, no LLDP local identity to fill `hosts.chassis_id`, and a sysName
-/// its neighbours disagree with. Only the address it publishes can place it.
-const MUTE_NEIGHBOUR: &str = "192.168.7.248";
 
 /// What this switch's neighbour record calls it — deliberately *not* `switch-mute-01`, which is the
 /// device's own sysName. Real firmware disagrees like this, and it is what makes the sysName tier
@@ -43,7 +37,7 @@ const BRANCH_NEIGHBOUR: &str = "10.20.31.9";
 pub fn device() -> SimDevice {
     SimDevice {
         name: "switch-offsite-01",
-        ip: Ipv4Addr::new(192, 168, 7, 254),
+        ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Regression {
             issue: "GH #668",
             defect: "its neighbours publish a management address and nothing else this network \
@@ -67,6 +61,7 @@ pub fn device() -> SimDevice {
         tables: tables(),
         arp_handler: Handler::Normal,
         suppresses: Vec::new(),
+        rejects_getbulk: None,
     }
 }
 
@@ -213,7 +208,12 @@ fn lldp() -> LldpTable {
             Advertised::octets(LldpPortId::InterfaceName("1".to_string())),
         )
         .sys_name(MUTE_NEIGHBOUR_SYS_NAME)
-        .mgmt_addr(MUTE_NEIGHBOUR.parse().unwrap()),
+        // switch-mute-01's own address — a device this lab *does* scan, and which serves nothing
+        // but its system MIB. It is the GH #668 "Switch1" shape: in the host list, no ifTable to
+        // carry the chassis MAC its neighbours advertise, no LLDP local identity to fill
+        // `hosts.chassis_id`, and a sysName its neighbours disagree with. Only the address it
+        // publishes can place it — named rather than typed, so renumbering cannot strand it.
+        .mgmt_addr_of(switch_mute_01::NAME),
         // Subtype 5 chassis id and subtype 4 port id — an address as the identity itself, rather
         // than alongside it. Both encode as raw octets and both had no fixture in the lab, so the
         // branches that read them were reachable only from unit tests.
@@ -244,8 +244,10 @@ fn lldp() -> LldpTable {
 
 #[cfg(test)]
 mod tests {
+    use std::net::IpAddr;
+
     use super::{
-        ADDRESSED_NEIGHBOUR, MUTE_NEIGHBOUR, MUTE_NEIGHBOUR_SYS_NAME, OFFSITE_CORE, OFFSITE_EDGE,
+        ADDRESSED_NEIGHBOUR, MUTE_NEIGHBOUR_SYS_NAME, OFFSITE_CORE, OFFSITE_EDGE, switch_mute_01,
     };
     use crate::daemon::discovery::integration::snmp::sim::harness;
     use crate::server::lldp::{LldpChassisId, LldpPortId};
@@ -289,7 +291,7 @@ mod tests {
     #[tokio::test]
     async fn the_mute_far_end_is_named_by_a_sys_name_it_does_not_answer_to() {
         let scan = harness::scan("switch-offsite-01").await;
-        let mute = crate::daemon::discovery::integration::snmp::sim::device("switch-mute-01");
+        let mute = crate::daemon::discovery::integration::snmp::sim::device(switch_mute_01::NAME);
 
         let neighbour = scan
             .neighbours_named(MUTE_NEIGHBOUR_SYS_NAME)
@@ -302,10 +304,7 @@ mod tests {
             mute.system.sys_name.as_deref(),
             "the advertised name must disagree, or the sysName tier would place it"
         );
-        assert_eq!(
-            neighbour.remote_mgmt_addr,
-            Some(MUTE_NEIGHBOUR.parse().unwrap())
-        );
+        assert_eq!(neighbour.remote_mgmt_addr, Some(IpAddr::V4(mute.ip)));
         assert!(
             mute.tables.lldp.is_none() && mute.tables.if_table.is_none(),
             "the far end must serve no tables, or a tier above the address could place it"

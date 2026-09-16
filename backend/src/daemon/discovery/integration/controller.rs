@@ -19,8 +19,8 @@ use uuid::Uuid;
 use crate::daemon::discovery::integration::IntegrationContext;
 use crate::daemon::discovery::service::ops::HostData;
 use crate::server::hosts::r#impl::attributes::{
-    HostChassisIdValue, HostFirmwareRevisionValue, HostManufacturerValue, HostModelValue,
-    HostSerialNumberValue, HostSysNameValue,
+    HostChassisIdValue, HostFirmwareRevisionValue, HostHostnameValue, HostManufacturerValue,
+    HostModelValue, HostSerialNumberValue, HostSysNameValue,
 };
 use crate::server::hosts::r#impl::{
     base::{Host, HostBase},
@@ -95,7 +95,8 @@ impl ControllerIdentity {
             sys_name: name
                 .clone()
                 .map(|v| Attributed::new(HostSysNameValue(v), reported)),
-            hostname: hostname.clone(),
+            // A client's DHCP hostname is an identifier: its own column, never the name.
+            hostname: hostname.map(|v| Attributed::new(HostHostnameValue(v), reported)),
             chassis_id: chassis_id.map(|v| Attributed::new(HostChassisIdValue(v), reported)),
             manufacturer: manufacturer.map(|v| Attributed::new(HostManufacturerValue(v), reported)),
             model: model.map(|v| Attributed::new(HostModelValue(v), reported)),
@@ -106,7 +107,9 @@ impl ControllerIdentity {
             ..Default::default()
         });
 
-        Self::apply_names(&mut host.base, probe, name, hostname);
+        if let Some(name) = name {
+            host.base.apply_name(HostName::from_controller(name, probe));
+        }
         host
     }
 
@@ -133,7 +136,7 @@ impl ControllerIdentity {
         let reported = AttributeSource::Probe(probe);
 
         if let Some(hostname) = hostname {
-            host_data.with_hostname_fallback(hostname);
+            host_data.with_hostname(hostname, reported);
         }
         if let Some(name) = name {
             host_data.with_sys_name(name.clone(), reported);
@@ -153,20 +156,6 @@ impl ControllerIdentity {
         }
         if let Some(firmware_revision) = firmware_revision {
             host_data.with_firmware_revision(firmware_revision, reported);
-        }
-    }
-
-    fn apply_names(
-        base: &mut HostBase,
-        probe: ClientProbe,
-        name: Option<String>,
-        hostname: Option<String>,
-    ) {
-        if let Some(hostname) = hostname {
-            base.apply_name(HostName::from_controller_hostname(hostname, probe));
-        }
-        if let Some(name) = name {
-            base.apply_name(HostName::from_controller(name, probe));
         }
     }
 
@@ -328,12 +317,16 @@ mod tests {
         );
     }
 
+    /// A client's DHCP hostname is an identifier, so it lands in `hostname` with the controller as
+    /// its source and the name stays empty. The display ladder titles the client by it.
     #[test]
-    fn a_controller_known_hostname_names_a_client_that_has_no_assigned_name() {
+    fn a_clients_dhcp_hostname_is_stored_as_its_hostname_not_its_name() {
         let host = identity(None, Some("marys-laptop")).into_host(Uuid::new_v4());
-        assert_eq!(host.base.name.value().as_str(), "marys-laptop");
+        assert_eq!(host.base.name, HostName::unnamed());
+        let hostname = host.base.hostname.as_ref().expect("the hostname is kept");
+        assert_eq!(hostname.value().0, "marys-laptop");
         assert_eq!(
-            host.base.name.source(),
+            hostname.source(),
             AttributeSource::Probe(ClientProbe::UnifiController)
         );
     }
@@ -346,7 +339,10 @@ mod tests {
             host.base.name.source(),
             AttributeSource::Authored(ClientProbe::UnifiController)
         );
-        assert_eq!(host.base.hostname.as_deref(), Some("ipad-1a2b"));
+        assert_eq!(
+            crate::server::shared::attribution::text_of(&host.base.hostname).as_deref(),
+            Some("ipad-1a2b")
+        );
     }
 
     #[test]

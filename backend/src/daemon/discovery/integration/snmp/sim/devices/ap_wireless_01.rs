@@ -1,9 +1,12 @@
 use std::net::Ipv4Addr;
 
+use crate::daemon::discovery::integration::snmp::sim::allocation::SHARED_NETMASK;
 use crate::daemon::discovery::integration::snmp::sim::lldp::{
     Advertised, LldpTable, RemoteNeighbour,
 };
-use crate::daemon::discovery::integration::snmp::sim::mibs::{BridgeTable, IpAddrRow, IpAddrTable};
+use crate::daemon::discovery::integration::snmp::sim::mibs::{
+    BridgeTable, IpAddrRow, IpAddrTable, OwnAddress,
+};
 use crate::daemon::discovery::integration::snmp::sim::tables::{IfRow, IfTable};
 use crate::daemon::discovery::integration::snmp::sim::transport::Handler;
 use crate::daemon::discovery::integration::snmp::sim::wire::MacEncoding;
@@ -18,10 +21,10 @@ use super::inline;
 pub fn device() -> SimDevice {
     SimDevice {
         name: "ap-wireless-01",
-        ip: Ipv4Addr::new(192, 168, 7, 235),
+        ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Regression {
             issue: "#663",
-            defect: "an access point's NAT guest network read as a Docker bridge; the only device serving its own ipAddrTable",
+            defect: "an access point's NAT guest network read as a Docker bridge",
         },
         credential: CredentialType::SnmpV2c {
             community: inline("netdefault"),
@@ -40,6 +43,7 @@ pub fn device() -> SimDevice {
         tables: tables(),
         arp_handler: Handler::Normal,
         suppresses: Vec::new(),
+        rejects_getbulk: None,
     }
 }
 
@@ -49,6 +53,12 @@ fn tables() -> Tables {
         lldp: Some(lldp_table()),
         bridge: bridge_table(),
         ip_addr: ip_addr_table(),
+        // Unlike the shared-MAC switches, eth0 is unambiguous here — every interface has its own
+        // distinct MAC — so this device's own address can honestly bind to it.
+        own_address: OwnAddress {
+            if_index: 1,
+            netmask: SHARED_NETMASK,
+        },
         ..Default::default()
     }
 }
@@ -105,20 +115,15 @@ pub fn bridge_table() -> BridgeTable {
     BridgeTable::derived()
 }
 
+/// The guest-subnet address alone — the `#663` fixture. This device's own address is served
+/// automatically, alongside this one, by [`super::super::SimDevice::data_files`].
 pub fn ip_addr_table() -> IpAddrTable {
     IpAddrTable {
-        rows: vec![
-            IpAddrRow {
-                address: "172.30.10.1".parse().unwrap(),
-                if_index: 4,
-                netmask: "255.255.255.0".parse().unwrap(),
-            },
-            IpAddrRow {
-                address: "192.168.7.235".parse().unwrap(),
-                if_index: 1,
-                netmask: "255.255.252.0".parse().unwrap(),
-            },
-        ],
+        rows: vec![IpAddrRow {
+            address: "172.30.10.1".parse().unwrap(),
+            if_index: 4,
+            netmask: "255.255.255.0".parse().unwrap(),
+        }],
     }
 }
 
@@ -128,10 +133,11 @@ mod tests {
 
     /// GH #663: an access point's NAT guest network was read as a Docker bridge.
     ///
-    /// This is the only device serving its own `ipAddrTable`, which is also the only way it can
-    /// advertise a subnet the VM's kernel does not have. It is therefore the only device that
-    /// breaks *silently*: if the override loses its duplicate registration, the agent quietly
-    /// answers from the host's addresses instead and the fixture tests nothing.
+    /// This is the only device declaring an *extra* `ipAddrTable` row beyond its own, which is
+    /// the only way it can advertise a subnet the VM's kernel does not have. If the per-column
+    /// override ever lost its duplicate registration against net-snmp's built-in IP module, the
+    /// agent would quietly answer from the host's own addresses instead and this device's guest
+    /// row would silently vanish while every other device kept working.
     #[tokio::test]
     async fn it_advertises_a_guest_subnet_the_host_does_not_have() {
         let scan = harness::scan("ap-wireless-01").await;

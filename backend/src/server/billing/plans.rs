@@ -5,7 +5,7 @@ pub const YEARLY_DISCOUNT: f32 = 0.2;
 
 // Self-hosted commercial tier pricing and caps. Founder-set; edit here.
 // Prices are the full annual charge in cents (these tiers are annual-only).
-pub const SELF_HOSTED_STANDARD_ANNUAL_CENTS: i64 = 300_000; // $3,000/yr
+pub const SELF_HOSTED_STANDARD_ANNUAL_CENTS: i64 = 400_000; // $4,000/yr
 pub const SELF_HOSTED_STANDARD_NETWORKS: u64 = 50;
 pub const SELF_HOSTED_STANDARD_SEATS: u64 = 25;
 pub const SELF_HOSTED_STANDARD_ORGS: u64 = 1;

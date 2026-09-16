@@ -60,7 +60,13 @@ export interface FreshnessSubject {
  */
 function isDiscoveryManaged(source: EntitySource | undefined): boolean {
 	if (source === undefined) return true;
-	return source.type === 'Discovery' || source.type === 'DiscoveryWithMatch';
+	// The same set as `EntitySource::is_from_discovery` and the SQL guard in `stale_by_network`.
+	// Inferred counts: the backend treats it as discovered for staleness, as the digest already does.
+	return (
+		source.type === 'Discovery' ||
+		source.type === 'DiscoveryWithMatch' ||
+		source.type === 'Inferred'
+	);
 }
 
 /**

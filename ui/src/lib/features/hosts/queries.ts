@@ -52,16 +52,16 @@ export function toHostPrimitive(response: HostResponse): Host {
 
 	// Normalize optional fields from HostResponse to required nullable fields in Host.
 	//
-	// The discovered attributes go the other way: `HostResponse` still sends them as nullable
-	// strings, while on `Host` each travels with the source that produced it, so absence is
-	// `undefined` — a value with no source is not a state that exists.
+	// The discovered attributes, hostname included, go the other way: `HostResponse` still sends
+	// them as nullable strings, while on `Host` each travels with the source that produced it, so
+	// absence is `undefined` — a value with no source is not a state that exists.
 	return {
 		...hostFields,
 		description: hostFields.description ?? null,
-		hostname: hostFields.hostname ?? null,
 		virtualization_metadata: hostFields.virtualization_metadata ?? null,
 		virtualization_service_id: hostFields.virtualization_service_id ?? null,
 		credential_assignments: hostFields.credential_assignments ?? [],
+		hostname: hostFields.hostname ?? undefined,
 		sys_descr: hostFields.sys_descr ?? undefined,
 		sys_object_id: hostFields.sys_object_id ?? undefined,
 		sys_location: hostFields.sys_location ?? undefined,
@@ -115,7 +115,7 @@ function toCreateHostRequest(formData: HostFormData): CreateHostRequest {
 	return {
 		name: formData.name,
 		network_id: formData.network_id,
-		hostname: formData.hostname,
+		hostname: formData.hostname ?? null,
 		description: formData.description,
 		virtualization_metadata: formData.virtualization_metadata,
 		virtualization_service_id: formData.virtualization_service_id,
@@ -169,6 +169,8 @@ export interface HostQueryOptions {
 	include_unvirtualized?: boolean;
 	/** Filter to hosts running a service with one of these names. */
 	service_names?: string[];
+	/** Filter by how the host came to exist (`source.type`). */
+	sources?: components['schemas']['EntitySourceDiscriminants'][];
 	/** Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
 	group_by?: components['schemas']['HostOrderField'];
 	/** Secondary ordering field (sorting within groups or standalone sort). */
@@ -236,7 +238,8 @@ export function useHostsQuery(optionsOrGetter: HostQueryOptions | (() => HostQue
 							hidden: options.hidden,
 							virtualization_service_ids: options.virtualization_service_ids,
 							include_unvirtualized: options.include_unvirtualized,
-							service_names: options.service_names
+							service_names: options.service_names,
+							sources: options.sources
 						}
 					}
 				});
@@ -471,7 +474,7 @@ export function useUpdateHostMutation() {
 			const request: UpdateHostRequest = {
 				id: data.host.id,
 				name: data.host.name,
-				hostname: data.host.hostname,
+				hostname: data.host.hostname ?? null,
 				description: data.host.description,
 				virtualization_metadata: data.host.virtualization_metadata,
 				virtualization_service_id: data.host.virtualization_service_id,
@@ -576,7 +579,7 @@ export function useUpdateHostDescriptionMutation() {
 				body: {
 					id: data.host.id,
 					name: data.host.name,
-					hostname: data.host.hostname,
+					hostname: data.host.hostname ?? null,
 					description: data.description,
 					virtualization_metadata: data.host.virtualization_metadata,
 					virtualization_service_id: data.host.virtualization_service_id,
@@ -864,7 +867,6 @@ export function createEmptyHostFormData(defaultNetworkId?: string): HostFormData
 		name: '',
 		description: null,
 		tags: [],
-		hostname: null,
 		services: [],
 		ip_addresses: [],
 		ports: [],

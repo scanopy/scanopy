@@ -162,6 +162,7 @@ async fn test_host_crud(ctx: &TestContext) -> Result<(), String> {
         ip_addresses: None,           // Keep existing IP addresses
         ports: None,                  // Keep existing ports
         services: None,               // Keep existing services
+        interfaces: None,             // Keep existing interfaces
         credential_assignments: None, // Keep existing credentials
     };
     let updated: HostResponse = ctx

@@ -22,6 +22,7 @@ impl DiscoveryService {
             discovery_sessions: RwLock::new(HashMap::new()),
             daemon_pull_cancellations: RwLock::new(HashMap::new()),
             running_snapshots: RwLock::new(HashSet::new()),
+            superseded_wire_daemons: RwLock::new(HashSet::new()),
             session_last_updated: RwLock::new(HashMap::new()),
             update_tx: tx,
             scheduler,

@@ -17,7 +17,7 @@ use super::inline;
 pub fn device() -> SimDevice {
     SimDevice {
         name: "switch-macport-01",
-        ip: Ipv4Addr::new(192, 168, 7, 247),
+        ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Regression {
             issue: "the Westermo WeOS report, August 2026",
             defect: "ifDescr carries the media type in front of the name, so only ifName and ifAlias hold the bare port name a neighbour advertises",
@@ -39,6 +39,7 @@ pub fn device() -> SimDevice {
         tables: tables(),
         arp_handler: Handler::Normal,
         suppresses: Vec::new(),
+        rejects_getbulk: None,
     }
 }
 

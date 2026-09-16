@@ -186,6 +186,8 @@ impl EntityBuffer {
                     subnets: vec![],
                     interfaces_complete: true,
                     interface_data_complete: InterfaceDataComplete::default(),
+                    // This daemon is this build; it submits the current shape by construction.
+                    superseded_wire_shape: false,
                 };
                 *entry = BufferedEntity::Created {
                     pending_id,
@@ -435,6 +437,7 @@ mod tests {
             subnets: vec![],
             interfaces_complete: true,
             interface_data_complete: InterfaceDataComplete::default(),
+            superseded_wire_shape: false,
         };
         buffer.push_host(host).await;
 
@@ -492,6 +495,7 @@ mod tests {
                         subnets: vec![],
                         interfaces_complete: true,
                         interface_data_complete: InterfaceDataComplete::default(),
+                        superseded_wire_shape: false,
                     };
                     buf.push_host(host).await;
                 })
@@ -935,6 +939,7 @@ mod tests {
             subnets: vec![],
             interfaces_complete: true,
             interface_data_complete: InterfaceDataComplete::default(),
+            superseded_wire_shape: false,
         };
         // Set the host ID to match our shared host_id
         let mut host1 = host1;
@@ -1009,6 +1014,7 @@ mod tests {
             subnets: vec![],
             interfaces_complete: true,
             interface_data_complete: InterfaceDataComplete::default(),
+            superseded_wire_shape: false,
         };
         let mut host2 = host2;
         host2.host.id = host_id;
@@ -1220,6 +1226,7 @@ mod tests {
             subnets: vec![],
             interfaces_complete: true,
             interface_data_complete: InterfaceDataComplete::default(),
+            superseded_wire_shape: false,
         };
         let mut host_req = host_req;
         host_req.host.id = host_id;

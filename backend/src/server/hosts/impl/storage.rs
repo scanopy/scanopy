@@ -169,6 +169,7 @@ impl Storable for Host {
         // Each provenanced pair hands out its two columns and its two values together, so the two
         // vectors below cannot drift apart on one of them.
         let [name_value, name_source] = attributed::present_params(&name);
+        let [hostname_value, hostname_source] = attributed::optional_params(&hostname);
         let [sys_descr_value, sys_descr_source] = attributed::optional_params(&sys_descr);
         let [sys_object_id_value, sys_object_id_source] =
             attributed::optional_params(&sys_object_id);
@@ -198,6 +199,7 @@ impl Storable for Host {
                 "network_id",
                 "source",
                 "hostname",
+                "hostname_source",
                 "hidden",
                 "virtualization_metadata",
                 "virtualization_service_id",
@@ -241,7 +243,8 @@ impl Storable for Host {
                 SqlValue::OptionalString(description),
                 SqlValue::Uuid(network_id),
                 SqlValue::EntitySource(source),
-                SqlValue::OptionalString(hostname),
+                hostname_value,
+                hostname_source,
                 SqlValue::Bool(hidden),
                 SqlValue::OptionalHostVirtualization(virtualization_metadata),
                 SqlValue::OptionalUuid(virtualization_service_id),
@@ -317,7 +320,7 @@ impl Storable for Host {
                 description: row.get("description"),
                 network_id: row.get("network_id"),
                 source,
-                hostname: row.get("hostname"),
+                hostname: attributed::read_optional(row)?,
                 hidden: row.get("hidden"),
                 virtualization_metadata,
                 virtualization_service_id: row.get("virtualization_service_id"),
@@ -363,7 +366,7 @@ impl Entity for Host {
         HostCsvRow {
             id: self.id,
             name: self.base.name.to_string(),
-            hostname: self.base.hostname.clone(),
+            hostname: attribution::text_of(&self.base.hostname),
             description: self.base.description.clone(),
             network_id: self.base.network_id,
             source: format!("{:?}", self.base.source),

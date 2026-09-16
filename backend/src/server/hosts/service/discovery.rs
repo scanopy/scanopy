@@ -142,6 +142,16 @@ impl HostService {
             );
         }
 
+        // Identifiers are not names. Daemons up to v0.17.14 repeat the hostname as the name and
+        // send the address as an `OwnAddress` name; the same payload carries each identifier in
+        // its own column, so the copy is dropped (see the placement rule in `hosts::impl::name`).
+        if host.base.drop_identifier_copy() {
+            tracing::debug!(
+                %claimed,
+                "Discovery payload repeated an identifier as the host name; dropped the copy"
+            );
+        }
+
         if let Some(ctx) = scan_ctx {
             use crate::server::shared::storage::snapshot::DiscoveryTracked;
             host.refresh_scan_timestamps(ctx.scan_time);
@@ -421,7 +431,7 @@ mod tests {
     fn iface(if_index: i32, mac: &str) -> Interface {
         let mut base = InterfaceBase::default();
         base.if_index = Some(if_index);
-        base.if_descr = format!("Slot0/{if_index}");
+        base.if_descr = Some(format!("Slot0/{if_index}"));
         base.mac_address = Some(MacEvidence::new(
             MacEvidenceValue(mac.parse::<MacAddress>().unwrap()),
             SNMP_MAC,

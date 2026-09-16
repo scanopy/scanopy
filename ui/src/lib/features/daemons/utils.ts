@@ -4,6 +4,7 @@ import type { Daemon } from './types/base';
 import type { FormValue } from '$lib/shared/components/forms/validators';
 import type { TagProps } from '$lib/shared/components/data/types';
 import { toColor } from '$lib/shared/utils/styling';
+import { getServerUrl } from '$lib/api/client';
 import { CircleHelp } from 'lucide-svelte';
 import {
 	common_deprecated,
@@ -279,5 +280,43 @@ export function constructDaemonUrl(baseUrl: string, port: number): string {
 		return `${protocol}//${hostname}:${port}${pathname}`;
 	} catch {
 		return `${baseUrl}:${port}`;
+	}
+}
+
+const WINDOWS_MSI_GITHUB_URL =
+	'https://github.com/scanopy/scanopy/releases/latest/download/scanopy-daemon-windows-amd64.msi';
+
+/**
+ * Download the Windows daemon MSI, saved under the given (per-daemon) filename.
+ *
+ * GitHub's release-asset URL redirects to a signed Azure Blob URL that bakes in its own fixed
+ * `Content-Disposition`, which browsers always honor over an `<a download>` attribute — so a
+ * direct link can never rename the file. Instead this fetches the MSI through our own origin
+ * (which proxies it from GitHub) and saves it as a blob under the caller's filename.
+ *
+ * Fails open: if the proxy is unavailable (e.g. a self-hosted server with no outbound internet
+ * access), falls back to opening the direct GitHub link, where the browser saves it under
+ * GitHub's fixed name. Returns `true` when the file was saved under `filename` (no rename
+ * needed), `false` when it fell back to the direct link (caller should show a rename hint).
+ */
+export async function downloadDaemonMsi(filename: string): Promise<boolean> {
+	try {
+		const url = new globalThis.URL('/api/install/windows-msi', getServerUrl());
+		const response = await fetch(url.toString());
+		if (!response.ok) throw new Error(response.statusText);
+
+		const blob = await response.blob();
+		const blobUrl = globalThis.URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = blobUrl;
+		link.download = filename;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		globalThis.URL.revokeObjectURL(blobUrl);
+		return true;
+	} catch {
+		window.open(WINDOWS_MSI_GITHUB_URL, '_blank');
+		return false;
 	}
 }

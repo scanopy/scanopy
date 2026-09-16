@@ -326,8 +326,36 @@ pub struct IpAddrRow {
     pub netmask: Ipv4Addr,
 }
 
-/// `ipAddrTable`, for the one device that serves its own rather than letting net-snmp answer from
-/// the host's kernel.
+/// How a device's own address rides in `ipAddrTable`, alongside whatever [`IpAddrTable`] rows it
+/// declares as *extra*.
+///
+/// Every device serves this row automatically ([`super::SimDevice::data_files`]). The default
+/// `ifIndex` is deliberately **not** the device's first port: several fixtures exist to prove a
+/// MAC shared across every physical port is declined as ambiguous
+/// (`switch-dlink-01`/`switch-dlink-02`/`switch-tplink-01`), with no separate management
+/// interface to bind an address to honestly. Defaulting to a real port would hand the resolver a
+/// false tiebreak — "this port has an IP configured" — that those fixtures exist to show does not
+/// happen. `0` is never a real device's ifIndex (SNMP's `ifIndex` starts at 1), so it can never
+/// coincidentally disambiguate one. A device whose own address really does bind to a specific
+/// interface — `pc-windows-nic-filters`, at the real NIC's `ifIndex` 7, not a filter
+/// pseudo-interface's — says so explicitly.
+#[derive(Debug, Clone, Copy)]
+pub struct OwnAddress {
+    pub if_index: i32,
+    pub netmask: Ipv4Addr,
+}
+
+impl Default for OwnAddress {
+    fn default() -> Self {
+        Self {
+            if_index: 0,
+            netmask: super::allocation::SHARED_NETMASK,
+        }
+    }
+}
+
+/// Addresses a device serves *beyond* its own — the `#663` guest-subnet shape. A device's own
+/// address is never listed here: it is served automatically, from [`OwnAddress`].
 #[derive(Debug, Clone, Default)]
 pub struct IpAddrTable {
     pub rows: Vec<IpAddrRow>,

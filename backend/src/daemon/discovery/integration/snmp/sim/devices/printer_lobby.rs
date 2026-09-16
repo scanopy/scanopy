@@ -11,7 +11,7 @@ use super::inline;
 pub fn device() -> SimDevice {
     SimDevice {
         name: "printer-lobby",
-        ip: Ipv4Addr::new(192, 168, 7, 234),
+        ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Control {
             role: "an endpoint with no bridge and no neighbours",
         },
@@ -32,6 +32,7 @@ pub fn device() -> SimDevice {
         tables: tables(),
         arp_handler: Handler::Normal,
         suppresses: Vec::new(),
+        rejects_getbulk: None,
     }
 }
 

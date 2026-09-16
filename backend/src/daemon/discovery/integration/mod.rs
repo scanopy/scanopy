@@ -14,6 +14,7 @@ pub mod dispatch;
 pub mod docker;
 pub mod failure;
 pub mod flex;
+pub mod gnmi;
 pub mod instant_on;
 pub mod podman;
 pub mod snmp;
@@ -396,6 +397,7 @@ impl IntegrationRegistry {
     pub fn get(d: CredentialQueryPayloadDiscriminants) -> Option<Box<dyn DiscoveryIntegration>> {
         Some(match d {
             CredentialQueryPayloadDiscriminants::Snmp => Box::new(snmp::SnmpIntegration),
+            CredentialQueryPayloadDiscriminants::Gnmi => Box::new(gnmi::GnmiIntegration),
             CredentialQueryPayloadDiscriminants::DockerProxy => Box::new(docker::DockerIntegration),
             CredentialQueryPayloadDiscriminants::DockerSocket => {
                 Box::new(docker::DockerSocketIntegration)

@@ -104,6 +104,23 @@ attributed_value! {
 }
 
 attributed_value! {
+    /// The host's hostname: from a PTR lookup, the host's own OS, a controller's DHCP leases, or an
+    /// mDNS SRV record.
+    ///
+    /// An identifier rather than a name, so it keeps its own column and is never copied into
+    /// `name` (see the placement rule in `super::name`). Refreshable, because a lease or a DNS
+    /// record can legitimately change.
+    pub struct HostHostnameValue(String) as HostHostnameAttributed {
+        key: "hostname",
+        source_key: "hostname_source",
+        schema_name: "HostHostname",
+        refreshable: true,
+        blank: blank,
+        schema: string_schema("Hostname as resolved or reported for the host"),
+    }
+}
+
+attributed_value! {
     /// ENTITY-MIB entPhysicalMfgName — hardware manufacturer.
     ///
     /// Not refreshable: a device does not change manufacturer. A stronger source may still correct

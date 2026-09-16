@@ -26,10 +26,12 @@
  * not one per component.
  */
 
-import { fromStore } from 'svelte/store';
+import { derived, fromStore } from 'svelte/store';
 import {
 	connectedNodeIds,
 	edgeHandlesByNode,
+	mergeEdgeHandles,
+	previewEdgeHandlesByNode,
 	hoveredMetadata,
 	hoveredTag,
 	isExporting,
@@ -44,7 +46,13 @@ import { selectedNodes } from './queries';
 import { collapsedContainers } from './collapse';
 
 export const connectedNodes = fromStore(connectedNodeIds);
-export const edgeHandles = fromStore(edgeHandlesByNode);
+// The handles a node renders: its real edges', plus the dependency preview's. `derived` updates
+// synchronously, so the pipeline's handles-before-nodes ordering still holds.
+export const edgeHandles = fromStore(
+	derived([edgeHandlesByNode, previewEdgeHandlesByNode], ([real, preview]) =>
+		mergeEdgeHandles(real, preview)
+	)
+);
 export const exporting = fromStore(isExporting);
 export const measuring = fromStore(isMeasuring);
 export const simplified = fromStore(detailSimplified);

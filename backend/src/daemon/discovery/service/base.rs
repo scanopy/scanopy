@@ -7,8 +7,9 @@ use std::{
 };
 
 use crate::daemon::discovery::service::warnings::{
-    ContradictedClaim, CredentialIssue, IncompleteInterfaceWalk, IncompleteSnmpWalk,
-    MalformedNeighbours, SnmpCollectedNothing, UnresolvedLldpPorts, VlanRecordingFailed,
+    ContradictedClaim, CredentialIssue, EqualReachIntegrations, IncompleteInterfaceWalk,
+    IncompleteSnmpWalk, MalformedNeighbours, SnmpCollectedNothing, UnresolvedLldpPorts,
+    VlanRecordingFailed,
 };
 use crate::daemon::discovery::types::base::DiscoverySessionInfo;
 use crate::daemon::discovery::types::warnings::DiscoveryWarning;
@@ -166,6 +167,8 @@ pub struct DiscoverySession {
     pub(super) snmp_collected_nothing: Arc<std::sync::Mutex<Vec<SnmpCollectedNothing>>>,
     /// Devices whose VLAN table was read and could not be saved.
     pub(super) vlan_recording_failures: Arc<std::sync::Mutex<Vec<VlanRecordingFailed>>>,
+    /// Hosts whose interfaces two full-ifTable integrations both collected.
+    pub(super) equal_reach_integrations: Arc<std::sync::Mutex<Vec<EqualReachIntegrations>>>,
     /// IP-targeted credentials that produced nothing, and why.
     pub(super) credential_issues: Arc<std::sync::Mutex<Vec<CredentialIssue>>>,
 }
@@ -189,6 +192,7 @@ impl DiscoverySession {
             malformed_neighbours: Arc::new(std::sync::Mutex::new(Vec::new())),
             snmp_collected_nothing: Arc::new(std::sync::Mutex::new(Vec::new())),
             vlan_recording_failures: Arc::new(std::sync::Mutex::new(Vec::new())),
+            equal_reach_integrations: Arc::new(std::sync::Mutex::new(Vec::new())),
             credential_issues: Arc::new(std::sync::Mutex::new(Vec::new())),
         }
     }

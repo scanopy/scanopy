@@ -13,7 +13,7 @@ use super::inline;
 pub fn device() -> SimDevice {
     SimDevice {
         name: "switch-unsorted-01",
-        ip: Ipv4Addr::new(192, 168, 7, 246),
+        ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Regression {
             issue: "#674",
             defect: "an ARP table served out of ascending OID order; a strictly ascending walk gives up and every multi-column row is discarded",
@@ -35,6 +35,7 @@ pub fn device() -> SimDevice {
         tables: tables(),
         arp_handler: Handler::Positional,
         suppresses: Vec::new(),
+        rejects_getbulk: None,
     }
 }
 

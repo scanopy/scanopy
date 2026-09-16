@@ -2,20 +2,20 @@
   "document_type": "supporting evidence (the attestation is a separate signed letter)",
   "standard": "NDAA FY2019 Section 889",
   "result": "PASS",
-  "generated_at": "2026-09-01T12:55:58Z",
+  "generated_at": "2026-09-15T15:46:25Z",
   "repository": "scanopy/scanopy",
-  "assessed_commit": "cc85a2bee1c406636d401126da2efa0a0b9a8b58",
-  "assessed_describe": "cc85a2b-dirty",
+  "assessed_commit": "19d0a11d55fbe6845d4127e188748f174ae416da",
+  "assessed_describe": "19d0a11-dirty",
   "image_tag": "latest",
-  "components_assessed": 8060,
+  "components_assessed": 8138,
   "allowed_exceptions": 2,
   "prohibited_hits": 0,
   "tooling": {
     "sbom_generator": "syft 1.45.1",
-    "matcher_commit": "cc85a2b"
+    "matcher_commit": "19d0a11"
   },
   "policy": {
-    "vendor_list_commit": "cc85a2b",
+    "vendor_list_commit": "19d0a11",
     "vendor_list_sha256": "7f018a32dda6755f02f07a70cd76bc3e0a07c180a4dcf1bf7b23a118a663d611",
     "allowlist_sha256": "672002d05725bcd6e87afd809685f79208702c4ecbd0a2be1493c6468ad2c571"
   },
@@ -34,17 +34,17 @@
   "sboms": [
     {
       "file": "sbom-source.cdx.json",
-      "sha256": "a27d4e363fde2003d058e967166b79a9afd5439c2825f808ba61c476101fe3cc",
-      "components": 1116
+      "sha256": "02b27f23e43a8f447ff0a25eec0eb6c2989fec9fd35889a4a4564e23100bea25",
+      "components": 1194
     },
     {
       "file": "sbom-server.cdx.json",
-      "sha256": "38d12515d7824803b647c308cd047c82b2936335412d3a8d34725a4950238d3d",
+      "sha256": "ed5855d08431c7bf97c6b77b48cbc72a32b99cd86d89fb263023e31709b8d40e",
       "components": 3348
     },
     {
       "file": "sbom-daemon.cdx.json",
-      "sha256": "3e517448e11dc348a750ae23e6dba47051e45c7dbb6fe02a76b9e26fb05ddab7",
+      "sha256": "2070c4d03076ed3e192c7f98b5b9e92e2082be8978c12984ed0ff8269d319c4b",
       "components": 3596
     }
   ]

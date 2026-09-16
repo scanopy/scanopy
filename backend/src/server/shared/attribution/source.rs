@@ -91,6 +91,19 @@ impl AttributeMethod {
             Self::Unspecified | Self::Inferred | Self::Announced | Self::Reported => false,
         }
     }
+
+    /// Whether a value at this tier is a guess rather than evidence: nobody claimed it, or we
+    /// derived it ourselves.
+    ///
+    /// The display-name ladder reads this to rank a stored name below the host's identifiers. A
+    /// name guessed from a detected service, or one nothing vouches for, must not hide a hostname
+    /// the host actually carries. Exhaustive, so a new tier cannot be added without answering it.
+    pub fn is_guess(&self) -> bool {
+        match self {
+            Self::Unspecified | Self::Inferred => true,
+            Self::Announced | Self::Reported | Self::Queried | Self::Native | Self::Manual => false,
+        }
+    }
 }
 
 /// How a discovered value reached us.
@@ -119,7 +132,10 @@ pub enum AttributeSource {
     Unspecified,
 
     // --- Derivations we perform ourselves. ---
-    /// The host's own address, standing in for a name it does not have.
+    /// The host's own address, standing in for a name it does not have. Nothing on this server
+    /// writes it any more: an address is an identifier, and the display ladder shows it without a
+    /// copy in `name`. Daemons up to v0.17.14 still send it, and it is kept so their payloads
+    /// deserialise before ingest drops the copy.
     OwnAddress,
     /// Implied by a matched service definition.
     ServiceMatch,
@@ -136,6 +152,9 @@ pub enum AttributeSource {
     /// A DNS-SD instance label — the Chromecast `fn=Living Room TV`, typed by a person during
     /// device setup.
     DnsSdInstanceName,
+    /// A hostname a device announced for itself over mDNS: the SRV target, such as
+    /// `chromecast-a1b2c3.local`. Machine-generated, unlike the instance label beside it.
+    DnsSdHostname,
     /// A chassis ID a neighbour advertised for itself.
     LldpChassisId,
 
@@ -152,11 +171,21 @@ pub enum AttributeSource {
     ArpReply,
     /// The daemon reading its own host: NIC and routing configuration, and its own hostname.
     DaemonSelfReport,
+    /// A PROFINET DCP Identify exchange: we sent the request and the transport correlated the
+    /// reply to the station that sent it. `Native`, not merely `Queried` — like [`Self::Probe`]
+    /// over [`ClientProbe::ModbusTcp`]/`EtherNetIp`/`OpcUa`, the protocol is the device's own
+    /// rather than a generic MIB approximating it. A bare variant rather than `Probe(ClientProbe)`
+    /// on purpose: [`ClientProbe`] is scoped to application probes reached over an already-open
+    /// TCP/UDP port (`every_client_probe_variant_has_a_producer` enforces that every variant has an
+    /// `AppProbe` producer), and DCP is raw Ethernet with no port at all.
+    ProfinetDcp,
 
     /// A value the thing emitted about itself, over whatever transport [`ClientProbe`] names.
+    #[schema(title = "Probe")]
     Probe(ClientProbe),
     /// A value a person entered into the thing we read it from, carried back over the same
     /// transport: SNMP `sysLocation`, a name set in a controller.
+    #[schema(title = "Authored")]
     Authored(ClientProbe),
 
     /// A person asserted it in Scanopy. Nothing discovery reads displaces it.
@@ -176,11 +205,16 @@ impl AttributeSource {
             | Self::LldpNeighbourAddress
             | Self::CipVendorId => M::Inferred,
 
-            Self::DnsSdInstanceName | Self::LldpChassisId => M::Announced,
+            Self::DnsSdInstanceName | Self::DnsSdHostname | Self::LldpChassisId => M::Announced,
 
             Self::ReverseDns | Self::ForwardingTable => M::Reported,
 
             Self::ArpReply | Self::DaemonSelfReport => M::Queried,
+
+            // The protocol is the device's own, not a generic transport a MIB approximates —
+            // same reasoning as `ClientProbe::method()`'s `Native` arms, just not delegated (see
+            // the variant's own doc comment for why).
+            Self::ProfinetDcp => M::Native,
 
             // Delegated, not because probes are special, but so that adding a probe forces the
             // tier decision at the probe's own definition instead of here — where it would be easy
@@ -200,11 +234,13 @@ impl AttributeSource {
             | Self::ServiceMatch
             | Self::LldpNeighbourAddress
             | Self::CipVendorId
+            | Self::DnsSdHostname
             | Self::LldpChassisId
             | Self::ReverseDns
             | Self::ForwardingTable
             | Self::ArpReply
             | Self::DaemonSelfReport
+            | Self::ProfinetDcp
             | Self::Probe(_) => Authorship::Machine,
         }
     }
@@ -260,11 +296,13 @@ impl AttributeSource {
                 }
                 AttributeSourceDiscriminants::CipVendorId => vec![Self::CipVendorId],
                 AttributeSourceDiscriminants::DnsSdInstanceName => vec![Self::DnsSdInstanceName],
+                AttributeSourceDiscriminants::DnsSdHostname => vec![Self::DnsSdHostname],
                 AttributeSourceDiscriminants::LldpChassisId => vec![Self::LldpChassisId],
                 AttributeSourceDiscriminants::ReverseDns => vec![Self::ReverseDns],
                 AttributeSourceDiscriminants::ForwardingTable => vec![Self::ForwardingTable],
                 AttributeSourceDiscriminants::ArpReply => vec![Self::ArpReply],
                 AttributeSourceDiscriminants::DaemonSelfReport => vec![Self::DaemonSelfReport],
+                AttributeSourceDiscriminants::ProfinetDcp => vec![Self::ProfinetDcp],
                 AttributeSourceDiscriminants::Manual => vec![Self::Manual],
             })
             .collect()
@@ -312,11 +350,13 @@ impl AttributeSource {
             AttributeSourceDiscriminants::LldpNeighbourAddress => Self::LldpNeighbourAddress,
             AttributeSourceDiscriminants::CipVendorId => Self::CipVendorId,
             AttributeSourceDiscriminants::DnsSdInstanceName => Self::DnsSdInstanceName,
+            AttributeSourceDiscriminants::DnsSdHostname => Self::DnsSdHostname,
             AttributeSourceDiscriminants::LldpChassisId => Self::LldpChassisId,
             AttributeSourceDiscriminants::ReverseDns => Self::ReverseDns,
             AttributeSourceDiscriminants::ForwardingTable => Self::ForwardingTable,
             AttributeSourceDiscriminants::ArpReply => Self::ArpReply,
             AttributeSourceDiscriminants::DaemonSelfReport => Self::DaemonSelfReport,
+            AttributeSourceDiscriminants::ProfinetDcp => Self::ProfinetDcp,
             AttributeSourceDiscriminants::Manual => Self::Manual,
         }
     }
@@ -384,6 +424,150 @@ impl<'de> Visitor<'de> for SourceVisitor {
         while map.next_entry::<IgnoredAny, IgnoredAny>()?.is_some() {}
 
         Ok(AttributeSource::resolve(&name, Some(&probe)))
+    }
+}
+
+impl HasId for AttributeSourceDiscriminants {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+/// Neutral on purpose. A source is labelled, not coloured: the colour an operator reads is the
+/// tier's, from [`AttributeMethod`]'s metadata, and `Probe` and `Authored` do not have one tier
+/// until their probe is known.
+impl EntityMetadataProvider for AttributeSourceDiscriminants {
+    fn color(&self) -> Color {
+        Color::Gray
+    }
+
+    fn icon(&self) -> Icon {
+        Icon::Info
+    }
+}
+
+/// Per-source labels, for showing where one value came from.
+///
+/// Keyed by the discriminant rather than by every expanded source, because the probe variants
+/// would otherwise need one entry per probe. `Probe` and `Authored` are templates with a `{probe}`
+/// slot, filled from `ClientProbe`'s own metadata.
+impl TypeMetadataProvider for AttributeSourceDiscriminants {
+    fn name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "Unattributed",
+            Self::OwnAddress => "The host's own address",
+            Self::ServiceMatch => "A detected service",
+            Self::LldpNeighbourAddress => "An LLDP neighbour's address",
+            Self::CipVendorId => "A CIP vendor ID",
+            Self::DnsSdInstanceName => "mDNS name",
+            Self::DnsSdHostname => "mDNS",
+            Self::LldpChassisId => "LLDP",
+            Self::ReverseDns => "Reverse DNS",
+            Self::ForwardingTable => "Another device's ARP or forwarding table",
+            Self::ArpReply => "ARP",
+            Self::DaemonSelfReport => "The daemon on this host",
+            Self::ProfinetDcp => "PROFINET DCP",
+            Self::Probe => "{probe}",
+            Self::Authored => "{probe}, set by a person",
+            Self::Manual => "Entered in Scanopy",
+        }
+    }
+
+    fn description(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "Recorded before Scanopy tracked where values came from.",
+            Self::OwnAddress => "Scanopy used the host's address because it had nothing better.",
+            Self::ServiceMatch => "Scanopy derived this from a service it detected on the host.",
+            Self::LldpNeighbourAddress => {
+                "Scanopy assumed this range around an address a neighbour advertised over LLDP."
+            }
+            Self::CipVendorId => {
+                "Scanopy built this from the numeric vendor ID the device reported over CIP."
+            }
+            Self::DnsSdInstanceName => {
+                "The device announced this name over mDNS. A person usually sets it during setup."
+            }
+            Self::DnsSdHostname => "The device announced this hostname for itself over mDNS.",
+            Self::LldpChassisId => "The device advertised this about itself over LLDP.",
+            Self::ReverseDns => "A DNS server supplied this for the host's address.",
+            Self::ForwardingTable => {
+                "A router or switch supplied this from its ARP cache or forwarding table."
+            }
+            Self::ArpReply => "The host answered an ARP request for its address.",
+            Self::DaemonSelfReport => "The Scanopy daemon running on this host read it locally.",
+            Self::ProfinetDcp => "The device answered a PROFINET DCP identify request.",
+            Self::Probe => "The device reported this about itself over {probe}.",
+            Self::Authored => {
+                "A person set this on the device or its controller, and Scanopy read it over {probe}."
+            }
+            Self::Manual => "Someone entered this in Scanopy. Discovery never overwrites it.",
+        }
+    }
+}
+
+impl HasId for ClientProbe {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+impl EntityMetadataProvider for ClientProbe {
+    fn color(&self) -> Color {
+        Color::Gray
+    }
+
+    fn icon(&self) -> Icon {
+        Icon::Info
+    }
+}
+
+/// The probe's name as an operator knows the protocol or product. Here rather than beside
+/// [`ClientProbe`] because it exists to fill the `{probe}` slot in the labels above.
+impl TypeMetadataProvider for ClientProbe {
+    fn name(&self) -> &'static str {
+        match self {
+            Self::Docker => "Docker",
+            Self::Gnmi => "gNMI",
+            Self::Podman => "Podman",
+            Self::Snmp => "SNMP",
+            Self::UnifiController => "UniFi controller",
+            Self::InstantOn => "HPE Instant On",
+            Self::ModbusTcp => "Modbus TCP",
+            Self::OpcUa => "OPC UA",
+            Self::EtherNetIp => "EtherNet/IP",
+            Self::Sip => "SIP",
+            Self::Ssh => "SSH",
+            Self::Ftp => "FTP",
+            Self::Telnet => "Telnet",
+            Self::Rtsp => "RTSP",
+            Self::Nut => "NUT",
+            Self::ZabbixAgent => "Zabbix agent",
+            Self::CheckMkAgent => "Checkmk agent",
+            Self::Smb => "SMB",
+            Self::Ldap => "LDAP",
+            Self::Kerberos => "Kerberos",
+            Self::MySql => "MySQL",
+            Self::PostgreSql => "PostgreSQL",
+            Self::MsSql => "Microsoft SQL Server",
+            Self::MongoDb => "MongoDB",
+            Self::Redis => "Redis",
+            Self::Cassandra => "Cassandra",
+            Self::Kafka => "Kafka",
+            Self::Amqp => "AMQP",
+            Self::Mqtt => "MQTT",
+            Self::OracleTns => "Oracle TNS",
+            Self::Rdp => "RDP",
+            Self::Nfs => "NFS",
+            Self::DnsTcp => "DNS over TCP",
+            Self::DockerSwarm => "Docker Swarm",
+            Self::Tls => "TLS",
+            Self::Ike => "IKE",
+            Self::OpenVpn => "OpenVPN",
+            Self::Zmtp => "ZeroMQ",
+            Self::Bacula => "Bacula",
+            Self::BeszelAgent => "Beszel agent",
+            Self::H323 => "H.323",
+        }
     }
 }
 

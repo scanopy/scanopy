@@ -7,6 +7,7 @@
 	import type { ElementRenderContext } from '$lib/features/topology/resolvers';
 	import { useUpdateHostDescriptionMutation } from '$lib/features/hosts/queries';
 	import { inspector_hostDetail } from '$lib/paraglide/messages';
+	import InferredHostNotice from '$lib/features/hosts/components/InferredHostNotice.svelte';
 
 	/* eslint-disable @typescript-eslint/no-unused-vars -- component contract props */
 	let {
@@ -47,6 +48,7 @@
 {#if host}
 	<div>
 		<span class="text-secondary mb-2 block text-sm font-medium">{inspector_hostDetail()}</span>
+		<InferredHostNotice source={host.source} class="mb-2" />
 		<div class="card card-static">
 			<EntityDisplayWrapper context={hostContext} item={host} displayComponent={HostDisplay} />
 		</div>

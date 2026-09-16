@@ -1,5 +1,6 @@
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::Ipv4Addr;
 
+use super::router_gw_01;
 use crate::daemon::discovery::integration::snmp::sim::lldp::{
     Advertised, LldpTable, RemoteNeighbour,
 };
@@ -22,7 +23,7 @@ use super::inline;
 pub fn device() -> SimDevice {
     SimDevice {
         name: "switch-core-01",
-        ip: Ipv4Addr::new(192, 168, 7, 230),
+        ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Control {
             role: "the lab's baseline switch and the far end most other devices resolve against; also the first forwarding database and the only CDP cache",
         },
@@ -45,6 +46,7 @@ pub fn device() -> SimDevice {
         tables: tables(),
         arp_handler: Handler::Normal,
         suppresses: Vec::new(),
+        rejects_getbulk: None,
     }
 }
 
@@ -177,13 +179,16 @@ pub fn entity_table() -> EntityTable {
 pub fn cdp_table() -> CdpTable {
     CdpTable::new(vec![CdpNeighbor {
         local_port_index: 2,
-        remote_device_id: Some("router-gw-01".into()),
+        remote_device_id: Some(router_gw_01::NAME.into()),
         remote_port_id: Some("ge-0/0/0".into()),
         remote_platform: Some("Juniper MX204".into()),
         // The address `router-gw-01` publishes for itself. CDP carries no chassis id, so this and
         // the device id are the only two identities a CDP neighbour has — and the address is the
-        // one that still works when the far end's own tables came back empty.
-        remote_address: Some(IpAddr::V4(Ipv4Addr::new(192, 168, 7, 232))),
+        // one that still works when the far end's own tables came back empty. Resolved from the
+        // device id above once every device has its final address
+        // (`allocation::resolve_peer_addresses`) — a literal here could name a different device
+        // the moment the lab is renumbered.
+        remote_address: None,
     }])
 }
 
@@ -254,18 +259,24 @@ mod tests {
     /// still works when the far end's own tables came back empty.
     #[tokio::test]
     async fn its_cdp_neighbour_publishes_the_address_it_is_reachable_at() {
+        use std::net::IpAddr;
+
+        use crate::daemon::discovery::integration::snmp::sim::device;
+
+        use super::router_gw_01;
+
         let scan = harness::scan("switch-core-01").await;
 
         let neighbour = scan
             .cdp
             .records
             .iter()
-            .find(|n| n.remote_device_id.as_deref() == Some("router-gw-01"))
+            .find(|n| n.remote_device_id.as_deref() == Some(router_gw_01::NAME))
             .expect("the CDP neighbour on Gi0/2");
 
         assert_eq!(
             neighbour.remote_address,
-            Some("192.168.7.232".parse().expect("valid address")),
+            Some(IpAddr::V4(device(router_gw_01::NAME).ip)),
             "the address must survive the octet-string round trip"
         );
     }

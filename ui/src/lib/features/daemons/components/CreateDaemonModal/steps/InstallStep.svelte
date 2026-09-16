@@ -6,7 +6,7 @@
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 	import TroubleshootingChecklist from './TroubleshootingChecklist.svelte';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
-	import type { DaemonOS } from '../../../utils';
+	import { downloadDaemonMsi, type DaemonOS } from '../../../utils';
 	import { osInstallCommand, type InstallArtifacts } from '../../../types/base';
 	import type { DaemonMode } from '../../../types/base';
 	import { trackEvent } from '$lib/shared/utils/analytics';
@@ -14,7 +14,7 @@
 	import AnimatedProgressBar from '$lib/features/discovery/components/cards/AnimatedProgressBar.svelte';
 	import ProgressTrack from '$lib/shared/components/data/ProgressTrack.svelte';
 	import OsSelector from '../../OsSelector.svelte';
-	import { Loader2, CheckCircle2, AlertTriangle, SlidersHorizontal } from 'lucide-svelte';
+	import { Download, Loader2, CheckCircle2, AlertTriangle, SlidersHorizontal } from 'lucide-svelte';
 	import type { DaemonConnectionStatus } from '../../../stores/daemon-setup';
 	import { tooltip } from '$lib/shared/actions/tooltip';
 	import {
@@ -22,11 +22,17 @@
 		daemons_advancedTooltip,
 		daemons_docsMacvlan,
 		daemons_docsMacvlanLinkText,
+		common_ossign,
+		daemons_docsMsiSigning,
 		daemons_docsMultiVlan,
 		daemons_docsMultiVlanLinkText,
 		daemons_fixValidationErrors,
 		daemons_fixValidationErrorsBody,
 		daemons_installCommandDescription,
+		daemons_msiDownloadButton,
+		daemons_msiOmittedConfigBody,
+		daemons_msiOmittedConfigTitle,
+		daemons_msiRenameHint,
 		common_firstDiscoveryEmailHint,
 		common_viewTopology,
 		daemons_troubleshoot_waitingTitle,
@@ -46,12 +52,15 @@
 	} from '$lib/paraglide/messages';
 
 	type LinuxMethod = 'binary' | 'docker';
+	type WindowsMethod = 'exe' | 'msi';
 
 	interface Props {
 		selectedOS: DaemonOS;
 		onOsSelect: (os: DaemonOS) => void;
 		linuxMethod?: LinuxMethod;
 		onLinuxMethodChange?: (method: LinuxMethod) => void;
+		windowsMethod?: WindowsMethod;
+		onWindowsMethodChange?: (method: WindowsMethod) => void;
 		runCommand: string;
 		/** Server-assembled install artifacts (single source of truth), key already filled. */
 		artifacts?: InstallArtifacts | null;
@@ -78,6 +87,8 @@
 		onOsSelect,
 		linuxMethod = 'binary',
 		onLinuxMethodChange,
+		windowsMethod = 'exe',
+		onWindowsMethodChange,
 		runCommand,
 		artifacts = null,
 		hasErrors,
@@ -101,6 +112,11 @@
 	const configQuery = useConfigQuery();
 	let hasEmail = $derived(configQuery.data?.has_email_service ?? false);
 	let serverUrl = $derived(configQuery.data?.public_url ?? '');
+
+	// MSI support is hidden for now (revisit later) — flip this back on to restore the
+	// Windows exe/msi toggle. Nothing else is removed; this just stops OsSelector from
+	// rendering the toggle, so windowsMethod stays 'exe' and the MSI download UI is unreachable.
+	const WINDOWS_MSI_ENABLED = false;
 
 	const windowsDownloadUrl =
 		'https://github.com/scanopy/scanopy/releases/latest/download/scanopy-daemon-windows-amd64.exe';
@@ -194,6 +210,23 @@
 	function handleOsSelect(os: DaemonOS) {
 		onOsSelect(os);
 		trackEvent('daemon_install_os_selected', { os });
+	}
+
+	// MSI download: fetched through our own server so the browser can save it under the
+	// per-daemon filename (see downloadDaemonMsi). Falls back to the direct GitHub link (which
+	// needs a manual rename) if our server can't reach GitHub.
+	let isDownloadingMsi = $state(false);
+	let msiNeedsRename = $state(false);
+
+	async function handleDownloadMsi(filename: string) {
+		isDownloadingMsi = true;
+		try {
+			const savedUnderFilename = await downloadDaemonMsi(filename);
+			msiNeedsRename = !savedUnderFilename;
+			trackEvent('daemon_install_msi_downloaded', { renamed: !savedUnderFilename });
+		} finally {
+			isDownloadingMsi = false;
+		}
 	}
 
 	function handleCopy(context: string) {
@@ -355,6 +388,10 @@
 				onOsSelect={handleOsSelect}
 				{linuxMethod}
 				onLinuxMethodChange={(method) => onLinuxMethodChange?.(method)}
+				{windowsMethod}
+				onWindowsMethodChange={WINDOWS_MSI_ENABLED
+					? (method) => onWindowsMethodChange?.(method)
+					: undefined}
 			>
 				{#snippet afterLabel()}
 					<DocsHint
@@ -420,17 +457,54 @@
 						preventSelect={true}
 					/>
 				{:else if selectedOS === 'windows'}
-					<p class="text-secondary text-sm">
-						{daemons_installCommandDescription()}
-					</p>
-					<CodeContainer
-						language="powershell"
-						expandable={false}
-						maxHeight=""
-						code={combinedWindowsCommand}
-						onCopy={() => handleCopy('combined-install')}
-						preventSelect={true}
+					<DocsHint
+						text={daemons_docsMsiSigning()}
+						href="https://ossign.org"
+						linkText={common_ossign()}
 					/>
+					{#if windowsMethod === 'exe'}
+						<p class="text-secondary text-sm">
+							{daemons_installCommandDescription()}
+						</p>
+						<CodeContainer
+							language="powershell"
+							expandable={false}
+							maxHeight=""
+							code={combinedWindowsCommand}
+							onCopy={() => handleCopy('combined-install')}
+							preventSelect={true}
+						/>
+					{:else if artifacts?.msi.filename}
+						<div class="flex flex-wrap items-center gap-2">
+							<button
+								type="button"
+								class="btn-secondary inline-flex items-center gap-1"
+								disabled={isDownloadingMsi}
+								onclick={() => handleDownloadMsi(artifacts.msi.filename)}
+							>
+								{#if isDownloadingMsi}
+									<Loader2 class="h-4 w-4 animate-spin" />
+								{:else}
+									<Download class="h-4 w-4" />
+								{/if}
+								{daemons_msiDownloadButton()}
+							</button>
+							<span class="text-secondary font-mono text-xs">{artifacts.msi.filename}</span>
+						</div>
+						{#if msiNeedsRename}
+							<p class="text-tertiary text-xs">
+								{daemons_msiRenameHint({ filename: artifacts.msi.filename })}
+							</p>
+						{/if}
+						{#if artifacts.msi.omitted_config_keys.length > 0}
+							<InlineWarning
+								title={daemons_msiOmittedConfigTitle()}
+								body={daemons_msiOmittedConfigBody({
+									keys: artifacts.msi.omitted_config_keys.join(', ')
+								})}
+							/>
+						{/if}
+					{/if}
 				{:else if selectedOS === 'freebsd'}
 					<p class="text-secondary text-sm">
 						{daemons_installCommandDescription()}

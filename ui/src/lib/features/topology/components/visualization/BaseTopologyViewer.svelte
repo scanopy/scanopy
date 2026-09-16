@@ -8,7 +8,8 @@
 		useNodesInitialized,
 		useViewport,
 		type Connection,
-		useSvelteFlow
+		useSvelteFlow,
+		useUpdateNodeInternals
 	} from '@xyflow/svelte';
 	import {
 		common_collapse,
@@ -82,6 +83,8 @@
 		collapseAllBundles,
 		collectEdgeHandles,
 		edgeHandlesByNode,
+		mergeEdgeHandles,
+		previewEdgeHandlesByNode,
 		searchHiddenNodeIds,
 		tagHiddenNodeIds,
 		hiddenEntityIds
@@ -638,7 +641,8 @@
 			hiddenEdgeTypes: (get(topologyOptions).local.hide_edge_types ?? []).join(','),
 			tagHidden: get(tagHiddenNodeIds),
 			hiddenEntities: get(hiddenEntityIds),
-			hiddenMetadata: hiddenMetadataKey(get(activeView))
+			hiddenMetadata: hiddenMetadataKey(get(activeView)),
+			topology
 		};
 	}
 	function triggerLoad(source = 'unknown') {
@@ -1104,7 +1108,11 @@
 		aggregatedEdgeOriginals.set(originalsMap);
 
 		const makeNodesDone = perf.stage('render.make-nodes');
-		runUsedHandles = collectEdgeHandles(flowEdges);
+		const realHandles = collectEdgeHandles(flowEdges);
+		// Node `handles` data also declares the dependency preview's handles. Writing the node store
+		// re-adopts every node and rebuilds its handle bounds from this data, so a rebuild during a
+		// preview would otherwise drop the preview edge until it was re-measured.
+		runUsedHandles = mergeEdgeHandles(realHandles, get(previewEdgeHandlesByNode));
 		const allNodes = makeNodes(needsLayout);
 		makeNodesDone();
 
@@ -1113,7 +1121,7 @@
 		// a handle an edge names, so a node whose handles arrive a frame after its edge has that
 		// edge dropped.
 		const handlesDone = perf.stage('render.publish-handles');
-		edgeHandlesByNode.set(runUsedHandles);
+		edgeHandlesByNode.set(realHandles);
 		handlesDone();
 
 		// Render
@@ -1546,9 +1554,40 @@
 		handleStepCollapse();
 	}
 
+	// Preview edges enter `edges` only once SvelteFlow has bounds for the handles they name.
+	//
+	// A new dependency's preview usually names a side no real edge on that node uses, so the node
+	// never rendered that handle (`edgeHandlesByNode`) and SvelteFlow drops the edge with "Couldn't
+	// create edge for source handle id". Publishing the handles renders their divs, but SvelteFlow
+	// re-reads handle bounds from the DOM only when a node's size changes, and adding a handle does
+	// not change it. So the endpoints are force-measured, and the preview is revealed on the frame
+	// after that lands. `previewRun` discards a run the next preview has already superseded.
+	const updateNodeInternals = useUpdateNodeInternals();
+	let revealedPreview = $state<Edge[]>([]);
+	let previewRun = 0;
+	$effect(() => {
+		const preview = $previewEdges;
+		const run = ++previewRun;
+		const handles = collectEdgeHandles(preview);
+		previewEdgeHandlesByNode.set(handles);
+		if (preview.length === 0) {
+			revealedPreview = [];
+			return;
+		}
+		void (async () => {
+			await tick();
+			if (run !== previewRun) return;
+			updateNodeInternals([...handles.keys()]);
+			// The hook measures on the next frame; this callback is queued after it.
+			await new Promise((resolve) => requestAnimationFrame(resolve));
+			if (run !== previewRun) return;
+			revealedPreview = preview;
+		})();
+	});
+
 	// Derive the xyflow `edges` store from three reactive sources:
 	//   - baseFlowEdges: the real edges produced by the rebuild pipeline
-	//   - previewEdges:  preview edges from the dependency editor
+	//   - revealedPreview: preview edges from the dependency editor, once measured (above)
 	//   - editingDependencyId: when set, hide the real edge for that dep
 	// This is the ONLY writer of `edges`. Exits and rebuilds are symmetric:
 	// clearing editingDependencyId naturally restores the filtered real edge.
@@ -1563,7 +1602,7 @@
 	});
 	$effect(() => {
 		const base = currentBaseFlowEdges;
-		const preview = $previewEdges;
+		const preview = revealedPreview;
 		const editingId = $editingDependencyId;
 		const aggregatedOriginals = $aggregatedEdgeOriginals;
 

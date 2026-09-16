@@ -90,6 +90,9 @@ pub struct LldpInventorySnapshot {
 
     /// `(host, MAC)` → interface, physical rows only.
     interface_by_host_mac: HashMap<(Uuid, MacAddress), Claim>,
+    /// `(host, MAC)` → interface, physical rows with `ip_configured` set only. Consulted as a tie-break
+    /// when `interface_by_host_mac` comes back `Claim::Many` — see `find_if_entry_by_mac`.
+    interface_by_host_mac_ip_configured: HashMap<(Uuid, MacAddress), Claim>,
     /// `(host, if_descr)` → interface.
     interface_by_host_descr: HashMap<(Uuid, String), Claim>,
     /// `(host, if_name)` → interface.
@@ -119,6 +122,7 @@ impl LldpInventorySnapshot {
             hosts_by_interface_mac: HashMap::new(),
             host_by_interface_descr: HashMap::new(),
             interface_by_host_mac: HashMap::new(),
+            interface_by_host_mac_ip_configured: HashMap::new(),
             interface_by_host_descr: HashMap::new(),
             interface_by_host_name: HashMap::new(),
             interface_by_host_alias: HashMap::new(),
@@ -176,19 +180,30 @@ impl LldpInventorySnapshot {
                         (host_id, mac),
                         interface.id,
                     );
+                    // Same population, narrowed to rows the device's own ipAddrTable binds an
+                    // address to — see `InterfaceBase::ip_configured`.
+                    if interface.base.ip_configured {
+                        claim(
+                            &mut snapshot.interface_by_host_mac_ip_configured,
+                            (host_id, mac),
+                            interface.id,
+                        );
+                    }
                 }
             }
 
-            claim(
-                &mut snapshot.host_by_interface_descr,
-                interface.base.if_descr.clone(),
-                host_id,
-            );
-            claim(
-                &mut snapshot.interface_by_host_descr,
-                (host_id, interface.base.if_descr.clone()),
-                interface.id,
-            );
+            if let Some(ref if_descr) = interface.base.if_descr {
+                claim(
+                    &mut snapshot.host_by_interface_descr,
+                    if_descr.clone(),
+                    host_id,
+                );
+                claim(
+                    &mut snapshot.interface_by_host_descr,
+                    (host_id, if_descr.clone()),
+                    interface.id,
+                );
+            }
             if let Some(ref if_name) = interface.base.if_name {
                 claim(
                     &mut snapshot.interface_by_host_name,
@@ -289,9 +304,21 @@ impl LldpResolver for LldpInventorySnapshot {
         let Ok(mac_addr) = mac.parse::<MacAddress>() else {
             return IdentityResolution::NotFound;
         };
-        IdentityResolution::from_unique(Claim::verdict(
-            self.interface_by_host_mac.get(&(host_id, mac_addr)),
-        ))
+        let key = (host_id, mac_addr);
+        match Claim::verdict(self.interface_by_host_mac.get(&key)) {
+            // Several physical rows share this MAC — see if exactly one of them is also the one
+            // the device's own ipAddrTable binds an address to (mirrors `LldpResolverImpl`'s
+            // `get_all`-then-narrow; this index already holds only that subset). Zero matches
+            // here is still a tie among the physical candidates, not a fresh "not found" — the
+            // base lookup already proved at least two rows exist.
+            Unique::Multiple => {
+                match Claim::verdict(self.interface_by_host_mac_ip_configured.get(&key)) {
+                    Unique::One(id) => IdentityResolution::Resolved(id),
+                    Unique::None | Unique::Multiple => IdentityResolution::Ambiguous,
+                }
+            }
+            verdict => IdentityResolution::from_unique(verdict),
+        }
     }
 
     async fn find_if_entry_by_name(&self, name: &str, host_id: Uuid) -> Option<Uuid> {

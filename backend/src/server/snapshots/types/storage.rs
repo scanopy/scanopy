@@ -24,6 +24,7 @@ pub struct SnapshotCsvRow {
 }
 
 impl Storable for Snapshot {
+    const HAS_SCD2: bool = false;
     type BaseData = SnapshotBase;
 
     fn table_name() -> &'static str {

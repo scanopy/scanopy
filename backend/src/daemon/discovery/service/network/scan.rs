@@ -1,4 +1,5 @@
 use super::arp::{self, ArpScanResult};
+use super::dcp;
 use super::icmp;
 use super::mdns;
 use crate::daemon::discovery::service::ops::DiscoveryOps;
@@ -6,7 +7,7 @@ use crate::daemon::discovery::service::warnings::{CredentialIssue, CredentialIss
 use crate::daemon::discovery::types::base::DiscoveryCriticalError;
 use crate::daemon::discovery::types::warnings::DiscoveryWarning;
 use crate::daemon::utils::app_probe::{ProbeContext, scan_app_probes};
-use crate::daemon::utils::base::{DaemonUtils, PlatformDaemonUtils};
+use crate::daemon::utils::base::{DaemonUtils, PlatformDaemonUtils, filtered_own_nics};
 use crate::daemon::utils::scanner::{
     ScanConcurrencyController, can_arp_scan, probe_snmp_ports, scan_endpoints, scan_tcp_ports,
 };
@@ -14,19 +15,20 @@ use crate::server::credentials::r#impl::mapping::{
     CredentialMapping, CredentialQueryPayload, IpOverride,
 };
 use crate::server::discovery::r#impl::scan_settings::defaults;
-use crate::server::interfaces::r#impl::base::InterfaceDataComplete;
+use crate::server::interfaces::r#impl::base::{Interface, InterfaceBase, InterfaceDataComplete};
 use crate::server::ip_addresses::r#impl::base::{IPAddress, IPAddressBase};
 use crate::server::ip_addresses::r#impl::base::{MacEvidence, MacEvidenceValue};
 use crate::server::ports::r#impl::base::PortType;
 use crate::server::services::r#impl::base::{Service, ServiceMatchBaselineParams};
-use crate::server::shared::attribution::AttributeSource;
+use crate::server::shared::attribution::{AttributeSource, Attributed};
 use crate::server::shared::types::entities::EntitySource;
 use crate::server::{
     daemons::r#impl::base::DaemonMode,
     hosts::r#impl::{
         api::{DiscoveryHostRequest, HostResponse},
+        attributes::HostHostnameValue,
         base::{Host, HostBase},
-        name::{HostName, HostNameSources},
+        name::host_name_from_parts,
     },
     subnets::r#impl::base::Subnet,
 };
@@ -213,6 +215,48 @@ impl NetworkScan {
             self.browse_mdns(&own_addresses, &scanned_subnets, target_ips.as_ref())
                 .await,
         );
+
+        // ---------------------------------------------------------------
+        // PROFINET DCP Identify sweep — see network::dcp
+        // ---------------------------------------------------------------
+        // Unlike every sweep above and below, DCP never targets an IP: it multicasts once per
+        // interface and an unknown number of devices reply, some with no IP at all. It has
+        // nothing to feed into the IP-keyed `host_tx` channel the rest of this pipeline uses, and
+        // a device it finds may never reach `deep_scan_host`. So it runs as a background task
+        // collecting raw results here, submitted directly via `ops.create_host` — the same
+        // function every other discovery source uses — once joined near the end of this function.
+        // Spawned now rather than awaited inline so its listen window (a few seconds per
+        // interface) overlaps the rest of the pipeline instead of adding to it.
+        //
+        // Runs on a dedicated `std::thread::spawn`, fired synchronously right here, mirroring
+        // `arp::scan_subnet`'s shape rather than going through `tokio::task::spawn_blocking`.
+        // `datalink::channel()` opens a raw BPF/AF_PACKET fd, and on macOS opening one at fd >=
+        // 1024 used to abort the process (see vendor/pnet_datalink/README.md; fixed there). ARP
+        // avoids ever being anywhere near that by opening its channel on its own OS thread,
+        // started before deep-scan's fd-heavy work has ramped up — not queued behind whatever
+        // else the Tokio blocking pool happens to be running. DCP gets the same guarantee here:
+        // the thread below starts immediately, so its `datalink::channel()` call runs at a
+        // predictably low fd rather than at a scheduling-dependent one. Only the *result*, not
+        // the channel open, crosses back into async code — via a oneshot that the thread fills
+        // once its whole sweep (every interface) is done.
+        let dcp_capable_interfaces: Vec<_> = filtered_own_nics(&interface_filter)
+            .into_iter()
+            .filter(dcp::is_dcp_capable)
+            .collect();
+        let (dcp_tx, dcp_sweep) = tokio::sync::oneshot::channel();
+        std::thread::spawn(move || {
+            let mut found = Vec::new();
+            for interface in dcp_capable_interfaces {
+                let name = interface.name.clone();
+                match dcp::scan_interface(&interface) {
+                    Ok(responses) => found.extend(responses),
+                    Err(e) => {
+                        tracing::warn!(interface = %name, error = %e, "DCP sweep failed on interface")
+                    }
+                }
+            }
+            let _ = dcp_tx.send(found);
+        });
 
         // ---------------------------------------------------------------
         // ICMP echo sweep — the second liveness signal
@@ -795,16 +839,13 @@ impl NetworkScan {
                                 let early_config_store = ops.config_store.clone();
                                 let early_api_client = ops.api_client.clone();
                                 let early_handle = tokio::spawn(async move {
-                                    // Through the ladder, not by assigning `name`: a stub that
-                                    // does not declare its rung enters as `Unspecified` and can
-                                    // never refresh the address-derived name it wrote last scan,
-                                    // so a host whose DHCP lease moved keeps showing the old one.
-                                    let mut host = Host::new(HostBase {
+                                    // Unnamed: the address is an identifier, and the display ladder
+                                    // titles the host by it without a copy in `name`.
+                                    let host = Host::new(HostBase {
                                         network_id: early_subnet.base.network_id,
                                         source: EntitySource::Discovery,
                                         ..Default::default()
                                     });
-                                    host.base.apply_name(HostName::from_ip(ip));
                                     let host_id = host.id;
                                     let ip_address = IPAddress::new(IPAddressBase {
                                         network_id: early_subnet.base.network_id,
@@ -829,6 +870,9 @@ impl NetworkScan {
                                         // ...and no neighbour data either, so there is nothing
                                         // for it to overwrite.
                                         interface_data_complete: InterfaceDataComplete::default(),
+                                        // This daemon is this build; it submits the current
+                                        // shape by construction.
+                                        superseded_wire_shape: false,
                                     };
                                     early_entity_buffer.push_host(request.clone()).await;
                                     let mode = early_config_store.get_mode().await?;
@@ -1266,6 +1310,23 @@ impl NetworkScan {
             warnings.extend(declined);
         }
 
+        // Collect and submit whatever the DCP sweep found. By now its listen window (a few
+        // seconds per interface) has almost always already elapsed against the rest of this
+        // pipeline, so this await is ordinarily immediate.
+        match dcp_sweep.await {
+            Ok(found) => {
+                let dcp_count = found.len();
+                for response in found {
+                    self.submit_dcp_host(session.info.network_id, response, ops, &cancel)
+                        .await;
+                }
+                if dcp_count > 0 {
+                    tracing::info!(dcp_count, "PROFINET DCP sweep found devices");
+                }
+            }
+            Err(e) => tracing::warn!(error = %e, "DCP sweep thread failed to report back"),
+        }
+
         let discovered = hosts_discovered.load(Ordering::Relaxed);
         tracing::info!(
             hosts_discovered = discovered,
@@ -1276,6 +1337,69 @@ impl NetworkScan {
         );
 
         Ok(results)
+    }
+
+    /// Submit one PROFINET DCP-identified device as a standalone host: a fresh UUID, no IP
+    /// addresses (even if the device reported one — DCP's whole marginal value is the no-IP
+    /// case; a configured device is already reachable via ARP/ICMP's normal flow), and one
+    /// interface carrying the MAC that answered. `create_with_children` matches this against any
+    /// host this network already holds carrying that MAC, or mints one if it does not, gated on
+    /// `AttributeSource::ProfinetDcp` being a `Native`-tier source — this call never needs to
+    /// weaken that gate itself.
+    ///
+    /// `interfaces_complete: false`: this submission is the sole contributor to itself and never
+    /// claims to have seen the device's whole ifTable, so the server must not prune any
+    /// SNMP-discovered interfaces already on file for a host this MAC resolves onto.
+    async fn submit_dcp_host(
+        &self,
+        network_id: Uuid,
+        response: dcp::DcpIdentifyResponse,
+        ops: &DiscoveryOps,
+        cancel: &CancellationToken,
+    ) {
+        let mut host = Host::new(HostBase {
+            network_id,
+            source: EntitySource::Discovery,
+            ..Default::default()
+        });
+        if let Some(name) = response.name_of_station {
+            host.base
+                .apply_name(host_name_from_parts(name, AttributeSource::ProfinetDcp));
+        }
+
+        let interface = Interface::new(InterfaceBase {
+            host_id: Uuid::nil(), // Server assigns.
+            network_id,
+            // No real value exists — DCP Identify carries no per-port description, and `if_descr`
+            // stays `Option` for exactly this producer. Not fabricated text.
+            if_descr: None,
+            mac_address: Some(MacEvidence::new(
+                MacEvidenceValue(response.mac),
+                AttributeSource::ProfinetDcp,
+            )),
+            ..Default::default()
+        });
+
+        if let Err(e) = ops
+            .create_host(
+                host,
+                vec![],
+                vec![],
+                vec![],
+                vec![interface],
+                vec![],
+                false,
+                InterfaceDataComplete::none(),
+                cancel,
+            )
+            .await
+        {
+            tracing::warn!(
+                mac = %response.mac,
+                error = %e,
+                "Failed to submit PROFINET DCP-discovered host"
+            );
+        }
     }
 
     async fn deep_scan_host(
@@ -1593,10 +1717,16 @@ impl NetworkScan {
         // and the device answers for itself. Used as a fallback rather than a replacement — where
         // an operator maintains reverse DNS, that is the more deliberate name of the two.
         let dns_sd = mdns_hosts.get(&ip).cloned();
-        let hostname = self
-            .get_hostname_for_ip(ip)
-            .await?
-            .or_else(|| dns_sd.as_ref().and_then(|host| host.hostname.clone()));
+        let hostname = match self.get_hostname_for_ip(ip).await? {
+            Some(ptr) => Some(Attributed::new(
+                HostHostnameValue(ptr),
+                AttributeSource::ReverseDns,
+            )),
+            None => dns_sd
+                .as_ref()
+                .and_then(|host| host.hostname.clone())
+                .map(|srv| Attributed::new(HostHostnameValue(srv), AttributeSource::DnsSdHostname)),
+        };
         // MAC enrichment from SNMP ipAddrTable now handled by SnmpIntegration.execute()
         let ip_address = IPAddress::new(IPAddressBase {
             network_id: subnet.base.network_id,
@@ -1697,6 +1827,8 @@ impl NetworkScan {
                     identity.enrich(&mut host_data);
                 }
             }
+
+            ops.record_equal_reach_integrations(ip, &host_data).await;
 
             // Extract final state from host_data
             let interfaces_complete = host_data.interfaces_complete;

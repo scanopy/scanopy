@@ -144,6 +144,9 @@ impl SnapshotService {
         use crate::server::bindings::r#impl::base::Binding;
         use crate::server::dependencies::dependency_members::DependencyMemberRecord;
         use crate::server::dependencies::r#impl::base::Dependency;
+        use crate::server::interface_neighbors::r#impl::base::{
+            InterfaceNeighborHost, InterfaceNeighborInterface,
+        };
         use crate::server::interfaces::r#impl::base::Interface;
         use crate::server::ip_addresses::r#impl::base::IPAddress;
         use crate::server::ports::r#impl::base::Port;
@@ -240,11 +243,38 @@ impl SnapshotService {
         .await?;
         maps.interfaces = interface_map;
 
-        // Interface neighbors (Interface→Interface) are remapped inside the
-        // clone via `Interface::remap_own_clone_refs` (a self-reference that
-        // needs the full interface map); Interface→Host neighbors are handled
-        // in the per-row `remap_fks_for_clone`. Both keep the snapshot's
-        // PhysicalLink edges resolving against closed interfaces.
+        // GH #701: resolved neighbour adjacencies, filtered through interface_id (neither table
+        // has a network_id-free shortcut — both are children of `interfaces`, same as ports).
+        // Both FKs (`interface_id`, `neighbor_interface_id`/`neighbor_host_id`) remap in the
+        // per-row `remap_fks_for_clone` pass against `maps.interfaces`/`maps.hosts`, which are
+        // both already populated by this point — unlike the old `Interface.neighbor` self-
+        // reference this replaced, neither resolved table self-references, so there is no
+        // `own_clone_ref` two-phase dance to run here.
+        let interface_ids: Vec<Uuid> = maps.interfaces.keys().copied().collect();
+        let _ = close_and_clone_for::<InterfaceNeighborInterface>(
+            &mut tx,
+            StorableFilter::<InterfaceNeighborInterface>::new_from_uuids_column(
+                "interface_id",
+                &interface_ids,
+            )
+            .live(),
+            taken_at,
+            snapshot_id,
+            &maps,
+        )
+        .await?;
+        let _ = close_and_clone_for::<InterfaceNeighborHost>(
+            &mut tx,
+            StorableFilter::<InterfaceNeighborHost>::new_from_uuids_column(
+                "interface_id",
+                &interface_ids,
+            )
+            .live(),
+            taken_at,
+            snapshot_id,
+            &maps,
+        )
+        .await?;
 
         // Bindings filter through service_id (Binding has no network_id).
         // BINDINGS must come before DEPENDENCY_MEMBERS so dep_member's
@@ -653,72 +683,11 @@ mod virtualization_remap_tests {
     }
 }
 
-#[cfg(test)]
-mod self_ref_remap_tests {
-    use super::*;
-    use crate::server::interfaces::r#impl::base::{Interface, InterfaceBase, Neighbor};
-
-    fn iface(id: Uuid, neighbor: Option<Uuid>) -> Interface {
-        Interface {
-            id,
-            base: InterfaceBase {
-                neighbor: neighbor.map(Neighbor::Interface),
-                ..Default::default()
-            },
-            ..Default::default()
-        }
-    }
-
-    /// The shape GH #687 fails on. Two interfaces that name each other are a
-    /// cycle, so no insert order can satisfy the FK across a chunk boundary —
-    /// the reference has to be written after both rows exist. Both directions
-    /// must be remapped, and both rows must come back to be written.
-    #[test]
-    fn a_reciprocal_pair_is_remapped_in_both_directions() {
-        let (live_a, live_b) = (Uuid::new_v4(), Uuid::new_v4());
-        let (closed_a, closed_b) = (Uuid::new_v4(), Uuid::new_v4());
-        let mapping = HashMap::from([(live_a, closed_a), (live_b, closed_b)]);
-
-        let mut closed = vec![iface(closed_a, Some(live_b)), iface(closed_b, Some(live_a))];
-        let (remapped, unpreserved) = remap_self_refs(&mut closed, &mapping);
-
-        assert_eq!(remapped.len(), 2);
-        assert!(unpreserved.is_empty());
-        assert_eq!(closed[0].own_clone_ref(), Some(closed_b));
-        assert_eq!(closed[1].own_clone_ref(), Some(closed_a));
-    }
-
-    /// A neighbour with no closed copy keeps the only value that satisfies the
-    /// FK — its live id — and is reported. Dropping the reference to make the
-    /// write succeed would render the snapshot's L2 view short an edge with
-    /// nothing anywhere saying so.
-    #[test]
-    fn a_reference_with_no_closed_copy_is_reported_not_dropped() {
-        let (row_id, outside) = (Uuid::new_v4(), Uuid::new_v4());
-
-        let mut closed = vec![iface(row_id, Some(outside))];
-        let (remapped, unpreserved) = remap_self_refs(&mut closed, &HashMap::new());
-
-        assert!(remapped.is_empty(), "nothing to write back");
-        assert_eq!(unpreserved, vec![(row_id, outside)]);
-        assert_eq!(
-            closed[0].own_clone_ref(),
-            Some(outside),
-            "the live reference must survive: it is the only id that exists"
-        );
-    }
-
-    /// Only the rows that actually changed are written back, so the pass costs
-    /// an UPDATE per link rather than per cloned row.
-    #[test]
-    fn rows_without_a_self_reference_are_not_written_back() {
-        let (live, closed_id) = (Uuid::new_v4(), Uuid::new_v4());
-        let mapping = HashMap::from([(live, closed_id)]);
-
-        let mut closed = vec![iface(Uuid::new_v4(), None), iface(closed_id, Some(live))];
-        let (remapped, unpreserved) = remap_self_refs(&mut closed, &mapping);
-
-        assert_eq!(remapped.len(), 1);
-        assert!(unpreserved.is_empty());
-    }
-}
+// `self_ref_remap_tests` (a `remap_self_refs`/`own_clone_ref` suite fixtured on `Interface`) was
+// removed here: GH #701 moved `Interface.neighbor` — the only self-reference any type in this
+// codebase ever had — into `interface_neighbor_interfaces`, an FK to a *different* table
+// (`interfaces`), not a self-reference. No type overrides `Snapshotable::own_clone_ref` any more,
+// so `remap_self_refs`/`report_unpreserved_self_refs` below are exercised by nothing today. Left
+// in place (rather than deleted) for the next entity that genuinely self-references; write its
+// tests against that real type when it exists, the same way this suite was written against
+// `Interface`, the one real case, rather than a synthetic stand-in.

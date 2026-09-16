@@ -207,8 +207,9 @@ impl DaemonService {
 
         // Create host record for the daemon
         let mut host = Host::new(HostBase {
-            // Placeholder identity: the name chosen at provision time, at the same rung as a
-            // hostname, so a later scan of the machine can improve on it.
+            // Placeholder identity: the name chosen at provision time, applied below as an
+            // unattributed name. That ranks as a guess, so the hostname the daemon later reports
+            // for itself titles the host instead.
             name: HostName::unnamed(),
             network_id,
             hostname: None,
@@ -232,7 +233,7 @@ impl DaemonService {
             software_revision: None,
             credential_assignments: vec![],
         });
-        host.base.apply_name(HostName::from_hostname(name.clone()));
+        host.base.apply_name(HostName::unattributed(name.clone()));
 
         let created_host = host_service.create(host, auth.clone()).await.map_err(|e| {
             tracing::error!(error = %e, "Failed to create host for provisioned daemon");

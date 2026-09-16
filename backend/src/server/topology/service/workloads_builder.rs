@@ -146,7 +146,7 @@ impl ViewBuilder for WorkloadsBuilder {
                     vm_host_id,
                     ElementEntityType::Host {},
                 );
-                node.header = Some(vm_host.base.name.to_string());
+                node.header = ctx.host_container_header(vm_host);
                 nodes.push(node);
             }
         }
@@ -434,12 +434,16 @@ impl ViewBuilder for WorkloadsBuilder {
         let mut edges = Vec::new();
         let mut processed_pairs: HashSet<(Uuid, Uuid)> = HashSet::new();
 
-        for source_entry in ctx.get_interfaces_with_neighbor() {
-            let target_interface_id = match &source_entry.base.neighbor {
-                Some(Neighbor::Interface(id)) => *id,
-                _ => continue,
+        for row in ctx.get_interfaces_with_neighbor() {
+            let source_id = row.interface_id;
+            let target_interface_id = match row.neighbor {
+                Neighbor::Interface(id) => id,
+                Neighbor::Host(_) => continue,
             };
 
+            let Some(source_entry) = ctx.get_interface_by_id(source_id) else {
+                continue;
+            };
             let target_entry = match ctx.get_interface_by_id(target_interface_id) {
                 Some(e) => e,
                 None => continue,
@@ -458,10 +462,10 @@ impl ViewBuilder for WorkloadsBuilder {
             }
 
             // Dedup bidirectional pairs (A→B and B→A are the same physical link)
-            let pair_key = if source_entry.id < target_interface_id {
-                (source_entry.id, target_interface_id)
+            let pair_key = if source_id < target_interface_id {
+                (source_id, target_interface_id)
             } else {
-                (target_interface_id, source_entry.id)
+                (target_interface_id, source_id)
             };
             if !processed_pairs.insert(pair_key) {
                 continue;

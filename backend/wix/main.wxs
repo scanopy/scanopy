@@ -11,7 +11,7 @@
   the Windows service and writes config.json. Uninstall invokes `scanopy-daemon.exe uninstall`.
 
   Built by cargo-wix on the windows runner (see .github/workflows/release.yml), then signed
-  (exe first, then msi) with jsign + Certum SimplySign cloud.
+  (exe first, then msi) with the OSSign GitHub Action.
 
   NOTE: this authoring must be validated by a Windows CI run - it cannot be compiled on the
   macOS/Linux dev host. The property/silent path is the guaranteed-supported flow; the attended

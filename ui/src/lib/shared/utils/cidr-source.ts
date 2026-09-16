@@ -15,17 +15,14 @@
 import { CloudAlert } from 'lucide-svelte';
 
 import attributeMethods from '$lib/data/attribute-methods.json';
-import type { components } from '$lib/api/schema';
 import type { CardFieldItem, TagProps } from '$lib/shared/components/data/types';
+import { sourceKey, type AttributeSource } from '$lib/shared/utils/attribute-source';
 import {
 	subnets_rangeAssumed,
 	subnets_rangeAssumedDetail,
 	subnets_rangeAssumedWithCidr
 } from '$lib/paraglide/messages';
 import { toColor } from '$lib/shared/utils/styling';
-
-/** Derived from the backend enum rather than restated, so a new source cannot drift out of sync. */
-export type AttributeSource = components['schemas']['AttributeSource'];
 
 /**
  * The shape these read: any subnet, and any older payload that predates the column.
@@ -50,18 +47,6 @@ const INFERRED_SOURCES: ReadonlySet<string> = new Set(
 			[]) as AttributeSource[]
 	).map(sourceKey)
 );
-
-/**
- * A stable key for a source, so a probe is compared along with the variant that carries it.
- *
- * Externally tagged: a source with nothing to carry is its own bare name, and the two that carry a
- * probe are a single-entry object keyed by the variant — `{ Probe: 'Snmp' }`.
- */
-function sourceKey(source: AttributeSource): string {
-	if (typeof source === 'string') return source;
-	const [[variant, probe]] = Object.entries(source);
-	return `${variant}:${probe}`;
-}
 
 /** Whether this subnet's range is a guess awaiting confirmation. */
 export function isProvisionalCidr(subnet: WithCidrSource): boolean {

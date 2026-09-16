@@ -9,7 +9,8 @@ use validator::ValidationError;
 use crate::server::ip_addresses::r#impl::base::mac_of;
 use crate::server::{
     auth::middleware::auth::AuthenticatedEntity,
-    interfaces::r#impl::base::{Interface, InterfaceDataComplete, Neighbor},
+    interface_neighbors::service::InterfaceNeighborService,
+    interfaces::r#impl::base::{Interface, InterfaceDataComplete},
     ip_addresses::service::IPAddressService,
     shared::{
         events::bus::EventBus,
@@ -27,6 +28,7 @@ pub struct InterfaceService {
     storage: Arc<GenericPostgresStorage<Interface>>,
     event_bus: Arc<EventBus>,
     ip_address_service: Arc<IPAddressService>,
+    interface_neighbor_service: Arc<InterfaceNeighborService>,
 }
 
 impl EventBusService<Interface> for InterfaceService {
@@ -60,11 +62,13 @@ impl InterfaceService {
         storage: Arc<GenericPostgresStorage<Interface>>,
         event_bus: Arc<EventBus>,
         ip_address_service: Arc<IPAddressService>,
+        interface_neighbor_service: Arc<InterfaceNeighborService>,
     ) -> Self {
         Self {
             storage,
             event_bus,
             ip_address_service,
+            interface_neighbor_service,
         }
     }
 
@@ -105,11 +109,13 @@ impl InterfaceService {
     /// Validates:
     /// - ip_address_id must reference an Interface on the same host
     /// - If both Interface and Interface have MAC addresses, they should match
-    /// - neighbor (when Interface) must reference an Interface on a different host, same network
     ///
-    /// Note: Neighbor::Host validation is done in handlers (requires access to HostService)
+    /// Neighbour relationships moved off `Interface` in GH #701 (resolved rows live in
+    /// `interface_neighbor_interfaces`/`interface_neighbor_hosts`, upserted only by
+    /// `HostService`'s resolution ladder, never by a user-facing write) — there is no longer a
+    /// `neighbor` field on this type to validate here.
     pub async fn validate_relationships(&self, entry: &Interface) -> Result<()> {
-        // 1. ip_address_id: must be on SAME host, and MAC addresses should match if both present
+        // ip_address_id: must be on SAME host, and MAC addresses should match if both present
         if let Some(ip_address_id) = entry.base.ip_address_id {
             let ip_address = self
                 .ip_address_service
@@ -138,35 +144,6 @@ impl InterfaceService {
             }
         }
 
-        // 2. neighbor (Interface variant): must be on DIFFERENT host, same network
-        if let Some(Neighbor::Interface(neighbor_id)) = &entry.base.neighbor {
-            // Cannot connect to self
-            if *neighbor_id == entry.id {
-                return Err(ValidationError::new("Interface cannot connect to itself").into());
-            }
-
-            // Get the neighbor Interface
-            let neighbor_interface = self.get_by_id(neighbor_id).await?.ok_or_else(|| {
-                ValidationError::new("neighbor Interface references a non-existent Interface")
-            })?;
-
-            // Must be different host
-            if neighbor_interface.base.host_id == entry.base.host_id {
-                return Err(
-                    ValidationError::new("neighbor Interface must be on a different host").into(),
-                );
-            }
-
-            // Must be same network
-            if neighbor_interface.base.network_id != entry.base.network_id {
-                return Err(
-                    ValidationError::new("neighbor Interface must be in the same network").into(),
-                );
-            }
-        }
-
-        // Note: Neighbor::Host validation is handled in handlers which have access to HostService
-
         Ok(())
     }
 
@@ -193,9 +170,10 @@ impl InterfaceService {
     /// 3. `(host_id, mac_address)` with single-MAC guard — last resort for ports
     ///    that got both renamed and renumbered but kept their NIC
     ///
-    /// On match, preserves id + created_at + mac_address + if_name (via
-    /// `preserve_immutable_fields`) and overwrites the rest with the incoming payload.
-    /// Skips relationship validation (data from trusted SNMP source).
+    /// On match, preserves id + created_at + mac_address + the ifTable-shaped fields (if_name,
+    /// if_index, if_type, admin/oper status, if_descr) wherever the incoming payload has none of
+    /// its own — via `preserve_immutable_fields` — and overwrites the rest with the incoming
+    /// payload. Skips relationship validation (data from trusted SNMP source).
     ///
     /// `claimed` holds the ids of existing rows already matched (or created) by
     /// earlier interfaces in the *same* discovery batch. A row may be claimed by
@@ -213,21 +191,20 @@ impl InterfaceService {
     ) -> Result<Interface> {
         let mut entry = entry;
         entry.normalize_blank_identity();
+        // A pre-#701 daemon's scalar LLDP/CDP submission has already been folded in here by
+        // `DiscoveryInterface` at the API boundary, so this path sees one shape only.
+        // Captured before `entry` moves into `create`/`update` below — the candidates this scan
+        // submitted for this port, independent of which branch persists the interface itself.
+        let submitted_candidates = std::mem::take(&mut entry.base.neighbor_candidates);
 
         let existing = self.find_matching_existing(&entry, claimed).await?;
 
-        // Before either preserve step: `entry` still holds exactly what this scan carried, and
-        // `preserve_uncollected_data` below may put the *previous* scan's neighbour identifiers
-        // back on it. Stamping after that would call a link freshly evidenced every scan while its
-        // neighbour walk has in fact been failing for a month.
-        entry.stamp_neighbor_evidence(existing.as_ref());
-
-        if let Some(existing_entry) = existing {
+        let persisted = if let Some(existing_entry) = existing {
             let mut updated = entry;
             updated.id = existing_entry.id;
             updated.preserve_immutable_fields(&existing_entry);
             updated.preserve_uncollected_data(&existing_entry, collected);
-            self.update(&mut updated, authentication).await
+            self.update(&mut updated, authentication).await?
         } else {
             // SCD2 origin: no match found, this is a new insert. Stamp
             // created_at + valid_from to the entity's already-refreshed
@@ -236,8 +213,22 @@ impl InterfaceService {
             use crate::server::shared::storage::snapshot::DiscoveryTracked;
             let mut entry = entry;
             entry.originate_scan_timestamps(entry.last_seen_at);
-            self.create(entry, authentication).await
-        }
+            self.create(entry, authentication).await?
+        };
+
+        // Replace this port's candidate rows now that it has a real, persisted id. Per-group
+        // completeness (a walk cut short by timeout) is honored inside the service the same way
+        // `preserve_uncollected_data` above honors it for `fdb_macs`/VLAN membership.
+        self.interface_neighbor_service
+            .replace_candidates_from_discovery(
+                persisted.base.network_id,
+                persisted.id,
+                submitted_candidates,
+                collected,
+            )
+            .await?;
+
+        Ok(persisted)
     }
 
     /// Tiered lookup: if_name → if_index → mac_address with single-MAC guard.
@@ -345,7 +336,7 @@ mod tests {
     fn make_iface(if_index: i32, if_name: Option<&str>, mac: Option<&str>) -> Interface {
         let mut entry = make_indexless_iface(if_name, mac);
         entry.base.if_index = Some(if_index);
-        entry.base.if_descr = format!("ifIndex {if_index}");
+        entry.base.if_descr = Some(format!("ifIndex {if_index}"));
         entry
     }
 
@@ -354,7 +345,7 @@ mod tests {
     fn make_indexless_iface(if_name: Option<&str>, mac: Option<&str>) -> Interface {
         let mut base = InterfaceBase::default();
         base.host_id = Uuid::nil();
-        base.if_descr = if_name.unwrap_or_default().to_string();
+        base.if_descr = if_name.map(str::to_string);
         base.if_name = if_name.map(String::from);
         base.mac_address = mac
             .map(|s| s.parse::<MacAddress>().unwrap())
@@ -562,5 +553,36 @@ mod tests {
         assert_eq!(persisted.len(), 1, "the walk must not add a second eth0");
         assert_eq!(persisted[0].id, inferred_id, "same row, upgraded");
         assert_eq!(persisted[0].base.if_index, Some(3));
+    }
+
+    /// The acceptance bar for the PROFINET DCP item: "a host DCP also saw does not lose its
+    /// SNMP-discovered interfaces." A DCP submission carries no `if_name`/`if_index` at all — it
+    /// has neither, unlike the LLDP-minted shape `make_indexless_iface` was written for, which at
+    /// least has a name — so Tiers 1 and 2 both skip and only Tier 3 (MAC) can place it. If it
+    /// matched nothing it would insert as a *second* row for the same physical port; if the
+    /// existing row's Tier 1/2 identity were lost in the merge that would be its own bug. Neither
+    /// happens: the incoming MAC-only entry resolves onto the existing SNMP row, which keeps its
+    /// name and index.
+    #[test]
+    fn a_mac_only_dcp_submission_matches_the_snmp_row_sharing_its_mac_rather_than_duplicating_it() {
+        let mac = "aa:bb:cc:dd:ee:ff";
+        let snmp_row = make_iface(7, Some("Gi1/0/7"), Some(mac));
+        let existing_id = snmp_row.id;
+
+        let dcp_entry = make_indexless_iface(None, Some(mac));
+        let persisted = run_batch_from(vec![snmp_row], vec![dcp_entry], true);
+
+        assert_eq!(
+            persisted.len(),
+            1,
+            "must resolve onto the existing row, not add a second one"
+        );
+        assert_eq!(persisted[0].id, existing_id);
+        assert_eq!(
+            persisted[0].base.if_name.as_deref(),
+            Some("Gi1/0/7"),
+            "the SNMP row's identity must survive the merge"
+        );
+        assert_eq!(persisted[0].base.if_index, Some(7));
     }
 }

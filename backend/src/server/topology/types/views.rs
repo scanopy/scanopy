@@ -358,6 +358,12 @@ pub struct FilterValueContext {
     /// linked if something points at it. Judging the outbound direction alone is a real bug and not
     /// a theoretical one: the frontend shipped it and drew 11 edges where it should have drawn 720.
     pub interfaces_referenced_as_neighbours: HashSet<Uuid>,
+    /// Interfaces with at least one live row of their own in either resolved-neighbour table
+    /// (`interface_neighbor_interfaces` / `interface_neighbor_hosts`).
+    ///
+    /// The successor to reading `Interface.neighbor.is_some()` directly, now that a port's
+    /// resolved adjacencies live in a separate `Vec` rather than a scalar field on the interface.
+    pub interfaces_with_neighbours: HashSet<Uuid>,
 }
 
 /// Entities that can surface metadata filter values. Returns the stable

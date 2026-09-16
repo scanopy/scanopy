@@ -43,6 +43,7 @@
 	import {
 		common_credentials,
 		common_warnings,
+		daemons_upgradeDaemon,
 		discovery_noWarnings,
 		discovery_noWarningsSubtitle,
 		discovery_scanSettings,
@@ -142,7 +143,7 @@
 	/**
 	 * Where a row hands off to, when Scanopy owns the fix.
 	 *
-	 * Only three destinations are real, and a row without one renders no button rather than a dead
+	 * Only four destinations are real, and a row without one renders no button rather than a dead
 	 * one. The credential family is recognised by the `integration` field on the payload rather
 	 * than by a list of code names here — those eleven variants are exactly the ones that carry it,
 	 * so the set cannot drift out of step with the backend.
@@ -150,6 +151,20 @@
 	function actionFor(
 		entry: WarningEntry
 	): { label: string; icon: IconComponent; run: () => void } | null {
+		if (entry.code === 'OutdatedDaemonFormat') {
+			return {
+				label: daemons_upgradeDaemon(),
+				icon: createIconComponent('circle-arrow-up'),
+				run: () => {
+					// The daemon to upgrade is the one that ran this scan, so the id comes off the
+					// payload rather than the warning — one session has exactly one daemon, and
+					// repeating it per warning would let the two disagree.
+					window.location.hash = 'daemons';
+					openModal('upgrade-daemon', { id: payload.daemon_id });
+				}
+			};
+		}
+
 		if (entry.code === 'ProvisionalSubnetInferred') {
 			const subnetIds = entry.warnings.flatMap((w) => ('subnet_id' in w ? [w.subnet_id] : []));
 			return {

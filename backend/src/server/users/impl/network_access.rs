@@ -68,6 +68,7 @@ impl Display for UserNetworkAccess {
 }
 
 impl Storable for UserNetworkAccess {
+    const HAS_SCD2: bool = false;
     type BaseData = UserNetworkAccessBase;
 
     fn table_name() -> &'static str {

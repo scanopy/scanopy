@@ -3,6 +3,7 @@
 	import { UNTAGGED_SENTINEL, hoveredTag } from '../../../interactions';
 	import FilterGroup, { type FilterItem } from './FilterGroup.svelte';
 	import { concepts } from '$lib/shared/stores/metadata';
+	import { common_untagged } from '$lib/paraglide/messages';
 
 	type TagType = components['schemas']['Tag'];
 	type EntityType = components['schemas']['EntityDiscriminants'];
@@ -30,7 +31,7 @@
 	let items = $derived.by(() => {
 		const result: FilterItem[] = [];
 		if (hasUntagged) {
-			result.push({ value: UNTAGGED_SENTINEL, label: 'Untagged', color: 'Gray' });
+			result.push({ value: UNTAGGED_SENTINEL, label: common_untagged(), color: 'Gray' });
 		}
 		for (const tag of tags) {
 			const isApp = tag.is_application ?? false;

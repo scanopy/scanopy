@@ -113,141 +113,48 @@ impl<T: Storable> StorableFilter<T> {
         self
     }
 
-    /// Filter interfaces whose LLDP/CDP neighbor is not yet fully resolved, in a network.
-    ///
-    /// Admits both never-resolved rows (no neighbor at all) and *partially* resolved rows
-    /// (`neighbor_host_id` set, remote port still unknown). A partial resolution is invisible in
-    /// the L2 view — only `Neighbor::Interface` renders an edge — so leaving those rows out of the
-    /// pass, as the original "both columns NULL" predicate did, made a partial permanent: a port
-    /// whose remote interface became resolvable later (new port-ID strategy, remote host rescanned)
-    /// was never looked at again. The resolution loop retries only the port half for those rows and
-    /// never downgrades an existing partial.
-    ///
-    /// Scoped to live SCD2 rows: snapshot close-and-clone leaves closed historical copies of these
-    /// interfaces behind, and resolving/updating those would both waste the pass and mutate history.
-    pub fn unresolved_lldp_port_in_network(mut self, network_id: Uuid) -> Self {
-        let network_col = self.qualify_column("network_id");
-        let lldp_chassis_col = self.qualify_column("lldp_chassis_id");
-        let cdp_device_col = self.qualify_column("cdp_device_id");
-        let cdp_addr_col = self.qualify_column("cdp_address");
-        let neighbor_if_entry_col = self.qualify_column("neighbor_interface_id");
-
-        self.conditions
-            .push(format!("{} = ${}", network_col, self.values.len() + 1));
-        self.values.push(SqlValue::Uuid(network_id));
-
-        // Has LLDP or CDP data
-        self.conditions.push(format!(
-            "({} IS NOT NULL OR {} IS NOT NULL OR {} IS NOT NULL)",
-            lldp_chassis_col, cdp_device_col, cdp_addr_col
-        ));
-        // ...but no remote port yet (unresolved, or resolved only as far as the host)
-        self.conditions
-            .push(format!("{} IS NULL", neighbor_if_entry_col));
-
-        self.live()
-    }
-
-    /// Every interface in a network that names a neighbour, whatever state its resolution is in.
-    ///
-    /// The superset of [`Self::unresolved_lldp_port_in_network`] and
-    /// [`Self::port_resolved_by_mac_in_network`], and the input to the reciprocal-pairing tier:
-    /// deciding that host A names host B on exactly one port has to count *every* port that names
-    /// it, not just the ones still unresolved. Counting only the unresolved half would pair one
-    /// leg of a LAG whose other leg happened to resolve, which is the arbitrary-port outcome the
-    /// MAC guard exists to prevent.
-    ///
-    /// Bounded by adjacencies rather than by interfaces — a switch contributes one row per port
-    /// that sees something, not one per port.
-    pub fn lldp_neighbors_in_network(mut self, network_id: Uuid) -> Self {
-        let network_col = self.qualify_column("network_id");
-        let lldp_chassis_col = self.qualify_column("lldp_chassis_id");
-        let cdp_device_col = self.qualify_column("cdp_device_id");
-        let cdp_addr_col = self.qualify_column("cdp_address");
-        let neighbor_if_entry_col = self.qualify_column("neighbor_interface_id");
-        let neighbor_host_col = self.qualify_column("neighbor_host_id");
-
-        self.conditions
-            .push(format!("{} = ${}", network_col, self.values.len() + 1));
-        self.values.push(SqlValue::Uuid(network_id));
-
-        self.conditions.push(format!(
-            "({lldp_chassis_col} IS NOT NULL OR {cdp_device_col} IS NOT NULL \
-             OR {cdp_addr_col} IS NOT NULL OR {neighbor_if_entry_col} IS NOT NULL \
-             OR {neighbor_host_col} IS NOT NULL)"
-        ));
-
-        self.live()
-    }
-
     /// Filter interfaces with unresolved single-MAC FDB data in a network.
-    /// Matches entries that have exactly 1 learned MAC, no existing neighbor,
-    /// and no LLDP/CDP data (FDB is lower-priority than protocol-based discovery).
+    ///
+    /// Matches entries that have exactly 1 learned MAC, no candidate row (raw LLDP/CDP evidence —
+    /// FDB is lower-priority than protocol-based discovery), and no existing resolved row of
+    /// either kind.
+    ///
+    /// GH #701: `neighbor_interface_id`/`neighbor_host_id`/`lldp_chassis_id`/`cdp_device_id` moved
+    /// off `interfaces` into `interface_neighbor_interfaces`/`interface_neighbor_hosts`/
+    /// `interface_neighbor_candidates` — the four `IS NULL` scalar-column checks this filter used
+    /// became three `NOT EXISTS` subqueries against those tables (candidates cover both LLDP and
+    /// CDP in one check, since a row's evidence type no longer has its own column here).
     pub fn unresolved_fdb_in_network(mut self, network_id: Uuid) -> Self {
         let network_col = self.qualify_column("network_id");
         let fdb_col = self.qualify_column("fdb_macs");
-        let neighbor_if_entry_col = self.qualify_column("neighbor_interface_id");
-        let neighbor_host_col = self.qualify_column("neighbor_host_id");
-        let lldp_chassis_col = self.qualify_column("lldp_chassis_id");
-        let cdp_device_col = self.qualify_column("cdp_device_id");
+        let id_col = self.qualify_column("id");
 
         self.conditions
             .push(format!("{} = ${}", network_col, self.values.len() + 1));
         self.values.push(SqlValue::Uuid(network_id));
 
-        // Has single-MAC FDB data, no neighbor, no LLDP/CDP
+        // Has single-MAC FDB data.
         self.conditions.push(format!(
             "{} IS NOT NULL AND jsonb_array_length({}) = 1",
             fdb_col, fdb_col
         ));
-        self.conditions
-            .push(format!("{} IS NULL", neighbor_if_entry_col));
-        self.conditions
-            .push(format!("{} IS NULL", neighbor_host_col));
-        self.conditions
-            .push(format!("{} IS NULL", lldp_chassis_col));
-        self.conditions.push(format!("{} IS NULL", cdp_device_col));
+        // No raw LLDP/CDP evidence at all.
+        self.conditions.push(format!(
+            "NOT EXISTS (SELECT 1 FROM interface_neighbor_candidates \
+             WHERE interface_neighbor_candidates.interface_id = {id_col})"
+        ));
+        // No existing resolved row of either kind.
+        self.conditions.push(format!(
+            "NOT EXISTS (SELECT 1 FROM interface_neighbor_interfaces \
+             WHERE interface_neighbor_interfaces.interface_id = {id_col} \
+             AND interface_neighbor_interfaces.valid_to IS NULL)"
+        ));
+        self.conditions.push(format!(
+            "NOT EXISTS (SELECT 1 FROM interface_neighbor_hosts \
+             WHERE interface_neighbor_hosts.interface_id = {id_col} \
+             AND interface_neighbor_hosts.valid_to IS NULL)"
+        ));
 
         self.live()
-    }
-
-    /// Filter interfaces that have any resolved neighbor (full or partial resolution)
-    pub fn has_neighbor(mut self) -> Self {
-        let neighbor_if_entry_col = self.qualify_column("neighbor_interface_id");
-        let neighbor_host_col = self.qualify_column("neighbor_host_id");
-
-        self.conditions.push(format!(
-            "({} IS NOT NULL OR {} IS NOT NULL)",
-            neighbor_if_entry_col, neighbor_host_col
-        ));
-
-        self
-    }
-
-    /// Filter interfaces with full neighbor resolution (specific remote port known)
-    pub fn has_neighbor_if_entry(mut self) -> Self {
-        let col = self.qualify_column("neighbor_interface_id");
-        self.conditions.push(format!("{} IS NOT NULL", col));
-        self
-    }
-
-    /// Filter interfaces connected to a specific host (either resolution type)
-    pub fn neighbor_host(mut self, host_id: Uuid) -> Self {
-        let neighbor_if_entry_col = self.qualify_column("neighbor_interface_id");
-        let neighbor_host_col = self.qualify_column("neighbor_host_id");
-
-        // Either directly connected to host (partial resolution)
-        // Or connected to an interface on that host (full resolution)
-        // For full resolution, we need a subquery
-        self.conditions.push(format!(
-            "({} = ${} OR {} IN (SELECT id FROM interfaces WHERE host_id = ${}))",
-            neighbor_host_col,
-            self.values.len() + 1,
-            neighbor_if_entry_col,
-            self.values.len() + 1
-        ));
-        self.values.push(SqlValue::Uuid(host_id));
-
-        self
     }
 }

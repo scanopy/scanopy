@@ -30,6 +30,7 @@ pub struct DiscoveryCsvRow {
 }
 
 impl Storable for Discovery {
+    const HAS_SCD2: bool = false;
     type BaseData = DiscoveryBase;
 
     fn table_name() -> &'static str {

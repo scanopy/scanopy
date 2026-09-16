@@ -15,6 +15,7 @@ use crate::server::{
         smtp::SmtpEmailProvider,
     },
     hosts::service::HostService,
+    interface_neighbors::service::InterfaceNeighborService,
     interfaces::service::InterfaceService,
     invites::service::InviteService,
     ip_addresses::service::IPAddressService,
@@ -80,6 +81,7 @@ pub struct ServiceFactory {
     pub binding_service: Arc<BindingService>,
     pub credential_service: Arc<CredentialService>,
     pub interface_service: Arc<InterfaceService>,
+    pub interface_neighbor_service: Arc<InterfaceNeighborService>,
     pub vlan_service: Arc<VlanService>,
     pub discovery_digest_service: Arc<DiscoveryDigestService>,
 }
@@ -196,11 +198,19 @@ impl ServiceFactory {
             entity_tag_service.clone(),
         ));
 
-        // InterfaceService needs IPAddressService for validation
+        // GH #701 multi-neighbour tables: no CrudService, so constructed straight from the pool
+        // rather than a StorageFactory field (see interface_neighbors/service.rs). Built before
+        // InterfaceService, which needs it to persist candidates on the discovery ingest path.
+        let interface_neighbor_service =
+            Arc::new(InterfaceNeighborService::new(storage.pool.clone()));
+
+        // InterfaceService needs IPAddressService for validation and InterfaceNeighborService to
+        // persist candidate evidence on discovery ingest.
         let interface_service = Arc::new(InterfaceService::new(
             storage.interfaces.clone(),
             event_bus.clone(),
             ip_address_service.clone(),
+            interface_neighbor_service.clone(),
         ));
 
         let credential_service = Arc::new(CredentialService::new(
@@ -246,6 +256,7 @@ impl ServiceFactory {
             port_service.clone(),
             service_service.clone(),
             interface_service.clone(),
+            interface_neighbor_service.clone(),
             daemon_service.clone(),
             credential_service.clone(),
             subnet_service.clone(),
@@ -271,6 +282,7 @@ impl ServiceFactory {
             port_service.clone(),
             binding_service.clone(),
             interface_service.clone(),
+            interface_neighbor_service.clone(),
             tag_service.clone(),
             vlan_service.clone(),
             network_service.clone(),
@@ -498,6 +510,7 @@ impl ServiceFactory {
             binding_service,
             credential_service,
             interface_service,
+            interface_neighbor_service,
             vlan_service,
             discovery_digest_service,
         };
@@ -552,6 +565,7 @@ impl ServiceFactory {
             binding_service,
             credential_service,
             interface_service,
+            interface_neighbor_service: _, // not a Subscriber: bespoke service, no EventBusService impl
             vlan_service,
             discovery_digest_service,
         } = self;

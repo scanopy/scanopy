@@ -8,17 +8,18 @@ use crate::server::{
     hosts::r#impl::{
         api::{
             BindingInput, ConflictBehavior, CreateHostRequest, HostResponse, IPAddressInput,
-            PortInput, ServiceInput, UpdateHostRequest,
+            InterfaceInput, PortInput, ServiceInput, UpdateHostRequest,
         },
         attributes::{
-            HostChassisIdValue, HostManagementUrlValue, HostSysContactValue, HostSysDescrValue,
-            HostSysLocationValue, HostSysNameValue, HostSysObjectIdValue,
+            HostChassisIdValue, HostHostnameValue, HostManagementUrlValue, HostSysContactValue,
+            HostSysDescrValue, HostSysLocationValue, HostSysNameValue, HostSysObjectIdValue,
         },
         base::{Host, HostBase},
         name::{HostName, HostNameSources},
     },
+    interface_neighbors::{r#impl::base::Neighbor, service::InterfaceNeighborService},
     interfaces::{
-        r#impl::base::{Interface, InterfaceDataComplete, Neighbor},
+        r#impl::base::{Interface, InterfaceDataComplete},
         service::InterfaceService,
     },
     ip_addresses::{
@@ -33,7 +34,7 @@ use crate::server::{
         r#impl::{base::Service, definitions::ServiceDefinitionExt},
         service::ServiceService,
     },
-    shared::attribution::{AttributeSource, Attributed},
+    shared::attribution::{self, AttributeSource, Attributed},
     shared::{
         entities::{ChangeTriggersTopologyStaleness, EntityDiscriminants},
         events::{bus::EventBus, types::EntityOperation},
@@ -79,6 +80,7 @@ pub struct HostService {
     port_service: Arc<PortService>,
     service_service: Arc<ServiceService>,
     interface_service: Arc<InterfaceService>,
+    interface_neighbor_service: Arc<InterfaceNeighborService>,
     pub daemon_service: Arc<DaemonService>,
     credential_service: Arc<CredentialService>,
     subnet_service: Arc<SubnetService>,

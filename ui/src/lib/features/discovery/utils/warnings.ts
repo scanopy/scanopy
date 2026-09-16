@@ -28,6 +28,7 @@ import {
 	common_andNMore,
 	common_host,
 	common_moreItems,
+	common_unknown,
 	common_unknownEntity,
 	discovery_warningNoFurtherDetail,
 	discovery_warningAtAddress,
@@ -284,6 +285,13 @@ const WARNING_PARAMS = {
 
 	SnmpCollectedNothing: (w) => ({ addresses: addressesOf(w) }),
 	VlanRecordingFailed: (w) => ({ addresses: addressesOf(w) }),
+	// One per host, like the credential codes. The two integrations identify the statement, so hosts
+	// read by the same pair in the same order share a sentence and a different pair stays apart.
+	EqualReachIntegrationsMerged: (w) => ({
+		addresses: addressesOf(w),
+		first: integration(w[0].first),
+		second: integration(w[0].second)
+	}),
 
 	CredentialTargetNotScanned: credentialParams,
 	CredentialTargetNotResponding: credentialParams,
@@ -329,6 +337,19 @@ const WARNING_PARAMS = {
 	NeighbourResolutionIncomplete: (w) => ({
 		budget_seconds: w[0].budget_seconds,
 		neighbours: w[0].neighbours
+	}),
+	// Same reasoning as NeighbourResolutionIncomplete: the FDB pass also runs once per session and
+	// is cut short at most once.
+	FdbResolutionIncomplete: (w) => ({
+		budget_seconds: w[0].budget_seconds,
+		interfaces: w[0].interfaces
+	}),
+
+	// One per session: the server raises it once, on the terminal payload, for the one daemon that
+	// ran the scan. A daemon too old to report a version at all still has to read as a sentence,
+	// so the empty case says so rather than leaving a hole where the number goes.
+	OutdatedDaemonFormat: (w) => ({
+		daemon_version: w[0].daemon_version ?? common_unknown()
 	}),
 
 	WarningsTruncated: (w) => ({ elided: sum(w.map((x) => x.elided)) }),

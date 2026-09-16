@@ -17,7 +17,7 @@ use super::inline;
 pub fn device() -> SimDevice {
     SimDevice {
         name: "switch-netgear-01",
-        ip: Ipv4Addr::new(192, 168, 7, 240),
+        ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Regression {
             issue: "#664",
             defect: "its LLDP chassis id is on no port and no IP, so the far end is identifiable only through the chassis_id recorded from its own LLDP local identity",
@@ -39,6 +39,7 @@ pub fn device() -> SimDevice {
         tables: tables(),
         arp_handler: Handler::Normal,
         suppresses: Vec::new(),
+        rejects_getbulk: None,
     }
 }
 

@@ -58,7 +58,12 @@ impl Submission {
     fn container_host(network_id: Uuid) -> Self {
         let host = Host::new(HostBase {
             name: HostName::manual("docker-host".to_string()),
-            hostname: Some("docker-host.local".to_string()),
+            hostname: Some(crate::server::shared::attribution::Attributed::new(
+                crate::server::hosts::r#impl::attributes::HostHostnameValue(
+                    "docker-host.local".to_string(),
+                ),
+                crate::server::shared::attribution::AttributeSource::ReverseDns,
+            )),
             network_id,
             source: EntitySource::Discovery,
             ..Default::default()

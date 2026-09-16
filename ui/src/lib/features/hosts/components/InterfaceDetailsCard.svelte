@@ -3,6 +3,7 @@
 	import type { Subnet } from '$lib/features/subnets/types/base';
 	import type { Host } from '$lib/features/hosts/types/base';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
+	import { interfaceDisplayName } from '$lib/features/hosts/interface-display-name';
 	import { getAdminStatusLabels, getOperStatusLabels } from '$lib/features/credentials/types/base';
 	import CollapsibleCard from '$lib/shared/components/data/CollapsibleCard.svelte';
 	import InfoRow from '$lib/shared/components/data/InfoRow.svelte';
@@ -33,12 +34,22 @@
 		name: string;
 	}
 
+	/**
+	 * One resolved adjacency, ready to render — GH #701 replaced the old single-valued
+	 * `Interface.neighbor` with a `Vec` of rows, so a port can now show several of these instead of
+	 * at most one. `id` is the backing `InterfaceNeighborRow.id`, kept for a stable `{#each}` key.
+	 */
+	interface NeighborEntry {
+		id: string;
+		neighborHost: Host | null;
+		neighborInterface: Interface | null;
+	}
+
 	interface Props {
 		iface: Interface;
 		linkedIpAddress?: IPAddress | null;
 		linkedSubnet?: Subnet | null;
-		neighborHost?: Host | null;
-		neighborInterface?: Interface | null;
+		neighbours?: NeighborEntry[];
 		nativeVlan?: VlanInfo | null;
 		taggedVlans?: VlanInfo[];
 		showStatus?: boolean;
@@ -48,8 +59,7 @@
 		iface,
 		linkedIpAddress = null,
 		linkedSubnet = null,
-		neighborHost = null,
-		neighborInterface = null,
+		neighbours = [],
 		nativeVlan = null,
 		taggedVlans = [],
 		showStatus = true
@@ -151,27 +161,33 @@
 	{/if}
 
 	<InfoRow label={hosts_interfaces_neighbor()}>
-		{#if iface.neighbor}
-			<div class="flex flex-wrap items-center gap-1">
-				{#if neighborInterface}
-					<EntityTag
-						entityRef={entityRef('Interface', neighborInterface.id, neighborInterface)}
-						label={neighborInterface.if_name ||
-							neighborInterface.if_descr ||
-							`Index ${neighborInterface.if_index}`}
-						icon={entities.getIconComponent('Interface')}
-						color={entities.getColorHelper('Interface').color}
-					/>
-					<span class="text-tertiary text-xs">on</span>
-				{/if}
-				{#if neighborHost}
-					<EntityTag
-						entityRef={entityRef('Host', neighborHost.id, neighborHost)}
-						label={hostDisplayName(neighborHost)}
-						icon={entities.getIconComponent('Host')}
-						color={entities.getColorHelper('Host').color}
-					/>
-				{/if}
+		{#if neighbours.length > 0}
+			<div class="flex flex-col gap-1.5">
+				{#each neighbours as neighbour (neighbour.id)}
+					<div class="flex flex-wrap items-center gap-1">
+						{#if neighbour.neighborInterface}
+							<EntityTag
+								entityRef={entityRef(
+									'Interface',
+									neighbour.neighborInterface.id,
+									neighbour.neighborInterface
+								)}
+								label={interfaceDisplayName(neighbour.neighborInterface)}
+								icon={entities.getIconComponent('Interface')}
+								color={entities.getColorHelper('Interface').color}
+							/>
+							<span class="text-tertiary text-xs">on</span>
+						{/if}
+						{#if neighbour.neighborHost}
+							<EntityTag
+								entityRef={entityRef('Host', neighbour.neighborHost.id, neighbour.neighborHost)}
+								label={hostDisplayName(neighbour.neighborHost)}
+								icon={entities.getIconComponent('Host')}
+								color={entities.getColorHelper('Host').color}
+							/>
+						{/if}
+					</div>
+				{/each}
 			</div>
 		{:else}
 			-

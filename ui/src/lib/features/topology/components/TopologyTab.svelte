@@ -48,7 +48,12 @@
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import { makeGraphRule } from '../types/grouping';
 	import type { ContainerGraphRule } from '../types/grouping';
-	import { newNodeIds, updateTagFilter } from '../interactions';
+	import {
+		newNodeIds,
+		updateTagFilter,
+		tagHiddenNodeIds,
+		activeViewFilters
+	} from '../interactions';
 	import { clearSelection } from '../selection';
 	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
 	import {
@@ -58,11 +63,12 @@
 	import { trackEvent } from '$lib/shared/utils/analytics';
 	import { useTagsQuery } from '$lib/features/tags/queries';
 	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
-	import { toRenderableTopology } from '$lib/features/topology/enriched';
+	import { entityBundleFrom, toRenderableTopology } from '$lib/features/topology/enriched';
 	import type { RenderableTopology } from '$lib/features/topology/types/base';
 	import { formatTimestamp, formatDate } from '$lib/shared/utils/formatting';
 	import ApplicationSetupWizard from './application-wizard/ApplicationSetupWizard.svelte';
 	import L2EmptyStateOverlay from './L2EmptyStateOverlay.svelte';
+	import ViewFiltersEmptyState from './ViewFiltersEmptyState.svelte';
 	import ViewSwitcherHint from './ViewSwitcherHint.svelte';
 	import DependencyTutorial from './DependencyTutorial.svelte';
 	import { TUTORIAL_TOPOLOGY } from './dependency-tutorial-data';
@@ -220,21 +226,7 @@
 		if (!bundle) return null;
 		return toRenderableTopology(
 			currentTopologyRow,
-			{
-				hosts: bundle.hosts,
-				services: bundle.services,
-				subnets: bundle.subnets,
-				ip_addresses: bundle.ip_addresses,
-				ports: bundle.ports,
-				bindings: bundle.bindings,
-				interfaces: bundle.interfaces,
-				dependencies: bundle.dependencies,
-				vlans: bundle.vlans,
-				entity_tags: bundle.tags,
-				// Per-view graph built on request by the backend (snapshot-aware).
-				nodes: bundle.nodes,
-				edges: bundle.edges
-			},
+			entityBundleFrom(bundle),
 			currentTopologyName,
 			$activeView
 		);
@@ -249,12 +241,50 @@
 		topologyContext.set(currentTopology);
 	});
 
-	// L2 Physical: show empty state overlay when no nodes (no neighbor data discovered)
-	let showL2EmptyState = $derived(
+	// Nothing left to draw in the active view, counting what the browser hides as well as what the
+	// server never sent. Reading `nodes.length` alone missed every client-side filter, so a view
+	// emptied by a tag or category filter showed an empty canvas and no explanation at all.
+	let viewIsEmpty = $derived(
 		isActive &&
-			$activeView === 'L2Physical' &&
 			currentTopology != null &&
-			currentTopology.nodes.length === 0
+			currentTopology.nodes.filter((n) => !$tagHiddenNodeIds.has(n.id)).length === 0
+	);
+
+	// Which controls emptied it, if any. A view with filters in force gets told which ones and a
+	// way to clear them; a view with nothing to show gets its own setup prompt. Never both.
+	let emptyingFilters = $derived(
+		viewIsEmpty
+			? activeViewFilters(
+					$activeView,
+					currentTopology ?? undefined,
+					(
+						($topologyOptions.request.hide_metadata_values ?? {}) as Record<
+							string,
+							Record<string, Record<string, string[]>>
+						>
+					)[$activeView],
+					(($topologyOptions.request.hide_entities ?? {}) as Record<string, string[]>)[$activeView],
+					$topologyOptions.local.tag_filter,
+					networksData.find((n) => n.id === currentTopology?.network_id)
+				)
+			: []
+	);
+
+	let showFiltersEmptyState = $derived(viewIsEmpty && emptyingFilters.length > 0);
+	// Not while the bundle on screen still carries server-dropped entities. Clearing a server-side
+	// filter empties the hide-set at once, but the entities it restores arrive a round trip later —
+	// a 500ms debounced PUT, then the rebuild and refetch — so for that window the view is empty
+	// with no filter left to name. The bundle in hand is the stale one and says so: its
+	// `filtered_out` still counts what the old filter removed. Showing the setup prompt there would
+	// claim discovery found nothing, which is the exact misdirection this state exists to prevent.
+	//
+	// A data signal rather than `isFetching`: nothing is fetching during the debounce, so a timing
+	// gate let the prompt flash for most of a second on every clear. Measured live, not assumed.
+	let showL2EmptyState = $derived(
+		viewIsEmpty &&
+			emptyingFilters.length === 0 &&
+			$activeView === 'L2Physical' &&
+			Object.keys(currentTopology?.filtered_out ?? {}).length === 0
 	);
 
 	// Update tag filter stores when topology or options change
@@ -758,6 +788,7 @@
 						topology={currentTopology}
 						tutorialTopology={$showDependencyTutorial ? TUTORIAL_TOPOLOGY : undefined}
 						{isReadOnly}
+						raised={showFiltersEmptyState || showL2EmptyState}
 						onClearSelection={$showDependencyTutorial
 							? dismissDependencyTutorial
 							: clearMultiSelect}
@@ -791,7 +822,13 @@
 							onComplete={handleWizardComplete}
 						/>
 					{/if}
-					{#if showL2EmptyState}
+					{#if showFiltersEmptyState}
+						<ViewFiltersEmptyState
+							filters={emptyingFilters}
+							viewName={views.getName($activeView) ?? $activeView}
+							{isReadOnly}
+						/>
+					{:else if showL2EmptyState}
 						<L2EmptyStateOverlay
 							hasSnmpCredential={onboarding.includes('FirstSnmpCredentialCreated')}
 						/>

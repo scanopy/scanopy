@@ -198,6 +198,7 @@
 	// OS selection
 	let selectedOS: DaemonOS = $state(detectOS());
 	let linuxMethod = $state<'binary' | 'docker'>('binary');
+	let windowsMethod = $state<'exe' | 'msi'>('exe');
 	let isDockerInstall = $derived(selectedOS === 'linux' && linuxMethod === 'docker');
 	let installCtaLabel = $derived(
 		isDockerInstall ? daemons_installIveStartedDocker() : daemons_installIveRunCommand()
@@ -789,6 +790,8 @@
 							onOsSelect={(os) => (selectedOS = os)}
 							{linuxMethod}
 							onLinuxMethodChange={(method) => (linuxMethod = method)}
+							{windowsMethod}
+							onWindowsMethodChange={(method) => (windowsMethod = method)}
 							{runCommand}
 							{hasErrors}
 							isFirstDaemon={startedAsFirstDaemon}

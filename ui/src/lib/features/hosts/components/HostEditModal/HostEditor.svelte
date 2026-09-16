@@ -3,6 +3,7 @@
 	import { validateForm, clearStaleFieldInfo } from '$lib/shared/components/forms/form-context';
 	import { Info, ArrowRight } from 'lucide-svelte';
 	import { hostDisplayName } from '../../host-display-name';
+	import { nameToSubmit, overrideOf } from '../../host-identity';
 	import type {
 		Host,
 		HostFormData,
@@ -18,6 +19,7 @@
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { queryKeys } from '$lib/api/query-client';
 	import DetailsForm from './Details/HostDetailsForm.svelte';
+	import InferredHostNotice from '../InferredHostNotice.svelte';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
 	import IPAddressesForm from './IPAddresses/IPAddressesForm.svelte';
 	import ServicesForm from './Services/ServicesForm.svelte';
@@ -118,7 +120,12 @@
 
 	// Sync form field values to formData structure
 	function syncFormValuesToFormData(values: typeof form.state.values) {
-		formData.name = values.name;
+		// The Name field edits only the override; map it back to the stored name the API takes.
+		formData.name = nameToSubmit({
+			override: values.name,
+			savedName: host?.name ?? '',
+			nameSource: host?.name_source
+		});
 		formData.hostname = values.hostname;
 		formData.description = values.description;
 
@@ -201,7 +208,7 @@
 	// Fields unmount when modal closes ({#if isOpen} in GenericModal) and re-register on open.
 	let form = createForm(() => ({
 		defaultValues: {
-			name: formData.name,
+			name: overrideOf(formData.name, formData.name_source),
 			hostname: formData.hostname || '',
 			description: formData.description || '',
 			ip_addresses: formData.ip_addresses || [],
@@ -375,7 +382,7 @@
 
 		// Reset TanStack form
 		form.reset({
-			name: formData.name,
+			name: overrideOf(formData.name, formData.name_source),
 			hostname: formData.hostname || '',
 			description: formData.description || '',
 			ip_addresses: formData.ip_addresses || [],
@@ -508,6 +515,9 @@
 			{#if activeTab === 'details'}
 				<div class="flex h-full flex-col">
 					<div class="min-h-0 flex-1 overflow-y-auto">
+						{#if isEditing && host}
+							<InferredHostNotice source={host.source} class="px-6 pt-6" />
+						{/if}
 						<DetailsForm {form} bind:formData {isEditing} />
 					</div>
 					{#if isEditing && host}

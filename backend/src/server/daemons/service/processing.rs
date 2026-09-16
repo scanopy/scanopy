@@ -382,8 +382,9 @@ impl DaemonService {
         // New registration - create host and daemon
         let mut dummy_host = Host::new(HostBase {
             network_id: effective_network_id,
-            // Placeholder identity: the daemon's own reported name, which sits at the same rung
-            // as a hostname, so a later scan of the machine can improve on it.
+            // Placeholder identity: the daemon's own reported name, applied below as an
+            // unattributed name. That ranks as a guess, so the hostname the daemon later reports
+            // for itself titles the host instead.
             name: HostName::unnamed(),
             hostname: None,
             description: None,
@@ -408,7 +409,7 @@ impl DaemonService {
         });
         dummy_host
             .base
-            .apply_name(HostName::from_hostname(request.name.clone()));
+            .apply_name(HostName::unattributed(request.name.clone()));
 
         let host_response = host_service
             .discover_host(
@@ -580,8 +581,41 @@ impl DaemonService {
             self.resolve_neighbours_into_session(&mut update).await;
         }
 
+        if update.phase.is_terminal() {
+            self.report_superseded_wire_shape(&mut update).await;
+        }
+
         self.discovery_service.update_session(update).await?;
         Ok(())
+    }
+
+    /// Fold a latched "this daemon submitted an outdated format" observation into the terminal
+    /// payload, so it reaches the scan record and the operator rather than a server log.
+    ///
+    /// Into `update` before `update_session` writes it, for the same reason neighbour resolution
+    /// moved here: `update_session` replaces the live session wholesale, so anything appended
+    /// afterwards is overwritten.
+    async fn report_superseded_wire_shape(&self, update: &mut DiscoveryUpdatePayload) {
+        if !self
+            .discovery_service
+            .take_superseded_wire_shape(&update.daemon_id)
+            .await
+        {
+            return;
+        }
+
+        // The recorded version, not the request header: this is written once per scan, and the
+        // daemon record is the value the daemons page shows for the same daemon.
+        let daemon_version = self
+            .get_by_id(&update.daemon_id)
+            .await
+            .ok()
+            .flatten()
+            .and_then(|daemon| daemon.base.version.clone());
+
+        update
+            .warnings
+            .push(DiscoveryWarning::OutdatedDaemonFormat { daemon_version });
     }
 
     /// Resolve this network's neighbours and fold what that produced into the terminal payload.
@@ -663,6 +697,53 @@ impl DaemonService {
                     });
             }
         }
+
+        // Sequenced strictly after LLDP/CDP resolution, and only after its outcome is already
+        // folded in: the FDB filter selects ports LLDP/CDP left untouched, so running this first
+        // would let it act on rows LLDP was about to claim. A second, independent budget rather
+        // than one wrapping both passes keeps the two outcomes attributable — an operator seeing
+        // this timeout knows which pass stalled, not just that "resolution" did. Worst case this
+        // adds RESOLUTION_BUDGET's own 10s on top of LLDP's, well inside the daemon's 30s request
+        // timeout, which the constant is already sized against.
+        let fdb_started = std::time::Instant::now();
+        let fdb_outcome = tokio::time::timeout(
+            RESOLUTION_BUDGET,
+            host_service.resolve_fdb_links(update.network_id, scan_time),
+        )
+        .await;
+
+        metrics::histogram!("fdb_resolution_duration_seconds")
+            .record(fdb_started.elapsed().as_secs_f64());
+
+        match fdb_outcome {
+            // `resolve_fdb_links` returns a bare resolved count and already logs it itself
+            // (`tracing::debug!` in `topology/mod.rs`) — nothing further to fold into `update`.
+            Ok(Ok(_)) => {}
+            Ok(Err(e)) => tracing::warn!(
+                session_id = %update.session_id,
+                network_id = %update.network_id,
+                error = %e,
+                "FDB link resolution failed; finalizing the session without its findings"
+            ),
+            Err(_) => {
+                let interfaces = host_service
+                    .unresolved_fdb_interface_count(update.network_id)
+                    .await;
+                tracing::warn!(
+                    session_id = %update.session_id,
+                    network_id = %update.network_id,
+                    budget_seconds = RESOLUTION_BUDGET.as_secs(),
+                    interfaces,
+                    "FDB link resolution exceeded its budget; finalizing the session without it"
+                );
+                update
+                    .warnings
+                    .push(DiscoveryWarning::FdbResolutionIncomplete {
+                        budget_seconds: RESOLUTION_BUDGET.as_secs() as u32,
+                        interfaces,
+                    });
+            }
+        }
     }
 
     /// Process discovered entities from a daemon.
@@ -681,6 +762,17 @@ impl DaemonService {
             .host_service
             .get()
             .ok_or_else(|| ApiError::internal_error("HostService not initialized"))?;
+
+        // Latch a superseded submission shape against the daemon before anything else touches the
+        // batch. The raw body is only visible here; the session that reports it is a separate
+        // request, and this is the one place both daemon modes pass through.
+        if let Some(daemon_id) = auth.daemon_id()
+            && entities.hosts.iter().any(|h| h.superseded_wire_shape)
+        {
+            self.discovery_service
+                .note_superseded_wire_shape(daemon_id)
+                .await;
+        }
 
         // Compute host limit context from the first host's network → org → plan
         let limit_ctx = if let Some(first_host) = entities.hosts.first() {

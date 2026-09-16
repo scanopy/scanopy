@@ -122,7 +122,7 @@ async fn run_daemon<F: std::future::Future<Output = ()>>(
     // Initialize tracing with stdout + optional file appender
     let log_path = config.resolve_log_path();
     let env_filter = tracing_subscriber::EnvFilter::new(format!(
-        "scanopy={lvl},daemon={lvl},events={lvl}",
+        "scanopy={lvl},daemon={lvl},events={lvl},pnet_datalink={lvl}",
         lvl = config.log_level
     ));
 

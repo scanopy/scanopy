@@ -106,6 +106,8 @@ impl Storable for EntityTag {
         "entity_tags"
     }
 
+    const HAS_SCD2: bool = true;
+
     fn new(base: Self::BaseData) -> Self {
         EntityTag::new(base)
     }

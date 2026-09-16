@@ -29,6 +29,7 @@ impl HostService {
             ip_addresses,
             ports,
             services,
+            interfaces,
             credential_assignments,
         } = request;
 
@@ -72,7 +73,8 @@ impl HostService {
                 name: existing.base.name.clone(),
                 network_id,
                 source: existing.base.source,
-                hostname,
+                // Carried over and reconciled below, for the same reason as the name.
+                hostname: existing.base.hostname.clone(),
                 description,
                 virtualization_metadata,
                 virtualization_service_id,
@@ -100,8 +102,23 @@ impl HostService {
         // whole object, so stamping `Manual` on every save would freeze a derived name — a host
         // named after its detected service could then never adopt its controller's name because
         // someone once toggled "hidden".
-        if updated_host.base.name.value().as_str() != name {
+        //
+        // A blank name is a person handing naming back to discovery. `apply_name` would read it as
+        // "no name to offer" and keep the stored one, so it is cleared explicitly.
+        if name.trim().is_empty() {
+            updated_host.base.clear_name();
+        } else if updated_host.base.name.value().as_str() != name {
             updated_host.base.apply_name(HostName::manual(name));
+        }
+
+        // The same rule for the hostname: the edit modal sends the stored value back on every
+        // save, so only an actual change is a person asserting one. Blank clears it.
+        let requested_hostname = hostname
+            .map(|h| h.trim().to_string())
+            .filter(|h| !h.is_empty());
+        if requested_hostname != attribution::text_of(&updated_host.base.hostname) {
+            updated_host.base.hostname = requested_hostname
+                .map(|h| Attributed::new(HostHostnameValue(h), AttributeSource::Manual));
         }
 
         if let Some(org_id) = authentication.organization_id() {
@@ -134,6 +151,12 @@ impl HostService {
         // Sync services only if provided (None means preserve existing)
         if let Some(services) = services {
             self.sync_services(&updated.id, &network_id, services, authentication.clone())
+                .await?;
+        }
+
+        // Sync interfaces only if provided (None means preserve existing)
+        if let Some(interfaces) = interfaces {
+            self.sync_interfaces(&updated.id, &network_id, interfaces, authentication.clone())
                 .await?;
         }
 
@@ -250,6 +273,57 @@ impl HostService {
                 // Create new port with client-provided ID
                 self.port_service
                     .create(port, authentication.clone())
+                    .await?;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Sync interfaces for a host: delete removed, update existing, create new.
+    /// Client provides UUIDs - if ID exists for this host, update; if not, create.
+    async fn sync_interfaces(
+        &self,
+        host_id: &Uuid,
+        network_id: &Uuid,
+        inputs: Vec<InterfaceInput>,
+        authentication: AuthenticatedEntity,
+    ) -> Result<()> {
+        use std::collections::HashSet;
+
+        // Get existing interfaces for this host
+        let existing = self.interface_service.get_for_host(host_id).await?;
+        let existing_ids: HashSet<Uuid> = existing.iter().map(|i| i.id).collect();
+
+        // All input IDs (client-provided)
+        let input_ids: HashSet<Uuid> = inputs.iter().map(|i| i.id).collect();
+
+        // Delete interfaces that are not in the input list
+        let to_delete: Vec<Uuid> = existing_ids.difference(&input_ids).copied().collect();
+        if !to_delete.is_empty() {
+            self.interface_service
+                .delete_many(&to_delete, authentication.clone())
+                .await?;
+        }
+
+        // Process each input - create or update based on whether ID exists for this host
+        for input in inputs {
+            let id = input.id;
+            let mut interface = input.into_interface(*host_id, *network_id);
+
+            if existing_ids.contains(&id) {
+                // Update existing interface - preserve created_at from existing
+                if let Some(existing_iface) = existing.iter().find(|i| i.id == id) {
+                    interface.preserve_immutable_fields(existing_iface);
+                }
+
+                self.interface_service
+                    .update(&mut interface, authentication.clone())
+                    .await?;
+            } else {
+                // Create new interface with client-provided ID
+                self.interface_service
+                    .create(interface, authentication.clone())
                     .await?;
             }
         }

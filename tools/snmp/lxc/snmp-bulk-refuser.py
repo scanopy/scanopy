@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""A UDP shim that makes one agent refuse GETBULK on a named subtree.
+"""A UDP shim that makes one agent refuse requests: GETBULK by dropping it or by answering it with an
+error status, and any request type by dropping it.
 
 GH #668's switch3 timed out every GETBULK on its LLDP neighbour columns and answered `snmpwalk`,
 which is GETNEXT, on the same columns without trouble. Reproducing that needs an agent that will
@@ -12,17 +13,30 @@ sleeps; the client gives up after its 5s timeout and the GETNEXT it sends next i
 behind the very bulk it was meant to escape. Any sleep long enough to fail the bulk fails the
 getnext too. Measured on the VM at 9.03s for three calls of a 3s sleep.
 
-So the refusal belongs in front of the agent rather than inside it. This drops the datagram — the
-silence a client sees when a device does not answer — and costs the agent nothing, so a getnext
+So the refusal belongs in front of the agent rather than inside it. `--refuse` drops the datagram —
+the silence a client sees when a device does not answer — and costs the agent nothing, so a getnext
 arriving 5s later is served immediately.
 
-    snmp-bulk-refuser.py --listen 192.168.7.252:161 --upstream 127.0.0.1:16252 \\
-                         --refuse 1.0.8802.1.1.2.1.4
+GH #710's Hikvision refuses differently: a GETBULK asking for more repetitions than it will serve
+comes back at once, as a Response carrying an error status and the request's own varbinds echoed.
+`pass` never sees the repetition count, so that also has to happen here. `--reject-above N` answers
+any GETBULK with max-repetitions above N that way, with `--error-status` (default genErr, 5), and
+forwards the rest.
 
-Everything that is not a refused GETBULK is relayed untouched, including SNMPv3, whose PDU this
-deliberately does not try to read. Parsing is fail-open throughout: a packet this cannot make sense
-of is forwarded, because a shim that goes silent on a parse bug turns one unreadable column into a
-device that has vanished, and that is a far more confusing fixture than the one it replaced.
+    snmp-bulk-refuser.py --listen 192.168.7.216:161 --upstream 127.0.0.1:16216 \\
+                         --refuse 1.0.8802.1.1.2.1.4
+    snmp-bulk-refuser.py --listen 192.168.7.224:161 --upstream 127.0.0.1:16224 \\
+                         --reject-above 10 --error-status 5
+
+`--silence` drops every GET, GETNEXT and GETBULK under a subtree rather than GETBULK alone. That is
+a column the device never answers by either method, so a walk reads the rest of the table and stops
+part way (GH #685).
+
+Everything that is not a dropped or refused request is relayed untouched, including SNMPv3, whose
+PDU this deliberately does not try to read. Parsing is fail-open throughout: a packet this cannot
+make sense of is forwarded, because a shim that goes silent on a parse bug turns one unreadable
+column into a device that has vanished, and that is a far more confusing fixture than the one it
+replaced.
 """
 
 import argparse
@@ -31,12 +45,18 @@ import socketserver
 import sys
 import threading
 
-# BER tags. Only the ones needed to reach the first varbind of a v1/v2c GETBULK.
+# BER tags. Only the ones needed to reach the first varbind of a v1/v2c request and to build the
+# error Response a refused GETBULK gets.
 SEQUENCE = 0x30
 INTEGER = 0x02
 OCTET_STRING = 0x04
 OBJECT_IDENTIFIER = 0x06
+GET_PDU = 0xA0
+GETNEXT_PDU = 0xA1
+RESPONSE_PDU = 0xA2
 GETBULK_PDU = 0xA5
+# The request types this shim acts on, named for the log.
+REQUEST_PDUS = {GET_PDU: "get", GETNEXT_PDU: "getnext", GETBULK_PDU: "getbulk"}
 
 UPSTREAM_TIMEOUT = 10.0
 
@@ -65,6 +85,21 @@ def read_tlv(buf, i):
         raise Unparseable from None
 
 
+def encode_tlv(tag, value):
+    """One BER tag-length-value, definite length."""
+    length = len(value)
+    if length < 0x80:
+        return bytes([tag, length]) + value
+    body = length.to_bytes((length.bit_length() + 7) // 8, "big")
+    return bytes([tag, 0x80 | len(body)]) + body + value
+
+
+def encode_integer(value):
+    """A non-negative BER INTEGER, which is all an error status or error index ever is. The extra
+    byte keeps a value with its top bit set from reading as negative."""
+    return encode_tlv(INTEGER, value.to_bytes(value.bit_length() // 8 + 1, "big"))
+
+
 def decode_oid(raw):
     """BER object identifier → tuple of sub-ids.
 
@@ -83,12 +118,30 @@ def decode_oid(raw):
     return tuple(out)
 
 
-def getbulk_target(packet):
-    """The first varbind OID of a v1/v2c GETBULK, or None if the packet is anything else.
+class Request:
+    """The parts of a v1/v2c request this shim acts on, raw TLVs kept verbatim for an error echo."""
+
+    def __init__(self, pdu_tag, header, request_id, max_repetitions, varbinds, target):
+        self.pdu_tag = pdu_tag
+        self.header = header  # version and community TLVs
+        self.request_id = request_id  # request-id TLV
+        # GETBULK's max-repetitions. A GET or GETNEXT carries error-index in the same slot, and
+        # nothing reads it for them.
+        self.max_repetitions = max_repetitions
+        self.varbinds = varbinds  # the whole varbind-list TLV
+        self.target = target  # first varbind's OID
+
+    @property
+    def name(self):
+        return REQUEST_PDUS[self.pdu_tag]
+
+
+def parse_request(packet):
+    """A v1/v2c request taken apart, or None if the packet is anything else.
 
     Walks only as far as it must: the outer SEQUENCE, past version and community, and into the PDU
-    only when the tag says GETBULK. A v3 message fails the community check and leaves here, which
-    is the intended outcome — its PDU may be encrypted and is none of this shim's business.
+    only when the tag names a request. A v3 message fails the community check and leaves here,
+    which is the intended outcome — its PDU may be encrypted and is none of this shim's business.
     """
     tag, body, _, _ = read_tlv(packet, 0)
     if tag != SEQUENCE:
@@ -100,19 +153,27 @@ def getbulk_target(packet):
     tag, _, _, i = read_tlv(packet, i)
     if tag != OCTET_STRING:  # community
         raise Unparseable
+    header = packet[body:i]
 
-    tag, pdu, _, _ = read_tlv(packet, i)
-    if tag != GETBULK_PDU:
+    pdu_tag, pdu, _, _ = read_tlv(packet, i)
+    if pdu_tag not in REQUEST_PDUS:
         return None
 
-    # request-id, non-repeaters, max-repetitions.
-    j = pdu
-    for _ in range(3):
-        tag, _, _, j = read_tlv(packet, j)
-        if tag != INTEGER:
-            raise Unparseable
+    # request-id, then error-status and error-index, which GETBULK reuses as non-repeaters and
+    # max-repetitions. Three integers either way.
+    tag, _, _, j = read_tlv(packet, pdu)
+    if tag != INTEGER:  # request-id
+        raise Unparseable
+    request_id = packet[pdu:j]
+    tag, _, _, j = read_tlv(packet, j)
+    if tag != INTEGER:  # error-status, or GETBULK's non-repeaters
+        raise Unparseable
+    tag, reps, reps_len, j = read_tlv(packet, j)
+    if tag != INTEGER:  # error-index, or GETBULK's max-repetitions
+        raise Unparseable
+    max_repetitions = int.from_bytes(packet[reps : reps + reps_len], "big", signed=True)
 
-    tag, varbinds, _, _ = read_tlv(packet, j)
+    tag, varbinds, _, end = read_tlv(packet, j)
     if tag != SEQUENCE:
         raise Unparseable
     tag, varbind, _, _ = read_tlv(packet, varbinds)
@@ -121,28 +182,69 @@ def getbulk_target(packet):
     tag, oid, oid_len, _ = read_tlv(packet, varbind)
     if tag != OBJECT_IDENTIFIER:
         raise Unparseable
-    return decode_oid(packet[oid : oid + oid_len])
+    return Request(
+        pdu_tag,
+        header,
+        request_id,
+        max_repetitions,
+        packet[j:end],
+        decode_oid(packet[oid : oid + oid_len]),
+    )
 
 
-def is_refused(packet, prefixes):
-    """Whether to drop this datagram on the floor."""
+def error_response(request, error_status):
+    """The Response an agent sends when it refuses a request: same request id, the request's
+    varbinds echoed, and an error index pointing at the first of them (RFC 3416 §4.2)."""
+    pdu = request.request_id + encode_integer(error_status) + encode_integer(1) + request.varbinds
+    return encode_tlv(SEQUENCE, request.header + encode_tlv(RESPONSE_PDU, pdu))
+
+
+class Drop:
+    """A request to answer with silence, named for the log."""
+
+    def __init__(self, request):
+        self.name = request.name
+
+
+def decide(packet, refused, silenced, reject_above, error_status):
+    """What to do with one datagram: a `Drop`, the bytes of an answer to send, or None to relay it.
+
+    `--silence` applies to every request type; `--refuse` and `--reject-above` only ever to GETBULK.
+    """
     try:
-        target = getbulk_target(packet)
+        request = parse_request(packet)
     except Unparseable:
-        return False
-    if target is None:
-        return False
-    return any(target[: len(p)] == p for p in prefixes)
+        return None
+    if request is None:
+        return None
+
+    def under(prefixes):
+        return any(request.target[: len(p)] == p for p in prefixes)
+
+    if under(silenced):
+        return Drop(request)
+    if request.pdu_tag != GETBULK_PDU:
+        return None
+    if under(refused):
+        return Drop(request)
+    if reject_above is not None and request.max_repetitions > reject_above:
+        return error_response(request, error_status)
+    return None
 
 
-def serve(listen, upstream, prefixes, log):
+def serve(listen, upstream, refused, silenced, reject_above, error_status, log):
     class Handler(socketserver.BaseRequestHandler):
         def handle(self):
             packet, client = self.request
-            if is_refused(packet, prefixes):
+            verdict = decide(packet, refused, silenced, reject_above, error_status)
+            if isinstance(verdict, Drop):
                 # No reply, no error, no upstream call: the device simply does not answer, which
                 # is what the walk under test has to survive.
-                log(f"drop getbulk from {self.client_address[0]}")
+                log(f"drop {verdict.name} from {self.client_address[0]}")
+                return
+            if verdict is not None:
+                log(f"answer getbulk from {self.client_address[0]} with error-status {error_status}")
+                client.sendto(verdict, self.client_address)
                 return
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as out:
                 out.settimeout(UPSTREAM_TIMEOUT)
@@ -163,7 +265,11 @@ def serve(listen, upstream, prefixes, log):
 
     with Server(listen, Handler) as server:
         log(f"listening on {listen[0]}:{listen[1]} → {upstream[0]}:{upstream[1]}")
-        log("refusing getbulk under " + ", ".join(".".join(map(str, p)) for p in prefixes))
+        for label, prefixes in (("refusing getbulk", refused), ("silent", silenced)):
+            if prefixes:
+                log(f"{label} under " + ", ".join(".".join(map(str, p)) for p in prefixes))
+        if reject_above is not None:
+            log(f"answering getbulk above {reject_above} repetitions with error-status {error_status}")
         server.serve_forever()
 
 
@@ -189,18 +295,49 @@ def main(argv=None):
         "--refuse",
         type=prefix,
         action="append",
-        required=True,
+        default=[],
         metavar="OID",
         help="drop GETBULK whose first varbind is at or under this subtree; repeatable",
     )
+    parser.add_argument(
+        "--silence",
+        type=prefix,
+        action="append",
+        default=[],
+        metavar="OID",
+        help="drop every request whose first varbind is at or under this subtree; repeatable",
+    )
+    parser.add_argument(
+        "--reject-above",
+        type=int,
+        metavar="N",
+        help="answer GETBULK with max-repetitions above N with an error status",
+    )
+    parser.add_argument(
+        "--error-status",
+        type=int,
+        default=5,
+        metavar="S",
+        help="error status for --reject-above (default 5, genErr)",
+    )
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args(argv)
+    if not args.refuse and not args.silence and args.reject_above is None:
+        parser.error("nothing to do: give --refuse, --silence, --reject-above, or a combination")
 
     def log(message):
         if not args.quiet:
             print(f"[bulk-refuser] {message}", file=sys.stderr, flush=True)
 
-    serve(args.listen, args.upstream, args.refuse, log)
+    serve(
+        args.listen,
+        args.upstream,
+        args.refuse,
+        args.silence,
+        args.reject_above,
+        args.error_status,
+        log,
+    )
 
 
 if __name__ == "__main__":

@@ -28,6 +28,7 @@ use crate::server::shared::services::{csv::build_csv, traits::CrudService};
 use crate::server::shared::storage::traits::Entity;
 use crate::server::shared::storage::{filter::StorableFilter, traits::Storable};
 use crate::server::shared::types::api::{ApiErrorResponse, EmptyApiResponse};
+use crate::server::shared::types::entities::EntitySourceDiscriminants;
 use crate::server::shared::types::error_codes::ErrorCode;
 use crate::server::shared::validation::{validate_network_access, validate_read_access};
 use crate::server::{
@@ -35,7 +36,7 @@ use crate::server::{
     daemons::r#impl::{base::Daemon, version::pre_interface_to_ip_address_rename},
     hosts::r#impl::{
         api::{CreateHostRequest, DiscoveryHostRequest, HostResponse, UpdateHostRequest},
-        base::{Host, PRIMARY_INTERFACE_JOIN, host_display_name_sql},
+        base::{Host, PRIMARY_INTERFACE_JOIN},
         legacy::{HostCreateRequestBody, HostCreateResponse, LegacyHostWithServicesResponse},
     },
     shared::types::api::{ApiError, ApiResponse, ApiResult, PaginatedApiResponse},
@@ -81,11 +82,16 @@ pub enum HostOrderField {
     LastSeenAt,
 }
 
+/// The host title in SQL, built once: `to_sql` hands out `&'static str`.
+static HOST_TITLE_SQL: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
+    crate::server::hosts::r#impl::name_ladder::display_name_sql("hosts", "primary_interface")
+});
+
 impl OrderField for HostOrderField {
     fn to_sql(&self) -> &'static str {
         match self {
             Self::CreatedAt => "hosts.created_at",
-            Self::Name => host_display_name_sql!("hosts", "primary_interface"),
+            Self::Name => HOST_TITLE_SQL.as_str(),
             Self::Hostname => "hosts.hostname",
             Self::UpdatedAt => "hosts.updated_at",
             Self::NetworkId => "hosts.network_id",
@@ -132,6 +138,9 @@ pub struct HostFilterQuery {
     pub include_unvirtualized: Option<bool>,
     /// Filter to hosts running a service with one of these names.
     pub service_names: Option<Vec<String>>,
+    /// Filter by how the host came to exist (`source.type`). Repeat for several;
+    /// `Inferred` alone lists the hosts only a neighbour advertised.
+    pub sources: Option<Vec<EntitySourceDiscriminants>>,
     /// Filter by tag IDs (returns hosts that have ANY of the specified tags)
     pub tag_ids: Option<Vec<Uuid>>,
     /// Free-text search. Case-insensitive substring match against the host's
@@ -204,8 +213,13 @@ impl HostFilterQuery {
             filter
         };
 
-        match &self.service_names {
+        let filter = match &self.service_names {
             Some(names) if !names.is_empty() => filter.has_service_named(names),
+            _ => filter,
+        };
+
+        match &self.sources {
+            Some(sources) if !sources.is_empty() => filter.source_type_in(sources),
             _ => filter,
         }
     }
@@ -613,7 +627,20 @@ async fn create_host(
                 subnets,
                 interfaces_complete,
                 interface_data_complete,
+                superseded_wire_shape,
             } = discovery_request;
+
+            // Always true on this branch — reaching it means the daemon sent the pre-0.16.0
+            // body. Recorded against the daemon so the scan record carries it, which the
+            // `tracing::warn!` above never could: a self-hosted operator does not read server
+            // logs.
+            if superseded_wire_shape {
+                state
+                    .services
+                    .discovery_service
+                    .note_superseded_wire_shape(*daemon_id)
+                    .await;
+            }
 
             // Capture one scan_time for the whole submission so all entities
             // share consistent SCD2 timestamps. See ScanContext for rationale.
@@ -651,8 +678,9 @@ async fn create_host(
 
 /// Update a host
 ///
-/// Updates host properties. Children (ip_addresses, ports, services)
-/// are managed via their own endpoints.
+/// Updates host properties. Children (ip_addresses, ports, services, interfaces) are synced
+/// from the fields on this same request body when provided — omit a field to leave that child
+/// set untouched.
 ///
 /// ### Tag Validation
 ///

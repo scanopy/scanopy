@@ -1,23 +1,5 @@
 [
   {
-    "category": "ContainerRuntime",
-    "color": "Blue",
-    "description": "Daemonless container runtime",
-    "discovery_pattern": "Client probe Podman succeeded",
-    "logo_needs_white_background": false,
-    "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/podman.svg",
-    "name": "Podman"
-  },
-  {
-    "category": "ContainerRuntime",
-    "color": "Blue",
-    "description": "Docker",
-    "discovery_pattern": "Client probe Docker succeeded",
-    "logo_needs_white_background": false,
-    "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/docker.svg",
-    "name": "Docker"
-  },
-  {
     "category": "Media",
     "color": "Blue",
     "description": "User invitation and management system for Jellyfin, Plex, Emby etc",
@@ -111,7 +93,7 @@
     "category": "Monitoring",
     "color": "Orange",
     "description": "Network UPS Tools",
-    "discovery_pattern": "3493/tcp is open",
+    "discovery_pattern": "All of: (3493/tcp is open, Client probe Nut succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/nut.svg",
     "name": "NUT"
@@ -237,7 +219,7 @@
     "category": "Media",
     "color": "Blue",
     "description": "Torrent cleanup tool for Sonarr and Radarr",
-    "discovery_pattern": "11011/tcp is open",
+    "discovery_pattern": "Endpoint response body from <ip>:11011/ contains \"<title>Cleanuparr</title>\"",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/cleanuperr.svg",
     "name": "Cleanuparr"
@@ -255,7 +237,7 @@
     "category": "Media",
     "color": "Blue",
     "description": "The modern autodl-irssi replacement.",
-    "discovery_pattern": "7474/tcp is open",
+    "discovery_pattern": "Endpoint response body from <ip>:7474/ contains \"autobrr\"",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/autobrr.svg",
     "name": "Autobrr"
@@ -273,7 +255,7 @@
     "category": "Printer",
     "color": "Gray",
     "description": "A generic printing service",
-    "discovery_pattern": "Any of: (631/tcp is open, 515/tcp is open, 515/udp is open)",
+    "discovery_pattern": "Endpoint response from <ip>:631 has header \"server\" with value \"CUPS\"",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Print Server"
@@ -291,7 +273,7 @@
     "category": "Printer",
     "color": "Gray",
     "description": "An HP Printer",
-    "discovery_pattern": "All of: (Any of: (Endpoint response body from <ip>:80 contains \"LaserJet\", Endpoint response body from <ip>:80 contains \"DeskJet\", Endpoint response body from <ip>:80 contains \"OfficeJet\", Endpoint response body from <ip>:8080 contains \"LaserJet\", Endpoint response body from <ip>:8080 contains \"DeskJet\", Endpoint response body from <ip>:8080 contains \"OfficeJet\"), Any of: (631/tcp is open, 515/tcp is open, 515/udp is open))",
+    "discovery_pattern": "All of: (Any of: (Endpoint response body from <ip>:80 contains \"LaserJet\", Endpoint response body from <ip>:80 contains \"DeskJet\", Endpoint response body from <ip>:80 contains \"OfficeJet\", Endpoint response body from <ip>:8080 contains \"LaserJet\", Endpoint response body from <ip>:8080 contains \"DeskJet\", Endpoint response body from <ip>:8080 contains \"OfficeJet\"), Any of: (631/tcp is open, 515/tcp is open))",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/hp.svg",
     "name": "HP Printer"
@@ -313,6 +295,42 @@
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/printer.svg",
     "name": "AirPrint Printer"
+  },
+  {
+    "category": "Industrial",
+    "color": "Orange",
+    "description": "Vendor-neutral industrial interoperability protocol for plant and process data",
+    "discovery_pattern": "All of: (4840/tcp is open, Client probe OpcUa succeeded)",
+    "logo_needs_white_background": false,
+    "logo_url": "",
+    "name": "OPC UA"
+  },
+  {
+    "category": "Industrial",
+    "color": "Orange",
+    "description": "Industrial fieldbus protocol used by PLCs, drives, and serial gateways",
+    "discovery_pattern": "All of: (502/tcp is open, Client probe ModbusTcp succeeded)",
+    "logo_needs_white_background": false,
+    "logo_url": "",
+    "name": "Modbus TCP"
+  },
+  {
+    "category": "Industrial",
+    "color": "Orange",
+    "description": "CIP-based industrial protocol used by Rockwell and Allen-Bradley automation equipment",
+    "discovery_pattern": "All of: (44818/udp is open, Client probe EtherNetIp succeeded)",
+    "logo_needs_white_background": false,
+    "logo_url": "",
+    "name": "EtherNet/IP"
+  },
+  {
+    "category": "Industrial",
+    "color": "Orange",
+    "description": "Building automation and control network protocol",
+    "discovery_pattern": "47808/udp is open",
+    "logo_needs_white_background": false,
+    "logo_url": "",
+    "name": "BACnet"
   },
   {
     "category": "IoT",
@@ -453,19 +471,10 @@
     "category": "IoT",
     "color": "Yellow",
     "description": "Camera with RTSP Streaming",
-    "discovery_pattern": "554/tcp is open",
+    "discovery_pattern": "All of: (554/tcp is open, Client probe Rtsp succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "RTSP Camera"
-  },
-  {
-    "category": "IoT",
-    "color": "Yellow",
-    "description": "Building automation and control network protocol",
-    "discovery_pattern": "47808/udp is open",
-    "logo_needs_white_background": false,
-    "logo_url": "",
-    "name": "BACnet"
   },
   {
     "category": "Media",
@@ -498,7 +507,7 @@
     "category": "Workstation",
     "color": "Green",
     "description": "Desktop computer for productivity work",
-    "discovery_pattern": "All of: (3389/tcp is open, 445/tcp is open)",
+    "discovery_pattern": "All of: (Client probe Rdp succeeded, Client probe Smb succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Workstation"
@@ -507,7 +516,7 @@
     "category": "Telephony",
     "color": "Orange",
     "description": "Session initiation protocol",
-    "discovery_pattern": "Any of: (5060/tcp is open, 5061/tcp is open)",
+    "discovery_pattern": "All of: (5060/tcp is open, Client probe Sip succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "SIP Server"
@@ -570,7 +579,7 @@
     "category": "Monitoring",
     "color": "Orange",
     "description": "Monitoring agent for Zabbix server",
-    "discovery_pattern": "10050/tcp is open",
+    "discovery_pattern": "All of: (10050/tcp is open, Client probe ZabbixAgent succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/zabbix.svg",
     "name": "Zabbix Agent"
@@ -795,7 +804,7 @@
     "category": "Monitoring",
     "color": "Orange",
     "description": "Monitoring agent for CheckMK server",
-    "discovery_pattern": "6556/tcp is open",
+    "discovery_pattern": "All of: (6556/tcp is open, Client probe CheckMkAgent succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/checkmk.svg",
     "name": "CheckMK Agent"
@@ -813,7 +822,7 @@
     "category": "Monitoring",
     "color": "Orange",
     "description": "Lightweight server monitoring agent",
-    "discovery_pattern": "45876/tcp is open",
+    "discovery_pattern": "All of: (45876/tcp is open, Client probe BeszelAgent succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/beszel.svg",
     "name": "Beszel Agent"
@@ -867,7 +876,7 @@
     "category": "Dashboard",
     "color": "Purple",
     "description": "A sleek, modern dashboard",
-    "discovery_pattern": "7575/tcp is open",
+    "discovery_pattern": "Endpoint response body from <ip>:7575/ contains \"Homarr\"",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/homarr.svg",
     "name": "Homarr"
@@ -903,7 +912,7 @@
     "category": "IdentityAndAccess",
     "color": "Yellow",
     "description": "Generic LDAP directory service",
-    "discovery_pattern": "Any of: (389/tcp is open, 636/tcp is open)",
+    "discovery_pattern": "All of: (389/tcp is open, Client probe Ldap succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/openldap.svg",
     "name": "Open LDAP"
@@ -921,7 +930,7 @@
     "category": "IdentityAndAccess",
     "color": "Yellow",
     "description": "Kerberos authentication service",
-    "discovery_pattern": "88/tcp is open",
+    "discovery_pattern": "All of: (88/tcp is open, Client probe Kerberos succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Kerberos"
@@ -957,7 +966,7 @@
     "category": "IdentityAndAccess",
     "color": "Yellow",
     "description": "Microsoft directory service",
-    "discovery_pattern": "All of: (389/tcp is open, 445/tcp is open, 88/tcp is open)",
+    "discovery_pattern": "All of: (Client probe Ldap succeeded, Client probe Smb succeeded, 88/tcp is open)",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/microsoft.svg",
     "name": "Active Directory"
@@ -1218,7 +1227,7 @@
     "category": "MessageQueue",
     "color": "Green",
     "description": "Generic MQTT broker",
-    "discovery_pattern": "Any of: (1883/tcp is open, 8883/tcp is open)",
+    "discovery_pattern": "All of: (1883/tcp is open, Client probe Mqtt succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/mqtt.svg",
     "name": "MQTT"
@@ -1227,7 +1236,7 @@
     "category": "MessageQueue",
     "color": "Green",
     "description": "Event streaming platform",
-    "discovery_pattern": "9092/tcp is open",
+    "discovery_pattern": "All of: (9092/tcp is open, Client probe Kafka succeeded)",
     "logo_needs_white_background": true,
     "logo_url": "https://simpleicons.org/icons/apachekafka.svg",
     "name": "Kafka"
@@ -1236,7 +1245,7 @@
     "category": "MessageQueue",
     "color": "Green",
     "description": "Advanced Message Queuing Protocol",
-    "discovery_pattern": "Any of: (5672/tcp is open, 5671/tcp is open)",
+    "discovery_pattern": "All of: (5672/tcp is open, Client probe Amqp succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "AMQP"
@@ -1254,7 +1263,7 @@
     "category": "Database",
     "color": "Gray",
     "description": "In-memory data store and cache",
-    "discovery_pattern": "6379/tcp is open",
+    "discovery_pattern": "All of: (6379/tcp is open, Client probe Redis succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/redis.svg",
     "name": "Redis"
@@ -1263,7 +1272,7 @@
     "category": "Database",
     "color": "Gray",
     "description": "Open-source relational database",
-    "discovery_pattern": "5432/tcp is open",
+    "discovery_pattern": "All of: (5432/tcp is open, Client probe PostgreSql succeeded)",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/postgresql.svg",
     "name": "PostgreSQL"
@@ -1272,7 +1281,7 @@
     "category": "Database",
     "color": "Gray",
     "description": "Enterprise relational database",
-    "discovery_pattern": "1521/tcp is open",
+    "discovery_pattern": "All of: (1521/tcp is open, Client probe OracleTns succeeded)",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/oracle.svg",
     "name": "Oracle Database"
@@ -1281,7 +1290,7 @@
     "category": "Database",
     "color": "Gray",
     "description": "Graph database",
-    "discovery_pattern": "Any of: (7473/tcp is open, 7687/tcp is open)",
+    "discovery_pattern": "Endpoint response body from <ip>:7474/ contains \"neo4j_version\"",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/neo4j.png",
     "name": "Neo4j"
@@ -1290,7 +1299,7 @@
     "category": "Database",
     "color": "Gray",
     "description": "Open-source relational database",
-    "discovery_pattern": "3306/tcp is open",
+    "discovery_pattern": "All of: (3306/tcp is open, Client probe MySql succeeded)",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/mysql.svg",
     "name": "MySQL"
@@ -1299,7 +1308,7 @@
     "category": "Database",
     "color": "Gray",
     "description": "Microsoft relational database",
-    "discovery_pattern": "1433/tcp is open",
+    "discovery_pattern": "All of: (1433/tcp is open, Client probe MsSql succeeded)",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/microsoft-sql-server-light.svg",
     "name": "Microsoft SQL Server"
@@ -1308,7 +1317,7 @@
     "category": "Database",
     "color": "Gray",
     "description": "NoSQL document database",
-    "discovery_pattern": "27017/tcp is open",
+    "discovery_pattern": "All of: (27017/tcp is open, Client probe MongoDb succeeded)",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/mongodb.svg",
     "name": "MongoDB"
@@ -1326,7 +1335,7 @@
     "category": "Database",
     "color": "Gray",
     "description": "Time series database",
-    "discovery_pattern": "8086/tcp is open",
+    "discovery_pattern": "Endpoint response from <ip>:8086 has header \"x-influxdb-version\" with value \"\"",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/influxdb.svg",
     "name": "InfluxDB"
@@ -1371,7 +1380,7 @@
     "category": "Database",
     "color": "Gray",
     "description": "Distributed NoSQL database",
-    "discovery_pattern": "9042/tcp is open",
+    "discovery_pattern": "All of: (9042/tcp is open, Client probe Cassandra succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/apache-cassandra.svg",
     "name": "Cassandra"
@@ -1398,7 +1407,7 @@
     "category": "Hypervisor",
     "color": "Amber",
     "description": "Open-source virtualization management platform",
-    "discovery_pattern": "Any of: (Endpoint response body from <ip>:8006/ contains \"proxmox\", 8006/tcp is open)",
+    "discovery_pattern": "Endpoint response body from <ip>:8006/ contains \"proxmox\"",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/proxmox.svg",
     "name": "Proxmox VE"
@@ -1422,6 +1431,15 @@
     "name": "Podman Container"
   },
   {
+    "category": "ContainerRuntime",
+    "color": "Blue",
+    "description": "Daemonless container runtime",
+    "discovery_pattern": "Client probe Podman succeeded",
+    "logo_needs_white_background": false,
+    "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/podman.svg",
+    "name": "Podman"
+  },
+  {
     "category": "Orchestrator",
     "color": "Purple",
     "description": "Enterprise Kubernetes",
@@ -1443,7 +1461,7 @@
     "category": "Orchestrator",
     "color": "Purple",
     "description": "Container orchestration platform",
-    "discovery_pattern": "All of: (6443/tcp is open, Any of: (10250/tcp is open, 10259/tcp is open, 10257/tcp is open, 10256/tcp is open))",
+    "discovery_pattern": "All of: (Endpoint response status is between 400 and 500, and response body from <ip>:6443/version contains \"\"kind\": \"Status\"\", Any of: (10250/tcp is open, 10259/tcp is open, 10257/tcp is open, 10256/tcp is open))",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/kubernetes.svg",
     "name": "Kubernetes"
@@ -1470,10 +1488,19 @@
     "category": "Orchestrator",
     "color": "Purple",
     "description": "Docker native clustering and orchestration",
-    "discovery_pattern": "All of: (2377/tcp is open, 7946/tcp is open)",
+    "discovery_pattern": "All of: (2377/tcp is open, Client probe DockerSwarm succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/docker.svg",
     "name": "Docker Swarm"
+  },
+  {
+    "category": "ContainerRuntime",
+    "color": "Blue",
+    "description": "Docker",
+    "discovery_pattern": "Client probe Docker succeeded",
+    "logo_needs_white_background": false,
+    "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/docker.svg",
+    "name": "Docker"
   },
   {
     "category": "Container",
@@ -1533,7 +1560,7 @@
     "category": "HomeAutomation",
     "color": "Blue",
     "description": "ESP device management",
-    "discovery_pattern": "6052/tcp is open",
+    "discovery_pattern": "Endpoint response body from <ip>:6052/ contains \"esphome\"",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/esphome.svg",
     "name": "ESPHome"
@@ -1668,7 +1695,7 @@
     "category": "Media",
     "color": "Blue",
     "description": "A companion application to Sonarr and Radarr that manages and downloads subtitles",
-    "discovery_pattern": "6767/tcp is open",
+    "discovery_pattern": "Endpoint response body from <ip>:6767/ contains \"<title>Bazarr</title>\"",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/bazarr.svg",
     "name": "Bazarr"
@@ -1677,7 +1704,7 @@
     "category": "Media",
     "color": "Blue",
     "description": "Self-hosted audiobook and podcast server.",
-    "discovery_pattern": "13378/tcp is open",
+    "discovery_pattern": "Endpoint response body from <ip>:13378/status contains \"\"app\":\"audiobookshelf\"\"",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/audiobookshelf.svg",
     "name": "AudioBookShelf"
@@ -1713,7 +1740,7 @@
     "category": "Backup",
     "color": "Gray",
     "description": "Encrypted, incremental and deduplicated backups for Proxmox VMs, LXCs, and hosts",
-    "discovery_pattern": "Any of: (Endpoint response body from <ip>:8007/ contains \"proxmox-backup-gui\", 8007/tcp is open)",
+    "discovery_pattern": "Endpoint response body from <ip>:8007/ contains \"proxmox-backup-gui\"",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/proxmox.svg",
     "name": "Proxmox Backup Server"
@@ -1731,7 +1758,7 @@
     "category": "Backup",
     "color": "Gray",
     "description": "Network backup solution",
-    "discovery_pattern": "9101/tcp is open",
+    "discovery_pattern": "All of: (9101/tcp is open, Client probe Bacula succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/bacula.png",
     "name": "Bacula"
@@ -1776,7 +1803,7 @@
     "category": "Storage",
     "color": "Green",
     "description": "Generic SMB file server",
-    "discovery_pattern": "445/tcp is open",
+    "discovery_pattern": "All of: (445/tcp is open, Client probe Smb succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Samba"
@@ -1812,7 +1839,7 @@
     "category": "Storage",
     "color": "Green",
     "description": "Generic network file system",
-    "discovery_pattern": "2049/tcp is open",
+    "discovery_pattern": "All of: (2049/tcp is open, Client probe Nfs succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "NFS"
@@ -1839,7 +1866,7 @@
     "category": "Storage",
     "color": "Green",
     "description": "FTP server",
-    "discovery_pattern": "All of: (21/tcp is open, 14147/tcp is open)",
+    "discovery_pattern": "All of: (Client probe Ftp succeeded, 14147/tcp is open)",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/filezilla.svg",
     "name": "FileZilla Server"
@@ -1848,7 +1875,7 @@
     "category": "Storage",
     "color": "Green",
     "description": "Generic FTP file sharing service",
-    "discovery_pattern": "21/tcp is open",
+    "discovery_pattern": "All of: (21/tcp is open, Client probe Ftp succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "FTP Server"
@@ -1947,7 +1974,7 @@
     "category": "VPN",
     "color": "Green",
     "description": "WireGuard VPN",
-    "discovery_pattern": "51820/udp is open",
+    "discovery_pattern": "No match pattern provided",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/wireguard.svg",
     "name": "WireGuard"
@@ -1956,7 +1983,7 @@
     "category": "Dashboard",
     "color": "Purple",
     "description": "Wireguard dashboard for visualizing and managing wireguard clients and server",
-    "discovery_pattern": "All of: (10086/tcp is open, Not (Subnet is type VpnTunnel))",
+    "discovery_pattern": "All of: (Endpoint response body from <ip>:10086/ contains \"<title>WGDashboard</title>\", Not (Subnet is type VpnTunnel))",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/wireguard.svg",
     "name": "WGDashboard"
@@ -1965,7 +1992,7 @@
     "category": "VPN",
     "color": "Green",
     "description": "Open-source IPsec VPN daemon (IKE / NAT-T)",
-    "discovery_pattern": "All of: (500/udp is open, 4500/udp is open)",
+    "discovery_pattern": "All of: (500/udp is open, Client probe Ike succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "StrongSwan"
@@ -1974,7 +2001,7 @@
     "category": "VPN",
     "color": "Green",
     "description": "OpenVPN server",
-    "discovery_pattern": "1194/udp is open",
+    "discovery_pattern": "All of: (1194/udp is open, Client probe OpenVpn succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/openvpn.svg",
     "name": "OpenVPN"
@@ -1992,7 +2019,7 @@
     "category": "DNS",
     "color": "Emerald",
     "description": "Recursive DNS resolver with control ip_address",
-    "discovery_pattern": "All of: (53/udp is open, 8953/tcp is open)",
+    "discovery_pattern": "All of: (53/udp is open, All of: (8953/tcp is open, Client probe Tls succeeded))",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/unbound.svg",
     "name": "Unbound DNS"
@@ -2001,7 +2028,7 @@
     "category": "DNS",
     "color": "Emerald",
     "description": "Authoritative DNS server with API",
-    "discovery_pattern": "All of: (53/udp is open, 53/tcp is open, 8081/tcp is open)",
+    "discovery_pattern": "All of: (53/udp is open, Endpoint response body from <ip>:8081/ contains \"PowerDNS Authoritative Server Monitor\")",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/powerdns.svg",
     "name": "PowerDNS"
@@ -2010,7 +2037,7 @@
     "category": "DNS",
     "color": "Emerald",
     "description": "A generic DNS server",
-    "discovery_pattern": "Any of: (53/tcp is open, 53/udp is open)",
+    "discovery_pattern": "Any of: (53/udp is open, All of: (53/tcp is open, Client probe DnsTcp succeeded))",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "DNS Server"
@@ -2019,7 +2046,7 @@
     "category": "DNS",
     "color": "Emerald",
     "description": "Berkeley Internet Name Domain DNS server",
-    "discovery_pattern": "All of: (53/udp is open, 8053/tcp is open)",
+    "discovery_pattern": "All of: (53/udp is open, Endpoint response body from <ip>:8053/ contains \"/bind9.xsl\")",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Bind9"
@@ -2100,7 +2127,7 @@
     "category": "NetworkAccess",
     "color": "Green",
     "description": "Ubiquiti device discovery service",
-    "discovery_pattern": "All of: (MAC Address belongs to Ubiquiti Inc, 10001/udp is open)",
+    "discovery_pattern": "MAC Address belongs to Ubiquiti Inc",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/ubiquiti.svg",
     "name": "Ubiquiti Discovery"
@@ -2241,6 +2268,15 @@
     "name": "UniFi Gateway"
   },
   {
+    "category": "NetworkCore",
+    "color": "Yellow",
+    "description": "Trivial file transfer, used to load device firmware and configuration",
+    "discovery_pattern": "69/udp is open",
+    "logo_needs_white_background": false,
+    "logo_url": "",
+    "name": "TFTP Server"
+  },
+  {
     "category": "RemoteAccess",
     "color": "Amber",
     "description": "Web-based server management with SSH terminal, tunneling, and file editing",
@@ -2253,7 +2289,7 @@
     "category": "RemoteAccess",
     "color": "Amber",
     "description": "Telnet remote access",
-    "discovery_pattern": "23/tcp is open",
+    "discovery_pattern": "All of: (23/tcp is open, Client probe Telnet succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Telnet"
@@ -2262,7 +2298,7 @@
     "category": "NetworkCore",
     "color": "Yellow",
     "description": "Generic network switch for local area networking",
-    "discovery_pattern": "All of: (Not (Host IP is a gateway in daemon's routing tables, or ends in .1 or .254.), All of: (80/tcp is open, 23/tcp is open))",
+    "discovery_pattern": "All of: (Not (Host IP is a gateway in daemon's routing tables, or ends in .1 or .254.), All of: (80/tcp is open, Client probe Telnet succeeded))",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Switch"
@@ -2271,7 +2307,7 @@
     "category": "RemoteAccess",
     "color": "Amber",
     "description": "Secure Shell remote access",
-    "discovery_pattern": "22/tcp is open",
+    "discovery_pattern": "All of: (22/tcp is open, Client probe Ssh succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "SSH"
@@ -2289,7 +2325,7 @@
     "category": "Development",
     "color": "Red",
     "description": "A Salt Proxy server acts as a proxy between the Salt Master and the minions.",
-    "discovery_pattern": "All of: (4505/tcp is open, 4506/tcp is open, 8022/tcp is open)",
+    "discovery_pattern": "All of: (4505/tcp is open, 4506/tcp is open, Client probe Zmtp succeeded, 8022/tcp is open)",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/salt-project.svg",
     "name": "Salt Proxy"
@@ -2298,7 +2334,7 @@
     "category": "Development",
     "color": "Red",
     "description": "A Salt master server acts as a central control bus for the clients, which are called minions.",
-    "discovery_pattern": "All of: (4505/tcp is open, 4506/tcp is open, Not (8022/tcp is open))",
+    "discovery_pattern": "All of: (All of: (4505/tcp is open, Client probe Zmtp succeeded), All of: (4506/tcp is open, Client probe Zmtp succeeded), Not (8022/tcp is open))",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/salt-project.svg",
     "name": "Salt Master"
@@ -2316,7 +2352,7 @@
     "category": "RemoteAccess",
     "color": "Amber",
     "description": "Remote Desktop Protocol (RDP)",
-    "discovery_pattern": "3389/tcp is open",
+    "discovery_pattern": "All of: (3389/tcp is open, Client probe Rdp succeeded)",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Remote Desktop"
@@ -2329,6 +2365,24 @@
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "NTP Server"
+  },
+  {
+    "category": "Telephony",
+    "color": "Orange",
+    "description": "Media Gateway Control Protocol, tying a voice gateway to its call agent",
+    "discovery_pattern": "Any of: (2427/udp is open, 2727/udp is open)",
+    "logo_needs_white_background": false,
+    "logo_url": "",
+    "name": "MGCP Endpoint"
+  },
+  {
+    "category": "Telephony",
+    "color": "Orange",
+    "description": "Voice and video call signalling over H.323",
+    "discovery_pattern": "All of: (1720/tcp is open, Client probe H323 succeeded)",
+    "logo_needs_white_background": false,
+    "logo_url": "",
+    "name": "H.323 Gateway"
   },
   {
     "category": "NetworkCore",

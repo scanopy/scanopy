@@ -227,6 +227,7 @@ impl ChangeTriggersTopologyStaleness<User> for User {
 }
 
 impl Storable for User {
+    const HAS_SCD2: bool = false;
     type BaseData = UserBase;
 
     fn table_name() -> &'static str {

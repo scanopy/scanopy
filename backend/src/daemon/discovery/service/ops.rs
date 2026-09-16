@@ -38,10 +38,10 @@ use crate::{
         hosts::r#impl::{
             api::{DiscoveryHostRequest, HostResponse},
             attributes::{
-                HostChassisIdValue, HostFirmwareRevisionValue, HostManagementUrlValue,
-                HostManufacturerValue, HostModelValue, HostSerialNumberValue,
-                HostSoftwareRevisionValue, HostSysContactValue, HostSysDescrValue,
-                HostSysLocationValue, HostSysNameValue, HostSysObjectIdValue,
+                HostChassisIdValue, HostFirmwareRevisionValue, HostHostnameAttributed,
+                HostHostnameValue, HostManagementUrlValue, HostManufacturerValue, HostModelValue,
+                HostSerialNumberValue, HostSoftwareRevisionValue, HostSysContactValue,
+                HostSysDescrValue, HostSysLocationValue, HostSysNameValue, HostSysObjectIdValue,
             },
             base::{Host, HostBase},
             name::{HostName, HostNameSources},
@@ -138,6 +138,13 @@ pub struct HostData {
     /// wrote last. Not sent to the server — `interfaces`, `interfaces_complete` and
     /// `interface_data_complete` are the merged result.
     contributions: Vec<InterfaceContribution>,
+    /// The first two full-ifTable integrations to collect this host, in the order they
+    /// contributed. `HostData` has no route to the session's warning buffers, so the detection is
+    /// held here and the runner records it where the host is submitted.
+    equal_reach_integrations: Option<(
+        CredentialQueryPayloadDiscriminants,
+        CredentialQueryPayloadDiscriminants,
+    )>,
 }
 
 /// One integration's interface set, as offered.
@@ -168,6 +175,7 @@ impl HostData {
             interfaces_complete: true,
             interface_data_complete: InterfaceDataComplete::default(),
             contributions: Vec::new(),
+            equal_reach_integrations: None,
         }
     }
 
@@ -364,23 +372,27 @@ impl HostData {
         {
             Some(existing) => *existing = offer,
             None => {
-                // Two collectors of equal reach on one host is a configuration to tell someone
-                // about — an SNMP and a gNMI credential both broadcast over the network, say.
-                // The merge below does not need it resolved, so this is a log line and not a
-                // scan warning; it becomes worth promoting when a second `FullIfTable`
-                // integration exists to trigger it.
+                // Two integrations of equal reach on one host, such as SNMP and gNMI on one
+                // switch, is a supported configuration. Two full-ifTable readers are surfaced to
+                // the operator as an informational discovery warning.
                 if let Some(peer) = self.contributions.iter().find(|c| {
                     c.source.scope == source.scope
                         && source.scope != InterfaceViewScope::NoInterfaces
                 }) {
-                    tracing::warn!(
+                    tracing::debug!(
                         host = %self.host.id,
                         first = ?peer.source.credential,
                         second = ?source.credential,
                         scope = ?source.scope,
                         "Two integrations of equal interface reach collected one host; their \
-                         interface sets are merged, but only one of them needs to be configured"
+                         interface sets are merged"
                     );
+                    if source.scope == InterfaceViewScope::FullIfTable
+                        && self.equal_reach_integrations.is_none()
+                    {
+                        self.equal_reach_integrations =
+                            Some((peer.source.credential, source.credential));
+                    }
                 }
                 self.contributions.push(offer);
             }
@@ -462,7 +474,48 @@ impl HostData {
                 }
             });
 
+        // Which source won each port, for whoever is chasing a missing edge: a link only the
+        // losing contributor saw on a shared port is not drawn.
+        if self.contributions.len() > 1 {
+            let supplied: Vec<String> = order
+                .iter()
+                .map(|c| {
+                    let rows: Vec<&Interface> = merged
+                        .iter()
+                        .zip(&owners)
+                        .filter(|(_, owner)| owner.credential == c.source.credential)
+                        .map(|(row, _)| row)
+                        .collect();
+                    let names: Vec<&str> = rows
+                        .iter()
+                        .filter_map(|row| row.base.if_name.as_deref())
+                        .collect();
+                    if names.len() == rows.len() {
+                        format!("{:?}: [{}]", c.source.credential, names.join(", "))
+                    } else {
+                        format!("{:?}: {} interface(s)", c.source.credential, rows.len())
+                    }
+                })
+                .collect();
+            tracing::debug!(
+                host = %self.host.id,
+                supplied = %supplied.join("; "),
+                "Merged interface contributions; each source lists the rows it supplied"
+            );
+        }
+
         self.interfaces = merged;
+    }
+
+    /// The first two full-ifTable integrations to collect this host, in contribution order, if
+    /// two did.
+    pub fn equal_reach_integrations(
+        &self,
+    ) -> Option<(
+        CredentialQueryPayloadDiscriminants,
+        CredentialQueryPayloadDiscriminants,
+    )> {
+        self.equal_reach_integrations
     }
 
     /// Every integration that has offered interfaces for this host, widest view first.
@@ -495,17 +548,16 @@ impl HostData {
         self
     }
 
-    /// Set hostname from SNMP sysName as a fallback if DNS didn't provide one.
+    /// Record a hostname an integration learned for the host being scanned, with its source.
     ///
-    /// The name follows the same ladder as everything else: a hostname outranks an IP or a
-    /// detected service, and loses to a name a controller or a person supplied.
-    pub fn with_hostname_fallback(&mut self, hostname: String) -> &mut Self {
-        if self.host.base.hostname.is_none() {
-            self.host
-                .base
-                .apply_name(HostName::from_hostname(hostname.clone()));
-            self.host.base.hostname = Some(hostname);
-        }
+    /// Ranked like every other attribute, so a controller's DHCP hostname fills in where the scan's
+    /// own lookup found nothing and never displaces a stronger reading. A hostname is an identifier,
+    /// not a name, so this leaves `name` alone (see the placement rule in `hosts::impl::name`).
+    pub fn with_hostname(&mut self, hostname: String, source: AttributeSource) -> &mut Self {
+        Attributed::apply(
+            &mut self.host.base.hostname,
+            Attributed::new(HostHostnameValue(hostname), source),
+        );
         self
     }
 
@@ -700,6 +752,9 @@ impl DiscoveryOps {
         }
         if let Ok(records) = session.vlan_recording_failures.lock() {
             warnings.extend(warnings::warn_vlan_recording_failures(&records));
+        }
+        if let Ok(records) = session.equal_reach_integrations.lock() {
+            warnings.extend(warnings::warn_equal_reach_integrations(&records));
         }
         if let Ok(issues) = session.credential_issues.lock() {
             warnings.extend(warnings::warn_credential_issues(&issues));
@@ -985,6 +1040,21 @@ impl DiscoveryOps {
         }
     }
 
+    /// Record that two full-ifTable integrations collected this host, if they did.
+    ///
+    /// Called where the host is submitted, after every integration has run, because `HostData`
+    /// holds the detection and has no route to the session itself.
+    pub async fn record_equal_reach_integrations(&self, ip: IpAddr, host_data: &HostData) {
+        let Some((first, second)) = host_data.equal_reach_integrations() else {
+            return;
+        };
+        if let Ok(session) = self.get_session().await
+            && let Ok(mut buffer) = session.equal_reach_integrations.lock()
+        {
+            buffer.push(warnings::EqualReachIntegrations { ip, first, second });
+        }
+    }
+
     /// Record a device whose VLAN table was read and could not be saved.
     pub async fn record_vlan_recording_failure(&self, ip: std::net::IpAddr) {
         if let Ok(session) = self.get_session().await
@@ -1109,6 +1179,8 @@ impl DiscoveryOps {
             subnets,
             interfaces_complete,
             interface_data_complete,
+            // This daemon is this build; it submits the current shape by construction.
+            superseded_wire_shape: false,
         };
 
         self.entity_buffer.push_host(request.clone()).await;
@@ -1382,7 +1454,7 @@ impl DiscoveryOps {
     pub async fn build_host_from_scan(
         &self,
         params: ServiceMatchBaselineParams<'_>,
-        hostname: Option<String>,
+        hostname: Option<HostHostnameAttributed>,
         host_naming_fallback: HostNamingFallback,
     ) -> Result<Option<HostData>, Error> {
         let ServiceMatchBaselineParams { ip_address, .. } = params;
@@ -1394,7 +1466,7 @@ impl DiscoveryOps {
 
         let mut host = Host::new(HostBase {
             name: HostName::unnamed(),
-            hostname: hostname.clone(),
+            hostname,
             tags: Vec::new(),
             network_id,
             description: None,
@@ -1428,19 +1500,17 @@ impl DiscoveryOps {
             .find(|s| !ServiceDefinitionExt::is_generic(&s.base.service_definition))
             .map(|s| s.base.service_definition.name().to_string());
 
-        // Rungs the scan itself can reach. `host_naming_fallback` decides which of the two
-        // bottom rungs the user prefers when there is no hostname; an integration that knows a
-        // human-assigned name outranks all of them and applies later, during `execute()`.
-        let ip_name = HostName::from_ip(ip_address.base.ip_address);
-        let candidate = match (hostname, best_service_name, host_naming_fallback) {
-            (Some(hostname), _, _) => HostName::from_hostname(hostname),
-            (None, _, HostNamingFallback::Ip) => ip_name,
-            (None, Some(service), HostNamingFallback::BestService) => {
-                HostName::from_service(service)
-            }
-            (None, None, HostNamingFallback::BestService) => ip_name,
-        };
-        host.base.apply_name(candidate);
+        // Only names go in `name`. The hostname and the address are identifiers with their own
+        // columns, and the display ladder shows them without a copy (see the placement rule in
+        // `hosts::impl::name`). The one name a scan can derive is a guess from the best
+        // non-generic service, stored only when the user chose that fallback. It ranks below the
+        // identifiers, and an integration that knows a human-assigned name replaces it later,
+        // during `execute()`.
+        if let (HostNamingFallback::BestService, Some(service)) =
+            (host_naming_fallback, best_service_name)
+        {
+            host.base.apply_name(HostName::from_service(service));
+        }
 
         // A DNS-SD instance name is what the owner typed during setup — "Living Room TV" rather
         // than "chromecast-a1b2c3" — so it outranks everything the scan can derive and applies
@@ -1505,7 +1575,7 @@ mod tests {
             host_id: Uuid::new_v4(),
             network_id: Uuid::new_v4(),
             if_index: Some(if_index),
-            if_descr: name.to_string(),
+            if_descr: Some(name.to_string()),
             if_name: Some(name.to_string()),
             if_alias: None,
             if_type: Some(6),
@@ -1514,18 +1584,8 @@ mod tests {
             oper_status: Some(IfOperStatus::Up),
             mac_address: None,
             ip_address_id: None,
-            neighbor: None,
-            neighbor_seen_at: None,
-            lldp_chassis_id: None,
-            lldp_port_id: None,
-            lldp_sys_name: None,
-            lldp_port_desc: None,
-            lldp_mgmt_addr: None,
-            lldp_sys_desc: None,
-            cdp_device_id: None,
-            cdp_port_id: None,
-            cdp_platform: None,
-            cdp_address: None,
+            ip_configured: false,
+            neighbor_candidates: Vec::new(),
             fdb_macs: None,
             native_vlan_id: None,
             vlan_ids: None,
@@ -1540,6 +1600,7 @@ mod tests {
     }
 
     const SNMP: CredentialQueryPayloadDiscriminants = CredentialQueryPayloadDiscriminants::Snmp;
+    const GNMI: CredentialQueryPayloadDiscriminants = CredentialQueryPayloadDiscriminants::Gnmi;
     const UNIFI: CredentialQueryPayloadDiscriminants =
         CredentialQueryPayloadDiscriminants::UnifiController;
 
@@ -1631,6 +1692,11 @@ mod tests {
         assert_eq!(host_data.interfaces.len(), 3);
         assert!(host_data.interfaces_complete);
         assert!(host_data.interface_data_complete.lldp);
+        assert_eq!(
+            host_data.equal_reach_integrations(),
+            None,
+            "one contributor revising itself is not a second integration"
+        );
     }
 
     /// A controller's ports being a subset of the ifTable is the ordinary case, and it must cost
@@ -1661,6 +1727,35 @@ mod tests {
         assert_eq!(host_data.interfaces.len(), 3);
         assert!(host_data.interfaces_complete);
         assert!(host_data.interface_data_complete.cdp);
+        assert_eq!(
+            host_data.equal_reach_integrations(),
+            None,
+            "a controller beside an ifTable reader is the ordinary case, not one to report"
+        );
+    }
+
+    /// SNMP and gNMI on one switch: both read the whole ifTable, so a port both describe keeps
+    /// the first contributor's row and neighbours. The host carries which two, in that order, so
+    /// the runner can say so in the scan record.
+    #[test]
+    fn two_full_if_table_contributors_are_recorded_in_the_order_they_answered() {
+        let mut host_data = empty_host_data();
+
+        host_data.contribute_interfaces(
+            source(GNMI, InterfaceViewScope::FullIfTable),
+            vec![port("eth1", 1), port("eth2", 2)],
+            true,
+            InterfaceDataComplete::default(),
+        );
+        host_data.contribute_interfaces(
+            source(SNMP, InterfaceViewScope::FullIfTable),
+            vec![port("eth1", 1), port("eth3", 3)],
+            true,
+            InterfaceDataComplete::default(),
+        );
+
+        assert_eq!(host_data.interfaces.len(), 3);
+        assert_eq!(host_data.equal_reach_integrations(), Some((GNMI, SNMP)));
     }
 
     /// A port only the narrower view has is added — and its presence is itself the proof that the

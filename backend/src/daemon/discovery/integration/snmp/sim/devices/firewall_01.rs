@@ -16,7 +16,7 @@ use super::inline;
 pub fn device() -> SimDevice {
     SimDevice {
         name: "firewall-01",
-        ip: Ipv4Addr::new(192, 168, 7, 233),
+        ip: Ipv4Addr::UNSPECIFIED,
         purpose: Purpose::Control {
             role: "a non-switch baseline that still answers LLDP",
         },
@@ -37,6 +37,7 @@ pub fn device() -> SimDevice {
         tables: tables(),
         arp_handler: Handler::Normal,
         suppresses: Vec::new(),
+        rejects_getbulk: None,
     }
 }
 

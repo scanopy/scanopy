@@ -121,6 +121,7 @@ impl ChangeTriggersTopologyStaleness<Invite> for Invite {
 }
 
 impl Storable for Invite {
+    const HAS_SCD2: bool = false;
     type BaseData = InviteBase;
 
     fn table_name() -> &'static str {

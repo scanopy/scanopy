@@ -69,9 +69,13 @@ pub const SCAN_TIMEOUT: Duration = Duration::from_millis(800);
 
 /// The daemon host's own NICs, after the `--interfaces` filter and the container-bridge skip.
 ///
-/// Shared by `get_own_interfaces` (which keeps the addresses) and `own_nics_as_interfaces` (which
-/// keeps the ports), so the two can never disagree about which NICs belong to this host.
-fn filtered_own_nics(interface_filter: &[String]) -> Vec<pnet::datalink::NetworkInterface> {
+/// Shared by `get_own_interfaces` (which keeps the addresses), `own_nics_as_interfaces` (which
+/// keeps the ports), and the DCP sweep (`network::dcp`, which needs raw `NetworkInterface`s rather
+/// than either derived shape) — `pub(crate)` so all three can never disagree about which NICs
+/// belong to this host.
+pub(crate) fn filtered_own_nics(
+    interface_filter: &[String],
+) -> Vec<pnet::datalink::NetworkInterface> {
     let all_interfaces = pnet::datalink::interfaces();
 
     let selected: Vec<_> = if interface_filter.is_empty() {
@@ -149,7 +153,7 @@ fn nic_to_interface(
         host_id,
         network_id,
         if_index: Some(nic.index as i32),
-        if_descr: nic.name.clone(),
+        if_descr: Some(nic.name.clone()),
         if_name: Some(nic.name.clone()),
         if_alias: None,
         if_type: Some(if_type),
@@ -173,18 +177,9 @@ fn nic_to_interface(
         // never set, so every later scan retried self-report and the daemon-host interface phase
         // was never reached at all.
         ip_address_id: None,
-        neighbor: None,
-        neighbor_seen_at: None,
-        lldp_chassis_id: None,
-        lldp_port_id: None,
-        lldp_sys_name: None,
-        lldp_port_desc: None,
-        lldp_mgmt_addr: None,
-        lldp_sys_desc: None,
-        cdp_device_id: None,
-        cdp_port_id: None,
-        cdp_platform: None,
-        cdp_address: None,
+        // Not an SNMP walk — no ipAddrTable to read, so this signal is unavailable here.
+        ip_configured: false,
+        neighbor_candidates: Vec::new(),
         fdb_macs: None,
         native_vlan_id: None,
         vlan_ids: None,

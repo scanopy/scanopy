@@ -23,6 +23,7 @@ pub mod values;
 
 use std::net::IpAddr;
 
+use semver::Version;
 use serde::{Deserialize, Deserializer, Serialize};
 use strum::{EnumIter, IntoStaticStr, VariantNames};
 use utoipa::ToSchema;
@@ -239,6 +240,23 @@ pub enum DiscoveryWarning {
         #[schema(value_type = String)]
         address: IpAddr,
     },
+    /// Two integrations that each read the device's full interface table both collected it, and
+    /// their interface sets were merged.
+    ///
+    /// A supported configuration, not a fault. It is reported because the merge keeps one row
+    /// per port: where both describe a port, the first to answer supplies the row and its
+    /// neighbours, and the second's are dropped. Someone chasing a missing link needs to know
+    /// that happened.
+    #[schema(title = "EqualReachIntegrationsMerged")]
+    EqualReachIntegrationsMerged {
+        /// The device both integrations read.
+        #[schema(value_type = String)]
+        address: IpAddr,
+        /// The integration that answered first. Its row stands on every port both describe.
+        first: CredentialQueryPayloadDiscriminants,
+        /// The integration that answered second.
+        second: CredentialQueryPayloadDiscriminants,
+    },
 
     // ---- Credential issues -----------------------------------------------
     /// The credential's address is not on any subnet this scan covers.
@@ -357,6 +375,47 @@ pub enum DiscoveryWarning {
         /// Interfaces carrying neighbour data it was working through, so the reader can tell
         /// "this network is large" from "something is wrong".
         neighbours: u32,
+    },
+    /// FDB link resolution ran out of its time budget, so this scan's FDB-derived links are
+    /// incomplete.
+    ///
+    /// Distinct from `NeighbourResolutionIncomplete`: that pass runs first and this one is
+    /// strictly sequenced after it, so a reader needs to know which pass stopped to judge how
+    /// much of Physical Topology is affected.
+    #[schema(title = "FdbResolutionIncomplete")]
+    FdbResolutionIncomplete {
+        /// Seconds the pass was allowed before it was stopped.
+        budget_seconds: u32,
+        /// Interfaces with an unresolved single-MAC FDB entry it was working through.
+        interfaces: u32,
+    },
+
+    // ---- Daemon ----------------------------------------------------------
+    /// The daemon submitted this scan in a wire format a current daemon no longer produces.
+    ///
+    /// Server-side finding, raised where the raw request body is read. The server translates the
+    /// old format, so nothing was lost — this says the translation happened, which is the only
+    /// evidence an operator ever gets that a daemon is behind. Which superseded format it was is
+    /// deliberately not carried, and neither is the fact that the translation worked: the reader
+    /// needs one thing from this, which is that the daemon is out of date.
+    ///
+    /// The daemon to upgrade is the session's own — the UI reads `daemon_id` off the payload this
+    /// rides on rather than repeating it here, which is what lets the row deep-link to that
+    /// daemon's upgrade modal.
+    ///
+    /// Ends with the compatibility window. When the enforced floor rises past the last release
+    /// that sends an old format, the translations go and this goes with them.
+    #[schema(title = "OutdatedDaemonFormat")]
+    OutdatedDaemonFormat {
+        /// The submitting daemon's version, so the reader knows which one to upgrade. `None` for
+        /// a daemon too old to report one at all.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[schema(
+            value_type = Option<String>,
+            pattern = r"^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$",
+            example = "0.17.14"
+        )]
+        daemon_version: Option<Version>,
     },
 
     // ---- Meta ------------------------------------------------------------
@@ -546,6 +605,7 @@ pub enum DiscoveryWarningCode {
     MalformedNeighboursUnreadableIndex,
     SnmpCollectedNothing,
     VlanRecordingFailed,
+    EqualReachIntegrationsMerged,
     CredentialTargetNotScanned,
     CredentialTargetNotResponding,
     CredentialGateClosed,
@@ -567,6 +627,8 @@ pub enum DiscoveryWarningCode {
     LldpPortAmbiguous,
     ProvisionalSubnetInferred,
     NeighbourResolutionIncomplete,
+    FdbResolutionIncomplete,
+    OutdatedDaemonFormat,
     WarningsTruncated,
     /// Absorbs a code from a newer binary. Fieldless, so `#[serde(other)]` applies — the text of
     /// an unrecognised warning rides on [`DiscoveryWarning::Unknown`] instead, where no metric
@@ -616,6 +678,9 @@ impl DiscoveryWarning {
             }
             Self::SnmpCollectedNothing { .. } => DiscoveryWarningCode::SnmpCollectedNothing,
             Self::VlanRecordingFailed { .. } => DiscoveryWarningCode::VlanRecordingFailed,
+            Self::EqualReachIntegrationsMerged { .. } => {
+                DiscoveryWarningCode::EqualReachIntegrationsMerged
+            }
             Self::CredentialTargetNotScanned { .. } => {
                 DiscoveryWarningCode::CredentialTargetNotScanned
             }
@@ -649,6 +714,8 @@ impl DiscoveryWarning {
             Self::NeighbourResolutionIncomplete { .. } => {
                 DiscoveryWarningCode::NeighbourResolutionIncomplete
             }
+            Self::FdbResolutionIncomplete { .. } => DiscoveryWarningCode::FdbResolutionIncomplete,
+            Self::OutdatedDaemonFormat { .. } => DiscoveryWarningCode::OutdatedDaemonFormat,
             Self::WarningsTruncated { .. } => DiscoveryWarningCode::WarningsTruncated,
             Self::Unknown { .. } => DiscoveryWarningCode::Unknown,
         }
@@ -699,7 +766,10 @@ impl DiscoveryWarning {
             | Self::CredentialUnreachable(a)
             | Self::CredentialTimedOut(a) => Some(a.integration),
 
-            Self::ConnectionsWithoutProtocolResponse { .. }
+            // Two integrations, and neither one produced it: the merge in the daemon pipeline did.
+            // Naming either would count it against an integration that did nothing wrong.
+            Self::EqualReachIntegrationsMerged { .. }
+            | Self::ConnectionsWithoutProtocolResponse { .. }
             | Self::ScanTimeLimitWithEstimate { .. }
             | Self::ScanTimeLimit { .. }
             | Self::LldpNeighbourNotFound(_)
@@ -709,6 +779,8 @@ impl DiscoveryWarning {
             | Self::LldpPortAmbiguous(_)
             | Self::ProvisionalSubnetInferred(_)
             | Self::NeighbourResolutionIncomplete { .. }
+            | Self::FdbResolutionIncomplete { .. }
+            | Self::OutdatedDaemonFormat { .. }
             | Self::WarningsTruncated { .. }
             | Self::Unknown { .. } => None,
         }

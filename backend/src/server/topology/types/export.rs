@@ -206,7 +206,8 @@ pub fn topology_to_confluence(nodes: &[Node], edges: &[Edge], data: &TopologyDat
     writeln!(output).unwrap();
     writeln!(output, "|| Name || Hostname || IP Addresses || Services ||").unwrap();
     for host in &data.hosts {
-        let hostname = host.base.hostname.as_deref().unwrap_or("");
+        let hostname =
+            crate::server::shared::attribution::text_of(&host.base.hostname).unwrap_or_default();
         let ips = ip_addresses_by_host
             .get(&host.id)
             .map(|v| v.join(", "))

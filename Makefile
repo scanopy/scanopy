@@ -1,4 +1,4 @@
-.PHONY: daemon-build daemon-rebuild daemon-dev daemon-fix-perms help build test test-unit clean format lint lint-migrations generate-schema generate-messages generate-fixtures refresh-vendored-data seed-dev set-plan-community set-plan-starter set-plan-pro set-plan-team set-plan-business set-plan-enterprise test-plan test-merge test-results install-dev-mac install-dev-linux install-dev-windows snmp-seed-credentials snmp-fixtures snmp-deploy snmp-verify snmp-status docker-proxy-up docker-proxy-up-tls docker-proxy-down docker-proxy-status podman-proxy-up podman-proxy-up-tls podman-proxy-down podman-proxy-status podman-workload-up podman-workload-down unifi-status unifi-capture issue-license daemon-clean daemon-purge daemon-logs daemon-restart daemon-config
+.PHONY: daemon-build daemon-rebuild daemon-dev daemon-fix-perms help build test test-unit clean format lint lint-migrations generate-schema generate-messages generate-fixtures refresh-vendored-data seed-dev set-plan-community set-plan-starter set-plan-pro set-plan-team set-plan-business set-plan-enterprise test-plan test-merge test-results install-dev-mac install-dev-linux install-dev-windows snmp-seed-credentials snmp-fixtures snmp-deploy snmp-verify snmp-status dcp-start dcp-stop dcp-verify dcp-status docker-proxy-up docker-proxy-up-tls docker-proxy-down docker-proxy-status podman-proxy-up podman-proxy-up-tls podman-proxy-down podman-proxy-status podman-workload-up podman-workload-down unifi-status unifi-capture issue-license daemon-clean daemon-purge daemon-logs daemon-restart daemon-config
 
 DAYS ?= 365
 
@@ -61,6 +61,10 @@ help:
 	@echo "  make snmp-deploy     - Generate, push to the test VM, rebuild every agent, then verify"
 	@echo "  make snmp-verify     - Query the SNMP test hosts and check sysName (see tools/snmp/SNMP-TEST-ENV.md)"
 	@echo "  make snmp-status     - Ping the SNMP test hosts to check reachability"
+	@echo "  make dcp-start       - Launch the local PROFINET DCP sim (see tools/dcp/DCP-TEST-ENV.md)"
+	@echo "  make dcp-stop        - Stop the local DCP sim"
+	@echo "  make dcp-verify      - Send one real DCP Identify request and confirm it answers"
+	@echo "  make dcp-status      - Check whether the local DCP sim is running"
 	@echo "  make docker-proxy-up - Start Docker proxy test environment (HTTP)"
 	@echo "  make docker-proxy-up-tls - Start Docker proxy with TLS"
 	@echo "  make docker-proxy-down   - Stop Docker proxy test environment"
@@ -543,6 +547,18 @@ snmp-verify:
 
 snmp-status:
 	tools/snmp/snmp-test-env.sh status
+
+dcp-start:
+	tools/dcp/dcp-test-env.sh start
+
+dcp-stop:
+	tools/dcp/dcp-test-env.sh stop
+
+dcp-verify:
+	tools/dcp/dcp-test-env.sh verify
+
+dcp-status:
+	tools/dcp/dcp-test-env.sh status
 
 docker-proxy-up:
 	tools/docker-proxy/docker-proxy-test-env.sh up

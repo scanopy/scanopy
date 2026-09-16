@@ -38,6 +38,7 @@
 		topology,
 		tutorialTopology,
 		isReadOnly = false,
+		raised = false,
 		onClearSelection,
 		onGroupCreated,
 		onDependencyTypeChange
@@ -45,6 +46,12 @@
 		topology: RenderableTopology | undefined;
 		tutorialTopology?: RenderableTopology;
 		isReadOnly?: boolean;
+		/**
+		 * Lift the panel above a `TopologyOverlay`'s shroud, which otherwise covers it and
+		 * swallows every click. Set it whenever the panel is what the user needs to act on while
+		 * an overlay is up — the empty states, whose filters live in here.
+		 */
+		raised?: boolean;
 		onClearSelection?: () => void;
 		onGroupCreated?: (groupId: string) => void;
 		onDependencyTypeChange?: (type: string) => void;
@@ -77,7 +84,7 @@
 
 <!-- Floating Panel -->
 <div
-	class="topology-options absolute left-4 top-4 duration-300 {isTutorial
+	class="topology-options absolute left-4 top-4 duration-300 {isTutorial || raised
 		? 'z-30'
 		: 'z-10'} {$optionsPanelExpanded ? '' : 'w-auto'}"
 	style={$optionsPanelExpanded ? `width: ${OPTIONS_PANEL_WIDTH_PX}px` : ''}

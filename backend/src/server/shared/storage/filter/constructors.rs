@@ -125,16 +125,8 @@ impl<T: Storable> StorableFilter<T> {
         Self::new().scheduled_discovery()
     }
 
-    pub fn new_for_unresolved_lldp_port_in_network(network_id: Uuid) -> Self {
-        Self::new().unresolved_lldp_port_in_network(network_id)
-    }
-
     pub fn new_for_historical_session(session_id: Uuid) -> Self {
         Self::new().historical_session(session_id)
-    }
-
-    pub fn new_for_lldp_neighbors_in_network(network_id: Uuid) -> Self {
-        Self::new().lldp_neighbors_in_network(network_id)
     }
 
     pub fn new_for_unresolved_fdb_in_network(network_id: Uuid) -> Self {

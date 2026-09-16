@@ -41,18 +41,35 @@ impl<T: ChildStorableEntity + Display> GenericChildStorage<T> {
         &self.inner
     }
 
+    /// The `valid_to IS NULL` clause, or nothing for children that carry no SCD2 columns.
+    ///
+    /// This used to be appended unconditionally, on the assumption that every
+    /// `ChildStorableEntity` was also `Snapshotable`. GH #701 ended that: raw LLDP/CDP
+    /// evidence in `interface_neighbor_candidates` is deliberately not historised (the
+    /// resolved adjacencies in `interface_neighbor_interfaces` / `_hosts` still are), so the
+    /// clause named a column that does not exist and every child read for an interface with
+    /// neighbour evidence failed. Gate on the entity's own declaration rather than on which
+    /// types happen to implement the trait today.
+    fn live_row_filter() -> &'static str {
+        if T::HAS_SCD2 {
+            " AND valid_to IS NULL"
+        } else {
+            ""
+        }
+    }
+
     /// Get all children for a single parent.
     ///
-    /// Returns only live (SCD2 `valid_to IS NULL`) rows. Every entity that
-    /// currently implements `ChildStorableEntity` is also `Snapshotable`,
-    /// so the filter is universally safe and required for correctness:
-    /// natural-key reconciliation and current-state reads must not see
-    /// closed historical copies.
+    /// For SCD2 entities this returns only live (`valid_to IS NULL`) rows, which is
+    /// required for correctness: natural-key reconciliation and current-state reads must
+    /// not see closed historical copies. Non-SCD2 children have no such column and are
+    /// returned whole — see [`Self::live_row_filter`].
     pub async fn get_for_parent(&self, parent_id: &Uuid) -> Result<Vec<T>> {
         let query_str = format!(
-            "SELECT * FROM {} WHERE {} = $1 AND valid_to IS NULL",
+            "SELECT * FROM {} WHERE {} = $1{}",
             T::table_name(),
-            T::parent_column()
+            T::parent_column(),
+            Self::live_row_filter()
         );
 
         let rows = sqlx::query(&query_str)
@@ -65,16 +82,17 @@ impl<T: ChildStorableEntity + Display> GenericChildStorage<T> {
 
     /// Get children for multiple parents (batch loading).
     /// Returns a map of parent_id -> children.
-    /// Live-only (SCD2 `valid_to IS NULL`) — see `get_for_parent` doc.
+    /// Live-only for SCD2 entities — see `get_for_parent` doc.
     pub async fn get_for_parents(&self, parent_ids: &[Uuid]) -> Result<HashMap<Uuid, Vec<T>>> {
         if parent_ids.is_empty() {
             return Ok(HashMap::new());
         }
 
         let query_str = format!(
-            "SELECT * FROM {} WHERE {} = ANY($1) AND valid_to IS NULL",
+            "SELECT * FROM {} WHERE {} = ANY($1){}",
             T::table_name(),
-            T::parent_column()
+            T::parent_column(),
+            Self::live_row_filter()
         );
 
         let rows = sqlx::query(&query_str)

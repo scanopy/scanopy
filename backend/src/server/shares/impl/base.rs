@@ -236,6 +236,7 @@ impl ChangeTriggersTopologyStaleness<Share> for Share {
 }
 
 impl Storable for Share {
+    const HAS_SCD2: bool = false;
     type BaseData = ShareBase;
 
     fn table_name() -> &'static str {

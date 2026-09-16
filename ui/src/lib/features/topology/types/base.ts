@@ -1,6 +1,13 @@
 import type { components } from '$lib/api/schema';
 import type { Service } from '$lib/features/services/types/base';
-import type { Host, IPAddress, Interface, Port } from '$lib/features/hosts/types/base';
+import type {
+	Host,
+	IPAddress,
+	Interface,
+	Port,
+	InterfaceNeighborRow,
+	InterfaceNeighborCandidate
+} from '$lib/features/hosts/types/base';
 import type { Subnet } from '$lib/features/subnets/types/base';
 import type { Dependency } from '$lib/features/dependencies/types/base';
 import type { Tag } from '$lib/features/tags/types/base';
@@ -16,6 +23,9 @@ export type TopologyNode = components['schemas']['Node'];
 export type EdgeHandle = components['schemas']['EdgeHandle'];
 export type Binding = components['schemas']['Binding'];
 export type Vlan = components['schemas']['Vlan'];
+
+/** `entity type → filter type → entities the server-side filter dropped`. */
+export type FilteredOutCounts = Record<string, Record<string, number>>;
 
 /**
  * Topology row plus the built graph + entity arrays needed for inspectors,
@@ -46,6 +56,16 @@ export interface RenderableTopology extends Topology {
 	ports: Port[];
 	bindings: Binding[];
 	interfaces: Interface[];
+	/** GH #701: resolved adjacencies for `interfaces` above — see `InterfaceNeighborRow`. */
+	neighbours: InterfaceNeighborRow[];
+	/** Raw LLDP/CDP evidence behind `neighbours` — see `InterfaceNeighborCandidate`. */
+	candidates: InterfaceNeighborCandidate[];
+	/**
+	 * What the server-side metadata filters removed, by entity type and filter — see
+	 * `TopologyData.filtered_out`. These entities are absent from the arrays above, so this is the
+	 * only record that they exist at all.
+	 */
+	filtered_out: FilteredOutCounts;
 	dependencies: Dependency[];
 	vlans: Vlan[];
 	entity_tags: Tag[];

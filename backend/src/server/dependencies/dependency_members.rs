@@ -113,6 +113,12 @@ impl Storable for DependencyMemberRecord {
         "dependency_members"
     }
 
+    /// `dependency_members` carries the full SCD2 set (`valid_from` / `valid_to` /
+    /// `lineage_id` / `snapshot_id`). This went undeclared while `ChildStorage` filtered
+    /// every child to live rows unconditionally; now that the filter consults this, the
+    /// declaration is load-bearing.
+    const HAS_SCD2: bool = true;
+
     fn new(base: Self::BaseData) -> Self {
         DependencyMemberRecord::new(base)
     }

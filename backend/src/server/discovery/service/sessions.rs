@@ -268,6 +268,23 @@ impl DiscoveryService {
         }
     }
 
+    /// Record that this daemon submitted a wire shape a current daemon no longer produces.
+    ///
+    /// Called from the entity-submission path, where the raw body is visible but the session is
+    /// not. Idempotent: many interfaces, or many hosts, in one scan latch the same single fact.
+    pub async fn note_superseded_wire_shape(&self, daemon_id: Uuid) {
+        self.superseded_wire_daemons.write().await.insert(daemon_id);
+    }
+
+    /// Take the latched observation for this daemon, clearing it.
+    ///
+    /// Draining rather than reading is what scopes the fact to one scan: the next session starts
+    /// clean and warns only if that scan also submits the old shape, so an upgraded daemon stops
+    /// being reported without anyone clearing anything.
+    pub async fn take_superseded_wire_shape(&self, daemon_id: &Uuid) -> bool {
+        self.superseded_wire_daemons.write().await.remove(daemon_id)
+    }
+
     pub async fn pull_cancellation_for_daemon(&self, daemon_id: &Uuid) -> (bool, Uuid) {
         let mut daemon_cancellation_ids = self.daemon_pull_cancellations.write().await;
         daemon_cancellation_ids

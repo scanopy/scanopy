@@ -238,8 +238,10 @@ describe('topology staleness filter', () => {
  */
 describe('hidden values stay offerable once the server stops sending them', () => {
 	it('keeps a hidden value represented even when no entity carries it', () => {
-		// One interface, linked. `Unlinked` is hidden, so the server sent none — exactly the state
-		// after a server-side LinkState filter runs.
+		// One interface, linked via its own resolved-adjacency row (GH #701: a port's neighbour is
+		// a `Vec` on the topology bundle, not a scalar field on the interface). `Unlinked` is
+		// hidden, so the server sent none — exactly the state after a server-side LinkState filter
+		// runs.
 		const topology = {
 			id: 'topo-1',
 			nodes: [],
@@ -248,7 +250,10 @@ describe('hidden values stay offerable once the server stops sending them', () =
 			services: [],
 			ip_addresses: [],
 			subnets: [],
-			interfaces: [{ id: 'if-1', neighbor: { type: 'Interface', id: 'if-2' } }]
+			interfaces: [{ id: 'if-1' }],
+			neighbours: [
+				{ id: 'row-1', interface_id: 'if-1', neighbor: { type: 'Interface', id: 'if-2' } }
+			]
 		} as unknown as RenderableTopology;
 
 		updateTagFilter(topology, undefined, 'L2Physical', {

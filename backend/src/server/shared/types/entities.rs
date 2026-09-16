@@ -2,7 +2,8 @@ use crate::server::services::r#impl::patterns::MatchDetails;
 use crate::server::shared::types::metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider};
 use crate::server::shared::types::{Color, Icon};
 use serde::{Deserialize, Serialize};
-use strum_macros::{EnumDiscriminants, VariantNames};
+use strum::IntoDiscriminant;
+use strum_macros::{EnumDiscriminants, EnumIter, IntoStaticStr, VariantNames};
 use utoipa::ToSchema;
 
 /// How recently discovery last observed an entity.
@@ -104,7 +105,9 @@ impl TypeMetadataProvider for EntityFreshness {
     VariantNames,
     ToSchema,
 )]
-#[strum_discriminants(derive(Hash))]
+// `IntoStaticStr` with no `serialize_all` yields the variant name, which is also the serde tag:
+// the fixture id, the `sources` filter value and `source.type` on the wire are one string.
+#[strum_discriminants(derive(Hash, IntoStaticStr, EnumIter, Serialize, Deserialize, ToSchema))]
 #[serde(tag = "type")]
 pub enum EntitySource {
     #[schema(title = "Manual")]
@@ -138,12 +141,79 @@ pub enum EntitySource {
 impl EntitySource {
     /// Returns true if this entity was created via discovery (network, Docker, etc.)
     pub fn is_from_discovery(&self) -> bool {
+        self.discriminant().is_from_discovery()
+    }
+}
+
+impl EntitySourceDiscriminants {
+    /// The discriminant form of [`EntitySource::is_from_discovery`], for SQL predicates that
+    /// compare the stored `type` tag and so have no `EntitySource` value to ask.
+    pub fn is_from_discovery(&self) -> bool {
         matches!(
             self,
-            EntitySource::Discovery
-                | EntitySource::DiscoveryWithMatch { .. }
-                | EntitySource::Inferred
+            Self::Discovery | Self::DiscoveryWithMatch | Self::Inferred
         )
+    }
+}
+
+impl HasId for EntitySourceDiscriminants {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+impl EntityMetadataProvider for EntitySourceDiscriminants {
+    fn color(&self) -> Color {
+        match self {
+            Self::Discovery | Self::DiscoveryWithMatch => Color::Blue,
+            // Neither amber (stale, `getFreshnessTag`) nor indigo (an assumed attribute,
+            // `AttributeMethod::Inferred`): nothing is behind and no value is being guessed. The
+            // host exists; nothing has looked at it yet.
+            Self::Inferred => Color::Violet,
+            Self::Manual => Color::Green,
+            Self::System | Self::Unknown => Color::Gray,
+        }
+    }
+
+    fn icon(&self) -> Icon {
+        match self {
+            Self::Discovery | Self::DiscoveryWithMatch => Icon::Radar,
+            Self::Inferred => Icon::Waypoints,
+            Self::Manual => Icon::User,
+            Self::System => Icon::Settings,
+            Self::Unknown => Icon::CircleQuestionMark,
+        }
+    }
+}
+
+impl TypeMetadataProvider for EntitySourceDiscriminants {
+    fn name(&self) -> &'static str {
+        match self {
+            Self::Manual => "Manual",
+            Self::System => "System",
+            Self::Discovery => "Scanned",
+            Self::DiscoveryWithMatch => "Scanned and matched",
+            Self::Inferred => "Inferred",
+            Self::Unknown => "Unknown",
+        }
+    }
+
+    /// Read where an operator meets an entity they did not expect: the chip tooltip on the
+    /// Hosts tab and the notice on an inferred host. So each one says what put the entity there
+    /// and, where it matters, what to do next.
+    fn description(&self) -> &'static str {
+        match self {
+            Self::Manual => "Created by a person in Scanopy.",
+            Self::System => "Created by Scanopy itself.",
+            Self::Discovery => "Found by a scan that contacted it directly.",
+            Self::DiscoveryWithMatch => {
+                "Found by a scan that contacted it directly, and matched to a known definition."
+            }
+            Self::Inferred => {
+                "A neighbouring device advertised this over LLDP or CDP, but no scan has contacted it."
+            }
+            Self::Unknown => "Created by a newer version of Scanopy than this one.",
+        }
     }
 }
 
@@ -188,6 +258,28 @@ mod forward_compat_tests {
             let json = serde_json::to_value(&variant).unwrap();
             let back: EntitySource = serde_json::from_value(json).unwrap();
             assert_eq!(variant, back);
+        }
+    }
+
+    /// The `sources` filter binds `discriminant().id()` and compares it to the stored
+    /// `source->>'type'`, and the UI keys the fixture on `source.type`. All three hold only while
+    /// the strum name and the serde tag agree for every variant.
+    #[test]
+    fn discriminant_id_is_the_serde_tag() {
+        use strum::IntoEnumIterator;
+        for discriminant in EntitySourceDiscriminants::iter() {
+            let source = match discriminant {
+                EntitySourceDiscriminants::Manual => EntitySource::Manual,
+                EntitySourceDiscriminants::System => EntitySource::System,
+                EntitySourceDiscriminants::Discovery => EntitySource::Discovery,
+                EntitySourceDiscriminants::DiscoveryWithMatch => EntitySource::DiscoveryWithMatch {
+                    details: MatchDetails::new_certain("test"),
+                },
+                EntitySourceDiscriminants::Inferred => EntitySource::Inferred,
+                EntitySourceDiscriminants::Unknown => EntitySource::Unknown,
+            };
+            let json = serde_json::to_value(&source).unwrap();
+            assert_eq!(json["type"], discriminant.id(), "{discriminant:?}");
         }
     }
 

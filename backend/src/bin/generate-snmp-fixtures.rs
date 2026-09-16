@@ -3,9 +3,10 @@
 //! `make snmp-deploy` runs this into a temporary directory and ships what it generated, so the
 //! agents on the VM are the structs — there is no committed artifact that can drift from them.
 //!
-//! Usage: `generate-snmp-fixtures <output-dir> [--credentials]`
-//!   `<output-dir>`  the data files, agent configs and `lab.env` for the deploy tree
-//!   `--credentials` print the credential-seeding SQL to stdout instead
+//! Usage: `generate-snmp-fixtures <output-dir> | --credentials | --device-table <path>`
+//!   `<output-dir>`        the data files, agent configs and `lab.env` for the deploy tree
+//!   `--credentials`       print the credential-seeding SQL to stdout instead
+//!   `--device-table <path>` rewrite the device table in that file (`SNMP-TEST-ENV.md`) in place
 
 use std::fs;
 use std::path::PathBuf;
@@ -21,8 +22,20 @@ fn main() {
         return;
     }
 
+    if args.first().is_some_and(|a| a == "--device-table") {
+        let Some(path) = args.get(1).map(PathBuf::from) else {
+            eprintln!("usage: generate-snmp-fixtures --device-table <path>");
+            std::process::exit(2);
+        };
+        emit::splice_device_table(&path, &devices);
+        println!("rewrote the device table in {}", path.display());
+        return;
+    }
+
     let Some(out) = args.first().map(PathBuf::from) else {
-        eprintln!("usage: generate-snmp-fixtures <output-dir> | --credentials");
+        eprintln!(
+            "usage: generate-snmp-fixtures <output-dir> | --credentials | --device-table <path>"
+        );
         std::process::exit(2);
     };
 

@@ -36,21 +36,28 @@
 		return topology.subnets.find((s) => s.id === linkedIpAddress!.subnet_id) ?? null;
 	});
 
-	let neighborHost = $derived.by(() => {
-		if (!iface?.neighbor) return null;
-		if (iface.neighbor.type === 'Host') {
-			return topology.hosts.find((h) => h.id === iface!.neighbor!.id) ?? null;
-		}
-		const remoteEntry = topology.interfaces.find((e) => e.id === iface!.neighbor!.id);
-		if (remoteEntry) {
-			return topology.hosts.find((h) => h.id === remoteEntry.host_id) ?? null;
-		}
-		return null;
-	});
-
-	let neighborInterface = $derived.by(() => {
-		if (!iface?.neighbor || iface.neighbor.type !== 'Interface') return null;
-		return topology.interfaces.find((e) => e.id === iface!.neighbor!.id) ?? null;
+	// GH #701: `iface.neighbor` was a single value; a port's resolved adjacencies are now a `Vec`
+	// on the topology bundle (`neighbours`), filtered here by this interface's id.
+	let neighbours = $derived.by(() => {
+		if (!iface) return [];
+		const rows = (topology.neighbours ?? []).filter((n) => n.interface_id === iface!.id);
+		return rows.map((row) => {
+			if (row.neighbor.type === 'Host') {
+				return {
+					id: row.id,
+					neighborHost: topology.hosts.find((h) => h.id === row.neighbor.id) ?? null,
+					neighborInterface: null
+				};
+			}
+			const remoteEntry = topology.interfaces.find((e) => e.id === row.neighbor.id) ?? null;
+			return {
+				id: row.id,
+				neighborInterface: remoteEntry,
+				neighborHost: remoteEntry
+					? (topology.hosts.find((h) => h.id === remoteEntry.host_id) ?? null)
+					: null
+			};
+		});
 	});
 
 	type VlanShape = { id: string; vlan_number: number; name: string };
@@ -74,8 +81,7 @@
 		{iface}
 		{linkedIpAddress}
 		{linkedSubnet}
-		{neighborHost}
-		{neighborInterface}
+		{neighbours}
 		{nativeVlan}
 		{taggedVlans}
 	/>
