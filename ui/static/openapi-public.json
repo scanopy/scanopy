@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Scanopy API",
-    "description": "\nNetwork topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.14\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.14\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.17.14)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **network(s)**:\n\n- You can only access entities within your organization\n- Network-level entities (hosts, services, etc.) are filtered to networks you have access to\n- Use `?network_id=<UUID>` to filter list endpoints to a specific network\n- API keys can be scoped to a subset of your accessible networks\n",
+    "description": "\nNetwork topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.15\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.15\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.17.15)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **network(s)**:\n\n- You can only access entities within your organization\n- Network-level entities (hosts, services, etc.) are filtered to networks you have access to\n- Use `?network_id=<UUID>` to filter list endpoints to a specific network\n- API keys can be scoped to a subset of your accessible networks\n",
     "license": {
       "name": "Dual (AGPL3.0, Commercial License Available)"
     },
@@ -12508,12 +12508,12 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.17.14"
+            "example": "0.17.15"
           }
         },
         "example": {
           "api_version": 1,
-          "server_version": "0.17.14"
+          "server_version": "0.17.15"
         }
       },
       "ApiResponse": {
@@ -12643,19 +12643,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-15T04:26:40.604817Z",
+              "created_at": "2026-09-16T05:03:51.662250Z",
               "first_discovery_id": null,
-              "id": "d2701ef0-d280-4525-993a-01157a629803",
+              "id": "f1d16c1a-266c-4c80-ba10-17aadcba1623",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-15T04:26:40.604817Z",
+              "last_seen_at": "2026-09-16T05:03:51.662250Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-15T04:26:40.604817Z",
-              "valid_from": "2026-09-15T04:26:40.604817Z",
+              "updated_at": "2026-09-16T05:03:51.662250Z",
+              "valid_from": "2026-09-16T05:03:51.662250Z",
               "valid_to": null
             }
           },
@@ -13675,6 +13675,43 @@
           }
         }
       },
+      "ApiResponse_EntitlementResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Data returned inside `ApiResponse` by [`ENTITLEMENT_PATH`].",
+            "required": [
+              "entitlement"
+            ],
+            "properties": {
+              "entitlement": {
+                "type": "string",
+                "description": "An offline-format license key (claims: [`super::types::LicenseClaims`])\nwith `org_id` and `plan` set from the organization's current state."
+              }
+            }
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-readable failure message. Omitted on success."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+          }
+        }
+      },
       "ApiResponse_HostResponse": {
         "type": "object",
         "required": [
@@ -14109,19 +14146,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-15T04:26:40.579917Z",
+                      "created_at": "2026-09-16T05:03:51.635116Z",
                       "first_discovery_id": null,
-                      "id": "9c128b4b-7a6b-48b3-8217-7f06e461ec5e",
+                      "id": "a04bff81-c860-4611-bee1-140fe6701b6a",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-15T04:26:40.579917Z",
+                      "last_seen_at": "2026-09-16T05:03:51.635116Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-15T04:26:40.579917Z",
-                      "valid_from": "2026-09-15T04:26:40.579917Z",
+                      "updated_at": "2026-09-16T05:03:51.635116Z",
+                      "valid_from": "2026-09-16T05:03:51.635116Z",
                       "valid_to": null
                     }
                   ],
@@ -14135,7 +14172,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Immich",
+                  "service_definition": "Scanopy Server",
                   "source": {
                     "type": "Manual"
                   },
@@ -14527,6 +14564,43 @@
               }
             ],
             "description": "The result payload. Omitted on failure."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-readable failure message. Omitted on success."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+          }
+        }
+      },
+      "ApiResponse_LicenseKeyResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "The result payload. Omitted on failure.",
+            "required": [
+              "key"
+            ],
+            "properties": {
+              "key": {
+                "type": "string",
+                "description": "Signed key to set as `SCANOPY_LICENSE_KEY` on a self-hosted server."
+              }
+            }
           },
           "error": {
             "type": [
@@ -15067,6 +15141,25 @@
                 "format": "date",
                 "description": "User-visible expiry — the date displayed to end users under\nnormal operation. 7 days earlier than `license_expiry` for keys\nissued after grace-period support landed."
               },
+              "license_key_type": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/LicenseKeyTypeDiscriminants",
+                    "description": "Whether the configured key is an offline key or an online key that\nfetches its entitlement from Scanopy Cloud. `None` when no key applies."
+                  }
+                ]
+              },
+              "license_last_checked": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time",
+                "description": "When Scanopy Cloud last answered this instance's license check-in.\nOnline keys only."
+              },
               "license_status": {
                 "oneOf": [
                   {
@@ -15354,19 +15447,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-15T04:26:40.599235Z",
+                  "created_at": "2026-09-16T05:03:51.656400Z",
                   "first_discovery_id": null,
-                  "id": "2a8b32d7-696c-4f00-9d54-03a22c2b05aa",
+                  "id": "a47baada-c497-4bb4-be52-3863f8a96e2e",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-15T04:26:40.599235Z",
+                  "last_seen_at": "2026-09-16T05:03:51.656400Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-15T04:26:40.599235Z",
-                  "valid_from": "2026-09-15T04:26:40.599235Z",
+                  "updated_at": "2026-09-16T05:03:51.656400Z",
+                  "valid_from": "2026-09-16T05:03:51.656400Z",
                   "valid_to": null
                 }
               ],
@@ -15380,7 +15473,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Immich",
+              "service_definition": "Scanopy Server",
               "source": {
                 "type": "Manual"
               },
@@ -17635,19 +17728,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-15T04:26:40.580653Z",
+          "created_at": "2026-09-16T05:03:51.635855Z",
           "first_discovery_id": null,
-          "id": "65476ef1-fc92-454f-aba0-61967f45d2a8",
+          "id": "9b795507-f8ac-491f-bd49-b234f902a47c",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-15T04:26:40.580653Z",
+          "last_seen_at": "2026-09-16T05:03:51.635855Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-15T04:26:40.580653Z",
-          "valid_from": "2026-09-15T04:26:40.580653Z",
+          "updated_at": "2026-09-16T05:03:51.635855Z",
+          "valid_from": "2026-09-16T05:03:51.635855Z",
           "valid_to": null
         }
       },
@@ -18342,7 +18435,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Immich",
+              "service_definition": "Scanopy Server",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -18386,6 +18479,18 @@
               "null"
             ],
             "description": "Address to email the invite to. Omit to create a link without sending."
+          }
+        }
+      },
+      "CreateLicenseKeyRequest": {
+        "type": "object",
+        "description": "The license key to mint.",
+        "required": [
+          "key_type"
+        ],
+        "properties": {
+          "key_type": {
+            "$ref": "#/components/schemas/LicenseKeyType"
           }
         }
       },
@@ -22517,6 +22622,32 @@
           }
         }
       },
+      "EntitlementRequest": {
+        "type": "object",
+        "description": "Body the instance POSTs to [`ENTITLEMENT_PATH`].",
+        "required": [
+          "key"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The online key configured via `SCANOPY_LICENSE_KEY`."
+          }
+        }
+      },
+      "EntitlementResponse": {
+        "type": "object",
+        "description": "Data returned inside `ApiResponse` by [`ENTITLEMENT_PATH`].",
+        "required": [
+          "entitlement"
+        ],
+        "properties": {
+          "entitlement": {
+            "type": "string",
+            "description": "An offline-format license key (claims: [`super::types::LicenseClaims`])\nwith `org_id` and `plan` set from the organization's current state."
+          }
+        }
+      },
       "EntityDiscriminants": {
         "type": "string",
         "enum": [
@@ -23688,19 +23819,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-15T04:26:40.579177Z",
+                  "created_at": "2026-09-16T05:03:51.634227Z",
                   "first_discovery_id": null,
-                  "id": "71bedb9c-7fa8-48cd-a2aa-60d34b4be51d",
+                  "id": "dff93228-3117-4056-8e73-308a85aa32f6",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-15T04:26:40.579177Z",
+                  "last_seen_at": "2026-09-16T05:03:51.634227Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-15T04:26:40.579177Z",
-                  "valid_from": "2026-09-15T04:26:40.579177Z",
+                  "updated_at": "2026-09-16T05:03:51.634227Z",
+                  "valid_from": "2026-09-16T05:03:51.634227Z",
                   "valid_to": null
                 }
               ],
@@ -23714,7 +23845,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Immich",
+              "service_definition": "Scanopy Server",
               "source": {
                 "type": "Manual"
               },
@@ -25117,13 +25248,42 @@
           }
         }
       },
+      "LicenseKeyResponse": {
+        "type": "object",
+        "required": [
+          "key"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Signed key to set as `SCANOPY_LICENSE_KEY` on a self-hosted server."
+          }
+        }
+      },
+      "LicenseKeyType": {
+        "type": "string",
+        "description": "The two keys an org owner can copy for a self-hosted server.",
+        "enum": [
+          "Online",
+          "Offline"
+        ]
+      },
+      "LicenseKeyTypeDiscriminants": {
+        "type": "string",
+        "description": "Kind of license key configured, as reported by the public config endpoint.",
+        "enum": [
+          "offline",
+          "online"
+        ]
+      },
       "LicenseStatusDiscriminants": {
         "type": "string",
         "description": "Runtime license state as reported by the public config endpoint.",
         "enum": [
           "valid",
           "expired",
-          "invalid"
+          "invalid",
+          "pending"
         ]
       },
       "LldpChassisId": {
@@ -26243,6 +26403,24 @@
             "description": "Most recent `Paused` billing event's timestamp; powers the 6-month\nrolling pause cooldown.",
             "readOnly": true
           },
+          "license_last_checked_in_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Last time a self-hosted server fetched an entitlement with this org's\nonline license key.",
+            "readOnly": true
+          },
+          "license_paid_through": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the org's self-hosted license is paid through: the trial end\nduring a self-hosted trial, then the end of the last paid invoice's\nservice period. License keys and entitlements expire 7 days later.",
+            "readOnly": true
+          },
           "name": {
             "type": "string",
             "description": "Human-facing name for this organization."
@@ -26327,7 +26505,7 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.17.14"
+            "example": "0.17.15"
           }
         },
         "example": {
@@ -26338,7 +26516,7 @@
             "offset": 0,
             "total_count": 142
           },
-          "server_version": "0.17.14"
+          "server_version": "0.17.15"
         }
       },
       "PaginatedApiResponse_Credential": {
@@ -27116,19 +27294,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-15T04:26:40.564137Z",
+                        "created_at": "2026-09-16T05:03:51.616441Z",
                         "first_discovery_id": null,
-                        "id": "1b947f2e-f8eb-42cc-a84f-5f6d1ff85db7",
+                        "id": "a2a102c5-b5b1-4891-aca9-eae2dbcc193f",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-15T04:26:40.564137Z",
+                        "last_seen_at": "2026-09-16T05:03:51.616441Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-15T04:26:40.564137Z",
-                        "valid_from": "2026-09-15T04:26:40.564137Z",
+                        "updated_at": "2026-09-16T05:03:51.616441Z",
+                        "valid_from": "2026-09-16T05:03:51.616441Z",
                         "valid_to": null
                       }
                     ],
@@ -27142,7 +27320,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Immich",
+                    "service_definition": "Scanopy Server",
                     "source": {
                       "type": "Manual"
                     },
@@ -27285,19 +27463,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-15T04:26:40.598273Z",
+                    "created_at": "2026-09-16T05:03:51.655293Z",
                     "first_discovery_id": null,
-                    "id": "a781bec8-ad7e-4215-8900-6fa9ceedc9a3",
+                    "id": "e5cece2a-fd2f-4f94-bc3b-6e1a05bea328",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-15T04:26:40.598273Z",
+                    "last_seen_at": "2026-09-16T05:03:51.655293Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-15T04:26:40.598273Z",
-                    "valid_from": "2026-09-15T04:26:40.598273Z",
+                    "updated_at": "2026-09-16T05:03:51.655293Z",
+                    "valid_from": "2026-09-16T05:03:51.655293Z",
                     "valid_to": null
                   }
                 ],
@@ -27311,7 +27489,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Immich",
+                "service_definition": "Scanopy Server",
                 "source": {
                   "type": "Manual"
                 },
@@ -28631,6 +28809,25 @@
             "format": "date",
             "description": "User-visible expiry — the date displayed to end users under\nnormal operation. 7 days earlier than `license_expiry` for keys\nissued after grace-period support landed."
           },
+          "license_key_type": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LicenseKeyTypeDiscriminants",
+                "description": "Whether the configured key is an offline key or an online key that\nfetches its entitlement from Scanopy Cloud. `None` when no key applies."
+              }
+            ]
+          },
+          "license_last_checked": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When Scanopy Cloud last answered this instance's license check-in.\nOnline keys only."
+          },
           "license_status": {
             "oneOf": [
               {
@@ -29368,19 +29565,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-15T04:26:40.580448Z",
+              "created_at": "2026-09-16T05:03:51.635637Z",
               "first_discovery_id": null,
-              "id": "aecb2d5f-df30-4544-88c1-06cdd08c2135",
+              "id": "8206461c-6736-4b88-9451-bed30f23d312",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-15T04:26:40.580448Z",
+              "last_seen_at": "2026-09-16T05:03:51.635637Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-15T04:26:40.580448Z",
-              "valid_from": "2026-09-15T04:26:40.580448Z",
+              "updated_at": "2026-09-16T05:03:51.635637Z",
+              "valid_from": "2026-09-16T05:03:51.635637Z",
               "valid_to": null
             }
           ],
@@ -29394,7 +29591,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Immich",
+          "service_definition": "Scanopy Server",
           "source": {
             "type": "Manual"
           },
@@ -30715,7 +30912,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "f2ccd7b0-ae8d-4ee4-ade1-001a5456ef27",
+                  "id": "1d9d3979-5234-4b89-a764-f26582a55ede",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -30725,23 +30922,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "85568638-5553-49a3-973f-d088761060bd",
+                  "id": "0c04fc26-98fa-41e6-a0e3-1c8fde79b722",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "66cb8aef-ee56-4135-8f63-634d776166cd",
+                  "id": "5b77e0bb-8aa9-439c-953a-bb6c84a85527",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "cc6f2864-f4e9-4dcd-8a20-1a3216958b29",
+                  "id": "ee4feacc-c36c-44d8-9ecc-c5a446a473e6",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "85568638-5553-49a3-973f-d088761060bd",
+                  "id": "0c04fc26-98fa-41e6-a0e3-1c8fde79b722",
                   "rule": "ByHost"
                 }
               ]
@@ -30771,19 +30968,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "5cf4c1b8-4ec8-4736-bc24-333d64c70ea0",
+                "id": "f2ae5205-bce9-4006-8358-441ed78b31f1",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "2ad724c1-5387-490a-8483-f25dab201cef",
+                "id": "5e750cf9-e3cc-484f-af3d-ff723dac8c60",
                 "rule": "ByVLAN"
               },
               {
-                "id": "d7e18b51-c29a-472c-9dc2-821b6aa415fc",
+                "id": "9e7c553a-2a0d-4b87-84a1-efd8f9564e74",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "2ffe6bfc-ece1-4eef-a24b-caf0030507c3",
+                "id": "6e587108-ed7a-467b-8e7d-6ca41eb68ef2",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -30801,7 +30998,7 @@
                 }
               },
               {
-                "id": "28cd7291-2157-4daf-a05e-2d3070e51485",
+                "id": "168beca7-edcc-4471-a023-6d90cf5ef3c1",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -30810,15 +31007,15 @@
                 }
               },
               {
-                "id": "bf9af5d6-ba3d-4867-94ed-662b8ea2057a",
+                "id": "42a6bf37-3bf5-475c-ae07-4d91f5d2f9a1",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "4f042998-78e8-4d13-a040-65f315aa9771",
+                "id": "552a6d8b-8063-4079-8de8-a9dd4f2d5275",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "20a4e905-cf1e-4944-babc-ac6da7bbe967",
+                "id": "115c5dff-62bc-40f3-9578-8677f7622121",
                 "rule": "ByStack"
               }
             ]
