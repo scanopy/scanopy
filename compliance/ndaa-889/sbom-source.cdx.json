@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:15d79b9c-4f8d-42c7-b868-79c7fcdac388",
+  "serialNumber": "urn:uuid:c7682897-5d9e-47e5-891c-4a509830c061",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-09-15T15:46:29Z",
+    "timestamp": "2026-09-16T21:53:42Z",
     "tools": {
       "components": [
         {
@@ -6654,6 +6654,52 @@
       ]
     },
     {
+      "bom-ref": "pkg:github/swatinem/rust-cache@v2?package-id=2a9481d78e7f2909",
+      "type": "library",
+      "name": "Swatinem/rust-cache",
+      "version": "v2",
+      "cpe": "cpe:2.3:a:Swatinem\\/rust-cache:Swatinem\\/rust-cache:v2:*:*:*:*:*:*:*",
+      "purl": "pkg:github/Swatinem/rust-cache@v2",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "github-actions-usage-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "github-action"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "github-actions-use-statement"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:Swatinem\\/rust-cache:Swatinem\\/rust_cache:v2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:Swatinem\\/rust_cache:Swatinem\\/rust-cache:v2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:Swatinem\\/rust_cache:Swatinem\\/rust_cache:v2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:Swatinem\\/rust:Swatinem\\/rust-cache:v2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:Swatinem\\/rust:Swatinem\\/rust_cache:v2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/.github/workflows/lldpd-live.yml"
+        }
+      ]
+    },
+    {
       "bom-ref": "pkg:github/swatinem/rust-cache@v2?package-id=0b84324533c62f50",
       "type": "library",
       "name": "Swatinem/rust-cache",
@@ -7027,6 +7073,32 @@
         {
           "name": "syft:location:0:path",
           "value": "/.github/workflows/daemon-ci.yml"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:github/actions/checkout@v4?package-id=6845889cb8b02df2",
+      "type": "library",
+      "name": "actions/checkout",
+      "version": "v4",
+      "cpe": "cpe:2.3:a:actions\\/checkout:actions\\/checkout:v4:*:*:*:*:*:*:*",
+      "purl": "pkg:github/actions/checkout@v4",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "github-actions-usage-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "github-action"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "github-actions-use-statement"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/.github/workflows/lldpd-live.yml"
         }
       ]
     },
@@ -19877,6 +19949,52 @@
         {
           "name": "syft:location:0:path",
           "value": "/.github/workflows/daemon-ci.yml"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:github/dtolnay/rust-toolchain@1.90.0?package-id=5c7aedbc4e7835b6",
+      "type": "library",
+      "name": "dtolnay/rust-toolchain",
+      "version": "1.90.0",
+      "cpe": "cpe:2.3:a:dtolnay\\/rust-toolchain:dtolnay\\/rust-toolchain:1.90.0:*:*:*:*:*:*:*",
+      "purl": "pkg:github/dtolnay/rust-toolchain@1.90.0",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "github-actions-usage-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "github-action"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "github-actions-use-statement"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:dtolnay\\/rust-toolchain:dtolnay\\/rust_toolchain:1.90.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:dtolnay\\/rust_toolchain:dtolnay\\/rust-toolchain:1.90.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:dtolnay\\/rust_toolchain:dtolnay\\/rust_toolchain:1.90.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:dtolnay\\/rust:dtolnay\\/rust-toolchain:1.90.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:dtolnay\\/rust:dtolnay\\/rust_toolchain:1.90.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/.github/workflows/lldpd-live.yml"
         }
       ]
     },
@@ -43912,12 +44030,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/scanopy-server@0.17.15?package-id=0a3c180e2e934bdc",
+      "bom-ref": "pkg:cargo/scanopy-server@0.17.16?package-id=c091fa72935d8a10",
       "type": "library",
       "name": "scanopy-server",
-      "version": "0.17.15",
-      "cpe": "cpe:2.3:a:scanopy-server:scanopy-server:0.17.15:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/scanopy-server@0.17.15",
+      "version": "0.17.16",
+      "cpe": "cpe:2.3:a:scanopy-server:scanopy-server:0.17.16:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/scanopy-server@0.17.16",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -43937,23 +44055,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy-server:scanopy_server:0.17.15:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy-server:scanopy_server:0.17.16:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy_server:scanopy-server:0.17.15:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy_server:scanopy-server:0.17.16:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy_server:scanopy_server:0.17.15:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy_server:scanopy_server:0.17.16:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy:scanopy-server:0.17.15:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy:scanopy-server:0.17.16:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy:scanopy_server:0.17.15:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy:scanopy_server:0.17.16:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -43962,12 +44080,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/scanopy-ui@0.17.15?package-id=22ae69b7804123a3",
+      "bom-ref": "pkg:npm/scanopy-ui@0.17.16?package-id=07bec522d218cb3c",
       "type": "library",
       "name": "scanopy-ui",
-      "version": "0.17.15",
-      "cpe": "cpe:2.3:a:scanopy-ui:scanopy-ui:0.17.15:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/scanopy-ui@0.17.15",
+      "version": "0.17.16",
+      "cpe": "cpe:2.3:a:scanopy-ui:scanopy-ui:0.17.16:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/scanopy-ui@0.17.16",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -43987,23 +44105,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy-ui:scanopy_ui:0.17.15:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy-ui:scanopy_ui:0.17.16:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy_ui:scanopy-ui:0.17.15:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy_ui:scanopy-ui:0.17.16:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy_ui:scanopy_ui:0.17.15:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy_ui:scanopy_ui:0.17.16:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy:scanopy-ui:0.17.15:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy:scanopy-ui:0.17.16:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy:scanopy_ui:0.17.15:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy:scanopy_ui:0.17.16:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -50527,7 +50645,7 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/tonic@0.14.2?package-id=4e27b2da98fdab91",
+      "bom-ref": "pkg:cargo/tonic@0.14.2?package-id=8f1c3b8ab63b439c",
       "type": "library",
       "name": "tonic",
       "version": "0.14.2",
@@ -60365,6 +60483,21 @@
       ]
     },
     {
+      "bom-ref": "7cd88650cfb484e5",
+      "type": "file",
+      "name": "/home/runner/work/scanopy/scanopy/.github/workflows/lldpd-live.yml",
+      "hashes": [
+        {
+          "alg": "SHA-1",
+          "content": "72c207c82787b73452c8a0349877a408cd9b2203"
+        },
+        {
+          "alg": "SHA-256",
+          "content": "63cf0c56b68445596205c0baeae0415578cd52c02c8c7af029eecf9cd4b1c326"
+        }
+      ]
+    },
+    {
       "bom-ref": "f8114c690bc2f70c",
       "type": "file",
       "name": "/home/runner/work/scanopy/scanopy/.github/workflows/prepare_release.yml",
@@ -60476,11 +60609,11 @@
       "hashes": [
         {
           "alg": "SHA-1",
-          "content": "94e556b80b2d39b99859ed9c8d6a45a61538ab27"
+          "content": "a4bb2a92281a603ebbaeeb89920a381a19f905ca"
         },
         {
           "alg": "SHA-256",
-          "content": "7f21103f2123633032a8b6968791ebbf54a4304133557f18c56e579a7cd0f642"
+          "content": "b4e87816f8c8fcb0954c77c9faaed4800117aeb97c4354aaccd5b8637d1ee70d"
         }
       ]
     },
@@ -60506,11 +60639,11 @@
       "hashes": [
         {
           "alg": "SHA-1",
-          "content": "cfab730137a92f5e94ce604f3df0413a46890bba"
+          "content": "5de1c52a4f68f7e4789b2d7bd8a3cf6d82e76feb"
         },
         {
           "alg": "SHA-256",
-          "content": "4e2dfe50ffc87286efb36767926e3827a88ce8aa2440b082c09d5c2e9cad819b"
+          "content": "22bc38c921193deab6208643838e22650794d59d2a22265165a29469038adc73"
         }
       ]
     }
@@ -61046,7 +61179,7 @@
         "pkg:cargo/prost-types@0.14.1?package-id=672226464f454846",
         "pkg:cargo/prost@0.14.1?package-id=188783339ebbb409",
         "pkg:cargo/tonic-prost@0.14.2?package-id=300db076d83c3e6d",
-        "pkg:cargo/tonic@0.14.2?package-id=4e27b2da98fdab91",
+        "pkg:cargo/tonic@0.14.2?package-id=8f1c3b8ab63b439c",
         "pkg:cargo/ureq@3.1.4?package-id=5f540df5789b8268"
       ]
     },
@@ -61099,7 +61232,7 @@
         "pkg:cargo/tokio-stream@0.1.17?package-id=91d69567044518ea",
         "pkg:cargo/tokio-util@0.7.17?package-id=6d427651821bda1c",
         "pkg:cargo/tokio@1.48.0?package-id=84f7fbd5e2f3c1d8",
-        "pkg:cargo/tonic@0.14.2?package-id=4e27b2da98fdab91",
+        "pkg:cargo/tonic@0.14.2?package-id=8f1c3b8ab63b439c",
         "pkg:cargo/tower-service@0.3.3?package-id=f7b00c4ded946e92",
         "pkg:cargo/url@2.5.7?package-id=a7287982ccee90d4",
         "pkg:cargo/winapi@0.3.9?package-id=55bbc7d784bfb092"
@@ -64738,7 +64871,7 @@
       ]
     },
     {
-      "ref": "pkg:cargo/scanopy-server@0.17.15?package-id=0a3c180e2e934bdc",
+      "ref": "pkg:cargo/scanopy-server@0.17.16?package-id=c091fa72935d8a10",
       "dependsOn": [
         "pkg:cargo/anstyle-query@1.1.5?package-id=3eb3e92be11ef569",
         "pkg:cargo/anyhow@1.0.103?package-id=cc88ccfde1e2cc6a",
@@ -64832,6 +64965,8 @@
         "pkg:cargo/postgres-protocol@0.6.12?package-id=f4e1c992c46d390a",
         "pkg:cargo/posthog-rs@0.4.7?package-id=f33803bd14f28cce",
         "pkg:cargo/procfs@0.16.0?package-id=79c4221ae0a0af0f",
+        "pkg:cargo/prost-types@0.14.1?package-id=672226464f454846",
+        "pkg:cargo/prost@0.14.1?package-id=188783339ebbb409",
         "pkg:cargo/psl@2.1.216?package-id=b109e6bb4891a5e4",
         "pkg:cargo/rand@0.9.3?package-id=ad3fd1dc077d7f67",
         "pkg:cargo/rand_core@0.9.3?package-id=431439eca4de6627",
@@ -64865,8 +65000,11 @@
         "pkg:cargo/time@0.3.47?package-id=bdce32ec92c9c797",
         "pkg:cargo/tokio-cron-scheduler@0.15.1?package-id=35d0de1628885ab8",
         "pkg:cargo/tokio-rustls@0.26.4?package-id=d43b6145de178d37",
+        "pkg:cargo/tokio-stream@0.1.17?package-id=91d69567044518ea",
         "pkg:cargo/tokio-util@0.7.17?package-id=6d427651821bda1c",
         "pkg:cargo/tokio@1.48.0?package-id=84f7fbd5e2f3c1d8",
+        "pkg:cargo/tonic-prost@0.14.2?package-id=300db076d83c3e6d",
+        "pkg:cargo/tonic@0.14.2?package-id=8f1c3b8ab63b439c",
         "pkg:cargo/top-english-words@1.1.1?package-id=f3d289eec70c7b69",
         "pkg:cargo/tower-http@0.5.2?package-id=0a171e573e890798",
         "pkg:cargo/tower-sessions-core@0.14.0?package-id=2f6f7e9876cadce7",
@@ -65843,11 +65981,11 @@
       "dependsOn": [
         "pkg:cargo/bytes@1.11.1?package-id=c69b0fb622a21615",
         "pkg:cargo/prost@0.14.1?package-id=188783339ebbb409",
-        "pkg:cargo/tonic@0.14.2?package-id=4e27b2da98fdab91"
+        "pkg:cargo/tonic@0.14.2?package-id=8f1c3b8ab63b439c"
       ]
     },
     {
-      "ref": "pkg:cargo/tonic@0.14.2?package-id=4e27b2da98fdab91",
+      "ref": "pkg:cargo/tonic@0.14.2?package-id=8f1c3b8ab63b439c",
       "dependsOn": [
         "pkg:cargo/async-trait@0.1.89?package-id=27f695f61cfc2df2",
         "pkg:cargo/axum@0.8.7?package-id=bb46e7b1e360bc2c",
@@ -65864,12 +66002,14 @@
         "pkg:cargo/pin-project@1.1.10?package-id=7b541066ee81acbe",
         "pkg:cargo/socket2@0.6.1?package-id=571ad36f01c2c44c",
         "pkg:cargo/sync_wrapper@1.0.2?package-id=07f6596deb0b93a4",
+        "pkg:cargo/tokio-rustls@0.26.4?package-id=d43b6145de178d37",
         "pkg:cargo/tokio-stream@0.1.17?package-id=91d69567044518ea",
         "pkg:cargo/tokio@1.48.0?package-id=84f7fbd5e2f3c1d8",
         "pkg:cargo/tower-layer@0.3.3?package-id=b1dda0191cac0589",
         "pkg:cargo/tower-service@0.3.3?package-id=f7b00c4ded946e92",
         "pkg:cargo/tower@0.5.2?package-id=1050585c0f825f60",
-        "pkg:cargo/tracing@0.1.41?package-id=4322088d4de9c2ec"
+        "pkg:cargo/tracing@0.1.41?package-id=4322088d4de9c2ec",
+        "pkg:cargo/webpki-roots@1.0.4?package-id=680bb676d96f8041"
       ]
     },
     {
@@ -67279,7 +67419,7 @@
       ]
     },
     {
-      "ref": "pkg:npm/scanopy-ui@0.17.15?package-id=22ae69b7804123a3",
+      "ref": "pkg:npm/scanopy-ui@0.17.16?package-id=07bec522d218cb3c",
       "dependsOn": [
         "pkg:npm/%40beyonk/gdpr-cookie-consent-banner@16.0.2?package-id=cd6aef3707be3a0f",
         "pkg:npm/%40peculiar/x509@1.14.3?package-id=f9f09aa6bd0dd2b7",
