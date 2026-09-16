@@ -318,13 +318,13 @@ jobs:
           git reset --hard origin/${{ github.event.release.target_commitish }}
 
       - name: Download generated UI fixtures
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ui-fixtures
           path: ui/src/lib/data/
 
       - name: Download generated service logos
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ui-logos
           path: ui/static/logos/services/
@@ -381,7 +381,7 @@ jobs:
       # rust-embed resolves `#[folder = "../ui/build"]` at compile time, so the
       # build output has to be in place before cargo runs.
       - name: Download UI build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ui-build
           path: ui/build/
@@ -599,7 +599,7 @@ jobs:
       contents: read
     steps:
       - name: Download FreeBSD binary
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: scanopy-daemon-freebsd-amd64
 
@@ -647,7 +647,7 @@ jobs:
           git reset --hard origin/${{ github.event.release.target_commitish }}
 
       - name: Download generated UI fixtures
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ui-fixtures
           path: ui/src/lib/data/
@@ -711,13 +711,13 @@ jobs:
           git reset --hard origin/${{ github.event.release.target_commitish }}
       
       - name: Download Linux amd64 binary
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: scanopy-daemon-linux-amd64
           path: backend/
       
       - name: Download Linux arm64 binary
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: scanopy-daemon-linux-arm64
           path: backend/
@@ -793,7 +793,7 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
 
       - name: Upload binaries to release
         uses: softprops/action-gh-release@v1
