@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use backon::{ExponentialBuilder, Retryable};
 use chrono::{DateTime, Utc};
 use rand::Rng;
 use reqwest::StatusCode;
@@ -22,6 +23,14 @@ pub const CLOUD_BASE_URL: &str = "https://app.scanopy.net";
 const CHECK_IN_INTERVAL: Duration = Duration::from_secs(6 * 60 * 60);
 const CHECK_IN_JITTER: Duration = Duration::from_secs(30 * 60);
 const CHECK_IN_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// Retry spacing for a check-in that reached nobody. A server that boots before
+/// its network is up, or before the cloud it points at is listening, would
+/// otherwise hold whatever status it started with until the next interval —
+/// `Pending`, and unlicensed, on a first run.
+const CHECK_IN_RETRY_MIN_DELAY: Duration = Duration::from_secs(5);
+const CHECK_IN_RETRY_MAX_DELAY: Duration = Duration::from_secs(10 * 60);
+const CHECK_IN_RETRY_TIMES: usize = 6;
 
 pub struct LicenseService {
     /// The key from `SCANOPY_LICENSE_KEY`. Fixed for the life of the process.
@@ -214,7 +223,22 @@ impl LicenseService {
     /// only; the caller spawns this.
     pub async fn run_check_ins(self: Arc<Self>) {
         loop {
-            self.check_in(&self.base_url).await;
+            let _ = (|| self.try_check_in(&self.base_url))
+                .retry(
+                    ExponentialBuilder::default()
+                        .with_min_delay(CHECK_IN_RETRY_MIN_DELAY)
+                        .with_max_delay(CHECK_IN_RETRY_MAX_DELAY)
+                        .with_max_times(CHECK_IN_RETRY_TIMES)
+                        .with_jitter(),
+                )
+                .notify(|e, delay| {
+                    tracing::debug!(
+                        error = %e,
+                        "License check-in failed; retrying in {delay:?}"
+                    );
+                })
+                .await;
+
             let jitter = rand::rng().random_range(Duration::ZERO..=CHECK_IN_JITTER);
             tokio::time::sleep(CHECK_IN_INTERVAL + jitter).await;
         }
@@ -227,40 +251,42 @@ impl LicenseService {
     /// - Anything else, including transport errors, leaves status unchanged;
     ///   the cached entitlement stays in force until it expires.
     pub async fn check_in(&self, base_url: &str) {
+        if let Err(e) = self.try_check_in(base_url).await {
+            tracing::debug!(error = %e, "License check-in failed; keeping the current entitlement");
+        }
+    }
+
+    /// [`LicenseService::check_in`], reporting whether the cloud answered.
+    ///
+    /// `Err` means nothing was obtained — a transport error, or a response that
+    /// carried no usable entitlement — and the caller may retry. A rejection is
+    /// `Ok`: the cloud answered, and retrying will not change its verdict.
+    async fn try_check_in(&self, base_url: &str) -> Result<(), anyhow::Error> {
         if !self.is_online() {
-            return;
+            return Ok(());
         }
 
         let request = EntitlementRequest {
             key: self.license_key.as_str().to_string(),
         };
-        let response = match self
+        let response = self
             .http
             .post(format!("{base_url}{ENTITLEMENT_PATH}"))
             .json(&request)
             .send()
-            .await
-        {
-            Ok(response) => response,
-            Err(e) => {
-                tracing::debug!(error = %e, "License check-in failed; keeping the current entitlement");
-                return;
-            }
-        };
+            .await?;
 
         let http_status = response.status();
         match http_status {
             StatusCode::OK => match response.json::<ApiResponse<EntitlementResponse>>().await {
                 Ok(ApiResponse {
                     data: Some(data), ..
-                }) => self.apply_entitlement(data.entitlement).await,
-                Ok(_) => tracing::debug!(
-                    "License check-in returned no entitlement; keeping the current entitlement"
-                ),
-                Err(e) => tracing::debug!(
-                    error = %e,
-                    "License check-in returned an unreadable body; keeping the current entitlement"
-                ),
+                }) => {
+                    self.apply_entitlement(data.entitlement).await;
+                    Ok(())
+                }
+                Ok(_) => Err(anyhow::anyhow!("check-in returned no entitlement")),
+                Err(e) => Err(anyhow::anyhow!("check-in returned an unreadable body: {e}")),
             },
             StatusCode::BAD_REQUEST | StatusCode::FORBIDDEN => {
                 let reason = response
@@ -272,11 +298,9 @@ impl LicenseService {
                         format!("License key rejected by Scanopy Cloud ({http_status})")
                     });
                 self.reject(reason).await;
+                Ok(())
             }
-            _ => tracing::debug!(
-                status = %http_status,
-                "License check-in failed; keeping the current entitlement"
-            ),
+            _ => Err(anyhow::anyhow!("check-in returned {http_status}")),
         }
     }
 
@@ -428,6 +452,54 @@ mod tests {
         let addr = listener.local_addr().unwrap();
         drop(listener);
         format!("http://{addr}")
+    }
+
+    /// A server that boots before the cloud it points at is listening gets one
+    /// failed check-in. Without a retry it would hold that status until the
+    /// next interval, six hours later.
+    #[tokio::test]
+    async fn a_failed_first_check_in_retries_instead_of_waiting_an_interval() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        let entitlement = license_token(Some(ORG_ID), Some(LicensePlan::Plus), 30);
+        let attempts = Arc::new(AtomicUsize::new(0));
+        let seen = attempts.clone();
+        let base_url = cloud(move || {
+            if seen.fetch_add(1, Ordering::SeqCst) == 0 {
+                return (StatusCode::SERVICE_UNAVAILABLE, "starting up").into_response();
+            }
+            Json(ApiResponse::success(EntitlementResponse {
+                entitlement: entitlement.clone(),
+            }))
+            .into_response()
+        })
+        .await;
+
+        let license = Arc::new(
+            LicenseService::new(
+                online_key(ORG_ID),
+                unreachable_org_service(),
+                Some(base_url),
+            )
+            .await,
+        );
+        assert!(matches!(
+            license.current_status().await,
+            LicenseStatus::Pending
+        ));
+
+        tokio::spawn(license.clone().run_check_ins());
+        // The retry lands within CHECK_IN_RETRY_MIN_DELAY, jittered. Give it
+        // twice that before calling it a regression, rather than hanging.
+        let deadline = tokio::time::Instant::now() + CHECK_IN_RETRY_MIN_DELAY * 2;
+        while attempts.load(Ordering::SeqCst) < 2 && tokio::time::Instant::now() < deadline {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+
+        assert!(
+            matches!(license.current_status().await, LicenseStatus::Valid(_)),
+            "the retried check-in should have applied the entitlement"
+        );
     }
 
     #[tokio::test]
