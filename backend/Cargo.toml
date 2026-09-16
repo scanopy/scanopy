@@ -304,7 +304,7 @@ windows-service = "0.7"
 net-route = "0.4.6"
 
 [target.'cfg(any(target_os = "freebsd", target_os = "openbsd"))'.dependencies]
-netdev = "0.45.0"
+netdev = "0.46.3"
 
 # Vendored pnet_datalink 0.35.0 (see vendor/pnet_datalink/README.md): macOS/BSD's raw-socket
 # backend calls libc::FD_SET on a fixed 1024-slot bitmap during channel construction, which
