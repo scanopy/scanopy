@@ -577,6 +577,58 @@ pub async fn wait_for_serverpoll_daemon_version(
     .await
 }
 
+/// The Home Assistant fixture container, published on the host by docker-compose.test.yml.
+const HOME_ASSISTANT_URL: &str = "http://localhost:8123";
+/// Its container name, so a failure here can say where to look.
+const HOME_ASSISTANT_CONTAINER: &str = "homeassistant-discovery";
+
+/// Wait until the Home Assistant fixture serves the page its service definition matches on.
+///
+/// `docker compose up --wait` returns once a container is *running*, and the image's own
+/// healthcheck says nothing about the HTTP listener, so a scan can run while Home Assistant is
+/// still doing its first-boot permissions pass. It answers ARP and ICMP throughout, so the host
+/// is discovered and only its port stays silent — which is exactly how the v0.17.16 release run
+/// failed, with `endpoints_scanned=105 responses=0` against that address and an assertion that
+/// read like a discovery bug.
+///
+/// Polls for the condition `Pattern::Endpoint(tcp 8123, "/", "home assistant")` requires, so a
+/// pass here means the scan has something to match rather than merely something to connect to.
+pub async fn wait_for_home_assistant() -> Result<(), String> {
+    println!("\n=== Waiting for Home Assistant ===");
+
+    retry(
+        "wait for Home Assistant to serve its page",
+        60,
+        5,
+        || async {
+            let response = reqwest::get(HOME_ASSISTANT_URL)
+                .await
+                .map_err(|e| format!("no answer from {}: {}", HOME_ASSISTANT_URL, e))?;
+
+            let status = response.status();
+            if !(status.is_success() || status.is_redirection()) {
+                return Err(format!("answered {}", status));
+            }
+
+            let body = response.text().await.map_err(|e| {
+                format!("answered {} but the body could not be read: {}", status, e)
+            })?;
+
+            if !body.to_lowercase().contains("home assistant") {
+                return Err(format!(
+                    "answered {} with {} bytes that do not mention Home Assistant",
+                    status,
+                    body.len()
+                ));
+            }
+
+            Ok(())
+        },
+    )
+    .await
+    .map_err(|e| format!("{}. Check `docker logs {}`", e, HOME_ASSISTANT_CONTAINER))
+}
+
 /// Provision and initialize the ServerPoll daemon.
 ///
 /// This follows the proper ServerPoll provisioning flow:
