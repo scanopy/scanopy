@@ -25,8 +25,9 @@ mod validations;
 
 use infra::{
     ContainerManager, TestClient, TestContext, clear_discovery_data, create_test_db_pool,
-    provision_serverpoll_daemon, setup_authenticated_user, wait_for_daemon, wait_for_network,
-    wait_for_organization, wait_for_serverpoll_daemon_version,
+    provision_serverpoll_daemon, setup_authenticated_user, wait_for_daemon,
+    wait_for_home_assistant, wait_for_network, wait_for_organization,
+    wait_for_serverpoll_daemon_version,
 };
 
 /// Single integration test that runs all test categories with shared containers.
@@ -126,6 +127,13 @@ async fn integration_tests() {
     wait_for_serverpoll_daemon_version(&client, serverpoll_daemon_id)
         .await
         .expect("ServerPoll daemon never reported its version");
+
+    // The Home Assistant fixture answers ARP and ICMP long before it serves HTTP, so scanning
+    // now would probe a port nothing is listening on and the assertion below would fail as
+    // though discovery were broken. Wait for the page its definition matches on instead.
+    wait_for_home_assistant()
+        .await
+        .expect("Home Assistant fixture never served port 8123");
 
     // Trigger discovery for the ServerPoll daemon and get the session_id
     let serverpoll_host_id = serverpoll_provision.daemon.base.host_id;
