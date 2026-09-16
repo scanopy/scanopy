@@ -75,6 +75,7 @@ use stripe_core::setup_intent::CreateSetupIntentUsage;
 use stripe_core::setup_intent::RetrieveSetupIntent;
 use stripe_core::{CustomerId, EventType};
 use stripe_product::Price;
+use stripe_product::Product;
 use stripe_product::coupon::RetrieveCoupon;
 use stripe_product::price::CreatePriceRecurring;
 use stripe_product::price::SearchPrice;

@@ -7,6 +7,50 @@ use super::*;
 const MAX_MARKETING_FEATURES: usize = 15;
 
 impl BillingService {
+    /// The product with `id`, created from `create` when Stripe does not
+    /// already have it.
+    ///
+    /// A retrieve can fail for reasons other than the product being absent — a
+    /// transient error or a rate limit reads the same to the caller — and the
+    /// create that follows then fails with `resource_already_exists`. Since
+    /// this runs at startup, that turned a recoverable hiccup into a server
+    /// that would not boot. So a failed create is followed by one more
+    /// retrieve, and only a product that can be neither read nor created is an
+    /// error.
+    async fn get_or_create_product(
+        &self,
+        id: &str,
+        create: CreateProduct,
+    ) -> Result<Product, Error> {
+        if let Ok(product) = RetrieveProduct::new(id).send(&self.stripe).await {
+            tracing::debug!("Product {} already exists", product.id);
+            return Ok(product);
+        }
+
+        match create.send(&self.stripe).await {
+            Ok(product) => {
+                tracing::debug!("Created product: {}", product.id);
+                Ok(product)
+            }
+            Err(create_error) => RetrieveProduct::new(id)
+                .send(&self.stripe)
+                .await
+                .inspect(|product| {
+                    tracing::debug!(
+                        error = %create_error,
+                        "Product {} exists after all; keeping it",
+                        product.id
+                    );
+                })
+                .map_err(|retrieve_error| {
+                    anyhow!(
+                        "Product {id} could not be created ({create_error}) \
+                         or read back ({retrieve_error})"
+                    )
+                }),
+        }
+    }
+
     pub fn new(params: BillingServiceParams) -> Self {
         let BillingServiceParams {
             stripe_secret,
@@ -65,47 +109,23 @@ impl BillingService {
         );
 
         // Create seat and network products
-        let seat_product = match RetrieveProduct::new(SEAT_PRODUCT_ID)
-            .send(&self.stripe)
-            .await
-        {
-            Ok(p) => {
-                tracing::debug!("Product {} already exists", p.id);
-                p
-            }
-            Err(_) => {
-                // Create product
-                let create_product = CreateProduct::new(SEAT_PRODUCT_NAME)
+        let seat_product = self
+            .get_or_create_product(
+                SEAT_PRODUCT_ID,
+                CreateProduct::new(SEAT_PRODUCT_NAME)
                     .id(SEAT_PRODUCT_ID)
-                    .description("Additional seats over what's included in the base plan");
+                    .description("Additional seats over what's included in the base plan"),
+            )
+            .await?;
 
-                let product = create_product.send(&self.stripe).await?;
-
-                tracing::debug!("Created product: {}", SEAT_PRODUCT_NAME);
-                product
-            }
-        };
-
-        let network_product = match RetrieveProduct::new(NETWORK_PRODUCT_ID)
-            .send(&self.stripe)
-            .await
-        {
-            Ok(p) => {
-                tracing::debug!("Product {} already exists", p.id);
-                p
-            }
-            Err(_) => {
-                // Create product
-                let create_product = CreateProduct::new(NETWORK_PRODUCT_NAME)
+        let network_product = self
+            .get_or_create_product(
+                NETWORK_PRODUCT_ID,
+                CreateProduct::new(NETWORK_PRODUCT_NAME)
                     .id(NETWORK_PRODUCT_ID)
-                    .description("Additional networks over what's included in the base plan");
-
-                let product = create_product.send(&self.stripe).await?;
-
-                tracing::debug!("Created product: {}", NETWORK_PRODUCT_NAME);
-                product
-            }
-        };
+                    .description("Additional networks over what's included in the base plan"),
+            )
+            .await?;
 
         for plan in plans {
             // Skip free and contact-only plans — they don't need Stripe products
@@ -119,42 +139,29 @@ impl BillingService {
                 continue;
             }
 
-            // Check if product exists, create if not
             let product_id = plan.stripe_product_id();
-            let product = match RetrieveProduct::new(product_id.clone())
-                .send(&self.stripe)
-                .await
-            {
-                Ok(p) => {
-                    tracing::debug!("Product {} already exists", p.id);
-                    p
-                }
-                Err(_) => {
-                    let features: Vec<Feature> = plan.features().into();
+            let features: Vec<Feature> = plan.features().into();
 
-                    // Stripe rejects a product carrying more than
-                    // MAX_MARKETING_FEATURES of them, and the self-hosted tiers
-                    // enable more than that. These are shop-window copy, so the
-                    // overflow is dropped rather than failing product creation
-                    // (and with it server startup).
-                    let features: Vec<Features> = features
-                        .iter()
-                        .take(MAX_MARKETING_FEATURES)
-                        .map(|f| Features::new(f.name()))
-                        .collect();
+            // Stripe rejects a product carrying more than
+            // MAX_MARKETING_FEATURES of them, and the self-hosted tiers enable
+            // more than that. These are shop-window copy, so the overflow is
+            // dropped rather than failing product creation (and with it server
+            // startup).
+            let features: Vec<Features> = features
+                .iter()
+                .take(MAX_MARKETING_FEATURES)
+                .map(|f| Features::new(f.name()))
+                .collect();
 
-                    // Create product
-                    let create_product = CreateProduct::new(plan.name())
-                        .id(product_id)
+            let product = self
+                .get_or_create_product(
+                    &product_id,
+                    CreateProduct::new(plan.name())
+                        .id(product_id.clone())
                         .marketing_features(features)
-                        .description(plan.description());
-
-                    let product = create_product.send(&self.stripe).await?;
-
-                    tracing::debug!("Created product: {}", plan.name());
-                    product
-                }
-            };
+                        .description(plan.description()),
+                )
+                .await?;
 
             // Create base price
             match self
