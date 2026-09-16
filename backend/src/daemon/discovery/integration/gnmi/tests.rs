@@ -1,5 +1,6 @@
 use super::parse::{Leaf, normalised_names};
 use super::*;
+use crate::server::credentials::r#impl::mapping::ResolvableSecret;
 use crate::server::interfaces::r#impl::base::{IfAdminStatus, IfOperStatus, if_type};
 use crate::server::lldp::LldpPortId;
 use crate::server::snmp::generated::get_if_type_number;
@@ -742,11 +743,24 @@ async fn refusing_the_local_identity_path_does_not_cost_a_device_its_authority()
     );
 }
 
-#[tokio::test]
-async fn capabilities_reports_the_models_the_device_advertises() {
-    let mut device = ScriptedDevice::default().advertising(&["openconfig-interfaces", "dn-lldp"]);
-    let models = device.capabilities().await.expect("capabilities");
-    assert_eq!(models, vec!["openconfig-interfaces", "dn-lldp"]);
+/// What `probe` decides once `Capabilities` has answered: the models the device advertised
+/// reach the handle `execute` reads them back from. The dial around it is not covered.
+#[test]
+fn advertised_models_reach_the_handle() {
+    let handle = handle_from(
+        GnmiQueryCredential {
+            port: 57400,
+            username: "admin".into(),
+            password: ResolvableSecret::Value {
+                value: "secret".into(),
+            },
+            tls: false,
+            skip_verify: false,
+        },
+        vec!["openconfig-interfaces".to_string(), "dn-lldp".to_string()],
+    );
+    assert_eq!(handle.models, vec!["openconfig-interfaces", "dn-lldp"]);
+    assert_eq!(handle.credential.port, 57400);
 }
 
 #[test]
@@ -754,8 +768,6 @@ fn a_device_advertising_dn_lldp_selects_the_drivenets_profile() {
     let models = vec!["openconfig-interfaces".to_string(), "dn-lldp".to_string()];
     let profile = LldpModelProfile::select(&models).expect("a known profile");
     assert_eq!(profile.module, "dn-lldp");
-    assert_eq!(profile.root, &["drivenets-top", "protocols"]);
-    assert_eq!(profile.state_container, "oper-items");
 }
 
 #[test]

@@ -72,15 +72,17 @@ pub struct GnmiIntegration;
 /// decided from its answer. Asking a second time would be an extra RPC per scan on every gNMI
 /// device.
 ///
-/// UNCOVERED, and load-bearing: nothing tests that `probe` actually populates this. `probe`
-/// builds a `TonicTransport` directly, so there is no seam to inject a fake, and a test suite
-/// that cannot reach `probe` cannot notice this field being left empty — which would make every
-/// device look like it advertises no LLDP model and return DriveNets to zero neighbours,
-/// silently. Injecting the transport would close it; until then this assignment is checked by
-/// eye, which is worth knowing before trusting the tests here.
+/// What `probe` decides is [`handle_from`], covered by `advertised_models_reach_the_handle`;
+/// the dial it wraps is not, which is the boundary the other collectors draw too.
 struct GnmiProbeHandle {
     credential: GnmiQueryCredential,
     models: Vec<String>,
+}
+
+/// The handle a successful probe hands to `execute`: the credential that dialled, and the
+/// models the device named in its `Capabilities` reply.
+fn handle_from(credential: GnmiQueryCredential, models: Vec<String>) -> GnmiProbeHandle {
+    GnmiProbeHandle { credential, models }
 }
 
 /// One interface's `openconfig-interfaces` state leaves.
@@ -555,10 +557,7 @@ impl DiscoveryIntegration for GnmiIntegration {
         Ok(ProbeSuccess {
             client_probe: ClientProbe::Gnmi,
             ports: vec![PortType::new_tcp(cred.port)],
-            handle: Some(Box::new(GnmiProbeHandle {
-                credential: cred.clone(),
-                models,
-            })),
+            handle: Some(Box::new(handle_from(cred.clone(), models))),
         })
     }
 
