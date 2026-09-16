@@ -78,6 +78,7 @@ impl Storable for Organization {
                     license_paid_through,
                     license_checkin_at,
                     license_key_version,
+                    license_key_issued_at,
                 },
         } = self.clone();
 
@@ -109,6 +110,7 @@ impl Storable for Organization {
                 "license_paid_through",
                 "license_checkin_at",
                 "license_key_version",
+                "license_key_issued_at",
             ],
             vec![
                 SqlValue::Uuid(id),
@@ -142,6 +144,7 @@ impl Storable for Organization {
                 SqlValue::OptionTimestamp(license_paid_through),
                 SqlValue::OptionTimestamp(license_checkin_at),
                 SqlValue::I64(license_key_version),
+                SqlValue::OptionTimestamp(license_key_issued_at),
             ],
         ))
     }
@@ -210,6 +213,7 @@ impl Storable for Organization {
                 license_paid_through: row.try_get("license_paid_through").unwrap_or(None),
                 license_checkin_at: row.try_get("license_checkin_at").unwrap_or(None),
                 license_key_version: row.try_get("license_key_version").unwrap_or(0),
+                license_key_issued_at: row.try_get("license_key_issued_at").unwrap_or(None),
             },
         })
     }
@@ -291,5 +295,6 @@ impl Entity for Organization {
         // The cached entitlement is written only by the license service
         self.base.license_entitlement = existing.base.license_entitlement.clone();
         self.base.license_entitlement_at = existing.base.license_entitlement_at;
+        self.base.license_key_issued_at = existing.base.license_key_issued_at;
     }
 }

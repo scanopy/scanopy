@@ -29,7 +29,7 @@ use crate::server::license::key::LicenseKey;
 use crate::server::license::mint::PAID_THROUGH_BUFFER_DAYS;
 use crate::server::license::mint::tests::{test_decoding_key, test_issuer};
 use crate::server::license::online::{ENTITLEMENT_PATH, EntitlementRequest};
-use crate::server::license::types::{LicenseKeyType, LicenseStatus};
+use crate::server::license::types::LicenseStatus;
 use crate::server::organizations::r#impl::base::Organization;
 use crate::server::shared::events::traits::{Event, OrgScope, Subscriber};
 use crate::server::shared::events::types::BillingOperation;
@@ -109,15 +109,50 @@ fn entitlement_route_is_served_at_the_shared_contract_path() {
 }
 
 #[tokio::test]
+async fn online_keys_are_stable_until_regenerated() {
+    let (state, _container) = test_state().await;
+    let issuer = state.license_issuer.clone().unwrap();
+    let service = &state.services.organization_service;
+    let org = create_org(&state, get_self_hosted_standard_plan(), None).await;
+
+    // What two clicks of Copy do: one issued-at stamp, one key string.
+    let first_stamp = service.license_key_issued_at(org.id).await.unwrap();
+    let second_stamp = service.license_key_issued_at(org.id).await.unwrap();
+    assert_eq!(first_stamp, second_stamp);
+    let key = issuer
+        .mint_online_key(&reload(&state, org.id).await, first_stamp)
+        .unwrap();
+    assert_eq!(
+        issuer
+            .mint_online_key(&reload(&state, org.id).await, second_stamp)
+            .unwrap(),
+        key
+    );
+
+    // Regenerating bumps the key version, so the next copy is a different key.
+    // The stamp is whole seconds, so it can still read the same within one.
+    service
+        .regenerate_license_key(org.id, AuthenticatedEntity::System)
+        .await
+        .unwrap();
+    let regenerated_stamp = service.license_key_issued_at(org.id).await.unwrap();
+    assert!(regenerated_stamp >= first_stamp);
+    assert_ne!(
+        issuer
+            .mint_online_key(&reload(&state, org.id).await, regenerated_stamp)
+            .unwrap(),
+        key
+    );
+}
+
+#[tokio::test]
 async fn entitlement_endpoint_accepts_current_keys_and_rejects_the_rest() {
     let (state, _container) = test_state().await;
     let issuer = state.license_issuer.clone().unwrap();
     let service = &state.services.organization_service;
     let paid_through = whole_seconds_from_now(30);
     let org = create_org(&state, get_self_hosted_standard_plan(), Some(paid_through)).await;
-    let key = issuer
-        .mint_key(&org, LicenseKeyType::Online, Utc::now())
-        .unwrap();
+    let key = issuer.mint_online_key(&org, Utc::now()).unwrap();
 
     // 200: an entitlement for the org's plan and paid-through date, and the
     // check-in is recorded.
@@ -162,11 +197,7 @@ async fn entitlement_endpoint_accepts_current_keys_and_rejects_the_rest() {
         Err(StatusCode::FORBIDDEN)
     );
     let current_key = issuer
-        .mint_key(
-            &reload(&state, org.id).await,
-            LicenseKeyType::Online,
-            Utc::now(),
-        )
+        .mint_online_key(&reload(&state, org.id).await, Utc::now())
         .unwrap();
     assert!(
         request_entitlement(&state, current_key.clone())
@@ -250,7 +281,7 @@ async fn license_paid_through_follows_self_hosted_trials_and_invoices() {
             BillingOperation::TrialStarted {
                 plan,
                 trial_end,
-                trial_days: 30,
+                trial_days: 14,
             },
             AuthenticatedEntity::System,
         )

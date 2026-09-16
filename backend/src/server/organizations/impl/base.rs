@@ -191,6 +191,11 @@ pub struct OrganizationBase {
     /// Regenerating the key increments it, retiring every earlier key.
     #[serde(default, skip_serializing)]
     pub license_key_version: i64,
+    /// `iat` embedded in this org's online license key. Held so re-minting
+    /// returns a byte-identical key rather than a new string each time; set on
+    /// first issue and moved on regeneration. Not key material.
+    #[serde(default, skip_serializing)]
+    pub license_key_issued_at: Option<DateTime<Utc>>,
 }
 
 #[derive(

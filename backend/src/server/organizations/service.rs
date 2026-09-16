@@ -54,6 +54,12 @@ impl CrudService<Organization> for OrganizationService {
     }
 }
 
+/// Drop sub-second precision, so a value survives a database round trip
+/// unchanged.
+fn whole_second(at: DateTime<Utc>) -> DateTime<Utc> {
+    DateTime::from_timestamp(at.timestamp(), 0).unwrap_or(at)
+}
+
 impl OrganizationService {
     /// Hold the organization row's advisory lock. Every read-modify-write of
     /// an org that can race another (the billing event mirror, license key
@@ -85,6 +91,41 @@ impl OrganizationService {
         Ok(())
     }
 
+    /// The `iat` this org's online license key is signed with, assigned on
+    /// first use. Holding it makes minting deterministic: every copy of the
+    /// key returns the same string until the key is regenerated.
+    pub async fn license_key_issued_at(
+        &self,
+        organization_id: Uuid,
+    ) -> Result<DateTime<Utc>, Error> {
+        let lock = self.lock_organization(organization_id).await?;
+        let mut organization = self
+            .get_by_id(&organization_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Organization {organization_id} not found"))?;
+
+        let issued_at = match organization.base.license_key_issued_at {
+            Some(issued_at) => issued_at,
+            None => {
+                // Whole seconds: the claim carries seconds, and Postgres keeps
+                // microseconds, so a truncating round trip would otherwise hand
+                // back a different stamp than the one just written.
+                let issued_at = whole_second(Utc::now());
+                organization.base.license_key_issued_at = Some(issued_at);
+                self.storage.update(&mut organization).await?;
+                tracing::info!(
+                    organization_id = %organization_id,
+                    key_version = organization.base.license_key_version,
+                    "Issued online license key"
+                );
+                issued_at
+            }
+        };
+
+        lock.release().await?;
+        Ok(issued_at)
+    }
+
     /// Increment the org's license key version, retiring every online key
     /// issued so far.
     pub async fn regenerate_license_key(
@@ -102,7 +143,15 @@ impl OrganizationService {
             .license_key_version
             .checked_add(1)
             .ok_or_else(|| anyhow::anyhow!("License key version overflow"))?;
+        // Move the stamp too. The version alone already changes the key; this
+        // keeps the stamp honest about when the current key was issued.
+        organization.base.license_key_issued_at = Some(whole_second(Utc::now()));
         let updated = self.update(&mut organization, authentication).await?;
+        tracing::info!(
+            organization_id = %organization_id,
+            key_version = updated.base.license_key_version,
+            "Regenerated online license key"
+        );
         lock.release().await?;
         Ok(updated)
     }

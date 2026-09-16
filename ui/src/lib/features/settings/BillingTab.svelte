@@ -4,7 +4,6 @@
 	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { hasLicensedPlan } from '$lib/features/organizations/types';
-	import LicenseSection from './LicenseSection.svelte';
 	import { billingPlans, planStatuses } from '$lib/shared/stores/metadata';
 	import { isMissingPaymentMethod } from '$lib/shared/utils/trial';
 	import { trackEvent, trackOncePerSession } from '$lib/shared/utils/analytics';
@@ -53,6 +52,7 @@
 		settings_billing_extendTrial_link,
 		settings_billing_extendTrial_confirmBody,
 		settings_billing_addPaymentMethodSubtitle,
+		settings_billing_license_addPaymentMethodSubtitle,
 		settings_billing_trialCountdown,
 		settings_billing_trialEndsOn,
 		billing_addPaymentMethod,
@@ -229,9 +229,15 @@
 					day: 'numeric',
 					year: 'numeric'
 				}) ?? '';
+			// A licensed org's trial ends in a dead license key, not a downgraded cloud
+			// account, so it gets the license wording.
 			return {
 				kind: 'warning' as const,
-				message: `${settings_billing_trialCountdown({ days: trialDaysLeft ?? 0, date })} ${settings_billing_addPaymentMethodSubtitle()}`
+				message: `${settings_billing_trialCountdown({ days: trialDaysLeft ?? 0, date })} ${
+					isLicensedPlan
+						? settings_billing_license_addPaymentMethodSubtitle()
+						: settings_billing_addPaymentMethodSubtitle()
+				}`
 			};
 		}
 		if (isPastDue) return { kind: 'danger' as const, message: settings_billing_pastDue() };
@@ -566,10 +572,6 @@
 						</div>
 					</svelte:fragment>
 				</InfoCard>
-
-				{#if isLicensedPlan}
-					<LicenseSection {org} onChangePlan={openPlanPicker} />
-				{/if}
 
 				<!-- Usage -->
 				{#if hasAnyUsageRow && org.plan && !isLicensedPlan}

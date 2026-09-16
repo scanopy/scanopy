@@ -1,15 +1,18 @@
 <script lang="ts">
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
 	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import { User, Building2, CreditCard, Mail, Settings, Monitor } from 'lucide-svelte';
+	import { User, Building2, CreditCard, KeyRound, Mail, Settings, Monitor } from 'lucide-svelte';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { hasLicensedPlan } from '$lib/features/organizations/types';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import { isMissingPaymentMethod } from '$lib/shared/utils/trial';
+	import { modalState } from '$lib/shared/stores/modal-registry';
 	import type { ModalTab } from '$lib/shared/components/layout/GenericModal.svelte';
 	import AccountTab from './AccountTab.svelte';
 	import OrganizationTab from './OrganizationTab.svelte';
 	import BillingTab from './BillingTab.svelte';
+	import LicenseTab from './LicenseTab.svelte';
 	import EmailTab from './EmailTab.svelte';
 	import SystemTab from './SystemTab.svelte';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
@@ -17,6 +20,7 @@
 		common_account,
 		common_billing,
 		common_email,
+		common_license,
 		common_organization,
 		common_settings,
 		common_system,
@@ -75,6 +79,7 @@
 			icon: CreditCard,
 			notification: billingNeedsAttention
 		},
+		{ id: 'license', label: common_license(), icon: KeyRound },
 		{ id: 'system', label: common_system(), icon: Monitor }
 	]);
 
@@ -83,9 +88,26 @@
 		baseTabs.filter((tab) => {
 			if (tab.id === 'organization') return isOwner;
 			if (tab.id === 'billing') return isOwner && isBillingEnabled;
+			if (tab.id === 'license') return isOwner && org != null && hasLicensedPlan(org);
 			return true;
 		})
 	);
+
+	// A caller can target a tab that isn't visible yet — the lock effect asks for
+	// License while the organization query still holds the previous plan, and
+	// GenericModal falls back to the first tab when the requested one is missing.
+	// Apply the requested tab once it exists.
+	$effect(() => {
+		const requested = $modalState.name === 'settings' ? $modalState.tab : null;
+		if (
+			isOpen &&
+			requested &&
+			requested !== activeTab &&
+			visibleTabs.some((tab) => tab.id === requested)
+		) {
+			activeTab = requested;
+		}
+	});
 
 	// Reset sub-views when modal opens or tab changes
 	function handleOpen() {
@@ -143,6 +165,8 @@
 			<OrganizationTab bind:subView={orgSubView} onClose={handleClose} {dismissible} />
 		{:else if activeTab === 'billing'}
 			<BillingTab {isOpen} onClose={handleClose} {dismissible} />
+		{:else if activeTab === 'license'}
+			<LicenseTab onClose={handleClose} {dismissible} />
 		{:else if activeTab === 'system'}
 			<SystemTab />
 		{/if}

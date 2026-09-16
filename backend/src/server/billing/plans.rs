@@ -16,7 +16,7 @@ pub const SELF_HOSTED_PLUS_SEATS: u64 = 50;
 pub const SELF_HOSTED_PLUS_ORGS: u64 = 5;
 
 /// Card-less trial length for both paid self-hosted tiers.
-pub const SELF_HOSTED_TRIAL_DAYS: u32 = 30;
+pub const SELF_HOSTED_TRIAL_DAYS: u32 = 14;
 
 /// Returns the canonical list of billing plans for Scanopy.
 /// This is the single source of truth for plan definitions.
