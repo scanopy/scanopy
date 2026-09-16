@@ -3262,7 +3262,7 @@ export interface components {
          * @description API metadata included in all responses
          * @example {
          *       "api_version": 1,
-         *       "server_version": "0.17.15"
+         *       "server_version": "0.17.16"
          *     }
          */
         ApiMeta: {
@@ -3273,7 +3273,7 @@ export interface components {
             api_version: number;
             /**
              * @description Server version (semver)
-             * @example 0.17.15
+             * @example 0.17.16
              */
             server_version: string;
         };
@@ -3291,19 +3291,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-16T14:25:40.559771Z",
+             *       "created_at": "2026-09-16T20:12:34.441614Z",
              *       "first_discovery_id": null,
-             *       "id": "46443b0d-8dcc-4ac9-97a5-6d4e4af41ba2",
+             *       "id": "180e72e4-115d-422d-b6b9-9efa78b5867c",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-16T14:25:40.559771Z",
+             *       "last_seen_at": "2026-09-16T20:12:34.441614Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-16T14:25:40.559771Z",
-             *       "valid_from": "2026-09-16T14:25:40.559771Z",
+             *       "updated_at": "2026-09-16T20:12:34.441614Z",
+             *       "valid_from": "2026-09-16T20:12:34.441614Z",
              *       "valid_to": null
              *     }
              */
@@ -3964,19 +3964,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-16T14:25:40.538544Z",
+             *               "created_at": "2026-09-16T20:12:34.417135Z",
              *               "first_discovery_id": null,
-             *               "id": "e6e11543-60f6-43f2-889e-47a6c70ff983",
+             *               "id": "c1972175-4fc1-4baf-996d-be8b9eeb95fd",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-16T14:25:40.538544Z",
+             *               "last_seen_at": "2026-09-16T20:12:34.417135Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-16T14:25:40.538544Z",
-             *               "valid_from": "2026-09-16T14:25:40.538544Z",
+             *               "updated_at": "2026-09-16T20:12:34.417135Z",
+             *               "valid_from": "2026-09-16T20:12:34.417135Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -3990,7 +3990,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "MariaDB",
+             *           "service_definition": "Caddy",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4744,19 +4744,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-16T14:25:40.554758Z",
+             *           "created_at": "2026-09-16T20:12:34.436025Z",
              *           "first_discovery_id": null,
-             *           "id": "a09d67d4-4e82-4032-920d-54f3fcc95424",
+             *           "id": "3022ab55-f631-4cba-9fc6-b925a4d35966",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-16T14:25:40.554758Z",
+             *           "last_seen_at": "2026-09-16T20:12:34.436025Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-16T14:25:40.554758Z",
-             *           "valid_from": "2026-09-16T14:25:40.554758Z",
+             *           "updated_at": "2026-09-16T20:12:34.436025Z",
+             *           "valid_from": "2026-09-16T20:12:34.436025Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -4770,7 +4770,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "MariaDB",
+             *       "service_definition": "Caddy",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -5635,19 +5635,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-16T14:25:40.539041Z",
+         *       "created_at": "2026-09-16T20:12:34.417780Z",
          *       "first_discovery_id": null,
-         *       "id": "3c04314a-baa9-4bf1-aeb7-c29f99a4b6f9",
+         *       "id": "4d1203e0-299a-402a-99a9-928395a5dc62",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-16T14:25:40.539041Z",
+         *       "last_seen_at": "2026-09-16T20:12:34.417780Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-16T14:25:40.539041Z",
-         *       "valid_from": "2026-09-16T14:25:40.539041Z",
+         *       "updated_at": "2026-09-16T20:12:34.417780Z",
+         *       "valid_from": "2026-09-16T20:12:34.417780Z",
          *       "valid_to": null
          *     }
          */
@@ -5961,7 +5961,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "MariaDB",
+         *           "service_definition": "Caddy",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8133,19 +8133,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-16T14:25:40.538005Z",
+         *               "created_at": "2026-09-16T20:12:34.416433Z",
          *               "first_discovery_id": null,
-         *               "id": "ec294252-1faf-4213-81ce-81ba6c96e856",
+         *               "id": "c8da5b4d-62d9-4511-8985-0dde470363e5",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-16T14:25:40.538005Z",
+         *               "last_seen_at": "2026-09-16T20:12:34.416433Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-16T14:25:40.538005Z",
-         *               "valid_from": "2026-09-16T14:25:40.538005Z",
+         *               "updated_at": "2026-09-16T20:12:34.416433Z",
+         *               "valid_from": "2026-09-16T20:12:34.416433Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8159,7 +8159,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "MariaDB",
+         *           "service_definition": "Caddy",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -9583,7 +9583,7 @@ export interface components {
          *         "offset": 0,
          *         "total_count": 142
          *       },
-         *       "server_version": "0.17.15"
+         *       "server_version": "0.17.16"
          *     }
          */
         PaginatedApiMeta: {
@@ -9596,7 +9596,7 @@ export interface components {
             pagination: components["schemas"]["PaginationMeta"];
             /**
              * @description Server version (semver)
-             * @example 0.17.15
+             * @example 0.17.16
              */
             server_version: string;
         };
@@ -11004,19 +11004,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-16T14:25:40.538892Z",
+         *           "created_at": "2026-09-16T20:12:34.417585Z",
          *           "first_discovery_id": null,
-         *           "id": "47ed3636-ad93-49f4-9eb1-c1223b0ae69e",
+         *           "id": "def90df3-0263-47a0-a375-36810075dc3f",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-16T14:25:40.538892Z",
+         *           "last_seen_at": "2026-09-16T20:12:34.417585Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-16T14:25:40.538892Z",
-         *           "valid_from": "2026-09-16T14:25:40.538892Z",
+         *           "updated_at": "2026-09-16T20:12:34.417585Z",
+         *           "valid_from": "2026-09-16T20:12:34.417585Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -11030,7 +11030,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "MariaDB",
+         *       "service_definition": "Caddy",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -11732,7 +11732,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "ede3ccb8-cfe3-4900-ab53-46a55d49d14d",
+             *           "id": "b1e9cc80-8b2a-417f-ae0f-fd370eca0c4a",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -11742,23 +11742,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "1deadef8-5955-44e9-9e6e-638c83afa883",
+             *           "id": "9ddd0635-537d-42af-8525-2ec7c3116fdb",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "bc1914f5-2758-4098-9bfc-ba12b64e68ce",
+             *           "id": "fe85e3a7-a66a-4ee3-ab3f-033651ae9746",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "2c76177d-e08e-48a9-aa72-93440e5cce8d",
+             *           "id": "35910e6d-5222-4f9b-9976-daa0fba90977",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "1deadef8-5955-44e9-9e6e-638c83afa883",
+             *           "id": "9ddd0635-537d-42af-8525-2ec7c3116fdb",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -11771,19 +11771,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "10441ab0-c093-4331-84d7-a120f5ccb487",
+             *         "id": "8bfa8847-726d-417d-9f06-815f3bab6569",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "4ad9b5f8-36bc-462e-8edc-8eee30148cbe",
+             *         "id": "f8fb8c44-03cc-4b80-9ac5-940f46e76119",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "2323ac12-1644-4226-bcfa-4ebb24222325",
+             *         "id": "46a43bfd-b8b5-41a7-a825-5a4ca6723ff6",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "6aa04d86-6bdb-4d54-84a1-f456d40de6b6",
+             *         "id": "9f4e1aca-74d9-4a41-a059-c9a0a32801cf",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -11801,7 +11801,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "ad587235-deb6-480d-bfd6-61c4290580da",
+             *         "id": "14b11e75-9eed-4d82-8114-3cd03c5aae77",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -11810,15 +11810,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "dc2ba251-bbb9-45ce-b1ad-5ecc9c315f18",
+             *         "id": "d998d764-224d-474a-90cd-96fb7430f632",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "56054eac-918a-4af4-8954-72b8ae264bbf",
+             *         "id": "f7111c25-3671-44d5-a902-e20b00d2067d",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "f5e371f7-b3e9-4ee3-b7a9-bb5e2cd36448",
+             *         "id": "ce52a3c7-9457-4acf-82ce-9a44118de731",
              *         "rule": "ByStack"
              *       }
              *     ]

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Scanopy API",
-    "description": "\nNetwork topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.15\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.15\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.17.15)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **network(s)**:\n\n- You can only access entities within your organization\n- Network-level entities (hosts, services, etc.) are filtered to networks you have access to\n- Use `?network_id=<UUID>` to filter list endpoints to a specific network\n- API keys can be scoped to a subset of your accessible networks\n",
+    "description": "\nNetwork topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.16\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.16\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.17.16)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **network(s)**:\n\n- You can only access entities within your organization\n- Network-level entities (hosts, services, etc.) are filtered to networks you have access to\n- Use `?network_id=<UUID>` to filter list endpoints to a specific network\n- API keys can be scoped to a subset of your accessible networks\n",
     "license": {
       "name": "Dual (AGPL3.0, Commercial License Available)"
     },
@@ -12508,12 +12508,12 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.17.15"
+            "example": "0.17.16"
           }
         },
         "example": {
           "api_version": 1,
-          "server_version": "0.17.15"
+          "server_version": "0.17.16"
         }
       },
       "ApiResponse": {
@@ -12643,19 +12643,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-16T14:25:40.559770Z",
+              "created_at": "2026-09-16T20:12:34.441612Z",
               "first_discovery_id": null,
-              "id": "ff0f1604-d582-4fb8-a6b5-8f64a22cd4dd",
+              "id": "26699166-0537-4cb9-9257-979eaf836edd",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-16T14:25:40.559770Z",
+              "last_seen_at": "2026-09-16T20:12:34.441612Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-16T14:25:40.559770Z",
-              "valid_from": "2026-09-16T14:25:40.559770Z",
+              "updated_at": "2026-09-16T20:12:34.441612Z",
+              "valid_from": "2026-09-16T20:12:34.441612Z",
               "valid_to": null
             }
           },
@@ -14146,19 +14146,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-16T14:25:40.538520Z",
+                      "created_at": "2026-09-16T20:12:34.417154Z",
                       "first_discovery_id": null,
-                      "id": "2ee2b325-93ff-481d-ae34-eaa6c6f74a05",
+                      "id": "5af65efc-14d7-4519-9e8e-5f8ecdca2178",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-16T14:25:40.538520Z",
+                      "last_seen_at": "2026-09-16T20:12:34.417154Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-16T14:25:40.538520Z",
-                      "valid_from": "2026-09-16T14:25:40.538520Z",
+                      "updated_at": "2026-09-16T20:12:34.417154Z",
+                      "valid_from": "2026-09-16T20:12:34.417154Z",
                       "valid_to": null
                     }
                   ],
@@ -14172,7 +14172,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "MariaDB",
+                  "service_definition": "Caddy",
                   "source": {
                     "type": "Manual"
                   },
@@ -15447,19 +15447,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-16T14:25:40.554729Z",
+                  "created_at": "2026-09-16T20:12:34.436022Z",
                   "first_discovery_id": null,
-                  "id": "d8399497-5b21-4032-84af-b1a24aafed74",
+                  "id": "c9494e50-6d5f-49f0-a027-5006e7d725c2",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-16T14:25:40.554729Z",
+                  "last_seen_at": "2026-09-16T20:12:34.436022Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-16T14:25:40.554729Z",
-                  "valid_from": "2026-09-16T14:25:40.554729Z",
+                  "updated_at": "2026-09-16T20:12:34.436022Z",
+                  "valid_from": "2026-09-16T20:12:34.436022Z",
                   "valid_to": null
                 }
               ],
@@ -15473,7 +15473,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "MariaDB",
+              "service_definition": "Caddy",
               "source": {
                 "type": "Manual"
               },
@@ -17728,19 +17728,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-16T14:25:40.539021Z",
+          "created_at": "2026-09-16T20:12:34.417811Z",
           "first_discovery_id": null,
-          "id": "f93d4445-0782-4ed2-95eb-fb24732d93fc",
+          "id": "4daf5286-5741-4286-954e-ada54b2ee7e7",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-16T14:25:40.539021Z",
+          "last_seen_at": "2026-09-16T20:12:34.417811Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-16T14:25:40.539021Z",
-          "valid_from": "2026-09-16T14:25:40.539021Z",
+          "updated_at": "2026-09-16T20:12:34.417811Z",
+          "valid_from": "2026-09-16T20:12:34.417811Z",
           "valid_to": null
         }
       },
@@ -18435,7 +18435,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "MariaDB",
+              "service_definition": "Caddy",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -23819,19 +23819,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-16T14:25:40.537994Z",
+                  "created_at": "2026-09-16T20:12:34.416444Z",
                   "first_discovery_id": null,
-                  "id": "aed78b84-3b34-4d38-ac26-cc836a01757a",
+                  "id": "5547c588-fd0b-4987-9caf-74e82247638c",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-16T14:25:40.537994Z",
+                  "last_seen_at": "2026-09-16T20:12:34.416444Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-16T14:25:40.537994Z",
-                  "valid_from": "2026-09-16T14:25:40.537994Z",
+                  "updated_at": "2026-09-16T20:12:34.416444Z",
+                  "valid_from": "2026-09-16T20:12:34.416444Z",
                   "valid_to": null
                 }
               ],
@@ -23845,7 +23845,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "MariaDB",
+              "service_definition": "Caddy",
               "source": {
                 "type": "Manual"
               },
@@ -26497,7 +26497,7 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.17.15"
+            "example": "0.17.16"
           }
         },
         "example": {
@@ -26508,7 +26508,7 @@
             "offset": 0,
             "total_count": 142
           },
-          "server_version": "0.17.15"
+          "server_version": "0.17.16"
         }
       },
       "PaginatedApiResponse_Credential": {
@@ -27286,19 +27286,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-16T14:25:40.527827Z",
+                        "created_at": "2026-09-16T20:12:34.401531Z",
                         "first_discovery_id": null,
-                        "id": "7837aaaa-c748-40cf-aeb6-442639cb976a",
+                        "id": "a762124b-919d-4879-bfae-ff6219b055c1",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-16T14:25:40.527827Z",
+                        "last_seen_at": "2026-09-16T20:12:34.401531Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-16T14:25:40.527827Z",
-                        "valid_from": "2026-09-16T14:25:40.527827Z",
+                        "updated_at": "2026-09-16T20:12:34.401531Z",
+                        "valid_from": "2026-09-16T20:12:34.401531Z",
                         "valid_to": null
                       }
                     ],
@@ -27312,7 +27312,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "MariaDB",
+                    "service_definition": "Caddy",
                     "source": {
                       "type": "Manual"
                     },
@@ -27455,19 +27455,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-16T14:25:40.553865Z",
+                    "created_at": "2026-09-16T20:12:34.435014Z",
                     "first_discovery_id": null,
-                    "id": "cccd6220-822c-43c7-8196-f2ad8ba7b975",
+                    "id": "ea3eb8a6-3f33-4f2f-85fb-a3a750cb3fd5",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-16T14:25:40.553865Z",
+                    "last_seen_at": "2026-09-16T20:12:34.435014Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-16T14:25:40.553865Z",
-                    "valid_from": "2026-09-16T14:25:40.553865Z",
+                    "updated_at": "2026-09-16T20:12:34.435014Z",
+                    "valid_from": "2026-09-16T20:12:34.435014Z",
                     "valid_to": null
                   }
                 ],
@@ -27481,7 +27481,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "MariaDB",
+                "service_definition": "Caddy",
                 "source": {
                   "type": "Manual"
                 },
@@ -29557,19 +29557,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-16T14:25:40.538871Z",
+              "created_at": "2026-09-16T20:12:34.417612Z",
               "first_discovery_id": null,
-              "id": "b9ed1fcc-2c33-4e7d-8d63-4375c8873f56",
+              "id": "4f74c7bb-b140-42ab-a712-64df27152f2b",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-16T14:25:40.538871Z",
+              "last_seen_at": "2026-09-16T20:12:34.417612Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-16T14:25:40.538871Z",
-              "valid_from": "2026-09-16T14:25:40.538871Z",
+              "updated_at": "2026-09-16T20:12:34.417612Z",
+              "valid_from": "2026-09-16T20:12:34.417612Z",
               "valid_to": null
             }
           ],
@@ -29583,7 +29583,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "MariaDB",
+          "service_definition": "Caddy",
           "source": {
             "type": "Manual"
           },
@@ -30904,7 +30904,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "c848fe71-af01-40af-8cb9-53224869204f",
+                  "id": "eaf570db-e990-41c5-98c5-50842b12b049",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -30914,23 +30914,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "d097cfb8-f60a-4878-9a69-b6a3e84ad23d",
+                  "id": "56da25d4-317c-43d4-a8a1-3ded7e4c3837",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "4235717c-d85e-4066-a3f6-924e8d3c39c2",
+                  "id": "47258ad0-424e-4d6e-b7a5-89e311d70343",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "9fdeb392-04d9-40aa-a620-2c613e101e67",
+                  "id": "40f3248a-4dc7-43dd-abb2-d392b645657e",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "d097cfb8-f60a-4878-9a69-b6a3e84ad23d",
+                  "id": "56da25d4-317c-43d4-a8a1-3ded7e4c3837",
                   "rule": "ByHost"
                 }
               ]
@@ -30960,19 +30960,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "de67d0c5-100f-4528-88dd-aa9c26adc6b9",
+                "id": "e4d1246d-1bad-4467-a781-2adcdd31e6f8",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "60b02f97-93b6-40fb-ae05-e97ea9ba237d",
+                "id": "8b0121d2-b451-4c2d-b4a9-afb6c1919064",
                 "rule": "ByVLAN"
               },
               {
-                "id": "8f9fcd09-1925-442d-8695-970d6bd1ddb2",
+                "id": "86beabf4-c05c-4eb7-a141-6e26131aa42e",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "6d2a3953-0cc1-419c-893c-1a55e77d14e1",
+                "id": "05b1a0bd-4ef5-4716-80bd-3a39ecc1ca6e",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -30990,7 +30990,7 @@
                 }
               },
               {
-                "id": "d04f12ae-db7b-429c-87cb-e8730b88a1a1",
+                "id": "0aa306fb-ab67-4b72-bbce-e276d4fc1b07",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -30999,15 +30999,15 @@
                 }
               },
               {
-                "id": "4f766214-e3ec-4b6a-b331-1b41958974d6",
+                "id": "f81244bc-242e-488f-bd30-d0653086943a",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "0cd944da-b8a8-469d-8df3-30bdc562ee1f",
+                "id": "d60c535e-3818-406c-9a16-4a8161c32b32",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "79301493-6518-4bdc-939e-7c5e7ae79732",
+                "id": "8b1964ed-c4a4-49bf-8955-2be403395ca1",
                 "rule": "ByStack"
               }
             ]
