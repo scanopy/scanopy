@@ -12,7 +12,9 @@ export type DeploymentType = components['schemas']['DeploymentType'];
 export type PublicServerConfig = components['schemas']['PublicConfigResponse'];
 
 export const isLicenseLocked = (cfg: PublicServerConfig) =>
-	cfg.license_status === 'expired' || cfg.license_status === 'invalid';
+	cfg.license_status === 'expired' ||
+	cfg.license_status === 'invalid' ||
+	cfg.license_status === 'pending';
 
 /**
  * Soft-warning threshold: show an "approaching expiry" banner when the

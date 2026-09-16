@@ -35,7 +35,7 @@ export const ERROR_CODES = {
 	auth_org_limit_reached:
 		'This server has reached its maximum number of organizations. Ask an admin to invite you to an existing organization.',
 	auth_email_verification_required: 'Please verify your email to access this feature',
-	license_locked: 'Your license has expired or is invalid. The server is in read-only mode.',
+	license_locked: 'Your license is not active. The server is in read-only mode.',
 	entity_not_found: "{entity} with ID '{id}' not found",
 	entity_already_exists: "{entity} '{name}' already exists",
 	entity_in_use: "Cannot delete {entity} '{name}' because it's used by {used_by}",

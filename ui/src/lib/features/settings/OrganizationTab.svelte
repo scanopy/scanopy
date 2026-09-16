@@ -234,7 +234,7 @@
 						</InfoRow>
 						<InfoRow label={common_id()} mono={true}>{org.id}</InfoRow>
 						{#if org.plan}
-							<InfoRow label={common_plan()}>{org.plan.type}</InfoRow>
+							<InfoRow label={common_plan()}>{billingPlans.getName(org.plan.type)}</InfoRow>
 						{/if}
 						{#if configQuery.data?.license_intended_expiry ?? configQuery.data?.license_expiry}
 							<InfoRow label={settings_org_licenseExpiry()}

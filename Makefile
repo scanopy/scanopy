@@ -1,6 +1,7 @@
 .PHONY: daemon-build daemon-rebuild daemon-dev daemon-fix-perms help build test test-unit clean format lint lint-migrations generate-schema generate-messages generate-fixtures refresh-vendored-data seed-dev set-plan-community set-plan-starter set-plan-pro set-plan-team set-plan-business set-plan-enterprise test-plan test-merge test-results install-dev-mac install-dev-linux install-dev-windows snmp-seed-credentials snmp-fixtures snmp-deploy snmp-verify snmp-status dcp-start dcp-stop dcp-verify dcp-status docker-proxy-up docker-proxy-up-tls docker-proxy-down docker-proxy-status podman-proxy-up podman-proxy-up-tls podman-proxy-down podman-proxy-status podman-workload-up podman-workload-down unifi-status unifi-capture issue-license daemon-clean daemon-purge daemon-logs daemon-restart daemon-config
 
 DAYS ?= 365
+PLAN ?= standard
 
 help:
 	@echo "Scanopy Development Commands"
@@ -29,7 +30,7 @@ help:
 	@echo "  make generate-messages - Generate i18n message functions from messages/*.json"
 	@echo "  make generate-fixtures - Regenerate billing-plans.json and features.json from backend"
 	@echo "  make generate-schema - Generate database schema diagram (requires tbls)"
-	@echo "  make issue-license  - Issue a signed Scanopy license key (requires LICENSE_SECRET_CMD + LICENSE_SECRET_REF env vars; [PLAN=standard] [DAYS=365])"
+	@echo "  make issue-license  - Issue a signed Scanopy license key (requires LICENSE_SECRET_CMD + LICENSE_SECRET_REF env vars; PLAN defaults to standard, DAYS to 365)"
 	@echo "  make clean          - Clean build artifacts and containers"
 	@echo "  make install-dev-mac      - Install development dependencies on macOS"
 	@echo "  make install-dev-linux    - Install development dependencies on Linux"
@@ -400,11 +401,13 @@ stripe-webhook:
 	stripe listen --forward-to http://localhost:60072/api/billing/webhooks
 
 # Issue a signed license key.
-#   make issue-license                        # unlimited Commercial (self-hosted) plan, 365 days
-#   make issue-license PLAN=standard          # a specific plan tier
-#   make issue-license PLAN=standard DAYS=90  # ...and a custom duration
-# PLAN is optional; omit it for the unlimited Commercial plan. Valid values are the
-# LicensePlan variants (see backend/src/.../types LicensePlan) in kebab-case, e.g. standard.
+#   make issue-license                        # Self-Hosted Standard, 365 days
+#   make issue-license PLAN=plus              # a different plan tier
+#   make issue-license PLAN=plus DAYS=90      # ...and a custom duration
+#   make issue-license PLAN=                  # legacy key: no tier claim at all
+# PLAN defaults to standard. Valid values are the LicensePlan variants (see
+# backend/src/.../types LicensePlan) in kebab-case: standard, plus. Setting it empty
+# omits the claim, which resolves to the grandfathered unlimited Commercial plan.
 #
 # The signing key is fetched at run time via LICENSE_SECRET_CMD "$LICENSE_SECRET_REF".
 # For a 1Password-backed setup, add to ~/.zshrc (requires the `op` CLI, `brew install 1password-cli`):

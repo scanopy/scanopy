@@ -4,4 +4,4 @@
 	import AppBanner from './AppBanner.svelte';
 </script>
 
-<AppBanner variant="warning" icon={CloudOff} body={license_pendingBanner()} />
+<AppBanner variant="danger" icon={CloudOff} body={license_pendingBanner()} />
