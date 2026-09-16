@@ -9,14 +9,17 @@
 		isMissingPaymentMethod
 	} from '$lib/shared/utils/trial';
 	import { trackOncePerSession } from '$lib/shared/utils/analytics';
+	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import {
 		billing_addPaymentMethod,
 		billing_noPaymentMethodBannerBody
 	} from '$lib/paraglide/messages';
 
 	const organizationQuery = useOrganizationQuery();
+	const configQuery = useConfigQuery();
 
 	let org = $derived(organizationQuery.data);
+	let billingEnabled = $derived(configQuery.data?.billing_enabled ?? false);
 	let trialDaysLeft = $derived(getTrialDaysLeft(org));
 
 	// `isMissingPaymentMethod` is the shared predicate (Stripe-managed plan that
@@ -24,8 +27,12 @@
 	// stay in sync. The final clause defers to TrialEndingBanner in its window
 	// (trialing + no card + <= 3 days) so the two never render together.
 	let shouldShow = $derived(
-		isMissingPaymentMethod(org) &&
-			!(isTrialingWithoutPayment(org) && trialDaysLeft !== null && trialDaysLeft <= 3)
+		isMissingPaymentMethod(org, billingEnabled) &&
+			!(
+				isTrialingWithoutPayment(org, billingEnabled) &&
+				trialDaysLeft !== null &&
+				trialDaysLeft <= 3
+			)
 	);
 
 	$effect(() => {

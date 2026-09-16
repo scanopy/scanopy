@@ -5,6 +5,7 @@
 	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
 	import { getTrialDaysLeft, isTrialingWithoutPayment } from '$lib/shared/utils/trial';
 	import { trackOncePerSession } from '$lib/shared/utils/analytics';
+	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import {
 		billing_addPaymentMethod,
 		billing_trialBannerBody,
@@ -13,11 +14,13 @@
 	} from '$lib/paraglide/messages';
 
 	const organizationQuery = useOrganizationQuery();
+	const configQuery = useConfigQuery();
 
 	let org = $derived(organizationQuery.data);
+	let billingEnabled = $derived(configQuery.data?.billing_enabled ?? false);
 	let trialDaysLeft = $derived(getTrialDaysLeft(org));
 	let shouldShow = $derived(
-		isTrialingWithoutPayment(org) && trialDaysLeft !== null && trialDaysLeft <= 3
+		isTrialingWithoutPayment(org, billingEnabled) && trialDaysLeft !== null && trialDaysLeft <= 3
 	);
 
 	let body = $derived.by(() => {

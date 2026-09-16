@@ -12,8 +12,19 @@ export function getTrialDaysLeft(org: Organization | null | undefined): number |
 	return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 }
 
-export function isTrialingWithoutPayment(org: Organization | null | undefined): boolean {
-	return org?.plan_status === 'trialing' && !(org?.has_payment_method ?? false);
+/**
+ * True when the org is mid-trial with no card on file, on a deployment that
+ * actually bills. `billingEnabled` comes from `/api/config` and is required
+ * rather than optional: with Stripe unconfigured, `plan_status` and
+ * `has_payment_method` are frozen at whatever a previous Stripe-enabled run
+ * left behind (both are written only by Stripe webhooks), so acting on them
+ * nags about a subscription the deployment cannot have.
+ */
+export function isTrialingWithoutPayment(
+	org: Organization | null | undefined,
+	billingEnabled: boolean
+): boolean {
+	return billingEnabled && org?.plan_status === 'trialing' && !(org?.has_payment_method ?? false);
 }
 
 /**
@@ -24,8 +35,11 @@ export function isTrialingWithoutPayment(org: Organization | null | undefined): 
  * showing it. `has_payment_method` is authoritative — it only flips on Stripe
  * `payment_method.attached`/`detached` webhooks, not on plan changes.
  */
-export function isMissingPaymentMethod(org: Organization | null | undefined): boolean {
-	if (!org) return false;
+export function isMissingPaymentMethod(
+	org: Organization | null | undefined,
+	billingEnabled: boolean
+): boolean {
+	if (!org || !billingEnabled) return false;
 	const meta = billingPlans.getMetadata(org.plan?.type ?? null);
 	return (
 		meta.is_stripe_managed === true &&

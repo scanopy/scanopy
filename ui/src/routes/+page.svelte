@@ -91,7 +91,8 @@
 	// users have to click Resume Now before they can navigate elsewhere. The
 	// inline alerts in BillingTab carry the matching urgent copy.
 	let isBillingBlocking = $derived(
-		organization?.plan_status === 'past_due' || organization?.plan_status === 'paused'
+		billingEnabled &&
+			(organization?.plan_status === 'past_due' || organization?.plan_status === 'paused')
 	);
 	let allTabs = $state<
 		Array<{

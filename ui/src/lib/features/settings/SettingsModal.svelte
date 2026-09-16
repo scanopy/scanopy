@@ -49,12 +49,16 @@
 	// this tab dot stays in sync with the sidebar billing dot (and the banner /
 	// BillingTab card). The other clauses are broader billing-attention states
 	// (no plan yet, paused, cancelled) that are specific to this tab.
+	// Every clause reads org rows that only Stripe webhooks write, so they go
+	// stale on a deployment with billing switched off. The tab itself is hidden
+	// there, and the dot follows it.
 	let billingNeedsAttention = $derived(
-		!org?.plan ||
-			org?.plan_status === 'past_due' ||
-			org?.plan_status === 'paused' ||
-			org?.plan_status === 'cancelled' ||
-			isMissingPaymentMethod(org)
+		isBillingEnabled &&
+			(!org?.plan ||
+				org?.plan_status === 'past_due' ||
+				org?.plan_status === 'paused' ||
+				org?.plan_status === 'cancelled' ||
+				isMissingPaymentMethod(org, isBillingEnabled))
 	);
 
 	// Tab and sub-view state

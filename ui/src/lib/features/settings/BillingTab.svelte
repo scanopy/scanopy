@@ -5,6 +5,7 @@
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { billingPlans, planStatuses } from '$lib/shared/stores/metadata';
 	import { isMissingPaymentMethod } from '$lib/shared/utils/trial';
+	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import { trackEvent, trackOncePerSession } from '$lib/shared/utils/analytics';
 	import {
 		useCustomerPortalMutation,
@@ -124,7 +125,10 @@
 
 	let hasPaymentMethod = $derived(org?.has_payment_method ?? false);
 	// Stripe-managed plan that needs a card on file but has none.
-	let missingCard = $derived(isMissingPaymentMethod(org));
+	const configQuery = useConfigQuery();
+	let missingCard = $derived(
+		isMissingPaymentMethod(org, configQuery.data?.billing_enabled ?? false)
+	);
 	let trialEndDate = $derived(org?.trial_end_date ? new Date(org.trial_end_date) : null);
 
 	// Renewal / subscription-ends label for the current plan; null when not
