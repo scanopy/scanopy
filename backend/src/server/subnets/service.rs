@@ -652,6 +652,44 @@ mod tests {
         s
     }
 
+    /// The same range stays the same subnet however each side happened to learn it.
+    ///
+    /// The test above pairs two `discovered()` subnets, so both carry
+    /// `AttributeSource::DaemonSelfReport` and the provenance halves agree by construction. That
+    /// is the case the dedup was never asked about: `SubnetBase::cidr` is
+    /// `Attributed<SubnetCidrValue>`, `Attributed` derives `PartialEq` over BOTH value and source,
+    /// and `Subnet::eq` compares that field with a bare `==` — so it does not ask "same CIDR", it
+    /// asks "same CIDR, learned the same way".
+    ///
+    /// Measured consequence on a populated estate upgraded to v0.17.15: every stored subnet
+    /// carries `Unspecified`, the daemon reports its interfaced subnets as `DaemonSelfReport`, and
+    /// the first registration therefore inserted a second live row for all 20 of them. Duplicate
+    /// subnet ids then break host matching, which compares IP *and* `subnet_id`, so every device
+    /// duplicated too and the L2 view lost the edges that crossed the split.
+    ///
+    /// `ip_addresses_match` in `hosts/service/mod.rs` already draws this distinction for MAC and
+    /// says why: the branch is asking whether it is the same hardware, not the same paperwork.
+    #[test]
+    fn the_same_range_is_the_same_subnet_however_it_was_learned() {
+        assert!(
+            matches_existing_subnet(&discovered("192.168.4.0/22"), &inferred("192.168.4.0/22")),
+            "a range read from a daemon is the same range once inferred from a neighbour"
+        );
+
+        // The exact pairing a v0.17.15 upgrade produces: everything already stored was stamped
+        // `Unspecified` by the attribution backfill, everything the daemon reports is
+        // `DaemonSelfReport`.
+        let stored = subnet(
+            "192.168.20.0/24",
+            EntitySource::Discovery,
+            AttributeSource::Unspecified,
+        );
+        assert!(
+            matches_existing_subnet(&discovered("192.168.20.0/24"), &stored),
+            "an upgraded row must not duplicate the moment a daemon reports the same range"
+        );
+    }
+
     /// The rule the whole dedup rests on: same CIDR is the same subnet.
     #[test]
     fn the_same_range_is_the_same_subnet() {
