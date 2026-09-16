@@ -403,7 +403,11 @@ impl PartialEq for Subnet {
 
 impl Hash for Subnet {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.base.cidr.hash(state);
+        // The value alone, matching what `eq` above compares. `Attributed` hashes value and source
+        // together, so hashing the field whole would give two subnets that compare equal different
+        // hashes, and any set or map keyed on `Subnet` would hold both. Nothing hashes `Subnet`
+        // today; this keeps the contract true for whatever does first.
+        self.base.cidr.value().hash(state);
     }
 }
 
