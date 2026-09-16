@@ -178,6 +178,12 @@ pub struct ServerConfig {
     /// customer servers.
     pub license_signing_key: Option<String>,
 
+    /// Where an online license key fetches its entitlement, from
+    /// `SCANOPY_LICENSE_SERVER_URL`. Defaults to Scanopy Cloud
+    /// (`CLOUD_BASE_URL`); set it to a local server to test check-ins.
+    #[serde(default)]
+    pub license_server_url: Option<String>,
+
     /// Admin contact email shown to users who are blocked from creating a new
     /// organization on a self-hosted instance at its org cap. Populated from
     /// `SCANOPY_SERVER_ADMIN_CONTACT_EMAIL`; a malformed value fails config load.
@@ -313,6 +319,7 @@ impl Default for ServerConfig {
             external_service_allowed_ips: HashMap::new(),
             license_key: None,
             license_signing_key: None,
+            license_server_url: None,
             server_admin_contact_email: None,
             snapshot_retention_days_override: None,
         }

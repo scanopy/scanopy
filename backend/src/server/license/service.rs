@@ -27,6 +27,8 @@ pub struct LicenseService {
     /// The key from `SCANOPY_LICENSE_KEY`. Fixed for the life of the process.
     license_key: LicenseKey,
     key_type: ConfiguredKey,
+    /// Where check-ins go. `CLOUD_BASE_URL` unless overridden for testing.
+    base_url: String,
     state: RwLock<LicenseState>,
     organization_service: Arc<OrganizationService>,
     http: reqwest::Client,
@@ -79,6 +81,7 @@ impl LicenseService {
     pub async fn new(
         license_key: LicenseKey,
         organization_service: Arc<OrganizationService>,
+        base_url: Option<String>,
     ) -> Self {
         let key_type = license_key.key_type();
 
@@ -113,9 +116,15 @@ impl LicenseService {
         };
         state.status = state.derive_status(&license_key, &key_type);
 
+        let base_url = base_url.unwrap_or_else(|| CLOUD_BASE_URL.to_string());
+        if base_url != CLOUD_BASE_URL {
+            tracing::info!(%base_url, "License check-ins are pointed at an override URL");
+        }
+
         Self {
             license_key,
             key_type,
+            base_url,
             state: RwLock::new(state),
             organization_service,
             http: reqwest::Client::builder()
@@ -205,7 +214,7 @@ impl LicenseService {
     /// only; the caller spawns this.
     pub async fn run_check_ins(self: Arc<Self>) {
         loop {
-            self.check_in(CLOUD_BASE_URL).await;
+            self.check_in(&self.base_url).await;
             let jitter = rand::rng().random_range(Duration::ZERO..=CHECK_IN_JITTER);
             tokio::time::sleep(CHECK_IN_INTERVAL + jitter).await;
         }
@@ -366,7 +375,7 @@ mod tests {
     }
 
     async fn service(key: LicenseKey) -> LicenseService {
-        LicenseService::new(key, unreachable_org_service()).await
+        LicenseService::new(key, unreachable_org_service(), None).await
     }
 
     /// A stand-in for the cloud entitlement endpoint that answers every
@@ -595,7 +604,7 @@ mod tests {
             .await
             .unwrap();
 
-        let license = LicenseService::new(online_key(ORG_ID), orgs.clone()).await;
+        let license = LicenseService::new(online_key(ORG_ID), orgs.clone(), None).await;
         assert!(matches!(
             license.current_status().await,
             LicenseStatus::Pending
@@ -617,7 +626,7 @@ mod tests {
         assert!(stored.base.license_entitlement.is_some());
 
         // Restart with the cloud unreachable: the persisted entitlement applies.
-        let restarted = LicenseService::new(online_key(ORG_ID), orgs.clone()).await;
+        let restarted = LicenseService::new(online_key(ORG_ID), orgs.clone(), None).await;
         assert!(matches!(
             restarted.current_status().await,
             LicenseStatus::Valid(_)

@@ -145,7 +145,12 @@ impl ServiceFactory {
         // deployment.
         let license_service = match config.effective_license_key() {
             Some(key) => Some(Arc::new(
-                LicenseService::new(key, organization_service.clone()).await,
+                LicenseService::new(
+                    key,
+                    organization_service.clone(),
+                    config.license_server_url.clone(),
+                )
+                .await,
             )),
             None => None,
         };
