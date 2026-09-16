@@ -236,6 +236,14 @@ async fn main() -> anyhow::Result<()> {
         });
     }
 
+    // Online license keys fetch their entitlement from Scanopy Cloud at
+    // startup and every 6 hours after.
+    if let Some(license_check_in) = state.license_service.clone()
+        && license_check_in.is_online()
+    {
+        tokio::spawn(license_check_in.run_check_ins());
+    }
+
     tracing::info!(target: LOG_TARGET, "  Background tasks started");
 
     let (base_router, _openapi) = create_router(state.clone());
@@ -529,29 +537,16 @@ async fn main() -> anyhow::Result<()> {
         });
     }
 
-    // Reconcile self-hosted org plan(s) to the license entitlement. The license
+    // Reconcile self-hosted org plan(s) to the license entitlement. An offline
     // key is env-only, so a key added/changed after orgs were provisioned only
-    // takes effect on restart — this is that moment. Moves every org onto the
-    // license-resolved tier (any direction), idempotently. The `stripe_secret`
-    // gate confines this to self-hosted; on cloud `current_status()` is also
-    // never `Valid` (the key is dropped via `effective_license_key`), so
-    // reconciliation can never run against a cloud deployment.
-    if state.config.stripe_secret.is_none()
-        && let Some(license_service) = &state.license_service
-        && let scanopy::server::license::types::LicenseStatus::Valid(claims) =
-            license_service.current_status().await
-    {
-        let target = scanopy::server::billing::plans::plan_for_license(&claims);
-        let organization_service = state.services.organization_service.clone();
+    // takes effect on restart — this is that moment. An online key also
+    // reconciles on every entitlement swap. Moves every org onto the
+    // license-resolved tier (any direction), idempotently, and only while the
+    // license is `Valid`. Cloud has no license service (the key is dropped via
+    // `effective_license_key`), so reconciliation never runs there.
+    if let Some(license_service) = state.license_service.clone() {
         tracing::info!(target: LOG_TARGET, "  Spawning self-hosted license plan reconciliation task");
-        tokio::spawn(async move {
-            if let Err(e) = organization_service
-                .reconcile_self_hosted_license_plans(target)
-                .await
-            {
-                tracing::error!(target: LOG_TARGET, error = %e, "Failed to reconcile self-hosted org plans to license entitlement");
-            }
-        });
+        tokio::spawn(async move { license_service.reconcile_plans().await });
     }
 
     // Configuration summary
@@ -600,6 +595,13 @@ async fn main() -> anyhow::Result<()> {
                     }
                     scanopy::server::license::types::LicenseStatus::Invalid(reason) => {
                         tracing::error!(target: LOG_TARGET, "  License:         INVALID ({}) — server is in read-only mode", reason);
+                    }
+                    scanopy::server::license::types::LicenseStatus::Pending => {
+                        tracing::info!(
+                            target: LOG_TARGET,
+                            "  License:         pending (online key, waiting for first check-in with {})",
+                            scanopy::server::license::service::CLOUD_BASE_URL,
+                        );
                     }
                 }
             }

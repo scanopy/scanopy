@@ -125,8 +125,12 @@ pub enum LicenseStatus {
     Valid(LicenseClaims),
     /// Valid signature but past expiry date
     Expired(LicenseClaims),
-    /// Invalid key (bad signature, malformed, or missing when required)
+    /// Invalid key (bad signature, malformed, or missing when required), or an
+    /// online key the cloud rejected
     Invalid(String),
+    /// Online key with no entitlement yet (first boot, cloud unreachable).
+    /// Grants Community entitlements and does not lock.
+    Pending,
 }
 
 impl LicenseStatus {
@@ -141,6 +145,7 @@ impl LicenseStatus {
             LicenseStatus::Valid(_) => "valid",
             LicenseStatus::Expired(_) => "expired",
             LicenseStatus::Invalid(_) => "invalid",
+            LicenseStatus::Pending => "pending",
         }
     }
 

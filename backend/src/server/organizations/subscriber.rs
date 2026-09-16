@@ -212,12 +212,11 @@ impl Subscriber<BillingOperation> for OrganizationService {
                     }
                 }
                 BillingOperation::LicenseReconciled { to, .. } => {
-                    // Upgrade the org's stored plan to the license entitlement
-                    // (Community → CommercialSelfHosted). Idempotent: the
-                    // reconcile pass only emits this when the plans differ, and
-                    // the guard here makes a re-emission a no-op regardless. No
-                    // renewal/downgrade bookkeeping — self-hosted plans carry no
-                    // Stripe subscription and this is an upgrade.
+                    // Move the org's stored plan to the license-resolved tier,
+                    // in either direction. Idempotent: the reconcile pass only
+                    // emits this when the plans differ, and the guard here makes
+                    // a re-emission a no-op regardless. No renewal/downgrade
+                    // bookkeeping — self-hosted plans carry no Stripe subscription.
                     if organization.base.plan.as_ref() != Some(to) {
                         organization.base.plan = Some(*to);
                         changed = true;

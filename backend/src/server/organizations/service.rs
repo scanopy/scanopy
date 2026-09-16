@@ -209,4 +209,34 @@ impl OrganizationService {
 
         Ok(upgraded)
     }
+
+    /// Write the online license key's latest entitlement (`None` after the
+    /// cloud rejected the key) and the check-in time to every org. The license
+    /// is instance-level, so every row holds the same value. Written through
+    /// storage, not `update`: this is server bookkeeping, and an `Updated`
+    /// entity event per org on every check-in would carry nothing.
+    pub async fn store_license_entitlement(
+        &self,
+        entitlement: Option<String>,
+        checked_at: DateTime<Utc>,
+    ) -> Result<(), Error> {
+        for mut org in self.get_all(StorableFilter::<Organization>::new()).await? {
+            org.base.license_entitlement = entitlement.clone();
+            org.base.license_checked_at = Some(checked_at);
+            self.storage.update(&mut org).await?;
+        }
+        Ok(())
+    }
+
+    /// The persisted entitlement with the latest check-in time across orgs,
+    /// and that time.
+    pub async fn load_license_entitlement(
+        &self,
+    ) -> Result<Option<(String, Option<DateTime<Utc>>)>, Error> {
+        let orgs = self.get_all(StorableFilter::<Organization>::new()).await?;
+        Ok(orgs
+            .into_iter()
+            .filter_map(|org| Some((org.base.license_entitlement?, org.base.license_checked_at)))
+            .max_by_key(|(_, checked_at)| *checked_at))
+    }
 }

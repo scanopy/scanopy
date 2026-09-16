@@ -161,6 +161,15 @@ pub struct OrganizationBase {
     /// Brevo company ID - internal, not exposed to API
     #[serde(default, skip_serializing)]
     pub brevo_company_id: Option<String>,
+    /// Latest entitlement an online license key fetched from Scanopy Cloud.
+    /// Instance-level: every org row holds the same value. It works as an
+    /// offline key until it expires, so it is never read from or written to
+    /// the API.
+    #[serde(skip)]
+    pub license_entitlement: Option<String>,
+    /// When Scanopy Cloud last answered this instance's license check-in.
+    #[serde(skip)]
+    pub license_checked_at: Option<DateTime<Utc>>,
     /// Per-org notification bookkeeping (plan-limit ratchets + daemon sunset).
     #[serde(default, skip_serializing)]
     pub notifications: OrgNotifications,

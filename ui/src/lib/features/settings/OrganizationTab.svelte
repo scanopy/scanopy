@@ -32,6 +32,9 @@
 		common_loading,
 		common_entityName,
 		common_name,
+		common_never,
+		common_offline,
+		common_online,
 		common_organization,
 		common_plan,
 		common_populate,
@@ -48,6 +51,8 @@
 		settings_org_deleteTypeName,
 		settings_org_info,
 		settings_org_licenseExpiry,
+		settings_org_licenseKeyType,
+		settings_org_licenseLastChecked,
 		settings_org_namePlaceholder,
 		settings_org_populateConfirm,
 		settings_org_populateDemo,
@@ -239,6 +244,20 @@
 								>{configQuery.data.license_intended_expiry ??
 									configQuery.data.license_expiry}</InfoRow
 							>
+						{/if}
+						{#if configQuery.data?.license_key_type}
+							<InfoRow label={settings_org_licenseKeyType()}>
+								{configQuery.data.license_key_type === 'online'
+									? common_online()
+									: common_offline()}
+							</InfoRow>
+						{/if}
+						{#if configQuery.data?.license_key_type === 'online'}
+							<InfoRow label={settings_org_licenseLastChecked()}>
+								{configQuery.data.license_last_checked
+									? formatTimestamp(configQuery.data.license_last_checked)
+									: common_never()}
+							</InfoRow>
 						{/if}
 					</InfoCard>
 

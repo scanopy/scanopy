@@ -2,7 +2,7 @@ use chrono::{Duration, Utc};
 use clap::{Parser, Subcommand};
 use scanopy::server::license::{
     crypto::encoding_key_from_env,
-    key::LicenseKey,
+    key::{LicenseKey, LicenseKeyType},
     mint::{license_claims, sign_license},
     types::LicensePlan,
 };
@@ -61,7 +61,22 @@ fn main() -> anyhow::Result<()> {
             Ok(())
         }
         Commands::Verify { key } => {
-            let status = LicenseKey::new(key).validate();
+            let key = LicenseKey::new(key);
+
+            // An online key carries no plan or expiry; the cloud supplies them.
+            if let LicenseKeyType::Online(claims) = key.key_type() {
+                let iat = chrono::DateTime::from_timestamp(claims.iat, 0)
+                    .map(|d| d.format("%Y-%m-%d %H:%M:%S UTC").to_string())
+                    .unwrap_or_else(|| "unknown".to_string());
+
+                println!("Status:         VALID (online key)");
+                println!("Issued:         {}", iat);
+                println!("Org ID:         {}", claims.org_id);
+                println!("Key version:    {}", claims.key_version);
+                return Ok(());
+            }
+
+            let status = key.validate();
 
             match &status {
                 scanopy::server::license::types::LicenseStatus::Valid(claims) => {
@@ -98,6 +113,9 @@ fn main() -> anyhow::Result<()> {
                 scanopy::server::license::types::LicenseStatus::Invalid(reason) => {
                     println!("Status:  INVALID");
                     println!("Reason:  {}", reason);
+                }
+                scanopy::server::license::types::LicenseStatus::Pending => {
+                    println!("Status:  PENDING");
                 }
             }
 
