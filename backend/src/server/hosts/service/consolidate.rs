@@ -334,24 +334,12 @@ impl HostService {
         for other_iface in &other_interfaces {
             // Check for conflict: same (subnet_id + ip_address) or same MAC (when 1:1)
             let matching_dest_iface = dest_interfaces.iter().find(|dest_iface| {
-                // Match by subnet + IP (always safe — same logical ip_address)
-                (dest_iface.base.subnet_id == other_iface.base.subnet_id
-                    && dest_iface.base.ip_address == other_iface.base.ip_address)
-                    // Match by MAC only when both hosts have a single interface with this MAC.
-                    // Multiple ip_addresses sharing a MAC = VLAN sub-interfaces that should
-                    // be preserved separately, not collapsed during merge.
-                    || (dest_iface.base.mac_address.is_some()
-                        && dest_iface.base.mac_address == other_iface.base.mac_address
-                        && dest_iface
-                            .base
-                            .mac_address
-                            .as_ref()
-                            .map(|e| e.value().0)
-                            .map(|mac| {
-                                dest_mac_counts.get(&mac).copied().unwrap_or(0) == 1
-                                    && other_mac_counts.get(&mac).copied().unwrap_or(0) == 1
-                            })
-                            .unwrap_or(false))
+                matches_destination_ip_address(
+                    dest_iface,
+                    other_iface,
+                    &dest_mac_counts,
+                    &other_mac_counts,
+                )
             });
 
             if let Some(dest_iface) = matching_dest_iface {
@@ -632,5 +620,179 @@ impl HostService {
             services,
             interfaces,
         ))
+    }
+}
+
+/// Whether `other_iface`, on the host being merged away, is already represented by `dest_iface` on
+/// the destination host, and so should map onto that row rather than transfer beside it.
+///
+/// A free function rather than a closure so it can be tested without a database — the same shape
+/// `matches_existing_subnet` uses for subnet dedup, and for the same reason: this is the rule that
+/// decides whether a merge leaves the destination host holding two rows for one NIC, and it was
+/// reachable only through `consolidate_hosts`, which needs a database.
+pub(crate) fn matches_destination_ip_address(
+    dest_iface: &IPAddress,
+    other_iface: &IPAddress,
+    dest_mac_counts: &HashMap<MacAddress, usize>,
+    other_mac_counts: &HashMap<MacAddress, usize>,
+) -> bool {
+    // Match by subnet + IP (always safe — same logical ip_address)
+    if dest_iface.base.subnet_id == other_iface.base.subnet_id
+        && dest_iface.base.ip_address == other_iface.base.ip_address
+    {
+        return true;
+    }
+
+    // Match by MAC only when both hosts have a single interface with this MAC.
+    // Multiple ip_addresses sharing a MAC = VLAN sub-interfaces that should
+    // be preserved separately, not collapsed during merge.
+    //
+    // On the MAC value, never on the carrier: `MacEvidence` is an `Attributed`, which compares
+    // value and source together, so a bare `==` would ask whether both hosts learned the address
+    // the same way. They routinely have not — a stored row stamped `Unspecified` against a
+    // daemon's `ArpReply`, or a forwarding table against an ARP reply — and the question here is
+    // whether it is the same NIC. Missing the conflict transfers a second row for one NIC onto the
+    // destination host.
+    mac_of(&dest_iface.base.mac_address)
+        .zip(mac_of(&other_iface.base.mac_address))
+        .is_some_and(|(dest_mac, other_mac)| {
+            dest_mac == other_mac
+                && dest_mac_counts.get(&dest_mac).copied().unwrap_or(0) == 1
+                && other_mac_counts.get(&other_mac).copied().unwrap_or(0) == 1
+        })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::server::ip_addresses::r#impl::base::{IPAddressBase, MacEvidenceValue};
+
+    fn ip_address(subnet_id: Uuid, ip: &str, mac: Option<(&str, AttributeSource)>) -> IPAddress {
+        IPAddress::new(IPAddressBase {
+            subnet_id,
+            ip_address: ip.parse().expect("valid test IP"),
+            mac_address: mac.map(|(mac, source)| {
+                MacEvidence::new(
+                    MacEvidenceValue(mac.parse::<MacAddress>().expect("valid test MAC")),
+                    source,
+                )
+            }),
+            ..Default::default()
+        })
+    }
+
+    /// The same count `merge_hosts` builds from a host's live rows, so a fixture cannot be counted
+    /// a way the caller never counts it.
+    fn mac_counts(addresses: &[IPAddress]) -> HashMap<MacAddress, usize> {
+        addresses
+            .iter()
+            .filter_map(|i| mac_of(&i.base.mac_address))
+            .fold(HashMap::new(), |mut acc, mac| {
+                *acc.entry(mac).or_insert(0) += 1;
+                acc
+            })
+    }
+
+    /// The regression. One NIC known to both hosts by different routes — a stored row that predates
+    /// the provenance column against a daemon's ARP reply — carries the same address under
+    /// different sources. Comparing the `MacEvidence` carriers asks whether the two hosts learned
+    /// it the same way, which is not the question, and answering "no" transfers a second row for
+    /// that NIC onto the destination host.
+    #[test]
+    fn different_mac_sources_for_one_nic_still_conflict() {
+        let mac = "a4:bb:6d:12:34:56";
+        let dest = ip_address(
+            Uuid::new_v4(),
+            "10.0.0.5",
+            Some((mac, AttributeSource::Unspecified)),
+        );
+        let other = ip_address(
+            Uuid::new_v4(),
+            "10.0.9.9",
+            Some((mac, AttributeSource::ArpReply)),
+        );
+
+        assert!(matches_destination_ip_address(
+            &dest,
+            &other,
+            &mac_counts(std::slice::from_ref(&dest)),
+            &mac_counts(std::slice::from_ref(&other)),
+        ));
+    }
+
+    /// The subnet+IP tier stands on its own: the same logical address is the same row whatever the
+    /// MACs say about it, including when they disagree.
+    #[test]
+    fn same_subnet_and_ip_conflict_whatever_the_macs_say() {
+        let subnet = Uuid::new_v4();
+        let dest = ip_address(
+            subnet,
+            "10.0.0.5",
+            Some(("a4:bb:6d:12:34:56", AttributeSource::ArpReply)),
+        );
+        let other = ip_address(
+            subnet,
+            "10.0.0.5",
+            Some(("a4:bb:6d:99:99:99", AttributeSource::ForwardingTable)),
+        );
+
+        assert!(matches_destination_ip_address(
+            &dest,
+            &other,
+            &mac_counts(std::slice::from_ref(&dest)),
+            &mac_counts(std::slice::from_ref(&other)),
+        ));
+    }
+
+    /// VLAN sub-interfaces, bridge members and bond members share a parent's MAC while holding
+    /// distinct addresses. A MAC that more than one row on either host carries identifies no single
+    /// NIC, so the MAC tier must not fire and those rows transfer separately.
+    #[test]
+    fn a_mac_held_by_several_interfaces_does_not_conflict() {
+        let mac = "a4:bb:6d:12:34:56";
+        let dest = ip_address(
+            Uuid::new_v4(),
+            "10.0.0.5",
+            Some((mac, AttributeSource::ArpReply)),
+        );
+        let dest_vlan = ip_address(
+            Uuid::new_v4(),
+            "10.0.1.5",
+            Some((mac, AttributeSource::ArpReply)),
+        );
+        let other = ip_address(
+            Uuid::new_v4(),
+            "10.0.9.9",
+            Some((mac, AttributeSource::ArpReply)),
+        );
+
+        assert!(!matches_destination_ip_address(
+            &dest,
+            &other,
+            &mac_counts(&[dest.clone(), dest_vlan]),
+            &mac_counts(std::slice::from_ref(&other)),
+        ));
+    }
+
+    /// Two genuinely separate NICs sharing no address must stay separate rows.
+    #[test]
+    fn different_nics_with_no_shared_address_do_not_conflict() {
+        let dest = ip_address(
+            Uuid::new_v4(),
+            "10.0.0.5",
+            Some(("a4:bb:6d:12:34:56", AttributeSource::ArpReply)),
+        );
+        let other = ip_address(
+            Uuid::new_v4(),
+            "10.0.9.9",
+            Some(("a4:bb:6d:99:99:99", AttributeSource::ArpReply)),
+        );
+
+        assert!(!matches_destination_ip_address(
+            &dest,
+            &other,
+            &mac_counts(std::slice::from_ref(&dest)),
+            &mac_counts(std::slice::from_ref(&other)),
+        ));
     }
 }

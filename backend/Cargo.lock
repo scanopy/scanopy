@@ -6386,7 +6386,7 @@ checksum = "ece8e78b2f38ec51c51f5d475df0a7187ba5111b2a28bdc761ee05b075d40a71"
 
 [[package]]
 name = "scanopy-server"
-version = "0.17.15"
+version = "0.17.16"
 dependencies = [
  "anstyle-query",
  "anyhow",

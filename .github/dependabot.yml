@@ -1,0 +1,27 @@
+# Dependency updates, opened against `dev`.
+#
+# `target-branch` is the point of this file. Without it Dependabot opens against the default
+# branch, `main`, where `pr_dev_only` fails every one of them: contributions land on `dev` and
+# reach `main` only through a release promotion. #703 was a security bump that sat blocked for two
+# weeks for exactly that reason, and was already fixed on `dev` by the time anyone looked.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /ui
+    target-branch: dev
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: cargo
+    directory: /backend
+    target-branch: dev
+    schedule:
+      interval: weekly
+
+  # Pins in `.github/workflows/`. Nothing has been updating these, so action versions drift until
+  # someone notices a deprecation warning in a log.
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly

@@ -131,6 +131,17 @@ impl<T: AttributeValue> Attributed<T> {
         if candidate.rank() < existing.rank() || existing == candidate {
             return false;
         }
+        // An incumbent nobody could attribute makes no claim to authority, so it must not outlive
+        // a later reading of the same thing. Without this arm a non-`REFRESHABLE` value stamped at
+        // the floor is permanent: nothing ranks below it to be refused, and the equal-rung arm
+        // below refuses everything else — so the first value ever written can never be corrected,
+        // however wrong it has since become. That is not hypothetical; it froze every address MAC
+        // on a live estate, including ones whose hardware had been replaced.
+        //
+        // Scoped deliberately to the floor: an *attributed* value keeps the protection below.
+        if existing.rank() == AttributeSource::Unspecified.rank() {
+            return true;
+        }
         // Equal rank replaces only from the same source, and only where the value can legitimately
         // move: that lets a firmware revision follow an upgrade when re-read, without letting two
         // sources at one rung flap the value depending on which finished first in a given scan.
@@ -341,6 +352,62 @@ mod tests {
         assert_eq!(
             carrier.mac_address.unwrap().value,
             MacEvidenceValue("a4:bb:6d:12:34:56".parse().unwrap())
+        );
+    }
+
+    fn mac(s: &str, source: AttributeSource) -> Attributed<MacEvidenceValue> {
+        Attributed::new(MacEvidenceValue(s.parse().unwrap()), source)
+    }
+
+    /// An `Unspecified` value is one nobody could attribute. It makes no claim to authority, so it
+    /// must not be able to outlive a later observation of the same thing — but for a
+    /// non-`REFRESHABLE` value it did exactly that, permanently.
+    ///
+    /// Concretely, for an address-borne MAC: `MacEvidenceValue` declares `REFRESHABLE = false` on
+    /// the reasoning that "a NIC does not change its address". True of a NIC; false of an
+    /// *address*, which is what the row is keyed by, and which moves between NICs whenever a lease
+    /// is reassigned, a VM is rebuilt, or a device is replaced keeping its management IP. The
+    /// escape hatch the constant documents — "a stronger source may still correct one a weaker
+    /// source got wrong" — cannot fire when the stored rung is already the floor, because nothing
+    /// ranks below it and equal rank is refused. So the first MAC ever recorded for an address is
+    /// frozen for the life of the row.
+    ///
+    /// Observed on a live estate: 147 of 147 address MACs stamped `Unspecified`, several wrong
+    /// since the hardware behind them was replaced, and unchanged by scans that rewrote every
+    /// other field on the same host.
+    #[test]
+    fn an_unattributable_value_does_not_outlive_a_later_observation() {
+        let mut slot = Some(mac("42:3d:16:7c:f6:1f", AttributeSource::Unspecified));
+
+        let changed = Attributed::apply(
+            &mut slot,
+            mac("5e:8d:88:3c:8e:9f", AttributeSource::Unspecified),
+        );
+
+        assert!(
+            changed,
+            "an unattributable MAC must not permanently block a later reading of the same address"
+        );
+        assert_eq!(
+            slot.unwrap().value,
+            MacEvidenceValue("5e:8d:88:3c:8e:9f".parse().unwrap())
+        );
+    }
+
+    /// The counterpart, and the reason the change is scoped to the floor: a value that *is*
+    /// attributed keeps `REFRESHABLE`'s protection. Two sources at one rung must not flap it
+    /// depending on which finished first in a given scan.
+    #[test]
+    fn an_attributed_non_refreshable_value_still_resists_an_equal_rung() {
+        let probe =
+            AttributeSource::Probe(crate::server::services::r#impl::patterns::ClientProbe::Snmp);
+        let mut slot = Some(mac("42:3d:16:7c:f6:1f", probe));
+
+        let changed = Attributed::apply(&mut slot, mac("5e:8d:88:3c:8e:9f", probe));
+
+        assert!(
+            !changed,
+            "an attributed non-refreshable value must still resist an equal-rung re-read"
         );
     }
 }
