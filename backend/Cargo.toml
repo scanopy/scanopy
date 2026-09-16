@@ -102,7 +102,7 @@ tokio-stream = "0.1"
 pnet = "0.35.0"
 ipnetwork = "0.20"
 cidr = { version = "0.3.1", features = ["serde"] }
-if-addrs = "0.14.0"
+if-addrs = "0.15.0"
 # mDNS/DNS-SD browsing needs IP_MULTICAST_IF to choose which interface a query leaves by, and
 # neither std nor tokio exposes it. Already in the tree via tokio, so this declaration adds no
 # crate and no compile cost — it only makes an existing transitive dependency directly usable.
