@@ -248,18 +248,59 @@ pub fn last_legacy_neighbor_wire() -> Version {
     Version::new(0, 17, 14)
 }
 
-/// Every capability floor owned by this module. The rot-guard test asserts each
-/// is ≤ the current server version, so a floor can never quietly reference a
-/// version this build doesn't know about.
+/// Every capability floor this build enforces, labelled so a failure names the
+/// offender. The rot-guard test asserts each is ≤ the current server version, so
+/// a floor can never quietly reference a version this build doesn't know about.
+///
+/// Covers two sets, because a floor is a floor wherever it is declared:
+///
+/// * the shim floors owned by this module, and
+/// * every credential type's [`minimum_daemon_version`], which gates server→daemon
+///   credential dispatch in `retain_daemon_compatible`.
+///
+/// The second set is here because omitting it hid a live one. A credential floor
+/// above `own_version()` is not inert like a too-new shim floor — it silently drops
+/// that credential from every dispatch, so the integration behind it does nothing at
+/// all, on every deployment of the branch, with no operator-visible signal beyond one
+/// server-side warning.
+///
+/// [`minimum_daemon_version`]: crate::server::credentials::r#impl::types::CredentialTypeDiscriminants::minimum_daemon_version
 #[cfg(test)]
-fn capability_floors() -> Vec<Version> {
-    vec![
-        minimum_unified_discovery(),
-        minimum_full_server_poll(),
-        minimum_server_provisioned_identity(),
-        minimum_correct_docker_volume_mount(),
-        minimum_targeted_rescan(),
-    ]
+fn capability_floors() -> Vec<(String, Version)> {
+    use crate::server::credentials::r#impl::types::CredentialTypeDiscriminants;
+    use strum::IntoEnumIterator;
+
+    let mut floors = vec![
+        (
+            "minimum_unified_discovery".to_string(),
+            minimum_unified_discovery(),
+        ),
+        (
+            "minimum_full_server_poll".to_string(),
+            minimum_full_server_poll(),
+        ),
+        (
+            "minimum_server_provisioned_identity".to_string(),
+            minimum_server_provisioned_identity(),
+        ),
+        (
+            "minimum_correct_docker_volume_mount".to_string(),
+            minimum_correct_docker_volume_mount(),
+        ),
+        (
+            "minimum_targeted_rescan".to_string(),
+            minimum_targeted_rescan(),
+        ),
+    ];
+
+    floors.extend(CredentialTypeDiscriminants::iter().map(|disc| {
+        (
+            format!("{} credential", disc.display_name()),
+            disc.minimum_daemon_version(),
+        )
+    }));
+
+    floors
 }
 
 // ===========================================================================
@@ -688,11 +729,13 @@ mod tests {
     #[test]
     fn capability_floors_within_server_version() {
         let own = own_version();
-        for floor in capability_floors() {
+        for (name, floor) in capability_floors() {
             assert!(
                 floor <= own,
-                "capability floor {floor} exceeds server version {own} — a shim references a \
-                 version this build doesn't know; move the floor or delete the shim"
+                "capability floor {name} is {floor}, above server version {own} — it references a \
+                 version this build doesn't know. A shim floor: move it or delete the shim. A \
+                 credential floor: this build dispatches that credential to nobody, so bump the \
+                 crate version to the release it ships in, or lower the floor."
             );
         }
     }
