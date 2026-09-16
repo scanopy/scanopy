@@ -76,6 +76,7 @@ impl Storable for Organization {
                     license_paid_through,
                     license_last_checked_in_at,
                     license_key_version,
+                    license_key_issued_at,
                 },
         } = self.clone();
 
@@ -105,6 +106,7 @@ impl Storable for Organization {
                 "license_paid_through",
                 "license_last_checked_in_at",
                 "license_key_version",
+                "license_key_issued_at",
             ],
             vec![
                 SqlValue::Uuid(id),
@@ -136,6 +138,7 @@ impl Storable for Organization {
                 SqlValue::OptionTimestamp(license_paid_through),
                 SqlValue::OptionTimestamp(license_last_checked_in_at),
                 SqlValue::I64(license_key_version),
+                SqlValue::OptionTimestamp(license_key_issued_at),
             ],
         ))
     }
@@ -204,6 +207,7 @@ impl Storable for Organization {
                     .try_get("license_last_checked_in_at")
                     .unwrap_or(None),
                 license_key_version: row.try_get("license_key_version").unwrap_or(0),
+                license_key_issued_at: row.try_get("license_key_issued_at").unwrap_or(None),
             },
         })
     }
@@ -282,5 +286,6 @@ impl Entity for Organization {
         self.base.license_paid_through = existing.base.license_paid_through;
         self.base.license_last_checked_in_at = existing.base.license_last_checked_in_at;
         self.base.license_key_version = existing.base.license_key_version;
+        self.base.license_key_issued_at = existing.base.license_key_issued_at;
     }
 }

@@ -31,6 +31,7 @@
 		useDaemonPromptResponseMutation
 	} from '$lib/features/organizations/queries';
 	import { hasLicensedPlan, isBillingPlanActive } from '$lib/features/organizations/types';
+	import { billingPlans } from '$lib/shared/stores/metadata';
 	import { reopenSettingsAfterBilling } from '$lib/features/billing/stores';
 	import {
 		modalState,
@@ -55,8 +56,9 @@
 	let billingEnabled = $derived(configQuery.data?.billing_enabled ?? false);
 	let organization = $derived(organizationQuery.data);
 	// A licensed self-hosted plan on a billing-enabled server locks the main app:
-	// the backend rejects main-app routes, and the org only gets Settings (license
-	// keys in Billing). Switching to a cloud plan unlocks it on the next org refetch.
+	// the backend rejects main-app routes, and the org only gets Settings (its keys
+	// live on the License tab). Switching to a cloud plan unlocks it on the next
+	// org refetch.
 	let isSelfHostedPlanLocked = $derived(
 		billingEnabled && organization != null && hasLicensedPlan(organization)
 	);
@@ -99,19 +101,23 @@
 	let sidebarCollapsed = $state(false);
 	let dataLoadingStarted = $state(false);
 	let showSettings = $state(false);
-	// Billing-blocking states force the Settings modal open on the Billing tab
-	// and make it non-dismissible. Past-due users have to update payment; paused
-	// users have to click Resume Now before they can navigate elsewhere; orgs on
-	// a licensed self-hosted plan manage their license there. The inline alerts
-	// in BillingTab carry the matching urgent copy.
+	// Billing-blocking states force the Settings modal open and make it
+	// non-dismissible. Past-due users have to update payment; paused users have to
+	// click Resume Now before they can navigate elsewhere; orgs on a licensed
+	// self-hosted plan manage their license and card on the License tab. The inline
+	// alerts in BillingTab carry the matching urgent copy.
 	let isBillingBlocking = $derived(
 		organization?.plan_status === 'past_due' ||
 			organization?.plan_status === 'paused' ||
 			isSelfHostedPlanLocked
 	);
 	// Only owners can see the Billing tab; everyone else is held on Account,
-	// where SettingsModal explains that an owner has to resolve billing.
-	let billingBlockingTab = $derived(isOwner ? 'billing' : 'account');
+	// where SettingsModal explains that an owner has to resolve billing. An owner on
+	// a licensed self-hosted plan is held on License instead — the key is what that
+	// org came for, and Billing has nothing it must act on.
+	let billingBlockingTab = $derived(
+		isOwner ? (isSelfHostedPlanLocked ? 'license' : 'billing') : 'account'
+	);
 	let allTabs = $state<
 		Array<{
 			id: string;
@@ -202,6 +208,7 @@
 			appInitialized &&
 			!daemonPromptShown &&
 			!showBillingModal &&
+			!isSelfHostedPlanLocked &&
 			$modalState.name === null &&
 			!isViewer &&
 			organization?.onboarding?.includes('OrgCreated') &&
@@ -368,10 +375,20 @@
 		isOpen={showBillingModal}
 		name="billing-plan"
 		dismissible={!needsPlanSelection}
-		onClose={() => {
+		onClose={(selectedPlan) => {
 			planJustActivated = true;
+			// Key the licensed check off the plan the user just picked: `organization`
+			// still holds the previous plan at this point, which is how the daemon
+			// prompt used to win the race and ask a self-hosted buyer to install a
+			// daemon they can't reach. The lock effect opens Settings on the License
+			// tab as soon as the org query catches up.
+			const licensed =
+				selectedPlan != null && billingPlans.getMetadata(selectedPlan.type).license_plan != null;
 			closeModal();
-			if ($reopenSettingsAfterBilling) {
+			if (licensed) {
+				daemonPromptShown = true;
+				reopenSettingsAfterBilling.set(false);
+			} else if ($reopenSettingsAfterBilling) {
 				reopenSettingsAfterBilling.set(false);
 				openModal('settings', { tab: 'billing' });
 			} else if (!isViewer && !daemonPromptResponded && daemonsQuery.data?.length === 0) {

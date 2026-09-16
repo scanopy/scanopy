@@ -11,7 +11,7 @@ use thiserror::Error;
 
 use super::crypto;
 use super::online::{ONLINE_KEY_SUBJECT, OnlineKeyClaims};
-use super::types::{LicenseClaims, LicenseKeyType, LicensePlan};
+use super::types::{LicenseClaims, LicensePlan};
 use crate::server::organizations::r#impl::base::Organization;
 
 /// `sub` claim of offline keys and entitlements.
@@ -137,19 +137,6 @@ impl LicenseIssuer {
         decode_online_key(token, &self.decoding)
     }
 
-    /// Mint a key an org owner copies into a self-hosted server.
-    pub fn mint_key(
-        &self,
-        org: &Organization,
-        key_type: LicenseKeyType,
-        now: DateTime<Utc>,
-    ) -> Result<String, MintError> {
-        match key_type {
-            LicenseKeyType::Online => self.mint_online_key(org, now),
-            LicenseKeyType::Offline => self.mint_offline_key(org, now),
-        }
-    }
-
     /// Mint the entitlement returned to an instance presenting a valid online
     /// key. Skips the air-gap check: entitlements are only ever handed to a
     /// server that phoned home.
@@ -162,25 +149,35 @@ impl LicenseIssuer {
         self.mint_paid_through(org, Some(plan), "entitlement", now)
     }
 
-    fn mint_online_key(&self, org: &Organization, now: DateTime<Utc>) -> Result<String, MintError> {
+    /// Mint the org's online key. Deterministic: the same `issued_at` and key
+    /// version sign to a byte-identical string, so copying the key twice hands
+    /// back the same value. `issued_at` comes from
+    /// `OrganizationService::license_key_issued_at`, which logs the audit line
+    /// when it assigns one; this re-signs an already-issued key, so it logs at
+    /// debug rather than repeating that line on every copy.
+    pub fn mint_online_key(
+        &self,
+        org: &Organization,
+        issued_at: DateTime<Utc>,
+    ) -> Result<String, MintError> {
         let plan = licensed_plan(org)?;
         let key_version = u32::try_from(org.base.license_key_version)
             .map_err(|_| MintError::KeyVersionOutOfRange)?;
-        let claims = online_key_claims(now, org.id.to_string(), key_version);
+        let claims = online_key_claims(issued_at, org.id.to_string(), key_version);
         let token = sign_online_key(&claims, &self.encoding)?;
-        tracing::info!(
+        tracing::debug!(
             organization_id = %org.id,
             key_type = "online",
             plan = ?plan,
             key_version,
-            "Minted license key"
+            "Signed online license key"
         );
         Ok(token)
     }
 
     /// The air-gap check lives here, in the mint path, so it holds whichever
     /// caller asks for an offline key.
-    fn mint_offline_key(
+    pub fn mint_offline_key(
         &self,
         org: &Organization,
         now: DateTime<Utc>,
@@ -272,13 +269,29 @@ MCowBQYDK2VwAyEAook5qHgu6TfUZ3SRN1UpztcrryUarXRkoUBf26YRvDg=
         let issuer = test_issuer();
         let org = org(get_self_hosted_standard_plan(), None);
 
-        let key = issuer
-            .mint_key(&org, LicenseKeyType::Online, Utc::now())
-            .unwrap();
+        let key = issuer.mint_online_key(&org, Utc::now()).unwrap();
         let claims = issuer.decode_online_key(&key).unwrap();
 
         assert_eq!(claims.org_id, org.id.to_string());
         assert_eq!(claims.key_version, 3);
+    }
+
+    #[test]
+    fn online_key_is_the_same_string_for_one_issued_at() {
+        let issuer = test_issuer();
+        let mut org = org(get_self_hosted_standard_plan(), None);
+        let issued_at = Utc::now();
+
+        // What "Copy key" does twice: same stamp, same version, same string.
+        let first = issuer.mint_online_key(&org, issued_at).unwrap();
+        assert_eq!(issuer.mint_online_key(&org, issued_at).unwrap(), first);
+
+        // Regenerating moves both the version and the stamp.
+        org.base.license_key_version += 1;
+        let regenerated = issuer
+            .mint_online_key(&org, issued_at + Duration::seconds(1))
+            .unwrap();
+        assert_ne!(regenerated, first);
     }
 
     #[test]
@@ -311,14 +324,12 @@ MCowBQYDK2VwAyEAook5qHgu6TfUZ3SRN1UpztcrryUarXRkoUBf26YRvDg=
 
         let standard = org(get_self_hosted_standard_plan(), paid_through);
         assert!(matches!(
-            issuer.mint_key(&standard, LicenseKeyType::Offline, Utc::now()),
+            issuer.mint_offline_key(&standard, Utc::now()),
             Err(MintError::OfflineNotIncluded)
         ));
 
         let plus = org(get_self_hosted_plus_plan(), paid_through);
-        let key = issuer
-            .mint_key(&plus, LicenseKeyType::Offline, Utc::now())
-            .unwrap();
+        let key = issuer.mint_offline_key(&plus, Utc::now()).unwrap();
         let LicenseStatus::Valid(claims) = LicenseKey::new(key).validate_with(&test_decoding_key())
         else {
             panic!("offline key should validate");
@@ -332,7 +343,7 @@ MCowBQYDK2VwAyEAook5qHgu6TfUZ3SRN1UpztcrryUarXRkoUBf26YRvDg=
         let cloud = org(get_enterprise_plan(), Some(Utc::now()));
 
         assert!(matches!(
-            issuer.mint_key(&cloud, LicenseKeyType::Online, Utc::now()),
+            issuer.mint_online_key(&cloud, Utc::now()),
             Err(MintError::NotLicensed)
         ));
         assert!(matches!(
@@ -363,9 +374,7 @@ MCowBQYDK2VwAyEAook5qHgu6TfUZ3SRN1UpztcrryUarXRkoUBf26YRvDg=
 
         // Signed by the test key, verified against the production public key.
         let org = org(get_self_hosted_standard_plan(), None);
-        let key = issuer
-            .mint_key(&org, LicenseKeyType::Online, Utc::now())
-            .unwrap();
+        let key = issuer.mint_online_key(&org, Utc::now()).unwrap();
         assert!(matches!(
             decode_online_key(&key, &crypto::decoding_key()),
             Err(OnlineKeyError::Invalid(_))

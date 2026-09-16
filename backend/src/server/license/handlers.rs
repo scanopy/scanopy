@@ -170,9 +170,20 @@ pub async fn create_license_key(
         .await?
         .ok_or_else(|| ApiError::entity_not_found::<Organization>(organization_id))?;
 
-    let key = issuer
-        .mint_key(&organization, request.key_type, Utc::now())
-        .map_err(mint_error)?;
+    let key = match request.key_type {
+        LicenseKeyType::Online => {
+            // Deterministic: the stamp is assigned once per key version, so
+            // copying the key again returns the same string.
+            let issued_at = state
+                .services
+                .organization_service
+                .license_key_issued_at(organization_id)
+                .await?;
+            issuer.mint_online_key(&organization, issued_at)
+        }
+        LicenseKeyType::Offline => issuer.mint_offline_key(&organization, Utc::now()),
+    }
+    .map_err(mint_error)?;
 
     Ok(Json(ApiResponse::success(LicenseKeyResponse { key })))
 }

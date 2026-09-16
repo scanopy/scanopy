@@ -30,6 +30,7 @@ mod payment_recovered;
 mod plan_changed;
 mod plan_limit_approaching;
 mod plan_limit_reached;
+mod self_hosted_welcome;
 mod subscription_cancelled;
 mod subscription_paused;
 mod subscription_reactivated;
@@ -65,6 +66,7 @@ pub use payment_recovered::PaymentRecovered;
 pub use plan_changed::PlanChanged;
 pub use plan_limit_approaching::PlanLimitApproaching;
 pub use plan_limit_reached::PlanLimitReached;
+pub use self_hosted_welcome::SelfHostedWelcome;
 pub use subscription_cancelled::SubscriptionCancelled;
 pub use subscription_paused::SubscriptionPaused;
 pub use subscription_reactivated::SubscriptionReactivated;
@@ -521,6 +523,17 @@ mod tests {
             payload: &payload,
             base_url: "https://app.example.test",
         });
+
+        assert_fully_rendered(&SelfHostedWelcome {
+            plan_name: "Self-Hosted Standard",
+            trial_days: Some(14),
+            deployment_assistance: false,
+        });
+        assert_fully_rendered(&SelfHostedWelcome {
+            plan_name: "Self-Hosted Plus",
+            trial_days: None,
+            deployment_assistance: true,
+        });
     }
 
     /// Visit every email (every distinct variant) once, paired with a stable
@@ -689,6 +702,22 @@ mod tests {
         f(
             "checkout_completed",
             &CheckoutCompleted { plan_name: "Pro" },
+        );
+        f(
+            "self_hosted_welcome_trial",
+            &SelfHostedWelcome {
+                plan_name: "Self-Hosted Standard",
+                trial_days: Some(14),
+                deployment_assistance: false,
+            },
+        );
+        f(
+            "self_hosted_welcome_deployment_assistance",
+            &SelfHostedWelcome {
+                plan_name: "Self-Hosted Plus",
+                trial_days: None,
+                deployment_assistance: true,
+            },
         );
         f(
             "usage_summary_attached",

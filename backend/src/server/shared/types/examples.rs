@@ -409,6 +409,7 @@ pub fn organization() -> Organization {
             license_paid_through: None,
             license_last_checked_in_at: None,
             license_key_version: 0,
+            license_key_issued_at: None,
         },
     }
 }

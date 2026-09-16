@@ -73,13 +73,19 @@ impl Subscriber<BillingOperation> for EmailService {
                 BillingOperation::TrialStarted {
                     plan, trial_days, ..
                 } => {
-                    self.send_trial_started_email(
-                        org_owner,
-                        plan.name(),
-                        trial_days,
-                        plan.billing_period(),
-                    )
-                    .await?;
+                    // A self-hosted trial fires CheckoutCompleted alongside
+                    // this, and that arm sends the self-hosted welcome. The
+                    // cloud trial email would be a second, wrong-footed
+                    // message about scanning your network.
+                    if plan.license_plan().is_none() {
+                        self.send_trial_started_email(
+                            org_owner,
+                            plan.name(),
+                            trial_days,
+                            plan.billing_period(),
+                        )
+                        .await?;
+                    }
                 }
                 BillingOperation::TrialEnded {
                     plan,
@@ -102,8 +108,21 @@ impl Subscriber<BillingOperation> for EmailService {
                         .await?;
                     }
                 }
-                BillingOperation::PlanChanged { to, .. } => {
-                    self.send_plan_changed_email(org_owner, to.name()).await?;
+                BillingOperation::PlanChanged { from, to, .. } => {
+                    // Moving from a cloud plan onto a self-hosted one is the
+                    // third way an org ends up needing a license key, and the
+                    // only one that raises no checkout.
+                    if to.license_plan().is_some() && from.license_plan().is_none() {
+                        self.send_self_hosted_welcome_email(
+                            org_owner,
+                            to.name(),
+                            None,
+                            to.features().deployment_assistance,
+                        )
+                        .await?;
+                    } else {
+                        self.send_plan_changed_email(org_owner, to.name()).await?;
+                    }
                 }
                 BillingOperation::TrialWillEnd {
                     plan,
@@ -161,9 +180,23 @@ impl Subscriber<BillingOperation> for EmailService {
                     self.send_cancellation_initiated_email(org_owner, &period_end_str)
                         .await?;
                 }
-                BillingOperation::CheckoutCompleted { plan, .. } => {
-                    self.send_checkout_completed_email(org_owner, plan.name())
+                BillingOperation::CheckoutCompleted {
+                    plan, is_trialing, ..
+                } => {
+                    // Covers both self-hosted signup paths: a trial start and
+                    // an outright purchase.
+                    if plan.license_plan().is_some() {
+                        self.send_self_hosted_welcome_email(
+                            org_owner,
+                            plan.name(),
+                            is_trialing.then(|| plan.config().trial_days),
+                            plan.features().deployment_assistance,
+                        )
                         .await?;
+                    } else {
+                        self.send_checkout_completed_email(org_owner, plan.name())
+                            .await?;
+                    }
                 }
                 BillingOperation::Reactivated { .. } => {
                     self.send_subscription_reactivated_email(org_owner).await?;

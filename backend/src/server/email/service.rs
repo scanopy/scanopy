@@ -13,9 +13,9 @@ use super::messages::{
     DiscoveryDigest, DiscoveryGuide, Email, EmailAttachment, EmailChangedOld, EmailPreference,
     InstallCommand, Invite, OidcLinked, OidcUnlinked, OrganizationDeleted, PasswordChanged,
     PasswordReset, PaymentActionRequired, PaymentFailed, PaymentMethodAdded, PaymentMethodRemoved,
-    PaymentRecovered, PlanChanged, PlanLimitApproaching, PlanLimitReached, SubscriptionCancelled,
-    SubscriptionPaused, SubscriptionReactivated, SubscriptionResumed, TrialConverted, TrialEnding,
-    TrialExpired, TrialStarted, UsageSummary, Verification,
+    PaymentRecovered, PlanChanged, PlanLimitApproaching, PlanLimitReached, SelfHostedWelcome,
+    SubscriptionCancelled, SubscriptionPaused, SubscriptionReactivated, SubscriptionResumed,
+    TrialConverted, TrialEnding, TrialExpired, TrialStarted, UsageSummary, Verification,
 };
 use super::transport::EmailTransport;
 use crate::server::{
@@ -351,6 +351,24 @@ impl EmailService {
         plan_name: &str,
     ) -> Result<()> {
         self.dispatch(to, &CheckoutCompleted { plan_name }).await
+    }
+
+    pub async fn send_self_hosted_welcome_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        trial_days: Option<u32>,
+        deployment_assistance: bool,
+    ) -> Result<()> {
+        self.dispatch(
+            to,
+            &SelfHostedWelcome {
+                plan_name,
+                trial_days,
+                deployment_assistance,
+            },
+        )
+        .await
     }
 
     pub async fn send_payment_failed_email(&self, to: EmailAddress) -> Result<()> {

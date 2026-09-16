@@ -10,9 +10,7 @@
 	} from '$lib/shared/stores/metadata';
 	import { useCheckoutMutation } from '$lib/features/billing/queries';
 	import { onboardingStore } from '$lib/features/auth/stores/onboarding';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import PlanInquiryModal from '$lib/features/billing/PlanInquiryModal.svelte';
 	import { trackEvent } from '$lib/shared/utils/analytics';
 	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
 	import { hasLicensedPlan, isBillingPlanActive } from '$lib/features/organizations/types';
@@ -27,7 +25,9 @@
 	}: {
 		isOpen?: boolean;
 		dismissible?: boolean;
-		onClose: () => void;
+		/** Receives the plan the user just picked, so the caller can react to it without
+		 *  waiting for the organization query to catch up. Undefined on a plain dismiss. */
+		onClose: (selectedPlan?: BillingPlan) => void;
 		name?: string;
 	} = $props();
 
@@ -40,12 +40,13 @@
 
 	// Transform fixture data to BillingPlan[] format (exclude plans that can't be obtained
 	// in-app, deduplicate). purchase_flow 'none' is Community (GitHub) and Free; Free
-	// stays because it activates in-app.
+	// stays because it activates in-app. Enterprise is sold through the website, not here.
 	const plansData = (() => {
 		const seen = new Set<string>(); // eslint-disable-line svelte/prefer-svelte-reactivity
 		return billingPlansJson
 			.filter((p) => p.metadata.purchase_flow !== 'none' || p.metadata.is_free)
 			.filter((p) => !(p.metadata.is_free && p.metadata.rate === 'Year'))
+			.filter((p) => !p.metadata.is_enterprise)
 			.map(
 				(p) =>
 					({
@@ -70,10 +71,6 @@
 				return true;
 			});
 	})();
-
-	// TanStack Query for current user
-	const currentUserQuery = useCurrentUserQuery();
-	let currentUser = $derived(currentUserQuery.data);
 
 	// TanStack Query for organization
 	const organizationQuery = useOrganizationQuery();
@@ -161,7 +158,7 @@
 				if (stripeTab) {
 					stripeTab.location.href = result;
 					upgradeContext.set(null);
-					onClose();
+					onClose(plan);
 					void waitForOrgUpdate(planApplied);
 				} else {
 					// No pre-opened tab (redirect not anticipated, or popup blocked) —
@@ -172,7 +169,7 @@
 				// Direct activation needs no Stripe tab.
 				stripeTab?.close();
 				upgradeContext.set(null);
-				onClose();
+				onClose(plan);
 				// Plan activated directly (Free or trial) is still webhook-driven, so a
 				// single refetch races the webhook and reads stale state (e.g. plan_status
 				// still null, so NoPaymentMethodBanner never appears until a reload). Poll
@@ -184,15 +181,6 @@
 			// Error handled by mutation
 			stripeTab?.close();
 		}
-	}
-
-	// Plan inquiry modal state
-	let inquiryModalOpen = $state(false);
-	let selectedPlan = $state<BillingPlan | null>(null);
-
-	function handlePlanInquiry(plan: BillingPlan) {
-		selectedPlan = plan;
-		inquiryModalOpen = true;
 	}
 </script>
 
@@ -223,21 +211,10 @@
 			showHosting={true}
 			{initialHosting}
 			onPlanSelect={handlePlanSelect}
-			onPlanInquiry={handlePlanInquiry}
 			{recommendedPlan}
 			{isReturningCustomer}
 			{isCurrentlyTrialing}
 			currentPlanType={organization?.plan?.type ?? null}
 		/>
 	</div>
-
-	<PlanInquiryModal
-		isOpen={inquiryModalOpen}
-		planName={selectedPlan ? billingPlanHelpers.getName(selectedPlan.type) : ''}
-		planType={selectedPlan?.type ?? ''}
-		userEmail={currentUser?.email ?? ''}
-		orgName={organization?.name ?? ''}
-		companySize=""
-		onClose={() => (inquiryModalOpen = false)}
-	/>
 </GenericModal>

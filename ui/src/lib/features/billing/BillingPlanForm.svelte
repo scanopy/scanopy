@@ -11,7 +11,6 @@
 	import { Check, X, ChevronDown, ChevronUp, Loader2, Minus, Plus } from 'lucide-svelte';
 	import {
 		billing_compareAllFeatures,
-		billing_contactUs,
 		billing_dayFreeTrial,
 		billing_daysCount,
 		billing_everythingInPlanPlus,
@@ -24,12 +23,12 @@
 		billing_perSeatMonthly,
 		billing_priceBase,
 		billing_rateMonthly,
+		billing_rateMonthlyEquivalent,
+		billing_rateYearly,
 		billing_rateYearlyBilled,
-		billing_requestInformation,
 		billing_seatUnit,
 		billing_seatUnitPlural,
 		billing_selfHosted,
-		billing_selfHostedOrCloud,
 		billing_showFeatures,
 		billing_hideFeatures,
 		billing_snapshotRetention,
@@ -57,7 +56,7 @@
 	import ToggleGroup from './ToggleGroup.svelte';
 	import type { BillingPlan, PlanPickerHosting } from './types';
 	import type { BillingPlanMetadata, FeatureMetadata } from '$lib/shared/stores/metadata';
-	import type { ColorStyle, Color } from '$lib/shared/utils/styling';
+	import type { ColorStyle } from '$lib/shared/utils/styling';
 	import type { IconComponent } from '$lib/shared/utils/types';
 	import { tooltip } from '$lib/shared/actions/tooltip';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
@@ -86,7 +85,6 @@
 		billingPlanHelpers: MetadataHelpers<BillingPlanMetadata>;
 		featureHelpers: MetadataHelpers<FeatureMetadata>;
 		onPlanSelect: (plan: BillingPlan) => void | Promise<void>;
-		onPlanInquiry?: (plan: BillingPlan) => void | Promise<void>;
 		showGithubStars?: boolean;
 		/** Show the Cloud / Self-Hosted toggle (and hosting tags on each card). */
 		showHosting?: boolean;
@@ -108,7 +106,6 @@
 		billingPlanHelpers,
 		featureHelpers,
 		onPlanSelect,
-		onPlanInquiry,
 		showGithubStars = true,
 		class: className = '',
 		showHosting = false,
@@ -170,13 +167,10 @@
 			if (period === 'yearly') return plan.rate === 'Year';
 			return true;
 		});
-		// Sort Free first and Enterprise last (Enterprise is hosting-agnostic and tops
-		// both ladders); everything else keeps fixture order (stable sort).
+		// Sort Free first; everything else keeps fixture order (stable sort).
 		result = [...result].sort((a, b) => {
 			if (billingPlanHelpers.getMetadata(a.type)?.is_free) return -1;
 			if (billingPlanHelpers.getMetadata(b.type)?.is_free) return 1;
-			if (billingPlanHelpers.getMetadata(a.type)?.is_enterprise) return 1;
-			if (billingPlanHelpers.getMetadata(b.type)?.is_enterprise) return -1;
 			return 0;
 		});
 		return result;
@@ -309,9 +303,22 @@
 	// Helper functions
 	// ============================================================================
 
+	// Self-hosted commercial tiers publish a real annual price (custom_price is null,
+	// rate is Year). They're priced annual-first ("$4,000/yr") with a monthly whisper
+	// under it; cloud plans stay monthly-first.
+	function isSelfHostedAnnual(plan: BillingPlan): boolean {
+		const metadata = billingPlanHelpers.getMetadata(plan.type);
+		return metadata?.hosting === 'SelfHosted' && !metadata?.custom_price && plan.rate === 'Year';
+	}
+
+	function formatDollars(cents: number): string {
+		return `$${(cents / 100).toLocaleString('en-US')}`;
+	}
+
 	function formatBasePricing(plan: BillingPlan): string {
 		const metadata = billingPlanHelpers.getMetadata(plan.type);
 		if (metadata?.custom_price) return metadata.custom_price;
+		if (isSelfHostedAnnual(plan)) return formatDollars(plan.base_cents);
 		if (plan.rate === 'Year') return `$${plan.base_cents / 12 / 100}`;
 		return `$${plan.base_cents / 100}`;
 	}
@@ -319,6 +326,7 @@
 	function formatRate(plan: BillingPlan): string {
 		const metadata = billingPlanHelpers.getMetadata(plan.type);
 		if (metadata?.custom_price) return '';
+		if (isSelfHostedAnnual(plan)) return billing_rateYearly();
 		if (plan.rate === 'Year') return billing_rateYearlyBilled();
 		return billing_rateMonthly();
 	}
@@ -359,36 +367,6 @@
 		return billingPlanHelpers.getMetadata(plan.type)?.custom_price !== null;
 	}
 
-	function getHostingColor(hosting: string): Color {
-		switch (hosting) {
-			case 'Cloud':
-				return 'Cyan';
-			case 'Any':
-				return 'Purple';
-			case 'SelfHosted':
-				return 'Green';
-			default:
-				return 'Gray';
-		}
-	}
-
-	function getHostingLabel(hosting: string): string {
-		switch (hosting) {
-			case 'Cloud':
-				return common_cloud();
-			case 'SelfHosted':
-				return billing_selfHosted();
-			case 'Any':
-				return billing_selfHostedOrCloud();
-			default:
-				return hosting;
-		}
-	}
-
-	function isEnterprise(plan: BillingPlan): boolean {
-		return billingPlanHelpers.getMetadata(plan.type)?.is_enterprise === true;
-	}
-
 	async function handlePlanSelect(plan: BillingPlan) {
 		loadingPlanType = plan.type;
 		try {
@@ -403,7 +381,13 @@
 		return value == null ? common_unlimited() : String(value);
 	}
 
-	function formatSnapshotRetention(value: boolean | string | number | null): string {
+	function formatSnapshotRetention(plan: BillingPlan): string {
+		// Self-hosted deployments set their own retention window, so no fixed number is
+		// published for them — unless this deployment carries the universal override,
+		// which getFeatureValue already applies and which wins for every plan.
+		const override = configQuery.data?.snapshot_retention_days_override;
+		if (override == null && getHosting(plan) === 'SelfHosted') return common_custom();
+		const value = getFeatureValue(plan.type, 'snapshot_retention_days');
 		if (value === 0) return billing_notIncluded();
 		if (typeof value === 'number') return billing_daysCount({ count: value });
 		return '—';
@@ -472,9 +456,7 @@
 					{@const colorHelper = billingPlanHelpers.getColorHelper(plan.type)}
 					{@const isRecommended = recommendedPlan === plan.type}
 					{@const description = billingPlanHelpers.getDescription(plan.type)}
-					{@const hosting = getHosting(plan)}
 					{@const trial = hasTrial(plan)}
-					{@const enterprise = isEnterprise(plan)}
 					{@const metadata = billingPlanHelpers.getMetadata(plan.type)}
 					{@const incrementalFeatures = metadata?.incremental_features ?? []}
 					{@const prevTier = metadata?.previous_tier}
@@ -511,10 +493,6 @@
 									{billingPlanHelpers.getName(plan.type)}
 								</span>
 							</div>
-
-							{#if showHosting && hosting}
-								<Tag label={getHostingLabel(hosting)} color={getHostingColor(hosting)} />
-							{/if}
 						</div>
 
 						<!-- Pricing -->
@@ -554,6 +532,17 @@
 									{/if}
 								</div>
 							{/if}
+							{#if selfHostedActive}
+								<!-- Annual price on the card, monthly equivalent under it. The
+								     invisible copy keeps card rows aligned for plans with no annual price. -->
+								<div
+									class={`text-tertiary text-center text-xs ${isSelfHostedAnnual(plan) && !hasExtras(plan) ? 'opacity-100' : 'opacity-0'}`}
+								>
+									{billing_rateMonthlyEquivalent({
+										amount: isSelfHostedAnnual(plan) ? formatCents(plan.base_cents / 12) : ''
+									})}
+								</div>
+							{/if}
 							<div
 								class={`text-xs font-medium text-success ${(hasTrial(plan) || (isCurrentlyTrialing && plan.trial_days > 0)) && !hasCustomPrice(plan) ? 'opacity-100' : 'opacity-0'}`}
 							>
@@ -572,16 +561,7 @@
 
 						<!-- CTA Button -->
 						<div class="py-4" style="border-color: var(--color-border)">
-							{#if enterprise && onPlanInquiry}
-								<button
-									type="button"
-									onclick={() => onPlanInquiry(plan)}
-									disabled={loadingPlanType !== null}
-									class="btn-primary w-full text-sm"
-								>
-									{billing_requestInformation()}
-								</button>
-							{:else if metadata?.purchase_flow === 'stripe' || metadata?.is_free}
+							{#if metadata?.purchase_flow === 'stripe' || metadata?.is_free}
 								<!-- Free has purchase_flow 'none' but activates in-app like a Stripe plan -->
 								{#if plan.type === currentPlanType}
 									<InlineInfo title="" body={billing_yourCurrentPlan()} />
@@ -605,17 +585,6 @@
 											{firstInvoiceCaption(plan)}
 										</div>
 									{/if}
-								{/if}
-							{:else if metadata?.purchase_flow === 'contact'}
-								{#if onPlanInquiry}
-									<button
-										type="button"
-										onclick={() => onPlanInquiry(plan)}
-										disabled={loadingPlanType !== null}
-										class="btn-primary w-full text-sm"
-									>
-										{billing_contactUs()}
-									</button>
 								{/if}
 							{:else}
 								<a
@@ -720,7 +689,7 @@
 							<div class="flex items-center justify-between text-sm">
 								<span class="text-secondary">{billing_snapshotRetention()}</span>
 								<span class="text-primary font-medium">
-									{formatSnapshotRetention(getFeatureValue(plan.type, 'snapshot_retention_days'))}
+									{formatSnapshotRetention(plan)}
 								</span>
 							</div>
 						</div>
