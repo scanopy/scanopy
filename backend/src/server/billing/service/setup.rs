@@ -1,6 +1,11 @@
 //! Service construction, plan/price lookups, and Stripe product initialization.
 use super::*;
 
+/// Stripe accepts at most this many `marketing_features` per product and
+/// rejects the whole create call past it. The self-hosted tiers enable more
+/// features than this.
+const MAX_MARKETING_FEATURES: usize = 15;
+
 impl BillingService {
     pub fn new(params: BillingServiceParams) -> Self {
         let BillingServiceParams {
@@ -127,8 +132,16 @@ impl BillingService {
                 Err(_) => {
                     let features: Vec<Feature> = plan.features().into();
 
-                    let features: Vec<Features> =
-                        features.iter().map(|f| Features::new(f.name())).collect();
+                    // Stripe rejects a product carrying more than
+                    // MAX_MARKETING_FEATURES of them, and the self-hosted tiers
+                    // enable more than that. These are shop-window copy, so the
+                    // overflow is dropped rather than failing product creation
+                    // (and with it server startup).
+                    let features: Vec<Features> = features
+                        .iter()
+                        .take(MAX_MARKETING_FEATURES)
+                        .map(|f| Features::new(f.name()))
+                        .collect();
 
                     // Create product
                     let create_product = CreateProduct::new(plan.name())
