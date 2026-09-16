@@ -2,7 +2,7 @@ use chrono::{Duration, Utc};
 use clap::{Parser, Subcommand};
 use scanopy::server::license::{
     crypto::encoding_key_from_env,
-    key::{LicenseKey, LicenseKeyType},
+    key::{ConfiguredKey, LicenseKey},
     mint::{license_claims, sign_license},
     types::LicensePlan,
 };
@@ -64,7 +64,7 @@ fn main() -> anyhow::Result<()> {
             let key = LicenseKey::new(key);
 
             // An online key carries no plan or expiry; the cloud supplies them.
-            if let LicenseKeyType::Online(claims) = key.key_type() {
+            if let ConfiguredKey::Online(claims) = key.key_type() {
                 let iat = chrono::DateTime::from_timestamp(claims.iat, 0)
                     .map(|d| d.format("%Y-%m-%d %H:%M:%S UTC").to_string())
                     .unwrap_or_else(|| "unknown".to_string());

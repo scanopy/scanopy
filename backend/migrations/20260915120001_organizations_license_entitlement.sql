@@ -5,4 +5,4 @@ SET statement_timeout = '5s';
 -- the cloud last answered. Instance-level state, written to every org row so it
 -- survives restarts while the cloud is unreachable.
 ALTER TABLE organizations ADD COLUMN license_entitlement TEXT;
-ALTER TABLE organizations ADD COLUMN license_checked_at TIMESTAMPTZ;
+ALTER TABLE organizations ADD COLUMN license_entitlement_at TIMESTAMPTZ;

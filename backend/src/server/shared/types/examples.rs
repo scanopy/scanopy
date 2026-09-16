@@ -405,11 +405,11 @@ pub fn organization() -> Organization {
             next_renewal_at: None,
             brevo_company_id: None,
             license_entitlement: None,
-            license_checked_at: None,
+            license_entitlement_at: None,
             notifications: Default::default(),
             use_case: Default::default(),
             license_paid_through: None,
-            license_last_checked_in_at: None,
+            license_checkin_at: None,
             license_key_version: 0,
         },
     }

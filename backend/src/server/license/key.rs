@@ -1,19 +1,15 @@
 use jsonwebtoken::{Algorithm, DecodingKey, Validation};
-use serde::{Deserialize, Serialize};
 
 use super::crypto::decoding_key;
 use super::mint::{LICENSE_ISSUER, LICENSE_SUBJECT, decode_online_key};
 use super::online::OnlineKeyClaims;
-use super::types::{LicenseClaims, LicenseStatus};
+use super::types::{LicenseClaims, LicenseKeyType, LicenseStatus};
 
-/// Which kind of key `SCANOPY_LICENSE_KEY` holds, told apart by the `sub` claim.
-#[derive(Debug, Clone, strum_macros::EnumDiscriminants)]
-#[strum_discriminants(
-    derive(Serialize, Deserialize, utoipa::ToSchema),
-    serde(rename_all = "lowercase"),
-    doc = "Kind of license key configured, as reported by the public config endpoint."
-)]
-pub enum LicenseKeyType {
+/// The key `SCANOPY_LICENSE_KEY` holds, told apart by the `sub` claim, with an
+/// online key's claims already decoded. [`ConfiguredKey::key_type`] reduces it
+/// to the [`LicenseKeyType`] the cloud mints by and the config endpoint reports.
+#[derive(Debug, Clone)]
+pub enum ConfiguredKey {
     /// Carries its own plan and expiry and is validated locally. Anything that
     /// is not a verified online key takes this path, so a malformed key
     /// validates to `Invalid` exactly as it did before online keys existed.
@@ -21,6 +17,17 @@ pub enum LicenseKeyType {
     /// A permanent credential the instance exchanges for an entitlement at
     /// each check-in.
     Online(OnlineKeyClaims),
+}
+
+impl ConfiguredKey {
+    /// The customer-facing key type: what the cloud minted, and what the public
+    /// config endpoint reports.
+    pub fn key_type(&self) -> LicenseKeyType {
+        match self {
+            ConfiguredKey::Offline => LicenseKeyType::Offline,
+            ConfiguredKey::Online(_) => LicenseKeyType::Online,
+        }
+    }
 }
 
 /// A Scanopy license key: the raw signed JWT configured via
@@ -58,10 +65,10 @@ impl LicenseKey {
 
     /// Classify the key. Only a correctly signed token with the online subject
     /// is an online key; everything else takes the offline path.
-    pub fn key_type(&self) -> LicenseKeyType {
+    pub fn key_type(&self) -> ConfiguredKey {
         match decode_online_key(&self.0, &decoding_key()) {
-            Ok(claims) => LicenseKeyType::Online(claims),
-            Err(_) => LicenseKeyType::Offline,
+            Ok(claims) => ConfiguredKey::Online(claims),
+            Err(_) => ConfiguredKey::Offline,
         }
     }
 
@@ -163,7 +170,7 @@ mod tests {
 
     #[test]
     fn online_subject_selects_online_path() {
-        let LicenseKeyType::Online(claims) = online_key(ORG_ID).key_type() else {
+        let ConfiguredKey::Online(claims) = online_key(ORG_ID).key_type() else {
             panic!("online key classified as offline");
         };
         assert_eq!(claims.org_id, ORG_ID);
@@ -172,14 +179,14 @@ mod tests {
     #[test]
     fn offline_key_keeps_offline_path() {
         let key = LicenseKey::new(license_token(None, Some(LicensePlan::Standard), 30));
-        assert!(matches!(key.key_type(), LicenseKeyType::Offline));
+        assert!(matches!(key.key_type(), ConfiguredKey::Offline));
         assert!(matches!(key.validate(), LicenseStatus::Valid(_)));
     }
 
     #[test]
     fn garbage_takes_offline_path_and_is_invalid() {
         let key = LicenseKey::new("not-a-jwt".to_string());
-        assert!(matches!(key.key_type(), LicenseKeyType::Offline));
+        assert!(matches!(key.key_type(), ConfiguredKey::Offline));
         assert!(matches!(key.validate(), LicenseStatus::Invalid(_)));
     }
 

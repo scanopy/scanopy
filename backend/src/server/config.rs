@@ -1,7 +1,8 @@
 use crate::server::auth::r#impl::oidc::OidcProviderMetadata;
-use crate::server::license::key::{LicenseKey, LicenseKeyTypeDiscriminants};
+use crate::server::license::key::LicenseKey;
 use crate::server::license::mint::LicenseIssuer;
 use crate::server::license::service::{LicenseService, self_hosted_plan};
+use crate::server::license::types::LicenseKeyType;
 use crate::server::license::types::LicenseStatusDiscriminants;
 use crate::server::openapi::tags as api_tags;
 use crate::server::shared::types::api::ApiResponse;
@@ -250,10 +251,10 @@ pub struct PublicConfigResponse {
     pub license_status: Option<LicenseStatusDiscriminants>,
     /// Whether the configured key is an offline key or an online key that
     /// fetches its entitlement from Scanopy Cloud. `None` when no key applies.
-    pub license_key_type: Option<LicenseKeyTypeDiscriminants>,
+    pub license_key_type: Option<LicenseKeyType>,
     /// When Scanopy Cloud last answered this instance's license check-in.
     /// Online keys only.
-    pub license_last_checked: Option<DateTime<Utc>>,
+    pub license_entitlement_at: Option<DateTime<Utc>>,
     /// Hard expiry — the drop-dead date after which the server rejects
     /// the key. Referenced by the grace-period banner.
     #[schema(format = "date")]
@@ -542,8 +543,8 @@ pub async fn get_public_config(State(state): State<Arc<AppState>>) -> impl IntoR
         None => None,
     };
     let license_key_type = license_service.map(|svc| svc.key_type());
-    let license_last_checked = match license_service {
-        Some(svc) => svc.last_checked().await,
+    let license_entitlement_at = match license_service {
+        Some(svc) => svc.entitlement_at().await,
         None => None,
     };
     let license_status = current_license.as_ref().map(|s| s.kind());
@@ -608,7 +609,7 @@ pub async fn get_public_config(State(state): State<Arc<AppState>>) -> impl IntoR
             deployment_type,
             license_status,
             license_key_type,
-            license_last_checked,
+            license_entitlement_at,
             license_expiry,
             license_intended_expiry,
             license_in_grace_period,

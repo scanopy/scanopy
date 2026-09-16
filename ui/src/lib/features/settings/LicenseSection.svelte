@@ -63,9 +63,7 @@
 			: null
 	);
 	let lastCheckIn = $derived(
-		org.license_last_checked_in_at
-			? formatTimestamp(org.license_last_checked_in_at)
-			: common_never()
+		org.license_checkin_at ? formatTimestamp(org.license_checkin_at) : common_never()
 	);
 
 	let copyingKeyType = $state<LicenseKeyType | null>(null);

@@ -235,23 +235,15 @@ pub(crate) mod tests {
     use crate::server::license::types::LicenseStatus;
     use uuid::Uuid;
 
-    // Test-only Ed25519 keypair. Unrelated to the production signing key.
-    const TEST_PRIVATE_KEY: &str = "-----BEGIN PRIVATE KEY-----
-MC4CAQAwBQYDK2VwBCIEIKbHD9jZVew/xQZxpo+jfYTQnZMHUNUK3EZPEYVwE1TL
------END PRIVATE KEY-----
-";
-    const TEST_PUBLIC_KEY: &str = "-----BEGIN PUBLIC KEY-----
-MCowBQYDK2VwAyEAook5qHgu6TfUZ3SRN1UpztcrryUarXRkoUBf26YRvDg=
------END PUBLIC KEY-----
-";
+    use crate::server::license::crypto::test_keys;
 
     pub(crate) fn test_decoding_key() -> DecodingKey {
-        DecodingKey::from_ed_pem(TEST_PUBLIC_KEY.as_bytes()).unwrap()
+        DecodingKey::from_ed_pem(test_keys::PUBLIC_KEY.as_bytes()).unwrap()
     }
 
     pub(crate) fn test_issuer() -> LicenseIssuer {
         LicenseIssuer::new(
-            crypto::encoding_key_from_pem(TEST_PRIVATE_KEY).unwrap(),
+            crypto::encoding_key_from_pem(test_keys::PRIVATE_KEY).unwrap(),
             test_decoding_key(),
         )
     }
@@ -367,7 +359,7 @@ MCowBQYDK2VwAyEAook5qHgu6TfUZ3SRN1UpztcrryUarXRkoUBf26YRvDg=
             .mint_key(&org, LicenseKeyType::Online, Utc::now())
             .unwrap();
         assert!(matches!(
-            decode_online_key(&key, &crypto::decoding_key()),
+            decode_online_key(&key, &test_keys::production_decoding_key()),
             Err(OnlineKeyError::Invalid(_))
         ));
 
@@ -375,7 +367,7 @@ MCowBQYDK2VwAyEAook5qHgu6TfUZ3SRN1UpztcrryUarXRkoUBf26YRvDg=
         claims.sub = LICENSE_SUBJECT.to_string();
         let wrong_subject = sign_online_key(
             &claims,
-            &crypto::encoding_key_from_pem(TEST_PRIVATE_KEY).unwrap(),
+            &crypto::encoding_key_from_pem(test_keys::PRIVATE_KEY).unwrap(),
         )
         .unwrap();
         assert!(matches!(

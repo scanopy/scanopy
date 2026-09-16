@@ -247,15 +247,15 @@
 						{/if}
 						{#if configQuery.data?.license_key_type}
 							<InfoRow label={settings_org_licenseKeyType()}>
-								{configQuery.data.license_key_type === 'online'
+								{configQuery.data.license_key_type === 'Online'
 									? common_online()
 									: common_offline()}
 							</InfoRow>
 						{/if}
-						{#if configQuery.data?.license_key_type === 'online'}
+						{#if configQuery.data?.license_key_type === 'Online'}
 							<InfoRow label={settings_org_licenseLastChecked()}>
-								{configQuery.data.license_last_checked
-									? formatTimestamp(configQuery.data.license_last_checked)
+								{configQuery.data.license_entitlement_at
+									? formatTimestamp(configQuery.data.license_entitlement_at)
 									: common_never()}
 							</InfoRow>
 						{/if}

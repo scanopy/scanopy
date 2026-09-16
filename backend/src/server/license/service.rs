@@ -6,9 +6,9 @@ use rand::Rng;
 use reqwest::StatusCode;
 use tokio::sync::RwLock;
 
-use super::key::{LicenseKey, LicenseKeyType, LicenseKeyTypeDiscriminants};
+use super::key::{ConfiguredKey, LicenseKey};
 use super::online::{ENTITLEMENT_PATH, EntitlementRequest, EntitlementResponse};
-use super::types::LicenseStatus;
+use super::types::{LicenseKeyType, LicenseStatus};
 use crate::server::billing::plans::plan_for_license;
 use crate::server::billing::types::base::BillingPlan;
 use crate::server::organizations::service::OrganizationService;
@@ -26,7 +26,7 @@ const CHECK_IN_TIMEOUT: Duration = Duration::from_secs(10);
 pub struct LicenseService {
     /// The key from `SCANOPY_LICENSE_KEY`. Fixed for the life of the process.
     license_key: LicenseKey,
-    key_type: LicenseKeyType,
+    key_type: ConfiguredKey,
     state: RwLock<LicenseState>,
     organization_service: Arc<OrganizationService>,
     http: reqwest::Client,
@@ -41,17 +41,17 @@ struct LicenseState {
     entitlement: Option<LicenseKey>,
     /// When the cloud last answered a check-in with an entitlement or a
     /// rejection.
-    last_checked: Option<DateTime<Utc>>,
+    entitlement_at: Option<DateTime<Utc>>,
     /// Why the cloud rejected the online key (400/403). Cleared by the next
     /// entitlement.
     rejection: Option<String>,
 }
 
 impl LicenseState {
-    fn derive_status(&self, key: &LicenseKey, key_type: &LicenseKeyType) -> LicenseStatus {
+    fn derive_status(&self, key: &LicenseKey, key_type: &ConfiguredKey) -> LicenseStatus {
         match key_type {
-            LicenseKeyType::Offline => key.validate(),
-            LicenseKeyType::Online(claims) => match (&self.rejection, &self.entitlement) {
+            ConfiguredKey::Offline => key.validate(),
+            ConfiguredKey::Online(claims) => match (&self.rejection, &self.entitlement) {
                 (Some(reason), _) => LicenseStatus::Invalid(reason.clone()),
                 (None, Some(entitlement)) => entitlement.validate_entitlement(claims),
                 (None, None) => LicenseStatus::Pending,
@@ -82,9 +82,9 @@ impl LicenseService {
     ) -> Self {
         let key_type = license_key.key_type();
 
-        let (entitlement, last_checked) = match &key_type {
-            LicenseKeyType::Offline => (None, None),
-            LicenseKeyType::Online(claims) => {
+        let (entitlement, entitlement_at) = match &key_type {
+            ConfiguredKey::Offline => (None, None),
+            ConfiguredKey::Online(claims) => {
                 match organization_service.load_license_entitlement().await {
                     Ok(Some((token, checked_at))) => {
                         let entitlement = LicenseKey::new(token);
@@ -108,7 +108,7 @@ impl LicenseService {
         let mut state = LicenseState {
             status: LicenseStatus::Pending,
             entitlement,
-            last_checked,
+            entitlement_at,
             rejection: None,
         };
         state.status = state.derive_status(&license_key, &key_type);
@@ -130,17 +130,17 @@ impl LicenseService {
         self.state.read().await.status.clone()
     }
 
-    pub fn key_type(&self) -> LicenseKeyTypeDiscriminants {
-        LicenseKeyTypeDiscriminants::from(&self.key_type)
+    pub fn key_type(&self) -> LicenseKeyType {
+        self.key_type.key_type()
     }
 
     pub fn is_online(&self) -> bool {
-        matches!(self.key_type, LicenseKeyType::Online(_))
+        matches!(self.key_type, ConfiguredKey::Online(_))
     }
 
     /// When the cloud last answered a check-in. Always `None` for offline keys.
-    pub async fn last_checked(&self) -> Option<DateTime<Utc>> {
-        self.state.read().await.last_checked
+    pub async fn entitlement_at(&self) -> Option<DateTime<Utc>> {
+        self.state.read().await.entitlement_at
     }
 
     /// The plan the current license entitles: the licensed tier when `Valid`,
@@ -276,7 +276,7 @@ impl LicenseService {
     /// another org) is a bad response rather than a verdict on the key, so it
     /// leaves state unchanged.
     async fn apply_entitlement(&self, token: String) {
-        let LicenseKeyType::Online(claims) = &self.key_type else {
+        let ConfiguredKey::Online(claims) = &self.key_type else {
             return;
         };
         let entitlement = LicenseKey::new(token.clone());
@@ -290,7 +290,7 @@ impl LicenseService {
         {
             let mut state = self.state.write().await;
             state.entitlement = Some(entitlement);
-            state.last_checked = Some(checked_at);
+            state.entitlement_at = Some(checked_at);
             state.rejection = None;
             Self::set_status(&mut state, new_status);
         }
@@ -307,7 +307,7 @@ impl LicenseService {
         {
             let mut state = self.state.write().await;
             state.entitlement = None;
-            state.last_checked = Some(checked_at);
+            state.entitlement_at = Some(checked_at);
             state.rejection = Some(reason.clone());
             Self::set_status(&mut state, LicenseStatus::Invalid(reason));
         }
@@ -458,7 +458,7 @@ mod tests {
         assert!(matches!(status, LicenseStatus::Pending));
         assert!(!status.is_locked());
         assert_eq!(service.effective_plan().await, BillingPlan::default());
-        assert!(service.last_checked().await.is_none());
+        assert!(service.entitlement_at().await.is_none());
     }
 
     #[tokio::test]
@@ -474,7 +474,7 @@ mod tests {
             service.effective_plan().await,
             get_self_hosted_standard_plan()
         );
-        assert!(service.last_checked().await.is_some());
+        assert!(service.entitlement_at().await.is_some());
 
         // A renewal and a tier change in the cloud arrive on the next check-in.
         service
@@ -501,7 +501,7 @@ mod tests {
             .check_in(&entitlement_cloud(LicensePlan::Plus, 30).await)
             .await;
         let valid = service.current_status().await;
-        let checked = service.last_checked().await;
+        let checked = service.entitlement_at().await;
 
         service
             .check_in(&error_cloud(StatusCode::INTERNAL_SERVER_ERROR).await)
@@ -510,7 +510,7 @@ mod tests {
         let after = service.current_status().await;
         assert!(matches!(after, LicenseStatus::Valid(_)));
         assert_eq!(after.expiry_date(), valid.expiry_date());
-        assert_eq!(service.last_checked().await, checked);
+        assert_eq!(service.entitlement_at().await, checked);
     }
 
     #[tokio::test]
@@ -626,7 +626,7 @@ mod tests {
             restarted.effective_plan().await,
             get_self_hosted_plus_plan()
         );
-        assert!(restarted.last_checked().await.is_some());
+        assert!(restarted.entitlement_at().await.is_some());
     }
 
     #[test]

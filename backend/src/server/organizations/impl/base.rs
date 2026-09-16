@@ -169,7 +169,7 @@ pub struct OrganizationBase {
     pub license_entitlement: Option<String>,
     /// When Scanopy Cloud last answered this instance's license check-in.
     #[serde(skip)]
-    pub license_checked_at: Option<DateTime<Utc>>,
+    pub license_entitlement_at: Option<DateTime<Utc>>,
     /// Per-org notification bookkeeping (plan-limit ratchets + daemon sunset).
     #[serde(default, skip_serializing)]
     pub notifications: OrgNotifications,
@@ -186,7 +186,7 @@ pub struct OrganizationBase {
     /// online license key.
     #[serde(default)]
     #[schema(read_only)]
-    pub license_last_checked_in_at: Option<DateTime<Utc>>,
+    pub license_checkin_at: Option<DateTime<Utc>>,
     /// Version embedded in online license keys - internal, not exposed to API.
     /// Regenerating the key increments it, retiring every earlier key.
     #[serde(default, skip_serializing)]

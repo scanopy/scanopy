@@ -136,7 +136,7 @@ async fn entitlement_endpoint_accepts_current_keys_and_rejects_the_rest() {
         reload(&state, org.id)
             .await
             .base
-            .license_last_checked_in_at
+            .license_checkin_at
             .is_some()
     );
 

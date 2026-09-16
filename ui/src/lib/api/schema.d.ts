@@ -3291,19 +3291,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-16T05:03:51.662252Z",
+             *       "created_at": "2026-09-16T14:25:40.559771Z",
              *       "first_discovery_id": null,
-             *       "id": "2e414a83-fbb8-43e9-bc67-ff929753222c",
+             *       "id": "46443b0d-8dcc-4ac9-97a5-6d4e4af41ba2",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-16T05:03:51.662252Z",
+             *       "last_seen_at": "2026-09-16T14:25:40.559771Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-16T05:03:51.662252Z",
-             *       "valid_from": "2026-09-16T05:03:51.662252Z",
+             *       "updated_at": "2026-09-16T14:25:40.559771Z",
+             *       "valid_from": "2026-09-16T14:25:40.559771Z",
              *       "valid_to": null
              *     }
              */
@@ -3964,19 +3964,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-16T05:03:51.635100Z",
+             *               "created_at": "2026-09-16T14:25:40.538544Z",
              *               "first_discovery_id": null,
-             *               "id": "f47615d0-f9f0-42bd-bb1f-645e2be38bb6",
+             *               "id": "e6e11543-60f6-43f2-889e-47a6c70ff983",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-16T05:03:51.635100Z",
+             *               "last_seen_at": "2026-09-16T14:25:40.538544Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-16T05:03:51.635100Z",
-             *               "valid_from": "2026-09-16T05:03:51.635100Z",
+             *               "updated_at": "2026-09-16T14:25:40.538544Z",
+             *               "valid_from": "2026-09-16T14:25:40.538544Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -3990,7 +3990,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Scanopy Server",
+             *           "service_definition": "MariaDB",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4617,6 +4617,12 @@ export interface components {
                 /** @description Whether a daemon runs alongside the server, so no separate install is needed to start scanning. */
                 has_integrated_daemon: boolean;
                 /**
+                 * Format: date-time
+                 * @description When Scanopy Cloud last answered this instance's license check-in.
+                 *     Online keys only.
+                 */
+                license_entitlement_at?: string | null;
+                /**
                  * Format: date
                  * @description Hard expiry — the drop-dead date after which the server rejects
                  *     the key. Referenced by the grace-period banner.
@@ -4634,13 +4640,7 @@ export interface components {
                  *     issued after grace-period support landed.
                  */
                 license_intended_expiry?: string | null;
-                license_key_type?: null | components["schemas"]["LicenseKeyTypeDiscriminants"];
-                /**
-                 * Format: date-time
-                 * @description When Scanopy Cloud last answered this instance's license check-in.
-                 *     Online keys only.
-                 */
-                license_last_checked?: string | null;
+                license_key_type?: null | components["schemas"]["LicenseKeyType"];
                 license_status?: null | components["schemas"]["LicenseStatusDiscriminants"];
                 /** @description Whether the client should show a cookie-consent prompt. */
                 needs_cookie_consent: boolean;
@@ -4744,19 +4744,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-16T05:03:51.656405Z",
+             *           "created_at": "2026-09-16T14:25:40.554758Z",
              *           "first_discovery_id": null,
-             *           "id": "14d03424-8b1c-4dd2-9951-cf822b38afc9",
+             *           "id": "a09d67d4-4e82-4032-920d-54f3fcc95424",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-16T05:03:51.656405Z",
+             *           "last_seen_at": "2026-09-16T14:25:40.554758Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-16T05:03:51.656405Z",
-             *           "valid_from": "2026-09-16T05:03:51.656405Z",
+             *           "updated_at": "2026-09-16T14:25:40.554758Z",
+             *           "valid_from": "2026-09-16T14:25:40.554758Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -4770,7 +4770,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Scanopy Server",
+             *       "service_definition": "MariaDB",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -5635,19 +5635,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-16T05:03:51.635837Z",
+         *       "created_at": "2026-09-16T14:25:40.539041Z",
          *       "first_discovery_id": null,
-         *       "id": "30109c05-a9c7-4fee-b109-292116e0a71f",
+         *       "id": "3c04314a-baa9-4bf1-aeb7-c29f99a4b6f9",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-16T05:03:51.635837Z",
+         *       "last_seen_at": "2026-09-16T14:25:40.539041Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-16T05:03:51.635837Z",
-         *       "valid_from": "2026-09-16T05:03:51.635837Z",
+         *       "updated_at": "2026-09-16T14:25:40.539041Z",
+         *       "valid_from": "2026-09-16T14:25:40.539041Z",
          *       "valid_to": null
          *     }
          */
@@ -5961,7 +5961,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Scanopy Server",
+         *           "service_definition": "MariaDB",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8133,19 +8133,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-16T05:03:51.634222Z",
+         *               "created_at": "2026-09-16T14:25:40.538005Z",
          *               "first_discovery_id": null,
-         *               "id": "4c33d94a-3ea9-43c2-80d1-d6f459b786c3",
+         *               "id": "ec294252-1faf-4213-81ce-81ba6c96e856",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-16T05:03:51.634222Z",
+         *               "last_seen_at": "2026-09-16T14:25:40.538005Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-16T05:03:51.634222Z",
-         *               "valid_from": "2026-09-16T05:03:51.634222Z",
+         *               "updated_at": "2026-09-16T14:25:40.538005Z",
+         *               "valid_from": "2026-09-16T14:25:40.538005Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8159,7 +8159,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Scanopy Server",
+         *           "service_definition": "MariaDB",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -9065,11 +9065,6 @@ export interface components {
          */
         LicenseKeyType: "Online" | "Offline";
         /**
-         * @description Kind of license key configured, as reported by the public config endpoint.
-         * @enum {string}
-         */
-        LicenseKeyTypeDiscriminants: "offline" | "online";
-        /**
          * @description Runtime license state as reported by the public config endpoint.
          * @enum {string}
          */
@@ -9543,7 +9538,7 @@ export interface components {
              * @description Last time a self-hosted server fetched an entitlement with this org's
              *     online license key.
              */
-            readonly license_last_checked_in_at?: string | null;
+            readonly license_checkin_at?: string | null;
             /**
              * Format: date-time
              * @description When the org's self-hosted license is paid through: the trial end
@@ -10609,6 +10604,12 @@ export interface components {
             /** @description Whether a daemon runs alongside the server, so no separate install is needed to start scanning. */
             has_integrated_daemon: boolean;
             /**
+             * Format: date-time
+             * @description When Scanopy Cloud last answered this instance's license check-in.
+             *     Online keys only.
+             */
+            license_entitlement_at?: string | null;
+            /**
              * Format: date
              * @description Hard expiry — the drop-dead date after which the server rejects
              *     the key. Referenced by the grace-period banner.
@@ -10626,13 +10627,7 @@ export interface components {
              *     issued after grace-period support landed.
              */
             license_intended_expiry?: string | null;
-            license_key_type?: null | components["schemas"]["LicenseKeyTypeDiscriminants"];
-            /**
-             * Format: date-time
-             * @description When Scanopy Cloud last answered this instance's license check-in.
-             *     Online keys only.
-             */
-            license_last_checked?: string | null;
+            license_key_type?: null | components["schemas"]["LicenseKeyType"];
             license_status?: null | components["schemas"]["LicenseStatusDiscriminants"];
             /** @description Whether the client should show a cookie-consent prompt. */
             needs_cookie_consent: boolean;
@@ -11009,19 +11004,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-16T05:03:51.635617Z",
+         *           "created_at": "2026-09-16T14:25:40.538892Z",
          *           "first_discovery_id": null,
-         *           "id": "8b66abac-c087-4f71-8bcb-9efc4f444db5",
+         *           "id": "47ed3636-ad93-49f4-9eb1-c1223b0ae69e",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-16T05:03:51.635617Z",
+         *           "last_seen_at": "2026-09-16T14:25:40.538892Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-16T05:03:51.635617Z",
-         *           "valid_from": "2026-09-16T05:03:51.635617Z",
+         *           "updated_at": "2026-09-16T14:25:40.538892Z",
+         *           "valid_from": "2026-09-16T14:25:40.538892Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -11035,7 +11030,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Scanopy Server",
+         *       "service_definition": "MariaDB",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -11737,7 +11732,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "a9781466-44cb-46fb-a78e-5cc9cf8eb038",
+             *           "id": "ede3ccb8-cfe3-4900-ab53-46a55d49d14d",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -11747,23 +11742,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "2e2f0bd5-091d-46ea-8bc7-cd0df47f8eaa",
+             *           "id": "1deadef8-5955-44e9-9e6e-638c83afa883",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "f2855f44-99a4-4740-9394-479b8efbd1f9",
+             *           "id": "bc1914f5-2758-4098-9bfc-ba12b64e68ce",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "10715de6-a6e5-42e6-9593-87141481eef1",
+             *           "id": "2c76177d-e08e-48a9-aa72-93440e5cce8d",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "2e2f0bd5-091d-46ea-8bc7-cd0df47f8eaa",
+             *           "id": "1deadef8-5955-44e9-9e6e-638c83afa883",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -11776,19 +11771,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "3db93408-35df-4a6a-9c92-455e0a231815",
+             *         "id": "10441ab0-c093-4331-84d7-a120f5ccb487",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "97bd4673-fa0d-4e97-98fb-50be21a031eb",
+             *         "id": "4ad9b5f8-36bc-462e-8edc-8eee30148cbe",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "6e9fc08e-b573-4cd0-b8e3-def074874a73",
+             *         "id": "2323ac12-1644-4226-bcfa-4ebb24222325",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "b97cfb48-4bce-497d-b31b-16d7681cdd18",
+             *         "id": "6aa04d86-6bdb-4d54-84a1-f456d40de6b6",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -11806,7 +11801,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "9b0141ab-f352-4523-8eb9-f6d8d0bcf485",
+             *         "id": "ad587235-deb6-480d-bfd6-61c4290580da",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -11815,15 +11810,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "a42ace5f-86e0-46a8-b7a4-36b9411b546a",
+             *         "id": "dc2ba251-bbb9-45ce-b1ad-5ecc9c315f18",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "ac347168-fd91-4b4d-988a-e156e0a18cca",
+             *         "id": "56054eac-918a-4af4-8954-72b8ae264bbf",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "b3a40a21-aa3d-42ea-8dcf-8422cee92beb",
+             *         "id": "f5e371f7-b3e9-4ee3-b7a9-bb5e2cd36448",
              *         "rule": "ByStack"
              *       }
              *     ]

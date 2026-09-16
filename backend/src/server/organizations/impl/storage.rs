@@ -72,11 +72,11 @@ impl Storable for Organization {
                     next_renewal_at,
                     brevo_company_id,
                     license_entitlement,
-                    license_checked_at,
+                    license_entitlement_at,
                     notifications,
                     use_case,
                     license_paid_through,
-                    license_last_checked_in_at,
+                    license_checkin_at,
                     license_key_version,
                 },
         } = self.clone();
@@ -103,11 +103,11 @@ impl Storable for Organization {
                 "next_renewal_at",
                 "brevo_company_id",
                 "license_entitlement",
-                "license_checked_at",
+                "license_entitlement_at",
                 "notifications",
                 "use_case",
                 "license_paid_through",
-                "license_last_checked_in_at",
+                "license_checkin_at",
                 "license_key_version",
             ],
             vec![
@@ -131,7 +131,7 @@ impl Storable for Organization {
                 SqlValue::OptionTimestamp(next_renewal_at),
                 SqlValue::OptionalString(brevo_company_id),
                 SqlValue::OptionalString(license_entitlement),
-                SqlValue::OptionTimestamp(license_checked_at),
+                SqlValue::OptionTimestamp(license_entitlement_at),
                 SqlValue::OrgNotifications(notifications),
                 SqlValue::OptionalString(Some(
                     serde_json::to_value(use_case)
@@ -140,7 +140,7 @@ impl Storable for Organization {
                         .unwrap_or_else(|| "other".to_string()),
                 )),
                 SqlValue::OptionTimestamp(license_paid_through),
-                SqlValue::OptionTimestamp(license_last_checked_in_at),
+                SqlValue::OptionTimestamp(license_checkin_at),
                 SqlValue::I64(license_key_version),
             ],
         ))
@@ -195,7 +195,7 @@ impl Storable for Organization {
                 next_renewal_at: row.try_get("next_renewal_at").unwrap_or(None),
                 brevo_company_id: row.get("brevo_company_id"),
                 license_entitlement: row.try_get("license_entitlement").unwrap_or(None),
-                license_checked_at: row.try_get("license_checked_at").unwrap_or(None),
+                license_entitlement_at: row.try_get("license_entitlement_at").unwrap_or(None),
                 notifications: row
                     .try_get::<serde_json::Value, _>("notifications")
                     .ok()
@@ -208,9 +208,7 @@ impl Storable for Organization {
                     .and_then(|s| serde_json::from_value(serde_json::json!(s)).ok())
                     .unwrap_or_default(),
                 license_paid_through: row.try_get("license_paid_through").unwrap_or(None),
-                license_last_checked_in_at: row
-                    .try_get("license_last_checked_in_at")
-                    .unwrap_or(None),
+                license_checkin_at: row.try_get("license_checkin_at").unwrap_or(None),
                 license_key_version: row.try_get("license_key_version").unwrap_or(0),
             },
         })
@@ -288,10 +286,10 @@ impl Entity for Organization {
         // serialized, so a PUT body always carries the default and would
         // otherwise reset it (reviving retired online keys).
         self.base.license_paid_through = existing.base.license_paid_through;
-        self.base.license_last_checked_in_at = existing.base.license_last_checked_in_at;
+        self.base.license_checkin_at = existing.base.license_checkin_at;
         self.base.license_key_version = existing.base.license_key_version;
         // The cached entitlement is written only by the license service
         self.base.license_entitlement = existing.base.license_entitlement.clone();
-        self.base.license_checked_at = existing.base.license_checked_at;
+        self.base.license_entitlement_at = existing.base.license_entitlement_at;
     }
 }

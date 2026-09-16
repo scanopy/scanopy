@@ -78,7 +78,7 @@ impl OrganizationService {
     ) -> Result<(), Error> {
         let lock = self.lock_organization(organization_id).await?;
         if let Some(mut organization) = self.get_by_id(&organization_id).await? {
-            organization.base.license_last_checked_in_at = Some(at);
+            organization.base.license_checkin_at = Some(at);
             self.storage.update(&mut organization).await?;
         }
         lock.release().await?;
@@ -222,7 +222,7 @@ impl OrganizationService {
     ) -> Result<(), Error> {
         for mut org in self.get_all(StorableFilter::<Organization>::new()).await? {
             org.base.license_entitlement = entitlement.clone();
-            org.base.license_checked_at = Some(checked_at);
+            org.base.license_entitlement_at = Some(checked_at);
             self.storage.update(&mut org).await?;
         }
         Ok(())
@@ -236,7 +236,12 @@ impl OrganizationService {
         let orgs = self.get_all(StorableFilter::<Organization>::new()).await?;
         Ok(orgs
             .into_iter()
-            .filter_map(|org| Some((org.base.license_entitlement?, org.base.license_checked_at)))
+            .filter_map(|org| {
+                Some((
+                    org.base.license_entitlement?,
+                    org.base.license_entitlement_at,
+                ))
+            })
             .max_by_key(|(_, checked_at)| *checked_at))
     }
 }

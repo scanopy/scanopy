@@ -12643,19 +12643,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-16T05:03:51.662250Z",
+              "created_at": "2026-09-16T14:25:40.559770Z",
               "first_discovery_id": null,
-              "id": "f1d16c1a-266c-4c80-ba10-17aadcba1623",
+              "id": "ff0f1604-d582-4fb8-a6b5-8f64a22cd4dd",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-16T05:03:51.662250Z",
+              "last_seen_at": "2026-09-16T14:25:40.559770Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-16T05:03:51.662250Z",
-              "valid_from": "2026-09-16T05:03:51.662250Z",
+              "updated_at": "2026-09-16T14:25:40.559770Z",
+              "valid_from": "2026-09-16T14:25:40.559770Z",
               "valid_to": null
             }
           },
@@ -14146,19 +14146,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-16T05:03:51.635116Z",
+                      "created_at": "2026-09-16T14:25:40.538520Z",
                       "first_discovery_id": null,
-                      "id": "a04bff81-c860-4611-bee1-140fe6701b6a",
+                      "id": "2ee2b325-93ff-481d-ae34-eaa6c6f74a05",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-16T05:03:51.635116Z",
+                      "last_seen_at": "2026-09-16T14:25:40.538520Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-16T05:03:51.635116Z",
-                      "valid_from": "2026-09-16T05:03:51.635116Z",
+                      "updated_at": "2026-09-16T14:25:40.538520Z",
+                      "valid_from": "2026-09-16T14:25:40.538520Z",
                       "valid_to": null
                     }
                   ],
@@ -14172,7 +14172,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Scanopy Server",
+                  "service_definition": "MariaDB",
                   "source": {
                     "type": "Manual"
                   },
@@ -15121,6 +15121,14 @@
                 "type": "boolean",
                 "description": "Whether a daemon runs alongside the server, so no separate install is needed to start scanning."
               },
+              "license_entitlement_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time",
+                "description": "When Scanopy Cloud last answered this instance's license check-in.\nOnline keys only."
+              },
               "license_expiry": {
                 "type": [
                   "string",
@@ -15147,18 +15155,10 @@
                     "type": "null"
                   },
                   {
-                    "$ref": "#/components/schemas/LicenseKeyTypeDiscriminants",
+                    "$ref": "#/components/schemas/LicenseKeyType",
                     "description": "Whether the configured key is an offline key or an online key that\nfetches its entitlement from Scanopy Cloud. `None` when no key applies."
                   }
                 ]
-              },
-              "license_last_checked": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "format": "date-time",
-                "description": "When Scanopy Cloud last answered this instance's license check-in.\nOnline keys only."
               },
               "license_status": {
                 "oneOf": [
@@ -15447,19 +15447,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-16T05:03:51.656400Z",
+                  "created_at": "2026-09-16T14:25:40.554729Z",
                   "first_discovery_id": null,
-                  "id": "a47baada-c497-4bb4-be52-3863f8a96e2e",
+                  "id": "d8399497-5b21-4032-84af-b1a24aafed74",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-16T05:03:51.656400Z",
+                  "last_seen_at": "2026-09-16T14:25:40.554729Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-16T05:03:51.656400Z",
-                  "valid_from": "2026-09-16T05:03:51.656400Z",
+                  "updated_at": "2026-09-16T14:25:40.554729Z",
+                  "valid_from": "2026-09-16T14:25:40.554729Z",
                   "valid_to": null
                 }
               ],
@@ -15473,7 +15473,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Scanopy Server",
+              "service_definition": "MariaDB",
               "source": {
                 "type": "Manual"
               },
@@ -17728,19 +17728,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-16T05:03:51.635855Z",
+          "created_at": "2026-09-16T14:25:40.539021Z",
           "first_discovery_id": null,
-          "id": "9b795507-f8ac-491f-bd49-b234f902a47c",
+          "id": "f93d4445-0782-4ed2-95eb-fb24732d93fc",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-16T05:03:51.635855Z",
+          "last_seen_at": "2026-09-16T14:25:40.539021Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-16T05:03:51.635855Z",
-          "valid_from": "2026-09-16T05:03:51.635855Z",
+          "updated_at": "2026-09-16T14:25:40.539021Z",
+          "valid_from": "2026-09-16T14:25:40.539021Z",
           "valid_to": null
         }
       },
@@ -18435,7 +18435,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Scanopy Server",
+              "service_definition": "MariaDB",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -23819,19 +23819,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-16T05:03:51.634227Z",
+                  "created_at": "2026-09-16T14:25:40.537994Z",
                   "first_discovery_id": null,
-                  "id": "dff93228-3117-4056-8e73-308a85aa32f6",
+                  "id": "aed78b84-3b34-4d38-ac26-cc836a01757a",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-16T05:03:51.634227Z",
+                  "last_seen_at": "2026-09-16T14:25:40.537994Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-16T05:03:51.634227Z",
-                  "valid_from": "2026-09-16T05:03:51.634227Z",
+                  "updated_at": "2026-09-16T14:25:40.537994Z",
+                  "valid_from": "2026-09-16T14:25:40.537994Z",
                   "valid_to": null
                 }
               ],
@@ -23845,7 +23845,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Scanopy Server",
+              "service_definition": "MariaDB",
               "source": {
                 "type": "Manual"
               },
@@ -25268,14 +25268,6 @@
           "Offline"
         ]
       },
-      "LicenseKeyTypeDiscriminants": {
-        "type": "string",
-        "description": "Kind of license key configured, as reported by the public config endpoint.",
-        "enum": [
-          "offline",
-          "online"
-        ]
-      },
       "LicenseStatusDiscriminants": {
         "type": "string",
         "description": "Runtime license state as reported by the public config endpoint.",
@@ -26403,7 +26395,7 @@
             "description": "Most recent `Paused` billing event's timestamp; powers the 6-month\nrolling pause cooldown.",
             "readOnly": true
           },
-          "license_last_checked_in_at": {
+          "license_checkin_at": {
             "type": [
               "string",
               "null"
@@ -27294,19 +27286,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-16T05:03:51.616441Z",
+                        "created_at": "2026-09-16T14:25:40.527827Z",
                         "first_discovery_id": null,
-                        "id": "a2a102c5-b5b1-4891-aca9-eae2dbcc193f",
+                        "id": "7837aaaa-c748-40cf-aeb6-442639cb976a",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-16T05:03:51.616441Z",
+                        "last_seen_at": "2026-09-16T14:25:40.527827Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-16T05:03:51.616441Z",
-                        "valid_from": "2026-09-16T05:03:51.616441Z",
+                        "updated_at": "2026-09-16T14:25:40.527827Z",
+                        "valid_from": "2026-09-16T14:25:40.527827Z",
                         "valid_to": null
                       }
                     ],
@@ -27320,7 +27312,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Scanopy Server",
+                    "service_definition": "MariaDB",
                     "source": {
                       "type": "Manual"
                     },
@@ -27463,19 +27455,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-16T05:03:51.655293Z",
+                    "created_at": "2026-09-16T14:25:40.553865Z",
                     "first_discovery_id": null,
-                    "id": "e5cece2a-fd2f-4f94-bc3b-6e1a05bea328",
+                    "id": "cccd6220-822c-43c7-8196-f2ad8ba7b975",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-16T05:03:51.655293Z",
+                    "last_seen_at": "2026-09-16T14:25:40.553865Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-16T05:03:51.655293Z",
-                    "valid_from": "2026-09-16T05:03:51.655293Z",
+                    "updated_at": "2026-09-16T14:25:40.553865Z",
+                    "valid_from": "2026-09-16T14:25:40.553865Z",
                     "valid_to": null
                   }
                 ],
@@ -27489,7 +27481,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Scanopy Server",
+                "service_definition": "MariaDB",
                 "source": {
                   "type": "Manual"
                 },
@@ -28789,6 +28781,14 @@
             "type": "boolean",
             "description": "Whether a daemon runs alongside the server, so no separate install is needed to start scanning."
           },
+          "license_entitlement_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When Scanopy Cloud last answered this instance's license check-in.\nOnline keys only."
+          },
           "license_expiry": {
             "type": [
               "string",
@@ -28815,18 +28815,10 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/LicenseKeyTypeDiscriminants",
+                "$ref": "#/components/schemas/LicenseKeyType",
                 "description": "Whether the configured key is an offline key or an online key that\nfetches its entitlement from Scanopy Cloud. `None` when no key applies."
               }
             ]
-          },
-          "license_last_checked": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time",
-            "description": "When Scanopy Cloud last answered this instance's license check-in.\nOnline keys only."
           },
           "license_status": {
             "oneOf": [
@@ -29565,19 +29557,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-16T05:03:51.635637Z",
+              "created_at": "2026-09-16T14:25:40.538871Z",
               "first_discovery_id": null,
-              "id": "8206461c-6736-4b88-9451-bed30f23d312",
+              "id": "b9ed1fcc-2c33-4e7d-8d63-4375c8873f56",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-16T05:03:51.635637Z",
+              "last_seen_at": "2026-09-16T14:25:40.538871Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-16T05:03:51.635637Z",
-              "valid_from": "2026-09-16T05:03:51.635637Z",
+              "updated_at": "2026-09-16T14:25:40.538871Z",
+              "valid_from": "2026-09-16T14:25:40.538871Z",
               "valid_to": null
             }
           ],
@@ -29591,7 +29583,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Scanopy Server",
+          "service_definition": "MariaDB",
           "source": {
             "type": "Manual"
           },
@@ -30912,7 +30904,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "1d9d3979-5234-4b89-a764-f26582a55ede",
+                  "id": "c848fe71-af01-40af-8cb9-53224869204f",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -30922,23 +30914,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "0c04fc26-98fa-41e6-a0e3-1c8fde79b722",
+                  "id": "d097cfb8-f60a-4878-9a69-b6a3e84ad23d",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "5b77e0bb-8aa9-439c-953a-bb6c84a85527",
+                  "id": "4235717c-d85e-4066-a3f6-924e8d3c39c2",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "ee4feacc-c36c-44d8-9ecc-c5a446a473e6",
+                  "id": "9fdeb392-04d9-40aa-a620-2c613e101e67",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "0c04fc26-98fa-41e6-a0e3-1c8fde79b722",
+                  "id": "d097cfb8-f60a-4878-9a69-b6a3e84ad23d",
                   "rule": "ByHost"
                 }
               ]
@@ -30968,19 +30960,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "f2ae5205-bce9-4006-8358-441ed78b31f1",
+                "id": "de67d0c5-100f-4528-88dd-aa9c26adc6b9",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "5e750cf9-e3cc-484f-af3d-ff723dac8c60",
+                "id": "60b02f97-93b6-40fb-ae05-e97ea9ba237d",
                 "rule": "ByVLAN"
               },
               {
-                "id": "9e7c553a-2a0d-4b87-84a1-efd8f9564e74",
+                "id": "8f9fcd09-1925-442d-8695-970d6bd1ddb2",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "6e587108-ed7a-467b-8e7d-6ca41eb68ef2",
+                "id": "6d2a3953-0cc1-419c-893c-1a55e77d14e1",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -30998,7 +30990,7 @@
                 }
               },
               {
-                "id": "168beca7-edcc-4471-a023-6d90cf5ef3c1",
+                "id": "d04f12ae-db7b-429c-87cb-e8730b88a1a1",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -31007,15 +30999,15 @@
                 }
               },
               {
-                "id": "42a6bf37-3bf5-475c-ae07-4d91f5d2f9a1",
+                "id": "4f766214-e3ec-4b6a-b331-1b41958974d6",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "552a6d8b-8063-4079-8de8-a9dd4f2d5275",
+                "id": "0cd944da-b8a8-469d-8df3-30bdc562ee1f",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "115c5dff-62bc-40f3-9578-8677f7622121",
+                "id": "79301493-6518-4bdc-939e-7c5e7ae79732",
                 "rule": "ByStack"
               }
             ]
