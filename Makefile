@@ -277,7 +277,7 @@ test-results:
 		if [ -z "$$branch" ]; then continue; fi; \
 		if grep -q "\"$$branch\"" "$$src" 2>/dev/null; then \
 			node -e " \
-				const r = require('$$src'); \
+				const r = JSON.parse(require('fs').readFileSync('$$src', 'utf8')); \
 				const d = r['$$branch']; \
 				if (d) { require('fs').writeFileSync('$$wt/TEST_RESULTS.json', JSON.stringify({'$$branch': d}, null, 2)); } \
 			" && echo "  $$branch -> $$wt/TEST_RESULTS.json"; \
