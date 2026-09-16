@@ -2,6 +2,14 @@
 
 DAYS ?= 365
 
+# A value in .env can be a 1Password reference rather than the secret itself, e.g.
+#   SCANOPY_LICENSE_SIGNING_KEY=op://Scanopy/License Key Pair/scanopy_license_private.pem
+# When .env holds at least one and the `op` CLI is installed, the dev server runs under
+# `op run`, which resolves the references into its environment at launch. The server's own
+# dotenv load then leaves those values alone, so the resolved secret wins over the reference.
+# With no references in .env, no .env, or no op CLI, the command runs unchanged.
+OP_RUN := $(shell [ -f .env ] && grep -qE '^[A-Za-z_][A-Za-z0-9_]*=op://' .env && command -v op >/dev/null 2>&1 && echo 'op run --env-file=$(CURDIR)/.env --')
+
 help:
 	@echo "Scanopy Development Commands"
 	@echo ""
@@ -189,7 +197,7 @@ dev-fresh:
 	@trap 'kill 0' EXIT; \
 	cd ui && npm run dev & \
 	export DATABASE_URL="postgresql://postgres:password@localhost:5432/scanopy" && \
-	cd backend && cargo run --bin server -- --log-level debug --public-url http://localhost:60072
+	cd backend && $(OP_RUN) cargo run --bin server -- --log-level debug --public-url http://localhost:60072
 
 test-merge:
 	@if ! git diff --quiet || ! git diff --cached --quiet; then \
@@ -281,7 +289,7 @@ test-results:
 dev-server:
 	make generate-fixtures
 	@export DATABASE_URL="postgresql://postgres:password@localhost:5432/scanopy" && \
-	cd backend && cargo run --bin server -- --log-level debug --public-url http://localhost:60072
+	cd backend && $(OP_RUN) cargo run --bin server -- --log-level debug --public-url http://localhost:60072
 
 # Unenrolled foreground daemon against a local server. For a daemon that is already
 # installed as a service, prefer `make daemon-dev`: it reuses the installed identity
