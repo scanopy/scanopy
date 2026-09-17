@@ -7,6 +7,8 @@
 		label: string;
 		icon?: IconComponent;
 		tooltip?: string;
+		/** Render this one option non-selectable, leaving the rest interactive. */
+		disabled?: boolean;
 	}
 
 	let {
@@ -43,27 +45,37 @@
 	class:cursor-not-allowed={disabled}
 >
 	{#each options as option (option.value)}
-		<button
-			type="button"
-			{disabled}
+		{@const optionDisabled = disabled || option.disabled === true}
+		<!-- The tooltip sits on the wrapper, not the button: a disabled button fires no
+		     mouseenter, so an option explaining why it can't be picked would never show it. -->
+		<span
+			class="inline-flex"
+			class:flex-1={fullWidth}
 			use:tooltip
 			data-tooltip={option.tooltip || null}
-			class="{sizeClasses} flex items-center justify-center gap-1 transition-colors {selected ===
-			option.value
-				? 'bg-blue-600 text-white'
-				: 'text-secondary hover:text-primary'}"
-			class:flex-1={fullWidth}
-			onclick={() => {
-				if (!disabled) onchange(option.value);
-			}}
 		>
-			{#if option.icon}
-				{@const Icon = option.icon}
-				<Icon class={iconSizeClass} />
-			{/if}
-			{#if option.label}
-				{option.label}
-			{/if}
-		</button>
+			<button
+				type="button"
+				disabled={optionDisabled}
+				class="{sizeClasses} flex items-center justify-center gap-1 transition-colors {selected ===
+				option.value
+					? 'bg-blue-600 text-white'
+					: 'text-secondary hover:text-primary'} {option.disabled
+					? 'cursor-not-allowed opacity-50'
+					: ''}"
+				class:w-full={fullWidth}
+				onclick={() => {
+					if (!optionDisabled) onchange(option.value);
+				}}
+			>
+				{#if option.icon}
+					{@const Icon = option.icon}
+					<Icon class={iconSizeClass} />
+				{/if}
+				{#if option.label}
+					{option.label}
+				{/if}
+			</button>
+		</span>
 	{/each}
 </div>

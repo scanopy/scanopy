@@ -2109,7 +2109,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/licenses/keys/regenerate": {
+    "/api/v1/licenses/keys/rotate": {
         parameters: {
             query?: never;
             header?: never;
@@ -2119,11 +2119,11 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Regenerate this organization's online license key
-         * @description Retires every online key issued so far: servers still using one get 403
-         *     from the entitlement endpoint.
+         * Rotate this organization's license key
+         * @description Retires every key issued so far: a server still using an online key gets
+         *     403 from the entitlement endpoint and needs the new key.
          */
-        post: operations["regenerate_license_key"];
+        post: operations["rotate_license_key"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3334,19 +3334,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-17T14:00:43.905895Z",
+             *       "created_at": "2026-09-17T15:32:41.134288Z",
              *       "first_discovery_id": null,
-             *       "id": "310ae3a9-6bc7-4bca-b6aa-976a10c6d731",
+             *       "id": "26c93579-f8da-4cb6-abaf-b40c45584bbe",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-17T14:00:43.905895Z",
+             *       "last_seen_at": "2026-09-17T15:32:41.134288Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-17T14:00:43.905895Z",
-             *       "valid_from": "2026-09-17T14:00:43.905895Z",
+             *       "updated_at": "2026-09-17T15:32:41.134288Z",
+             *       "valid_from": "2026-09-17T15:32:41.134288Z",
              *       "valid_to": null
              *     }
              */
@@ -4007,19 +4007,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-17T14:00:43.876650Z",
+             *               "created_at": "2026-09-17T15:32:41.104431Z",
              *               "first_discovery_id": null,
-             *               "id": "e582c9b8-dedb-46eb-9a33-bb4d1a47b4fc",
+             *               "id": "0f7cb093-715f-4dac-80c2-e969d8a4c0ea",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-17T14:00:43.876650Z",
+             *               "last_seen_at": "2026-09-17T15:32:41.104431Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-17T14:00:43.876650Z",
-             *               "valid_from": "2026-09-17T14:00:43.876650Z",
+             *               "updated_at": "2026-09-17T15:32:41.104431Z",
+             *               "valid_from": "2026-09-17T15:32:41.104431Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4033,7 +4033,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Spinnaker",
+             *           "service_definition": "Jump",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4679,6 +4679,26 @@ export interface components {
                  *     issued after grace-period support landed.
                  */
                 license_intended_expiry?: string | null;
+                /**
+                 * Format: int32
+                 * @description Days past an organization's paid-through date before a license key
+                 *     reaches its user-visible expiry. Published so the UI shows the same
+                 *     dates the mint path bakes into keys, instead of its own copy.
+                 */
+                license_key_buffer_days: number;
+                /**
+                 * Format: int32
+                 * @description Further days past the user-visible expiry before a key stops working.
+                 */
+                license_key_grace_days: number;
+                /**
+                 * @description Whether this deployment can sign license keys. False on any server
+                 *     without a signing key, where the Settings License tab and the
+                 *     self-hosted plans would otherwise offer something the mint path
+                 *     refuses. Reads the built issuer rather than the config value, since a
+                 *     key can be present but unparseable.
+                 */
+                license_signing_available: boolean;
                 license_status?: null | components["schemas"]["LicenseStatusDiscriminants"];
                 /** @description Whether the client should show a cookie-consent prompt. */
                 needs_cookie_consent: boolean;
@@ -4782,19 +4802,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-17T14:00:43.899561Z",
+             *           "created_at": "2026-09-17T15:32:41.128056Z",
              *           "first_discovery_id": null,
-             *           "id": "c8a99770-ac12-475c-ac45-7c56d56f7934",
+             *           "id": "200f5952-ff11-45ca-9b7c-37388a78ecc5",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-17T14:00:43.899561Z",
+             *           "last_seen_at": "2026-09-17T15:32:41.128056Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-17T14:00:43.899561Z",
-             *           "valid_from": "2026-09-17T14:00:43.899561Z",
+             *           "updated_at": "2026-09-17T15:32:41.128056Z",
+             *           "valid_from": "2026-09-17T15:32:41.128056Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -4808,7 +4828,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Spinnaker",
+             *       "service_definition": "Jump",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -5673,19 +5693,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-17T14:00:43.877509Z",
+         *       "created_at": "2026-09-17T15:32:41.105120Z",
          *       "first_discovery_id": null,
-         *       "id": "ab4f8f99-9833-49b9-9536-b7c1a5f8f3f9",
+         *       "id": "0a8b56e1-7945-40cc-ba2c-080c3bc9aacd",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-17T14:00:43.877509Z",
+         *       "last_seen_at": "2026-09-17T15:32:41.105120Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-17T14:00:43.877509Z",
-         *       "valid_from": "2026-09-17T14:00:43.877509Z",
+         *       "updated_at": "2026-09-17T15:32:41.105120Z",
+         *       "valid_from": "2026-09-17T15:32:41.105120Z",
          *       "valid_to": null
          *     }
          */
@@ -5999,7 +6019,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Spinnaker",
+         *           "service_definition": "Jump",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8140,19 +8160,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-17T14:00:43.875642Z",
+         *               "created_at": "2026-09-17T15:32:41.103702Z",
          *               "first_discovery_id": null,
-         *               "id": "a3974bec-422d-420f-a748-bbd8729c16e8",
+         *               "id": "99954021-eda9-4d0b-a3ce-ef2993e27fe0",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-17T14:00:43.875642Z",
+         *               "last_seen_at": "2026-09-17T15:32:41.103702Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-17T14:00:43.875642Z",
-         *               "valid_from": "2026-09-17T14:00:43.875642Z",
+         *               "updated_at": "2026-09-17T15:32:41.103702Z",
+         *               "valid_from": "2026-09-17T15:32:41.103702Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8166,7 +8186,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Spinnaker",
+         *           "service_definition": "Jump",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -10634,6 +10654,26 @@ export interface components {
              *     issued after grace-period support landed.
              */
             license_intended_expiry?: string | null;
+            /**
+             * Format: int32
+             * @description Days past an organization's paid-through date before a license key
+             *     reaches its user-visible expiry. Published so the UI shows the same
+             *     dates the mint path bakes into keys, instead of its own copy.
+             */
+            license_key_buffer_days: number;
+            /**
+             * Format: int32
+             * @description Further days past the user-visible expiry before a key stops working.
+             */
+            license_key_grace_days: number;
+            /**
+             * @description Whether this deployment can sign license keys. False on any server
+             *     without a signing key, where the Settings License tab and the
+             *     self-hosted plans would otherwise offer something the mint path
+             *     refuses. Reads the built issuer rather than the config value, since a
+             *     key can be present but unparseable.
+             */
+            license_signing_available: boolean;
             license_status?: null | components["schemas"]["LicenseStatusDiscriminants"];
             /** @description Whether the client should show a cookie-consent prompt. */
             needs_cookie_consent: boolean;
@@ -11010,19 +11050,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-17T14:00:43.877261Z",
+         *           "created_at": "2026-09-17T15:32:41.104906Z",
          *           "first_discovery_id": null,
-         *           "id": "659c99f7-0f29-4846-81b1-2db99414d437",
+         *           "id": "1e45a9df-34b7-4bd3-bb00-d360e8e7d417",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-17T14:00:43.877261Z",
+         *           "last_seen_at": "2026-09-17T15:32:41.104906Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-17T14:00:43.877261Z",
-         *           "valid_from": "2026-09-17T14:00:43.877261Z",
+         *           "updated_at": "2026-09-17T15:32:41.104906Z",
+         *           "valid_from": "2026-09-17T15:32:41.104906Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -11036,7 +11076,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Spinnaker",
+         *       "service_definition": "Jump",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -11738,7 +11778,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "ed0e2de3-c979-4c5d-9420-773394a5435c",
+             *           "id": "ce7c46e7-b3a9-4962-a44c-1e4b6adf2c6e",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -11748,23 +11788,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "45e38104-236b-4c5d-9bfd-c34942195522",
+             *           "id": "5f0d0808-5deb-4912-8091-c6828f8a0551",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "36402f50-bb55-4105-90e8-459115da07e2",
+             *           "id": "a3c6ee09-13e8-4fe1-bf8f-53a6b5590d22",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "9a27f01f-f887-4db1-a35b-1a09ac53f453",
+             *           "id": "81da3cb4-e082-4a42-89be-a47ee072a8c7",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "45e38104-236b-4c5d-9bfd-c34942195522",
+             *           "id": "5f0d0808-5deb-4912-8091-c6828f8a0551",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -11777,19 +11817,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "4b1a1344-ac27-4351-ba2d-43638b0c599f",
+             *         "id": "66470f9d-b157-4af4-826b-7e79fe0a8e39",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "80a3c848-7d6a-4ab4-a29e-13d19ede9c7a",
+             *         "id": "0696e08e-874f-4df2-ace7-b6ecff43feef",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "e97c518f-ab11-498e-8a0c-110b96e05ee5",
+             *         "id": "306cde9f-a010-451b-8166-769d0354c2a4",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "fbd53ecb-8778-47cf-85e8-c5d374f6e8a1",
+             *         "id": "f778e28c-d657-4b7b-8043-e1c7e572c015",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -11807,7 +11847,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "15325652-8ff7-4d7a-8029-a7df7755a4a2",
+             *         "id": "4043e2c7-e550-440c-96a3-a3224322be30",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -11816,15 +11856,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "ad86076b-8004-45b4-afd0-bbfe636488cc",
+             *         "id": "405904f7-1626-4413-b14c-4677df24ec98",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "b3a6bf05-cd52-4b69-b5e9-e05dec7a927e",
+             *         "id": "e564278e-5ab8-40ab-bb4f-9b6914f2f1d8",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "c59cefe3-8fa7-49bb-98dc-ec181814b15e",
+             *         "id": "c7916d9a-41fe-4fc6-8119-28e04ac0451d",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -17170,7 +17210,7 @@ export interface operations {
             };
         };
     };
-    regenerate_license_key: {
+    rotate_license_key: {
         parameters: {
             query?: never;
             header?: never;
@@ -17179,7 +17219,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Key regenerated */
+            /** @description Key rotated */
             200: {
                 headers: {
                     [name: string]: unknown;

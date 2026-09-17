@@ -14,6 +14,8 @@ use crate::server::{
     billing::types::base::BillingReason,
     digest::payload::{DiscoveryDigestOperation, DiscoveryDigestOperationDiscriminants},
     email::service::{EmailService, format_cents},
+    license::mint::{GRACE_PERIOD_DAYS, PAID_THROUGH_BUFFER_DAYS},
+    license::types::LicenseKeyType,
     shared::{
         entities::{Entity, EntityDiscriminants},
         events::{
@@ -142,8 +144,38 @@ impl Subscriber<BillingOperation> for EmailService {
                     self.send_subscription_cancelled_email(org_owner, &period_end_str)
                         .await?;
                 }
-                BillingOperation::PaymentFailed { .. } => {
-                    self.send_payment_failed_email(org_owner).await?;
+                BillingOperation::PaymentFailed {
+                    plan,
+                    attempt_count,
+                    ..
+                } => {
+                    // Stripe retries a failed invoice several times over about
+                    // three weeks and raises this each time; one email is
+                    // enough, and the past-due banner carries the rest.
+                    if plan.license_plan().is_some() {
+                        if attempt_count <= 1 {
+                            let organization = self
+                                .organization_service
+                                .get_by_id(&event.scope.organization_id)
+                                .await?;
+                            let key_expires = organization
+                                .as_ref()
+                                .and_then(|org| org.base.license_paid_through)
+                                .map(|at| at.format("%B %-d, %Y").to_string())
+                                .unwrap_or_else(|| "your renewal date".to_string());
+                            let air_gapped = organization.is_some_and(|org| {
+                                org.base.license_key_type == Some(LicenseKeyType::Offline)
+                            });
+                            self.send_self_hosted_payment_failed_email(
+                                org_owner,
+                                &key_expires,
+                                air_gapped,
+                            )
+                            .await?;
+                        }
+                    } else {
+                        self.send_payment_failed_email(org_owner).await?;
+                    }
                 }
                 BillingOperation::PaymentActionRequired {
                     hosted_invoice_url, ..
@@ -156,10 +188,53 @@ impl Subscriber<BillingOperation> for EmailService {
                     // (skip the initial subscription invoice and one-off
                     // charges). Self-hosted license renewals have no cloud
                     // usage to summarize.
-                    if invoice.billing_reason == BillingReason::SubscriptionCycle
-                        && invoice.license_paid_through().is_none()
-                    {
-                        self.send_usage_summary_email(org_owner, &invoice).await?;
+                    if invoice.billing_reason == BillingReason::SubscriptionCycle {
+                        match invoice.license_paid_through() {
+                            None => self.send_usage_summary_email(org_owner, &invoice).await?,
+                            // A renewed self-hosted licence. An online key
+                            // picks this up at its next check-in; an
+                            // air-gapped key carries its expiry inside it, so
+                            // its owner has to copy the new key by hand.
+                            Some(renewed_through) => {
+                                let Some(organization) = self
+                                    .organization_service
+                                    .get_by_id(&event.scope.organization_id)
+                                    .await?
+                                else {
+                                    continue;
+                                };
+                                if organization.base.license_key_type
+                                    == Some(LicenseKeyType::Offline)
+                                {
+                                    // The key on their server predates this
+                                    // renewal, so it still runs to the old
+                                    // paid-through plus the buffer and grace.
+                                    let current_key_expires = organization
+                                        .base
+                                        .license_paid_through
+                                        .map(|at| {
+                                            (at + chrono::Duration::days(
+                                                PAID_THROUGH_BUFFER_DAYS + GRACE_PERIOD_DAYS,
+                                            ))
+                                            .format("%B %-d, %Y")
+                                            .to_string()
+                                        })
+                                        .unwrap_or_else(|| "its current expiry".to_string());
+                                    let plan_name = organization
+                                        .base
+                                        .plan
+                                        .map(|plan| plan.name())
+                                        .unwrap_or("Self-Hosted");
+                                    self.send_airgap_renewal_email(
+                                        org_owner,
+                                        plan_name,
+                                        &current_key_expires,
+                                        &renewed_through.format("%B %-d, %Y").to_string(),
+                                    )
+                                    .await?;
+                                }
+                            }
+                        }
                     }
                 }
                 BillingOperation::PaymentMethodAdded => {

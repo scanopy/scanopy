@@ -7,7 +7,9 @@ use crate::server::shared::events::traits::{Event, OrgScope};
 use crate::server::shared::events::types::BillingOperation;
 use crate::server::shared::services::traits::EventBusService;
 use crate::server::shared::storage::filter::StorableFilter;
-use crate::server::shared::storage::lock::{DEFAULT_LOCK_TIMEOUT, LockKey, SessionLockGuard};
+use crate::server::shared::storage::lock::{
+    DEFAULT_LOCK_TIMEOUT, LockError, LockKey, SessionLockGuard,
+};
 use crate::server::shared::storage::traits::Storage;
 use crate::server::shared::types::metadata::HasId;
 use crate::server::tags::entity_tags::EntityTagService;
@@ -55,6 +57,23 @@ impl CrudService<Organization> for OrganizationService {
     }
 }
 
+/// Why a license key type switch was refused.
+#[derive(Debug, thiserror::Error)]
+pub enum SwitchKeyTypeError {
+    /// Leaving an air-gapped key before the licence period is up. The key
+    /// already installed on the customer's server validates offline and runs
+    /// to its embedded expiry whatever the cloud does, so switching would
+    /// leave two live keys with no way to retire the one that matters.
+    #[error(
+        "an air-gapped key stays valid until {paid_through}; you can switch back to an online key from that date"
+    )]
+    AirGappedStillCurrent { paid_through: DateTime<Utc> },
+    #[error(transparent)]
+    Lock(#[from] LockError),
+    #[error(transparent)]
+    Service(#[from] Error),
+}
+
 /// Drop sub-second precision, so a value survives a database round trip
 /// unchanged.
 fn whole_second(at: DateTime<Utc>) -> DateTime<Utc> {
@@ -64,7 +83,7 @@ fn whole_second(at: DateTime<Utc>) -> DateTime<Utc> {
 impl OrganizationService {
     /// Hold the organization row's advisory lock. Every read-modify-write of
     /// an org that can race another (the billing event mirror, license key
-    /// regeneration, license check-ins) takes it, because each writes the
+    /// rotation, license check-ins) takes it, because each writes the
     /// whole row back and would otherwise revert the other's change.
     pub(crate) async fn lock_organization(
         &self,
@@ -94,7 +113,7 @@ impl OrganizationService {
 
     /// The `iat` this org's online license key is signed with, assigned on
     /// first use. Holding it makes minting deterministic: every copy of the
-    /// key returns the same string until the key is regenerated.
+    /// key returns the same string until the key is rotated.
     pub async fn license_key_issued_at(
         &self,
         organization_id: Uuid,
@@ -141,7 +160,7 @@ impl OrganizationService {
         organization_id: Uuid,
         key_type: LicenseKeyType,
         authentication: AuthenticatedEntity,
-    ) -> Result<Organization, Error> {
+    ) -> Result<Organization, SwitchKeyTypeError> {
         let lock = self.lock_organization(organization_id).await?;
         let mut organization = self
             .get_by_id(&organization_id)
@@ -151,6 +170,19 @@ impl OrganizationService {
         if organization.base.license_key_type.unwrap_or_default() == key_type {
             lock.release().await?;
             return Ok(organization);
+        }
+
+        // Leaving an air-gapped key is only allowed once the licence period is
+        // up. Until then the key already installed on their server keeps
+        // working whatever we do here, so letting them switch would leave two
+        // live keys and no way to retire the one that matters.
+        if organization.base.license_key_type == Some(LicenseKeyType::Offline)
+            && key_type == LicenseKeyType::Online
+            && let Some(paid_through) = organization.base.license_paid_through
+            && Utc::now() < paid_through
+        {
+            lock.release().await?;
+            return Err(SwitchKeyTypeError::AirGappedStillCurrent { paid_through });
         }
 
         organization.base.license_key_type = Some(key_type);
@@ -172,9 +204,10 @@ impl OrganizationService {
         Ok(updated)
     }
 
-    /// Increment the org's license key version, retiring every online key
-    /// issued so far.
-    pub async fn regenerate_license_key(
+    /// Increment the org's license key version, retiring every key issued so
+    /// far. A server still running the old online key gets 403 at its next
+    /// check-in and needs the new one.
+    pub async fn rotate_license_key(
         &self,
         organization_id: Uuid,
         authentication: AuthenticatedEntity,
@@ -196,7 +229,7 @@ impl OrganizationService {
         tracing::info!(
             organization_id = %organization_id,
             key_version = updated.base.license_key_version,
-            "Regenerated online license key"
+            "Rotated license key"
         );
         lock.release().await?;
         Ok(updated)

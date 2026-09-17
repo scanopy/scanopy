@@ -25,7 +25,11 @@
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
 	import BillingPlanModal from '$lib/features/billing/BillingPlanModal.svelte';
 	import DaemonPromptModal from '$lib/features/daemons/components/DaemonPromptModal.svelte';
-	import { useConfigQuery, isLicenseApproachingExpiry } from '$lib/shared/stores/config-query';
+	import {
+		useConfigQuery,
+		isLicenseApproachingExpiry,
+		isLicenseSigningAvailable
+	} from '$lib/shared/stores/config-query';
 	import {
 		useOrganizationQuery,
 		useDaemonPromptResponseMutation
@@ -54,6 +58,9 @@
 	const configQuery = useConfigQuery();
 	const organizationQuery = useOrganizationQuery();
 	let billingEnabled = $derived(configQuery.data?.billing_enabled ?? false);
+	let licenseSigningAvailable = $derived(
+		configQuery.data != null && isLicenseSigningAvailable(configQuery.data)
+	);
 	let organization = $derived(organizationQuery.data);
 	// A licensed self-hosted plan on a billing-enabled server locks the main app:
 	// the backend rejects main-app routes, and the org only gets Settings (its keys
@@ -128,8 +135,15 @@
 	// where SettingsModal explains that an owner has to resolve billing. An owner on
 	// a licensed self-hosted plan is held on License instead — the key is what that
 	// org came for, and Billing has nothing it must act on.
+	// A licensed org on a server that lost its signing key has no License tab, and
+	// this modal can't be dismissed, so send it to Billing rather than a tab that
+	// isn't there.
 	let billingBlockingTab = $derived(
-		isOwner ? (isSelfHostedPlanLocked ? 'license' : 'billing') : 'account'
+		isOwner
+			? isSelfHostedPlanLocked && licenseSigningAvailable
+				? 'license'
+				: 'billing'
+			: 'account'
 	);
 	let allTabs = $state<
 		Array<{

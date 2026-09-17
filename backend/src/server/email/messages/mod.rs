@@ -6,6 +6,7 @@
 //! to edit. The producers ([`super::brevo`] / [`super::smtp`]) dispatch on
 //! `&dyn Email` and never need to know which concrete email they're sending.
 
+mod airgap_renewal;
 mod cancellation_initiated;
 mod checkout_completed;
 mod compose;
@@ -30,6 +31,7 @@ mod payment_recovered;
 mod plan_changed;
 mod plan_limit_approaching;
 mod plan_limit_reached;
+mod self_hosted_payment_failed;
 mod self_hosted_welcome;
 mod subscription_cancelled;
 mod subscription_paused;
@@ -42,6 +44,7 @@ mod trial_started;
 mod usage_summary;
 mod verification;
 
+pub use airgap_renewal::AirgapRenewal;
 pub use cancellation_initiated::CancellationInitiated;
 pub use checkout_completed::CheckoutCompleted;
 pub use compose::{BILLING_DETAILS_TAGLINE, Body, Content};
@@ -66,6 +69,7 @@ pub use payment_recovered::PaymentRecovered;
 pub use plan_changed::PlanChanged;
 pub use plan_limit_approaching::PlanLimitApproaching;
 pub use plan_limit_reached::PlanLimitReached;
+pub use self_hosted_payment_failed::SelfHostedPaymentFailed;
 pub use self_hosted_welcome::SelfHostedWelcome;
 pub use subscription_cancelled::SubscriptionCancelled;
 pub use subscription_paused::SubscriptionPaused;
@@ -534,6 +538,19 @@ mod tests {
             trial_days: None,
             deployment_assistance: true,
         });
+        assert_fully_rendered(&AirgapRenewal {
+            plan_name: "Self-Hosted Plus",
+            current_key_expires: "October 15, 2026",
+            renewed_through: "October 1, 2027",
+        });
+        assert_fully_rendered(&SelfHostedPaymentFailed {
+            key_expires: "October 1, 2026",
+            air_gapped: true,
+        });
+        assert_fully_rendered(&SelfHostedPaymentFailed {
+            key_expires: "October 1, 2026",
+            air_gapped: false,
+        });
     }
 
     /// Visit every email (every distinct variant) once, paired with a stable
@@ -717,6 +734,28 @@ mod tests {
                 plan_name: "Self-Hosted Plus",
                 trial_days: None,
                 deployment_assistance: true,
+            },
+        );
+        f(
+            "airgap_renewal",
+            &AirgapRenewal {
+                plan_name: "Self-Hosted Plus",
+                current_key_expires: "October 15, 2026",
+                renewed_through: "October 1, 2027",
+            },
+        );
+        f(
+            "self_hosted_payment_failed_airgapped",
+            &SelfHostedPaymentFailed {
+                key_expires: "October 1, 2026",
+                air_gapped: true,
+            },
+        );
+        f(
+            "self_hosted_payment_failed_online",
+            &SelfHostedPaymentFailed {
+                key_expires: "October 1, 2026",
+                air_gapped: false,
             },
         );
         f(

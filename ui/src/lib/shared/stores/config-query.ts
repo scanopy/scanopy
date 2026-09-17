@@ -47,6 +47,37 @@ export const isSelfHosted = (cfg: PublicServerConfig) =>
 	cfg.deployment_type === 'commercial' || cfg.deployment_type === 'community';
 
 /**
+ * True when this server holds a license signing key. Without one the mint
+ * endpoints fail, so the License tab and the self-hosted plans are hidden.
+ */
+export const isLicenseSigningAvailable = (cfg: PublicServerConfig) => cfg.license_signing_available;
+
+/**
+ * Days a minted key stays valid past `license_paid_through` before its
+ * user-visible expiry, and the further grace days before it hard-stops. Both
+ * come from the server so the mint and the UI cannot drift apart.
+ */
+export const licenseKeyExpiry = (cfg: PublicServerConfig, paidThrough: string): Date =>
+	addDays(paidThrough, cfg.license_key_buffer_days);
+
+/** The date a key stops working outright: expiry plus the grace window. */
+export const licenseKeyHardStop = (cfg: PublicServerConfig, paidThrough: string): Date =>
+	addDays(paidThrough, cfg.license_key_buffer_days + cfg.license_key_grace_days);
+
+/**
+ * Days between `license_paid_through` (when an air-gapped org may switch back to
+ * an online key) and that key's hard stop.
+ */
+export const licenseKeySwitchBackWindowDays = (cfg: PublicServerConfig) =>
+	cfg.license_key_buffer_days + cfg.license_key_grace_days;
+
+const addDays = (from: string, days: number): Date => {
+	const date = new Date(from);
+	date.setDate(date.getDate() + days);
+	return date;
+};
+
+/**
  * Query hook for fetching server configuration
  */
 export function useConfigQuery() {

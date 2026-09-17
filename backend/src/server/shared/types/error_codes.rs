@@ -205,6 +205,8 @@ pub enum ErrorCode {
     /// Organization is on a self-hosted plan, so the cloud app's main routes
     /// are closed to it
     BillingSelfHostedPlanLocked,
+    /// Cannot leave an air-gapped key until the current licence period ends
+    BillingAirGappedKeyStillCurrent,
 
     // === Rate Limiting ===
     /// Too many requests
@@ -364,6 +366,9 @@ impl ErrorCode {
             Self::BillingSelfHostedPlanLocked => {
                 "This organization is on a self-hosted plan. Manage its license in Settings, or switch to a cloud plan to use the app."
             }
+            Self::BillingAirGappedKeyStillCurrent => {
+                "Your air-gapped key is still valid. You can switch back to an online key once the current license period ends."
+            }
 
             // Rate Limiting
             Self::RateLimitExceeded => "Too many requests, please try again later",
@@ -421,6 +426,7 @@ impl ErrorCode {
             | Self::BillingSubscriptionRequired
             | Self::BillingSetupIncomplete
             | Self::BillingSelfHostedPlanLocked
+            | Self::BillingAirGappedKeyStillCurrent
             | Self::RateLimitExceeded
             | Self::DatabaseError => None,
 

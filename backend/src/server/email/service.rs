@@ -9,13 +9,14 @@ use semver::Version;
 use uuid::Uuid;
 
 use super::messages::{
-    CancellationInitiated, CheckoutCompleted, DaemonStandby, DaemonSunset, DaemonUnreachable,
-    DiscoveryDigest, DiscoveryGuide, Email, EmailAttachment, EmailChangedOld, EmailPreference,
-    InstallCommand, Invite, OidcLinked, OidcUnlinked, OrganizationDeleted, PasswordChanged,
-    PasswordReset, PaymentActionRequired, PaymentFailed, PaymentMethodAdded, PaymentMethodRemoved,
-    PaymentRecovered, PlanChanged, PlanLimitApproaching, PlanLimitReached, SelfHostedWelcome,
-    SubscriptionCancelled, SubscriptionPaused, SubscriptionReactivated, SubscriptionResumed,
-    TrialConverted, TrialEnding, TrialExpired, TrialStarted, UsageSummary, Verification,
+    AirgapRenewal, CancellationInitiated, CheckoutCompleted, DaemonStandby, DaemonSunset,
+    DaemonUnreachable, DiscoveryDigest, DiscoveryGuide, Email, EmailAttachment, EmailChangedOld,
+    EmailPreference, InstallCommand, Invite, OidcLinked, OidcUnlinked, OrganizationDeleted,
+    PasswordChanged, PasswordReset, PaymentActionRequired, PaymentFailed, PaymentMethodAdded,
+    PaymentMethodRemoved, PaymentRecovered, PlanChanged, PlanLimitApproaching, PlanLimitReached,
+    SelfHostedPaymentFailed, SelfHostedWelcome, SubscriptionCancelled, SubscriptionPaused,
+    SubscriptionReactivated, SubscriptionResumed, TrialConverted, TrialEnding, TrialExpired,
+    TrialStarted, UsageSummary, Verification,
 };
 use super::transport::EmailTransport;
 use crate::server::{
@@ -373,6 +374,40 @@ impl EmailService {
 
     pub async fn send_payment_failed_email(&self, to: EmailAddress) -> Result<()> {
         self.dispatch(to, &PaymentFailed).await
+    }
+
+    pub async fn send_airgap_renewal_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        current_key_expires: &str,
+        renewed_through: &str,
+    ) -> Result<()> {
+        self.dispatch(
+            to,
+            &AirgapRenewal {
+                plan_name,
+                current_key_expires,
+                renewed_through,
+            },
+        )
+        .await
+    }
+
+    pub async fn send_self_hosted_payment_failed_email(
+        &self,
+        to: EmailAddress,
+        key_expires: &str,
+        air_gapped: bool,
+    ) -> Result<()> {
+        self.dispatch(
+            to,
+            &SelfHostedPaymentFailed {
+                key_expires,
+                air_gapped,
+            },
+        )
+        .await
     }
 
     pub async fn send_payment_action_required_email(

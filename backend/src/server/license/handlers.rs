@@ -1,4 +1,4 @@
-//! License key endpoints. Org owners copy and regenerate the keys for their
+//! License key endpoints. Org owners copy and rotate the keys for their
 //! self-hosted servers; those servers exchange an online key for an
 //! entitlement (the contract in [`super::online`]).
 
@@ -22,6 +22,7 @@ use crate::server::auth::middleware::permissions::{Authorized, Owner};
 use crate::server::config::AppState;
 use crate::server::openapi::tags as api_tags;
 use crate::server::organizations::r#impl::base::Organization;
+use crate::server::organizations::service::SwitchKeyTypeError;
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::types::api::{
     ApiError, ApiErrorResponse, ApiResponse, ApiResult, EmptyApiResponse,
@@ -32,7 +33,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
         .routes(routes!(get_entitlement))
         .routes(routes!(get_current_license_key))
         .routes(routes!(create_license_key))
-        .routes(routes!(regenerate_license_key))
+        .routes(routes!(rotate_license_key))
 }
 
 /// The license key to mint.
@@ -71,6 +72,18 @@ fn license_issuer(state: &AppState) -> Result<&LicenseIssuer, ApiError> {
         .license_issuer
         .as_deref()
         .ok_or_else(|| ApiError::internal_error("License signing is not configured on this server"))
+}
+
+fn switch_error(error: SwitchKeyTypeError) -> ApiError {
+    match error {
+        // The request is well formed and the caller is entitled to make it;
+        // the organization is simply in a state that forbids the transition.
+        SwitchKeyTypeError::AirGappedStillCurrent { .. } => {
+            ApiError::air_gapped_key_still_current()
+        }
+        SwitchKeyTypeError::Lock(e) => ApiError::internal_error(&e.to_string()),
+        SwitchKeyTypeError::Service(e) => ApiError::internal_error(&e.to_string()),
+    }
 }
 
 fn mint_error(error: MintError) -> ApiError {
@@ -174,7 +187,8 @@ pub async fn create_license_key(
         .services
         .organization_service
         .switch_license_key_type(organization_id, request.key_type, auth.entity.clone())
-        .await?;
+        .await
+        .map_err(switch_error)?;
 
     let key = mint_key(&state, issuer, &organization, request.key_type).await?;
 
@@ -243,21 +257,21 @@ async fn mint_key(
     .map_err(mint_error)
 }
 
-/// Regenerate this organization's online license key
+/// Rotate this organization's license key
 ///
-/// Retires every online key issued so far: servers still using one get 403
-/// from the entitlement endpoint.
+/// Retires every key issued so far: a server still using an online key gets
+/// 403 from the entitlement endpoint and needs the new key.
 #[utoipa::path(
     post,
-    path = "/keys/regenerate",
+    path = "/keys/rotate",
     tags = [api_tags::BILLING, api_tags::INTERNAL],
     responses(
-        (status = 200, description = "Key regenerated", body = EmptyApiResponse),
+        (status = 200, description = "Key rotated", body = EmptyApiResponse),
         (status = 403, description = "Not an owner", body = ApiErrorResponse),
     ),
     security(("user_api_key" = []), ("session" = []))
 )]
-pub async fn regenerate_license_key(
+pub async fn rotate_license_key(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Owner>,
 ) -> ApiResult<Json<EmptyApiResponse>> {
@@ -265,7 +279,7 @@ pub async fn regenerate_license_key(
     state
         .services
         .organization_service
-        .regenerate_license_key(organization_id, auth.entity.clone())
+        .rotate_license_key(organization_id, auth.entity.clone())
         .await?;
 
     Ok(Json(ApiResponse::success(())))

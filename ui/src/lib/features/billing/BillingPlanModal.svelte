@@ -16,6 +16,7 @@
 	import { hasLicensedPlan, isBillingPlanActive } from '$lib/features/organizations/types';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
 	import { upgradeContext } from '$lib/features/billing/stores';
+	import { isLicenseSigningAvailable, useConfigQuery } from '$lib/shared/stores/config-query';
 
 	let {
 		isOpen = false,
@@ -76,6 +77,19 @@
 	const organizationQuery = useOrganizationQuery();
 	let organization = $derived(organizationQuery.data);
 
+	const configQuery = useConfigQuery();
+	let signingAvailable = $derived(
+		configQuery.data != null && isLicenseSigningAvailable(configQuery.data)
+	);
+	// A server with no signing key cannot mint a license, so its self-hosted tiers
+	// are unbuyable. Dropping them empties the Self-Hosted tab, which is why the
+	// hosting toggle goes with them.
+	let pickablePlans = $derived(
+		signingAvailable
+			? plansData
+			: plansData.filter((p) => billingPlanHelpers.getMetadata(p.type)?.license_plan == null)
+	);
+
 	let isCurrentlyTrialing = $derived(organization?.plan_status === 'trialing');
 
 	// Only show trial offers to orgs that have never had a non-Free paid plan and never trialed.
@@ -98,9 +112,11 @@
 	// Open on Self-Hosted for orgs already on a licensed plan, else the tab requested at
 	// signup (`?hosting=self_hosted`), else Cloud.
 	let initialHosting = $derived<PlanPickerHosting>(
-		organization && hasLicensedPlan(organization)
-			? 'self_hosted'
-			: ($onboardingStore.hosting ?? 'cloud')
+		!signingAvailable
+			? 'cloud'
+			: organization && hasLicensedPlan(organization)
+				? 'self_hosted'
+				: ($onboardingStore.hosting ?? 'cloud')
 	);
 
 	// Recommended plan based on use case
@@ -210,11 +226,11 @@
 	<div class="flex min-h-0 flex-1 flex-col">
 		<BillingPlanForm
 			plans={billingPlanHelpers.getMetadata(organization?.plan?.type ?? null)?.is_free
-				? plansData
-				: plansData.filter((p) => billingPlanHelpers.getMetadata(p.type)?.is_free !== true)}
+				? pickablePlans
+				: pickablePlans.filter((p) => billingPlanHelpers.getMetadata(p.type)?.is_free !== true)}
 			{billingPlanHelpers}
 			{featureHelpers}
-			showHosting={true}
+			showHosting={signingAvailable}
 			{initialHosting}
 			onPlanSelect={handlePlanSelect}
 			{recommendedPlan}
