@@ -211,7 +211,7 @@ impl Subscriber<BillingOperation> for OrganizationService {
                         changed = true;
                     }
                 }
-                BillingOperation::PaymentSucceeded { invoice } => {
+                BillingOperation::PaymentSucceeded { invoice, .. } => {
                     if let Some(paid_through) = invoice.license_paid_through()
                         && organization.base.license_paid_through != Some(paid_through)
                     {

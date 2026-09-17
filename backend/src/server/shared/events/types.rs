@@ -220,6 +220,15 @@ pub enum BillingOperation {
     },
     PaymentSucceeded {
         invoice: BillingInvoice,
+        /// The org's `license_paid_through` as it stood before this payment
+        /// advanced it, captured at the publish site.
+        ///
+        /// The air-gapped renewal email needs it to name the expiry baked
+        /// into the key already installed on the customer's server. Reading
+        /// the org row instead races the organization subscriber, which
+        /// advances that column off this same event, and subscriber dispatch
+        /// order is unspecified. `None` when the org had no paid-through.
+        previous_license_paid_through: Option<DateTime<Utc>>,
     },
     PaymentFailed {
         invoice_id: String,

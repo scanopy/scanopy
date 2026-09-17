@@ -687,6 +687,11 @@ impl BillingService {
                 },
                 BillingOperation::PaymentSucceeded {
                     invoice: BillingInvoice::from(&invoice),
+                    // Captured here, before any subscriber runs. The
+                    // organization subscriber advances this column off this
+                    // same event, so a subscriber that read the row could not
+                    // tell the old value from the new one.
+                    previous_license_paid_through: organization.base.license_paid_through,
                 },
                 AuthenticatedEntity::System,
             ))
