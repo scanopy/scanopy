@@ -25,6 +25,7 @@ type PauseDuration = components['schemas']['PauseDuration'];
 type CancelSubscriptionRequest = components['schemas']['CancelSubscriptionRequest'];
 type CancelSubscriptionResponse = components['schemas']['CancelSubscriptionResponse'];
 type LicenseKeyType = components['schemas']['LicenseKeyType'];
+type LicenseKeyResponse = components['schemas']['LicenseKeyResponse'];
 
 /**
  * Query hook for fetching current billing plans
@@ -293,19 +294,60 @@ export function useApplyDiscountSaveOfferMutation() {
 }
 
 /**
- * Mutation hook that mints a license key for this org's self-hosted servers.
+ * Query hook for the key this org has issued right now, with its type. The
+ * License tab reads the key through this instead of minting on mount, so
+ * opening Settings neither issues a key nor 403s before the plan lands.
+ */
+export function useCurrentLicenseKeyQuery(enabled: () => boolean = () => true) {
+	return createQuery(() => ({
+		queryKey: queryKeys.licenses.currentKey(),
+		enabled: enabled(),
+		queryFn: async (): Promise<LicenseKeyResponse> => {
+			const { data } = await apiClient.GET('/api/v1/licenses/keys/current', {});
+			if (!data?.success || !data.data) {
+				throw new Error(data?.error || 'Failed to read license key');
+			}
+			return data.data;
+		}
+	}));
+}
+
+/**
+ * Mutation hook that sets which key type this org uses. A different type retires
+ * the previous key and mints the new one; the same type returns the current key.
  * A plan without the key type returns 403; the API client toasts it.
  */
 export function useCreateLicenseKeyMutation() {
 	return createMutation(() => ({
-		mutationFn: async (key_type: LicenseKeyType) => {
+		mutationFn: async (key_type: LicenseKeyType): Promise<LicenseKeyResponse> => {
 			const { data } = await apiClient.POST('/api/v1/licenses/keys', {
 				body: { key_type }
 			});
 			if (!data?.success || !data.data) {
 				throw new Error(data?.error || 'Failed to create license key');
 			}
-			return data.data.key;
+			return data.data;
+		},
+		// The response is the org's current key, so the tab shows the new key
+		// without a second round trip.
+		onSuccess: (data: LicenseKeyResponse) => {
+			queryClient.setQueryData(queryKeys.licenses.currentKey(), data);
+		}
+	}));
+}
+
+/**
+ * Mutation hook that ends a trial immediately and charges the card on file.
+ * No onError: the API client already toasts, and a handler here double-toasts.
+ */
+export function useEndTrialMutation() {
+	return createMutation(() => ({
+		mutationFn: async () => {
+			const { data } = await apiClient.POST('/api/billing/end-trial', {});
+			if (!data?.success || !data.data) {
+				throw new Error(data?.error || 'Failed to end trial');
+			}
+			return data.data;
 		}
 	}));
 }
@@ -325,6 +367,7 @@ export function useRegenerateLicenseKeyMutation() {
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: queryKeys.organizations.current() });
+			queryClient.invalidateQueries({ queryKey: queryKeys.licenses.currentKey() });
 		}
 	}));
 }

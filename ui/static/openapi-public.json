@@ -12643,19 +12643,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-15T17:15:56.325225Z",
+              "created_at": "2026-09-17T14:00:43.905842Z",
               "first_discovery_id": null,
-              "id": "ab484fdc-128e-4a28-9f75-9c92b847e5d8",
+              "id": "432be890-8664-4c91-84e1-bc044e396d9a",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-15T17:15:56.325225Z",
+              "last_seen_at": "2026-09-17T14:00:43.905842Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-15T17:15:56.325225Z",
-              "valid_from": "2026-09-15T17:15:56.325225Z",
+              "updated_at": "2026-09-17T14:00:43.905842Z",
+              "valid_from": "2026-09-17T14:00:43.905842Z",
               "valid_to": null
             }
           },
@@ -14146,19 +14146,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-15T17:15:56.304402Z",
+                      "created_at": "2026-09-17T14:00:43.876660Z",
                       "first_discovery_id": null,
-                      "id": "a0f3fbf0-aff7-4837-b29e-78f6c2216486",
+                      "id": "8d17490e-37f8-4b79-9325-e0d30f5c103f",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-15T17:15:56.304402Z",
+                      "last_seen_at": "2026-09-17T14:00:43.876660Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-15T17:15:56.304402Z",
-                      "valid_from": "2026-09-15T17:15:56.304402Z",
+                      "updated_at": "2026-09-17T14:00:43.876660Z",
+                      "valid_from": "2026-09-17T14:00:43.876660Z",
                       "valid_to": null
                     }
                   ],
@@ -14172,7 +14172,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "OPNsense",
+                  "service_definition": "Spinnaker",
                   "source": {
                     "type": "Manual"
                   },
@@ -14593,12 +14593,17 @@
             "type": "object",
             "description": "The result payload. Omitted on failure.",
             "required": [
-              "key"
+              "key",
+              "key_type"
             ],
             "properties": {
               "key": {
                 "type": "string",
                 "description": "Signed key to set as `SCANOPY_LICENSE_KEY` on a self-hosted server."
+              },
+              "key_type": {
+                "$ref": "#/components/schemas/LicenseKeyType",
+                "description": "Which key this is. An organization has one issued at a time."
               }
             }
           },
@@ -15428,19 +15433,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-15T17:15:56.320265Z",
+                  "created_at": "2026-09-17T14:00:43.899567Z",
                   "first_discovery_id": null,
-                  "id": "e346014c-f46b-447b-abac-6429811992da",
+                  "id": "82e0947f-2d3a-4b46-b0cd-bc8a029fae92",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-15T17:15:56.320265Z",
+                  "last_seen_at": "2026-09-17T14:00:43.899567Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-15T17:15:56.320265Z",
-                  "valid_from": "2026-09-15T17:15:56.320265Z",
+                  "updated_at": "2026-09-17T14:00:43.899567Z",
+                  "valid_from": "2026-09-17T14:00:43.899567Z",
                   "valid_to": null
                 }
               ],
@@ -15454,7 +15459,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "OPNsense",
+              "service_definition": "Spinnaker",
               "source": {
                 "type": "Manual"
               },
@@ -17709,19 +17714,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-15T17:15:56.304893Z",
+          "created_at": "2026-09-17T14:00:43.877524Z",
           "first_discovery_id": null,
-          "id": "140089da-ade5-421f-8339-31fd165d609e",
+          "id": "90447c31-c9ad-44a9-a4dd-8b2b8fa350bc",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-15T17:15:56.304893Z",
+          "last_seen_at": "2026-09-17T14:00:43.877524Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-15T17:15:56.304893Z",
-          "valid_from": "2026-09-15T17:15:56.304893Z",
+          "updated_at": "2026-09-17T14:00:43.877524Z",
+          "valid_from": "2026-09-17T14:00:43.877524Z",
           "valid_to": null
         }
       },
@@ -18416,7 +18421,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "OPNsense",
+              "service_definition": "Spinnaker",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -23727,19 +23732,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-15T17:15:56.303881Z",
+                  "created_at": "2026-09-17T14:00:43.875639Z",
                   "first_discovery_id": null,
-                  "id": "b2a9192c-96ef-487a-99c7-9fb35cb826a7",
+                  "id": "319fd823-97c7-4630-93ca-80664663be70",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-15T17:15:56.303881Z",
+                  "last_seen_at": "2026-09-17T14:00:43.875639Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-15T17:15:56.303881Z",
-                  "valid_from": "2026-09-15T17:15:56.303881Z",
+                  "updated_at": "2026-09-17T14:00:43.875639Z",
+                  "valid_from": "2026-09-17T14:00:43.875639Z",
                   "valid_to": null
                 }
               ],
@@ -23753,7 +23758,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "OPNsense",
+              "service_definition": "Spinnaker",
               "source": {
                 "type": "Manual"
               },
@@ -25159,18 +25164,23 @@
       "LicenseKeyResponse": {
         "type": "object",
         "required": [
-          "key"
+          "key",
+          "key_type"
         ],
         "properties": {
           "key": {
             "type": "string",
             "description": "Signed key to set as `SCANOPY_LICENSE_KEY` on a self-hosted server."
+          },
+          "key_type": {
+            "$ref": "#/components/schemas/LicenseKeyType",
+            "description": "Which key this is. An organization has one issued at a time."
           }
         }
       },
       "LicenseKeyType": {
         "type": "string",
-        "description": "The two keys an org owner can copy for a self-hosted server.",
+        "description": "The two keys an org owner can copy for a self-hosted server. An\norganization has one of these issued at a time, stored on the org row.\n\nSerde keeps the API spelling (`\"Online\"` / `\"Offline\"`); strum supplies the\nsnake_case text the column is stored as, the way `PlanStatus` does.",
         "enum": [
           "Online",
           "Offline"
@@ -27193,19 +27203,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-15T17:15:56.294226Z",
+                        "created_at": "2026-09-17T14:00:43.856257Z",
                         "first_discovery_id": null,
-                        "id": "162b60b0-f40e-4048-a7d6-1ed0c00accdc",
+                        "id": "7fcbe33b-0145-4277-97f6-fd9a1cb15b1f",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-15T17:15:56.294226Z",
+                        "last_seen_at": "2026-09-17T14:00:43.856257Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-15T17:15:56.294226Z",
-                        "valid_from": "2026-09-15T17:15:56.294226Z",
+                        "updated_at": "2026-09-17T14:00:43.856257Z",
+                        "valid_from": "2026-09-17T14:00:43.856257Z",
                         "valid_to": null
                       }
                     ],
@@ -27219,7 +27229,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "OPNsense",
+                    "service_definition": "Spinnaker",
                     "source": {
                       "type": "Manual"
                     },
@@ -27362,19 +27372,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-15T17:15:56.319422Z",
+                    "created_at": "2026-09-17T14:00:43.898427Z",
                     "first_discovery_id": null,
-                    "id": "f2c096e6-d361-480d-8282-f0c4654a6a08",
+                    "id": "4d1bc1ed-859a-4e28-bee1-991586115209",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-15T17:15:56.319422Z",
+                    "last_seen_at": "2026-09-17T14:00:43.898427Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-15T17:15:56.319422Z",
-                    "valid_from": "2026-09-15T17:15:56.319422Z",
+                    "updated_at": "2026-09-17T14:00:43.898427Z",
+                    "valid_from": "2026-09-17T14:00:43.898427Z",
                     "valid_to": null
                   }
                 ],
@@ -27388,7 +27398,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "OPNsense",
+                "service_definition": "Spinnaker",
                 "source": {
                   "type": "Manual"
                 },
@@ -29445,19 +29455,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-15T17:15:56.304751Z",
+              "created_at": "2026-09-17T14:00:43.877278Z",
               "first_discovery_id": null,
-              "id": "51736b26-0311-46a8-9114-2c5e7b766e2f",
+              "id": "1d7c18bd-7e09-4472-a3e5-f0e2c10b2d78",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-15T17:15:56.304751Z",
+              "last_seen_at": "2026-09-17T14:00:43.877278Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-15T17:15:56.304751Z",
-              "valid_from": "2026-09-15T17:15:56.304751Z",
+              "updated_at": "2026-09-17T14:00:43.877278Z",
+              "valid_from": "2026-09-17T14:00:43.877278Z",
               "valid_to": null
             }
           ],
@@ -29471,7 +29481,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "OPNsense",
+          "service_definition": "Spinnaker",
           "source": {
             "type": "Manual"
           },
@@ -30792,7 +30802,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "1985befb-273c-436d-ac06-f882cb34da17",
+                  "id": "e53064ef-605f-4cac-899e-fbcd91cb13ba",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -30802,23 +30812,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "f7578ae6-e5d8-4357-b74d-dc49bb6a5f3f",
+                  "id": "b12b4081-a5f4-470c-bab3-cdd212c1b61b",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "5e156ac8-098e-4d40-bc86-4e7a3712136d",
+                  "id": "883e8e65-cd66-4e10-86fb-465ce648e7c8",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "ec7f89aa-df3f-4945-bad0-aa4fd6ec432d",
+                  "id": "496e30e2-03de-49ee-be01-515e4b2256cf",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "f7578ae6-e5d8-4357-b74d-dc49bb6a5f3f",
+                  "id": "b12b4081-a5f4-470c-bab3-cdd212c1b61b",
                   "rule": "ByHost"
                 }
               ]
@@ -30848,19 +30858,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "e67b48f3-8b85-4457-8548-ea33315defc6",
+                "id": "a59a1d65-69d2-407e-9322-0700d3926227",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "bb6a34f8-22b2-4fbc-9896-7e16fec8bab7",
+                "id": "daad9363-118c-457c-8f40-b55d9114fc30",
                 "rule": "ByVLAN"
               },
               {
-                "id": "3469dabb-79b8-4b33-a744-7ae24405400d",
+                "id": "20bd671e-7343-4311-9ece-515264c805be",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "74dacfe9-5506-4202-80ab-e12f978c66f1",
+                "id": "5334567a-85a5-4eb1-862d-1815e3a49227",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -30878,7 +30888,7 @@
                 }
               },
               {
-                "id": "276f1c84-ee0c-4342-8bf0-b0642693525f",
+                "id": "78b11365-40a2-4443-93e9-a1d023e8c299",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -30887,15 +30897,15 @@
                 }
               },
               {
-                "id": "947d475c-1020-4b26-8547-28d67c9b41ab",
+                "id": "44f59606-3d66-4adb-9a4d-8aee9cf3e9ee",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "58304b3d-0659-487c-ba2d-02b6998781a3",
+                "id": "2a22c39b-ac2e-458f-95a6-04384fa55027",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "13ce4fb0-3b18-4a82-b2a0-5b14b4eecea4",
+                "id": "041d79d0-5b85-45d6-ae53-3a7052612866",
                 "rule": "ByStack"
               }
             ]

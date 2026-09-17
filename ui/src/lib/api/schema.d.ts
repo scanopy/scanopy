@@ -340,6 +340,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/billing/end-trial": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End the trial now and charge the card on file
+         * @description Offered to customers who want an air-gapped license key, which needs a paid
+         *     subscription because it validates offline and cannot be revoked.
+         */
+        post: operations["end_trial"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/billing/extend-trial": {
         parameters: {
             query?: never;
@@ -2066,6 +2087,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/licenses/keys/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read this organization's current license key
+         * @description Returns whichever key type the organization has issued, minted from its
+         *     current state. Online keys are deterministic, so this returns the same
+         *     string every time until the key is regenerated or the type is switched.
+         */
+        get: operations["get_current_license_key"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/licenses/keys/regenerate": {
         parameters: {
             query?: never;
@@ -3291,19 +3334,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-15T17:15:56.325218Z",
+             *       "created_at": "2026-09-17T14:00:43.905895Z",
              *       "first_discovery_id": null,
-             *       "id": "23ab9eb5-448b-46dc-933a-8229e2689390",
+             *       "id": "310ae3a9-6bc7-4bca-b6aa-976a10c6d731",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-15T17:15:56.325218Z",
+             *       "last_seen_at": "2026-09-17T14:00:43.905895Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-15T17:15:56.325218Z",
-             *       "valid_from": "2026-09-15T17:15:56.325218Z",
+             *       "updated_at": "2026-09-17T14:00:43.905895Z",
+             *       "valid_from": "2026-09-17T14:00:43.905895Z",
              *       "valid_to": null
              *     }
              */
@@ -3964,19 +4007,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-15T17:15:56.304418Z",
+             *               "created_at": "2026-09-17T14:00:43.876650Z",
              *               "first_discovery_id": null,
-             *               "id": "97efc214-fc34-4ad0-9e92-01f4b45b8989",
+             *               "id": "e582c9b8-dedb-46eb-9a33-bb4d1a47b4fc",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-15T17:15:56.304418Z",
+             *               "last_seen_at": "2026-09-17T14:00:43.876650Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-15T17:15:56.304418Z",
-             *               "valid_from": "2026-09-15T17:15:56.304418Z",
+             *               "updated_at": "2026-09-17T14:00:43.876650Z",
+             *               "valid_from": "2026-09-17T14:00:43.876650Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -3990,7 +4033,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "OPNsense",
+             *           "service_definition": "Spinnaker",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4360,6 +4403,8 @@ export interface components {
             data?: {
                 /** @description Signed key to set as `SCANOPY_LICENSE_KEY` on a self-hosted server. */
                 key: string;
+                /** @description Which key this is. An organization has one issued at a time. */
+                key_type: components["schemas"]["LicenseKeyType"];
             };
             /** @description Human-readable failure message. Omitted on success. */
             error?: string | null;
@@ -4737,19 +4782,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-15T17:15:56.320249Z",
+             *           "created_at": "2026-09-17T14:00:43.899561Z",
              *           "first_discovery_id": null,
-             *           "id": "bf5ba080-483c-4a39-9eb2-3f2f4885c89f",
+             *           "id": "c8a99770-ac12-475c-ac45-7c56d56f7934",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-15T17:15:56.320249Z",
+             *           "last_seen_at": "2026-09-17T14:00:43.899561Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-15T17:15:56.320249Z",
-             *           "valid_from": "2026-09-15T17:15:56.320249Z",
+             *           "updated_at": "2026-09-17T14:00:43.899561Z",
+             *           "valid_from": "2026-09-17T14:00:43.899561Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -4763,7 +4808,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "OPNsense",
+             *       "service_definition": "Spinnaker",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -5628,19 +5673,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-15T17:15:56.304915Z",
+         *       "created_at": "2026-09-17T14:00:43.877509Z",
          *       "first_discovery_id": null,
-         *       "id": "24a141f0-57dc-4c5d-8dc8-008b7f833261",
+         *       "id": "ab4f8f99-9833-49b9-9536-b7c1a5f8f3f9",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-15T17:15:56.304915Z",
+         *       "last_seen_at": "2026-09-17T14:00:43.877509Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-15T17:15:56.304915Z",
-         *       "valid_from": "2026-09-15T17:15:56.304915Z",
+         *       "updated_at": "2026-09-17T14:00:43.877509Z",
+         *       "valid_from": "2026-09-17T14:00:43.877509Z",
          *       "valid_to": null
          *     }
          */
@@ -5954,7 +5999,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "OPNsense",
+         *           "service_definition": "Spinnaker",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8095,19 +8140,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-15T17:15:56.303886Z",
+         *               "created_at": "2026-09-17T14:00:43.875642Z",
          *               "first_discovery_id": null,
-         *               "id": "ec344d39-08b1-457d-a504-f0e5c0567cd2",
+         *               "id": "a3974bec-422d-420f-a748-bbd8729c16e8",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-15T17:15:56.303886Z",
+         *               "last_seen_at": "2026-09-17T14:00:43.875642Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-15T17:15:56.303886Z",
-         *               "valid_from": "2026-09-15T17:15:56.303886Z",
+         *               "updated_at": "2026-09-17T14:00:43.875642Z",
+         *               "valid_from": "2026-09-17T14:00:43.875642Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8121,7 +8166,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "OPNsense",
+         *           "service_definition": "Spinnaker",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -9020,9 +9065,15 @@ export interface components {
         LicenseKeyResponse: {
             /** @description Signed key to set as `SCANOPY_LICENSE_KEY` on a self-hosted server. */
             key: string;
+            /** @description Which key this is. An organization has one issued at a time. */
+            key_type: components["schemas"]["LicenseKeyType"];
         };
         /**
-         * @description The two keys an org owner can copy for a self-hosted server.
+         * @description The two keys an org owner can copy for a self-hosted server. An
+         *     organization has one of these issued at a time, stored on the org row.
+         *
+         *     Serde keeps the API spelling (`"Online"` / `"Offline"`); strum supplies the
+         *     snake_case text the column is stored as, the way `PlanStatus` does.
          * @enum {string}
          */
         LicenseKeyType: "Online" | "Offline";
@@ -10959,19 +11010,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-15T17:15:56.304768Z",
+         *           "created_at": "2026-09-17T14:00:43.877261Z",
          *           "first_discovery_id": null,
-         *           "id": "8931b5e9-b665-4687-92cd-c3cc8919e1c1",
+         *           "id": "659c99f7-0f29-4846-81b1-2db99414d437",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-15T17:15:56.304768Z",
+         *           "last_seen_at": "2026-09-17T14:00:43.877261Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-15T17:15:56.304768Z",
-         *           "valid_from": "2026-09-15T17:15:56.304768Z",
+         *           "updated_at": "2026-09-17T14:00:43.877261Z",
+         *           "valid_from": "2026-09-17T14:00:43.877261Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -10985,7 +11036,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "OPNsense",
+         *       "service_definition": "Spinnaker",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -11687,7 +11738,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "003febe5-3f56-4ab7-9262-66f85c946305",
+             *           "id": "ed0e2de3-c979-4c5d-9420-773394a5435c",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -11697,23 +11748,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "3e89c707-f1ed-4dc3-988c-e710afafbc5e",
+             *           "id": "45e38104-236b-4c5d-9bfd-c34942195522",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "79386842-d4ff-4bb2-870a-baf2f02b9baf",
+             *           "id": "36402f50-bb55-4105-90e8-459115da07e2",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "57d9c7c8-f0a6-4730-8025-993034ca3c01",
+             *           "id": "9a27f01f-f887-4db1-a35b-1a09ac53f453",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "3e89c707-f1ed-4dc3-988c-e710afafbc5e",
+             *           "id": "45e38104-236b-4c5d-9bfd-c34942195522",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -11726,19 +11777,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "18ced04d-d988-4881-aec5-a3f63695daca",
+             *         "id": "4b1a1344-ac27-4351-ba2d-43638b0c599f",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "d9fe2232-0abc-4119-8426-f2c33cf99c45",
+             *         "id": "80a3c848-7d6a-4ab4-a29e-13d19ede9c7a",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "3a06314a-9307-420b-8c55-8403c60fecfe",
+             *         "id": "e97c518f-ab11-498e-8a0c-110b96e05ee5",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "623507cc-bad6-4cc3-96a3-0302504fbbbf",
+             *         "id": "fbd53ecb-8778-47cf-85e8-c5d374f6e8a1",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -11756,7 +11807,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "cb2250b0-cce5-450d-81d0-9f05be8ff3cd",
+             *         "id": "15325652-8ff7-4d7a-8029-a7df7755a4a2",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -11765,15 +11816,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "6744de3f-4c1c-461a-bb28-1b72ce42a34c",
+             *         "id": "ad86076b-8004-45b4-afd0-bbfe636488cc",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "13669eb1-11bb-46f7-aa97-2f55df752b10",
+             *         "id": "b3a6bf05-cd52-4b69-b5e9-e05dec7a927e",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "86e1dd37-461c-4a07-827c-bd64b1547a6f",
+             *         "id": "c59cefe3-8fa7-49bb-98dc-ec181814b15e",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -12954,6 +13005,35 @@ export interface operations {
                 };
             };
             /** @description Invalid plan or billing not enabled */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    end_trial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Trial ended and subscription charged */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_String"];
+                };
+            };
+            /** @description Not trialing, no payment method, or billing not enabled */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -17051,6 +17131,35 @@ export interface operations {
                 };
             };
             /** @description Not an owner, or the plan does not include this key type */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_current_license_key: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The organization's current license key */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_LicenseKeyResponse"];
+                };
+            };
+            /** @description Not an owner, or the organization has no license */
             403: {
                 headers: {
                     [name: string]: unknown;

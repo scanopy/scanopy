@@ -12,10 +12,29 @@ pub enum LicensePlan {
     Plus,
 }
 
-/// The two keys an org owner can copy for a self-hosted server.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, utoipa::ToSchema)]
+/// The two keys an org owner can copy for a self-hosted server. An
+/// organization has one of these issued at a time, stored on the org row.
+///
+/// Serde keeps the API spelling (`"Online"` / `"Offline"`); strum supplies the
+/// snake_case text the column is stored as, the way `PlanStatus` does.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    Hash,
+    Default,
+    strum_macros::Display,
+    strum_macros::EnumString,
+    utoipa::ToSchema,
+)]
+#[strum(serialize_all = "snake_case")]
 pub enum LicenseKeyType {
     /// Permanent credential; the server fetches its entitlement from the cloud.
+    #[default]
     Online,
     /// Self-contained key with its expiry baked in, for air-gapped servers.
     Offline,

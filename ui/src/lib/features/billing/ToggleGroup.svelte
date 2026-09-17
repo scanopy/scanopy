@@ -3,6 +3,10 @@
 		value: string;
 		label: string;
 		badge?: string;
+		/** Render this one option non-selectable, leaving the rest interactive. */
+		disabled?: boolean;
+		/** Hover text, typically saying what would make a disabled option selectable. */
+		tooltip?: string;
 	}
 
 	interface Props {
@@ -20,11 +24,14 @@
 	{#each options as option (option.value)}
 		<button
 			type="button"
-			{disabled}
+			disabled={disabled || option.disabled}
+			title={option.tooltip}
 			onclick={() => onchange(option.value)}
 			class="rounded-full px-2.5 py-1 text-sm font-medium transition-all {selected === option.value
 				? 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white'
-				: 'text-tertiary hover:text-secondary'} {disabled ? 'cursor-not-allowed' : ''}"
+				: 'text-tertiary hover:text-secondary'} {disabled || option.disabled
+				? 'cursor-not-allowed opacity-50'
+				: ''}"
 		>
 			<span>{option.label}</span>
 			{#if option.badge}

@@ -30,6 +30,7 @@ use crate::server::shared::types::api::{
 pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
     OpenApiRouter::new()
         .routes(routes!(get_entitlement))
+        .routes(routes!(get_current_license_key))
         .routes(routes!(create_license_key))
         .routes(routes!(regenerate_license_key))
 }
@@ -44,6 +45,8 @@ pub struct CreateLicenseKeyRequest {
 pub struct LicenseKeyResponse {
     /// Signed key to set as `SCANOPY_LICENSE_KEY` on a self-hosted server.
     pub key: String,
+    /// Which key this is. An organization has one issued at a time.
+    pub key_type: LicenseKeyType,
 }
 
 type OrgRateLimiter = RateLimiter<Uuid, DashMapStateStore<Uuid>, DefaultClock>;
@@ -72,9 +75,10 @@ fn license_issuer(state: &AppState) -> Result<&LicenseIssuer, ApiError> {
 
 fn mint_error(error: MintError) -> ApiError {
     match error {
-        MintError::NotLicensed | MintError::OfflineNotIncluded | MintError::NoPaidThrough => {
-            ApiError::forbidden(&error.to_string())
-        }
+        MintError::NotLicensed
+        | MintError::OfflineNotIncluded
+        | MintError::OfflineRequiresPayment
+        | MintError::NoPaidThrough => ApiError::forbidden(&error.to_string()),
         MintError::KeyVersionOutOfRange | MintError::Signing(_) => {
             ApiError::internal_error(&error.to_string())
         }
@@ -163,6 +167,44 @@ pub async fn create_license_key(
 ) -> ApiResult<Json<ApiResponse<LicenseKeyResponse>>> {
     let organization_id = auth.require_organization_id()?;
     let issuer = license_issuer(&state)?;
+    // Asking for the type already issued is a re-read and changes nothing, so
+    // copying the key twice returns the same string. A real switch retires the
+    // previous key.
+    let organization = state
+        .services
+        .organization_service
+        .switch_license_key_type(organization_id, request.key_type, auth.entity.clone())
+        .await?;
+
+    let key = mint_key(&state, issuer, &organization, request.key_type).await?;
+
+    Ok(Json(ApiResponse::success(LicenseKeyResponse {
+        key,
+        key_type: request.key_type,
+    })))
+}
+
+/// Read this organization's current license key
+///
+/// Returns whichever key type the organization has issued, minted from its
+/// current state. Online keys are deterministic, so this returns the same
+/// string every time until the key is regenerated or the type is switched.
+#[utoipa::path(
+    get,
+    path = "/keys/current",
+    tags = [api_tags::BILLING, api_tags::INTERNAL],
+    responses(
+        (status = 200, description = "The organization's current license key", body = ApiResponse<LicenseKeyResponse>),
+        (status = 403, description = "Not an owner, or the organization has no license", body = ApiErrorResponse),
+    ),
+    security(("user_api_key" = []), ("session" = []))
+)]
+pub async fn get_current_license_key(
+    State(state): State<Arc<AppState>>,
+    auth: Authorized<Owner>,
+) -> ApiResult<Json<ApiResponse<LicenseKeyResponse>>> {
+    let organization_id = auth.require_organization_id()?;
+    let issuer = license_issuer(&state)?;
     let organization = state
         .services
         .organization_service
@@ -170,22 +212,35 @@ pub async fn create_license_key(
         .await?
         .ok_or_else(|| ApiError::entity_not_found::<Organization>(organization_id))?;
 
-    let key = match request.key_type {
+    let key_type = organization.base.license_key_type.unwrap_or_default();
+    let key = mint_key(&state, issuer, &organization, key_type).await?;
+
+    Ok(Json(ApiResponse::success(LicenseKeyResponse {
+        key,
+        key_type,
+    })))
+}
+
+async fn mint_key(
+    state: &AppState,
+    issuer: &LicenseIssuer,
+    organization: &Organization,
+    key_type: LicenseKeyType,
+) -> Result<String, ApiError> {
+    match key_type {
         LicenseKeyType::Online => {
             // Deterministic: the stamp is assigned once per key version, so
-            // copying the key again returns the same string.
+            // minting again returns the same string.
             let issued_at = state
                 .services
                 .organization_service
-                .license_key_issued_at(organization_id)
+                .license_key_issued_at(organization.id)
                 .await?;
-            issuer.mint_online_key(&organization, issued_at)
+            issuer.mint_online_key(organization, issued_at)
         }
-        LicenseKeyType::Offline => issuer.mint_offline_key(&organization, Utc::now()),
+        LicenseKeyType::Offline => issuer.mint_offline_key(organization, Utc::now()),
     }
-    .map_err(mint_error)?;
-
-    Ok(Json(ApiResponse::success(LicenseKeyResponse { key })))
+    .map_err(mint_error)
 }
 
 /// Regenerate this organization's online license key

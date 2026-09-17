@@ -59,9 +59,22 @@
 	// the backend rejects main-app routes, and the org only gets Settings (its keys
 	// live on the License tab). Switching to a cloud plan unlocks it on the next
 	// org refetch.
+	// Set when the plan picker closes on a licensed plan and cleared once the org
+	// confirms it. The org's plan only flips after the Stripe webhook, so without
+	// this the picker closes onto the main app for a second or two before Settings
+	// opens on the License tab. The cache is deliberately not seeded instead:
+	// waitForOrgUpdate invalidates and refetches at once, so a seeded plan reverts
+	// within milliseconds and the License tab flickers out of the tab list.
+	let licensedPlanJustPicked = $state(false);
 	let isSelfHostedPlanLocked = $derived(
-		billingEnabled && organization != null && hasLicensedPlan(organization)
+		billingEnabled &&
+			(licensedPlanJustPicked || (organization != null && hasLicensedPlan(organization)))
 	);
+	$effect(() => {
+		if (licensedPlanJustPicked && organization != null && hasLicensedPlan(organization)) {
+			licensedPlanJustPicked = false;
+		}
+	});
 	// Main-app data (SSE streams, daemons) waits until the lock state is known.
 	let mainAppAvailable = $derived(
 		configQuery.data != null && organization != null && !isSelfHostedPlanLocked
@@ -285,6 +298,7 @@
 				settingsInitialTab={isBillingBlocking ? billingBlockingTab : 'account'}
 				settingsDismissible={!isBillingBlocking}
 				mainAppLocked={isSelfHostedPlanLocked}
+				licensedPlanPending={licensedPlanJustPicked}
 			/>
 		</div>
 
@@ -386,6 +400,9 @@
 				selectedPlan != null && billingPlans.getMetadata(selectedPlan.type).license_plan != null;
 			closeModal();
 			if (licensed) {
+				// Locks the app and opens Settings on the License tab now, rather than
+				// when the webhook lands the plan on the org.
+				licensedPlanJustPicked = true;
 				daemonPromptShown = true;
 				reopenSettingsAfterBilling.set(false);
 			} else if ($reopenSettingsAfterBilling) {

@@ -187,6 +187,10 @@ pub struct OrganizationBase {
     /// first issue and moved on regeneration. Not key material.
     #[serde(default, skip_serializing)]
     pub license_key_issued_at: Option<DateTime<Utc>>,
+    /// Which license key this org currently has issued - internal, not exposed
+    /// to API. `None` reads as online. Switching retires the previous key.
+    #[serde(default, skip_serializing)]
+    pub license_key_type: Option<crate::server::license::types::LicenseKeyType>,
 }
 
 #[derive(

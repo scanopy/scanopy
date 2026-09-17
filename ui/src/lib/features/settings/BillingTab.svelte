@@ -15,6 +15,7 @@
 	} from '$lib/features/billing/queries';
 	import CancelSubscriptionModal from '$lib/features/billing/CancelSubscriptionModal.svelte';
 	import { renewalLabel } from '$lib/features/billing/renewal';
+	import { discountedPrice, saveOfferDiscount } from '$lib/features/billing/pricing';
 	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
 	import { useDashboardQuery } from '$lib/features/home/queries';
 	import {
@@ -250,35 +251,12 @@
 		return null;
 	});
 
-	// Render the active save-offer discount chip only while the discount
-	// window is still in the future, and only on Stripe-managed plans —
-	// a coupon needs a Stripe sub to attach to. The discount columns can
-	// still be populated on a non-Stripe plan (e.g. an org that applied a
-	// discount on Pro and then downgraded to Free), so this gate is needed.
-	let activeDiscount = $derived.by(() => {
-		if (!org) return null;
-		if (billingPlans.getMetadata(org.plan?.type ?? null).is_stripe_managed !== true) return null;
-		const until = org.discount_save_offer_active_until;
-		const percent = org.discount_save_offer_percent_off;
-		if (!until || percent == null) return null;
-		const expiresAt = new Date(until);
-		if (expiresAt.getTime() <= Date.now()) return null;
-		return {
-			percentOff: percent,
-			rate: org.plan?.rate ?? 'Month',
-			expiresAt: expiresAt.toLocaleDateString(undefined, {
-				month: 'long',
-				day: 'numeric',
-				year: 'numeric'
-			})
-		};
-	});
-
-	let discountedPriceLabel = $derived.by(() => {
-		if (!org?.plan || !activeDiscount) return null;
-		const discounted = (org.plan.base_cents * (100 - activeDiscount.percentOff)) / 100 / 100;
-		return discounted.toFixed(2);
-	});
+	// Render the active save-offer discount chip only while the discount window is
+	// still in the future, and only on Stripe-managed plans — a coupon needs a
+	// Stripe sub to attach to. The License tab quotes the same numbers when it
+	// charges a trial out, so the math lives in one place.
+	let activeDiscount = $derived(saveOfferDiscount(org));
+	let discountedPriceLabel = $derived(discountedPrice(org));
 
 	// Show the Usage card only when the plan defines at least one metered
 	// resource (Free plans may define none).
