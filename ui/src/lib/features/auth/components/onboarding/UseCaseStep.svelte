@@ -12,9 +12,12 @@
 		onboarding_commercialNoticeTitle,
 		onboarding_howWillYouUse,
 		onboarding_logInHere,
+		onboarding_selfHostedAccountBody,
+		onboarding_selfHostedAccountTitle,
 		onboarding_tailorSetup,
 		onboarding_understandContinue
 	} from '$lib/paraglide/messages';
+	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 
 	let {
@@ -90,6 +93,13 @@
 	<div class="flex min-h-0 flex-1 flex-col">
 		<div class="flex-1 overflow-y-auto p-6">
 			<div class="space-y-6">
+				{#if $onboardingStore.hosting === 'self_hosted'}
+					<InlineInfo
+						title={onboarding_selfHostedAccountTitle()}
+						body={onboarding_selfHostedAccountBody()}
+					/>
+				{/if}
+
 				<p class="text-secondary text-center text-sm">{onboarding_tailorSetup()}</p>
 
 				<!-- Use Case Cards -->

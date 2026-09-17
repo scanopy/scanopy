@@ -168,7 +168,8 @@ export const queryKeys = {
 	billing: {
 		all: ['billing'] as const,
 		plans: () => [...queryKeys.billing.all, 'plans'] as const,
-		saveOfferCoupon: () => [...queryKeys.billing.all, 'save-offer-coupon'] as const
+		saveOfferCoupon: () => [...queryKeys.billing.all, 'save-offer-coupon'] as const,
+		invoiceBilling: () => [...queryKeys.billing.all, 'invoice-billing'] as const
 	},
 	licenses: {
 		all: ['licenses'] as const,

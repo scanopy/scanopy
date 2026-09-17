@@ -55,7 +55,39 @@ pub struct BillingInvoice {
     /// Public link to Stripe's hosted invoice page — the fallback when the PDF
     /// isn't ready in time to attach.
     pub hosted_invoice_url: Option<String>,
+    /// How Stripe collects this invoice. Defaulted for events published
+    /// before this field existed, all of which were card charges.
+    #[serde(default)]
+    pub collection: InvoiceCollection,
+    /// When a sent invoice is due. `None` for invoices charged automatically.
+    #[serde(default)]
+    pub due_date: Option<DateTime<Utc>>,
 }
+
+/// How Stripe collects payment for an invoice.
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+pub enum InvoiceCollection {
+    /// Charged to the customer's saved payment method.
+    #[default]
+    ChargeAutomatically,
+    /// Emailed to the customer, who pays it by its due date.
+    SendInvoice,
+}
+
+impl From<stripe_shared::InvoiceCollectionMethod> for InvoiceCollection {
+    fn from(method: stripe_shared::InvoiceCollectionMethod) -> Self {
+        match method {
+            stripe_shared::InvoiceCollectionMethod::SendInvoice => Self::SendInvoice,
+            _ => Self::ChargeAutomatically,
+        }
+    }
+}
+
+/// Days a sent, unpaid self-hosted invoice keeps the license valid past its
+/// due date. Public-sector payment runs routinely miss net-30, and minted keys
+/// add their own buffer and grace window on top.
+pub const INVOICE_PAYMENT_GRACE_DAYS: i64 = 30;
 
 impl BillingInvoice {
     /// End of the latest service period this invoice pays for on a
@@ -65,20 +97,40 @@ impl BillingInvoice {
     /// plan. Uses line periods, not the invoice-level period, which on a
     /// subscription's first invoice is just its creation time.
     pub fn license_paid_through(&self) -> Option<DateTime<Utc>> {
+        self.licensed_lines().map(|line| line.period_end).max()
+    }
+
+    /// How long a sent, unpaid invoice for a self-hosted license keeps that
+    /// license valid: its due date plus [`INVOICE_PAYMENT_GRACE_DAYS`]. `None`
+    /// for invoices charged automatically, invoices with no due date, and
+    /// invoices with no self-hosted license line.
+    pub fn provisional_paid_through(&self) -> Option<DateTime<Utc>> {
+        if self.collection != InvoiceCollection::SendInvoice {
+            return None;
+        }
+        self.licensed_lines().next()?;
+        self.due_date
+            .map(|due| due + chrono::Duration::days(INVOICE_PAYMENT_GRACE_DAYS))
+    }
+
+    /// Start of the earliest service period this invoice bills on a
+    /// self-hosted license plan. Everything before it was already paid (or was
+    /// a trial), so an unpaid or voided invoice licenses nothing past it.
+    pub fn license_unpaid_from(&self) -> Option<DateTime<Utc>> {
+        self.licensed_lines().map(|line| line.period_start).min()
+    }
+
+    fn licensed_lines(&self) -> impl Iterator<Item = &BillingInvoiceLineItem> {
         let licensed_products: Vec<String> = BillingPlan::iter()
             .filter(|plan| plan.license_plan().is_some())
             .map(|plan| plan.stripe_product_id())
             .collect();
 
-        self.line_items
-            .iter()
-            .filter(|line| {
-                line.product
-                    .as_ref()
-                    .is_some_and(|product| licensed_products.contains(product))
-            })
-            .map(|line| line.period_end)
-            .max()
+        self.line_items.iter().filter(move |line| {
+            line.product
+                .as_ref()
+                .is_some_and(|product| licensed_products.contains(product))
+        })
     }
 }
 
@@ -106,6 +158,8 @@ impl From<&stripe_billing::Invoice> for BillingInvoice {
                 .collect(),
             invoice_pdf: inv.invoice_pdf.clone(),
             hosted_invoice_url: inv.hosted_invoice_url.clone(),
+            collection: inv.collection_method.into(),
+            due_date: inv.due_date.map(ts_to_chrono),
         }
     }
 }
@@ -167,6 +221,8 @@ mod tests {
             line_items,
             invoice_pdf: None,
             hosted_invoice_url: None,
+            collection: InvoiceCollection::ChargeAutomatically,
+            due_date: None,
         }
     }
 
@@ -196,5 +252,36 @@ mod tests {
             line(None, now),
         ]);
         assert_eq!(paid.license_paid_through(), None);
+    }
+
+    #[test]
+    fn provisional_paid_through_needs_a_sent_self_hosted_invoice_with_a_due_date() {
+        let due = Utc::now() + chrono::Duration::days(30);
+        let self_hosted = Some(get_self_hosted_standard_plan().stripe_product_id());
+        let sent = |line_items, due_date| BillingInvoice {
+            collection: InvoiceCollection::SendInvoice,
+            due_date,
+            ..invoice(line_items)
+        };
+
+        let open = sent(vec![line(self_hosted.clone(), due)], Some(due));
+        assert!(open.provisional_paid_through().is_some_and(|d| d > due));
+
+        let charged = BillingInvoice {
+            due_date: Some(due),
+            ..invoice(vec![line(self_hosted.clone(), due)])
+        };
+        assert_eq!(charged.provisional_paid_through(), None);
+
+        let cloud_only = sent(
+            vec![line(Some(get_enterprise_plan().stripe_product_id()), due)],
+            Some(due),
+        );
+        assert_eq!(cloud_only.provisional_paid_through(), None);
+
+        assert_eq!(
+            sent(vec![line(self_hosted, due)], None).provisional_paid_through(),
+            None
+        );
     }
 }

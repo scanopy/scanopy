@@ -95,6 +95,10 @@ pub struct BillingService {
     pub host_service: Arc<HostService>,
     pub plans: OnceLock<Vec<BillingPlan>>,
     pub event_bus: Arc<EventBus>,
+    /// Secret key for Stripe endpoints the SDK cannot reach: rendered quote
+    /// PDFs are binary and served from Stripe's files host.
+    stripe_secret: String,
+    files_http: reqwest::Client,
 }
 
 const SEAT_PRODUCT_ID: &str = "extra_seats";
@@ -113,6 +117,7 @@ pub struct BillingServiceParams {
 }
 
 mod checkout;
+mod invoicing;
 mod lifecycle;
 mod plan_changes;
 mod setup;

@@ -265,7 +265,7 @@ async-stripe-client-core = { version = "1.0.0-alpha.2", default-features = false
 async-stripe-shared = { version = "1.0.0-alpha.2", default-features = false }
 async-stripe-core = { version = "1.0.0-alpha.2", default-features = false,features = ["customer", "customer_balance_transaction", "setup_intent"] }
 async-stripe-product = { version = "1.0.0-alpha.2", default-features = false,features = ["product", "price", "coupon"] }
-async-stripe-billing = { version = "1.0.0-alpha.2", default-features = false,features = ["plan", "subscription", "deserialize", "serialize", "billing_portal_session"] }
+async-stripe-billing = { version = "1.0.0-alpha.2", default-features = false,features = ["plan", "subscription", "invoice", "quote", "tax_id", "deserialize", "serialize", "billing_portal_session"] }
 async-stripe-checkout = { version = "1.0.0-alpha.2", default-features = false,features = ["checkout_session"] }
 async-stripe-types = { version = "1.0.0-alpha.2", default-features = false }
 async-stripe-webhook = { version = "1.0.0-alpha.2", default-features = false }

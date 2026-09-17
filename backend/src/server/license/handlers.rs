@@ -78,6 +78,7 @@ fn mint_error(error: MintError) -> ApiError {
         MintError::NotLicensed
         | MintError::OfflineNotIncluded
         | MintError::OfflineRequiresPayment
+        | MintError::OfflineAwaitingPayment
         | MintError::NoPaidThrough => ApiError::forbidden(&error.to_string()),
         MintError::KeyVersionOutOfRange | MintError::Signing(_) => {
             ApiError::internal_error(&error.to_string())
@@ -167,6 +168,17 @@ pub async fn create_license_key(
 ) -> ApiResult<Json<ApiResponse<LicenseKeyResponse>>> {
     let organization_id = auth.require_organization_id()?;
     let issuer = license_issuer(&state)?;
+    // Refuse an offline key before switching to it, so a refusal (unpaid
+    // invoice, no payment) leaves the org's current key in service.
+    if request.key_type == LicenseKeyType::Offline {
+        let organization = state
+            .services
+            .organization_service
+            .get_by_id(&organization_id)
+            .await?
+            .ok_or_else(|| ApiError::entity_not_found::<Organization>(organization_id))?;
+        mint_key(&state, issuer, &organization, LicenseKeyType::Offline).await?;
+    }
     // Asking for the type already issued is a re-read and changes nothing, so
     // copying the key twice returns the same string. A real switch retires the
     // previous key.
@@ -238,7 +250,16 @@ async fn mint_key(
                 .await?;
             issuer.mint_online_key(organization, issued_at)
         }
-        LicenseKeyType::Offline => issuer.mint_offline_key(organization, Utc::now()),
+        LicenseKeyType::Offline => {
+            // Read from Stripe, not the org row: while an invoice is unpaid
+            // the row's paid-through date is provisional. A Stripe failure
+            // refuses the key rather than minting past what was paid.
+            let unpaid_from = match state.services.billing_service.as_ref() {
+                Some(billing) => billing.license_unpaid_from(organization.id).await?,
+                None => None,
+            };
+            issuer.mint_offline_key(organization, Utc::now(), unpaid_from)
+        }
     }
     .map_err(mint_error)
 }

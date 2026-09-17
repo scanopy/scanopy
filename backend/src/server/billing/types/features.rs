@@ -91,7 +91,6 @@ impl Feature {
                 | Feature::AuditLogs
                 | Feature::Saml
                 | Feature::Whitelabeling
-                | Feature::InvoiceBilling
                 | Feature::QuarterlyBilling
         )
     }

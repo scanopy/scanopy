@@ -221,6 +221,18 @@ pub enum BillingOperation {
     PaymentSucceeded {
         invoice: BillingInvoice,
     },
+    /// Stripe finalized an invoice sent to the customer for payment by its due
+    /// date (`invoice.finalized`, `send_invoice` only). The org subscriber
+    /// licenses the self-hosted servers until the due date plus grace, so a
+    /// buyer paying by invoice can deploy before the money arrives.
+    InvoiceIssued {
+        invoice: BillingInvoice,
+    },
+    /// A sent invoice will never be paid: voided, or marked uncollectible.
+    /// The org subscriber takes back the license period it granted.
+    InvoiceVoided {
+        invoice: BillingInvoice,
+    },
     PaymentFailed {
         invoice_id: String,
         amount_cents: i64,
@@ -429,6 +441,8 @@ impl BillingOperation {
             | Self::TrialWillEnd { .. }
             | Self::FeatureLimitHit { .. }
             | Self::PaymentSucceeded { .. }
+            | Self::InvoiceIssued { .. }
+            | Self::InvoiceVoided { .. }
             | Self::DiscountApplied { .. }
             | Self::CancellationFeedbackProvided { .. }
             | Self::StripeCustomerCreated { .. }

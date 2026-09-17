@@ -211,6 +211,37 @@ impl Subscriber<BillingOperation> for OrganizationService {
                         changed = true;
                     }
                 }
+                BillingOperation::InvoiceIssued { invoice } => {
+                    // A buyer paying by invoice deploys as soon as it is issued.
+                    // Never shortens a period already paid for or granted.
+                    if let Some(provisional) = invoice.provisional_paid_through()
+                        && organization
+                            .base
+                            .license_paid_through
+                            .is_none_or(|current| current < provisional)
+                    {
+                        organization.base.license_paid_through = Some(provisional);
+                        changed = true;
+                    }
+                    // Paying by invoice is how this org pays, so it is not
+                    // missing a payment method.
+                    if !organization.base.has_payment_method {
+                        organization.base.has_payment_method = true;
+                        changed = true;
+                    }
+                }
+                BillingOperation::InvoiceVoided { invoice } => {
+                    // Take back only the grant this invoice made: a later
+                    // payment or a newer invoice has since moved the date.
+                    if let (Some(provisional), Some(unpaid_from)) = (
+                        invoice.provisional_paid_through(),
+                        invoice.license_unpaid_from(),
+                    ) && organization.base.license_paid_through == Some(provisional)
+                    {
+                        organization.base.license_paid_through = Some(unpaid_from);
+                        changed = true;
+                    }
+                }
                 BillingOperation::LicenseReconciled { to, .. } => {
                     // Move the org's stored plan to the license-resolved tier,
                     // in either direction. Idempotent: the reconcile pass only

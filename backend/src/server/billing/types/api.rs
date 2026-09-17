@@ -76,6 +76,116 @@ pub struct FinalizePaymentMethodRequest {
     pub setup_intent_id: String,
 }
 
+/// Postal address of the billing entity, as Stripe's Address Element returns it.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct InvoiceBillingAddress {
+    pub line1: String,
+    #[serde(default)]
+    pub line2: Option<String>,
+    pub city: String,
+    #[serde(default)]
+    pub state: Option<String>,
+    pub postal_code: String,
+    /// Two-letter ISO country code.
+    pub country: String,
+}
+
+/// Tax ID of the billing entity, as Stripe's Tax ID Element returns it.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct InvoiceBillingTaxId {
+    /// Stripe tax ID type, e.g. `eu_vat` or `us_ein`.
+    pub tax_id_type: String,
+    pub value: String,
+}
+
+/// Who an invoice is addressed to and what the buyer's finance team matches
+/// it against.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct InvoiceBillingDetails {
+    /// Legal name of the organization being invoiced.
+    pub entity_name: String,
+    /// Where Stripe emails invoices.
+    #[schema(format = "email")]
+    pub billing_email: String,
+    pub address: InvoiceBillingAddress,
+    #[serde(default)]
+    pub tax_id: Option<InvoiceBillingTaxId>,
+    /// Purchase order number printed on every invoice.
+    #[serde(default)]
+    pub po_number: Option<String>,
+}
+
+/// What to do once the billing entity is recorded.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum InvoiceBillingMode {
+    /// Bill the subscription by invoice and issue the first invoice now.
+    SendInvoice,
+    /// Issue a quote the buyer's procurement raises a purchase order against.
+    Quote,
+}
+
+/// Switch the organization to paying by invoice.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct InvoiceBillingRequest {
+    pub details: InvoiceBillingDetails,
+    pub mode: InvoiceBillingMode,
+    /// Plan to invoice for. Required only when the organization has no live
+    /// subscription (a returning customer with no trial left); otherwise the
+    /// current plan is used and this is ignored.
+    #[serde(default)]
+    pub plan: Option<BillingPlan>,
+}
+
+/// An open quote waiting for the buyer's purchase order.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct PendingQuote {
+    /// Quote number printed on the PDF, which the purchase order references.
+    pub number: Option<String>,
+    /// Total per annual term, in cents.
+    pub amount_total_cents: i64,
+    pub currency: String,
+    pub expires_at: DateTime<Utc>,
+}
+
+/// Accept the open quote.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct AcceptQuoteRequest {
+    /// Purchase order raised against the quote, printed on the invoice.
+    #[serde(default)]
+    pub po_number: Option<String>,
+}
+
+/// An issued invoice that has not been paid yet.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct OpenInvoice {
+    pub number: Option<String>,
+    pub amount_due_cents: i64,
+    pub currency: String,
+    pub due_date: Option<DateTime<Utc>>,
+    /// Stripe-hosted page where the invoice can be viewed and paid.
+    pub hosted_invoice_url: Option<String>,
+}
+
+/// Invoice billing state shown on the License tab.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct InvoiceBillingStatus {
+    /// The subscription is billed by sent invoice.
+    pub bills_by_invoice: bool,
+    /// Purchase order number printed on invoices.
+    pub po_number: Option<String>,
+    pub open_invoice: Option<OpenInvoice>,
+    pub pending_quote: Option<PendingQuote>,
+}
+
+/// Replace the purchase order number printed on future invoices.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct UpdatePoNumberRequest {
+    /// New PO number; empty or absent removes it.
+    #[serde(default)]
+    pub po_number: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct ChangePlanRequest {
     /// Plan to move the subscription to.
