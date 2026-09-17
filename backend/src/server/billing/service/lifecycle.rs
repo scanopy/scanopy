@@ -258,6 +258,51 @@ impl BillingService {
         ))
     }
 
+    /// End the trial now and charge the card on file.
+    ///
+    /// Offered when the customer wants something a trial cannot give them (an
+    /// air-gapped license key, which outlives any revocation and so needs a
+    /// paid subscription). Stripe invoices the first cycle immediately and
+    /// charges the customer's default payment method.
+    ///
+    /// Pattern A, like every other lifecycle action: this calls Stripe and
+    /// returns. The resulting `customer.subscription.updated` (trialing →
+    /// active) emits `TrialEnded { converted: true }` and `invoice.paid` emits
+    /// `PaymentSucceeded`, which is what advances `license_paid_through` past
+    /// the trial end. No metadata marker is needed — unlike a trial extension,
+    /// the status transition is signal enough.
+    pub async fn end_trial(
+        &self,
+        organization_id: Uuid,
+        _authentication: AuthenticatedEntity,
+    ) -> Result<String, Error> {
+        let organization = self.get_organization(organization_id).await?;
+
+        if organization.base.plan_status != Some(PlanStatus::Trialing) {
+            return Err(anyhow!("This organization is not in a trial."));
+        }
+        // Read Stripe rather than the `has_payment_method` mirror: the card is
+        // usually added seconds earlier, and the mirror lags by a webhook.
+        if !self.customer_has_payment_method(organization_id).await? {
+            return Err(anyhow!("Add a payment method before ending your trial."));
+        }
+
+        let sub = self.find_current_subscription(&organization).await?;
+
+        UpdateSubscription::new(&sub.id)
+            .trial_end(UpdateSubscriptionTrialEnd::Now)
+            .send(&self.stripe)
+            .await?;
+
+        tracing::info!(
+            organization_id = %organization_id,
+            subscription_id = %sub.id,
+            "Trial ended early at the customer's request"
+        );
+
+        Ok("Your trial has ended and your subscription is active.".to_string())
+    }
+
     /// In-app subscription cancellation. Sets Stripe `cancel_at` (via the
     /// `MaxPeriodEnd` sentinel — Stripe computes the period-end timestamp),
     /// stashes the canonical Scanopy reason + save-offer context in

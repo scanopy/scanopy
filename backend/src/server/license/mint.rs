@@ -12,6 +12,7 @@ use thiserror::Error;
 use super::crypto;
 use super::online::{ONLINE_KEY_SUBJECT, OnlineKeyClaims};
 use super::types::{LicenseClaims, LicensePlan};
+use crate::server::billing::types::base::PlanStatus;
 use crate::server::organizations::r#impl::base::Organization;
 
 /// `sub` claim of offline keys and entitlements.
@@ -104,6 +105,8 @@ pub enum MintError {
     NotLicensed,
     #[error("offline license keys require a plan with air-gapped deployment")]
     OfflineNotIncluded,
+    #[error("air-gapped keys need a paid subscription: add a payment method and end your trial")]
+    OfflineRequiresPayment,
     #[error("organization has no paid-through date")]
     NoPaidThrough,
     #[error("license key version is out of range")]
@@ -186,6 +189,9 @@ impl LicenseIssuer {
         if !plan.features().air_gapped_deployment {
             return Err(MintError::OfflineNotIncluded);
         }
+        if !has_paid_subscription(org) {
+            return Err(MintError::OfflineRequiresPayment);
+        }
         self.mint_paid_through(org, plan.license_plan(), "offline", now)
     }
 
@@ -214,6 +220,25 @@ impl LicenseIssuer {
     }
 }
 
+/// Whether the org has actually paid, as opposed to merely holding a plan.
+///
+/// An air-gapped key validates without ever contacting Scanopy, so once it is
+/// minted nothing can take it back. That is why it needs a card on file and a
+/// paid subscription, not just the plan feature. `plan_status == Active` alone
+/// would not do: an unconverted trial and a cancellation both land on Active,
+/// on the Free plan. Paid-through moving past the trial end is what proves an
+/// invoice was paid.
+fn has_paid_subscription(org: &Organization) -> bool {
+    if !org.base.has_payment_method || org.base.plan_status == Some(PlanStatus::Trialing) {
+        return false;
+    }
+    match (org.base.license_paid_through, org.base.trial_end_date) {
+        (Some(paid_through), Some(trial_end)) => paid_through > trial_end,
+        (Some(_), None) => true,
+        _ => false,
+    }
+}
+
 fn licensed_plan(org: &Organization) -> Result<LicensePlan, MintError> {
     org.base
         .plan
@@ -227,7 +252,7 @@ pub(crate) mod tests {
     use crate::server::billing::plans::{
         get_enterprise_plan, get_self_hosted_plus_plan, get_self_hosted_standard_plan,
     };
-    use crate::server::billing::types::base::BillingPlan;
+    use crate::server::billing::types::base::{BillingPlan, PlanStatus};
     use crate::server::license::key::LicenseKey;
     use crate::server::license::types::LicenseStatus;
     use uuid::Uuid;
@@ -253,6 +278,17 @@ pub(crate) mod tests {
         org.base.plan = Some(plan);
         org.base.license_paid_through = paid_through;
         org.base.license_key_version = 3;
+        org
+    }
+
+    /// An org that has paid: a card on file, out of trial, and paid-through
+    /// past the trial end. That is what air-gapped keys require.
+    fn paid_org(plan: BillingPlan) -> Organization {
+        let trial_end = Utc::now() - Duration::days(1);
+        let mut org = org(plan, Some(trial_end + Duration::days(365)));
+        org.base.has_payment_method = true;
+        org.base.plan_status = Some(PlanStatus::Active);
+        org.base.trial_end_date = Some(trial_end);
         org
     }
 
@@ -310,17 +346,48 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn offline_key_requires_a_paid_subscription() {
+        let issuer = test_issuer();
+        let plan = get_self_hosted_plus_plan();
+
+        // Trialing, with a card: still not paid.
+        let mut trialing = paid_org(plan);
+        trialing.base.plan_status = Some(PlanStatus::Trialing);
+        assert!(matches!(
+            issuer.mint_offline_key(&trialing, Utc::now()),
+            Err(MintError::OfflineRequiresPayment)
+        ));
+
+        // Paid up, but the card was removed.
+        let mut no_card = paid_org(plan);
+        no_card.base.has_payment_method = false;
+        assert!(matches!(
+            issuer.mint_offline_key(&no_card, Utc::now()),
+            Err(MintError::OfflineRequiresPayment)
+        ));
+
+        // Paid-through still sitting on the trial end: no invoice has been paid.
+        let mut unconverted = paid_org(plan);
+        unconverted.base.license_paid_through = unconverted.base.trial_end_date;
+        assert!(matches!(
+            issuer.mint_offline_key(&unconverted, Utc::now()),
+            Err(MintError::OfflineRequiresPayment)
+        ));
+
+        assert!(issuer.mint_offline_key(&paid_org(plan), Utc::now()).is_ok());
+    }
+
+    #[test]
     fn offline_key_requires_air_gapped_plan() {
         let issuer = test_issuer();
-        let paid_through = Some(Utc::now() + Duration::days(30));
 
-        let standard = org(get_self_hosted_standard_plan(), paid_through);
+        let standard = paid_org(get_self_hosted_standard_plan());
         assert!(matches!(
             issuer.mint_offline_key(&standard, Utc::now()),
             Err(MintError::OfflineNotIncluded)
         ));
 
-        let plus = org(get_self_hosted_plus_plan(), paid_through);
+        let plus = paid_org(get_self_hosted_plus_plan());
         let key = issuer.mint_offline_key(&plus, Utc::now()).unwrap();
         let LicenseStatus::Valid(claims) = LicenseKey::new(key).validate_with(&test_decoding_key())
         else {

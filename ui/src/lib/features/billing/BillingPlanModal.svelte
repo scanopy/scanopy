@@ -159,7 +159,10 @@
 					stripeTab.location.href = result;
 					upgradeContext.set(null);
 					onClose(plan);
-					void waitForOrgUpdate(planApplied);
+					// 500 ms steps: the Settings modal opens on the picked plan's intent flag
+					// and clears it when the org confirms, so the poll is what ends the
+					// provisional state. The default 2000 ms leaves it standing too long.
+					void waitForOrgUpdate(planApplied, { intervalMs: 500 });
 				} else {
 					// No pre-opened tab (redirect not anticipated, or popup blocked) —
 					// fall back to a same-tab redirect.
@@ -175,7 +178,10 @@
 				// still null, so NoPaymentMethodBanner never appears until a reload). Poll
 				// like the Stripe-redirect branch until the org reflects the activation.
 				// Closing first is safe: onClose sets planJustActivated, suppressing reopen.
-				void waitForOrgUpdate(planApplied);
+				// 500 ms steps: the Settings modal opens on the picked plan's intent flag
+				// and clears it when the org confirms, so the poll is what ends the
+				// provisional state. The default 2000 ms leaves it standing too long.
+				void waitForOrgUpdate(planApplied, { intervalMs: 500 });
 			}
 		} catch {
 			// Error handled by mutation

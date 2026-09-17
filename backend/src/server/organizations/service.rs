@@ -1,5 +1,6 @@
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::billing::types::base::BillingPlan;
+use crate::server::license::types::LicenseKeyType;
 use crate::server::organizations::demo_status::DemoPopulateStatus;
 use crate::server::shared::events::bus::EventBus;
 use crate::server::shared::events::traits::{Event, OrgScope};
@@ -124,6 +125,51 @@ impl OrganizationService {
 
         lock.release().await?;
         Ok(issued_at)
+    }
+
+    /// Make `key_type` the org's issued key, retiring the previous one when
+    /// the type actually changes. A request for the type already issued is a
+    /// re-read and changes nothing, so copying a key twice returns the same
+    /// string.
+    ///
+    /// Retiring works by bumping the key version, which the entitlement
+    /// endpoint checks. That kills an online key at once. An air-gapped key
+    /// carries no version and never checks in, so a copy already installed on
+    /// a server keeps working until its embedded expiry; the UI says so.
+    pub async fn switch_license_key_type(
+        &self,
+        organization_id: Uuid,
+        key_type: LicenseKeyType,
+        authentication: AuthenticatedEntity,
+    ) -> Result<Organization, Error> {
+        let lock = self.lock_organization(organization_id).await?;
+        let mut organization = self
+            .get_by_id(&organization_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Organization {organization_id} not found"))?;
+
+        if organization.base.license_key_type.unwrap_or_default() == key_type {
+            lock.release().await?;
+            return Ok(organization);
+        }
+
+        organization.base.license_key_type = Some(key_type);
+        organization.base.license_key_version = organization
+            .base
+            .license_key_version
+            .checked_add(1)
+            .ok_or_else(|| anyhow::anyhow!("License key version overflow"))?;
+        organization.base.license_key_issued_at = Some(whole_second(Utc::now()));
+        let updated = self.update(&mut organization, authentication).await?;
+        tracing::info!(
+            organization_id = %organization_id,
+            key_type = %key_type,
+            key_version = updated.base.license_key_version,
+            "Switched license key type"
+        );
+
+        lock.release().await?;
+        Ok(updated)
     }
 
     /// Increment the org's license key version, retiring every online key

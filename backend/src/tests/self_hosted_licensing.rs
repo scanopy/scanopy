@@ -19,7 +19,9 @@ use uuid::Uuid;
 use super::{organization, setup_test_db};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::auth::middleware::billing::require_billing_for_users;
-use crate::server::billing::plans::{get_enterprise_plan, get_self_hosted_standard_plan};
+use crate::server::billing::plans::{
+    get_enterprise_plan, get_self_hosted_plus_plan, get_self_hosted_standard_plan,
+};
 use crate::server::billing::types::base::{
     BillingInvoice, BillingInvoiceLineItem, BillingPlan, BillingReason, PlanStatus,
 };
@@ -29,7 +31,7 @@ use crate::server::license::key::LicenseKey;
 use crate::server::license::mint::PAID_THROUGH_BUFFER_DAYS;
 use crate::server::license::mint::tests::{test_decoding_key, test_issuer};
 use crate::server::license::online::{ENTITLEMENT_PATH, EntitlementRequest};
-use crate::server::license::types::LicenseStatus;
+use crate::server::license::types::{LicenseKeyType, LicenseStatus};
 use crate::server::organizations::r#impl::base::Organization;
 use crate::server::shared::events::traits::{Event, OrgScope, Subscriber};
 use crate::server::shared::events::types::BillingOperation;
@@ -265,6 +267,54 @@ async fn billing_middleware_locks_main_app_routes_for_self_hosted_plans() {
     assert_eq!(get_status(addr, "/api/v1/hosts").await.0, 200);
     set_plan(&state, org.id, get_self_hosted_standard_plan()).await;
     assert_eq!(get_status(addr, "/api/v1/hosts").await.0, 403);
+}
+
+#[tokio::test]
+async fn switching_key_type_retires_the_previous_key() {
+    let (state, _container) = test_state().await;
+    let issuer = state.license_issuer.clone().unwrap();
+    let service = &state.services.organization_service;
+    let org = create_org(
+        &state,
+        get_self_hosted_plus_plan(),
+        Some(whole_seconds_from_now(365)),
+    )
+    .await;
+
+    let issued_at = service.license_key_issued_at(org.id).await.unwrap();
+    let online_key = issuer
+        .mint_online_key(&reload(&state, org.id).await, issued_at)
+        .unwrap();
+    assert!(
+        request_entitlement(&state, online_key.clone())
+            .await
+            .is_ok()
+    );
+
+    // Switching to air-gapped retires the online key.
+    service
+        .switch_license_key_type(org.id, LicenseKeyType::Offline, AuthenticatedEntity::System)
+        .await
+        .unwrap();
+    assert_eq!(
+        reload(&state, org.id).await.base.license_key_type,
+        Some(LicenseKeyType::Offline)
+    );
+    assert_eq!(
+        request_entitlement(&state, online_key).await,
+        Err(StatusCode::FORBIDDEN)
+    );
+
+    // Asking for the type already issued is a re-read, not another switch.
+    let version = reload(&state, org.id).await.base.license_key_version;
+    service
+        .switch_license_key_type(org.id, LicenseKeyType::Offline, AuthenticatedEntity::System)
+        .await
+        .unwrap();
+    assert_eq!(
+        reload(&state, org.id).await.base.license_key_version,
+        version
+    );
 }
 
 #[tokio::test]

@@ -95,6 +95,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
         .routes(routes!(pause_subscription))
         .routes(routes!(resume_subscription))
         .routes(routes!(extend_trial))
+        .routes(routes!(end_trial))
         .routes(routes!(cancel_subscription))
         .routes(routes!(reactivate_subscription))
         .routes(routes!(apply_discount_save_offer))
@@ -696,6 +697,38 @@ async fn extend_trial(
     if let Some(billing_service) = state.services.billing_service.clone() {
         let result = billing_service
             .extend_trial(organization_id, auth.into_entity())
+            .await?;
+        Ok(Json(ApiResponse::success(result)))
+    } else {
+        Err(ApiError::billing_setup_incomplete())
+    }
+}
+
+/// End the trial now and charge the card on file
+///
+/// Offered to customers who want an air-gapped license key, which needs a paid
+/// subscription because it validates offline and cannot be revoked.
+#[utoipa::path(
+    post,
+    path = "/end-trial",
+    tags = [api_tags::BILLING, api_tags::INTERNAL],
+    responses(
+        (status = 200, description = "Trial ended and subscription charged", body = ApiResponse<String>),
+        (status = 400, description = "Not trialing, no payment method, or billing not enabled", body = ApiErrorResponse),
+    ),
+    security(("user_api_key" = []), ("session" = []))
+)]
+async fn end_trial(
+    State(state): State<Arc<AppState>>,
+    auth: Authorized<Owner>,
+) -> ApiResult<Json<ApiResponse<String>>> {
+    let organization_id = auth
+        .organization_id()
+        .ok_or_else(ApiError::organization_required)?;
+
+    if let Some(billing_service) = state.services.billing_service.clone() {
+        let result = billing_service
+            .end_trial(organization_id, auth.into_entity())
             .await?;
         Ok(Json(ApiResponse::success(result)))
     } else {

@@ -4,6 +4,7 @@ use sqlx::Row;
 use sqlx::postgres::PgRow;
 use uuid::Uuid;
 
+use crate::server::license::types::LicenseKeyType;
 use crate::server::{
     billing::types::base::{BillingPlan, PlanStatus},
     organizations::r#impl::base::{Organization, OrganizationBase},
@@ -79,6 +80,7 @@ impl Storable for Organization {
                     license_checkin_at,
                     license_key_version,
                     license_key_issued_at,
+                    license_key_type,
                 },
         } = self.clone();
 
@@ -111,6 +113,7 @@ impl Storable for Organization {
                 "license_checkin_at",
                 "license_key_version",
                 "license_key_issued_at",
+                "license_key_type",
             ],
             vec![
                 SqlValue::Uuid(id),
@@ -145,6 +148,7 @@ impl Storable for Organization {
                 SqlValue::OptionTimestamp(license_checkin_at),
                 SqlValue::I64(license_key_version),
                 SqlValue::OptionTimestamp(license_key_issued_at),
+                SqlValue::OptionalString(license_key_type.map(|t| t.to_string())),
             ],
         ))
     }
@@ -214,6 +218,11 @@ impl Storable for Organization {
                 license_checkin_at: row.try_get("license_checkin_at").unwrap_or(None),
                 license_key_version: row.try_get("license_key_version").unwrap_or(0),
                 license_key_issued_at: row.try_get("license_key_issued_at").unwrap_or(None),
+                license_key_type: row
+                    .try_get::<Option<String>, _>("license_key_type")
+                    .ok()
+                    .flatten()
+                    .and_then(|s| s.parse::<LicenseKeyType>().ok()),
             },
         })
     }
@@ -296,5 +305,6 @@ impl Entity for Organization {
         self.base.license_entitlement = existing.base.license_entitlement.clone();
         self.base.license_entitlement_at = existing.base.license_entitlement_at;
         self.base.license_key_issued_at = existing.base.license_key_issued_at;
+        self.base.license_key_type = existing.base.license_key_type;
     }
 }

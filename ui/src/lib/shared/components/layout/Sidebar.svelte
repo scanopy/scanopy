@@ -87,7 +87,8 @@
 		showSettings = $bindable(false),
 		settingsInitialTab = 'account',
 		settingsDismissible = true,
-		mainAppLocked = false
+		mainAppLocked = false,
+		licensedPlanPending = false
 	}: {
 		activeTab?: string;
 		collapsed?: boolean;
@@ -107,6 +108,9 @@
 		 * billing-enabled server): hide main navigation and skip main-app queries,
 		 * which the backend rejects. Settings and Support stay available. */
 		mainAppLocked?: boolean;
+		/** Passed through to the Settings modal, which shows the License tab on it
+		 * while the just-picked licensed plan is still in flight. */
+		licensedPlanPending?: boolean;
 	} = $props();
 
 	// TanStack Query for current user and organization
@@ -917,5 +921,6 @@
 	onClose={() => (showSettings = false)}
 	initialTab={settingsInitialTab}
 	dismissible={settingsDismissible}
+	{licensedPlanPending}
 />
 <SupportModal isOpen={showSupport} name="support" onClose={() => (showSupport = false)} />

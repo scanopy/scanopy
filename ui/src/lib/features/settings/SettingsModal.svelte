@@ -32,13 +32,18 @@
 		onClose,
 		initialTab = 'account',
 		dismissible = true,
-		name = undefined
+		name = undefined,
+		licensedPlanPending = false
 	}: {
 		isOpen: boolean;
 		onClose: () => void;
 		initialTab?: string;
 		dismissible?: boolean;
 		name?: string;
+		/** A licensed self-hosted plan was just picked and the organization query
+		 * hasn't caught up. The License tab is where that user is being sent, so it
+		 * exists from the moment this modal opens rather than one webhook later. */
+		licensedPlanPending?: boolean;
 	} = $props();
 
 	// TanStack Query for current user and organization
@@ -92,7 +97,8 @@
 		baseTabs.filter((tab) => {
 			if (tab.id === 'organization') return isOwner;
 			if (tab.id === 'billing') return isOwner && isBillingEnabled;
-			if (tab.id === 'license') return isOwner && org != null && hasLicensedPlan(org);
+			if (tab.id === 'license')
+				return isOwner && (licensedPlanPending || (org != null && hasLicensedPlan(org)));
 			return true;
 		})
 	);

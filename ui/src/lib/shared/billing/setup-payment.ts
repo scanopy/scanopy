@@ -1,10 +1,17 @@
 import { trackEvent } from '$lib/shared/utils/analytics';
 import { openModal } from '$lib/shared/stores/modal-registry';
+import { reopenSettingsTabAfterPayment } from '$lib/features/billing/stores';
 import type { Organization } from '$lib/features/organizations/types';
 
 interface StartSetupPaymentArgs {
 	org: Organization | null | undefined;
-	source: 'trial_card' | 'trial_banner' | 'trial_modal' | 'sidebar_trial_pill' | 'billing_tab';
+	source:
+		| 'trial_card'
+		| 'trial_banner'
+		| 'trial_modal'
+		| 'sidebar_trial_pill'
+		| 'billing_tab'
+		| 'license_tab';
 	trialDaysLeft: number | null;
 }
 
@@ -20,5 +27,8 @@ export function startSetupPayment({ org, source, trialDaysLeft }: StartSetupPaym
 		trial_days_left: trialDaysLeft,
 		has_payment_method: org?.has_payment_method ?? false
 	});
+	// The License tab lives inside Settings, which this modal replaces in the
+	// registry. Record where to go back to so the two match again afterwards.
+	reopenSettingsTabAfterPayment.set(source === 'license_tab' ? 'license' : null);
 	openModal('payment-method');
 }
