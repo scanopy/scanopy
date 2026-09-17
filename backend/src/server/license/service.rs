@@ -299,10 +299,9 @@ impl LicenseService {
                 if body.as_ref().and_then(|body| body.code.as_deref())
                     == Some(ErrorCode::LicenseLocked.code())
                 {
-                    tracing::warn!(
-                        "License check-in was refused by a locked server; keeping the current entitlement"
-                    );
-                    return;
+                    return Err(anyhow::anyhow!(
+                        "check-in was refused by a locked server, which is not a verdict on this key"
+                    ));
                 }
 
                 let reason = body.and_then(|body| body.error).unwrap_or_else(|| {
@@ -621,14 +620,14 @@ mod tests {
             .check_in(&entitlement_cloud(LicensePlan::Plus, 30).await)
             .await;
         let valid = service.current_status().await;
-        let checked = service.last_checked().await;
+        let checked = service.entitlement_at().await;
 
         service.check_in(&locked_cloud().await).await;
 
         let after = service.current_status().await;
         assert!(matches!(after, LicenseStatus::Valid(_)));
         assert_eq!(after.expiry_date(), valid.expiry_date());
-        assert_eq!(service.last_checked().await, checked);
+        assert_eq!(service.entitlement_at().await, checked);
     }
 
     #[tokio::test]

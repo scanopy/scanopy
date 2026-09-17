@@ -340,6 +340,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/billing/end-trial": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End the trial now and charge the card on file
+         * @description Offered to customers who want an air-gapped license key, which needs a paid
+         *     subscription because it validates offline and cannot be revoked.
+         */
+        post: operations["end_trial"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/billing/extend-trial": {
         parameters: {
             query?: never;
@@ -2066,6 +2087,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/licenses/keys/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read this organization's current license key
+         * @description Returns whichever key type the organization has issued, minted from its
+         *     current state. Online keys are deterministic, so this returns the same
+         *     string every time until the key is regenerated or the type is switched.
+         */
+        get: operations["get_current_license_key"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/licenses/keys/regenerate": {
         parameters: {
             query?: never;
@@ -3291,19 +3334,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-16T20:12:34.441614Z",
+             *       "created_at": "2026-09-17T14:21:16.004854Z",
              *       "first_discovery_id": null,
-             *       "id": "180e72e4-115d-422d-b6b9-9efa78b5867c",
+             *       "id": "0dd2a708-ffd2-48df-a6eb-d23453172177",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-16T20:12:34.441614Z",
+             *       "last_seen_at": "2026-09-17T14:21:16.004854Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-16T20:12:34.441614Z",
-             *       "valid_from": "2026-09-16T20:12:34.441614Z",
+             *       "updated_at": "2026-09-17T14:21:16.004854Z",
+             *       "valid_from": "2026-09-17T14:21:16.004854Z",
              *       "valid_to": null
              *     }
              */
@@ -3964,19 +4007,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-16T20:12:34.417135Z",
+             *               "created_at": "2026-09-17T14:21:15.979734Z",
              *               "first_discovery_id": null,
-             *               "id": "c1972175-4fc1-4baf-996d-be8b9eeb95fd",
+             *               "id": "2d169dae-c442-4eab-8200-5ccddd75efbd",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-16T20:12:34.417135Z",
+             *               "last_seen_at": "2026-09-17T14:21:15.979734Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-16T20:12:34.417135Z",
-             *               "valid_from": "2026-09-16T20:12:34.417135Z",
+             *               "updated_at": "2026-09-17T14:21:15.979734Z",
+             *               "valid_from": "2026-09-17T14:21:15.979734Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -3990,7 +4033,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Caddy",
+             *           "service_definition": "OpenSpeedTest",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4360,6 +4403,8 @@ export interface components {
             data?: {
                 /** @description Signed key to set as `SCANOPY_LICENSE_KEY` on a self-hosted server. */
                 key: string;
+                /** @description Which key this is. An organization has one issued at a time. */
+                key_type: components["schemas"]["LicenseKeyType"];
             };
             /** @description Human-readable failure message. Omitted on success. */
             error?: string | null;
@@ -4744,19 +4789,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-16T20:12:34.436025Z",
+             *           "created_at": "2026-09-17T14:21:15.999342Z",
              *           "first_discovery_id": null,
-             *           "id": "3022ab55-f631-4cba-9fc6-b925a4d35966",
+             *           "id": "65b9b51b-8869-42e6-9e73-2cf8ca9188f4",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-16T20:12:34.436025Z",
+             *           "last_seen_at": "2026-09-17T14:21:15.999342Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-16T20:12:34.436025Z",
-             *           "valid_from": "2026-09-16T20:12:34.436025Z",
+             *           "updated_at": "2026-09-17T14:21:15.999342Z",
+             *           "valid_from": "2026-09-17T14:21:15.999342Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -4770,7 +4815,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Caddy",
+             *       "service_definition": "OpenSpeedTest",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -5635,19 +5680,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-16T20:12:34.417780Z",
+         *       "created_at": "2026-09-17T14:21:15.980463Z",
          *       "first_discovery_id": null,
-         *       "id": "4d1203e0-299a-402a-99a9-928395a5dc62",
+         *       "id": "caf47357-575c-45f6-871e-62c772e700ee",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-16T20:12:34.417780Z",
+         *       "last_seen_at": "2026-09-17T14:21:15.980463Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-16T20:12:34.417780Z",
-         *       "valid_from": "2026-09-16T20:12:34.417780Z",
+         *       "updated_at": "2026-09-17T14:21:15.980463Z",
+         *       "valid_from": "2026-09-17T14:21:15.980463Z",
          *       "valid_to": null
          *     }
          */
@@ -5961,7 +6006,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Caddy",
+         *           "service_definition": "OpenSpeedTest",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8133,19 +8178,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-16T20:12:34.416433Z",
+         *               "created_at": "2026-09-17T14:21:15.978951Z",
          *               "first_discovery_id": null,
-         *               "id": "c8da5b4d-62d9-4511-8985-0dde470363e5",
+         *               "id": "db6f7cdf-1b31-4769-b9b8-10fcd2281626",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-16T20:12:34.416433Z",
+         *               "last_seen_at": "2026-09-17T14:21:15.978951Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-16T20:12:34.416433Z",
-         *               "valid_from": "2026-09-16T20:12:34.416433Z",
+         *               "updated_at": "2026-09-17T14:21:15.978951Z",
+         *               "valid_from": "2026-09-17T14:21:15.978951Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8159,7 +8204,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Caddy",
+         *           "service_definition": "OpenSpeedTest",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -9058,9 +9103,15 @@ export interface components {
         LicenseKeyResponse: {
             /** @description Signed key to set as `SCANOPY_LICENSE_KEY` on a self-hosted server. */
             key: string;
+            /** @description Which key this is. An organization has one issued at a time. */
+            key_type: components["schemas"]["LicenseKeyType"];
         };
         /**
-         * @description The two keys an org owner can copy for a self-hosted server.
+         * @description The two keys an org owner can copy for a self-hosted server. An
+         *     organization has one of these issued at a time, stored on the org row.
+         *
+         *     Serde keeps the API spelling (`"Online"` / `"Offline"`); strum supplies the
+         *     snake_case text the column is stored as, the way `PlanStatus` does.
          * @enum {string}
          */
         LicenseKeyType: "Online" | "Offline";
@@ -11004,19 +11055,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-16T20:12:34.417585Z",
+         *           "created_at": "2026-09-17T14:21:15.980248Z",
          *           "first_discovery_id": null,
-         *           "id": "def90df3-0263-47a0-a375-36810075dc3f",
+         *           "id": "e57e05af-e398-4efb-91d6-4a86aee4b9a6",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-16T20:12:34.417585Z",
+         *           "last_seen_at": "2026-09-17T14:21:15.980248Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-16T20:12:34.417585Z",
-         *           "valid_from": "2026-09-16T20:12:34.417585Z",
+         *           "updated_at": "2026-09-17T14:21:15.980248Z",
+         *           "valid_from": "2026-09-17T14:21:15.980248Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -11030,7 +11081,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Caddy",
+         *       "service_definition": "OpenSpeedTest",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -11732,7 +11783,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "b1e9cc80-8b2a-417f-ae0f-fd370eca0c4a",
+             *           "id": "1de6d43a-1e04-4cd3-a27b-9ef99fbdbd07",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -11742,23 +11793,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "9ddd0635-537d-42af-8525-2ec7c3116fdb",
+             *           "id": "de0f8bcf-ca56-47d7-8bfe-9687f5cbe432",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "fe85e3a7-a66a-4ee3-ab3f-033651ae9746",
+             *           "id": "48f325db-c892-4721-a310-29f037c7b2bb",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "35910e6d-5222-4f9b-9976-daa0fba90977",
+             *           "id": "431326bf-7b00-4e08-b769-9e091d9f954e",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "9ddd0635-537d-42af-8525-2ec7c3116fdb",
+             *           "id": "de0f8bcf-ca56-47d7-8bfe-9687f5cbe432",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -11771,19 +11822,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "8bfa8847-726d-417d-9f06-815f3bab6569",
+             *         "id": "858d8f7f-4478-444a-89bc-9209b3be16c1",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "f8fb8c44-03cc-4b80-9ac5-940f46e76119",
+             *         "id": "49a34828-e2c9-4dd2-97ac-4352ff59c09d",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "46a43bfd-b8b5-41a7-a825-5a4ca6723ff6",
+             *         "id": "d0b688e5-2173-42b1-a590-2699e6816ebf",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "9f4e1aca-74d9-4a41-a059-c9a0a32801cf",
+             *         "id": "75345ec7-eb5c-4840-a1ce-03427509106f",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -11801,7 +11852,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "14b11e75-9eed-4d82-8114-3cd03c5aae77",
+             *         "id": "71bd1e20-5512-4639-bb01-a3222dddb45a",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -11810,15 +11861,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "d998d764-224d-474a-90cd-96fb7430f632",
+             *         "id": "49668161-73fd-45af-b027-7fd4b0c0cee9",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "f7111c25-3671-44d5-a902-e20b00d2067d",
+             *         "id": "92d2feba-4431-413e-ae42-d0f08a500beb",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "ce52a3c7-9457-4acf-82ce-9a44118de731",
+             *         "id": "c6bdc292-620a-48c1-965b-9a925941c9ee",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -12999,6 +13050,35 @@ export interface operations {
                 };
             };
             /** @description Invalid plan or billing not enabled */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    end_trial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Trial ended and subscription charged */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_String"];
+                };
+            };
+            /** @description Not trialing, no payment method, or billing not enabled */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -17096,6 +17176,35 @@ export interface operations {
                 };
             };
             /** @description Not an owner, or the plan does not include this key type */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_current_license_key: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The organization's current license key */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_LicenseKeyResponse"];
+                };
+            };
+            /** @description Not an owner, or the organization has no license */
             403: {
                 headers: {
                     [name: string]: unknown;

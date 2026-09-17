@@ -15,6 +15,7 @@
 	import { hasLicensedPlan } from '$lib/features/organizations/types';
 	import type { Organization } from '$lib/features/organizations/types';
 	import { billingPlans } from '$lib/shared/stores/metadata';
+	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import { getTrialDaysLeft, isMissingPaymentMethod } from '$lib/shared/utils/trial';
 	import { pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
 	import { trackEvent } from '$lib/shared/utils/analytics';
@@ -67,6 +68,8 @@
 
 	const organizationQuery = useOrganizationQuery();
 	let org = $derived(organizationQuery.data);
+	const configQuery = useConfigQuery();
+	let billingEnabled = $derived(configQuery.data?.billing_enabled ?? false);
 
 	const createKeyMutation = useCreateLicenseKeyMutation();
 	const regenerateMutation = useRegenerateLicenseKeyMutation();
@@ -90,7 +93,7 @@
 	// trial, but choosing the option during a trial is what ends the trial. A card
 	// on file is the one thing the user has to do first.
 	let airGappedAvailable = $derived(airGappedIncluded && hasCard);
-	let missingCard = $derived(isMissingPaymentMethod(org));
+	let missingCard = $derived(isMissingPaymentMethod(org, billingEnabled));
 	let chargeAmount = $derived(priceToCharge(org));
 
 	let keyTypeOptions = $derived([

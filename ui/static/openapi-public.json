@@ -12643,19 +12643,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-16T20:12:34.441612Z",
+              "created_at": "2026-09-17T14:21:16.004859Z",
               "first_discovery_id": null,
-              "id": "26699166-0537-4cb9-9257-979eaf836edd",
+              "id": "5b30b1f8-7968-476d-97ec-d904a8605ad8",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-16T20:12:34.441612Z",
+              "last_seen_at": "2026-09-17T14:21:16.004859Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-16T20:12:34.441612Z",
-              "valid_from": "2026-09-16T20:12:34.441612Z",
+              "updated_at": "2026-09-17T14:21:16.004859Z",
+              "valid_from": "2026-09-17T14:21:16.004859Z",
               "valid_to": null
             }
           },
@@ -14146,19 +14146,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-16T20:12:34.417154Z",
+                      "created_at": "2026-09-17T14:21:15.979756Z",
                       "first_discovery_id": null,
-                      "id": "5af65efc-14d7-4519-9e8e-5f8ecdca2178",
+                      "id": "e8073fd9-cabb-4300-8d60-1370ad9a2faa",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-16T20:12:34.417154Z",
+                      "last_seen_at": "2026-09-17T14:21:15.979756Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-16T20:12:34.417154Z",
-                      "valid_from": "2026-09-16T20:12:34.417154Z",
+                      "updated_at": "2026-09-17T14:21:15.979756Z",
+                      "valid_from": "2026-09-17T14:21:15.979756Z",
                       "valid_to": null
                     }
                   ],
@@ -14172,7 +14172,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Caddy",
+                  "service_definition": "OpenSpeedTest",
                   "source": {
                     "type": "Manual"
                   },
@@ -14593,12 +14593,17 @@
             "type": "object",
             "description": "The result payload. Omitted on failure.",
             "required": [
-              "key"
+              "key",
+              "key_type"
             ],
             "properties": {
               "key": {
                 "type": "string",
                 "description": "Signed key to set as `SCANOPY_LICENSE_KEY` on a self-hosted server."
+              },
+              "key_type": {
+                "$ref": "#/components/schemas/LicenseKeyType",
+                "description": "Which key this is. An organization has one issued at a time."
               }
             }
           },
@@ -15447,19 +15452,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-16T20:12:34.436022Z",
+                  "created_at": "2026-09-17T14:21:15.999350Z",
                   "first_discovery_id": null,
-                  "id": "c9494e50-6d5f-49f0-a027-5006e7d725c2",
+                  "id": "a8d422a1-7c21-4e28-9e37-76f862940def",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-16T20:12:34.436022Z",
+                  "last_seen_at": "2026-09-17T14:21:15.999350Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-16T20:12:34.436022Z",
-                  "valid_from": "2026-09-16T20:12:34.436022Z",
+                  "updated_at": "2026-09-17T14:21:15.999350Z",
+                  "valid_from": "2026-09-17T14:21:15.999350Z",
                   "valid_to": null
                 }
               ],
@@ -15473,7 +15478,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Caddy",
+              "service_definition": "OpenSpeedTest",
               "source": {
                 "type": "Manual"
               },
@@ -17728,19 +17733,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-16T20:12:34.417811Z",
+          "created_at": "2026-09-17T14:21:15.980492Z",
           "first_discovery_id": null,
-          "id": "4daf5286-5741-4286-954e-ada54b2ee7e7",
+          "id": "115e6d1d-c74a-4ecc-9bb8-993d34b93d20",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-16T20:12:34.417811Z",
+          "last_seen_at": "2026-09-17T14:21:15.980492Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-16T20:12:34.417811Z",
-          "valid_from": "2026-09-16T20:12:34.417811Z",
+          "updated_at": "2026-09-17T14:21:15.980492Z",
+          "valid_from": "2026-09-17T14:21:15.980492Z",
           "valid_to": null
         }
       },
@@ -18435,7 +18440,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Caddy",
+              "service_definition": "OpenSpeedTest",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -23819,19 +23824,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-16T20:12:34.416444Z",
+                  "created_at": "2026-09-17T14:21:15.978962Z",
                   "first_discovery_id": null,
-                  "id": "5547c588-fd0b-4987-9caf-74e82247638c",
+                  "id": "51887211-9c6b-474a-9192-595128f2addb",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-16T20:12:34.416444Z",
+                  "last_seen_at": "2026-09-17T14:21:15.978962Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-16T20:12:34.416444Z",
-                  "valid_from": "2026-09-16T20:12:34.416444Z",
+                  "updated_at": "2026-09-17T14:21:15.978962Z",
+                  "valid_from": "2026-09-17T14:21:15.978962Z",
                   "valid_to": null
                 }
               ],
@@ -23845,7 +23850,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Caddy",
+              "service_definition": "OpenSpeedTest",
               "source": {
                 "type": "Manual"
               },
@@ -25251,18 +25256,23 @@
       "LicenseKeyResponse": {
         "type": "object",
         "required": [
-          "key"
+          "key",
+          "key_type"
         ],
         "properties": {
           "key": {
             "type": "string",
             "description": "Signed key to set as `SCANOPY_LICENSE_KEY` on a self-hosted server."
+          },
+          "key_type": {
+            "$ref": "#/components/schemas/LicenseKeyType",
+            "description": "Which key this is. An organization has one issued at a time."
           }
         }
       },
       "LicenseKeyType": {
         "type": "string",
-        "description": "The two keys an org owner can copy for a self-hosted server.",
+        "description": "The two keys an org owner can copy for a self-hosted server. An\norganization has one of these issued at a time, stored on the org row.\n\nSerde keeps the API spelling (`\"Online\"` / `\"Offline\"`); strum supplies the\nsnake_case text the column is stored as, the way `PlanStatus` does.",
         "enum": [
           "Online",
           "Offline"
@@ -27286,19 +27296,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-16T20:12:34.401531Z",
+                        "created_at": "2026-09-17T14:21:15.962821Z",
                         "first_discovery_id": null,
-                        "id": "a762124b-919d-4879-bfae-ff6219b055c1",
+                        "id": "044c3ac4-5239-4f01-a6e0-d0bbe002edb2",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-16T20:12:34.401531Z",
+                        "last_seen_at": "2026-09-17T14:21:15.962821Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-16T20:12:34.401531Z",
-                        "valid_from": "2026-09-16T20:12:34.401531Z",
+                        "updated_at": "2026-09-17T14:21:15.962821Z",
+                        "valid_from": "2026-09-17T14:21:15.962821Z",
                         "valid_to": null
                       }
                     ],
@@ -27312,7 +27322,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Caddy",
+                    "service_definition": "OpenSpeedTest",
                     "source": {
                       "type": "Manual"
                     },
@@ -27455,19 +27465,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-16T20:12:34.435014Z",
+                    "created_at": "2026-09-17T14:21:15.998296Z",
                     "first_discovery_id": null,
-                    "id": "ea3eb8a6-3f33-4f2f-85fb-a3a750cb3fd5",
+                    "id": "77855f1f-d171-4eea-93e6-4550d0212bbc",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-16T20:12:34.435014Z",
+                    "last_seen_at": "2026-09-17T14:21:15.998296Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-16T20:12:34.435014Z",
-                    "valid_from": "2026-09-16T20:12:34.435014Z",
+                    "updated_at": "2026-09-17T14:21:15.998296Z",
+                    "valid_from": "2026-09-17T14:21:15.998296Z",
                     "valid_to": null
                   }
                 ],
@@ -27481,7 +27491,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Caddy",
+                "service_definition": "OpenSpeedTest",
                 "source": {
                   "type": "Manual"
                 },
@@ -29557,19 +29567,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-16T20:12:34.417612Z",
+              "created_at": "2026-09-17T14:21:15.980274Z",
               "first_discovery_id": null,
-              "id": "4f74c7bb-b140-42ab-a712-64df27152f2b",
+              "id": "fac4cd38-0f1c-4691-b37b-d796caa8c800",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-16T20:12:34.417612Z",
+              "last_seen_at": "2026-09-17T14:21:15.980274Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-16T20:12:34.417612Z",
-              "valid_from": "2026-09-16T20:12:34.417612Z",
+              "updated_at": "2026-09-17T14:21:15.980274Z",
+              "valid_from": "2026-09-17T14:21:15.980274Z",
               "valid_to": null
             }
           ],
@@ -29583,7 +29593,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Caddy",
+          "service_definition": "OpenSpeedTest",
           "source": {
             "type": "Manual"
           },
@@ -30904,7 +30914,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "eaf570db-e990-41c5-98c5-50842b12b049",
+                  "id": "13e2807c-ce97-4244-a9fa-b7d4acbe8b5b",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -30914,23 +30924,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "56da25d4-317c-43d4-a8a1-3ded7e4c3837",
+                  "id": "bc4e4565-7a2a-4cb6-93fb-2d3621aa410d",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "47258ad0-424e-4d6e-b7a5-89e311d70343",
+                  "id": "f5816097-f031-4b97-80c3-d267370ddbac",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "40f3248a-4dc7-43dd-abb2-d392b645657e",
+                  "id": "ab06014c-d5ec-48f5-a2d2-09a92d774da9",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "56da25d4-317c-43d4-a8a1-3ded7e4c3837",
+                  "id": "bc4e4565-7a2a-4cb6-93fb-2d3621aa410d",
                   "rule": "ByHost"
                 }
               ]
@@ -30960,19 +30970,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "e4d1246d-1bad-4467-a781-2adcdd31e6f8",
+                "id": "3b3f6ee4-43ff-44e7-85e4-35c471b24d22",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "8b0121d2-b451-4c2d-b4a9-afb6c1919064",
+                "id": "21218c71-144a-4559-9406-f583b4c76a3d",
                 "rule": "ByVLAN"
               },
               {
-                "id": "86beabf4-c05c-4eb7-a141-6e26131aa42e",
+                "id": "32dbe9cd-7962-4592-93fe-e3098340ca50",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "05b1a0bd-4ef5-4716-80bd-3a39ecc1ca6e",
+                "id": "7335198d-ea88-43e0-888f-bceac1bedbde",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -30990,7 +31000,7 @@
                 }
               },
               {
-                "id": "0aa306fb-ab67-4b72-bbce-e276d4fc1b07",
+                "id": "ea8f3f26-f4a9-4470-ad25-7b5394a1c81a",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -30999,15 +31009,15 @@
                 }
               },
               {
-                "id": "f81244bc-242e-488f-bd30-d0653086943a",
+                "id": "d381dc19-e00d-48cc-95b3-e3934537a6f8",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "d60c535e-3818-406c-9a16-4a8161c32b32",
+                "id": "8dacee67-5947-470e-9ef8-295c3f1687c4",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "8b1964ed-c4a4-49bf-8955-2be403395ca1",
+                "id": "3b61ad02-5795-484a-8098-4cdd5972b218",
                 "rule": "ByStack"
               }
             ]
