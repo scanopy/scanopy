@@ -12656,19 +12656,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-17T16:43:42.135094Z",
+              "created_at": "2026-09-17T22:14:07.246563Z",
               "first_discovery_id": null,
-              "id": "20144024-351f-4f08-a7e2-63bb2a957a01",
+              "id": "eb4e6f86-db4c-4953-9bf4-e21a55fb8f31",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-17T16:43:42.135094Z",
+              "last_seen_at": "2026-09-17T22:14:07.246563Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-17T16:43:42.135094Z",
-              "valid_from": "2026-09-17T16:43:42.135094Z",
+              "updated_at": "2026-09-17T22:14:07.246563Z",
+              "valid_from": "2026-09-17T22:14:07.246563Z",
               "valid_to": null
             }
           },
@@ -14159,19 +14159,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-17T16:43:42.109905Z",
+                      "created_at": "2026-09-17T22:14:07.225408Z",
                       "first_discovery_id": null,
-                      "id": "bd49517a-d888-4a44-a852-3be6043837a1",
+                      "id": "91176cfc-085a-45c5-abaa-e52ba7a7a1b4",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-17T16:43:42.109905Z",
+                      "last_seen_at": "2026-09-17T22:14:07.225408Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-17T16:43:42.109905Z",
-                      "valid_from": "2026-09-17T16:43:42.109905Z",
+                      "updated_at": "2026-09-17T22:14:07.225408Z",
+                      "valid_from": "2026-09-17T22:14:07.225408Z",
                       "valid_to": null
                     }
                   ],
@@ -14185,7 +14185,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "JetDirect",
+                  "service_definition": "Zabbix Agent",
                   "source": {
                     "type": "Manual"
                   },
@@ -15529,19 +15529,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-17T16:43:42.129052Z",
+                  "created_at": "2026-09-17T22:14:07.241522Z",
                   "first_discovery_id": null,
-                  "id": "05a0cc16-5e95-4a5e-aa92-06c891c84e0a",
+                  "id": "8f9365ca-86b8-4cdb-88d5-b4251a25efa5",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-17T16:43:42.129052Z",
+                  "last_seen_at": "2026-09-17T22:14:07.241522Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-17T16:43:42.129052Z",
-                  "valid_from": "2026-09-17T16:43:42.129052Z",
+                  "updated_at": "2026-09-17T22:14:07.241522Z",
+                  "valid_from": "2026-09-17T22:14:07.241522Z",
                   "valid_to": null
                 }
               ],
@@ -15555,7 +15555,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "JetDirect",
+              "service_definition": "Zabbix Agent",
               "source": {
                 "type": "Manual"
               },
@@ -17810,19 +17810,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-17T16:43:42.110736Z",
+          "created_at": "2026-09-17T22:14:07.225896Z",
           "first_discovery_id": null,
-          "id": "5c0b88c9-9943-42a3-b71c-0c711f6151b6",
+          "id": "e0d51405-68b7-4a8e-bd40-d0987e98b95c",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-17T16:43:42.110736Z",
+          "last_seen_at": "2026-09-17T22:14:07.225896Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-17T16:43:42.110736Z",
-          "valid_from": "2026-09-17T16:43:42.110736Z",
+          "updated_at": "2026-09-17T22:14:07.225896Z",
+          "valid_from": "2026-09-17T22:14:07.225896Z",
           "valid_to": null
         }
       },
@@ -18517,7 +18517,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "JetDirect",
+              "service_definition": "Zabbix Agent",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -23901,19 +23901,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-17T16:43:42.109018Z",
+                  "created_at": "2026-09-17T22:14:07.224879Z",
                   "first_discovery_id": null,
-                  "id": "2a49bf5b-f81b-46a3-8f5b-43192bf815cb",
+                  "id": "662e6a92-cd69-49ec-a9cd-ed0195c5f954",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-17T16:43:42.109018Z",
+                  "last_seen_at": "2026-09-17T22:14:07.224879Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-17T16:43:42.109018Z",
-                  "valid_from": "2026-09-17T16:43:42.109018Z",
+                  "updated_at": "2026-09-17T22:14:07.224879Z",
+                  "valid_from": "2026-09-17T22:14:07.224879Z",
                   "valid_to": null
                 }
               ],
@@ -23927,7 +23927,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "JetDirect",
+              "service_definition": "Zabbix Agent",
               "source": {
                 "type": "Manual"
               },
@@ -26627,6 +26627,11 @@
           "onboarding"
         ],
         "properties": {
+          "bills_by_invoice": {
+            "type": "boolean",
+            "description": "Whether the subscription is billed by sent invoice, against a purchase\norder. Such an org has no card, so this is the other half of \"can this\norg pay?\" — see [`Organization::can_pay`].",
+            "readOnly": true
+          },
           "discount_save_offer_active_until": {
             "type": [
               "string",
@@ -26647,7 +26652,7 @@
           },
           "has_payment_method": {
             "type": "boolean",
-            "description": "Whether the org has a way to pay: a payment method on file, or its\nsubscription is billed by sent invoice.",
+            "description": "Whether a payment method is on file.",
             "readOnly": true
           },
           "last_discount_at": {
@@ -27579,19 +27584,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-17T16:43:42.094060Z",
+                        "created_at": "2026-09-17T22:14:07.214753Z",
                         "first_discovery_id": null,
-                        "id": "48817a11-58ff-4c95-809d-c2456a793c66",
+                        "id": "acb44ab7-1e09-4f2c-a0d7-0b64e6e088ce",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-17T16:43:42.094060Z",
+                        "last_seen_at": "2026-09-17T22:14:07.214753Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-17T16:43:42.094060Z",
-                        "valid_from": "2026-09-17T16:43:42.094060Z",
+                        "updated_at": "2026-09-17T22:14:07.214753Z",
+                        "valid_from": "2026-09-17T22:14:07.214753Z",
                         "valid_to": null
                       }
                     ],
@@ -27605,7 +27610,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "JetDirect",
+                    "service_definition": "Zabbix Agent",
                     "source": {
                       "type": "Manual"
                     },
@@ -27748,19 +27753,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-17T16:43:42.127963Z",
+                    "created_at": "2026-09-17T22:14:07.240561Z",
                     "first_discovery_id": null,
-                    "id": "1f3b97c2-b553-4685-a2ee-9e41c20a458b",
+                    "id": "58b7f735-2d62-4153-95b1-550982708bb2",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-17T16:43:42.127963Z",
+                    "last_seen_at": "2026-09-17T22:14:07.240561Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-17T16:43:42.127963Z",
-                    "valid_from": "2026-09-17T16:43:42.127963Z",
+                    "updated_at": "2026-09-17T22:14:07.240561Z",
+                    "valid_from": "2026-09-17T22:14:07.240561Z",
                     "valid_to": null
                   }
                 ],
@@ -27774,7 +27779,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "JetDirect",
+                "service_definition": "Zabbix Agent",
                 "source": {
                   "type": "Manual"
                 },
@@ -29880,19 +29885,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-17T16:43:42.110494Z",
+              "created_at": "2026-09-17T22:14:07.225752Z",
               "first_discovery_id": null,
-              "id": "a596dd91-c7ce-4fd9-b3e2-a348c41c7531",
+              "id": "ac94558b-b036-467f-94f5-9b96f7c21469",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-17T16:43:42.110494Z",
+              "last_seen_at": "2026-09-17T22:14:07.225752Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-17T16:43:42.110494Z",
-              "valid_from": "2026-09-17T16:43:42.110494Z",
+              "updated_at": "2026-09-17T22:14:07.225752Z",
+              "valid_from": "2026-09-17T22:14:07.225752Z",
               "valid_to": null
             }
           ],
@@ -29906,7 +29911,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "JetDirect",
+          "service_definition": "Zabbix Agent",
           "source": {
             "type": "Manual"
           },
@@ -31227,7 +31232,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "5a966050-3354-4fb1-899f-c29f85db356e",
+                  "id": "549724d2-1486-4e22-bd20-90ac50bd69a2",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -31237,23 +31242,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "eccb34fb-c44f-4ff3-9182-37672b1e030b",
+                  "id": "183f4f1b-3b10-476b-85e7-b4c09910b3c5",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "558a2ea0-ac46-43c7-bf86-ae7d768be5b8",
+                  "id": "c3c43aa6-72d5-4c29-a92b-4c9ac87f9add",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "901b90cc-b64e-4534-a6aa-04e3d39157a6",
+                  "id": "4e79f0a9-77b0-4404-897e-9f3cf1048785",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "eccb34fb-c44f-4ff3-9182-37672b1e030b",
+                  "id": "183f4f1b-3b10-476b-85e7-b4c09910b3c5",
                   "rule": "ByHost"
                 }
               ]
@@ -31283,19 +31288,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "13cfd3b5-a32c-442c-9601-bb4b25ff01b3",
+                "id": "236bd73e-349e-4867-b35a-7664c3d84b61",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "25317cdc-6f5b-4638-8811-580c8ac42969",
+                "id": "1f47f008-4f12-4398-9845-d646afbed4ec",
                 "rule": "ByVLAN"
               },
               {
-                "id": "a0c2d0b4-e954-45c7-ae3a-35f0b63dd528",
+                "id": "c7e94b9f-c4b9-4d34-945a-7d953440d36c",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "88ffc4ad-3e1e-4dc6-a127-d44dfc4f3808",
+                "id": "676ab201-a30a-49dd-b626-195c3920135f",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -31313,7 +31318,7 @@
                 }
               },
               {
-                "id": "d3d7ef62-20f7-45f4-acb2-069063f25509",
+                "id": "268fd7d9-055d-4023-9a04-41fe6bc7f012",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -31322,15 +31327,15 @@
                 }
               },
               {
-                "id": "55faa99e-c3e2-4e0a-8bdc-66d1656388d1",
+                "id": "03732fb6-0298-42aa-975b-5ef39ce26cfa",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "7f08f5c2-e948-4eeb-bcf5-6b7aeef2a405",
+                "id": "44a4c259-bd06-41ee-b844-9d6e90aa0880",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "78658825-7455-41c3-8645-007985ad116c",
+                "id": "83315f81-92a5-4365-a02c-285f4d3fcd4a",
                 "rule": "ByStack"
               }
             ]

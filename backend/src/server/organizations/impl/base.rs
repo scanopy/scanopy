@@ -103,11 +103,16 @@ pub struct OrganizationBase {
     /// Progress through first-run setup.
     #[schema(read_only, required)]
     pub onboarding: Vec<OnboardingOperationDiscriminants>,
-    /// Whether the org has a way to pay: a payment method on file, or its
-    /// subscription is billed by sent invoice.
+    /// Whether a payment method is on file.
     #[serde(default)]
     #[schema(read_only)]
     pub has_payment_method: bool,
+    /// Whether the subscription is billed by sent invoice, against a purchase
+    /// order. Such an org has no card, so this is the other half of "can this
+    /// org pay?" — see [`Organization::can_pay`].
+    #[serde(default)]
+    #[schema(read_only)]
+    pub bills_by_invoice: bool,
     /// When the free trial ends, if one is running.
     #[serde(default)]
     #[schema(read_only)]
@@ -232,6 +237,14 @@ impl Organization {
 
     pub fn has_onboarded(&self, step: &OnboardingOperationDiscriminants) -> bool {
         self.base.onboarding.contains(step)
+    }
+
+    /// Whether the org has a way to pay its next invoice: a card on file, or a
+    /// subscription billed by sent invoice. Payment prompts and the paths that
+    /// check Stripe for a card both read this, so neither asks an
+    /// invoice-billed customer for a card.
+    pub fn can_pay(&self) -> bool {
+        self.base.has_payment_method || self.base.bills_by_invoice
     }
 }
 

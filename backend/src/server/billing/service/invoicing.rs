@@ -158,10 +158,7 @@ impl BillingService {
             });
         };
 
-        let bills_by_invoice = self
-            .find_current_subscription(&organization)
-            .await
-            .is_ok_and(|sub| sub.collection_method == SubscriptionCollectionMethod::SendInvoice);
+        let bills_by_invoice = organization.base.bills_by_invoice;
 
         let open_invoice = self
             .open_license_invoices(&customer_id)
@@ -356,14 +353,6 @@ impl BillingService {
             ))
             .await?;
         Ok(())
-    }
-
-    /// Whether the org's current subscription is billed by sent invoice. A
-    /// card detached from such an org leaves it with a way to pay.
-    pub(crate) async fn bills_by_invoice(&self, organization: &Organization) -> bool {
-        self.find_current_subscription(organization)
-            .await
-            .is_ok_and(|sub| sub.collection_method == SubscriptionCollectionMethod::SendInvoice)
     }
 
     async fn create_quote(

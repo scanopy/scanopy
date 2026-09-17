@@ -394,6 +394,7 @@ pub fn organization() -> Organization {
             plan_status: None,
             onboarding: vec![],
             has_payment_method: false,
+            bills_by_invoice: false,
             trial_end_date: None,
             last_paused_at: None,
             trial_extended_used: false,

@@ -3442,19 +3442,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-17T16:43:42.135096Z",
+             *       "created_at": "2026-09-17T22:14:07.246598Z",
              *       "first_discovery_id": null,
-             *       "id": "fc6939b6-a673-496e-93df-4449cae307f3",
+             *       "id": "a5cfac82-ff31-46e0-a398-6d3a1f90ddcd",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-17T16:43:42.135096Z",
+             *       "last_seen_at": "2026-09-17T22:14:07.246598Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-17T16:43:42.135096Z",
-             *       "valid_from": "2026-09-17T16:43:42.135096Z",
+             *       "updated_at": "2026-09-17T22:14:07.246598Z",
+             *       "valid_from": "2026-09-17T22:14:07.246598Z",
              *       "valid_to": null
              *     }
              */
@@ -4115,19 +4115,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-17T16:43:42.109917Z",
+             *               "created_at": "2026-09-17T22:14:07.225420Z",
              *               "first_discovery_id": null,
-             *               "id": "89449018-a816-468b-9df9-da9955fa27da",
+             *               "id": "778f53be-bbd6-4678-a327-21c9913c415e",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-17T16:43:42.109917Z",
+             *               "last_seen_at": "2026-09-17T22:14:07.225420Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-17T16:43:42.109917Z",
-             *               "valid_from": "2026-09-17T16:43:42.109917Z",
+             *               "updated_at": "2026-09-17T22:14:07.225420Z",
+             *               "valid_from": "2026-09-17T22:14:07.225420Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4141,7 +4141,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "JetDirect",
+             *           "service_definition": "Zabbix Agent",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4914,19 +4914,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-17T16:43:42.129085Z",
+             *           "created_at": "2026-09-17T22:14:07.241535Z",
              *           "first_discovery_id": null,
-             *           "id": "b1fc7ea6-5c15-4874-b205-2f9d13ef0bda",
+             *           "id": "5f4f8b06-ec3d-41e1-ad85-bda358db8e52",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-17T16:43:42.129085Z",
+             *           "last_seen_at": "2026-09-17T22:14:07.241535Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-17T16:43:42.129085Z",
-             *           "valid_from": "2026-09-17T16:43:42.129085Z",
+             *           "updated_at": "2026-09-17T22:14:07.241535Z",
+             *           "valid_from": "2026-09-17T22:14:07.241535Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -4940,7 +4940,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "JetDirect",
+             *       "service_definition": "Zabbix Agent",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -5805,19 +5805,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-17T16:43:42.110754Z",
+         *       "created_at": "2026-09-17T22:14:07.225913Z",
          *       "first_discovery_id": null,
-         *       "id": "18d02513-cf8f-496b-b3fe-1929c6cf9b97",
+         *       "id": "469d9282-c0e5-4629-9bed-4d154878c4ed",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-17T16:43:42.110754Z",
+         *       "last_seen_at": "2026-09-17T22:14:07.225913Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-17T16:43:42.110754Z",
-         *       "valid_from": "2026-09-17T16:43:42.110754Z",
+         *       "updated_at": "2026-09-17T22:14:07.225913Z",
+         *       "valid_from": "2026-09-17T22:14:07.225913Z",
          *       "valid_to": null
          *     }
          */
@@ -6131,7 +6131,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "JetDirect",
+         *           "service_definition": "Zabbix Agent",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8303,19 +8303,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-17T16:43:42.109028Z",
+         *               "created_at": "2026-09-17T22:14:07.224883Z",
          *               "first_discovery_id": null,
-         *               "id": "fb31306d-89de-4faa-ab32-e88887bf7629",
+         *               "id": "b93b7c58-7ba1-4cea-8ff9-b68bcebb3537",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-17T16:43:42.109028Z",
+         *               "last_seen_at": "2026-09-17T22:14:07.224883Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-17T16:43:42.109028Z",
-         *               "valid_from": "2026-09-17T16:43:42.109028Z",
+         *               "updated_at": "2026-09-17T22:14:07.224883Z",
+         *               "valid_from": "2026-09-17T22:14:07.224883Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8329,7 +8329,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "JetDirect",
+         *           "service_definition": "Zabbix Agent",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -9738,6 +9738,12 @@ export interface components {
         };
         OrganizationBase: {
             /**
+             * @description Whether the subscription is billed by sent invoice, against a purchase
+             *     order. Such an org has no card, so this is the other half of "can this
+             *     org pay?" — see [`Organization::can_pay`].
+             */
+            readonly bills_by_invoice?: boolean;
+            /**
              * Format: date-time
              * @description When the currently-active save-offer discount window expires. The
              *     BillingTab chip renders only while `> now()`; expiry needs no
@@ -9751,10 +9757,7 @@ export interface components {
              *     value without a code change.
              */
             readonly discount_save_offer_percent_off?: number | null;
-            /**
-             * @description Whether the org has a way to pay: a payment method on file, or its
-             *     subscription is billed by sent invoice.
-             */
+            /** @description Whether a payment method is on file. */
             readonly has_payment_method?: boolean;
             /**
              * Format: date-time
@@ -11261,19 +11264,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-17T16:43:42.110511Z",
+         *           "created_at": "2026-09-17T22:14:07.225764Z",
          *           "first_discovery_id": null,
-         *           "id": "a35045aa-5712-4ac9-b3b4-336e84f4bf67",
+         *           "id": "d2925651-3b5d-4a09-90c6-aa284e9ad98a",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-17T16:43:42.110511Z",
+         *           "last_seen_at": "2026-09-17T22:14:07.225764Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-17T16:43:42.110511Z",
-         *           "valid_from": "2026-09-17T16:43:42.110511Z",
+         *           "updated_at": "2026-09-17T22:14:07.225764Z",
+         *           "valid_from": "2026-09-17T22:14:07.225764Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -11287,7 +11290,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "JetDirect",
+         *       "service_definition": "Zabbix Agent",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -11989,7 +11992,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "2d0c09ba-c8ff-4ee1-aaa1-7c5deade8312",
+             *           "id": "3e4327d8-a7d4-4c30-9bfd-e1a68ca28bbc",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -11999,23 +12002,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "95eb5d24-17b5-4ded-8d71-92c1a2f406ab",
+             *           "id": "6c2d1dd6-18b3-4a01-a2b1-45c0ee96988c",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "f82ad199-9e10-4a88-8b0b-2ffd248d17cc",
+             *           "id": "6697ab02-c760-4906-aa87-9d74ec0d90bd",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "5ba3720c-424a-4030-a27d-cea960836992",
+             *           "id": "a967ee37-4c70-41df-8dab-a02afcbd5cb3",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "95eb5d24-17b5-4ded-8d71-92c1a2f406ab",
+             *           "id": "6c2d1dd6-18b3-4a01-a2b1-45c0ee96988c",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -12028,19 +12031,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "3a8c480b-e206-4c70-9b3d-33c5bc1dfefe",
+             *         "id": "615aeb70-c445-4b5c-8b7e-fbe3872da246",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "8b377c2e-dcfc-480e-b95e-8d9dd2a1ff85",
+             *         "id": "350b5340-366d-4e3f-92c6-6b44fea3d8b3",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "27707d0a-50cf-4ddc-99a4-3fbca7dd2376",
+             *         "id": "7915b6e6-c4d2-479b-93ed-8bcd2d5ad093",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "fa89d130-9376-4329-b8e5-6d793f05eceb",
+             *         "id": "366d6d12-ee09-42b4-bda3-737c8de79e20",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -12058,7 +12061,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "b2ce8d84-6f1e-4838-a43f-fa6150b8eeb8",
+             *         "id": "fcbcb425-6efc-4973-9e7a-2cb3ac8c6b49",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -12067,15 +12070,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "8518d626-f0c8-4b64-b3ac-a3451d213dff",
+             *         "id": "bdcf2b88-fde2-4e09-9fb4-7fd2e6862862",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "d23de6a9-8d0a-4eba-b6cb-054ab218d6a0",
+             *         "id": "0a17a74a-a7fd-40ec-8000-fe97fac2e6f5",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "04681061-be72-4b31-8a66-a4aa2062e6d7",
+             *         "id": "856eb6c2-bf59-4748-823e-bc73549955e0",
              *         "rule": "ByStack"
              *       }
              *     ]

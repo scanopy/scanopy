@@ -5,7 +5,7 @@
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { hasLicensedPlan } from '$lib/features/organizations/types';
 	import { billingPlans, planStatuses } from '$lib/shared/stores/metadata';
-	import { isMissingPaymentMethod } from '$lib/shared/utils/trial';
+	import { canPay, isMissingPaymentMethod } from '$lib/shared/utils/trial';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import { trackEvent, trackOncePerSession } from '$lib/shared/utils/analytics';
 	import {
@@ -129,7 +129,8 @@
 		!isFree && (isActive || isTrialing || isPastDue || isPaused || isPendingCancellation)
 	);
 
-	let hasPaymentMethod = $derived(org?.has_payment_method ?? false);
+	// "Can this org pay?", so an invoice buyer sees no card warning.
+	let hasPaymentMethod = $derived(canPay(org));
 	// Stripe-managed plan that needs a card on file but has none.
 	const configQuery = useConfigQuery();
 	let missingCard = $derived(

@@ -259,7 +259,7 @@ impl LicenseIssuer {
 /// moving past the trial end is what proves an invoice was paid; the caller
 /// passes it with any unpaid invoice's period already taken off.
 fn has_paid_subscription(org: &Organization, paid_through: Option<DateTime<Utc>>) -> bool {
-    if !org.base.has_payment_method || org.base.plan_status == Some(PlanStatus::Trialing) {
+    if !org.can_pay() || org.base.plan_status == Some(PlanStatus::Trialing) {
         return false;
     }
     match (paid_through, org.base.trial_end_date) {
