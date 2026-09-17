@@ -24,7 +24,8 @@ use crate::server::billing::plans::{
     get_enterprise_plan, get_self_hosted_plus_plan, get_self_hosted_standard_plan,
 };
 use crate::server::billing::types::base::{
-    BillingInvoice, BillingInvoiceLineItem, BillingPlan, BillingReason, PlanStatus,
+    BillingInvoice, BillingInvoiceLineItem, BillingPlan, BillingReason, InvoiceCollection,
+    PlanStatus,
 };
 use crate::server::config::{AppState, ServerConfig};
 use crate::server::license::handlers::{get_current_license_key, get_entitlement};
@@ -663,5 +664,103 @@ async fn the_airgap_renewal_email_dates_the_key_already_installed() {
     assert!(
         !sent.contains(&renewed_expiry),
         "the installed key's expiry must not be computed from the renewed period ({renewed_expiry}): {sent}"
+    );
+}
+
+#[tokio::test]
+async fn sent_invoices_license_until_due_and_give_back_on_void() {
+    let (state, _container) = test_state().await;
+    let service = &state.services.organization_service;
+    let trial_end = whole_seconds_from_now(3);
+    let org = create_org(&state, get_self_hosted_standard_plan(), Some(trial_end)).await;
+    let due = whole_seconds_from_now(33);
+
+    let sent = |period_start: DateTime<Utc>, due_date: DateTime<Utc>| BillingInvoice {
+        stripe_invoice_id: "in_sent".to_string(),
+        amount_paid_cents: 0,
+        currency: "usd".to_string(),
+        created_at: period_start,
+        period_start,
+        period_end: period_start,
+        billing_reason: BillingReason::SubscriptionCycle,
+        line_items: vec![BillingInvoiceLineItem {
+            description: None,
+            amount_cents: 400_000,
+            period_start,
+            period_end: period_start + Duration::days(365),
+            product: Some(get_self_hosted_standard_plan().stripe_product_id()),
+        }],
+        invoice_pdf: None,
+        hosted_invoice_url: None,
+        collection: InvoiceCollection::SendInvoice,
+        due_date: Some(due_date),
+    };
+    let publish = |operation: BillingOperation| {
+        service.handle(vec![Event::new(
+            OrgScope {
+                organization_id: org.id,
+            },
+            operation,
+            AuthenticatedEntity::System,
+        )])
+    };
+
+    // Issued: licensed past the due date, and the org counts as able to pay.
+    let issued = sent(trial_end, due);
+    let provisional = issued.provisional_paid_through().unwrap();
+    publish(BillingOperation::InvoiceIssued {
+        invoice: issued.clone(),
+    })
+    .await
+    .unwrap();
+    let reloaded = reload(&state, org.id).await;
+    assert_eq!(reloaded.base.license_paid_through, Some(provisional));
+    assert!(reloaded.base.has_payment_method);
+
+    // An invoice due earlier never shortens the period already granted.
+    publish(BillingOperation::InvoiceIssued {
+        invoice: sent(trial_end, whole_seconds_from_now(5)),
+    })
+    .await
+    .unwrap();
+    assert_eq!(
+        reload(&state, org.id).await.base.license_paid_through,
+        Some(provisional)
+    );
+
+    // Voided: back to where the unpaid period started.
+    publish(BillingOperation::InvoiceVoided {
+        invoice: issued.clone(),
+    })
+    .await
+    .unwrap();
+    assert_eq!(
+        reload(&state, org.id).await.base.license_paid_through,
+        Some(trial_end)
+    );
+
+    // Paid: the term end replaces the provisional date, and a late void of the
+    // same invoice leaves the paid term alone.
+    publish(BillingOperation::InvoiceIssued {
+        invoice: issued.clone(),
+    })
+    .await
+    .unwrap();
+    publish(BillingOperation::PaymentSucceeded {
+        invoice: issued.clone(),
+    })
+    .await
+    .unwrap();
+    let term_end = issued.license_paid_through();
+    assert_eq!(
+        reload(&state, org.id).await.base.license_paid_through,
+        term_end
+    );
+    publish(BillingOperation::InvoiceVoided { invoice: issued })
+        .await
+        .unwrap();
+    assert_eq!(
+        reload(&state, org.id).await.base.license_paid_through,
+        term_end
     );
 }

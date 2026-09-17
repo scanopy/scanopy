@@ -8,7 +8,8 @@
 	import { loadStripe } from '@stripe/stripe-js/pure';
 	// Types only — `/pure` re-exports just the runtime function. `import type` is erased at
 	// compile time, so this never pulls the injecting module into the bundle.
-	import type { Stripe, StripeElements, Appearance } from '@stripe/stripe-js';
+	import type { Stripe, StripeElements } from '@stripe/stripe-js';
+	import { buildStripeAppearance } from '$lib/shared/billing/stripe-appearance';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import {
@@ -58,55 +59,6 @@
 	let loadFailed = $state(false);
 	let initialized = false;
 
-	// Stripe Elements lives in an iframe, so it can't inherit the app's CSS.
-	// Mirror Scanopy's design tokens (read live from :root, so it tracks the
-	// active light/dark theme) into the Elements appearance API.
-	function cssVar(name: string): string {
-		return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-	}
-
-	function buildAppearance(): Appearance {
-		const isDark = document.documentElement.classList.contains('dark');
-		const accent = '#3b82f6'; // blue-500, matches btn-primary / focus ring
-		const inputBg = cssVar('--color-bg-input');
-		const inputBorder = cssVar('--color-border-input');
-		const textPrimary = cssVar('--color-text-primary');
-		return {
-			theme: isDark ? 'night' : 'stripe',
-			variables: {
-				colorPrimary: accent,
-				colorBackground: inputBg,
-				colorText: textPrimary,
-				colorTextSecondary: cssVar('--color-text-secondary'),
-				colorTextPlaceholder: cssVar('--color-text-muted'),
-				colorDanger: '#ef4444', // red-500
-				fontFamily: getComputedStyle(document.body).fontFamily,
-				borderRadius: '6px'
-			},
-			rules: {
-				'.Input': {
-					backgroundColor: inputBg,
-					borderColor: inputBorder,
-					color: textPrimary
-				},
-				'.Input:focus': {
-					borderColor: accent,
-					boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.5)'
-				},
-				'.Tab, .AccordionItem': {
-					backgroundColor: cssVar('--color-bg-elevated'),
-					borderColor: cssVar('--color-border')
-				},
-				'.Tab:hover, .AccordionItem:hover': {
-					backgroundColor: inputBg
-				},
-				'.Label': {
-					color: cssVar('--color-text-secondary')
-				}
-			}
-		};
-	}
-
 	// Mount the Payment Element once we have the publishable key, a client
 	// secret, and the container node. loadStripe + element creation happen once.
 	$effect(() => {
@@ -141,7 +93,7 @@
 			// of placeholder cards). Appearance mirrors the app theme.
 			elements = stripe.elements({
 				clientSecret,
-				appearance: buildAppearance(),
+				appearance: buildStripeAppearance(),
 				loader: 'never'
 			});
 			const paymentElement = elements.create('payment', {

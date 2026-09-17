@@ -17,6 +17,7 @@
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
 	import { upgradeContext } from '$lib/features/billing/stores';
 	import { isLicenseSigningAvailable, useConfigQuery } from '$lib/shared/stores/config-query';
+	import { openModal } from '$lib/shared/stores/modal-registry';
 
 	let {
 		isOpen = false,
@@ -143,6 +144,22 @@
 	let recommendedPlan = $derived(contextHighlightPlan ?? baseRecommendedPlan);
 
 	async function handlePlanSelect(plan: BillingPlan) {
+		// A self-hosted plan bought with no trial left and no way to pay on file would
+		// go to Stripe Checkout, which takes cards only. The payment-method dialog
+		// offers invoice billing beside the card, and continues to Checkout for a card.
+		if (
+			billingPlanHelpers.getMetadata(plan.type)?.license_plan != null &&
+			isReturningCustomer &&
+			!(organization?.has_payment_method ?? false)
+		) {
+			upgradeContext.set(null);
+			// Closed without the plan: nothing is bought yet, so the page must not lock
+			// onto the License tab over the dialog. The lock follows the webhook.
+			onClose();
+			openModal('payment-method', { entityData: { plan } });
+			return;
+		}
+
 		// Only an immediate-payment selection (paid plan, no trial, no card on file)
 		// redirects to Stripe Checkout; trial signups / Free / plan changes activate
 		// in-app via a plain API call. Pre-open the tab synchronously (inside the

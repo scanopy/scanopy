@@ -103,7 +103,8 @@ pub struct OrganizationBase {
     /// Progress through first-run setup.
     #[schema(read_only, required)]
     pub onboarding: Vec<OnboardingOperationDiscriminants>,
-    /// Whether a payment method is on file.
+    /// Whether the org has a way to pay: a payment method on file, or its
+    /// subscription is billed by sent invoice.
     #[serde(default)]
     #[schema(read_only)]
     pub has_payment_method: bool,
@@ -178,7 +179,8 @@ pub struct OrganizationBase {
     pub use_case: UseCase,
     /// When the org's self-hosted license is paid through: the trial end
     /// during a self-hosted trial, then the end of the last paid invoice's
-    /// service period. License keys and entitlements expire 7 days later.
+    /// service period. While a sent invoice is unpaid, its due date plus a
+    /// grace window. License keys and entitlements expire 7 days later.
     #[serde(default)]
     #[schema(read_only)]
     pub license_paid_through: Option<DateTime<Utc>>,

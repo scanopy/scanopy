@@ -107,6 +107,8 @@ pub enum MintError {
     OfflineNotIncluded,
     #[error("air-gapped keys need a paid subscription: add a payment method and end your trial")]
     OfflineRequiresPayment,
+    #[error("air-gapped keys are available once your open invoice is paid")]
+    OfflineAwaitingPayment,
     #[error("organization has no paid-through date")]
     NoPaidThrough,
     #[error("license key version is out of range")]
@@ -180,19 +182,37 @@ impl LicenseIssuer {
 
     /// The air-gap check lives here, in the mint path, so it holds whichever
     /// caller asks for an offline key.
+    ///
+    /// `unpaid_from` is the start of the earliest license period an open,
+    /// unpaid invoice bills for (read from Stripe by the caller). While an
+    /// invoice is unpaid, `license_paid_through` carries its provisional due
+    /// date, and an offline key cannot be taken back once minted, so the key
+    /// only covers what has actually been paid.
     pub fn mint_offline_key(
         &self,
         org: &Organization,
         now: DateTime<Utc>,
+        unpaid_from: Option<DateTime<Utc>>,
     ) -> Result<String, MintError> {
         let plan = org.base.plan.ok_or(MintError::NotLicensed)?;
         if !plan.features().air_gapped_deployment {
             return Err(MintError::OfflineNotIncluded);
         }
-        if !has_paid_subscription(org) {
-            return Err(MintError::OfflineRequiresPayment);
+        let paid_through = match (org.base.license_paid_through, unpaid_from) {
+            (Some(paid_through), Some(unpaid_from)) => Some(paid_through.min(unpaid_from)),
+            (paid_through, _) => paid_through,
+        };
+        if !has_paid_subscription(org, paid_through) {
+            return Err(if unpaid_from.is_some() {
+                MintError::OfflineAwaitingPayment
+            } else {
+                MintError::OfflineRequiresPayment
+            });
         }
-        self.mint_paid_through(org, plan.license_plan(), "offline", now)
+        if unpaid_from.is_some() && paid_through.is_none_or(|paid_through| paid_through <= now) {
+            return Err(MintError::OfflineAwaitingPayment);
+        }
+        self.mint_until(org, paid_through, plan.license_plan(), "offline", now)
     }
 
     fn mint_paid_through(
@@ -202,10 +222,18 @@ impl LicenseIssuer {
         key_type: &'static str,
         now: DateTime<Utc>,
     ) -> Result<String, MintError> {
-        let paid_through = org
-            .base
-            .license_paid_through
-            .ok_or(MintError::NoPaidThrough)?;
+        self.mint_until(org, org.base.license_paid_through, plan, key_type, now)
+    }
+
+    fn mint_until(
+        &self,
+        org: &Organization,
+        paid_through: Option<DateTime<Utc>>,
+        plan: Option<LicensePlan>,
+        key_type: &'static str,
+        now: DateTime<Utc>,
+    ) -> Result<String, MintError> {
+        let paid_through = paid_through.ok_or(MintError::NoPaidThrough)?;
         let intended_exp = paid_through + Duration::days(PAID_THROUGH_BUFFER_DAYS);
         let claims = license_claims(now, intended_exp, Some(org.id.to_string()), plan);
         let token = sign_license(&claims, &self.encoding)?;
@@ -220,19 +248,21 @@ impl LicenseIssuer {
     }
 }
 
-/// Whether the org has actually paid, as opposed to merely holding a plan.
+/// Whether the org has actually paid through `paid_through`, as opposed to
+/// merely holding a plan.
 ///
 /// An air-gapped key validates without ever contacting Scanopy, so once it is
-/// minted nothing can take it back. That is why it needs a card on file and a
-/// paid subscription, not just the plan feature. `plan_status == Active` alone
-/// would not do: an unconverted trial and a cancellation both land on Active,
-/// on the Free plan. Paid-through moving past the trial end is what proves an
-/// invoice was paid.
-fn has_paid_subscription(org: &Organization) -> bool {
+/// minted nothing can take it back. That is why it needs a way to pay (a card
+/// on file, or invoice billing) and a paid subscription, not just the plan
+/// feature. `plan_status == Active` alone would not do: an unconverted trial
+/// and a cancellation both land on Active, on the Free plan. Paid-through
+/// moving past the trial end is what proves an invoice was paid; the caller
+/// passes it with any unpaid invoice's period already taken off.
+fn has_paid_subscription(org: &Organization, paid_through: Option<DateTime<Utc>>) -> bool {
     if !org.base.has_payment_method || org.base.plan_status == Some(PlanStatus::Trialing) {
         return false;
     }
-    match (org.base.license_paid_through, org.base.trial_end_date) {
+    match (paid_through, org.base.trial_end_date) {
         (Some(paid_through), Some(trial_end)) => paid_through > trial_end,
         (Some(_), None) => true,
         _ => false,
@@ -354,7 +384,7 @@ pub(crate) mod tests {
         let mut trialing = paid_org(plan);
         trialing.base.plan_status = Some(PlanStatus::Trialing);
         assert!(matches!(
-            issuer.mint_offline_key(&trialing, Utc::now()),
+            issuer.mint_offline_key(&trialing, Utc::now(), None),
             Err(MintError::OfflineRequiresPayment)
         ));
 
@@ -362,7 +392,7 @@ pub(crate) mod tests {
         let mut no_card = paid_org(plan);
         no_card.base.has_payment_method = false;
         assert!(matches!(
-            issuer.mint_offline_key(&no_card, Utc::now()),
+            issuer.mint_offline_key(&no_card, Utc::now(), None),
             Err(MintError::OfflineRequiresPayment)
         ));
 
@@ -370,11 +400,50 @@ pub(crate) mod tests {
         let mut unconverted = paid_org(plan);
         unconverted.base.license_paid_through = unconverted.base.trial_end_date;
         assert!(matches!(
-            issuer.mint_offline_key(&unconverted, Utc::now()),
+            issuer.mint_offline_key(&unconverted, Utc::now(), None),
             Err(MintError::OfflineRequiresPayment)
         ));
 
-        assert!(issuer.mint_offline_key(&paid_org(plan), Utc::now()).is_ok());
+        assert!(
+            issuer
+                .mint_offline_key(&paid_org(plan), Utc::now(), None)
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn offline_key_covers_only_the_paid_period_while_an_invoice_is_open() {
+        let issuer = test_issuer();
+        let plan = get_self_hosted_plus_plan();
+        let now = Utc::now();
+
+        // First invoice after the trial is issued but unpaid: its provisional
+        // date sits past the trial end, but nothing has been paid.
+        let mut first_invoice = paid_org(plan);
+        let trial_end = first_invoice.base.trial_end_date.unwrap();
+        first_invoice.base.license_paid_through = Some(now + Duration::days(60));
+        assert!(matches!(
+            issuer.mint_offline_key(&first_invoice, now, Some(trial_end)),
+            Err(MintError::OfflineAwaitingPayment)
+        ));
+
+        // Renewal invoice open while last year is paid: the key runs to the
+        // end of the paid year, not to the renewal's provisional date.
+        let mut renewal = paid_org(plan);
+        let paid_year_end = now + Duration::days(10);
+        renewal.base.trial_end_date = Some(now - Duration::days(400));
+        renewal.base.license_paid_through = Some(paid_year_end + Duration::days(60));
+        let key = issuer
+            .mint_offline_key(&renewal, now, Some(paid_year_end))
+            .unwrap();
+        let LicenseStatus::Valid(claims) = LicenseKey::new(key).validate_with(&test_decoding_key())
+        else {
+            panic!("offline key should validate");
+        };
+        assert_eq!(
+            claims.intended_exp,
+            (paid_year_end + Duration::days(PAID_THROUGH_BUFFER_DAYS)).timestamp()
+        );
     }
 
     #[test]
@@ -383,12 +452,12 @@ pub(crate) mod tests {
 
         let standard = paid_org(get_self_hosted_standard_plan());
         assert!(matches!(
-            issuer.mint_offline_key(&standard, Utc::now()),
+            issuer.mint_offline_key(&standard, Utc::now(), None),
             Err(MintError::OfflineNotIncluded)
         ));
 
         let plus = paid_org(get_self_hosted_plus_plan());
-        let key = issuer.mint_offline_key(&plus, Utc::now()).unwrap();
+        let key = issuer.mint_offline_key(&plus, Utc::now(), None).unwrap();
         let LicenseStatus::Valid(claims) = LicenseKey::new(key).validate_with(&test_decoding_key())
         else {
             panic!("offline key should validate");

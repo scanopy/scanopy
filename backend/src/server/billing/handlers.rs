@@ -100,6 +100,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
         .routes(routes!(reactivate_subscription))
         .routes(routes!(apply_discount_save_offer))
         .routes(routes!(get_save_offer_coupon))
+        .merge(super::invoicing_handlers::create_router())
 }
 
 /// Get available billing plans
@@ -192,12 +193,14 @@ async fn create_checkout_session(
                 // `has_payment_method` mirror, which lags the in-app SetupIntent
                 // flow by an event-bus tick). Only queried when we might route to
                 // a direct charge — trial-eligible orgs skip it.
+                // A subscription billed by invoice needs no card to change plan.
                 let has_payment_method = if is_trial_eligible {
                     false
                 } else {
                     billing_service
                         .customer_has_payment_method(organization_id)
                         .await?
+                        || billing_service.bills_by_invoice(&org).await
                 };
 
                 if is_trial_eligible {

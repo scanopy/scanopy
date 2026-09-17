@@ -7,8 +7,10 @@
 		useCreateLicenseKeyMutation,
 		useCurrentLicenseKeyQuery,
 		useEndTrialMutation,
+		useInvoiceBillingStatusQuery,
 		useRotateLicenseKeyMutation
 	} from '$lib/features/billing/queries';
+	import InvoiceBillingCard from '$lib/features/billing/InvoiceBillingCard.svelte';
 	import { priceToCharge } from '$lib/features/billing/pricing';
 	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
@@ -31,6 +33,7 @@
 	import {
 		apiKeys_rotateKey,
 		billing_addPaymentMethod,
+		billing_invoice_offlineAfterPayment,
 		billing_requestAccepted,
 		common_airGapped,
 		common_close,
@@ -88,6 +91,10 @@
 	// lands returns 403 NotLicensed. The tab opens on a provisional signal from the
 	// plan picker, so this can be false for the first second or two.
 	const keyQuery = useCurrentLicenseKeyQuery(() => org != null && hasLicensedPlan(org));
+	const invoiceBillingQuery = useInvoiceBillingStatusQuery(
+		() => billingEnabled && org != null && hasLicensedPlan(org)
+	);
+	let invoiceBilling = $derived(invoiceBillingQuery.data ?? null);
 	let currentKey = $derived(keyQuery.data?.key ?? null);
 	let keyType = $derived<LicenseKeyType>(keyQuery.data?.key_type ?? 'Online');
 	let maskedKey = $derived(currentKey ? `${currentKey.slice(0, 8)}${'•'.repeat(32)}` : '');
@@ -307,6 +314,10 @@
 							<dd class="text-primary">{lastCheckIn}</dd>
 						</dl>
 
+						{#if invoiceBilling}
+							<InvoiceBillingCard status={invoiceBilling} />
+						{/if}
+
 						<div class="space-y-3 border-t pt-3" style="border-color: var(--color-border)">
 							<div>
 								<p class="text-secondary text-sm">{settings_billing_license_keyTypeLabel()}</p>
@@ -325,6 +336,10 @@
 							     includes air-gapped) what makes the option selectable. A tooltip on
 							     the disabled option can't carry this — the message has to be readable
 							     without hovering something that isn't clickable. -->
+							{#if airGappedIncluded && invoiceBilling?.open_invoice}
+								<p class="text-secondary text-sm">{billing_invoice_offlineAfterPayment()}</p>
+							{/if}
+
 							{#if !airGappedIncluded}
 								<p class="text-secondary text-sm">
 									{settings_billing_license_offlineKeyUpsell()}

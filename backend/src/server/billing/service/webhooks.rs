@@ -95,6 +95,21 @@ impl BillingService {
                     self.handle_invoice_paid(invoice).await?;
                 }
             }
+            EventType::InvoiceFinalized => {
+                if let EventObject::InvoiceFinalized(invoice) = event.data.object {
+                    self.handle_invoice_finalized(invoice).await?;
+                }
+            }
+            EventType::InvoiceVoided | EventType::InvoiceMarkedUncollectible => {
+                let invoice = match event.data.object {
+                    EventObject::InvoiceVoided(invoice) => Some(invoice),
+                    EventObject::InvoiceMarkedUncollectible(invoice) => Some(invoice),
+                    _ => None,
+                };
+                if let Some(invoice) = invoice {
+                    self.handle_invoice_voided(invoice).await?;
+                }
+            }
             _ => {
                 tracing::debug!(
                     event_type = ?event.type_,
@@ -692,6 +707,14 @@ impl BillingService {
                 organization_id = %organization.id,
                 remaining_count = remaining.data.len(),
                 "Payment method detached but customer still has others — not emitting PaymentMethodRemoved"
+            );
+            return Ok(());
+        }
+
+        if self.bills_by_invoice(&organization).await {
+            tracing::info!(
+                organization_id = %organization.id,
+                "Payment method detached but subscription bills by invoice — not emitting PaymentMethodRemoved"
             );
             return Ok(());
         }

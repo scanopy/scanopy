@@ -97,6 +97,23 @@ impl BillingService {
             .send(&self.stripe)
             .await?;
 
+        // Saving a card is how an org billed by invoice switches back to card
+        // payments: the next invoice charges it.
+        let organization = self.get_organization(organization_id).await?;
+        if let Ok(sub) = self.find_current_subscription(&organization).await
+            && sub.collection_method == stripe_shared::SubscriptionCollectionMethod::SendInvoice
+        {
+            UpdateSubscription::new(&sub.id)
+                .collection_method(stripe_shared::SubscriptionCollectionMethod::ChargeAutomatically)
+                .send(&self.stripe)
+                .await?;
+            tracing::info!(
+                organization_id = %organization_id,
+                subscription_id = %sub.id,
+                "Subscription switched from invoice billing to card"
+            );
+        }
+
         // No PaymentMethodAdded emission here — the `payment_method.attached`
         // webhook is the sole emitter (one event → one mirror flip, one email,
         // one analytics capture). Synchronous "card on file?" callers read
