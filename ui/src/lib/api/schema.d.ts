@@ -2109,7 +2109,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/licenses/keys/regenerate": {
+    "/api/v1/licenses/keys/rotate": {
         parameters: {
             query?: never;
             header?: never;
@@ -2119,11 +2119,11 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Regenerate this organization's online license key
-         * @description Retires every online key issued so far: servers still using one get 403
-         *     from the entitlement endpoint.
+         * Rotate this organization's license key
+         * @description Retires every key issued so far: a server still using an online key gets
+         *     403 from the entitlement endpoint and needs the new key.
          */
-        post: operations["regenerate_license_key"];
+        post: operations["rotate_license_key"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3334,19 +3334,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-17T14:21:16.004854Z",
+             *       "created_at": "2026-09-17T15:49:41.882312Z",
              *       "first_discovery_id": null,
-             *       "id": "0dd2a708-ffd2-48df-a6eb-d23453172177",
+             *       "id": "4f51169d-5c41-4ee0-b7e3-32353b9a5130",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-17T14:21:16.004854Z",
+             *       "last_seen_at": "2026-09-17T15:49:41.882312Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-17T14:21:16.004854Z",
-             *       "valid_from": "2026-09-17T14:21:16.004854Z",
+             *       "updated_at": "2026-09-17T15:49:41.882312Z",
+             *       "valid_from": "2026-09-17T15:49:41.882312Z",
              *       "valid_to": null
              *     }
              */
@@ -4007,19 +4007,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-17T14:21:15.979734Z",
+             *               "created_at": "2026-09-17T15:49:41.861927Z",
              *               "first_discovery_id": null,
-             *               "id": "2d169dae-c442-4eab-8200-5ccddd75efbd",
+             *               "id": "a442185c-d46a-4bf0-913a-f4a8c7ceef50",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-17T14:21:15.979734Z",
+             *               "last_seen_at": "2026-09-17T15:49:41.861927Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-17T14:21:15.979734Z",
-             *               "valid_from": "2026-09-17T14:21:15.979734Z",
+             *               "updated_at": "2026-09-17T15:49:41.861927Z",
+             *               "valid_from": "2026-09-17T15:49:41.861927Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4033,7 +4033,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "OpenSpeedTest",
+             *           "service_definition": "Redis",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4685,7 +4685,27 @@ export interface components {
                  *     issued after grace-period support landed.
                  */
                 license_intended_expiry?: string | null;
+                /**
+                 * Format: int32
+                 * @description Days past an organization's paid-through date before a license key
+                 *     reaches its user-visible expiry. Published so the UI shows the same
+                 *     dates the mint path bakes into keys, instead of its own copy.
+                 */
+                license_key_buffer_days: number;
+                /**
+                 * Format: int32
+                 * @description Further days past the user-visible expiry before a key stops working.
+                 */
+                license_key_grace_days: number;
                 license_key_type?: null | components["schemas"]["LicenseKeyType"];
+                /**
+                 * @description Whether this deployment can sign license keys. False on any server
+                 *     without a signing key, where the Settings License tab and the
+                 *     self-hosted plans would otherwise offer something the mint path
+                 *     refuses. Reads the built issuer rather than the config value, since a
+                 *     key can be present but unparseable.
+                 */
+                license_signing_available: boolean;
                 license_status?: null | components["schemas"]["LicenseStatusDiscriminants"];
                 /** @description Whether the client should show a cookie-consent prompt. */
                 needs_cookie_consent: boolean;
@@ -4789,19 +4809,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-17T14:21:15.999342Z",
+             *           "created_at": "2026-09-17T15:49:41.877476Z",
              *           "first_discovery_id": null,
-             *           "id": "65b9b51b-8869-42e6-9e73-2cf8ca9188f4",
+             *           "id": "53fbdc64-c799-41cc-843d-3648dc972022",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-17T14:21:15.999342Z",
+             *           "last_seen_at": "2026-09-17T15:49:41.877476Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-17T14:21:15.999342Z",
-             *           "valid_from": "2026-09-17T14:21:15.999342Z",
+             *           "updated_at": "2026-09-17T15:49:41.877476Z",
+             *           "valid_from": "2026-09-17T15:49:41.877476Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -4815,7 +4835,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "OpenSpeedTest",
+             *       "service_definition": "Redis",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -5680,19 +5700,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-17T14:21:15.980463Z",
+         *       "created_at": "2026-09-17T15:49:41.862413Z",
          *       "first_discovery_id": null,
-         *       "id": "caf47357-575c-45f6-871e-62c772e700ee",
+         *       "id": "5c92a306-cd3f-4d8d-a585-13e6c2db985d",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-17T14:21:15.980463Z",
+         *       "last_seen_at": "2026-09-17T15:49:41.862413Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-17T14:21:15.980463Z",
-         *       "valid_from": "2026-09-17T14:21:15.980463Z",
+         *       "updated_at": "2026-09-17T15:49:41.862413Z",
+         *       "valid_from": "2026-09-17T15:49:41.862413Z",
          *       "valid_to": null
          *     }
          */
@@ -6006,7 +6026,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "OpenSpeedTest",
+         *           "service_definition": "Redis",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8178,19 +8198,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-17T14:21:15.978951Z",
+         *               "created_at": "2026-09-17T15:49:41.861407Z",
          *               "first_discovery_id": null,
-         *               "id": "db6f7cdf-1b31-4769-b9b8-10fcd2281626",
+         *               "id": "4001b468-6752-44a6-a342-7fef54f4d7a2",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-17T14:21:15.978951Z",
+         *               "last_seen_at": "2026-09-17T15:49:41.861407Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-17T14:21:15.978951Z",
-         *               "valid_from": "2026-09-17T14:21:15.978951Z",
+         *               "updated_at": "2026-09-17T15:49:41.861407Z",
+         *               "valid_from": "2026-09-17T15:49:41.861407Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8204,7 +8224,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "OpenSpeedTest",
+         *           "service_definition": "Redis",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -10678,7 +10698,27 @@ export interface components {
              *     issued after grace-period support landed.
              */
             license_intended_expiry?: string | null;
+            /**
+             * Format: int32
+             * @description Days past an organization's paid-through date before a license key
+             *     reaches its user-visible expiry. Published so the UI shows the same
+             *     dates the mint path bakes into keys, instead of its own copy.
+             */
+            license_key_buffer_days: number;
+            /**
+             * Format: int32
+             * @description Further days past the user-visible expiry before a key stops working.
+             */
+            license_key_grace_days: number;
             license_key_type?: null | components["schemas"]["LicenseKeyType"];
+            /**
+             * @description Whether this deployment can sign license keys. False on any server
+             *     without a signing key, where the Settings License tab and the
+             *     self-hosted plans would otherwise offer something the mint path
+             *     refuses. Reads the built issuer rather than the config value, since a
+             *     key can be present but unparseable.
+             */
+            license_signing_available: boolean;
             license_status?: null | components["schemas"]["LicenseStatusDiscriminants"];
             /** @description Whether the client should show a cookie-consent prompt. */
             needs_cookie_consent: boolean;
@@ -11055,19 +11095,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-17T14:21:15.980248Z",
+         *           "created_at": "2026-09-17T15:49:41.862272Z",
          *           "first_discovery_id": null,
-         *           "id": "e57e05af-e398-4efb-91d6-4a86aee4b9a6",
+         *           "id": "4a184418-db56-409a-b93e-a0cd8baef63b",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-17T14:21:15.980248Z",
+         *           "last_seen_at": "2026-09-17T15:49:41.862272Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-17T14:21:15.980248Z",
-         *           "valid_from": "2026-09-17T14:21:15.980248Z",
+         *           "updated_at": "2026-09-17T15:49:41.862272Z",
+         *           "valid_from": "2026-09-17T15:49:41.862272Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -11081,7 +11121,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "OpenSpeedTest",
+         *       "service_definition": "Redis",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -11783,7 +11823,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "1de6d43a-1e04-4cd3-a27b-9ef99fbdbd07",
+             *           "id": "b1585f37-5047-4f5f-8307-82c73f7cd7f3",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -11793,23 +11833,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "de0f8bcf-ca56-47d7-8bfe-9687f5cbe432",
+             *           "id": "0e75a16b-e6d5-4798-b0ab-8ba85f311566",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "48f325db-c892-4721-a310-29f037c7b2bb",
+             *           "id": "2736bd47-bb5c-4303-bf69-86a301b343f4",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "431326bf-7b00-4e08-b769-9e091d9f954e",
+             *           "id": "3948db39-4641-47c2-96d3-ed1986021169",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "de0f8bcf-ca56-47d7-8bfe-9687f5cbe432",
+             *           "id": "0e75a16b-e6d5-4798-b0ab-8ba85f311566",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -11822,19 +11862,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "858d8f7f-4478-444a-89bc-9209b3be16c1",
+             *         "id": "426cab21-d614-4e64-9481-b0fd67cb34ee",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "49a34828-e2c9-4dd2-97ac-4352ff59c09d",
+             *         "id": "a3f87254-5cd2-4e8b-8883-044b7a8cd942",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "d0b688e5-2173-42b1-a590-2699e6816ebf",
+             *         "id": "a0c4ac3e-c023-4f74-89e7-a0e8382435f8",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "75345ec7-eb5c-4840-a1ce-03427509106f",
+             *         "id": "bdead42b-e02e-42b6-8d43-a5454d78f3c1",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -11852,7 +11892,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "71bd1e20-5512-4639-bb01-a3222dddb45a",
+             *         "id": "293a89a9-a2ec-4275-9362-f3a52179fd8f",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -11861,15 +11901,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "49668161-73fd-45af-b027-7fd4b0c0cee9",
+             *         "id": "86f60c9a-73e2-47f5-b0ff-04446a80a676",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "92d2feba-4431-413e-ae42-d0f08a500beb",
+             *         "id": "0f69134e-7e68-4078-861b-73da32836bec",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "c6bdc292-620a-48c1-965b-9a925941c9ee",
+             *         "id": "f0cbeb94-d341-47ba-a0fe-8999c1067de2",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -17215,7 +17255,7 @@ export interface operations {
             };
         };
     };
-    regenerate_license_key: {
+    rotate_license_key: {
         parameters: {
             query?: never;
             header?: never;
@@ -17224,7 +17264,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Key regenerated */
+            /** @description Key rotated */
             200: {
                 headers: {
                     [name: string]: unknown;

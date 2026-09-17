@@ -12643,19 +12643,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-17T14:21:16.004859Z",
+              "created_at": "2026-09-17T15:49:41.882320Z",
               "first_discovery_id": null,
-              "id": "5b30b1f8-7968-476d-97ec-d904a8605ad8",
+              "id": "7ec87a84-0fb1-49f2-94a2-70f89b29fbb1",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-17T14:21:16.004859Z",
+              "last_seen_at": "2026-09-17T15:49:41.882320Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-17T14:21:16.004859Z",
-              "valid_from": "2026-09-17T14:21:16.004859Z",
+              "updated_at": "2026-09-17T15:49:41.882320Z",
+              "valid_from": "2026-09-17T15:49:41.882320Z",
               "valid_to": null
             }
           },
@@ -14146,19 +14146,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-17T14:21:15.979756Z",
+                      "created_at": "2026-09-17T15:49:41.861911Z",
                       "first_discovery_id": null,
-                      "id": "e8073fd9-cabb-4300-8d60-1370ad9a2faa",
+                      "id": "85300c3a-f917-415c-9838-49d38457960b",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-17T14:21:15.979756Z",
+                      "last_seen_at": "2026-09-17T15:49:41.861911Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-17T14:21:15.979756Z",
-                      "valid_from": "2026-09-17T14:21:15.979756Z",
+                      "updated_at": "2026-09-17T15:49:41.861911Z",
+                      "valid_from": "2026-09-17T15:49:41.861911Z",
                       "valid_to": null
                     }
                   ],
@@ -14172,7 +14172,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "OpenSpeedTest",
+                  "service_definition": "Redis",
                   "source": {
                     "type": "Manual"
                   },
@@ -15091,7 +15091,10 @@
               "deployment_type",
               "license_in_grace_period",
               "org_limit_reached",
-              "server_admin_contact_email"
+              "server_admin_contact_email",
+              "license_signing_available",
+              "license_key_buffer_days",
+              "license_key_grace_days"
             ],
             "properties": {
               "billing_enabled": {
@@ -15154,6 +15157,18 @@
                 "format": "date",
                 "description": "User-visible expiry — the date displayed to end users under\nnormal operation. 7 days earlier than `license_expiry` for keys\nissued after grace-period support landed."
               },
+              "license_key_buffer_days": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Days past an organization's paid-through date before a license key\nreaches its user-visible expiry. Published so the UI shows the same\ndates the mint path bakes into keys, instead of its own copy.",
+                "minimum": 0
+              },
+              "license_key_grace_days": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Further days past the user-visible expiry before a key stops working.",
+                "minimum": 0
+              },
               "license_key_type": {
                 "oneOf": [
                   {
@@ -15164,6 +15179,10 @@
                     "description": "Whether the configured key is an offline key or an online key that\nfetches its entitlement from Scanopy Cloud. `None` when no key applies."
                   }
                 ]
+              },
+              "license_signing_available": {
+                "type": "boolean",
+                "description": "Whether this deployment can sign license keys. False on any server\nwithout a signing key, where the Settings License tab and the\nself-hosted plans would otherwise offer something the mint path\nrefuses. Reads the built issuer rather than the config value, since a\nkey can be present but unparseable."
               },
               "license_status": {
                 "oneOf": [
@@ -15452,19 +15471,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-17T14:21:15.999350Z",
+                  "created_at": "2026-09-17T15:49:41.877465Z",
                   "first_discovery_id": null,
-                  "id": "a8d422a1-7c21-4e28-9e37-76f862940def",
+                  "id": "6d03f9e9-3900-41d1-bb79-ce491c5752ea",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-17T14:21:15.999350Z",
+                  "last_seen_at": "2026-09-17T15:49:41.877465Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-17T14:21:15.999350Z",
-                  "valid_from": "2026-09-17T14:21:15.999350Z",
+                  "updated_at": "2026-09-17T15:49:41.877465Z",
+                  "valid_from": "2026-09-17T15:49:41.877465Z",
                   "valid_to": null
                 }
               ],
@@ -15478,7 +15497,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "OpenSpeedTest",
+              "service_definition": "Redis",
               "source": {
                 "type": "Manual"
               },
@@ -17733,19 +17752,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-17T14:21:15.980492Z",
+          "created_at": "2026-09-17T15:49:41.862397Z",
           "first_discovery_id": null,
-          "id": "115e6d1d-c74a-4ecc-9bb8-993d34b93d20",
+          "id": "60957ca5-8798-44ff-9aab-e8146d40288a",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-17T14:21:15.980492Z",
+          "last_seen_at": "2026-09-17T15:49:41.862397Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-17T14:21:15.980492Z",
-          "valid_from": "2026-09-17T14:21:15.980492Z",
+          "updated_at": "2026-09-17T15:49:41.862397Z",
+          "valid_from": "2026-09-17T15:49:41.862397Z",
           "valid_to": null
         }
       },
@@ -18440,7 +18459,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "OpenSpeedTest",
+              "service_definition": "Redis",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -23824,19 +23843,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-17T14:21:15.978962Z",
+                  "created_at": "2026-09-17T15:49:41.861403Z",
                   "first_discovery_id": null,
-                  "id": "51887211-9c6b-474a-9192-595128f2addb",
+                  "id": "e544b231-10be-461d-a01e-02b2d341ad2d",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-17T14:21:15.978962Z",
+                  "last_seen_at": "2026-09-17T15:49:41.861403Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-17T14:21:15.978962Z",
-                  "valid_from": "2026-09-17T14:21:15.978962Z",
+                  "updated_at": "2026-09-17T15:49:41.861403Z",
+                  "valid_from": "2026-09-17T15:49:41.861403Z",
                   "valid_to": null
                 }
               ],
@@ -23850,7 +23869,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "OpenSpeedTest",
+              "service_definition": "Redis",
               "source": {
                 "type": "Manual"
               },
@@ -27296,19 +27315,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-17T14:21:15.962821Z",
+                        "created_at": "2026-09-17T15:49:41.852147Z",
                         "first_discovery_id": null,
-                        "id": "044c3ac4-5239-4f01-a6e0-d0bbe002edb2",
+                        "id": "02ab3d4a-bed5-4812-912b-9c887dac5bf8",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-17T14:21:15.962821Z",
+                        "last_seen_at": "2026-09-17T15:49:41.852147Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-17T14:21:15.962821Z",
-                        "valid_from": "2026-09-17T14:21:15.962821Z",
+                        "updated_at": "2026-09-17T15:49:41.852147Z",
+                        "valid_from": "2026-09-17T15:49:41.852147Z",
                         "valid_to": null
                       }
                     ],
@@ -27322,7 +27341,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "OpenSpeedTest",
+                    "service_definition": "Redis",
                     "source": {
                       "type": "Manual"
                     },
@@ -27465,19 +27484,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-17T14:21:15.998296Z",
+                    "created_at": "2026-09-17T15:49:41.876569Z",
                     "first_discovery_id": null,
-                    "id": "77855f1f-d171-4eea-93e6-4550d0212bbc",
+                    "id": "41e87b89-bc31-4969-974f-af9f238fcff7",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-17T14:21:15.998296Z",
+                    "last_seen_at": "2026-09-17T15:49:41.876569Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-17T14:21:15.998296Z",
-                    "valid_from": "2026-09-17T14:21:15.998296Z",
+                    "updated_at": "2026-09-17T15:49:41.876569Z",
+                    "valid_from": "2026-09-17T15:49:41.876569Z",
                     "valid_to": null
                   }
                 ],
@@ -27491,7 +27510,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "OpenSpeedTest",
+                "service_definition": "Redis",
                 "source": {
                   "type": "Manual"
                 },
@@ -28756,7 +28775,10 @@
           "deployment_type",
           "license_in_grace_period",
           "org_limit_reached",
-          "server_admin_contact_email"
+          "server_admin_contact_email",
+          "license_signing_available",
+          "license_key_buffer_days",
+          "license_key_grace_days"
         ],
         "properties": {
           "billing_enabled": {
@@ -28819,6 +28841,18 @@
             "format": "date",
             "description": "User-visible expiry — the date displayed to end users under\nnormal operation. 7 days earlier than `license_expiry` for keys\nissued after grace-period support landed."
           },
+          "license_key_buffer_days": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Days past an organization's paid-through date before a license key\nreaches its user-visible expiry. Published so the UI shows the same\ndates the mint path bakes into keys, instead of its own copy.",
+            "minimum": 0
+          },
+          "license_key_grace_days": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Further days past the user-visible expiry before a key stops working.",
+            "minimum": 0
+          },
           "license_key_type": {
             "oneOf": [
               {
@@ -28829,6 +28863,10 @@
                 "description": "Whether the configured key is an offline key or an online key that\nfetches its entitlement from Scanopy Cloud. `None` when no key applies."
               }
             ]
+          },
+          "license_signing_available": {
+            "type": "boolean",
+            "description": "Whether this deployment can sign license keys. False on any server\nwithout a signing key, where the Settings License tab and the\nself-hosted plans would otherwise offer something the mint path\nrefuses. Reads the built issuer rather than the config value, since a\nkey can be present but unparseable."
           },
           "license_status": {
             "oneOf": [
@@ -29567,19 +29605,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-17T14:21:15.980274Z",
+              "created_at": "2026-09-17T15:49:41.862253Z",
               "first_discovery_id": null,
-              "id": "fac4cd38-0f1c-4691-b37b-d796caa8c800",
+              "id": "bc16d1fd-0fcb-4b30-90ef-a7d994408bdb",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-17T14:21:15.980274Z",
+              "last_seen_at": "2026-09-17T15:49:41.862253Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-17T14:21:15.980274Z",
-              "valid_from": "2026-09-17T14:21:15.980274Z",
+              "updated_at": "2026-09-17T15:49:41.862253Z",
+              "valid_from": "2026-09-17T15:49:41.862253Z",
               "valid_to": null
             }
           ],
@@ -29593,7 +29631,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "OpenSpeedTest",
+          "service_definition": "Redis",
           "source": {
             "type": "Manual"
           },
@@ -30914,7 +30952,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "13e2807c-ce97-4244-a9fa-b7d4acbe8b5b",
+                  "id": "01b28792-f193-422b-ba16-e423f885b7bd",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -30924,23 +30962,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "bc4e4565-7a2a-4cb6-93fb-2d3621aa410d",
+                  "id": "fa26a2a4-7a85-464d-9faf-7d8c34c47df3",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "f5816097-f031-4b97-80c3-d267370ddbac",
+                  "id": "b934509a-1416-44a9-bd0e-549a9cfe1fad",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "ab06014c-d5ec-48f5-a2d2-09a92d774da9",
+                  "id": "1c80eebe-9a38-42c4-8224-fafeb00cd72d",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "bc4e4565-7a2a-4cb6-93fb-2d3621aa410d",
+                  "id": "fa26a2a4-7a85-464d-9faf-7d8c34c47df3",
                   "rule": "ByHost"
                 }
               ]
@@ -30970,19 +31008,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "3b3f6ee4-43ff-44e7-85e4-35c471b24d22",
+                "id": "d82d66cd-dfa5-41bd-b696-81db6b86ff92",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "21218c71-144a-4559-9406-f583b4c76a3d",
+                "id": "e7d68b8a-c668-4f2b-a2ac-8585b798d972",
                 "rule": "ByVLAN"
               },
               {
-                "id": "32dbe9cd-7962-4592-93fe-e3098340ca50",
+                "id": "16a19e48-9a78-47a2-b7a8-375faff3e593",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "7335198d-ea88-43e0-888f-bceac1bedbde",
+                "id": "ff370a8b-8fb6-4dbb-9346-27b86cdaeb79",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -31000,7 +31038,7 @@
                 }
               },
               {
-                "id": "ea8f3f26-f4a9-4470-ad25-7b5394a1c81a",
+                "id": "8e67aa47-2288-41d0-b0c4-0b40ae10fb7a",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -31009,15 +31047,15 @@
                 }
               },
               {
-                "id": "d381dc19-e00d-48cc-95b3-e3934537a6f8",
+                "id": "6a99d2e9-707e-4422-91c0-070cd12bb87d",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "8dacee67-5947-470e-9ef8-295c3f1687c4",
+                "id": "d6bdcf2e-43a3-4a35-a992-40091026c3b8",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "3b61ad02-5795-484a-8098-4cdd5972b218",
+                "id": "0a1ec849-9b90-4881-8532-0734e18a3538",
                 "rule": "ByStack"
               }
             ]

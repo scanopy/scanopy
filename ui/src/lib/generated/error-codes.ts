@@ -81,6 +81,8 @@ export const ERROR_CODES = {
 		'Your current plan does not include {feature}. Upgrade your plan to access this feature.',
 	billing_self_hosted_plan_locked:
 		'This organization is on a self-hosted plan. Manage its license in Settings, or switch to a cloud plan to use the app.',
+	billing_air_gapped_key_still_current:
+		'Your air-gapped key is still valid. You can switch back to an online key once the current license period ends.',
 	rate_limit_exceeded: 'Too many requests, please try again later',
 	external_service_error: 'Error from {service}: {reason}',
 	database_error: 'A database error occurred',
@@ -157,6 +159,7 @@ export interface ErrorParams {
 	billing_host_limit_reached: { limit: string | number };
 	billing_feature_not_available: { feature: string | number };
 	billing_self_hosted_plan_locked: Record<string, never>;
+	billing_air_gapped_key_still_current: Record<string, never>;
 	rate_limit_exceeded: Record<string, never>;
 	external_service_error: { service: string | number; reason: string | number };
 	database_error: Record<string, never>;
