@@ -33,6 +33,7 @@ use crate::server::license::mint::tests::{test_decoding_key, test_issuer};
 use crate::server::license::online::{ENTITLEMENT_PATH, EntitlementRequest};
 use crate::server::license::types::{LicenseKeyType, LicenseStatus};
 use crate::server::organizations::r#impl::base::Organization;
+use crate::server::organizations::service::SwitchKeyTypeError;
 use crate::server::shared::events::traits::{Event, OrgScope, Subscriber};
 use crate::server::shared::events::types::BillingOperation;
 use crate::server::shared::services::traits::CrudService;
@@ -111,7 +112,7 @@ fn entitlement_route_is_served_at_the_shared_contract_path() {
 }
 
 #[tokio::test]
-async fn online_keys_are_stable_until_regenerated() {
+async fn online_keys_are_stable_until_rotated() {
     let (state, _container) = test_state().await;
     let issuer = state.license_issuer.clone().unwrap();
     let service = &state.services.organization_service;
@@ -131,19 +132,65 @@ async fn online_keys_are_stable_until_regenerated() {
         key
     );
 
-    // Regenerating bumps the key version, so the next copy is a different key.
+    // Rotating bumps the key version, so the next copy is a different key.
     // The stamp is whole seconds, so it can still read the same within one.
     service
-        .regenerate_license_key(org.id, AuthenticatedEntity::System)
+        .rotate_license_key(org.id, AuthenticatedEntity::System)
         .await
         .unwrap();
-    let regenerated_stamp = service.license_key_issued_at(org.id).await.unwrap();
-    assert!(regenerated_stamp >= first_stamp);
+    let rotated_stamp = service.license_key_issued_at(org.id).await.unwrap();
+    assert!(rotated_stamp >= first_stamp);
     assert_ne!(
         issuer
-            .mint_online_key(&reload(&state, org.id).await, regenerated_stamp)
+            .mint_online_key(&reload(&state, org.id).await, rotated_stamp)
             .unwrap(),
         key
+    );
+}
+
+#[tokio::test]
+async fn air_gapped_orgs_cannot_return_to_an_online_key_until_the_period_ends() {
+    let (state, _container) = test_state().await;
+    let service = &state.services.organization_service;
+    let org = create_org(
+        &state,
+        get_self_hosted_plus_plan(),
+        Some(whole_seconds_from_now(365)),
+    )
+    .await;
+
+    service
+        .switch_license_key_type(org.id, LicenseKeyType::Offline, AuthenticatedEntity::System)
+        .await
+        .unwrap();
+
+    // The key already installed runs to its embedded expiry, so going back now
+    // would leave two live keys.
+    assert!(matches!(
+        service
+            .switch_license_key_type(org.id, LicenseKeyType::Online, AuthenticatedEntity::System)
+            .await,
+        Err(SwitchKeyTypeError::AirGappedStillCurrent { .. })
+    ));
+    assert_eq!(
+        reload(&state, org.id).await.base.license_key_type,
+        Some(LicenseKeyType::Offline)
+    );
+
+    // Once the period is up, the switch is allowed.
+    let mut expired = reload(&state, org.id).await;
+    expired.base.license_paid_through = Some(whole_seconds_from_now(-1));
+    service
+        .update(&mut expired, AuthenticatedEntity::System)
+        .await
+        .unwrap();
+    service
+        .switch_license_key_type(org.id, LicenseKeyType::Online, AuthenticatedEntity::System)
+        .await
+        .unwrap();
+    assert_eq!(
+        reload(&state, org.id).await.base.license_key_type,
+        Some(LicenseKeyType::Online)
     );
 }
 
@@ -189,9 +236,9 @@ async fn entitlement_endpoint_accepts_current_keys_and_rejects_the_rest() {
         Err(StatusCode::BAD_REQUEST)
     );
 
-    // 403: the key was regenerated. The new key works.
+    // 403: the key was rotated. The new key works.
     service
-        .regenerate_license_key(org.id, AuthenticatedEntity::System)
+        .rotate_license_key(org.id, AuthenticatedEntity::System)
         .await
         .unwrap();
     assert_eq!(

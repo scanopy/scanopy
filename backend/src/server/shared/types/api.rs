@@ -457,6 +457,16 @@ impl ApiError {
         )
     }
 
+    /// Conflict (409) - cannot leave an air-gapped key while it is still valid.
+    /// The request is well formed and the caller is entitled to make it; the
+    /// organization is in a state that forbids the transition.
+    pub fn air_gapped_key_still_current() -> Self {
+        Self::coded(
+            StatusCode::CONFLICT,
+            ErrorCode::BillingAirGappedKeyStillCurrent,
+        )
+    }
+
     // === Generic entity operations ===
 
     /// Forbidden (403) - access denied to entity

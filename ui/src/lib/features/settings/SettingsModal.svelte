@@ -5,7 +5,7 @@
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { hasLicensedPlan } from '$lib/features/organizations/types';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
+	import { isLicenseSigningAvailable, useConfigQuery } from '$lib/shared/stores/config-query';
 	import { isMissingPaymentMethod } from '$lib/shared/utils/trial';
 	import { modalState } from '$lib/shared/stores/modal-registry';
 	import type { ModalTab } from '$lib/shared/components/layout/GenericModal.svelte';
@@ -56,6 +56,11 @@
 	const configQuery = useConfigQuery();
 	let isOwner = $derived(currentUser?.permissions === 'Owner');
 	let isBillingEnabled = $derived(configQuery.data?.billing_enabled ?? false);
+	// No signing key means the mint endpoints fail, so the tab would only produce
+	// an error toast.
+	let isLicenseSigningOn = $derived(
+		configQuery.data != null && isLicenseSigningAvailable(configQuery.data)
+	);
 	// Payment-prompt cases use the shared isMissingPaymentMethod predicate so
 	// this tab dot stays in sync with the sidebar billing dot (and the banner /
 	// BillingTab card). The other clauses are broader billing-attention states
@@ -98,7 +103,11 @@
 			if (tab.id === 'organization') return isOwner;
 			if (tab.id === 'billing') return isOwner && isBillingEnabled;
 			if (tab.id === 'license')
-				return isOwner && (licensedPlanPending || (org != null && hasLicensedPlan(org)));
+				return (
+					isOwner &&
+					isLicenseSigningOn &&
+					(licensedPlanPending || (org != null && hasLicensedPlan(org)))
+				);
 			return true;
 		})
 	);

@@ -356,12 +356,12 @@ export function useEndTrialMutation() {
  * Mutation hook that retires every online key issued so far. Servers still on an
  * old key stop receiving entitlements until they're given a newly copied one.
  */
-export function useRegenerateLicenseKeyMutation() {
+export function useRotateLicenseKeyMutation() {
 	return createMutation(() => ({
 		mutationFn: async () => {
-			const { data } = await apiClient.POST('/api/v1/licenses/keys/regenerate', {});
+			const { data } = await apiClient.POST('/api/v1/licenses/keys/rotate', {});
 			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to regenerate license key');
+				throw new Error(data?.error || 'Failed to rotate license key');
 			}
 			return true;
 		},

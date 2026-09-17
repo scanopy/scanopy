@@ -286,6 +286,18 @@ pub struct PublicConfigResponse {
     /// from `SCANOPY_SERVER_ADMIN_CONTACT_EMAIL`.
     #[schema(value_type = String, format = "email")]
     pub server_admin_contact_email: Option<EmailAddress>,
+    /// Whether this deployment can sign license keys. False on any server
+    /// without a signing key, where the Settings License tab and the
+    /// self-hosted plans would otherwise offer something the mint path
+    /// refuses. Reads the built issuer rather than the config value, since a
+    /// key can be present but unparseable.
+    pub license_signing_available: bool,
+    /// Days past an organization's paid-through date before a license key
+    /// reaches its user-visible expiry. Published so the UI shows the same
+    /// dates the mint path bakes into keys, instead of its own copy.
+    pub license_key_buffer_days: u32,
+    /// Further days past the user-visible expiry before a key stops working.
+    pub license_key_grace_days: u32,
 }
 
 impl Default for ServerConfig {
@@ -623,6 +635,12 @@ pub async fn get_public_config(State(state): State<Arc<AppState>>) -> impl IntoR
             snapshot_retention_days_override: state.config.snapshot_retention_days_override,
             org_limit_reached,
             server_admin_contact_email: state.config.server_admin_contact_email.clone(),
+            // The built issuer, not the config value: a signing key can be
+            // present and unparseable, and this is the same gate the mint
+            // path checks.
+            license_signing_available: state.license_issuer.is_some(),
+            license_key_buffer_days: crate::server::license::mint::PAID_THROUGH_BUFFER_DAYS as u32,
+            license_key_grace_days: crate::server::license::mint::GRACE_PERIOD_DAYS as u32,
         })),
     )
 }

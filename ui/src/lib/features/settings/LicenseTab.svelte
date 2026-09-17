@@ -2,12 +2,12 @@
 	import { Copy, RefreshCw } from 'lucide-svelte';
 	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
 	import ConfirmationDialog from '$lib/shared/components/feedback/ConfirmationDialog.svelte';
-	import ToggleGroup from '$lib/features/billing/ToggleGroup.svelte';
+	import SegmentedControl from '$lib/shared/components/forms/SegmentedControl.svelte';
 	import {
 		useCreateLicenseKeyMutation,
 		useCurrentLicenseKeyQuery,
 		useEndTrialMutation,
-		useRegenerateLicenseKeyMutation
+		useRotateLicenseKeyMutation
 	} from '$lib/features/billing/queries';
 	import { priceToCharge } from '$lib/features/billing/pricing';
 	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
@@ -15,7 +15,11 @@
 	import { hasLicensedPlan } from '$lib/features/organizations/types';
 	import type { Organization } from '$lib/features/organizations/types';
 	import { billingPlans } from '$lib/shared/stores/metadata';
-	import { useConfigQuery } from '$lib/shared/stores/config-query';
+	import {
+		licenseKeyExpiry,
+		licenseKeySwitchBackWindowDays,
+		useConfigQuery
+	} from '$lib/shared/stores/config-query';
 	import { getTrialDaysLeft, isMissingPaymentMethod } from '$lib/shared/utils/trial';
 	import { pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
 	import { trackEvent } from '$lib/shared/utils/analytics';
@@ -25,6 +29,7 @@
 	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
 	import type { components } from '$lib/api/schema';
 	import {
+		apiKeys_rotateKey,
 		billing_addPaymentMethod,
 		billing_requestAccepted,
 		common_airGapped,
@@ -32,6 +37,7 @@
 		common_continue,
 		common_copied,
 		common_copy,
+		common_expires,
 		common_failedToCopy,
 		common_license,
 		common_never,
@@ -40,18 +46,19 @@
 		settings_billing_changePlan,
 		settings_billing_license_addPaymentMethodSubtitle,
 		settings_billing_license_airGappedNeedsCard,
-		settings_billing_license_endTrialConfirm,
 		settings_billing_license_keyLabel,
 		settings_billing_license_keyTypeChanged,
 		settings_billing_license_keyTypeLabel,
 		settings_billing_license_lastCheckIn,
 		settings_billing_license_offlineKeyUpsell,
+		settings_billing_license_onlineLockedUntil,
 		settings_billing_license_paidThrough,
-		settings_billing_license_regenerate,
-		settings_billing_license_regenerateConfirm,
-		settings_billing_license_regenerateTitle,
-		settings_billing_license_regenerated,
+		settings_billing_license_rotateConfirm,
+		settings_billing_license_rotateTitle,
+		settings_billing_license_rotated,
+		settings_billing_license_switchAirGappedConfirm,
 		settings_billing_license_switchConfirm,
+		settings_billing_license_switchOnlineConfirm,
 		settings_billing_license_switchTitle,
 		settings_billing_license_trialPaymentBody
 	} from '$lib/paraglide/messages';
@@ -72,7 +79,7 @@
 	let billingEnabled = $derived(configQuery.data?.billing_enabled ?? false);
 
 	const createKeyMutation = useCreateLicenseKeyMutation();
-	const regenerateMutation = useRegenerateLicenseKeyMutation();
+	const rotateMutation = useRotateLicenseKeyMutation();
 	const endTrialMutation = useEndTrialMutation();
 
 	// Wait for the real org to carry the plan: minting before the checkout webhook
@@ -96,55 +103,75 @@
 	let missingCard = $derived(isMissingPaymentMethod(org, billingEnabled));
 	let chargeAmount = $derived(priceToCharge(org));
 
+	function formatDate(value: string | Date): string {
+		return new Date(value).toLocaleDateString(undefined, {
+			month: 'long',
+			day: 'numeric',
+			year: 'numeric'
+		});
+	}
+
+	// An air-gapped key carries its expiry, so an org running one stays on it until
+	// the period it has paid for is over. The server enforces the refusal; the
+	// disabled option says so before the click.
+	let switchBackDate = $derived(
+		keyType === 'Offline' &&
+			org?.license_paid_through != null &&
+			Date.now() < Date.parse(org.license_paid_through)
+			? formatDate(org.license_paid_through)
+			: null
+	);
+
 	let keyTypeOptions = $derived([
-		{ value: 'Online', label: common_online() },
 		{
-			value: 'Offline',
-			label: common_airGapped(),
-			disabled: !airGappedAvailable,
-			tooltip:
-				airGappedIncluded && !hasCard ? settings_billing_license_airGappedNeedsCard() : undefined
-		}
+			value: 'Online',
+			label: common_online(),
+			disabled: switchBackDate != null,
+			tooltip: switchBackDate
+				? settings_billing_license_onlineLockedUntil({ date: switchBackDate })
+				: undefined
+		},
+		{ value: 'Offline', label: common_airGapped(), disabled: !airGappedAvailable }
 	]);
 
 	let paidThrough = $derived(
-		org?.license_paid_through
-			? new Date(org.license_paid_through).toLocaleDateString(undefined, {
-					month: 'long',
-					day: 'numeric',
-					year: 'numeric'
-				})
+		org?.license_paid_through ? formatDate(org.license_paid_through) : null
+	);
+	// An air-gapped key outlives the paid-through date by the server's buffer, so
+	// the date on the key is not the date in the billing row.
+	let keyExpiresOn = $derived(
+		keyType === 'Offline' && org?.license_paid_through && configQuery.data
+			? formatDate(licenseKeyExpiry(configQuery.data, org.license_paid_through))
 			: null
+	);
+	let switchBackWindowDays = $derived(
+		configQuery.data ? licenseKeySwitchBackWindowDays(configQuery.data) : null
 	);
 	let lastCheckIn = $derived(
 		org?.license_checkin_at ? formatTimestamp(org.license_checkin_at) : common_never()
 	);
 
-	let trialEndsOn = $derived(
-		org?.trial_end_date
-			? new Date(org.trial_end_date).toLocaleDateString(undefined, {
-					month: 'long',
-					day: 'numeric',
-					year: 'numeric'
-				})
-			: null
-	);
+	let trialEndsOn = $derived(org?.trial_end_date ? formatDate(org.trial_end_date) : null);
 	let cardDescription = $derived(
 		trialEndsOn
 			? settings_billing_license_trialPaymentBody({ date: trialEndsOn })
 			: settings_billing_license_addPaymentMethodSubtitle()
 	);
 
-	let showRegenerateConfirm = $state(false);
+	let showRotateConfirm = $state(false);
 	let pendingType = $state<LicenseKeyType | null>(null);
 	let switching = $state(false);
 
 	let switchConfirmMessage = $derived.by(() => {
-		const body = settings_billing_license_switchConfirm();
-		if (pendingType === 'Offline' && isTrialing && chargeAmount != null) {
-			return `${settings_billing_license_endTrialConfirm({ amount: chargeAmount })} ${body}`;
+		if (pendingType === 'Online') return settings_billing_license_switchOnlineConfirm();
+		const days = switchBackWindowDays;
+		// Every air-gapped message names the switch-back window, which only the
+		// server knows. Until the config lands there is nothing accurate to show.
+		if (days == null) return '';
+		if (isTrialing && chargeAmount != null) {
+			return settings_billing_license_switchConfirm({ amount: chargeAmount, days });
 		}
-		return body;
+		return settings_billing_license_switchAirGappedConfirm({ days });
 	});
 
 	async function copyKey(key: string, type: LicenseKeyType) {
@@ -163,12 +190,12 @@
 		}
 	}
 
-	async function handleRegenerate() {
-		showRegenerateConfirm = false;
+	async function handleRotate() {
+		showRotateConfirm = false;
 		try {
-			await regenerateMutation.mutateAsync();
-			pushSuccess(settings_billing_license_regenerated());
-			trackEvent('license_key_regenerated');
+			await rotateMutation.mutateAsync();
+			pushSuccess(settings_billing_license_rotated());
+			trackEvent('license_key_rotated');
 		} catch {
 			// The API client toasts the error.
 		}
@@ -242,6 +269,10 @@
 								<dt class="text-secondary">{settings_billing_license_paidThrough()}</dt>
 								<dd class="text-primary">{paidThrough}</dd>
 							{/if}
+							{#if keyExpiresOn}
+								<dt class="text-secondary">{common_expires()}</dt>
+								<dd class="text-primary">{keyExpiresOn}</dd>
+							{/if}
 							<dt class="text-secondary">{settings_billing_license_lastCheckIn()}</dt>
 							<dd class="text-primary">{lastCheckIn}</dd>
 						</dl>
@@ -250,21 +281,30 @@
 							<div>
 								<p class="text-secondary text-sm">{settings_billing_license_keyTypeLabel()}</p>
 								<div class="mt-1">
-									<ToggleGroup
+									<SegmentedControl
 										options={keyTypeOptions}
 										selected={keyType}
 										onchange={handleTypeChange}
+										size="md"
 										disabled={switching || createKeyMutation.isPending}
 									/>
 								</div>
 							</div>
 
+							<!-- One line, one slot: the plan upsell, or (on a plan that already
+							     includes air-gapped) what makes the option selectable. A tooltip on
+							     the disabled option can't carry this — the message has to be readable
+							     without hovering something that isn't clickable. -->
 							{#if !airGappedIncluded}
 								<p class="text-secondary text-sm">
 									{settings_billing_license_offlineKeyUpsell()}
 									<button type="button" onclick={openPlanPicker} class="text-link hover:underline">
 										{settings_billing_changePlan()}
 									</button>
+								</p>
+							{:else if !hasCard}
+								<p class="text-secondary text-sm">
+									{settings_billing_license_airGappedNeedsCard()}
 								</p>
 							{/if}
 
@@ -291,11 +331,11 @@
 									<button
 										type="button"
 										class="btn-secondary flex items-center gap-2"
-										onclick={() => (showRegenerateConfirm = true)}
-										disabled={!currentKey || regenerateMutation.isPending}
+										onclick={() => (showRotateConfirm = true)}
+										disabled={!currentKey || rotateMutation.isPending}
 									>
 										<RefreshCw class="h-4 w-4" />
-										{settings_billing_license_regenerate()}
+										{apiKeys_rotateKey()}
 									</button>
 								</div>
 							</div>
@@ -326,18 +366,18 @@
 </div>
 
 <ConfirmationDialog
-	isOpen={showRegenerateConfirm}
-	title={settings_billing_license_regenerateTitle()}
-	message={settings_billing_license_regenerateConfirm()}
-	confirmLabel={settings_billing_license_regenerate()}
+	isOpen={showRotateConfirm}
+	title={settings_billing_license_rotateTitle()}
+	message={settings_billing_license_rotateConfirm()}
+	confirmLabel={apiKeys_rotateKey()}
 	variant="danger"
-	onConfirm={handleRegenerate}
-	onCancel={() => (showRegenerateConfirm = false)}
-	onClose={() => (showRegenerateConfirm = false)}
+	onConfirm={handleRotate}
+	onCancel={() => (showRotateConfirm = false)}
+	onClose={() => (showRotateConfirm = false)}
 />
 
 <ConfirmationDialog
-	isOpen={pendingType != null}
+	isOpen={pendingType != null && switchConfirmMessage !== ''}
 	title={settings_billing_license_switchTitle()}
 	message={switchConfirmMessage}
 	confirmLabel={common_continue()}
