@@ -1097,6 +1097,96 @@
         ]
       }
     },
+    "/api/billing/invoice-billing": {
+      "get": {
+        "tags": [
+          "billing",
+          "internal"
+        ],
+        "summary": "Invoice billing status",
+        "description": "Whether the organization pays by invoice, the PO number on its invoices,\nthe unpaid invoice, and any open quote.",
+        "operationId": "get_invoice_billing_status",
+        "responses": {
+          "200": {
+            "description": "Invoice billing status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_InvoiceBillingStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Billing not enabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "user_api_key": []
+          },
+          {
+            "session": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "billing",
+          "internal"
+        ],
+        "summary": "Pay by invoice",
+        "description": "Records the billing entity on the organization's billing account, then\neither issues the first invoice now or opens a quote for the buyer's\nprocurement to raise a purchase order against. Self-hosted plans only.",
+        "operationId": "set_up_invoice_billing",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvoiceBillingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Invoice sent or quote opened",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_String"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not a self-hosted plan, invalid details, or billing not enabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "user_api_key": []
+          },
+          {
+            "session": []
+          }
+        ]
+      }
+    },
     "/api/billing/pause": {
       "post": {
         "tags": [
@@ -1228,6 +1318,57 @@
         ]
       }
     },
+    "/api/billing/po-number": {
+      "put": {
+        "tags": [
+          "billing",
+          "internal"
+        ],
+        "summary": "Update the PO number",
+        "description": "Replaces the purchase order number printed on this organization's future\ninvoices, for a renewal raised against a new PO.",
+        "operationId": "update_po_number",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePoNumberRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "PO number updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not a self-hosted plan or billing not enabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "user_api_key": []
+          },
+          {
+            "session": []
+          }
+        ]
+      }
+    },
     "/api/billing/portal": {
       "post": {
         "tags": [
@@ -1259,6 +1400,142 @@
           },
           "400": {
             "description": "Billing not enabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "user_api_key": []
+          },
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/billing/quote": {
+      "delete": {
+        "tags": [
+          "billing",
+          "internal"
+        ],
+        "summary": "Cancel the open quote",
+        "operationId": "cancel_quote",
+        "responses": {
+          "200": {
+            "description": "Quote cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No open quote or billing not enabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "user_api_key": []
+          },
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/billing/quote/accept": {
+      "post": {
+        "tags": [
+          "billing",
+          "internal"
+        ],
+        "summary": "Accept the open quote",
+        "description": "Stripe creates the invoiced subscription from the quote and sends the\nfirst invoice, carrying the purchase order number if one is given.",
+        "operationId": "accept_quote",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptQuoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Quote accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_String"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No open quote or billing not enabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "user_api_key": []
+          },
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/billing/quote/pdf": {
+      "get": {
+        "tags": [
+          "billing",
+          "internal"
+        ],
+        "summary": "Download the open quote as a PDF",
+        "operationId": "download_quote_pdf",
+        "responses": {
+          "200": {
+            "description": "Quote PDF",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "format": "int32",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No open quote or billing not enabled",
             "content": {
               "application/json": {
                 "schema": {
@@ -14937,6 +15214,19 @@
   },
   "components": {
     "schemas": {
+      "AcceptQuoteRequest": {
+        "type": "object",
+        "description": "Accept the open quote.",
+        "properties": {
+          "po_number": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Purchase order raised against the quote, printed on the invoice."
+          }
+        }
+      },
       "ApiErrorResponse": {
         "type": "object",
         "description": "Error response type for API errors (no data field)",
@@ -15132,19 +15422,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-17T15:49:41.882312Z",
+              "created_at": "2026-09-17T22:15:34.587881Z",
               "first_discovery_id": null,
-              "id": "4f51169d-5c41-4ee0-b7e3-32353b9a5130",
+              "id": "79194905-2210-4455-a422-69b82163918c",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-17T15:49:41.882312Z",
+              "last_seen_at": "2026-09-17T22:15:34.587881Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-17T15:49:41.882312Z",
-              "valid_from": "2026-09-17T15:49:41.882312Z",
+              "updated_at": "2026-09-17T22:15:34.587881Z",
+              "valid_from": "2026-09-17T22:15:34.587881Z",
               "valid_to": null
             }
           },
@@ -16635,19 +16925,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-17T15:49:41.861927Z",
+                      "created_at": "2026-09-17T22:15:34.564207Z",
                       "first_discovery_id": null,
-                      "id": "a442185c-d46a-4bf0-913a-f4a8c7ceef50",
+                      "id": "0e8daefa-c911-4bd2-a4f4-e7da6f81d32a",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-17T15:49:41.861927Z",
+                      "last_seen_at": "2026-09-17T22:15:34.564207Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-17T15:49:41.861927Z",
-                      "valid_from": "2026-09-17T15:49:41.861927Z",
+                      "updated_at": "2026-09-17T22:15:34.564207Z",
+                      "valid_from": "2026-09-17T22:15:34.564207Z",
                       "valid_to": null
                     }
                   ],
@@ -16661,7 +16951,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Redis",
+                  "service_definition": "Paperless-NGX",
                   "source": {
                     "type": "Manual"
                   },
@@ -17053,6 +17343,70 @@
               }
             ],
             "description": "The result payload. Omitted on failure."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-readable failure message. Omitted on success."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+          }
+        }
+      },
+      "ApiResponse_InvoiceBillingStatus": {
+        "type": "object",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Invoice billing state shown on the License tab.",
+            "required": [
+              "bills_by_invoice"
+            ],
+            "properties": {
+              "bills_by_invoice": {
+                "type": "boolean",
+                "description": "The subscription is billed by sent invoice."
+              },
+              "open_invoice": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/OpenInvoice"
+                  }
+                ]
+              },
+              "pending_quote": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/PendingQuote"
+                  }
+                ]
+              },
+              "po_number": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Purchase order number printed on invoices."
+              }
+            }
           },
           "error": {
             "type": [
@@ -17960,19 +18314,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-17T15:49:41.877476Z",
+                  "created_at": "2026-09-17T22:15:34.581879Z",
                   "first_discovery_id": null,
-                  "id": "53fbdc64-c799-41cc-843d-3648dc972022",
+                  "id": "1a356113-b50b-4981-ac8f-1467618246e1",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-17T15:49:41.877476Z",
+                  "last_seen_at": "2026-09-17T22:15:34.581879Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-17T15:49:41.877476Z",
-                  "valid_from": "2026-09-17T15:49:41.877476Z",
+                  "updated_at": "2026-09-17T22:15:34.581879Z",
+                  "valid_from": "2026-09-17T22:15:34.581879Z",
                   "valid_to": null
                 }
               ],
@@ -17986,7 +18340,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Redis",
+              "service_definition": "Paperless-NGX",
               "source": {
                 "type": "Manual"
               },
@@ -20241,19 +20595,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-17T15:49:41.862413Z",
+          "created_at": "2026-09-17T22:15:34.564646Z",
           "first_discovery_id": null,
-          "id": "5c92a306-cd3f-4d8d-a585-13e6c2db985d",
+          "id": "eefe6a85-5757-4f0a-b4e7-f6b1def4e629",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-17T15:49:41.862413Z",
+          "last_seen_at": "2026-09-17T22:15:34.564646Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-17T15:49:41.862413Z",
-          "valid_from": "2026-09-17T15:49:41.862413Z",
+          "updated_at": "2026-09-17T22:15:34.564646Z",
+          "valid_from": "2026-09-17T22:15:34.564646Z",
           "valid_to": null
         }
       },
@@ -20948,7 +21302,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Redis",
+              "service_definition": "Paperless-NGX",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -26332,19 +26686,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-17T15:49:41.861407Z",
+                  "created_at": "2026-09-17T22:15:34.563700Z",
                   "first_discovery_id": null,
-                  "id": "4001b468-6752-44a6-a342-7fef54f4d7a2",
+                  "id": "271001d2-46ae-47c7-847c-30fbd4418aaf",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-17T15:49:41.861407Z",
+                  "last_seen_at": "2026-09-17T22:15:34.563700Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-17T15:49:41.861407Z",
-                  "valid_from": "2026-09-17T15:49:41.861407Z",
+                  "updated_at": "2026-09-17T22:15:34.563700Z",
+                  "valid_from": "2026-09-17T22:15:34.563700Z",
                   "valid_to": null
                 }
               ],
@@ -26358,7 +26712,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Redis",
+              "service_definition": "Paperless-NGX",
               "source": {
                 "type": "Manual"
               },
@@ -27727,6 +28081,175 @@
           }
         }
       },
+      "InvoiceBillingAddress": {
+        "type": "object",
+        "description": "Postal address of the billing entity, as Stripe's Address Element returns it.",
+        "required": [
+          "line1",
+          "city",
+          "postal_code",
+          "country"
+        ],
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string",
+            "description": "Two-letter ISO country code."
+          },
+          "line1": {
+            "type": "string"
+          },
+          "line2": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "postal_code": {
+            "type": "string"
+          },
+          "state": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "InvoiceBillingDetails": {
+        "type": "object",
+        "description": "Who an invoice is addressed to and what the buyer's finance team matches\nit against.",
+        "required": [
+          "entity_name",
+          "billing_email",
+          "address"
+        ],
+        "properties": {
+          "address": {
+            "$ref": "#/components/schemas/InvoiceBillingAddress"
+          },
+          "billing_email": {
+            "type": "string",
+            "format": "email",
+            "description": "Where Stripe emails invoices."
+          },
+          "entity_name": {
+            "type": "string",
+            "description": "Legal name of the organization being invoiced."
+          },
+          "po_number": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Purchase order number printed on every invoice."
+          },
+          "tax_id": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/InvoiceBillingTaxId"
+              }
+            ]
+          }
+        }
+      },
+      "InvoiceBillingMode": {
+        "type": "string",
+        "description": "What to do once the billing entity is recorded.",
+        "enum": [
+          "send_invoice",
+          "quote"
+        ]
+      },
+      "InvoiceBillingRequest": {
+        "type": "object",
+        "description": "Switch the organization to paying by invoice.",
+        "required": [
+          "details",
+          "mode"
+        ],
+        "properties": {
+          "details": {
+            "$ref": "#/components/schemas/InvoiceBillingDetails"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/InvoiceBillingMode"
+          },
+          "plan": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BillingPlan",
+                "description": "Plan to invoice for. Required only when the organization has no live\nsubscription (a returning customer with no trial left); otherwise the\ncurrent plan is used and this is ignored."
+              }
+            ]
+          }
+        }
+      },
+      "InvoiceBillingStatus": {
+        "type": "object",
+        "description": "Invoice billing state shown on the License tab.",
+        "required": [
+          "bills_by_invoice"
+        ],
+        "properties": {
+          "bills_by_invoice": {
+            "type": "boolean",
+            "description": "The subscription is billed by sent invoice."
+          },
+          "open_invoice": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OpenInvoice"
+              }
+            ]
+          },
+          "pending_quote": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PendingQuote"
+              }
+            ]
+          },
+          "po_number": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Purchase order number printed on invoices."
+          }
+        }
+      },
+      "InvoiceBillingTaxId": {
+        "type": "object",
+        "description": "Tax ID of the billing entity, as Stripe's Tax ID Element returns it.",
+        "required": [
+          "tax_id_type",
+          "value"
+        ],
+        "properties": {
+          "tax_id_type": {
+            "type": "string",
+            "description": "Stripe tax ID type, e.g. `eu_vat` or `us_ein`."
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
       "Ixy": {
         "type": "object",
         "required": [
@@ -28800,6 +29323,43 @@
           }
         }
       },
+      "OpenInvoice": {
+        "type": "object",
+        "description": "An issued invoice that has not been paid yet.",
+        "required": [
+          "amount_due_cents",
+          "currency"
+        ],
+        "properties": {
+          "amount_due_cents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "due_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "hosted_invoice_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Stripe-hosted page where the invoice can be viewed and paid."
+          },
+          "number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
       "OrderDirection": {
         "type": "string",
         "description": "Direction for ORDER BY clauses.",
@@ -28872,7 +29432,7 @@
           },
           "has_payment_method": {
             "type": "boolean",
-            "description": "Whether a payment method is on file.",
+            "description": "Whether the org has a way to pay: a payment method on file, or its\nsubscription is billed by sent invoice.",
             "readOnly": true
           },
           "last_discount_at": {
@@ -28928,7 +29488,7 @@
               "null"
             ],
             "format": "date-time",
-            "description": "When the org's self-hosted license is paid through: the trial end\nduring a self-hosted trial, then the end of the last paid invoice's\nservice period. License keys and entitlements expire 7 days later.",
+            "description": "When the org's self-hosted license is paid through: the trial end\nduring a self-hosted trial, then the end of the last paid invoice's\nservice period. While a sent invoice is unpaid, its due date plus a\ngrace window. License keys and entitlements expire 7 days later.",
             "readOnly": true
           },
           "name": {
@@ -29804,19 +30364,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-17T15:49:41.852153Z",
+                        "created_at": "2026-09-17T22:15:34.553692Z",
                         "first_discovery_id": null,
-                        "id": "ad38599f-e11a-4ee3-a1c5-1333afd31d10",
+                        "id": "4b4fd2e4-eeb2-4f48-b1e1-66d70a40f4e4",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-17T15:49:41.852153Z",
+                        "last_seen_at": "2026-09-17T22:15:34.553692Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-17T15:49:41.852153Z",
-                        "valid_from": "2026-09-17T15:49:41.852153Z",
+                        "updated_at": "2026-09-17T22:15:34.553692Z",
+                        "valid_from": "2026-09-17T22:15:34.553692Z",
                         "valid_to": null
                       }
                     ],
@@ -29830,7 +30390,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Redis",
+                    "service_definition": "Paperless-NGX",
                     "source": {
                       "type": "Manual"
                     },
@@ -29973,19 +30533,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-17T15:49:41.876570Z",
+                    "created_at": "2026-09-17T22:15:34.580074Z",
                     "first_discovery_id": null,
-                    "id": "31c03ebd-38fd-441c-ae33-f581e2f75cf2",
+                    "id": "14d98da8-7e5c-4af1-abea-b5d788c11b71",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-17T15:49:41.876570Z",
+                    "last_seen_at": "2026-09-17T22:15:34.580074Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-17T15:49:41.876570Z",
-                    "valid_from": "2026-09-17T15:49:41.876570Z",
+                    "updated_at": "2026-09-17T22:15:34.580074Z",
+                    "valid_from": "2026-09-17T22:15:34.580074Z",
                     "valid_to": null
                   }
                 ],
@@ -29999,7 +30559,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Redis",
+                "service_definition": "Paperless-NGX",
                 "source": {
                   "type": "Manual"
                 },
@@ -30667,6 +31227,36 @@
           "duration_days": {
             "$ref": "#/components/schemas/PauseDuration",
             "description": "How long to pause billing for, in days."
+          }
+        }
+      },
+      "PendingQuote": {
+        "type": "object",
+        "description": "An open quote waiting for the buyer's purchase order.",
+        "required": [
+          "amount_total_cents",
+          "currency",
+          "expires_at"
+        ],
+        "properties": {
+          "amount_total_cents": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total per annual term, in cents."
+          },
+          "currency": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "number": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Quote number printed on the PDF, which the purchase order references."
           }
         }
       },
@@ -32094,19 +32684,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-17T15:49:41.862272Z",
+              "created_at": "2026-09-17T22:15:34.564507Z",
               "first_discovery_id": null,
-              "id": "4a184418-db56-409a-b93e-a0cd8baef63b",
+              "id": "8d939f2d-e13d-4f15-b8f6-7db89bb6f25c",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-17T15:49:41.862272Z",
+              "last_seen_at": "2026-09-17T22:15:34.564507Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-17T15:49:41.862272Z",
-              "valid_from": "2026-09-17T15:49:41.862272Z",
+              "updated_at": "2026-09-17T22:15:34.564507Z",
+              "valid_from": "2026-09-17T22:15:34.564507Z",
               "valid_to": null
             }
           ],
@@ -32120,7 +32710,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Redis",
+          "service_definition": "Paperless-NGX",
           "source": {
             "type": "Manual"
           },
@@ -33441,7 +34031,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "b1585f37-5047-4f5f-8307-82c73f7cd7f3",
+                  "id": "e24af551-f14f-4fac-bd12-df2131c556b0",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -33451,23 +34041,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "0e75a16b-e6d5-4798-b0ab-8ba85f311566",
+                  "id": "9da506c3-c403-43ca-bd91-d05cf8087e27",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "2736bd47-bb5c-4303-bf69-86a301b343f4",
+                  "id": "5dfa8082-4f02-4e62-8a1c-1f158b9f5c99",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "3948db39-4641-47c2-96d3-ed1986021169",
+                  "id": "da113b6f-adf5-4a68-ab0a-5c0252daee79",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "0e75a16b-e6d5-4798-b0ab-8ba85f311566",
+                  "id": "9da506c3-c403-43ca-bd91-d05cf8087e27",
                   "rule": "ByHost"
                 }
               ]
@@ -33497,19 +34087,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "426cab21-d614-4e64-9481-b0fd67cb34ee",
+                "id": "a19b7b64-7981-4e6b-bdd2-d9447f8bb52b",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "a3f87254-5cd2-4e8b-8883-044b7a8cd942",
+                "id": "e75b01cf-cbfb-463f-9875-9de51b826420",
                 "rule": "ByVLAN"
               },
               {
-                "id": "a0c4ac3e-c023-4f74-89e7-a0e8382435f8",
+                "id": "4b2bf840-ad12-43be-8538-1e602ada681f",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "bdead42b-e02e-42b6-8d43-a5454d78f3c1",
+                "id": "8bee7457-994d-4f3e-84d7-2549c4a338f5",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -33527,7 +34117,7 @@
                 }
               },
               {
-                "id": "293a89a9-a2ec-4275-9362-f3a52179fd8f",
+                "id": "5461be45-ee3c-40e4-a790-39680aee3d06",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -33536,15 +34126,15 @@
                 }
               },
               {
-                "id": "86f60c9a-73e2-47f5-b0ff-04446a80a676",
+                "id": "65ff18fe-3585-494a-8086-05a39a14cdfe",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "0f69134e-7e68-4078-861b-73da32836bec",
+                "id": "0206325e-bf26-4385-842a-892e85d336d3",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "f0cbeb94-d341-47ba-a0fe-8999c1067de2",
+                "id": "20f952ea-f122-496d-8aec-0673537efab6",
                 "rule": "ByStack"
               }
             ]
@@ -33947,6 +34537,19 @@
             "format": "password",
             "description": "New password to set",
             "writeOnly": true
+          }
+        }
+      },
+      "UpdatePoNumberRequest": {
+        "type": "object",
+        "description": "Replace the purchase order number printed on future invoices.",
+        "properties": {
+          "po_number": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "New PO number; empty or absent removes it."
           }
         }
       },

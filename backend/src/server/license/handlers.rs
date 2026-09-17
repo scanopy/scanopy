@@ -214,9 +214,9 @@ pub async fn create_license_key(
                 // An air-gapped key validates offline for good once handed
                 // over, so its full eligibility (plan, feature, card, paid
                 // subscription) is settled before the type is persisted.
-                LicenseKeyType::Offline => {
-                    issuer.mint_offline_key(candidate, Utc::now()).map(|_| ())
-                }
+                LicenseKeyType::Offline => issuer
+                    .mint_offline_key(candidate, Utc::now(), None)
+                    .map(|_| ()),
             },
         )
         .await
@@ -272,7 +272,7 @@ pub async fn get_current_license_key(
     // Gated on these two refusals only, so a genuine error still surfaces.
     let stranded = key_type == LicenseKeyType::Offline
         && matches!(
-            issuer.mint_offline_key(&organization, Utc::now()),
+            issuer.mint_offline_key(&organization, Utc::now(), None),
             Err(MintError::OfflineRequiresPayment | MintError::OfflineNotIncluded)
         );
     if stranded {
