@@ -42,6 +42,7 @@
 		isTrialingWithoutPayment,
 		isMissingPaymentMethod
 	} from '$lib/shared/utils/trial';
+	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import { daemonSetupState } from '$lib/features/daemons/stores/daemon-setup';
 	import { isAllComplete } from '$lib/shared/onboarding/checklist';
 	import SidebarChecklist from './SidebarChecklist.svelte';
@@ -115,6 +116,11 @@
 	const organizationQuery = useOrganizationQuery();
 	let organization = $derived(organizationQuery.data);
 
+	const configQuery = useConfigQuery();
+	// Whether this deployment bills at all (Stripe configured). Distinct from
+	// `isBillingEnabled` below, which asks whether the org's own plan is active.
+	let billingConfigured = $derived(configQuery.data?.billing_enabled ?? false);
+
 	// Derived values from queries
 	let userPermissions = $derived(currentUser?.permissions);
 	let isBillingEnabled = $derived(organization ? isBillingPlanActive(organization) : false);
@@ -126,7 +132,7 @@
 	let showTrialPill = $derived(
 		isOwner &&
 			isBillingEnabled &&
-			isTrialingWithoutPayment(organization) &&
+			isTrialingWithoutPayment(organization, billingConfigured) &&
 			trialDaysLeft !== null &&
 			trialDaysLeft <= 7
 	);
@@ -150,7 +156,13 @@
 		// past_due stays its own clause: dunning needs attention even with a card
 		// on file. isMissingPaymentMethod is the shared no-card predicate, so this
 		// dot, the banner, and the BillingTab card all key off the same rule.
-		return organization.plan_status === 'past_due' || isMissingPaymentMethod(organization);
+		// Both clauses read org rows that only Stripe webhooks write, so they go
+		// stale where billing is switched off.
+		if (!billingConfigured) return false;
+		return (
+			organization.plan_status === 'past_due' ||
+			isMissingPaymentMethod(organization, billingConfigured)
+		);
 	});
 
 	// Active discovery sessions — used for notification dot on sidebar and sub-tabs

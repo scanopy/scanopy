@@ -108,8 +108,8 @@
 	// self-hosted plan manage their license and card on the License tab. The inline
 	// alerts in BillingTab carry the matching urgent copy.
 	let isBillingBlocking = $derived(
-		organization?.plan_status === 'past_due' ||
-			organization?.plan_status === 'paused' ||
+		(billingEnabled &&
+			(organization?.plan_status === 'past_due' || organization?.plan_status === 'paused')) ||
 			isSelfHostedPlanLocked
 	);
 	// Only owners can see the Billing tab; everyone else is held on Account,

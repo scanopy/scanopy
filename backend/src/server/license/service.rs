@@ -14,6 +14,7 @@ use crate::server::billing::plans::plan_for_license;
 use crate::server::billing::types::base::BillingPlan;
 use crate::server::organizations::service::OrganizationService;
 use crate::server::shared::types::api::{ApiErrorResponse, ApiResponse};
+use crate::server::shared::types::error_codes::ErrorCode;
 
 /// Scanopy Cloud, which serves entitlements for online keys.
 pub const CLOUD_BASE_URL: &str = "https://app.scanopy.net";
@@ -289,14 +290,24 @@ impl LicenseService {
                 Err(e) => Err(anyhow::anyhow!("check-in returned an unreadable body: {e}")),
             },
             StatusCode::BAD_REQUEST | StatusCode::FORBIDDEN => {
-                let reason = response
-                    .json::<ApiErrorResponse>()
-                    .await
-                    .ok()
-                    .and_then(|body| body.error)
-                    .unwrap_or_else(|| {
-                        format!("License key rejected by Scanopy Cloud ({http_status})")
-                    });
+                let body = response.json::<ApiErrorResponse>().await.ok();
+
+                // A `license_locked` 403 comes from the called server's own
+                // license guard, not from a verdict on this key: that server is
+                // itself locked, or the base URL points somewhere unexpected.
+                // Keep the cached entitlement and retry.
+                if body.as_ref().and_then(|body| body.code.as_deref())
+                    == Some(ErrorCode::LicenseLocked.code())
+                {
+                    tracing::warn!(
+                        "License check-in was refused by a locked server; keeping the current entitlement"
+                    );
+                    return;
+                }
+
+                let reason = body.and_then(|body| body.error).unwrap_or_else(|| {
+                    format!("License key rejected by Scanopy Cloud ({http_status})")
+                });
                 self.reject(reason).await;
                 Ok(())
             }
@@ -446,6 +457,12 @@ mod tests {
         .await
     }
 
+    /// A server whose own license guard refuses the request: 403 carrying
+    /// `license_locked`, which says nothing about the key we presented.
+    async fn locked_cloud() -> String {
+        cloud(|| ApiError::license_locked().into_response()).await
+    }
+
     /// A base URL nothing listens on.
     async fn unreachable_cloud() -> String {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -592,6 +609,26 @@ mod tests {
         assert!(matches!(after, LicenseStatus::Valid(_)));
         assert_eq!(after.expiry_date(), valid.expiry_date());
         assert_eq!(service.entitlement_at().await, checked);
+    }
+
+    #[tokio::test]
+    async fn a_locked_server_does_not_invalidate_the_key() {
+        // A server that is itself license-locked answers 403 `license_locked`
+        // from its own guard. That is not a verdict on this key, so the cached
+        // entitlement stays in force and the next cycle retries.
+        let service = service(online_key(ORG_ID)).await;
+        service
+            .check_in(&entitlement_cloud(LicensePlan::Plus, 30).await)
+            .await;
+        let valid = service.current_status().await;
+        let checked = service.last_checked().await;
+
+        service.check_in(&locked_cloud().await).await;
+
+        let after = service.current_status().await;
+        assert!(matches!(after, LicenseStatus::Valid(_)));
+        assert_eq!(after.expiry_date(), valid.expiry_date());
+        assert_eq!(service.last_checked().await, checked);
     }
 
     #[tokio::test]

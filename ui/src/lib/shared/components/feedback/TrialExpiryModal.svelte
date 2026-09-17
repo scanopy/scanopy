@@ -4,6 +4,7 @@
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
 	import { getTrialDaysLeft, isTrialingWithoutPayment } from '$lib/shared/utils/trial';
+	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import { wasDismissedToday, markDismissedToday } from '$lib/shared/utils/dismissed-today';
 	import { trackEvent } from '$lib/shared/utils/analytics';
 	import {
@@ -17,8 +18,10 @@
 	const DISMISS_KEY = 'trial_expiry_modal';
 
 	const organizationQuery = useOrganizationQuery();
+	const configQuery = useConfigQuery();
 
 	let org = $derived(organizationQuery.data);
+	let billingEnabled = $derived(configQuery.data?.billing_enabled ?? false);
 	let trialDaysLeft = $derived(getTrialDaysLeft(org));
 
 	let dismissedTick = $state(0);
@@ -30,7 +33,7 @@
 	});
 
 	let isOpen = $derived(
-		isTrialingWithoutPayment(org) &&
+		isTrialingWithoutPayment(org, billingEnabled) &&
 			trialDaysLeft !== null &&
 			trialDaysLeft <= 1 &&
 			!dismissedTodayState
