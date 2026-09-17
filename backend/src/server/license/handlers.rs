@@ -81,6 +81,9 @@ fn switch_error(error: SwitchKeyTypeError) -> ApiError {
         SwitchKeyTypeError::AirGappedStillCurrent { .. } => {
             ApiError::air_gapped_key_still_current()
         }
+        // The organization cannot hold the requested key type, so the switch
+        // was abandoned. Same 403 the mint itself would have produced.
+        SwitchKeyTypeError::Mint(e) => mint_error(e),
         SwitchKeyTypeError::Lock(e) => ApiError::internal_error(&e.to_string()),
         SwitchKeyTypeError::Service(e) => ApiError::internal_error(&e.to_string()),
     }
@@ -186,7 +189,24 @@ pub async fn create_license_key(
     let organization = state
         .services
         .organization_service
-        .switch_license_key_type(organization_id, request.key_type, auth.entity.clone())
+        .switch_license_key_type(
+            organization_id,
+            request.key_type,
+            auth.entity.clone(),
+            |candidate| match request.key_type {
+                // The switch bumps the version an online key embeds, so the
+                // only way one can be refused is that bump leaving `u32`.
+                LicenseKeyType::Online => u32::try_from(candidate.base.license_key_version)
+                    .map(|_| ())
+                    .map_err(|_| MintError::KeyVersionOutOfRange),
+                // An air-gapped key validates offline for good once handed
+                // over, so its full eligibility (plan, feature, card, paid
+                // subscription) is settled before the type is persisted.
+                LicenseKeyType::Offline => {
+                    issuer.mint_offline_key(candidate, Utc::now()).map(|_| ())
+                }
+            },
+        )
         .await
         .map_err(switch_error)?;
 
@@ -227,6 +247,35 @@ pub async fn get_current_license_key(
         .ok_or_else(|| ApiError::entity_not_found::<Organization>(organization_id))?;
 
     let key_type = organization.base.license_key_type.unwrap_or_default();
+
+    // An org stored as air-gapped that can no longer be issued an air-gapped
+    // key is trapped: this endpoint mints the stored type and 403s every time,
+    // and the switch back is refused while its paid-through is still ahead.
+    // Only a refused mint can have produced that row, so repair it to the type
+    // it would have kept and answer with that key.
+    //
+    // Writing on a GET is deliberate. Returning an online key while the row
+    // still said Offline would show Online in the tab against a row that
+    // still blocks the switch back, hiding the trap instead of clearing it.
+    // Gated on these two refusals only, so a genuine error still surfaces.
+    let stranded = key_type == LicenseKeyType::Offline
+        && matches!(
+            issuer.mint_offline_key(&organization, Utc::now()),
+            Err(MintError::OfflineRequiresPayment | MintError::OfflineNotIncluded)
+        );
+    if stranded {
+        let repaired = state
+            .services
+            .organization_service
+            .revert_license_key_type_to_online(organization_id)
+            .await?;
+        let key = mint_key(&state, issuer, &repaired, LicenseKeyType::Online).await?;
+        return Ok(Json(ApiResponse::success(LicenseKeyResponse {
+            key,
+            key_type: LicenseKeyType::Online,
+        })));
+    }
+
     let key = mint_key(&state, issuer, &organization, key_type).await?;
 
     Ok(Json(ApiResponse::success(LicenseKeyResponse {

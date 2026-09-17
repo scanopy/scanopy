@@ -21,7 +21,7 @@
 		useConfigQuery
 	} from '$lib/shared/stores/config-query';
 	import { getTrialDaysLeft, isMissingPaymentMethod } from '$lib/shared/utils/trial';
-	import { pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
+	import { pushError, pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
 	import { trackEvent } from '$lib/shared/utils/analytics';
 	import { copyViaSelection } from '$lib/shared/utils/clipboard';
 	import { formatTimestamp } from '$lib/shared/utils/formatting';
@@ -46,6 +46,7 @@
 		settings_billing_changePlan,
 		settings_billing_license_addPaymentMethodSubtitle,
 		settings_billing_license_airGappedNeedsCard,
+		settings_billing_license_airGappedPastDue,
 		settings_billing_license_keyLabel,
 		settings_billing_license_keyTypeChanged,
 		settings_billing_license_keyTypeLabel,
@@ -53,6 +54,7 @@
 		settings_billing_license_offlineKeyUpsell,
 		settings_billing_license_onlineLockedUntil,
 		settings_billing_license_paidThrough,
+		settings_billing_license_paymentDeclined,
 		settings_billing_license_rotateConfirm,
 		settings_billing_license_rotateTitle,
 		settings_billing_license_rotated,
@@ -95,10 +97,15 @@
 	);
 	let hasCard = $derived(org?.has_payment_method ?? false);
 	let isTrialing = $derived(org?.plan_status === 'trialing');
+	let isPastDue = $derived(org?.plan_status === 'past_due');
 	// The server also refuses an air-gapped mint until the subscription is out of
 	// trial, but choosing the option during a trial is what ends the trial. A card
 	// on file is the one thing the user has to do first.
-	let airGappedAvailable = $derived(airGappedIncluded && hasCard);
+	//
+	// A declined card stays attached, so `hasCard` on its own keeps the option
+	// live for an org whose payment just failed. The server would then refuse the
+	// mint after the switch had already retired their online key.
+	let airGappedAvailable = $derived(airGappedIncluded && hasCard && !isPastDue);
 	let missingCard = $derived(isMissingPaymentMethod(org));
 	let chargeAmount = $derived(priceToCharge(org));
 
@@ -225,11 +232,34 @@
 				// The server refuses an air-gapped key until the subscription is paid, so
 				// charge first and let the webhooks land before asking for the key.
 				await endTrialMutation.mutateAsync();
-				const converged = await waitForOrgUpdate(
-					(o) => o.plan_status === 'active' && paidPastTrial(o)
+				// Both outcomes end the wait. A decline advances neither paid-through
+				// nor the status to active, so waiting only on success burns every
+				// attempt and then reports the opposite of what happened.
+				//
+				// The flag rides on an object because a plain boolean would be
+				// narrowed to its initial value: the assignment happens inside the
+				// predicate, where TypeScript cannot see it.
+				const outcome = { declined: false };
+				const settled = await waitForOrgUpdate(
+					(o) => {
+						if (o.plan_status === 'past_due') {
+							outcome.declined = true;
+							return true;
+						}
+						return o.plan_status === 'active' && paidPastTrial(o);
+					},
+					{ intervalMs: 500 }
 				);
-				if (!converged) {
+				// Neither outcome landed inside the window. The charge may still go
+				// through, so this cannot claim it either way.
+				if (!settled) {
 					pushWarning(billing_requestAccepted());
+					return;
+				}
+				// Leave the key type alone. The switch retires the key they are
+				// running, and nothing has been paid for the one they asked for.
+				if (outcome.declined) {
+					pushError(settings_billing_license_paymentDeclined());
 					return;
 				}
 			}
@@ -306,6 +336,10 @@
 							{:else if !hasCard}
 								<p class="text-secondary text-sm">
 									{settings_billing_license_airGappedNeedsCard()}
+								</p>
+							{:else if isPastDue}
+								<p class="text-secondary text-sm">
+									{settings_billing_license_airGappedPastDue()}
 								</p>
 							{/if}
 

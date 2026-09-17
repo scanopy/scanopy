@@ -3,6 +3,7 @@
 //! `license_paid_through`.
 
 use std::net::SocketAddr;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use axum::body::Body;
@@ -16,7 +17,7 @@ use email_address::EmailAddress;
 use testcontainers::{ContainerAsync, GenericImage};
 use uuid::Uuid;
 
-use super::{organization, setup_test_db};
+use super::{organization, setup_test_db, user};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::auth::middleware::billing::require_billing_for_users;
 use crate::server::billing::plans::{
@@ -26,10 +27,10 @@ use crate::server::billing::types::base::{
     BillingInvoice, BillingInvoiceLineItem, BillingPlan, BillingReason, PlanStatus,
 };
 use crate::server::config::{AppState, ServerConfig};
-use crate::server::license::handlers::get_entitlement;
+use crate::server::license::handlers::{get_current_license_key, get_entitlement};
 use crate::server::license::key::LicenseKey;
-use crate::server::license::mint::PAID_THROUGH_BUFFER_DAYS;
 use crate::server::license::mint::tests::{test_decoding_key, test_issuer};
+use crate::server::license::mint::{GRACE_PERIOD_DAYS, MintError, PAID_THROUGH_BUFFER_DAYS};
 use crate::server::license::online::{ENTITLEMENT_PATH, EntitlementRequest};
 use crate::server::license::types::{LicenseKeyType, LicenseStatus};
 use crate::server::organizations::r#impl::base::Organization;
@@ -41,11 +42,20 @@ use crate::server::users::r#impl::permissions::UserOrgPermissions;
 
 /// App state on a fresh database, billing enforced, signing with the test key.
 async fn test_state() -> (Arc<AppState>, ContainerAsync<GenericImage>) {
+    test_state_with_email_dir(None).await
+}
+
+/// As [`test_state`], but with emails written to `email_log_dir` when one is
+/// given, so a test can read what a subscriber actually rendered.
+async fn test_state_with_email_dir(
+    email_log_dir: Option<PathBuf>,
+) -> (Arc<AppState>, ContainerAsync<GenericImage>) {
     let (pool, database_url, container) = setup_test_db().await;
     pool.close().await;
     let config = ServerConfig {
         database_url,
         enforce_billing_for_testing: true,
+        email_log_dir,
         ..ServerConfig::default()
     };
     let mut state = Arc::try_unwrap(AppState::new(config).await.unwrap())
@@ -160,7 +170,12 @@ async fn air_gapped_orgs_cannot_return_to_an_online_key_until_the_period_ends() 
     .await;
 
     service
-        .switch_license_key_type(org.id, LicenseKeyType::Offline, AuthenticatedEntity::System)
+        .switch_license_key_type(
+            org.id,
+            LicenseKeyType::Offline,
+            AuthenticatedEntity::System,
+            |_| Ok(()),
+        )
         .await
         .unwrap();
 
@@ -168,7 +183,12 @@ async fn air_gapped_orgs_cannot_return_to_an_online_key_until_the_period_ends() 
     // would leave two live keys.
     assert!(matches!(
         service
-            .switch_license_key_type(org.id, LicenseKeyType::Online, AuthenticatedEntity::System)
+            .switch_license_key_type(
+                org.id,
+                LicenseKeyType::Online,
+                AuthenticatedEntity::System,
+                |_| Ok(())
+            )
             .await,
         Err(SwitchKeyTypeError::AirGappedStillCurrent { .. })
     ));
@@ -185,7 +205,12 @@ async fn air_gapped_orgs_cannot_return_to_an_online_key_until_the_period_ends() 
         .await
         .unwrap();
     service
-        .switch_license_key_type(org.id, LicenseKeyType::Online, AuthenticatedEntity::System)
+        .switch_license_key_type(
+            org.id,
+            LicenseKeyType::Online,
+            AuthenticatedEntity::System,
+            |_| Ok(()),
+        )
         .await
         .unwrap();
     assert_eq!(
@@ -340,7 +365,12 @@ async fn switching_key_type_retires_the_previous_key() {
 
     // Switching to air-gapped retires the online key.
     service
-        .switch_license_key_type(org.id, LicenseKeyType::Offline, AuthenticatedEntity::System)
+        .switch_license_key_type(
+            org.id,
+            LicenseKeyType::Offline,
+            AuthenticatedEntity::System,
+            |_| Ok(()),
+        )
         .await
         .unwrap();
     assert_eq!(
@@ -355,12 +385,51 @@ async fn switching_key_type_retires_the_previous_key() {
     // Asking for the type already issued is a re-read, not another switch.
     let version = reload(&state, org.id).await.base.license_key_version;
     service
-        .switch_license_key_type(org.id, LicenseKeyType::Offline, AuthenticatedEntity::System)
+        .switch_license_key_type(
+            org.id,
+            LicenseKeyType::Offline,
+            AuthenticatedEntity::System,
+            |_| Ok(()),
+        )
         .await
         .unwrap();
     assert_eq!(
         reload(&state, org.id).await.base.license_key_version,
         version
+    );
+}
+
+#[tokio::test]
+async fn a_refused_key_type_leaves_the_organization_where_it_was() {
+    let (state, _container) = test_state().await;
+    let service = &state.services.organization_service;
+    let org = create_org(
+        &state,
+        get_self_hosted_plus_plan(),
+        Some(whole_seconds_from_now(365)),
+    )
+    .await;
+    let before = reload(&state, org.id).await;
+
+    // The switch retires the key the org is running and the version bump
+    // cannot be undone, so a refusal has to abandon the switch rather than
+    // persist a type the org cannot be issued. Otherwise every later read
+    // mints that stored type and fails.
+    let refused = service
+        .switch_license_key_type(
+            org.id,
+            LicenseKeyType::Offline,
+            AuthenticatedEntity::System,
+            |_| Err(MintError::OfflineRequiresPayment),
+        )
+        .await;
+    assert!(matches!(refused, Err(SwitchKeyTypeError::Mint(_))));
+
+    let after = reload(&state, org.id).await;
+    assert_eq!(after.base.license_key_type, before.base.license_key_type);
+    assert_eq!(
+        after.base.license_key_version,
+        before.base.license_key_version
     );
 }
 
@@ -427,7 +496,10 @@ async fn license_paid_through_follows_self_hosted_trials_and_invoices() {
             OrgScope {
                 organization_id: self_hosted.id,
             },
-            BillingOperation::PaymentSucceeded { invoice },
+            BillingOperation::PaymentSucceeded {
+                invoice,
+                previous_license_paid_through: None,
+            },
             AuthenticatedEntity::System,
         )])
         .await
@@ -438,5 +510,158 @@ async fn license_paid_through_follows_self_hosted_trials_and_invoices() {
             .base
             .license_paid_through,
         Some(period_end)
+    );
+}
+
+#[tokio::test]
+async fn a_stranded_air_gapped_organization_heals_on_read() {
+    let (state, _container) = test_state().await;
+    let service = &state.services.organization_service;
+    // Trialing with no card, so an air-gapped key is refused with
+    // `OfflineRequiresPayment` — the state a declined charge leaves behind.
+    let org = create_org(
+        &state,
+        get_self_hosted_plus_plan(),
+        Some(whole_seconds_from_now(365)),
+    )
+    .await;
+    let mut stranded = reload(&state, org.id).await;
+    stranded.base.license_key_type = Some(LicenseKeyType::Offline);
+    service
+        .update(&mut stranded, AuthenticatedEntity::System)
+        .await
+        .unwrap();
+
+    let owner = AuthenticatedEntity::User {
+        user_id: Uuid::new_v4(),
+        organization_id: org.id,
+        permissions: UserOrgPermissions::Owner,
+        network_ids: vec![],
+        email: EmailAddress::new_unchecked("owner@example.com"),
+        email_verified: true,
+    };
+    // The extractor takes the entity cached in request extensions, so the
+    // route can be served without a session.
+    let app = Router::new()
+        .route("/keys/current", get(get_current_license_key))
+        .layer(middleware::from_fn(
+            move |mut request: Request<Body>, next: Next| {
+                let owner = owner.clone();
+                async move {
+                    request.extensions_mut().insert(owner);
+                    next.run(request).await
+                }
+            },
+        ))
+        .with_state(state.clone());
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+
+    // Minting the stored type would 403 forever, and the switch back is
+    // refused while paid-through is ahead. The read repairs the row instead.
+    let (status, body) = get_status(addr, "/keys/current").await;
+    assert_eq!(status, 200, "{body}");
+    assert!(body.contains("Online"), "{body}");
+    assert_eq!(
+        reload(&state, org.id).await.base.license_key_type,
+        Some(LicenseKeyType::Online)
+    );
+}
+
+#[tokio::test]
+async fn the_airgap_renewal_email_dates_the_key_already_installed() {
+    let dir = tempfile::tempdir().unwrap();
+    let (state, _container) = test_state_with_email_dir(Some(dir.path().to_path_buf())).await;
+    let service = &state.services.organization_service;
+
+    // An air-gapped org part-way through a licence period, with an owner for
+    // the email to reach.
+    let paid_through_before = whole_seconds_from_now(5);
+    let org = create_org(
+        &state,
+        get_self_hosted_plus_plan(),
+        Some(paid_through_before),
+    )
+    .await;
+    let mut air_gapped = reload(&state, org.id).await;
+    air_gapped.base.license_key_type = Some(LicenseKeyType::Offline);
+    service
+        .update(&mut air_gapped, AuthenticatedEntity::System)
+        .await
+        .unwrap();
+
+    let mut owner = user(&org.id);
+    owner.base.email = EmailAddress::new_unchecked("owner@example.test");
+    owner.base.permissions = UserOrgPermissions::Owner;
+    owner.base.email_verified = true;
+    state
+        .services
+        .user_service
+        .create(owner, AuthenticatedEntity::System)
+        .await
+        .unwrap();
+
+    // The renewal moves paid-through a year out. The key on their server
+    // predates it, so the email has to name the old date plus the buffer and
+    // grace, never the renewed one.
+    let renewed_through = whole_seconds_from_now(370);
+    let invoice = BillingInvoice {
+        stripe_invoice_id: "in_renewal".to_string(),
+        amount_paid_cents: 400_000,
+        currency: "usd".to_string(),
+        created_at: paid_through_before,
+        period_start: paid_through_before,
+        period_end: renewed_through,
+        billing_reason: BillingReason::SubscriptionCycle,
+        line_items: vec![BillingInvoiceLineItem {
+            description: None,
+            amount_cents: 400_000,
+            period_start: paid_through_before,
+            period_end: renewed_through,
+            product: Some(get_self_hosted_plus_plan().stripe_product_id()),
+        }],
+        invoice_pdf: None,
+        hosted_invoice_url: None,
+    };
+
+    // Driven straight at the email subscriber. The date rides on the event
+    // precisely so it no longer depends on which subscriber ran first, and
+    // the organization subscriber is deliberately not run here.
+    let email_service = state.services.email_service.clone().unwrap();
+    email_service
+        .handle(vec![Event::new(
+            OrgScope {
+                organization_id: org.id,
+            },
+            BillingOperation::PaymentSucceeded {
+                invoice,
+                previous_license_paid_through: Some(paid_through_before),
+            },
+            AuthenticatedEntity::System,
+        )])
+        .await
+        .unwrap();
+
+    let buffer_and_grace = Duration::days(PAID_THROUGH_BUFFER_DAYS + GRACE_PERIOD_DAYS);
+    let sent = std::fs::read_dir(dir.path())
+        .unwrap()
+        .map(|entry| std::fs::read_to_string(entry.unwrap().path()).unwrap())
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let installed_key_expiry = (paid_through_before + buffer_and_grace)
+        .format("%B %-d, %Y")
+        .to_string();
+    assert!(
+        sent.contains(&installed_key_expiry),
+        "the installed key should be dated from the previous paid-through ({installed_key_expiry}): {sent}"
+    );
+    let renewed_expiry = (renewed_through + buffer_and_grace)
+        .format("%B %-d, %Y")
+        .to_string();
+    assert!(
+        !sent.contains(&renewed_expiry),
+        "the installed key's expiry must not be computed from the renewed period ({renewed_expiry}): {sent}"
     );
 }

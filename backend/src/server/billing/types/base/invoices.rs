@@ -33,8 +33,7 @@ pub struct BillingInvoiceLineItem {
     pub period_start: DateTime<Utc>,
     pub period_end: DateTime<Utc>,
     /// Stripe product the line's price belongs to (`BillingPlan::stripe_product_id`
-    /// for plan lines). `None` for lines without a price, and on events
-    /// published before this field existed.
+    /// for plan lines). `None` for a line without a price.
     #[serde(default)]
     pub product: Option<String>,
 }

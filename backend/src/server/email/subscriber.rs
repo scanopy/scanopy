@@ -183,7 +183,10 @@ impl Subscriber<BillingOperation> for EmailService {
                     self.send_payment_action_required_email(org_owner, hosted_invoice_url)
                         .await?;
                 }
-                BillingOperation::PaymentSucceeded { invoice } => {
+                BillingOperation::PaymentSucceeded {
+                    invoice,
+                    previous_license_paid_through,
+                } => {
                     // Send usage summary for recurring billing cycles only
                     // (skip the initial subscription invoice and one-off
                     // charges). Self-hosted license renewals have no cloud
@@ -207,11 +210,13 @@ impl Subscriber<BillingOperation> for EmailService {
                                     == Some(LicenseKeyType::Offline)
                                 {
                                     // The key on their server predates this
-                                    // renewal, so it still runs to the old
-                                    // paid-through plus the buffer and grace.
-                                    let current_key_expires = organization
-                                        .base
-                                        .license_paid_through
+                                    // renewal, so it still runs to the
+                                    // paid-through as it stood before this
+                                    // payment, plus the buffer and grace. The
+                                    // event carries that value because the
+                                    // org row has already moved on by the
+                                    // time this runs.
+                                    let current_key_expires = previous_license_paid_through
                                         .map(|at| {
                                             (at + chrono::Duration::days(
                                                 PAID_THROUGH_BUFFER_DAYS + GRACE_PERIOD_DAYS,
