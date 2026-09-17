@@ -358,6 +358,17 @@ impl BillingService {
                 );
             }
 
+            // TEMP diag: proves Stripe was asked to change, and names the price
+            // and the subscription whose metadata the webhook reads back.
+            tracing::info!(
+                subscription_id = %sub.id,
+                subscription_status = ?sub.status,
+                lookup_key = %target_plan.stripe_base_price_lookup_key(),
+                price_id = %base_price.id,
+                target_plan = %target_plan.name(),
+                "TEMP diag: updating Stripe subscription for plan change"
+            );
+
             UpdateSubscription::new(&sub.id)
                 .items(items)
                 .metadata([

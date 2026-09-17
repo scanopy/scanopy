@@ -433,6 +433,14 @@ async fn handle_webhook(
             })
         })?;
 
+    // TEMP diag: shows whether events reach this process at all, before the
+    // service verifies the signature.
+    tracing::info!(
+        body_len = body.len(),
+        billing_configured = state.services.billing_service.is_some(),
+        "TEMP diag: Stripe webhook reached the handler"
+    );
+
     if let Some(billing_service) = &state.services.billing_service {
         billing_service.handle_webhook(&body, signature).await?;
         Ok(Json(ApiResponse::success(())))
