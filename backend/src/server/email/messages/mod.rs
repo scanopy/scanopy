@@ -18,6 +18,7 @@ mod discovery_guide;
 mod email_changed_old;
 mod install_command;
 mod invite;
+mod invoice_issued;
 mod oidc_linked;
 mod oidc_unlinked;
 mod organization_deleted;
@@ -56,6 +57,7 @@ pub use discovery_guide::DiscoveryGuide;
 pub use email_changed_old::EmailChangedOld;
 pub use install_command::InstallCommand;
 pub use invite::Invite;
+pub use invoice_issued::InvoiceIssued;
 pub use oidc_linked::OidcLinked;
 pub use oidc_unlinked::OidcUnlinked;
 pub use organization_deleted::OrganizationDeleted;
@@ -460,6 +462,20 @@ mod tests {
         assert_fully_rendered(&PaymentActionRequired {
             cta_href: "https://billing.example.test/invoice/abc",
         });
+        assert_fully_rendered(&InvoiceIssued {
+            plan_name: "Self-Hosted Standard",
+            amount: "$4,000.00",
+            due_date: "October 18, 2026",
+            po_number: Some("PO-4471"),
+            cta_href: "https://billing.example.test/invoice/abc",
+        });
+        assert_fully_rendered(&InvoiceIssued {
+            plan_name: "Self-Hosted Standard",
+            amount: "$4,000.00",
+            due_date: "October 18, 2026",
+            po_number: None,
+            cta_href: "https://billing.example.test/invoice/abc",
+        });
         assert_fully_rendered(&CancellationInitiated {
             period_end: "January 1, 2026",
         });
@@ -699,6 +715,26 @@ mod tests {
         f(
             "payment_action_required",
             &PaymentActionRequired {
+                cta_href: "https://billing.example.test/invoice/abc",
+            },
+        );
+        f(
+            "invoice_issued_with_po",
+            &InvoiceIssued {
+                plan_name: "Self-Hosted Standard",
+                amount: "$4,000.00",
+                due_date: "October 18, 2026",
+                po_number: Some("PO-4471"),
+                cta_href: "https://billing.example.test/invoice/abc",
+            },
+        );
+        f(
+            "invoice_issued",
+            &InvoiceIssued {
+                plan_name: "Self-Hosted Standard",
+                amount: "$4,000.00",
+                due_date: "October 18, 2026",
+                po_number: None,
                 cta_href: "https://billing.example.test/invoice/abc",
             },
         );

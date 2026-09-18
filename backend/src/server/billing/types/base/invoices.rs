@@ -61,7 +61,14 @@ pub struct BillingInvoice {
     /// When a sent invoice is due. `None` for invoices charged automatically.
     #[serde(default)]
     pub due_date: Option<DateTime<Utc>>,
+    /// Purchase order number printed on this invoice, stamped from the
+    /// customer's invoice custom fields when Stripe finalized it.
+    #[serde(default)]
+    pub po_number: Option<String>,
 }
+
+/// Name of the invoice custom field carrying the buyer's purchase order.
+pub const PO_NUMBER_FIELD: &str = "PO Number";
 
 /// How Stripe collects payment for an invoice.
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -112,6 +119,13 @@ impl BillingInvoice {
             .map(|due| due + chrono::Duration::days(INVOICE_PAYMENT_GRACE_DAYS))
     }
 
+    /// Everything this invoice bills for, across all its lines. Unlike
+    /// `amount_paid_cents` this is set before anyone has paid, which is what a
+    /// sent invoice needs.
+    pub fn total_cents(&self) -> i64 {
+        self.line_items.iter().map(|line| line.amount_cents).sum()
+    }
+
     /// Start of the earliest service period this invoice bills on a
     /// self-hosted license plan. Everything before it was already paid (or was
     /// a trial), so an unpaid or voided invoice licenses nothing past it.
@@ -159,6 +173,11 @@ impl From<&stripe_billing::Invoice> for BillingInvoice {
             hosted_invoice_url: inv.hosted_invoice_url.clone(),
             collection: inv.collection_method.into(),
             due_date: inv.due_date.map(ts_to_chrono),
+            po_number: inv
+                .custom_fields
+                .as_ref()
+                .and_then(|fields| fields.iter().find(|field| field.name == PO_NUMBER_FIELD))
+                .map(|field| field.value.clone()),
         }
     }
 }
@@ -221,6 +240,7 @@ mod tests {
             invoice_pdf: None,
             hosted_invoice_url: None,
             collection: InvoiceCollection::ChargeAutomatically,
+            po_number: None,
             due_date: None,
         }
     }

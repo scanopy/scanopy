@@ -7,6 +7,7 @@
 		StripeElements,
 		StripeTaxIdElement
 	} from '@stripe/stripe-js';
+	import { untrack } from 'svelte';
 	import { createForm } from '@tanstack/svelte-form';
 	import { submitForm } from '$lib/shared/components/forms/form-context';
 	import { required, email as emailValidator, max } from '$lib/shared/components/forms/validators';
@@ -17,18 +18,21 @@
 	import { buildStripeAppearance } from '$lib/shared/billing/stripe-appearance';
 	import { useSetUpInvoiceBillingMutation } from './queries';
 	import type { BillingPlan } from './types';
+	import billingPlansJson from '$lib/data/billing-plans.json';
+	import { billingPlans } from '$lib/shared/stores/metadata';
 	import type { components } from '$lib/api/schema';
 	import {
 		billing_cardLoadError,
 		billing_invoice_addressIncomplete,
 		billing_invoice_billingEmail,
 		billing_invoice_billingEmailHelp,
+		billing_invoice_choosePlan,
 		billing_invoice_getQuote,
 		billing_invoice_poNumber,
 		billing_invoice_poNumberHelp,
 		billing_invoice_sendNow,
 		billing_invoice_trialEnds,
-		common_back,
+		common_cancel,
 		common_processing
 	} from '$lib/paraglide/messages';
 
@@ -36,20 +40,57 @@
 
 	let {
 		plan = null,
+		needsPlanChoice = false,
+		orgName = undefined,
 		email = undefined,
 		isTrialing = false,
 		onDone,
-		onBack
+		onCancel
 	}: {
 		/** Plan to invoice for, when the org has no live subscription. */
 		plan?: BillingPlan | null;
+		/**
+		 * The org has no live subscription and no licensed plan of its own, so
+		 * the invoice needs a plan picked here.
+		 */
+		needsPlanChoice?: boolean;
+		/** Organization name, prefilled as the billing entity. */
+		orgName?: string;
 		/** Default billing email. */
 		email?: string;
 		isTrialing?: boolean;
 		/** Called with the mode that succeeded. */
 		onDone: (mode: InvoiceBillingMode) => void | Promise<void>;
-		onBack: () => void;
+		onCancel: () => void;
 	} = $props();
+
+	// Licensed self-hosted plans, annual rows only, from the same fixture the
+	// plan picker reads. Held in the form itself so a page reload mid-flow
+	// cannot lose the plan the way transient modal state did.
+	const licensedPlans: BillingPlan[] = billingPlansJson
+		.filter((p) => p.metadata.license_plan != null && p.metadata.rate === 'Year')
+		.map(
+			(p) =>
+				({
+					type: p.id,
+					base_cents: p.metadata.base_cents,
+					rate: p.metadata.rate,
+					trial_days: p.metadata.trial_days,
+					seat_cents: p.metadata.seat_cents,
+					network_cents: p.metadata.network_cents,
+					included_seats: p.metadata.included_seats,
+					included_networks: p.metadata.included_networks,
+					// Checkout validates the whole plan config against the server's.
+					included_orgs: p.metadata.included_orgs ?? null,
+					host_cents: p.metadata.host_cents ?? null,
+					included_hosts: p.metadata.included_hosts ?? null
+				}) as BillingPlan
+		);
+	// Initial value only: the prop names the plan the picker sent, and the
+	// buttons below own it from there.
+	// eslint-disable-next-line svelte/prefer-writable-derived
+	let selectedPlan = $state<BillingPlan | null>(untrack(() => plan));
+	let missingPlan = $derived(needsPlanChoice && selectedPlan == null);
 
 	const configQuery = useConfigQuery();
 	let publishableKey = $derived(configQuery.data?.stripe_publishable_key ?? null);
@@ -99,7 +140,10 @@
 			});
 			addressElement = elements.create('address', {
 				mode: 'billing',
-				display: { name: 'organization' }
+				display: { name: 'organization' },
+				// The name the buyer gave at signup is the entity nine times out
+				// of ten; they can still edit it before submitting.
+				defaultValues: orgName ? { name: orgName } : undefined
 			});
 			taxIdElement = elements.create('taxId', {
 				visibility: 'auto',
@@ -136,7 +180,7 @@
 			try {
 				await setUpMutation.mutateAsync({
 					mode,
-					plan,
+					plan: selectedPlan,
 					details: {
 						entity_name: address.value.name,
 						billing_email: value.billing_email.trim(),
@@ -183,6 +227,32 @@
 	<div class="min-h-0 flex-1 space-y-4 overflow-auto p-6">
 		{#if isTrialing}
 			<InlineInfo title={billing_invoice_trialEnds()} />
+		{/if}
+
+		{#if needsPlanChoice}
+			<div class="space-y-2">
+				<p class="text-secondary text-sm">{billing_invoice_choosePlan()}</p>
+				<div class="flex flex-wrap gap-2">
+					{#each licensedPlans as licensed (licensed.type)}
+						{@const selected = selectedPlan?.type === licensed.type}
+						<button
+							type="button"
+							class="card flex-1 p-3 text-left transition-all {selected
+								? 'ring-2 ring-primary-500'
+								: 'hover:bg-gray-100 dark:hover:bg-gray-800'}"
+							aria-pressed={selected}
+							onclick={() => (selectedPlan = licensed)}
+						>
+							<span class="text-primary block text-sm font-medium">
+								{billingPlans.getName(licensed.type)}
+							</span>
+							<span class="text-secondary text-xs">
+								${(licensed.base_cents / 100).toLocaleString('en-US')}
+							</span>
+						</button>
+					{/each}
+				</div>
+			</div>
 		{/if}
 
 		<div class="relative min-h-[8rem]">
@@ -241,18 +311,18 @@
 	</div>
 
 	<div class="modal-footer flex flex-wrap items-center justify-end gap-3">
-		<button type="button" class="btn-secondary" disabled={busyMode != null} onclick={onBack}>
-			{common_back()}
+		<button type="button" class="btn-secondary" disabled={busyMode != null} onclick={onCancel}>
+			{common_cancel()}
 		</button>
 		<button
 			type="button"
 			class="btn-secondary"
-			disabled={!ready || busyMode != null}
+			disabled={!ready || busyMode != null || missingPlan}
 			onclick={() => submitWith('quote')}
 		>
 			{busyMode === 'quote' ? common_processing() : billing_invoice_getQuote()}
 		</button>
-		<button type="submit" class="btn-primary" disabled={!ready || busyMode != null}>
+		<button type="submit" class="btn-primary" disabled={!ready || busyMode != null || missingPlan}>
 			{busyMode === 'send_invoice' ? common_processing() : billing_invoice_sendNow()}
 		</button>
 	</div>

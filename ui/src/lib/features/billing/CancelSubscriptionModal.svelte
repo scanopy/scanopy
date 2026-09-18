@@ -14,6 +14,7 @@
 	import cancelReasons from '$lib/data/cancel-reasons.json';
 	import saveOffers from '$lib/data/save-offers.json';
 	import { billingPlans } from '$lib/shared/stores/metadata';
+	import { useCurrentLicenseKeyQuery } from '$lib/features/billing/queries';
 	import { metaName } from '$lib/i18n/metadata';
 	import { pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
@@ -29,6 +30,7 @@
 		settings_billing_cancelModal_commentPlaceholder,
 		settings_billing_cancelModal_continueCancel,
 		settings_billing_cancelModal_keepSubscription,
+		settings_billing_cancelModal_airGappedNoRefund,
 		settings_billing_cancelModal_confirmDisclosure,
 		settings_billing_cancelModal_confirmHeading,
 		settings_billing_cancelModal_confirmCta,
@@ -96,6 +98,16 @@
 	let canReceiveSaveOffer = $derived(
 		billingPlans.getMetadata(planType ?? null).is_stripe_managed === true
 	);
+
+	// An air-gapped key validates without ever reaching us, so it runs to its
+	// own expiry after a cancellation and there is nothing to refund. Say so
+	// before the buyer commits, not after. The key type comes from the same
+	// query the License tab uses, so this costs no extra round trip there.
+	let airGappedPlan = $derived(
+		billingPlans.getMetadata(planType ?? null).features?.air_gapped_deployment === true
+	);
+	const licenseKeyQuery = useCurrentLicenseKeyQuery(() => airGappedPlan);
+	let holdsAirGappedKey = $derived(licenseKeyQuery.data?.key_type === 'Offline');
 
 	// Two internal steps. Step 1 picks the reason; step 2 shows any save offers
 	// AND hosts the Confirm Cancellation action in the footer. No stepper UI:
@@ -464,6 +476,11 @@
 								periodEnd: 'the end of your current billing cycle'
 							})}
 						</p>
+						{#if holdsAirGappedKey}
+							<div class="mt-3">
+								<InlineWarning title={settings_billing_cancelModal_airGappedNoRefund()} />
+							</div>
+						{/if}
 					</div>
 					<button
 						type="button"

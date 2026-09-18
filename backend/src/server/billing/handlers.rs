@@ -219,13 +219,21 @@ async fn create_checkout_session(
                         .change_plan(organization_id, request.plan, auth.into_entity())
                         .await?;
                     Ok(Json(ApiResponse::success(result)))
-                } else {
+                } else if has_payment_method {
                     // No live subscription to modify (e.g. currently on Free
-                    // after a downgrade) or no card on file — (re)subscribe via
-                    // Checkout, which creates a fresh subscription and reuses the
-                    // existing customer/card. Routing a Free org to change_plan
-                    // would fail with "No active subscription found to modify" —
-                    // it only updates an existing paid sub.
+                    // after a downgrade), but a way to pay is on file — create
+                    // the subscription here instead of handing the customer to
+                    // Stripe Checkout. Routing a Free org to change_plan would
+                    // fail with "No active subscription found to modify"; it
+                    // only updates an existing paid sub.
+                    let result = billing_service
+                        .create_paid_subscription(organization_id, request.plan, auth.into_entity())
+                        .await?;
+                    Ok(Json(ApiResponse::success(result)))
+                } else {
+                    // Nothing to pay with. Checkout collects a card and creates
+                    // the subscription in one hosted step; the in-app dialog
+                    // routes here only when it could not collect one itself.
                     let cancel_url = request.url.clone();
                     let session = billing_service
                         .create_checkout_session(

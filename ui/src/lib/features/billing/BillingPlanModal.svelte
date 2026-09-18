@@ -145,14 +145,11 @@
 	let recommendedPlan = $derived(contextHighlightPlan ?? baseRecommendedPlan);
 
 	async function handlePlanSelect(plan: BillingPlan) {
-		// A self-hosted plan bought with no trial left and no way to pay on file would
-		// go to Stripe Checkout, which takes cards only. The payment-method dialog
-		// offers invoice billing beside the card, and continues to Checkout for a card.
-		if (
-			billingPlanHelpers.getMetadata(plan.type)?.license_plan != null &&
-			isReturningCustomer &&
-			!canPay(organization)
-		) {
+		// A paid plan with no trial left and no way to pay on file would otherwise
+		// go to Stripe Checkout. The payment-method dialog collects the card here
+		// instead (and offers invoice billing on self-hosted plans), then the
+		// backend creates the subscription. Cloud and self-hosted behave alike.
+		if (plan.base_cents > 0 && isReturningCustomer && !canPay(organization)) {
 			upgradeContext.set(null);
 			// Closed without the plan: nothing is bought yet, so the page must not lock
 			// onto the License tab over the dialog. The lock follows the webhook.

@@ -343,7 +343,23 @@ impl BillingService {
                 .first()
                 .ok_or_else(|| anyhow!("No subscription items found"))?;
 
-            let proration = if sub.status == SubscriptionStatus::Trialing {
+            // A subscription billed by invoice with money still owed is a
+            // special case: the buyer's finance team holds one invoice for the
+            // old plan that nobody has paid. Void it and restart the term, so
+            // exactly one invoice exists at the new price. Stripe's proration
+            // cannot do this — it credits unused time whether or not the
+            // invoice was ever paid, which would hand back money that never
+            // arrived. Once the invoice is paid, proration is right: it credits
+            // the unused part and bills the difference.
+            let bills_by_invoice =
+                sub.collection_method == stripe_shared::SubscriptionCollectionMethod::SendInvoice;
+            let voided_unpaid = if bills_by_invoice {
+                self.void_open_license_invoices(&organization).await?
+            } else {
+                false
+            };
+
+            let proration = if sub.status == SubscriptionStatus::Trialing || voided_unpaid {
                 UpdateSubscriptionProrationBehavior::None
             } else {
                 UpdateSubscriptionProrationBehavior::AlwaysInvoice
@@ -386,7 +402,13 @@ impl BillingService {
                 "TEMP diag: updating Stripe subscription for plan change"
             );
 
-            UpdateSubscription::new(&sub.id)
+            let mut update = UpdateSubscription::new(&sub.id);
+            if voided_unpaid {
+                // Nothing was paid for the old term, so the new plan starts a
+                // fresh one rather than inheriting its stub.
+                update = update.billing_cycle_anchor(UpdateSubscriptionBillingCycleAnchor::Now);
+            }
+            let updated = update
                 .items(items)
                 .metadata([
                     ("plan".to_string(), serde_json::to_string(&target_plan)?),
@@ -404,6 +426,13 @@ impl BillingService {
                 .cancel_at_period_end(false)
                 .send(&self.stripe)
                 .await?;
+
+            // Sent invoices otherwise sit in Stripe's hour-long draft window;
+            // the buyer needs the document now, whether it is the replacement
+            // for the voided one or the prorated difference.
+            if bills_by_invoice {
+                self.finalize_latest_invoice(&updated).await?;
+            }
 
             let is_trialing = sub.status == SubscriptionStatus::Trialing;
 

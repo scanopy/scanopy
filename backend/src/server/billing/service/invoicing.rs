@@ -4,9 +4,9 @@ use super::*;
 use crate::server::billing::types::api::{
     InvoiceBillingDetails, InvoiceBillingMode, InvoiceBillingStatus, OpenInvoice, PendingQuote,
 };
-use crate::server::billing::types::base::InvoiceCollection;
+use crate::server::billing::types::base::{InvoiceCollection, PO_NUMBER_FIELD};
 use crate::server::shared::types::api::ValidationError;
-use stripe_billing::invoice::{FinalizeInvoiceInvoice, ListInvoice};
+use stripe_billing::invoice::{FinalizeInvoiceInvoice, ListInvoice, VoidInvoiceInvoice};
 use stripe_billing::quote::{
     AcceptQuote, CancelQuote, CreateQuote, CreateQuoteInvoiceSettings, CreateQuoteLineItems,
     CreateQuoteSubscriptionData, FinalizeQuoteQuote, ListQuote,
@@ -28,9 +28,6 @@ pub const INVOICE_DAYS_UNTIL_DUE: u32 = 30;
 /// Days a quote stays open for the buyer's procurement to raise a PO.
 const QUOTE_VALID_DAYS: i64 = 30;
 
-/// Name of the invoice custom field carrying the buyer's purchase order.
-const PO_NUMBER_FIELD: &str = "PO Number";
-
 /// Stripe serves rendered quote PDFs from this host, not the API host.
 const STRIPE_FILES_BASE: &str = "https://files.stripe.com/v1";
 
@@ -51,17 +48,12 @@ impl BillingService {
         let organization = self.get_organization(organization_id).await?;
         let current = self.find_current_subscription(&organization).await.ok();
 
-        let plan = match (&current, plan) {
-            (Some(_), _) => organization
-                .base
-                .plan
-                .ok_or_else(|| anyhow!("Organization has no plan"))?,
-            (None, Some(plan)) if self.get_plans().contains(&plan) => plan,
-            (None, _) => return Err(refused("Choose a plan to invoice for")),
-        };
-        if plan.license_plan().is_none() {
-            return Err(refused(SELF_HOSTED_ONLY));
-        }
+        let plan = plan_to_invoice(
+            current.is_some(),
+            organization.base.plan,
+            plan,
+            &self.get_plans(),
+        )?;
 
         let customer_id = self
             .get_or_create_customer(organization_id, authentication)
@@ -355,6 +347,42 @@ impl BillingService {
         Ok(())
     }
 
+    /// Void every open invoice carrying a self-hosted license line, and report
+    /// whether there was one. Called before a plan change on an invoice-billed
+    /// subscription: an unpaid invoice for the old plan would otherwise stand
+    /// beside the new one, and neither would match the buyer's purchase order.
+    /// The `invoice.voided` webhook gives back the license period each granted.
+    pub(crate) async fn void_open_license_invoices(
+        &self,
+        organization: &Organization,
+    ) -> Result<bool, Error> {
+        let Some(customer_id) = organization
+            .base
+            .stripe_customer_id
+            .clone()
+            .map(CustomerId::from)
+        else {
+            return Ok(false);
+        };
+
+        let mut voided = false;
+        for invoice in self.open_license_invoices(&customer_id).await? {
+            let Some(id) = invoice.id.clone() else {
+                continue;
+            };
+            VoidInvoiceInvoice::new(id.clone())
+                .send(&self.stripe)
+                .await?;
+            voided = true;
+            tracing::info!(
+                organization_id = %organization.id,
+                invoice_id = %id,
+                "Voided the unpaid invoice for the plan being replaced"
+            );
+        }
+        Ok(voided)
+    }
+
     async fn create_quote(
         &self,
         organization_id: Uuid,
@@ -437,7 +465,10 @@ impl BillingService {
     /// Finalize the subscription's draft invoice now instead of after
     /// Stripe's hour-long draft window, so the buyer receives it immediately.
     /// Finalizing a sent invoice with auto-advance on emails it.
-    async fn finalize_latest_invoice(&self, subscription: &Subscription) -> Result<(), Error> {
+    pub(crate) async fn finalize_latest_invoice(
+        &self,
+        subscription: &Subscription,
+    ) -> Result<(), Error> {
         let drafts = ListInvoice::new()
             .subscription(subscription.id.to_string())
             .status(InvoiceStatus::Draft)
@@ -569,6 +600,32 @@ impl BillingService {
 
 const SELF_HOSTED_ONLY: &str = "Invoice billing is available on self-hosted plans only";
 
+/// Which plan an invoice covers.
+///
+/// A live subscription settles it: the org's own plan is what it pays for.
+/// Without one the request names the plan, and when it doesn't — a reload
+/// mid-flow loses it, since it travels in transient UI state — the org's own
+/// licensed plan stands in rather than dead-ending the buyer.
+fn plan_to_invoice(
+    has_live_subscription: bool,
+    org_plan: Option<BillingPlan>,
+    requested: Option<BillingPlan>,
+    purchasable: &[BillingPlan],
+) -> Result<BillingPlan, Error> {
+    let plan = match (has_live_subscription, requested) {
+        (true, _) => org_plan.ok_or_else(|| anyhow!("Organization has no plan"))?,
+        (false, Some(requested)) if purchasable.contains(&requested) => requested,
+        (false, Some(_)) => return Err(refused("That plan cannot be invoiced")),
+        (false, None) => org_plan
+            .filter(|plan| plan.license_plan().is_some())
+            .ok_or_else(|| refused("Choose a plan to invoice for"))?,
+    };
+    if plan.license_plan().is_none() {
+        return Err(refused(SELF_HOSTED_ONLY));
+    }
+    Ok(plan)
+}
+
 /// A request the buyer can correct, returned as 400 rather than 500.
 fn refused(message: impl Into<String>) -> Error {
     ValidationError::new(message).into()
@@ -586,4 +643,65 @@ fn subscription_metadata(
         ..Default::default()
     }
     .to_stripe())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::server::billing::plans::{
+        get_enterprise_plan, get_free_plan, get_self_hosted_plus_plan,
+        get_self_hosted_standard_plan,
+    };
+
+    fn purchasable() -> Vec<BillingPlan> {
+        crate::server::billing::plans::get_purchasable_plans()
+    }
+
+    #[test]
+    fn a_live_subscription_invoices_the_orgs_own_plan() {
+        let plan = plan_to_invoice(
+            true,
+            Some(get_self_hosted_standard_plan()),
+            Some(get_self_hosted_plus_plan()),
+            &purchasable(),
+        )
+        .unwrap();
+        assert_eq!(plan, get_self_hosted_standard_plan());
+    }
+
+    #[test]
+    fn without_a_subscription_the_request_names_the_plan() {
+        let plan = plan_to_invoice(
+            false,
+            None,
+            Some(get_self_hosted_plus_plan()),
+            &purchasable(),
+        )
+        .unwrap();
+        assert_eq!(plan, get_self_hosted_plus_plan());
+    }
+
+    /// The plan travels in transient UI state, so a reload mid-flow arrives
+    /// without one. An org already on a licensed plan is not asked again.
+    #[test]
+    fn a_request_with_no_plan_falls_back_to_the_orgs_licensed_plan() {
+        let plan = plan_to_invoice(
+            false,
+            Some(get_self_hosted_standard_plan()),
+            None,
+            &purchasable(),
+        )
+        .unwrap();
+        assert_eq!(plan, get_self_hosted_standard_plan());
+
+        assert!(plan_to_invoice(false, Some(get_free_plan()), None, &purchasable()).is_err());
+        assert!(plan_to_invoice(false, None, None, &purchasable()).is_err());
+    }
+
+    #[test]
+    fn plans_that_cannot_be_invoiced_are_refused() {
+        // Cloud and Enterprise both reach here only by direct API call.
+        assert!(plan_to_invoice(false, None, Some(get_enterprise_plan()), &purchasable()).is_err());
+        assert!(plan_to_invoice(true, Some(get_free_plan()), None, &purchasable()).is_err());
+    }
 }
