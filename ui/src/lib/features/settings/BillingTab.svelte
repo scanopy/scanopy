@@ -158,7 +158,14 @@
 	// Change Plan moves into the overflow menu (rather than the primary) when the
 	// primary slot is taken by Add Payment Method, i.e. an active/trialing org
 	// missing a card.
-	let showChangePlanItem = $derived(missingCard && (isActive || isTrialing));
+	// An air-gapped key carries the plan it was issued for and validates offline,
+	// so the org is committed until the period it paid for ends. The server
+	// refuses the change; hiding the CTAs means nobody clicks into that refusal.
+	// Cancelling stays available, and is the only way out until the date passes.
+	let airGappedPlanLocked = $derived(org?.air_gapped_key_current_until != null);
+	let showChangePlanItem = $derived(
+		missingCard && (isActive || isTrialing) && !airGappedPlanLocked
+	);
 	// Cancel is available while on a live, manageable active/trial subscription.
 	let showCancelItem = $derived(hasManageableSubscription && (isActive || isTrialing));
 	// Stripe portal (invoices + card management) for any manageable sub except
@@ -183,6 +190,11 @@
 				onclick: handleReactivate,
 				disabled: reactivateMutation.isPending
 			};
+		// Nothing here can change the plan, so the primary slot goes to the one
+		// action an air-gapped org still has. Without this the slot would hold a
+		// Change plan button whose only outcome is a 409 toast.
+		if (airGappedPlanLocked)
+			return { label: settings_billing_cancelSubscription(), onclick: openCancelModal };
 		return {
 			label: hasManageableSubscription
 				? settings_billing_changePlan()
@@ -438,9 +450,15 @@
 				     only way to get more. -->
 				<div class="text-right">
 					<p class="text-secondary text-sm">{common_atLimit()}</p>
-					<button type="button" onclick={openPlanPicker} class="text-link text-xs hover:underline">
-						{settings_billing_usageUpgradeToAddMore()}
-					</button>
+					{#if !airGappedPlanLocked}
+						<button
+							type="button"
+							onclick={openPlanPicker}
+							class="text-link text-xs hover:underline"
+						>
+							{settings_billing_usageUpgradeToAddMore()}
+						</button>
+					{/if}
 				</div>
 			{:else}
 				<p class="text-tertiary text-sm">{common_included()}</p>

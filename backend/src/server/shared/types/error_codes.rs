@@ -207,6 +207,10 @@ pub enum ErrorCode {
     BillingSelfHostedPlanLocked,
     /// Cannot leave an air-gapped key until the current licence period ends
     BillingAirGappedKeyStillCurrent,
+    /// Cannot change plan while an air-gapped key is still current. The key
+    /// carries the plan it was issued for and validates offline, so the org is
+    /// committed until the period it paid for ends. Cancelling stays open.
+    BillingAirGappedPlanChangeBlocked { date: String },
 
     // === Rate Limiting ===
     /// Too many requests
@@ -367,6 +371,9 @@ impl ErrorCode {
             Self::BillingAirGappedKeyStillCurrent => {
                 "Your air-gapped key is still valid. You can switch back to an online key once the current license period ends."
             }
+            Self::BillingAirGappedPlanChangeBlocked { .. } => {
+                "Your air-gapped key covers the plan you have until {date}. You can cancel now, or change plan from that date."
+            }
 
             // Rate Limiting
             Self::RateLimitExceeded => "Too many requests, please try again later",
@@ -427,6 +434,9 @@ impl ErrorCode {
             | Self::BillingAirGappedKeyStillCurrent
             | Self::RateLimitExceeded
             | Self::DatabaseError => None,
+
+            // Billing with params
+            Self::BillingAirGappedPlanChangeBlocked { date } => Some(json_map! { "date" => date }),
 
             // Validation with params
             Self::ValidationRequired { field }

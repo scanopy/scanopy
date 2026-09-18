@@ -207,6 +207,16 @@ pub struct OrganizationBase {
     /// to API. `None` reads as online. Switching retires the previous key.
     #[serde(default, skip_serializing)]
     pub license_key_type: Option<crate::server::license::types::LicenseKeyType>,
+    /// The date this org's air-gapped key stays current until, or `None` when
+    /// it holds an online key or that date has passed.
+    ///
+    /// Computed on read from `license_key_type` and `license_paid_through`,
+    /// never stored. It carries the one fact the UI needs, that the org cannot
+    /// change plan yet, without exposing `license_key_type`, which stays
+    /// internal. See [`Organization::air_gapped_key_current_until`].
+    #[serde(default)]
+    #[schema(read_only)]
+    pub air_gapped_key_current_until: Option<DateTime<Utc>>,
 }
 
 #[derive(
@@ -246,6 +256,19 @@ impl Organization {
     pub fn can_pay(&self) -> bool {
         self.base.has_payment_method || self.base.bills_by_invoice
     }
+
+    /// The date an air-gapped key stays current until, when the org holds one.
+    ///
+    /// An air-gapped key validates offline and carries its own expiry, so
+    /// while this is `Some` the organization is committed to the plan it
+    /// bought: it cannot switch back to an online key, and it cannot change
+    /// plan. Both refusals read this, so the two rules cannot drift apart.
+    pub fn air_gapped_key_current_until(&self) -> Option<DateTime<Utc>> {
+        let paid_through = self.base.license_paid_through?;
+        (self.base.license_key_type == Some(crate::server::license::types::LicenseKeyType::Offline)
+            && Utc::now() < paid_through)
+            .then_some(paid_through)
+    }
 }
 
 impl Display for Organization {
@@ -257,5 +280,53 @@ impl Display for Organization {
 impl ChangeTriggersTopologyStaleness<Organization> for Organization {
     fn triggers_staleness(&self, _other: Option<Organization>) -> bool {
         false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::server::license::types::LicenseKeyType;
+
+    fn org(key_type: Option<LicenseKeyType>, paid_through: Option<DateTime<Utc>>) -> Organization {
+        let mut org = Organization::default();
+        org.base.license_key_type = key_type;
+        org.base.license_paid_through = paid_through;
+        org
+    }
+
+    /// Two refusals read this: switching back to an online key, and changing
+    /// plan. Both are about a key the customer is already running, so only an
+    /// air-gapped key with time left on it counts.
+    #[test]
+    fn only_an_unexpired_air_gapped_key_is_current() {
+        let future = Utc::now() + chrono::Duration::days(30);
+        let past = Utc::now() - chrono::Duration::days(1);
+
+        assert_eq!(
+            org(Some(LicenseKeyType::Offline), Some(future)).air_gapped_key_current_until(),
+            Some(future),
+        );
+
+        // The period they paid for is over, so both rules lift on their own.
+        assert_eq!(
+            org(Some(LicenseKeyType::Offline), Some(past)).air_gapped_key_current_until(),
+            None
+        );
+
+        // An online key is retired by a version bump the moment anything
+        // changes, so it never blocks either transition.
+        assert_eq!(
+            org(Some(LicenseKeyType::Online), Some(future)).air_gapped_key_current_until(),
+            None
+        );
+        // `None` reads as online, per the column's documented default.
+        assert_eq!(org(None, Some(future)).air_gapped_key_current_until(), None);
+
+        // No paid-through date means nothing to be current until.
+        assert_eq!(
+            org(Some(LicenseKeyType::Offline), None).air_gapped_key_current_until(),
+            None
+        );
     }
 }

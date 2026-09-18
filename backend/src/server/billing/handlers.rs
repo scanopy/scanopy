@@ -163,6 +163,19 @@ async fn create_checkout_session(
 
         // Check if org already has a plan — route based on target plan and payment state
         let org = billing_service.get_organization(organization_id).await?;
+
+        // An air-gapped key carries the plan it was issued for and validates
+        // offline, so a plan change would leave a key on the customer's server
+        // naming a plan they no longer hold, with no way to retire it. Refused
+        // until the period they paid for ends; cancelling is a separate
+        // endpoint and stays open. Checked before the routing below, because
+        // the downgrade-to-Free and Checkout branches are plan changes too.
+        if let Some(current_until) = org.air_gapped_key_current_until() {
+            return Err(ApiError::air_gapped_plan_change_blocked(
+                current_until.format("%B %-d, %Y").to_string(),
+            ));
+        }
+
         let plan_status = org.base.plan_status;
 
         if plan_status.is_some() && org.base.stripe_customer_id.is_some() {
@@ -359,6 +372,15 @@ async fn change_plan(
         .ok_or_else(ApiError::organization_required)?;
 
     if let Some(billing_service) = state.services.billing_service.clone() {
+        // Same rule as `create_checkout_session`: an air-gapped key commits the
+        // org to its plan until the period it paid for ends.
+        let org = billing_service.get_organization(organization_id).await?;
+        if let Some(current_until) = org.air_gapped_key_current_until() {
+            return Err(ApiError::air_gapped_plan_change_blocked(
+                current_until.format("%B %-d, %Y").to_string(),
+            ));
+        }
+
         let result = billing_service
             .change_plan(organization_id, request.plan, auth.into_entity())
             .await?;

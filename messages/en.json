@@ -973,6 +973,7 @@
 	"errors_auth_user_context_required": "User context required",
 	"errors_auth_user_not_found": "User with ID '{id}' not found",
 	"errors_billing_air_gapped_key_still_current": "Your air-gapped key is still valid. You can switch back to an online key once the current license period ends.",
+	"errors_billing_air_gapped_plan_change_blocked": "Your air-gapped key covers the plan you have until {date}. You can cancel now, or change plan from that date.",
 	"errors_billing_feature_not_available": "Your current plan does not include {feature}. Upgrade your plan to access this feature.",
 	"errors_billing_host_limit_reached": "You've reached the limit of {limit} hosts on your current plan. Upgrade for unlimited hosts.",
 	"errors_billing_payment_required": "Payment is required to continue",

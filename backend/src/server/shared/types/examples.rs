@@ -414,6 +414,7 @@ pub fn organization() -> Organization {
             license_key_version: 0,
             license_key_issued_at: None,
             license_key_type: None,
+            air_gapped_key_current_until: None,
         },
     }
 }

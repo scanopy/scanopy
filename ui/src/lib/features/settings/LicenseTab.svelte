@@ -432,7 +432,7 @@
 	title={settings_billing_license_switchTitle()}
 	message={switchConfirmMessage}
 	confirmLabel={common_continue()}
-	variant="danger"
+	variant="info"
 	onConfirm={handleConfirmSwitch}
 	onCancel={() => (pendingType = null)}
 	onClose={() => (pendingType = null)}

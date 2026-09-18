@@ -457,9 +457,13 @@ impl BillingService {
             return Ok(());
         }
 
-        // Skip for orgs without a payment method — trial auto-cancel flow
-        if !organization.base.has_payment_method {
-            tracing::info!(organization_id = %organization.id, "Skipping payment_failed — no payment method (trial auto-cancel)");
+        // Skip only for an org with no way to pay at all, which is the trial
+        // auto-cancel flow this guard exists for. `has_payment_method` alone
+        // means "a card is attached in Stripe", so it is permanently false for
+        // an invoice-billed org and would drop every genuine failure for a
+        // customer paying against a purchase order.
+        if !organization.can_pay() {
+            tracing::info!(organization_id = %organization.id, "Skipping payment_failed — no way to pay (trial auto-cancel)");
             return Ok(());
         }
 
@@ -500,9 +504,10 @@ impl BillingService {
             return Ok(());
         }
 
-        // Skip for orgs without a payment method — trial auto-cancel flow
-        if !organization.base.has_payment_method {
-            tracing::info!(organization_id = %organization.id, "Skipping payment_action_required — no payment method (trial auto-cancel)");
+        // As in `handle_invoice_payment_failed`: an invoice-billed org has no
+        // card by design, so the bare mirror would silence it here too.
+        if !organization.can_pay() {
+            tracing::info!(organization_id = %organization.id, "Skipping payment_action_required — no way to pay (trial auto-cancel)");
             return Ok(());
         }
 
