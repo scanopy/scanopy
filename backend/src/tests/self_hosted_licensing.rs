@@ -719,7 +719,10 @@ async fn sent_invoices_license_until_due_and_give_back_on_void() {
     .unwrap();
     let reloaded = reload(&state, org.id).await;
     assert_eq!(reloaded.base.license_paid_through, Some(provisional));
-    assert!(reloaded.base.has_payment_method);
+    // Paying against a PO is a way to pay, so nothing asks for a card.
+    assert!(reloaded.base.bills_by_invoice);
+    assert!(!reloaded.base.has_payment_method);
+    assert!(reloaded.can_pay());
 
     // An invoice due earlier never shortens the period already granted.
     publish(BillingOperation::InvoiceIssued {
@@ -768,4 +771,24 @@ async fn sent_invoices_license_until_due_and_give_back_on_void() {
         reload(&state, org.id).await.base.license_paid_through,
         term_end
     );
+
+    // The subscription that billed by invoice is gone, so the org is back to
+    // having no way to pay and the card prompts return.
+    publish(BillingOperation::SubscriptionCancelled {
+        plan: get_self_hosted_standard_plan(),
+        reason_code: None,
+        stripe_feedback: None,
+        stripe_reason: None,
+        internal_reason: None,
+        comment: None,
+        period_end: Utc::now(),
+        was_trialing: false,
+        mrr_amount_cents: 0,
+        tenure_days: 30,
+    })
+    .await
+    .unwrap();
+    let cancelled = reload(&state, org.id).await;
+    assert!(!cancelled.base.bills_by_invoice);
+    assert!(!cancelled.can_pay());
 }

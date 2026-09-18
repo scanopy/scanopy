@@ -22,7 +22,7 @@
 		licenseKeySwitchBackWindowDays,
 		useConfigQuery
 	} from '$lib/shared/stores/config-query';
-	import { getTrialDaysLeft, isMissingPaymentMethod } from '$lib/shared/utils/trial';
+	import { canPay, getTrialDaysLeft, isMissingPaymentMethod } from '$lib/shared/utils/trial';
 	import { pushError, pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
 	import { trackEvent } from '$lib/shared/utils/analytics';
 	import { copyViaSelection } from '$lib/shared/utils/clipboard';
@@ -103,7 +103,9 @@
 	let airGappedIncluded = $derived(
 		billingPlans.getMetadata(planType).features?.air_gapped_deployment === true
 	);
-	let hasCard = $derived(org?.has_payment_method ?? false);
+	// Either way to pay: an air-gapped key needs a paid subscription, and a
+	// buyer paying against a purchase order gets there without a card.
+	let hasCard = $derived(canPay(org));
 	let isTrialing = $derived(org?.plan_status === 'trialing');
 	let isPastDue = $derived(org?.plan_status === 'past_due');
 	// The server also refuses an air-gapped mint until the subscription is out of

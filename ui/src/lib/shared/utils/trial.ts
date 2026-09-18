@@ -24,7 +24,17 @@ export function isTrialingWithoutPayment(
 	org: Organization | null | undefined,
 	billingEnabled: boolean
 ): boolean {
-	return billingEnabled && org?.plan_status === 'trialing' && !(org?.has_payment_method ?? false);
+	return billingEnabled && org?.plan_status === 'trialing' && !canPay(org);
+}
+
+/**
+ * Whether the org has a way to pay its next invoice: a card on file, or a
+ * subscription billed by sent invoice against a purchase order. Mirrors
+ * `Organization::can_pay` on the backend; every payment nag reads it so an
+ * invoice buyer is never asked for a card.
+ */
+export function canPay(org: Organization | null | undefined): boolean {
+	return (org?.has_payment_method ?? false) || (org?.bills_by_invoice ?? false);
 }
 
 /**
@@ -33,7 +43,8 @@ export function isTrialingWithoutPayment(
  * sidebar pill, BillingTab card) so they show/hide together. `is_stripe_managed
  * === true` fails safe: missing/stale plan metadata hides the nag rather than
  * showing it. `has_payment_method` is authoritative — it only flips on Stripe
- * `payment_method.attached`/`detached` webhooks, not on plan changes.
+ * `payment_method.attached`/`detached` webhooks, not on plan changes — and an
+ * org billed by invoice has a way to pay without one.
  */
 export function isMissingPaymentMethod(
 	org: Organization | null | undefined,
@@ -46,7 +57,7 @@ export function isMissingPaymentMethod(
 		(org.plan_status === 'trialing' ||
 			org.plan_status === 'active' ||
 			org.plan_status === 'past_due') &&
-		!(org.has_payment_method ?? false)
+		!canPay(org)
 	);
 }
 

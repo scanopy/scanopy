@@ -231,10 +231,10 @@ impl Subscriber<BillingOperation> for OrganizationService {
                         organization.base.license_paid_through = Some(provisional);
                         changed = true;
                     }
-                    // Paying by invoice is how this org pays, so it is not
-                    // missing a payment method.
-                    if !organization.base.has_payment_method {
-                        organization.base.has_payment_method = true;
+                    // Paying against a purchase order is how this org pays, so
+                    // nothing should ask it for a card.
+                    if !organization.base.bills_by_invoice {
+                        organization.base.bills_by_invoice = true;
                         changed = true;
                     }
                 }
@@ -299,6 +299,13 @@ impl Subscriber<BillingOperation> for OrganizationService {
                     if organization.base.plan.as_ref() != Some(&free_plan) {
                         organization.base.plan = Some(free_plan);
                     }
+                    // The subscription that billed by invoice is gone, so the
+                    // org has no standing way to pay by invoice either. Unlike
+                    // a saved card (below), invoice billing is a property of
+                    // the subscription, not of the customer.
+                    if organization.base.bills_by_invoice {
+                        organization.base.bills_by_invoice = false;
+                    }
                     // NOTE: do NOT touch `has_payment_method` here. Cancelling a
                     // subscription does not detach the customer's saved cards;
                     // the flag's sole authoritative writers are
@@ -333,6 +340,13 @@ impl Subscriber<BillingOperation> for OrganizationService {
                 BillingOperation::PaymentMethodAdded => {
                     if !organization.base.has_payment_method {
                         organization.base.has_payment_method = true;
+                        changed = true;
+                    }
+                    // Saving a card puts the subscription back on automatic
+                    // charges (`finalize_payment_method`), so it no longer
+                    // bills by invoice.
+                    if organization.base.bills_by_invoice {
+                        organization.base.bills_by_invoice = false;
                         changed = true;
                     }
                 }

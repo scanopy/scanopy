@@ -282,8 +282,11 @@ impl BillingService {
             return Err(anyhow!("This organization is not in a trial."));
         }
         // Read Stripe rather than the `has_payment_method` mirror: the card is
-        // usually added seconds earlier, and the mirror lags by a webhook.
-        if !self.customer_has_payment_method(organization_id).await? {
+        // usually added seconds earlier, and the mirror lags by a webhook. An
+        // org billed by invoice has no card and needs none.
+        if !organization.base.bills_by_invoice
+            && !self.customer_has_payment_method(organization_id).await?
+        {
             return Err(anyhow!("Add a payment method before ending your trial."));
         }
 

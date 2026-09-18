@@ -197,10 +197,10 @@ async fn create_checkout_session(
                 let has_payment_method = if is_trial_eligible {
                     false
                 } else {
-                    billing_service
-                        .customer_has_payment_method(organization_id)
-                        .await?
-                        || billing_service.bills_by_invoice(&org).await
+                    org.base.bills_by_invoice
+                        || billing_service
+                            .customer_has_payment_method(organization_id)
+                            .await?
                 };
 
                 if is_trial_eligible {

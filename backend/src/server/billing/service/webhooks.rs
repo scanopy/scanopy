@@ -629,7 +629,9 @@ impl BillingService {
                     },
                     BillingOperation::TrialWillEnd {
                         plan,
-                        has_payment_method: organization.base.has_payment_method,
+                        // Either way to pay keeps the subscription alive, so a
+                        // buyer paying by invoice is not asked for a card.
+                        has_payment_method: organization.can_pay(),
                     },
                     owner.clone().into(),
                 ))
@@ -707,14 +709,6 @@ impl BillingService {
                 organization_id = %organization.id,
                 remaining_count = remaining.data.len(),
                 "Payment method detached but customer still has others — not emitting PaymentMethodRemoved"
-            );
-            return Ok(());
-        }
-
-        if self.bills_by_invoice(&organization).await {
-            tracing::info!(
-                organization_id = %organization.id,
-                "Payment method detached but subscription bills by invoice — not emitting PaymentMethodRemoved"
             );
             return Ok(());
         }

@@ -18,6 +18,7 @@
 	import { upgradeContext } from '$lib/features/billing/stores';
 	import { isLicenseSigningAvailable, useConfigQuery } from '$lib/shared/stores/config-query';
 	import { openModal } from '$lib/shared/stores/modal-registry';
+	import { canPay } from '$lib/shared/utils/trial';
 
 	let {
 		isOpen = false,
@@ -150,7 +151,7 @@
 		if (
 			billingPlanHelpers.getMetadata(plan.type)?.license_plan != null &&
 			isReturningCustomer &&
-			!(organization?.has_payment_method ?? false)
+			!canPay(organization)
 		) {
 			upgradeContext.set(null);
 			// Closed without the plan: nothing is bought yet, so the page must not lock
@@ -172,7 +173,7 @@
 		const planApplied = (org: Parameters<typeof isBillingPlanActive>[0]) =>
 			isBillingPlanActive(org) && org.plan?.type === plan.type;
 		const expectsStripeCheckout =
-			plan.base_cents > 0 && plan.trial_days === 0 && !(organization?.has_payment_method ?? false);
+			plan.base_cents > 0 && plan.trial_days === 0 && !canPay(organization);
 		const stripeTab = expectsStripeCheckout ? window.open('', '_blank') : null;
 		try {
 			// New tab — this tab stays put, so track immediately rather than stashing
