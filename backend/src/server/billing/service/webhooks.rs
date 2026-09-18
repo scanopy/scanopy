@@ -4,20 +4,12 @@ use super::*;
 impl BillingService {
     /// Handle webhook events
     pub async fn handle_webhook(&self, payload: &str, signature: &str) -> Result<(), Error> {
-        // TEMP diag: verification runs before any logging, so a secret mismatch
-        // between `stripe listen` and SCANOPY_STRIPE_WEBHOOK_SECRET is invisible.
-        let event = match Webhook::construct_event(payload, signature, &self.webhook_secret) {
-            Ok(event) => event,
-            Err(e) => {
-                tracing::error!(error = %e, "TEMP diag: Stripe webhook signature verification failed");
-                return Err(e.into());
-            }
-        };
+        let event = Webhook::construct_event(payload, signature, &self.webhook_secret)?;
 
-        tracing::info!(
+        tracing::debug!(
             event_type = ?event.type_,
             event_id = %event.id,
-            "TEMP diag: received Stripe webhook"
+            "Received Stripe webhook"
         );
 
         match event.type_ {
@@ -184,20 +176,6 @@ impl BillingService {
         // endpoint and is read back in the detection arms below.
         let meta = StripeSubscriptionMetadata::from_stripe(&sub.metadata);
 
-        // TEMP diag: one line covering every silent exit below. A scheduled
-        // cancellation returns early, an empty owners list skips the PlanChanged
-        // gate, and equal plan names skip it too.
-        tracing::info!(
-            organization_id = %organization.id,
-            prior_plan = %prior_plan.name(),
-            ?prior_status,
-            incoming_plan = %plan.name(),
-            subscription_status = ?sub.status,
-            cancel_at_set = sub.cancel_at.is_some(),
-            owners = owners.len(),
-            "TEMP diag: subscription update state"
-        );
-
         // Pending cancellation — user keeps current plan until period ends.
         // `sub.cancel_at` is the universal signal for "scheduled
         // cancellation": Stripe sets it on every scheduled-cancel path
@@ -289,12 +267,6 @@ impl BillingService {
             }
             // Otherwise: already initiated, no user feedback on this webhook
             // — nothing to emit.
-            // TEMP diag: this return precedes the PlanChanged gate, so a plan
-            // change arriving on a subscription that carries cancel_at is lost.
-            tracing::warn!(
-                subscription_id = %sub.id,
-                "TEMP diag: abandoning subscription update, scheduled cancellation present"
-            );
             return Ok(());
         }
 
@@ -423,13 +395,6 @@ impl BillingService {
             && prior_plan.name() != plan.name()
             && let Some(owner) = owners.first()
         {
-            // TEMP diag
-            tracing::info!(
-                organization_id = %org_id,
-                from = %prior_plan.name(),
-                to = %plan.name(),
-                "TEMP diag: publishing PlanChanged"
-            );
             self.event_bus
                 .publish(Event::new(
                     OrgScope {
@@ -444,15 +409,6 @@ impl BillingService {
                     owner.clone().into(),
                 ))
                 .await?;
-        } else {
-            // TEMP diag: names which of the three conditions blocked the publish.
-            tracing::warn!(
-                organization_id = %org_id,
-                prior_status_present = prior_status.is_some(),
-                names_differ = prior_plan.name() != plan.name(),
-                owners = owners.len(),
-                "TEMP diag: PlanChanged not published"
-            );
         }
 
         // Phase 5 transition arms — each one fires on the false→true edge
