@@ -174,14 +174,6 @@ impl Subscriber<BillingOperation> for OrganizationService {
                     is_downgrade,
                     next_renewal_at,
                 } => {
-                    // TEMP diag: separates "the event never arrived" from "it
-                    // arrived and wrote nothing".
-                    tracing::info!(
-                        organization_id = %organization.id,
-                        already_on_target = organization.base.plan.as_ref() == Some(to),
-                        is_downgrade = *is_downgrade,
-                        "TEMP diag: org subscriber handling PlanChanged"
-                    );
                     if organization.base.plan.as_ref() != Some(to) {
                         organization.base.plan = Some(*to);
                         changed = true;
