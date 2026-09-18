@@ -11,6 +11,7 @@
 		helpText?: string;
 		type?: 'text' | 'email' | 'password' | 'number';
 		disabled?: boolean;
+		autofocus?: boolean;
 	}
 
 	let {
@@ -21,14 +22,20 @@
 		required = false,
 		helpText = '',
 		type = 'text',
-		disabled = false
+		disabled = false,
+		autofocus = false
 	}: Props = $props();
 
 	let hasErrors = $derived(field.state.meta.isTouched && field.state.meta.errors.length > 0);
+
+	function focusOnMount(node: HTMLInputElement) {
+		if (autofocus) node.focus();
+	}
 </script>
 
 <FormField {label} {field} {required} {helpText} {id}>
 	<input
+		use:focusOnMount
 		{id}
 		{type}
 		value={field.state.value ?? ''}

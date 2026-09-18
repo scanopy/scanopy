@@ -120,7 +120,7 @@
 		try {
 			// Read values directly from form state to ensure we get current values
 			const currentPermissions = form.state.values.permissions;
-			const currentEmail = form.state.values.email;
+			const currentEmail = form.state.values.email.trim();
 
 			const result = await createInviteMutation.mutateAsync({
 				permissions: currentPermissions,

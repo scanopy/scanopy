@@ -199,6 +199,7 @@
 									{field}
 									placeholder={auth_enterYourEmail()}
 									required
+									autofocus
 								/>
 							{/snippet}
 						</form.Field>

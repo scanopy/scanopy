@@ -134,14 +134,15 @@
 	const emailChangeForm = createForm(() => ({
 		defaultValues: { currentPassword: '', newEmail: '' },
 		onSubmit: async ({ value }) => {
-			if (!value.newEmail) return;
+			const newEmail = value.newEmail.trim();
+			if (!newEmail) return;
 			emailChangeLoading = true;
 			try {
 				const { data } = await apiClient.POST('/api/auth/request-email-change', {
-					body: { current_password: value.currentPassword, new_email: value.newEmail }
+					body: { current_password: value.currentPassword, new_email: newEmail }
 				});
 				if (data?.success) {
-					pushSuccess(settings_account_verificationSentTo({ email: value.newEmail }));
+					pushSuccess(settings_account_verificationSentTo({ email: newEmail }));
 					emailChangeForm.reset({ currentPassword: '', newEmail: '' });
 					subView = 'main';
 				} else {

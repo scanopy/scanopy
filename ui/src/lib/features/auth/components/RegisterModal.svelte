@@ -302,6 +302,7 @@
 								{field}
 								placeholder={auth_enterYourEmail()}
 								required
+								autofocus
 							/>
 						{/snippet}
 					</form.Field>
@@ -351,7 +352,7 @@
 								}}
 							>
 								{#snippet children(confirmPasswordField)}
-									<Password {passwordField} {confirmPasswordField} required={true} />
+									<Password {passwordField} {confirmPasswordField} required={true} autofocus />
 								{/snippet}
 							</form.Field>
 						{/snippet}
