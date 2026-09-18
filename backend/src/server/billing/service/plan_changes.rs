@@ -1,5 +1,7 @@
 //! Payment-method & portal sessions, subscription status, plan changes, and invoice-payment failure handling.
 use super::*;
+use crate::server::shared::types::api::ValidationError;
+use strum::IntoDiscriminant;
 
 impl BillingService {
     /// Create a SetupIntent for the org's Stripe customer, returning its
@@ -320,6 +322,26 @@ impl BillingService {
             .clone()
             .ok_or_else(|| anyhow!("No Stripe customer ID"))?;
 
+        // An air-gapped key already minted runs to its own expiry whatever the
+        // cloud says, so dropping a tier under it would sell Standard while
+        // Plus caps keep working. The key cannot be surrendered early either:
+        // `switch_license_key_type` refuses to leave an air-gapped key before
+        // `license_paid_through`. So the tier waits for the same date.
+        if organization.base.license_key_type == Some(LicenseKeyType::Offline)
+            && is_tier_downgrade(organization.base.plan, target_plan)
+        {
+            let until = organization
+                .base
+                .license_paid_through
+                .map(|at| at.format("%B %-d, %Y").to_string())
+                .unwrap_or_else(|| "its expiry date".to_string());
+            return Err(ValidationError::new(format!(
+                "Your air-gapped license key runs until {until}. You can move to a lower plan \
+                 after that date. To avoid renewing at the current plan, cancel before then."
+            ))
+            .into());
+        }
+
         let base_price = self
             .get_price_from_lookup_key(target_plan.stripe_base_price_lookup_key())
             .await?
@@ -579,5 +601,53 @@ impl BillingService {
                 )
             })
             .ok_or_else(|| anyhow!("No active subscription found"))
+    }
+}
+
+/// Whether `target` sits below the org's current plan on its own ladder.
+///
+/// `PartialOrd for BillingPlanDiscriminants` keeps the self-hosted ladder
+/// (Community → Standard → Plus) separate from the cloud one and returns
+/// `None` across them, so a cloud switch is never a downgrade here.
+fn is_tier_downgrade(current: Option<BillingPlan>, target: BillingPlan) -> bool {
+    current.is_some_and(|current| target.discriminant() < current.discriminant())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::server::billing::plans::{
+        get_community_plan, get_free_plan, get_self_hosted_plus_plan, get_self_hosted_standard_plan,
+    };
+
+    #[test]
+    fn a_lower_self_hosted_tier_is_a_downgrade() {
+        assert!(is_tier_downgrade(
+            Some(get_self_hosted_plus_plan()),
+            get_self_hosted_standard_plan()
+        ));
+        assert!(is_tier_downgrade(
+            Some(get_self_hosted_standard_plan()),
+            get_community_plan()
+        ));
+    }
+
+    #[test]
+    fn upgrades_same_tier_and_other_ladders_are_not() {
+        assert!(!is_tier_downgrade(
+            Some(get_self_hosted_standard_plan()),
+            get_self_hosted_plus_plan()
+        ));
+        assert!(!is_tier_downgrade(
+            Some(get_self_hosted_plus_plan()),
+            get_self_hosted_plus_plan()
+        ));
+        // Cloud and self-hosted are incomparable, so moving between them is a
+        // switch rather than a downgrade.
+        assert!(!is_tier_downgrade(
+            Some(get_self_hosted_plus_plan()),
+            get_free_plan()
+        ));
+        assert!(!is_tier_downgrade(None, get_self_hosted_standard_plan()));
     }
 }

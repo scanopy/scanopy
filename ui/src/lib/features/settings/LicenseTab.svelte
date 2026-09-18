@@ -7,6 +7,7 @@
 		useCreateLicenseKeyMutation,
 		useCurrentLicenseKeyQuery,
 		useEndTrialMutation,
+		useInvoiceBillingStatusQuery,
 		useRotateLicenseKeyMutation
 	} from '$lib/features/billing/queries';
 	import { priceToCharge } from '$lib/features/billing/pricing';
@@ -46,6 +47,7 @@
 		settings_billing_changePlan,
 		settings_billing_license_addPaymentMethodSubtitle,
 		settings_billing_license_airGappedNeedsCard,
+		settings_billing_license_airGappedOpenInvoice,
 		settings_billing_license_airGappedPastDue,
 		settings_billing_license_keyLabel,
 		settings_billing_license_keyTypeChanged,
@@ -108,7 +110,15 @@
 	// A declined card stays attached, so `hasCard` on its own keeps the option
 	// live for an org whose payment just failed. The server would then refuse the
 	// mint after the switch had already retired their online key.
-	let airGappedAvailable = $derived(airGappedIncluded && hasCard && !isPastDue);
+	//
+	// An open invoice is the same story ahead of time: the server caps an
+	// air-gapped key at what has been paid for, so while one is outstanding
+	// there is nothing left to mint.
+	const invoiceBillingQuery = useInvoiceBillingStatusQuery(
+		() => billingEnabled && org != null && hasLicensedPlan(org)
+	);
+	let hasOpenInvoice = $derived(invoiceBillingQuery.data?.open_invoice != null);
+	let airGappedAvailable = $derived(airGappedIncluded && hasCard && !isPastDue && !hasOpenInvoice);
 	let missingCard = $derived(isMissingPaymentMethod(org, billingEnabled));
 	let chargeAmount = $derived(priceToCharge(org));
 
@@ -341,6 +351,10 @@
 							{:else if isPastDue}
 								<p class="text-secondary text-sm">
 									{settings_billing_license_airGappedPastDue()}
+								</p>
+							{:else if hasOpenInvoice}
+								<p class="text-secondary text-sm">
+									{settings_billing_license_airGappedOpenInvoice()}
 								</p>
 							{/if}
 

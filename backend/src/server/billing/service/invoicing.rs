@@ -320,6 +320,43 @@ impl BillingService {
         Ok(())
     }
 
+    /// Webhook: Stripe will raise a renewal invoice shortly. Published for
+    /// every plan; the email subscriber narrows it to the organizations that
+    /// need warning, which today means air-gapped licence holders whose server
+    /// never hears about a renewal by itself.
+    pub(crate) async fn handle_invoice_upcoming(
+        &self,
+        invoice: stripe_billing::Invoice,
+    ) -> Result<(), Error> {
+        let Some(organization) = self.get_org_from_invoice(&invoice).await? else {
+            tracing::debug!("No org found for invoice.upcoming — ignoring");
+            return Ok(());
+        };
+        let Some(plan) = organization.base.plan else {
+            return Ok(());
+        };
+        let snapshot = BillingInvoice::from(&invoice);
+        let renews_at = snapshot
+            .license_paid_through()
+            .or(organization.base.next_renewal_at)
+            .unwrap_or(snapshot.period_end);
+
+        self.event_bus
+            .publish(Event::new(
+                OrgScope {
+                    organization_id: organization.id,
+                },
+                BillingOperation::RenewalUpcoming {
+                    plan,
+                    renews_at,
+                    amount_cents: snapshot.total_cents(),
+                },
+                AuthenticatedEntity::System,
+            ))
+            .await?;
+        Ok(())
+    }
+
     /// Webhook: a sent invoice was voided or marked uncollectible, so it will
     /// never be paid.
     pub(crate) async fn handle_invoice_voided(

@@ -35,6 +35,17 @@ impl BillingService {
         // 'trialing'`, so the UI never brings a trialing user here; this
         // server-side gate enforces the same for direct API hits. Paused /
         // past_due / pending_cancellation / cancelled are also rejected.
+        // An air-gapped key keeps validating on the customer's own server for
+        // as long as it has left to run, so a pause here would freeze the
+        // billing and none of the access. Nothing can call that key back.
+        if organization.base.license_key_type == Some(LicenseKeyType::Offline) {
+            return Err(crate::server::shared::types::api::ValidationError::new(
+                "Pausing is not available while you hold an air-gapped license key, because the \
+                 key on your server keeps working until it expires.",
+            )
+            .into());
+        }
+
         if organization.base.plan_status != Some(PlanStatus::Active) {
             return Err(anyhow!(
                 "Subscription must be active to pause; current status: {}",

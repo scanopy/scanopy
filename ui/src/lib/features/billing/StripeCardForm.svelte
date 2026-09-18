@@ -26,7 +26,8 @@
 		email = undefined,
 		submitLabel = common_continue(),
 		onSuccess,
-		onCancel = undefined
+		onCancel = undefined,
+		altAction = null
 	}: {
 		/** Client secret from a backend-created SetupIntent. */
 		clientSecret: string;
@@ -42,6 +43,12 @@
 		 */
 		onSuccess: (setupIntentId: string) => void | Promise<void>;
 		onCancel?: () => void;
+		/**
+		 * A different way to pay, offered as a text link under the element.
+		 * Stripe's own tabs cover card and bank; anything Stripe does not
+		 * collect (invoice billing) belongs here rather than beside them.
+		 */
+		altAction?: { label: string; onclick: () => void } | null;
 	} = $props();
 
 	const configQuery = useConfigQuery();
@@ -165,6 +172,17 @@
 
 		{#if errorMessage}
 			<p class="text-sm text-red-400">{errorMessage}</p>
+		{/if}
+
+		{#if altAction && ready}
+			<button
+				type="button"
+				class="text-link text-sm hover:underline"
+				disabled={busy}
+				onclick={altAction.onclick}
+			>
+				{altAction.label}
+			</button>
 		{/if}
 	</div>
 
