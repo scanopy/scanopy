@@ -32,6 +32,7 @@
 		billing_invoice_poNumberHelp,
 		billing_invoice_sendNow,
 		billing_invoice_trialEnds,
+		billing_payByCard,
 		common_cancel,
 		common_processing
 	} from '$lib/paraglide/messages';
@@ -45,7 +46,8 @@
 		email = undefined,
 		isTrialing = false,
 		onDone,
-		onCancel
+		onCancel,
+		onPayByCard
 	}: {
 		/** Plan to invoice for, when the org has no live subscription. */
 		plan?: BillingPlan | null;
@@ -62,6 +64,8 @@
 		/** Called with the mode that succeeded. */
 		onDone: (mode: InvoiceBillingMode) => void | Promise<void>;
 		onCancel: () => void;
+		/** Back to Stripe's card and bank form. */
+		onPayByCard: () => void;
 	} = $props();
 
 	// Licensed self-hosted plans, annual rows only, from the same fixture the
@@ -308,6 +312,15 @@
 		{#if errorMessage}
 			<p class="text-sm text-red-400">{errorMessage}</p>
 		{/if}
+
+		<button
+			type="button"
+			class="text-link text-sm hover:underline"
+			disabled={busyMode != null}
+			onclick={onPayByCard}
+		>
+			{billing_payByCard()}
+		</button>
 	</div>
 
 	<div class="modal-footer flex flex-wrap items-center justify-end gap-3">

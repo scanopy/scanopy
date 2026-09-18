@@ -95,6 +95,11 @@ impl BillingService {
                     self.handle_invoice_paid(invoice).await?;
                 }
             }
+            EventType::InvoiceUpcoming => {
+                if let EventObject::InvoiceUpcoming(invoice) = event.data.object {
+                    self.handle_invoice_upcoming(invoice).await?;
+                }
+            }
             EventType::InvoiceFinalized => {
                 if let EventObject::InvoiceFinalized(invoice) = event.data.object {
                     self.handle_invoice_finalized(invoice).await?;

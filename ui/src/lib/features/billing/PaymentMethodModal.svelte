@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { CreditCard, FileText } from 'lucide-svelte';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
 	import StripeCardForm from '$lib/features/billing/StripeCardForm.svelte';
 	import InvoiceBillingForm from '$lib/features/billing/InvoiceBillingForm.svelte';
@@ -24,8 +23,7 @@
 		billing_invoice_quoteCreated,
 		billing_invoice_sent,
 		billing_paymentMethodAdded,
-		billing_paymentOptionCard,
-		common_invoice
+		billing_payByInvoice
 	} from '$lib/paraglide/messages';
 
 	type InvoiceBillingMode = components['schemas']['InvoiceBillingMode'];
@@ -57,16 +55,11 @@
 	// mid-flow, which drops the plan carried in modal state.
 	let needsPlanChoice = $derived(pendingPlan == null && !orgPlanLicensed);
 
-	// One step: the card form is up as soon as the dialog opens, and the invoice
-	// option sits beside it for the plans that can use it.
+	// Card and bank are Stripe's own tabs inside the Payment Element, which is up
+	// as soon as the dialog opens. Invoice is a text link under it.
 	type Method = 'card' | 'invoice';
 	let method = $state<Method>('card');
 	let clientSecret = $state<string | null>(null);
-
-	const methodOptions = $derived([
-		{ value: 'card', label: billing_paymentOptionCard(), icon: CreditCard },
-		{ value: 'invoice', label: common_invoice(), icon: FileText }
-	]);
 
 	// Opened from a tab inside Settings, this modal replaced Settings in the
 	// registry while Settings stayed on screen (a locked org's Settings can't
@@ -137,52 +130,31 @@
 	onClose={closeAndReturn}
 	onOpen={handleOpen}
 >
-	<div class="flex min-h-0 flex-1 flex-col">
-		{#if invoiceEligible}
-			<div class="flex gap-2 px-6 pt-6">
-				{#each methodOptions as option (option.value)}
-					{@const Icon = option.icon}
-					{@const selected = method === option.value}
-					<button
-						type="button"
-						class="card flex flex-1 items-center gap-3 p-3 text-left transition-all {selected
-							? 'ring-2 ring-primary-500'
-							: 'hover:bg-gray-100 dark:hover:bg-gray-800'}"
-						aria-pressed={selected}
-						onclick={() => {
-							method = option.value as Method;
-							if (method === 'card') void loadCardForm();
-						}}
-					>
-						<Icon class="text-secondary h-5 w-5 flex-shrink-0" />
-						<span class="text-primary text-sm font-medium">{option.label}</span>
-					</button>
-				{/each}
-			</div>
-		{/if}
-
-		{#if method === 'invoice'}
-			<InvoiceBillingForm
-				plan={pendingPlan}
-				{needsPlanChoice}
-				orgName={org?.name}
-				email={userEmail}
-				isTrialing={org?.plan_status === 'trialing'}
-				onDone={handleInvoiceDone}
-				onCancel={closeAndReturn}
-			/>
-		{:else if clientSecret}
-			<StripeCardForm
-				{clientSecret}
-				email={userEmail}
-				submitLabel={common_save()}
-				onSuccess={handleCardSuccess}
-				onCancel={closeAndReturn}
-			/>
-		{:else}
-			<div class="flex min-h-[12rem] items-center justify-center p-6">
-				<Loading />
-			</div>
-		{/if}
-	</div>
+	{#if method === 'invoice'}
+		<InvoiceBillingForm
+			plan={pendingPlan}
+			{needsPlanChoice}
+			orgName={org?.name}
+			email={userEmail}
+			isTrialing={org?.plan_status === 'trialing'}
+			onDone={handleInvoiceDone}
+			onCancel={closeAndReturn}
+			onPayByCard={() => (method = 'card')}
+		/>
+	{:else if clientSecret}
+		<StripeCardForm
+			{clientSecret}
+			email={userEmail}
+			submitLabel={common_save()}
+			onSuccess={handleCardSuccess}
+			onCancel={closeAndReturn}
+			altAction={invoiceEligible
+				? { label: billing_payByInvoice(), onclick: () => (method = 'invoice') }
+				: null}
+		/>
+	{:else}
+		<div class="flex min-h-[12rem] items-center justify-center p-6">
+			<Loading />
+		</div>
+	{/if}
 </GenericModal>

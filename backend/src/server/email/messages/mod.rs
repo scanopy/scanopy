@@ -6,6 +6,7 @@
 //! to edit. The producers ([`super::brevo`] / [`super::smtp`]) dispatch on
 //! `&dyn Email` and never need to know which concrete email they're sending.
 
+mod airgap_expiring;
 mod airgap_renewal;
 mod cancellation_initiated;
 mod checkout_completed;
@@ -45,6 +46,7 @@ mod trial_started;
 mod usage_summary;
 mod verification;
 
+pub use airgap_expiring::AirgapExpiring;
 pub use airgap_renewal::AirgapRenewal;
 pub use cancellation_initiated::CancellationInitiated;
 pub use checkout_completed::CheckoutCompleted;
@@ -559,6 +561,20 @@ mod tests {
             current_key_expires: "October 15, 2026",
             renewed_through: "October 1, 2027",
         });
+        assert_fully_rendered(&AirgapExpiring {
+            plan_name: "Self-Hosted Plus",
+            key_expires: "October 15, 2026",
+            renews_at: "October 1, 2026",
+            amount: "$6,000.00",
+            can_move_down: true,
+        });
+        assert_fully_rendered(&AirgapExpiring {
+            plan_name: "Self-Hosted Standard",
+            key_expires: "October 15, 2026",
+            renews_at: "October 1, 2026",
+            amount: "$4,000.00",
+            can_move_down: false,
+        });
         assert_fully_rendered(&SelfHostedPaymentFailed {
             key_expires: "October 1, 2026",
             air_gapped: true,
@@ -778,6 +794,26 @@ mod tests {
                 plan_name: "Self-Hosted Plus",
                 current_key_expires: "October 15, 2026",
                 renewed_through: "October 1, 2027",
+            },
+        );
+        f(
+            "airgap_expiring_can_move_down",
+            &AirgapExpiring {
+                plan_name: "Self-Hosted Plus",
+                key_expires: "October 15, 2026",
+                renews_at: "October 1, 2026",
+                amount: "$6,000.00",
+                can_move_down: true,
+            },
+        );
+        f(
+            "airgap_expiring",
+            &AirgapExpiring {
+                plan_name: "Self-Hosted Standard",
+                key_expires: "October 15, 2026",
+                renews_at: "October 1, 2026",
+                amount: "$4,000.00",
+                can_move_down: false,
             },
         );
         f(

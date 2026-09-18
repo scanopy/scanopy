@@ -46,6 +46,7 @@ impl Subscriber<BillingOperation> for EmailService {
             BillingOperationDiscriminants::PaymentRecovered,
             BillingOperationDiscriminants::PaymentSucceeded,
             BillingOperationDiscriminants::InvoiceIssued,
+            BillingOperationDiscriminants::RenewalUpcoming,
             BillingOperationDiscriminants::PaymentMethodAdded,
             BillingOperationDiscriminants::PaymentMethodRemoved,
             BillingOperationDiscriminants::CancellationInitiated,
@@ -183,6 +184,38 @@ impl Subscriber<BillingOperation> for EmailService {
                 } => {
                     self.send_payment_action_required_email(org_owner, hosted_invoice_url)
                         .await?;
+                }
+                BillingOperation::RenewalUpcoming {
+                    plan,
+                    renews_at,
+                    amount_cents,
+                } => {
+                    // Only air-gapped licence holders need this: an online key
+                    // picks the renewal up on its own, and a cloud customer
+                    // has nothing to copy. Their key stops at the paid-through
+                    // date plus the minting buffer.
+                    let organization = self
+                        .organization_service
+                        .get_by_id(&event.scope.organization_id)
+                        .await?;
+                    let air_gapped = organization.as_ref().is_some_and(|org| {
+                        org.base.license_key_type == Some(LicenseKeyType::Offline)
+                    });
+                    if plan.license_plan().is_some() && air_gapped {
+                        let key_expires = (renews_at
+                            + chrono::Duration::days(PAID_THROUGH_BUFFER_DAYS))
+                        .format("%B %-d, %Y")
+                        .to_string();
+                        self.send_airgap_expiring_email(
+                            org_owner,
+                            plan.name(),
+                            &key_expires,
+                            &renews_at.format("%B %-d, %Y").to_string(),
+                            &format_cents(amount_cents, "usd"),
+                            plan.previous_tier().is_some(),
+                        )
+                        .await?;
+                    }
                 }
                 BillingOperation::InvoiceIssued { invoice } => {
                     // Stripe mails the invoice itself; this one says what it

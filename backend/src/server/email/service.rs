@@ -9,14 +9,14 @@ use semver::Version;
 use uuid::Uuid;
 
 use super::messages::{
-    AirgapRenewal, CancellationInitiated, CheckoutCompleted, DaemonStandby, DaemonSunset,
-    DaemonUnreachable, DiscoveryDigest, DiscoveryGuide, Email, EmailAttachment, EmailChangedOld,
-    EmailPreference, InstallCommand, Invite, InvoiceIssued, OidcLinked, OidcUnlinked,
-    OrganizationDeleted, PasswordChanged, PasswordReset, PaymentActionRequired, PaymentFailed,
-    PaymentMethodAdded, PaymentMethodRemoved, PaymentRecovered, PlanChanged, PlanLimitApproaching,
-    PlanLimitReached, SelfHostedPaymentFailed, SelfHostedWelcome, SubscriptionCancelled,
-    SubscriptionPaused, SubscriptionReactivated, SubscriptionResumed, TrialConverted, TrialEnding,
-    TrialExpired, TrialStarted, UsageSummary, Verification,
+    AirgapExpiring, AirgapRenewal, CancellationInitiated, CheckoutCompleted, DaemonStandby,
+    DaemonSunset, DaemonUnreachable, DiscoveryDigest, DiscoveryGuide, Email, EmailAttachment,
+    EmailChangedOld, EmailPreference, InstallCommand, Invite, InvoiceIssued, OidcLinked,
+    OidcUnlinked, OrganizationDeleted, PasswordChanged, PasswordReset, PaymentActionRequired,
+    PaymentFailed, PaymentMethodAdded, PaymentMethodRemoved, PaymentRecovered, PlanChanged,
+    PlanLimitApproaching, PlanLimitReached, SelfHostedPaymentFailed, SelfHostedWelcome,
+    SubscriptionCancelled, SubscriptionPaused, SubscriptionReactivated, SubscriptionResumed,
+    TrialConverted, TrialEnding, TrialExpired, TrialStarted, UsageSummary, Verification,
 };
 use super::transport::EmailTransport;
 use crate::server::{
@@ -389,6 +389,31 @@ impl EmailService {
                 plan_name,
                 current_key_expires,
                 renewed_through,
+            },
+        )
+        .await
+    }
+
+    /// Warn an air-gapped organization before its renewal: the key on their
+    /// server is about to stop, and this is also when their plan becomes
+    /// changeable, since leaving an air-gapped key is refused until then.
+    pub async fn send_airgap_expiring_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        key_expires: &str,
+        renews_at: &str,
+        amount: &str,
+        can_move_down: bool,
+    ) -> Result<()> {
+        self.dispatch(
+            to,
+            &AirgapExpiring {
+                plan_name,
+                key_expires,
+                renews_at,
+                amount,
+                can_move_down,
             },
         )
         .await

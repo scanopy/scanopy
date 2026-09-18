@@ -180,8 +180,10 @@
 				return !lastDiscountAt && saveOfferCoupon != null;
 			}
 			// Non-discount offers (pause) freeze an active billing cycle; a
-			// trial isn't charging yet, so suppress them while trialing.
-			return !isTrialing;
+			// trial isn't charging yet, so suppress them while trialing. An
+			// air-gapped key keeps working right through a pause, so the server
+			// refuses one and the offer would be a dead end.
+			return !isTrialing && !holdsAirGappedKey;
 		});
 	});
 
