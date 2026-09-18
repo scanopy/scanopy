@@ -16,6 +16,7 @@
 	import EmailTab from './EmailTab.svelte';
 	import SystemTab from './SystemTab.svelte';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
+	import EmailVerificationBanner from '$lib/shared/components/feedback/EmailVerificationBanner.svelte';
 	import {
 		common_account,
 		common_billing,
@@ -169,6 +170,16 @@
 	{/snippet}
 
 	<div class="flex h-[calc(100vh-16rem)] flex-col">
+		{#if currentUser && !currentUser.email_verified}
+			<!-- The app's own verification banner lives on the main page, which a
+			     billing-locked org never reaches: this modal is forced open with no
+			     close button on top of it. Without this the user cannot resend the
+			     email and the account is stuck. Not gated on `dismissible`, since an
+			     unverified user has the same problem wherever they are. -->
+			<div class="shrink-0 px-6 pt-6">
+				<EmailVerificationBanner email={currentUser.email} />
+			</div>
+		{/if}
 		{#if !dismissible && !isOwner}
 			<!-- Billing-blocked org (past_due / paused / self-hosted plan): only an
 			     owner can see the Billing tab, so tell everyone else why they're held here. -->

@@ -82,6 +82,12 @@ impl Storable for Organization {
                     license_key_version,
                     license_key_issued_at,
                     license_key_type,
+                    // Computed on read from the two fields above, so it has no
+                    // column and nothing to write. Named rather than swallowed
+                    // by a `..` rest pattern: this destructuring is what forces
+                    // a decision about every new field, and a rest pattern
+                    // would silently drop the next one.
+                    air_gapped_key_current_until: _,
                 },
         } = self.clone();
 
@@ -175,7 +181,7 @@ impl Storable for Organization {
             .unwrap_or(None)
             .and_then(|v| serde_json::from_value(v).ok());
 
-        Ok(Organization {
+        let mut organization = Organization {
             id: row.get("id"),
             created_at: row.get("created_at"),
             updated_at: row.get("updated_at"),
@@ -227,8 +233,15 @@ impl Storable for Organization {
                     .ok()
                     .flatten()
                     .and_then(|s| s.parse::<LicenseKeyType>().ok()),
+                // Derived from the two fields above, never read from a column:
+                // `to_params` does not write it. Filled in below, because the
+                // rule lives on `Organization` rather than being copied here.
+                air_gapped_key_current_until: None,
             },
-        })
+        };
+        organization.base.air_gapped_key_current_until =
+            organization.air_gapped_key_current_until();
+        Ok(organization)
     }
 }
 

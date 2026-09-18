@@ -191,10 +191,8 @@ impl OrganizationService {
         // up. Until then the key already installed on their server keeps
         // working whatever we do here, so letting them switch would leave two
         // live keys and no way to retire the one that matters.
-        if organization.base.license_key_type == Some(LicenseKeyType::Offline)
-            && key_type == LicenseKeyType::Online
-            && let Some(paid_through) = organization.base.license_paid_through
-            && Utc::now() < paid_through
+        if key_type == LicenseKeyType::Online
+            && let Some(paid_through) = organization.air_gapped_key_current_until()
         {
             lock.release().await?;
             return Err(SwitchKeyTypeError::AirGappedStillCurrent { paid_through });

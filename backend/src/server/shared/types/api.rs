@@ -467,6 +467,16 @@ impl ApiError {
         )
     }
 
+    /// Conflict (409) - cannot change plan while an air-gapped key is current.
+    /// The key carries the plan it was issued for and validates offline, so
+    /// the organization is committed until the period it paid for ends.
+    pub fn air_gapped_plan_change_blocked(date: String) -> Self {
+        Self::coded(
+            StatusCode::CONFLICT,
+            ErrorCode::BillingAirGappedPlanChangeBlocked { date },
+        )
+    }
+
     // === Generic entity operations ===
 
     /// Forbidden (403) - access denied to entity
