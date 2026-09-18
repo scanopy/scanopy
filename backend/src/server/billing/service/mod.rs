@@ -40,6 +40,7 @@ use stripe_billing::subscription::CreateSubscriptionTrialSettingsEndBehaviorMiss
 use stripe_billing::subscription::DiscountsDataParam;
 use stripe_billing::subscription::ListSubscription;
 use stripe_billing::subscription::UpdateSubscription;
+use stripe_billing::subscription::UpdateSubscriptionBillingCycleAnchor;
 use stripe_billing::subscription::UpdateSubscriptionCancelAt;
 use stripe_billing::subscription::UpdateSubscriptionCancellationDetails;
 use stripe_billing::subscription::UpdateSubscriptionCancellationDetailsFeedback;

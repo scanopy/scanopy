@@ -11,12 +11,12 @@ use uuid::Uuid;
 use super::messages::{
     AirgapRenewal, CancellationInitiated, CheckoutCompleted, DaemonStandby, DaemonSunset,
     DaemonUnreachable, DiscoveryDigest, DiscoveryGuide, Email, EmailAttachment, EmailChangedOld,
-    EmailPreference, InstallCommand, Invite, OidcLinked, OidcUnlinked, OrganizationDeleted,
-    PasswordChanged, PasswordReset, PaymentActionRequired, PaymentFailed, PaymentMethodAdded,
-    PaymentMethodRemoved, PaymentRecovered, PlanChanged, PlanLimitApproaching, PlanLimitReached,
-    SelfHostedPaymentFailed, SelfHostedWelcome, SubscriptionCancelled, SubscriptionPaused,
-    SubscriptionReactivated, SubscriptionResumed, TrialConverted, TrialEnding, TrialExpired,
-    TrialStarted, UsageSummary, Verification,
+    EmailPreference, InstallCommand, Invite, InvoiceIssued, OidcLinked, OidcUnlinked,
+    OrganizationDeleted, PasswordChanged, PasswordReset, PaymentActionRequired, PaymentFailed,
+    PaymentMethodAdded, PaymentMethodRemoved, PaymentRecovered, PlanChanged, PlanLimitApproaching,
+    PlanLimitReached, SelfHostedPaymentFailed, SelfHostedWelcome, SubscriptionCancelled,
+    SubscriptionPaused, SubscriptionReactivated, SubscriptionResumed, TrialConverted, TrialEnding,
+    TrialExpired, TrialStarted, UsageSummary, Verification,
 };
 use super::transport::EmailTransport;
 use crate::server::{
@@ -420,6 +420,35 @@ impl EmailService {
         self.dispatch(
             to,
             &PaymentActionRequired {
+                cta_href: &cta_href,
+            },
+        )
+        .await
+    }
+
+    /// A sent invoice for a self-hosted licence was finalized. Stripe mails the
+    /// document; this says what it covers and that the licence keeps working
+    /// until it is paid.
+    pub async fn send_invoice_issued_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        invoice: &BillingInvoice,
+        po_number: Option<String>,
+    ) -> Result<()> {
+        let amount = format_cents(invoice.total_cents(), &invoice.currency);
+        let due_date = invoice.due_date.map(format_timestamp).unwrap_or_default();
+        let cta_href = invoice
+            .hosted_invoice_url
+            .clone()
+            .unwrap_or_else(|| format!("{}/?modal=settings&tab=billing", self.public_url));
+        self.dispatch(
+            to,
+            &InvoiceIssued {
+                plan_name,
+                amount: &amount,
+                due_date: &due_date,
+                po_number: po_number.as_deref(),
                 cta_href: &cta_href,
             },
         )

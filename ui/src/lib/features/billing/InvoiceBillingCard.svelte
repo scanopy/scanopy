@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Download, ExternalLink } from 'lucide-svelte';
+	import { Download } from 'lucide-svelte';
 	import { createForm } from '@tanstack/svelte-form';
 	import { submitForm } from '$lib/shared/components/forms/form-context';
 	import { max } from '$lib/shared/components/forms/validators';
@@ -14,19 +14,16 @@
 	import { pushSuccess } from '$lib/shared/stores/feedback';
 	import type { components } from '$lib/api/schema';
 	import {
-		billing_invoiceDue,
 		billing_invoice_acceptConfirm,
 		billing_invoice_acceptTitle,
 		billing_invoice_accepted,
 		billing_invoice_downloadQuote,
-		billing_invoice_dueOn,
 		billing_invoice_poNumber,
 		billing_invoice_poNumberHelp,
 		billing_invoice_poNumberUpdated,
 		billing_invoice_quoteBody,
 		billing_invoice_quoteCancelled,
 		billing_invoice_quoteTitle,
-		billing_invoice_viewAndPay,
 		common_cancel,
 		common_edit,
 		common_processing,
@@ -56,7 +53,6 @@
 		});
 	}
 
-	let openInvoice = $derived(status.open_invoice ?? null);
 	let quote = $derived(status.pending_quote ?? null);
 	let showPo = $derived(status.bills_by_invoice || quote != null || status.po_number != null);
 
@@ -109,36 +105,8 @@
 	}
 </script>
 
-{#if openInvoice || showPo}
+{#if showPo}
 	<dl class="grid grid-cols-[auto_1fr] items-center gap-x-6 gap-y-1 text-sm">
-		{#if openInvoice}
-			<dt class="text-secondary">{billing_invoiceDue()}</dt>
-			<dd class="text-primary flex flex-wrap items-center gap-x-3">
-				<span>
-					{openInvoice.due_date
-						? billing_invoice_dueOn({
-								amount: formatMoney(openInvoice.amount_due_cents, openInvoice.currency),
-								date: formatDate(openInvoice.due_date)
-							})
-						: formatMoney(openInvoice.amount_due_cents, openInvoice.currency)}
-				</span>
-				{#if openInvoice.hosted_invoice_url}
-					<!-- Stripe-hosted invoice page, outside the app. -->
-					<!-- eslint-disable svelte/no-navigation-without-resolve -->
-					<a
-						href={openInvoice.hosted_invoice_url}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="text-link inline-flex items-center gap-1 hover:underline"
-					>
-						{billing_invoice_viewAndPay()}
-						<ExternalLink class="h-3 w-3" />
-					</a>
-					<!-- eslint-enable svelte/no-navigation-without-resolve -->
-				{/if}
-			</dd>
-		{/if}
-
 		{#if showPo && !editingPo}
 			<dt class="text-secondary">{billing_invoice_poNumber()}</dt>
 			<dd class="text-primary flex items-center gap-3">

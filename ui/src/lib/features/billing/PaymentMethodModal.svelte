@@ -25,8 +25,6 @@
 		billing_invoice_sent,
 		billing_paymentMethodAdded,
 		billing_paymentOptionCard,
-		billing_paymentOptionCardDescription,
-		billing_paymentOptionInvoiceDescription,
 		common_invoice
 	} from '$lib/paraglide/messages';
 
@@ -47,14 +45,28 @@
 	let org = $derived(organizationQuery.data);
 
 	// Invoice billing is offered only on the self-hosted plans sold in the app.
-	let invoiceEligible = $derived.by(() => {
-		const type = pendingPlan?.type ?? org?.plan?.type ?? null;
-		return type != null && billingPlans.getMetadata(type).license_plan != null;
-	});
+	let orgPlanLicensed = $derived(
+		org?.plan?.type != null && billingPlans.getMetadata(org.plan.type).license_plan != null
+	);
+	let invoiceEligible = $derived(
+		(pendingPlan?.type != null &&
+			billingPlans.getMetadata(pendingPlan.type).license_plan != null) ||
+			orgPlanLicensed
+	);
+	// Nothing names the plan to invoice for: the form asks. Covers a reload
+	// mid-flow, which drops the plan carried in modal state.
+	let needsPlanChoice = $derived(pendingPlan == null && !orgPlanLicensed);
 
-	type View = 'choose' | 'card' | 'invoice';
-	let view = $state<View>('card');
+	// One step: the card form is up as soon as the dialog opens, and the invoice
+	// option sits beside it for the plans that can use it.
+	type Method = 'card' | 'invoice';
+	let method = $state<Method>('card');
 	let clientSecret = $state<string | null>(null);
+
+	const methodOptions = $derived([
+		{ value: 'card', label: billing_paymentOptionCard(), icon: CreditCard },
+		{ value: 'invoice', label: common_invoice(), icon: FileText }
+	]);
 
 	// Opened from a tab inside Settings, this modal replaced Settings in the
 	// registry while Settings stayed on screen (a locked org's Settings can't
@@ -70,30 +82,12 @@
 	}
 
 	function handleOpen() {
-		clientSecret = null;
-		if (invoiceEligible) {
-			view = 'choose';
-		} else {
-			void chooseCard();
-		}
+		method = 'card';
+		void loadCardForm();
 	}
 
-	async function chooseCard() {
-		// An org with no live subscription buys the plan through Stripe Checkout,
-		// which collects the card itself.
-		if (pendingPlan) {
-			const plan = pendingPlan;
-			closeModal();
-			try {
-				const result = await checkoutMutation.mutateAsync(plan);
-				if (result.startsWith('http')) window.location.href = result;
-			} catch {
-				// The mutation toasts the failure.
-			}
-			return;
-		}
-		view = 'card';
-		clientSecret = null;
+	async function loadCardForm() {
+		if (clientSecret != null) return;
 		try {
 			clientSecret = await setupIntentMutation.mutateAsync();
 		} catch {
@@ -104,6 +98,22 @@
 
 	async function handleCardSuccess(setupIntentId: string) {
 		await finalizeMutation.mutateAsync(setupIntentId);
+
+		// Buying a plan: the card is now on file, so the backend creates the
+		// subscription in place. It only returns a URL when Stripe still needs
+		// the customer (3D Secure), and then we follow it.
+		if (pendingPlan) {
+			const plan = pendingPlan;
+			closeAndReturn();
+			try {
+				const result = await checkoutMutation.mutateAsync(plan);
+				if (result.startsWith('http')) window.location.href = result;
+			} catch {
+				// The mutation toasts the failure.
+			}
+			return;
+		}
+
 		closeAndReturn();
 		// Converge once the webhook/finalize records the new payment method, then
 		// confirm to the user (mirrors the other billing flows' success cadence).
@@ -127,50 +137,52 @@
 	onClose={closeAndReturn}
 	onOpen={handleOpen}
 >
-	{#if view === 'choose'}
-		<div class="space-y-3 p-6">
-			<button
-				type="button"
-				class="card flex w-full items-center gap-4 p-4 text-left transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
-				onclick={chooseCard}
-			>
-				<CreditCard class="text-secondary h-5 w-5 flex-shrink-0" />
-				<div>
-					<div class="text-primary font-medium">{billing_paymentOptionCard()}</div>
-					<div class="text-secondary text-sm">{billing_paymentOptionCardDescription()}</div>
-				</div>
-			</button>
-			<button
-				type="button"
-				class="card flex w-full items-center gap-4 p-4 text-left transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
-				onclick={() => (view = 'invoice')}
-			>
-				<FileText class="text-secondary h-5 w-5 flex-shrink-0" />
-				<div>
-					<div class="text-primary font-medium">{common_invoice()}</div>
-					<div class="text-secondary text-sm">{billing_paymentOptionInvoiceDescription()}</div>
-				</div>
-			</button>
-		</div>
-	{:else if view === 'invoice'}
-		<InvoiceBillingForm
-			plan={pendingPlan}
-			email={userEmail}
-			isTrialing={org?.plan_status === 'trialing'}
-			onDone={handleInvoiceDone}
-			onBack={() => (view = 'choose')}
-		/>
-	{:else if clientSecret}
-		<StripeCardForm
-			{clientSecret}
-			email={userEmail}
-			submitLabel={common_save()}
-			onSuccess={handleCardSuccess}
-			onCancel={closeAndReturn}
-		/>
-	{:else}
-		<div class="flex min-h-[12rem] items-center justify-center p-6">
-			<Loading />
-		</div>
-	{/if}
+	<div class="flex min-h-0 flex-1 flex-col">
+		{#if invoiceEligible}
+			<div class="flex gap-2 px-6 pt-6">
+				{#each methodOptions as option (option.value)}
+					{@const Icon = option.icon}
+					{@const selected = method === option.value}
+					<button
+						type="button"
+						class="card flex flex-1 items-center gap-3 p-3 text-left transition-all {selected
+							? 'ring-2 ring-primary-500'
+							: 'hover:bg-gray-100 dark:hover:bg-gray-800'}"
+						aria-pressed={selected}
+						onclick={() => {
+							method = option.value as Method;
+							if (method === 'card') void loadCardForm();
+						}}
+					>
+						<Icon class="text-secondary h-5 w-5 flex-shrink-0" />
+						<span class="text-primary text-sm font-medium">{option.label}</span>
+					</button>
+				{/each}
+			</div>
+		{/if}
+
+		{#if method === 'invoice'}
+			<InvoiceBillingForm
+				plan={pendingPlan}
+				{needsPlanChoice}
+				orgName={org?.name}
+				email={userEmail}
+				isTrialing={org?.plan_status === 'trialing'}
+				onDone={handleInvoiceDone}
+				onCancel={closeAndReturn}
+			/>
+		{:else if clientSecret}
+			<StripeCardForm
+				{clientSecret}
+				email={userEmail}
+				submitLabel={common_save()}
+				onSuccess={handleCardSuccess}
+				onCancel={closeAndReturn}
+			/>
+		{:else}
+			<div class="flex min-h-[12rem] items-center justify-center p-6">
+				<Loading />
+			</div>
+		{/if}
+	</div>
 </GenericModal>

@@ -12,14 +12,17 @@
 		useCustomerPortalMutation,
 		useResumeSubscriptionMutation,
 		useReactivateSubscriptionMutation,
-		useExtendTrialMutation
+		useExtendTrialMutation,
+		useInvoiceBillingStatusQuery
 	} from '$lib/features/billing/queries';
 	import CancelSubscriptionModal from '$lib/features/billing/CancelSubscriptionModal.svelte';
+	import InvoiceBillingCard from '$lib/features/billing/InvoiceBillingCard.svelte';
 	import { renewalLabel } from '$lib/features/billing/renewal';
 	import { discountedPrice, saveOfferDiscount } from '$lib/features/billing/pricing';
 	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
 	import { useDashboardQuery } from '$lib/features/home/queries';
 	import {
+		billing_invoice_viewAndPay,
 		common_atLimit,
 		common_billingExtra,
 		common_billingUsage,
@@ -91,6 +94,13 @@
 	// reuse it here instead of re-counting users/networks/hosts independently.
 	const dashboardQuery = useDashboardQuery({ enabled: () => org != null && !isLicensedPlan });
 	let planUsage = $derived(dashboardQuery.data?.plan_usage);
+
+	// PO number, an open quote, and the link to an unpaid invoice. Self-hosted
+	// only: the endpoint refuses other plans, and a cloud org would pay for a
+	// Stripe round trip on every visit to this tab.
+	const invoiceBillingQuery = useInvoiceBillingStatusQuery(() => isLicensedPlan);
+	let invoiceBilling = $derived(invoiceBillingQuery.data ?? null);
+	let openInvoiceUrl = $derived(invoiceBilling?.open_invoice?.hosted_invoice_url ?? null);
 
 	// Customer portal mutation
 	const customerPortalMutation = useCustomerPortalMutation();
@@ -208,6 +218,12 @@
 		const items: ButtonMenuItem[] = [];
 		if (showChangePlanItem)
 			items.push({ label: settings_billing_changePlan(), onclick: openPlanPicker });
+		// The only in-app route to paying a sent invoice.
+		if (openInvoiceUrl)
+			items.push({
+				label: billing_invoice_viewAndPay(),
+				onclick: () => window.open(openInvoiceUrl, '_blank', 'noopener,noreferrer')
+			});
 		if (showPortalItem)
 			items.push({
 				label: settings_billing_paymentAndInvoices(),
@@ -538,6 +554,10 @@
 										</p>
 									</div>
 								</div>
+							{/if}
+
+							{#if invoiceBilling}
+								<InvoiceBillingCard status={invoiceBilling} />
 							{/if}
 
 							<!-- CTA section: one primary action; every ancillary action

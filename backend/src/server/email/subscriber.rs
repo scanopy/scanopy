@@ -45,6 +45,7 @@ impl Subscriber<BillingOperation> for EmailService {
             BillingOperationDiscriminants::PaymentActionRequired,
             BillingOperationDiscriminants::PaymentRecovered,
             BillingOperationDiscriminants::PaymentSucceeded,
+            BillingOperationDiscriminants::InvoiceIssued,
             BillingOperationDiscriminants::PaymentMethodAdded,
             BillingOperationDiscriminants::PaymentMethodRemoved,
             BillingOperationDiscriminants::CancellationInitiated,
@@ -182,6 +183,27 @@ impl Subscriber<BillingOperation> for EmailService {
                 } => {
                     self.send_payment_action_required_email(org_owner, hosted_invoice_url)
                         .await?;
+                }
+                BillingOperation::InvoiceIssued { invoice } => {
+                    // Stripe mails the invoice itself; this one says what it
+                    // covers and that the licence keeps working meanwhile.
+                    // Guarded on a due date so only a sent invoice qualifies.
+                    if invoice.due_date.is_some() {
+                        let plan_name = self
+                            .organization_service
+                            .get_by_id(&event.scope.organization_id)
+                            .await?
+                            .and_then(|org| org.base.plan)
+                            .map(|plan| plan.name())
+                            .unwrap_or("Scanopy");
+                        self.send_invoice_issued_email(
+                            org_owner,
+                            plan_name,
+                            &invoice,
+                            invoice.po_number.clone(),
+                        )
+                        .await?;
+                    }
                 }
                 BillingOperation::PaymentSucceeded {
                     invoice,
