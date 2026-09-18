@@ -12656,19 +12656,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-17T22:15:34.587415Z",
+              "created_at": "2026-09-18T11:15:21.744093Z",
               "first_discovery_id": null,
-              "id": "c7c95218-0340-4c4b-830f-36bcbfb52135",
+              "id": "1ac3aec2-a978-47d1-8437-0edb5d361b77",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-17T22:15:34.587415Z",
+              "last_seen_at": "2026-09-18T11:15:21.744093Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-17T22:15:34.587415Z",
-              "valid_from": "2026-09-17T22:15:34.587415Z",
+              "updated_at": "2026-09-18T11:15:21.744093Z",
+              "valid_from": "2026-09-18T11:15:21.744093Z",
               "valid_to": null
             }
           },
@@ -14159,19 +14159,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-17T22:15:34.566207Z",
+                      "created_at": "2026-09-18T11:15:21.722596Z",
                       "first_discovery_id": null,
-                      "id": "39b04148-a7bb-4bdf-af09-80fe5274a8ff",
+                      "id": "1bafec38-a12f-4d96-8d50-43cdafdc882f",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-17T22:15:34.566207Z",
+                      "last_seen_at": "2026-09-18T11:15:21.722596Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-17T22:15:34.566207Z",
-                      "valid_from": "2026-09-17T22:15:34.566207Z",
+                      "updated_at": "2026-09-18T11:15:21.722596Z",
+                      "valid_from": "2026-09-18T11:15:21.722596Z",
                       "valid_to": null
                     }
                   ],
@@ -14185,7 +14185,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Paperless-NGX",
+                  "service_definition": "Asterisk",
                   "source": {
                     "type": "Manual"
                   },
@@ -15548,19 +15548,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-17T22:15:34.582875Z",
+                  "created_at": "2026-09-18T11:15:21.738989Z",
                   "first_discovery_id": null,
-                  "id": "b7150a60-75e5-4759-a73d-8c5498d88ed0",
+                  "id": "893ff777-1185-4a49-9084-27472cd3311c",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-17T22:15:34.582875Z",
+                  "last_seen_at": "2026-09-18T11:15:21.738989Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-17T22:15:34.582875Z",
-                  "valid_from": "2026-09-17T22:15:34.582875Z",
+                  "updated_at": "2026-09-18T11:15:21.738989Z",
+                  "valid_from": "2026-09-18T11:15:21.738989Z",
                   "valid_to": null
                 }
               ],
@@ -15574,7 +15574,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Paperless-NGX",
+              "service_definition": "Asterisk",
               "source": {
                 "type": "Manual"
               },
@@ -17829,19 +17829,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-17T22:15:34.566663Z",
+          "created_at": "2026-09-18T11:15:21.723106Z",
           "first_discovery_id": null,
-          "id": "8be8290c-b01d-42c6-a621-b642724d74dd",
+          "id": "4e5e9d63-3d0a-42c6-866c-bf9a9afda63c",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-17T22:15:34.566663Z",
+          "last_seen_at": "2026-09-18T11:15:21.723106Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-17T22:15:34.566663Z",
-          "valid_from": "2026-09-17T22:15:34.566663Z",
+          "updated_at": "2026-09-18T11:15:21.723106Z",
+          "valid_from": "2026-09-18T11:15:21.723106Z",
           "valid_to": null
         }
       },
@@ -18536,7 +18536,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Paperless-NGX",
+              "service_definition": "Asterisk",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -23920,19 +23920,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-17T22:15:34.565526Z",
+                  "created_at": "2026-09-18T11:15:21.722056Z",
                   "first_discovery_id": null,
-                  "id": "0e244bbb-8423-4c2e-b2b9-71ff00d654cc",
+                  "id": "d5356a94-acb1-4ee4-9bc1-869d448caea0",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-17T22:15:34.565526Z",
+                  "last_seen_at": "2026-09-18T11:15:21.722056Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-17T22:15:34.565526Z",
-                  "valid_from": "2026-09-17T22:15:34.565526Z",
+                  "updated_at": "2026-09-18T11:15:21.722056Z",
+                  "valid_from": "2026-09-18T11:15:21.722056Z",
                   "valid_to": null
                 }
               ],
@@ -23946,7 +23946,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Paperless-NGX",
+              "service_definition": "Asterisk",
               "source": {
                 "type": "Manual"
               },
@@ -26646,6 +26646,11 @@
           "onboarding"
         ],
         "properties": {
+          "bills_by_invoice": {
+            "type": "boolean",
+            "description": "Whether the subscription is billed by sent invoice, against a purchase\norder. Such an org has no card, so this is the other half of \"can this\norg pay?\" — see [`Organization::can_pay`].",
+            "readOnly": true
+          },
           "discount_save_offer_active_until": {
             "type": [
               "string",
@@ -26666,7 +26671,7 @@
           },
           "has_payment_method": {
             "type": "boolean",
-            "description": "Whether the org has a way to pay: a payment method on file, or its\nsubscription is billed by sent invoice.",
+            "description": "Whether a payment method is on file.",
             "readOnly": true
           },
           "last_discount_at": {
@@ -27598,19 +27603,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-17T22:15:34.553698Z",
+                        "created_at": "2026-09-18T11:15:21.711839Z",
                         "first_discovery_id": null,
-                        "id": "36f3fd0c-cdfd-45b6-adc4-18b21bd9a9ae",
+                        "id": "e1367244-da6d-4a9d-ad24-6cf18384f634",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-17T22:15:34.553698Z",
+                        "last_seen_at": "2026-09-18T11:15:21.711839Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-17T22:15:34.553698Z",
-                        "valid_from": "2026-09-17T22:15:34.553698Z",
+                        "updated_at": "2026-09-18T11:15:21.711839Z",
+                        "valid_from": "2026-09-18T11:15:21.711839Z",
                         "valid_to": null
                       }
                     ],
@@ -27624,7 +27629,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Paperless-NGX",
+                    "service_definition": "Asterisk",
                     "source": {
                       "type": "Manual"
                     },
@@ -27767,19 +27772,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-17T22:15:34.582020Z",
+                    "created_at": "2026-09-18T11:15:21.738004Z",
                     "first_discovery_id": null,
-                    "id": "117c79b4-303d-4268-9ccc-ee0212bb9243",
+                    "id": "ef853027-cf92-4416-85ad-bc7a66f56d70",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-17T22:15:34.582020Z",
+                    "last_seen_at": "2026-09-18T11:15:21.738004Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-17T22:15:34.582020Z",
-                    "valid_from": "2026-09-17T22:15:34.582020Z",
+                    "updated_at": "2026-09-18T11:15:21.738004Z",
+                    "valid_from": "2026-09-18T11:15:21.738004Z",
                     "valid_to": null
                   }
                 ],
@@ -27793,7 +27798,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Paperless-NGX",
+                "service_definition": "Asterisk",
                 "source": {
                   "type": "Manual"
                 },
@@ -29918,19 +29923,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-17T22:15:34.566517Z",
+              "created_at": "2026-09-18T11:15:21.722960Z",
               "first_discovery_id": null,
-              "id": "3e6b0319-3a77-4d07-91c7-9bc4a490c115",
+              "id": "17cab6e0-3db2-47d9-8564-f66424191074",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-17T22:15:34.566517Z",
+              "last_seen_at": "2026-09-18T11:15:21.722960Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-17T22:15:34.566517Z",
-              "valid_from": "2026-09-17T22:15:34.566517Z",
+              "updated_at": "2026-09-18T11:15:21.722960Z",
+              "valid_from": "2026-09-18T11:15:21.722960Z",
               "valid_to": null
             }
           ],
@@ -29944,7 +29949,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Paperless-NGX",
+          "service_definition": "Asterisk",
           "source": {
             "type": "Manual"
           },
@@ -31265,7 +31270,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "c299313b-b46c-4f56-b643-c2fe37ef55f5",
+                  "id": "5053aa05-831a-4c9c-b01b-8a1b27b8f9d6",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -31275,23 +31280,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "5b66bfeb-36f5-4860-bc7f-1f7c868c318a",
+                  "id": "344a047e-98f9-4510-9bac-bab1a641e3c1",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "e244dcca-31d2-45e6-9d28-a7ac86cabb9f",
+                  "id": "0c72cd26-e9a9-4b91-8d3a-2154506f414a",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "15e0506d-f91d-4258-967b-4549d4605d39",
+                  "id": "e1102dba-2d87-4bdc-ba62-0c0789fffa66",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "5b66bfeb-36f5-4860-bc7f-1f7c868c318a",
+                  "id": "344a047e-98f9-4510-9bac-bab1a641e3c1",
                   "rule": "ByHost"
                 }
               ]
@@ -31321,19 +31326,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "9bf73a6c-243c-42fd-b190-eacb7c5a4a11",
+                "id": "f6704a57-f798-4739-ac6f-55d5a8788b47",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "f6bd3426-dd26-48a9-936f-19d6b074402e",
+                "id": "1b2137b0-b80c-4d09-bf56-17653d6d9a1c",
                 "rule": "ByVLAN"
               },
               {
-                "id": "02f40e33-1644-4a94-b31e-c122b9bb3c72",
+                "id": "71f2c566-7140-416b-a028-9036783f49b5",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "e3c8a7e9-466e-4df2-8b54-ed561779350b",
+                "id": "25d47099-c598-4a7d-a5a5-d4462246e056",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -31351,7 +31356,7 @@
                 }
               },
               {
-                "id": "26ec758c-3c7d-4ca7-9c26-6a1a8386de6b",
+                "id": "0b36b830-6fca-4b12-a543-724f8f87228d",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -31360,15 +31365,15 @@
                 }
               },
               {
-                "id": "f8ab1270-1cc7-4f4f-8ed7-18089e98d07a",
+                "id": "46f651fc-07c8-4c4f-8e1e-95205da28578",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "62bc0cc6-6c2e-4a9b-b4c2-86455a8d694e",
+                "id": "23b78b9d-650f-4a73-8886-192f8af87967",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "dcc1d30a-abcc-4382-9088-6d58b9bf2e2e",
+                "id": "0b371827-6e86-4e24-9608-8db88ac24f64",
                 "rule": "ByStack"
               }
             ]
