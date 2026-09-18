@@ -15422,19 +15422,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-18T16:44:38.850722Z",
+              "created_at": "2026-09-18T23:37:34.461631Z",
               "first_discovery_id": null,
-              "id": "15964f78-6202-4ea4-893a-57824e40e58a",
+              "id": "4c5944eb-6982-4ace-99bf-e05c24a43839",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-18T16:44:38.850722Z",
+              "last_seen_at": "2026-09-18T23:37:34.461631Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-18T16:44:38.850722Z",
-              "valid_from": "2026-09-18T16:44:38.850722Z",
+              "updated_at": "2026-09-18T23:37:34.461631Z",
+              "valid_from": "2026-09-18T23:37:34.461631Z",
               "valid_to": null
             }
           },
@@ -16925,19 +16925,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-18T16:44:38.824761Z",
+                      "created_at": "2026-09-18T23:37:34.439769Z",
                       "first_discovery_id": null,
-                      "id": "5f28ee18-3e32-43a9-90e1-0b32d41ab8e1",
+                      "id": "1f665504-1010-4277-829d-3f20e5a42e39",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-18T16:44:38.824761Z",
+                      "last_seen_at": "2026-09-18T23:37:34.439769Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-18T16:44:38.824761Z",
-                      "valid_from": "2026-09-18T16:44:38.824761Z",
+                      "updated_at": "2026-09-18T23:37:34.439769Z",
+                      "valid_from": "2026-09-18T23:37:34.439769Z",
                       "valid_to": null
                     }
                   ],
@@ -16951,7 +16951,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Lubelogger",
+                  "service_definition": "Docmost",
                   "source": {
                     "type": "Manual"
                   },
@@ -18314,19 +18314,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-18T16:44:38.844935Z",
+                  "created_at": "2026-09-18T23:37:34.456295Z",
                   "first_discovery_id": null,
-                  "id": "c6cd93d5-e9c0-4952-b34f-8cbaea2fb135",
+                  "id": "60c801b2-d72c-4736-9668-de0c6df269df",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-18T16:44:38.844935Z",
+                  "last_seen_at": "2026-09-18T23:37:34.456295Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-18T16:44:38.844935Z",
-                  "valid_from": "2026-09-18T16:44:38.844935Z",
+                  "updated_at": "2026-09-18T23:37:34.456295Z",
+                  "valid_from": "2026-09-18T23:37:34.456295Z",
                   "valid_to": null
                 }
               ],
@@ -18340,7 +18340,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Lubelogger",
+              "service_definition": "Docmost",
               "source": {
                 "type": "Manual"
               },
@@ -20595,19 +20595,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-18T16:44:38.825492Z",
+          "created_at": "2026-09-18T23:37:34.440244Z",
           "first_discovery_id": null,
-          "id": "bf04bdb4-a583-4a82-8eb6-11cb2b10cf34",
+          "id": "af3d641d-8af6-48ff-a0bd-6657527e7821",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-18T16:44:38.825492Z",
+          "last_seen_at": "2026-09-18T23:37:34.440244Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-18T16:44:38.825492Z",
-          "valid_from": "2026-09-18T16:44:38.825492Z",
+          "updated_at": "2026-09-18T23:37:34.440244Z",
+          "valid_from": "2026-09-18T23:37:34.440244Z",
           "valid_to": null
         }
       },
@@ -21302,7 +21302,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Lubelogger",
+              "service_definition": "Docmost",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -26686,19 +26686,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-18T16:44:38.823958Z",
+                  "created_at": "2026-09-18T23:37:34.439244Z",
                   "first_discovery_id": null,
-                  "id": "ab037907-d92a-4dab-9c81-5e5820d1ebd3",
+                  "id": "713fc88a-089c-4430-84f1-9ccce15b7243",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-18T16:44:38.823958Z",
+                  "last_seen_at": "2026-09-18T23:37:34.439244Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-18T16:44:38.823958Z",
-                  "valid_from": "2026-09-18T16:44:38.823958Z",
+                  "updated_at": "2026-09-18T23:37:34.439244Z",
+                  "valid_from": "2026-09-18T23:37:34.439244Z",
                   "valid_to": null
                 }
               ],
@@ -26712,7 +26712,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Lubelogger",
+              "service_definition": "Docmost",
               "source": {
                 "type": "Manual"
               },
@@ -29412,6 +29412,15 @@
           "onboarding"
         ],
         "properties": {
+          "air_gapped_key_current_until": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "The date this org's air-gapped key stays current until, or `None` when\nit holds an online key or that date has passed.\n\nComputed on read from `license_key_type` and `license_paid_through`,\nnever stored. It carries the one fact the UI needs, that the org cannot\nchange plan yet, without exposing `license_key_type`, which stays\ninternal. See [`Organization::air_gapped_key_current_until`].",
+            "readOnly": true
+          },
           "bills_by_invoice": {
             "type": "boolean",
             "description": "Whether the subscription is billed by sent invoice, against a purchase\norder. Such an org has no card, so this is the other half of \"can this\norg pay?\" — see [`Organization::can_pay`].",
@@ -30369,19 +30378,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-18T16:44:38.806876Z",
+                        "created_at": "2026-09-18T23:37:34.429231Z",
                         "first_discovery_id": null,
-                        "id": "2d08537a-a487-497a-b8ee-a8eeba040611",
+                        "id": "bbb0438e-2512-47b3-b8b7-de671c7b66d7",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-18T16:44:38.806876Z",
+                        "last_seen_at": "2026-09-18T23:37:34.429231Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-18T16:44:38.806876Z",
-                        "valid_from": "2026-09-18T16:44:38.806876Z",
+                        "updated_at": "2026-09-18T23:37:34.429231Z",
+                        "valid_from": "2026-09-18T23:37:34.429231Z",
                         "valid_to": null
                       }
                     ],
@@ -30395,7 +30404,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Lubelogger",
+                    "service_definition": "Docmost",
                     "source": {
                       "type": "Manual"
                     },
@@ -30538,19 +30547,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-18T16:44:38.843883Z",
+                    "created_at": "2026-09-18T23:37:34.455349Z",
                     "first_discovery_id": null,
-                    "id": "4817f3cc-0de4-43a8-957f-3a120942b23d",
+                    "id": "2ea7c04e-5f59-49ef-9f23-70b5687a1697",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-18T16:44:38.843883Z",
+                    "last_seen_at": "2026-09-18T23:37:34.455349Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-18T16:44:38.843883Z",
-                    "valid_from": "2026-09-18T16:44:38.843883Z",
+                    "updated_at": "2026-09-18T23:37:34.455349Z",
+                    "valid_from": "2026-09-18T23:37:34.455349Z",
                     "valid_to": null
                   }
                 ],
@@ -30564,7 +30573,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Lubelogger",
+                "service_definition": "Docmost",
                 "source": {
                   "type": "Manual"
                 },
@@ -32689,19 +32698,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-18T16:44:38.825270Z",
+              "created_at": "2026-09-18T23:37:34.440099Z",
               "first_discovery_id": null,
-              "id": "a04b279f-2907-4248-aa34-09d2bffcfd74",
+              "id": "cca0730c-93b5-4061-a2a7-c926884822cd",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-18T16:44:38.825270Z",
+              "last_seen_at": "2026-09-18T23:37:34.440099Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-18T16:44:38.825270Z",
-              "valid_from": "2026-09-18T16:44:38.825270Z",
+              "updated_at": "2026-09-18T23:37:34.440099Z",
+              "valid_from": "2026-09-18T23:37:34.440099Z",
               "valid_to": null
             }
           ],
@@ -32715,7 +32724,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Lubelogger",
+          "service_definition": "Docmost",
           "source": {
             "type": "Manual"
           },
@@ -34036,7 +34045,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "3faf1b13-1977-49c9-933c-d7d291961e16",
+                  "id": "5e7fad95-f758-4f18-ac77-03f1b46d7ce0",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -34046,23 +34055,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "0035d069-ab0f-4d8f-8f38-d04b0f5b63dc",
+                  "id": "af7b9309-c165-4cae-95e6-b5f2da501030",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "884db938-f86b-4e21-af83-c536a2f87661",
+                  "id": "13b9cde6-c9bf-414e-8826-49883d00f3d7",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "1f36960c-3bab-47ea-ad76-9743bda74a60",
+                  "id": "7d9c02e4-e7f8-4da4-b878-ba195637a10c",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "0035d069-ab0f-4d8f-8f38-d04b0f5b63dc",
+                  "id": "af7b9309-c165-4cae-95e6-b5f2da501030",
                   "rule": "ByHost"
                 }
               ]
@@ -34092,19 +34101,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "e8cfccd6-2a24-4554-ae01-9a7c7d786971",
+                "id": "cd6802d9-5c8f-4ea5-b345-99dfa01b6141",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "024bdc3b-4513-4de1-8e67-badc29983a18",
+                "id": "a3d06a14-ab92-4024-a215-4faae620ac9f",
                 "rule": "ByVLAN"
               },
               {
-                "id": "c648a532-f52c-4efc-b355-e4895f5905de",
+                "id": "6c5b0cbb-b8a5-4868-8bfc-adebf2efbc55",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "4e622ca7-90b2-4e6c-b913-2100c040af84",
+                "id": "12e9b431-e788-4467-abf9-f98e76d16c72",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -34122,7 +34131,7 @@
                 }
               },
               {
-                "id": "414eebfb-4681-41a5-b863-c3d0724190cb",
+                "id": "49c44dcb-25e2-4da7-a7e1-e17ca8306047",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -34131,15 +34140,15 @@
                 }
               },
               {
-                "id": "4440cfb8-8eb1-4adc-bdf6-ccbceb9b7e0d",
+                "id": "1ab9f593-1e5f-4d39-90d9-946c9f26c732",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "187cf5f7-36d5-4d37-9fdb-5229aec47b56",
+                "id": "9a06c0b8-49d7-45ce-9e44-1f4b1b8780c5",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "47729b32-520b-4125-a665-cd4bf2070fe0",
+                "id": "c9ceb2c9-6d92-4f9f-8ade-e3d3f8a9b5be",
                 "rule": "ByStack"
               }
             ]
