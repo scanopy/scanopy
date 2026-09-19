@@ -73,7 +73,10 @@
 </script>
 
 <!-- Toast Container -->
-<div class="pointer-events-none fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+<!-- Above the modal band. Modals are also z-50 and the billing modal is rendered
+     last on the page, so an equal z-index left toasts painted behind it by DOM
+     order. Fixed here rather than by reordering, because four routes mount this. -->
+<div class="pointer-events-none fixed bottom-4 right-4 z-[100] flex flex-col gap-2">
 	{#each toasts as toast (toast.id)}
 		{@const colors = getToastColors(toast.type)}
 		{@const IconComponent = getToastIcon(toast.type)}

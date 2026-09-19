@@ -52,6 +52,7 @@
 		name = undefined,
 		entityId = undefined,
 		headerIcon,
+		banners,
 		children,
 		footer
 	}: {
@@ -83,6 +84,13 @@
 		name?: string;
 		entityId?: string;
 		headerIcon?: Snippet;
+		/**
+		 * Rendered inside the panel frame, above the title. Opt-in: this component
+		 * backs the login, register and share-password modals too, and app banners
+		 * have no business over those. Only a modal that gates the app behind it
+		 * passes this.
+		 */
+		banners?: Snippet;
 		children?: Snippet<[number]>;
 		footer?: Snippet;
 	} = $props();
@@ -263,6 +271,14 @@
 				>
 					<X class="h-5 w-5" />
 				</button>
+			{/if}
+			{#if banners}
+				<!-- Clipped here rather than by putting overflow-hidden on the panel,
+				     which ~42 modals share: AppBanner is full-bleed with square corners
+				     and the panel is rounded. -->
+				<div class="shrink-0 overflow-hidden rounded-t-lg">
+					{@render banners()}
+				</div>
 			{/if}
 			<!-- Header (hidden when no title, no close button, and no tabs) -->
 			{#if title || showCloseButton || tabs.length > 0}

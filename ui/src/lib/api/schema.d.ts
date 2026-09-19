@@ -566,7 +566,8 @@ export interface paths {
         /**
          * Accept the open quote
          * @description Stripe creates the invoiced subscription from the quote and sends the
-         *     first invoice, carrying the purchase order number if one is given.
+         *     first invoice, carrying whatever purchase order number the billing account
+         *     holds (set through `PUT /po-number`).
          */
         post: operations["accept_quote"];
         delete?: never;
@@ -3389,11 +3390,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** @description Accept the open quote. */
-        AcceptQuoteRequest: {
-            /** @description Purchase order raised against the quote, printed on the invoice. */
-            po_number?: string | null;
-        };
         /** @description Error response type for API errors (no data field) */
         ApiErrorResponse: {
             /** @description Machine-readable error code for i18n translation */
@@ -3442,19 +3438,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-18T23:37:34.461631Z",
+             *       "created_at": "2026-09-19T01:12:50.932717Z",
              *       "first_discovery_id": null,
-             *       "id": "4c5944eb-6982-4ace-99bf-e05c24a43839",
+             *       "id": "d353cb49-dd14-459b-9959-476e3bb2a75e",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-18T23:37:34.461631Z",
+             *       "last_seen_at": "2026-09-19T01:12:50.932717Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-18T23:37:34.461631Z",
-             *       "valid_from": "2026-09-18T23:37:34.461631Z",
+             *       "updated_at": "2026-09-19T01:12:50.932717Z",
+             *       "valid_from": "2026-09-19T01:12:50.932717Z",
              *       "valid_to": null
              *     }
              */
@@ -4115,19 +4111,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-18T23:37:34.439769Z",
+             *               "created_at": "2026-09-19T01:12:50.911811Z",
              *               "first_discovery_id": null,
-             *               "id": "1f665504-1010-4277-829d-3f20e5a42e39",
+             *               "id": "4f3667a6-8412-4407-b9af-97acb8435119",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-18T23:37:34.439769Z",
+             *               "last_seen_at": "2026-09-19T01:12:50.911811Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-18T23:37:34.439769Z",
-             *               "valid_from": "2026-09-18T23:37:34.439769Z",
+             *               "updated_at": "2026-09-19T01:12:50.911811Z",
+             *               "valid_from": "2026-09-19T01:12:50.911811Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4141,7 +4137,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Docmost",
+             *           "service_definition": "Proxmox Datacenter Manager",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4934,19 +4930,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-18T23:37:34.456295Z",
+             *           "created_at": "2026-09-19T01:12:50.927656Z",
              *           "first_discovery_id": null,
-             *           "id": "60c801b2-d72c-4736-9668-de0c6df269df",
+             *           "id": "2a175c6c-882f-4a64-8a2a-d6abc5b81036",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-18T23:37:34.456295Z",
+             *           "last_seen_at": "2026-09-19T01:12:50.927656Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-18T23:37:34.456295Z",
-             *           "valid_from": "2026-09-18T23:37:34.456295Z",
+             *           "updated_at": "2026-09-19T01:12:50.927656Z",
+             *           "valid_from": "2026-09-19T01:12:50.927656Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -4960,7 +4956,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Docmost",
+             *       "service_definition": "Proxmox Datacenter Manager",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -5825,19 +5821,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-18T23:37:34.440244Z",
+         *       "created_at": "2026-09-19T01:12:50.912286Z",
          *       "first_discovery_id": null,
-         *       "id": "af3d641d-8af6-48ff-a0bd-6657527e7821",
+         *       "id": "01615c59-2f98-462e-8d7d-b34bf3060f05",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-18T23:37:34.440244Z",
+         *       "last_seen_at": "2026-09-19T01:12:50.912286Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-18T23:37:34.440244Z",
-         *       "valid_from": "2026-09-18T23:37:34.440244Z",
+         *       "updated_at": "2026-09-19T01:12:50.912286Z",
+         *       "valid_from": "2026-09-19T01:12:50.912286Z",
          *       "valid_to": null
          *     }
          */
@@ -6151,7 +6147,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Docmost",
+         *           "service_definition": "Proxmox Datacenter Manager",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8323,19 +8319,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-18T23:37:34.439244Z",
+         *               "created_at": "2026-09-19T01:12:50.911282Z",
          *               "first_discovery_id": null,
-         *               "id": "713fc88a-089c-4430-84f1-9ccce15b7243",
+         *               "id": "c76f949c-0a7e-4357-b73e-b466fba4b923",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-18T23:37:34.439244Z",
+         *               "last_seen_at": "2026-09-19T01:12:50.911282Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-18T23:37:34.439244Z",
-         *               "valid_from": "2026-09-18T23:37:34.439244Z",
+         *               "updated_at": "2026-09-19T01:12:50.911282Z",
+         *               "valid_from": "2026-09-19T01:12:50.911282Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8349,7 +8345,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Docmost",
+         *           "service_definition": "Proxmox Datacenter Manager",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -11315,19 +11311,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-18T23:37:34.440099Z",
+         *           "created_at": "2026-09-19T01:12:50.912137Z",
          *           "first_discovery_id": null,
-         *           "id": "cca0730c-93b5-4061-a2a7-c926884822cd",
+         *           "id": "979f039c-1879-425c-95eb-ad98878efcc3",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-18T23:37:34.440099Z",
+         *           "last_seen_at": "2026-09-19T01:12:50.912137Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-18T23:37:34.440099Z",
-         *           "valid_from": "2026-09-18T23:37:34.440099Z",
+         *           "updated_at": "2026-09-19T01:12:50.912137Z",
+         *           "valid_from": "2026-09-19T01:12:50.912137Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -11341,7 +11337,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Docmost",
+         *       "service_definition": "Proxmox Datacenter Manager",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12043,7 +12039,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "5e7fad95-f758-4f18-ac77-03f1b46d7ce0",
+             *           "id": "d78fd6a8-7994-4285-ab4a-c81420dd9b20",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -12053,23 +12049,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "af7b9309-c165-4cae-95e6-b5f2da501030",
+             *           "id": "d7f6a04c-f756-4759-91b8-7ff886d0a94b",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "13b9cde6-c9bf-414e-8826-49883d00f3d7",
+             *           "id": "1dee6a12-a370-4ba9-89fe-2f80bd8b4dfe",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "7d9c02e4-e7f8-4da4-b878-ba195637a10c",
+             *           "id": "ec7dfc43-da84-451c-bb06-3d8d2e167ff1",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "af7b9309-c165-4cae-95e6-b5f2da501030",
+             *           "id": "d7f6a04c-f756-4759-91b8-7ff886d0a94b",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -12082,19 +12078,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "cd6802d9-5c8f-4ea5-b345-99dfa01b6141",
+             *         "id": "112d2357-0752-456c-9831-fceb23ea5aa1",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "a3d06a14-ab92-4024-a215-4faae620ac9f",
+             *         "id": "791df36d-a98f-45fc-9712-dc07c749b0f0",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "6c5b0cbb-b8a5-4868-8bfc-adebf2efbc55",
+             *         "id": "50574654-4c33-4740-8bec-0421057b55f0",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "12e9b431-e788-4467-abf9-f98e76d16c72",
+             *         "id": "74f2d283-cf18-40c6-acf1-3bab1a8c2da2",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -12112,7 +12108,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "49c44dcb-25e2-4da7-a7e1-e17ca8306047",
+             *         "id": "02fc8835-c2fe-4f16-bd25-f4b5c8122640",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -12121,15 +12117,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "1ab9f593-1e5f-4d39-90d9-946c9f26c732",
+             *         "id": "b54bfa56-ae33-4e89-887f-2b4d7f1716e8",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "9a06c0b8-49d7-45ce-9e44-1f4b1b8780c5",
+             *         "id": "520cb796-a201-4fec-899d-9a42a80e8fce",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "c9ceb2c9-6d92-4f9f-8ade-e3d3f8a9b5be",
+             *         "id": "7da055a4-29cf-43a4-a952-6f02cb227bfc",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -13713,11 +13709,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AcceptQuoteRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Quote accepted */
             200: {

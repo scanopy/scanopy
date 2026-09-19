@@ -46,6 +46,7 @@
 		common_tier,
 		settings_billing_changePlan,
 		settings_billing_license_addPaymentMethodSubtitle,
+		settings_billing_license_airGappedCurrentUntil,
 		settings_billing_license_airGappedNeedsCard,
 		settings_billing_license_airGappedOpenInvoice,
 		settings_billing_license_airGappedPastDue,
@@ -119,6 +120,11 @@
 	);
 	let hasOpenInvoice = $derived(invoiceBillingQuery.data?.open_invoice != null);
 	let airGappedAvailable = $derived(airGappedIncluded && hasCard && !isPastDue && !hasOpenInvoice);
+	// The date an air-gapped key stays current until, which is also the date both
+	// locks lift: the plan change and the switch back to an online key. Read from
+	// the org rather than recomputed, so this line cannot disagree with the
+	// server's refusal.
+	let airGappedCurrentUntil = $derived(org?.air_gapped_key_current_until ?? null);
 	let missingCard = $derived(isMissingPaymentMethod(org, billingEnabled));
 	let chargeAmount = $derived(priceToCharge(org));
 
@@ -337,7 +343,17 @@
 							     includes air-gapped) what makes the option selectable. A tooltip on
 							     the disabled option can't carry this — the message has to be readable
 							     without hovering something that isn't clickable. -->
-							{#if !airGappedIncluded}
+							{#if airGappedCurrentUntil}
+								<!-- The org already holds the key, so this slot says what is locked
+								     rather than why air-gapped is unavailable. It has to come first:
+								     such an org has a card and is not past due, so it falls through
+								     every branch below to no line at all. -->
+								<p class="text-secondary text-sm">
+									{settings_billing_license_airGappedCurrentUntil({
+										date: formatDate(airGappedCurrentUntil)
+									})}
+								</p>
+							{:else if !airGappedIncluded}
 								<p class="text-secondary text-sm">
 									{settings_billing_license_offlineKeyUpsell()}
 									<button type="button" onclick={openPlanPicker} class="text-link hover:underline">
