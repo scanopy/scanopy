@@ -19,6 +19,7 @@ mod discovery_guide;
 mod email_changed_old;
 mod install_command;
 mod invite;
+mod invoice_credited;
 mod invoice_issued;
 mod oidc_linked;
 mod oidc_unlinked;
@@ -59,6 +60,7 @@ pub use discovery_guide::DiscoveryGuide;
 pub use email_changed_old::EmailChangedOld;
 pub use install_command::InstallCommand;
 pub use invite::Invite;
+pub use invoice_credited::InvoiceCredited;
 pub use invoice_issued::InvoiceIssued;
 pub use oidc_linked::OidcLinked;
 pub use oidc_unlinked::OidcUnlinked;
@@ -478,6 +480,10 @@ mod tests {
             po_number: None,
             cta_href: "https://billing.example.test/invoice/abc",
         });
+        assert_fully_rendered(&InvoiceCredited {
+            plan_name: "Self-Hosted Standard",
+            credit: "$1,999.98",
+        });
         assert_fully_rendered(&CancellationInitiated {
             period_end: "January 1, 2026",
         });
@@ -752,6 +758,13 @@ mod tests {
                 due_date: "October 18, 2026",
                 po_number: None,
                 cta_href: "https://billing.example.test/invoice/abc",
+            },
+        );
+        f(
+            "invoice_credited",
+            &InvoiceCredited {
+                plan_name: "Self-Hosted Standard",
+                credit: "$1,999.98",
             },
         );
         f(

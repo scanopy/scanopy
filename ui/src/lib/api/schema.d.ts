@@ -3438,19 +3438,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-19T00:33:04.472779Z",
+             *       "created_at": "2026-09-19T01:50:09.771825Z",
              *       "first_discovery_id": null,
-             *       "id": "8881818d-f5fa-4a14-868d-399b3f7b2e55",
+             *       "id": "5cfbd908-5a68-482b-97ff-a9cda01d328b",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-19T00:33:04.472779Z",
+             *       "last_seen_at": "2026-09-19T01:50:09.771825Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-19T00:33:04.472779Z",
-             *       "valid_from": "2026-09-19T00:33:04.472779Z",
+             *       "updated_at": "2026-09-19T01:50:09.771825Z",
+             *       "valid_from": "2026-09-19T01:50:09.771825Z",
              *       "valid_to": null
              *     }
              */
@@ -4111,19 +4111,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-19T00:33:04.445767Z",
+             *               "created_at": "2026-09-19T01:50:09.744098Z",
              *               "first_discovery_id": null,
-             *               "id": "b388d37a-23f8-4613-bc53-c9dfb23f0243",
+             *               "id": "e7fd5b3b-2663-49c3-b6fd-6dfa8542f85b",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-19T00:33:04.445767Z",
+             *               "last_seen_at": "2026-09-19T01:50:09.744098Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-19T00:33:04.445767Z",
-             *               "valid_from": "2026-09-19T00:33:04.445767Z",
+             *               "updated_at": "2026-09-19T01:50:09.744098Z",
+             *               "valid_from": "2026-09-19T01:50:09.744098Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4137,7 +4137,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "HyperFile Server",
+             *           "service_definition": "Forgejo",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4930,19 +4930,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-19T00:33:04.467125Z",
+             *           "created_at": "2026-09-19T01:50:09.765792Z",
              *           "first_discovery_id": null,
-             *           "id": "3563dccd-a969-46ff-b7ea-2701bdd5d35a",
+             *           "id": "fc094a90-4274-4995-b3c7-2929777d7415",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-19T00:33:04.467125Z",
+             *           "last_seen_at": "2026-09-19T01:50:09.765792Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-19T00:33:04.467125Z",
-             *           "valid_from": "2026-09-19T00:33:04.467125Z",
+             *           "updated_at": "2026-09-19T01:50:09.765792Z",
+             *           "valid_from": "2026-09-19T01:50:09.765792Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -4956,7 +4956,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "HyperFile Server",
+             *       "service_definition": "Forgejo",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -5821,19 +5821,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-19T00:33:04.446554Z",
+         *       "created_at": "2026-09-19T01:50:09.744904Z",
          *       "first_discovery_id": null,
-         *       "id": "c0a4bc7a-3015-432a-b5cd-c144c7a1bfcb",
+         *       "id": "ee3c7be8-7613-4e18-b47f-8078bc5b9f27",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-19T00:33:04.446554Z",
+         *       "last_seen_at": "2026-09-19T01:50:09.744904Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-19T00:33:04.446554Z",
-         *       "valid_from": "2026-09-19T00:33:04.446554Z",
+         *       "updated_at": "2026-09-19T01:50:09.744904Z",
+         *       "valid_from": "2026-09-19T01:50:09.744904Z",
          *       "valid_to": null
          *     }
          */
@@ -6147,7 +6147,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "HyperFile Server",
+         *           "service_definition": "Forgejo",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8319,19 +8319,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-19T00:33:04.444890Z",
+         *               "created_at": "2026-09-19T01:50:09.743230Z",
          *               "first_discovery_id": null,
-         *               "id": "80927e34-8676-4da6-89a8-7c01463bf6d1",
+         *               "id": "65fce0c3-d99a-4267-a45f-bd65912902ec",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-19T00:33:04.444890Z",
+         *               "last_seen_at": "2026-09-19T01:50:09.743230Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-19T00:33:04.444890Z",
-         *               "valid_from": "2026-09-19T00:33:04.444890Z",
+         *               "updated_at": "2026-09-19T01:50:09.743230Z",
+         *               "valid_from": "2026-09-19T01:50:09.743230Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8345,7 +8345,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "HyperFile Server",
+         *           "service_definition": "Forgejo",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -11300,19 +11300,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-19T00:33:04.446317Z",
+         *           "created_at": "2026-09-19T01:50:09.744665Z",
          *           "first_discovery_id": null,
-         *           "id": "f2666698-a5ea-4190-8c50-6983d77823ba",
+         *           "id": "643e0846-8b37-4b9b-a236-bec6551ba655",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-19T00:33:04.446317Z",
+         *           "last_seen_at": "2026-09-19T01:50:09.744665Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-19T00:33:04.446317Z",
-         *           "valid_from": "2026-09-19T00:33:04.446317Z",
+         *           "updated_at": "2026-09-19T01:50:09.744665Z",
+         *           "valid_from": "2026-09-19T01:50:09.744665Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -11326,7 +11326,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "HyperFile Server",
+         *       "service_definition": "Forgejo",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12028,7 +12028,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "d6081e81-c4c6-4425-a933-fdd028db0cbd",
+             *           "id": "71259b0d-9166-4bd0-8d3c-80882ddf8911",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -12038,23 +12038,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "76d98fee-79db-4653-a287-dcfd56e2b1d2",
+             *           "id": "c621a426-afdc-48f7-bc75-00d8a6405302",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "1b592a0b-2ee1-444d-9dc8-8350c3c1851a",
+             *           "id": "125f79c6-30b6-495f-ba80-2d94bb6a2dd2",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "d80d840d-b354-4a69-86dc-ba53c2dddc51",
+             *           "id": "0fbcfc92-6a05-4b0c-b311-625c74966664",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "76d98fee-79db-4653-a287-dcfd56e2b1d2",
+             *           "id": "c621a426-afdc-48f7-bc75-00d8a6405302",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -12067,19 +12067,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "c3b493c9-1fdc-4662-a98a-3cfa0b95353c",
+             *         "id": "bdea3ad9-1aff-4d76-8ab5-cba65f4ed273",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "a9341e71-a419-49c9-a64c-95de56c195a2",
+             *         "id": "135dd8a3-6fe3-4881-a019-2fbdde179c20",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "27b39918-25d6-4126-940e-ae1cadd55d6f",
+             *         "id": "32a12304-05a9-4e4f-bdec-ec6d7f817d42",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "56171264-68ae-449f-8155-9dd7d0e7a328",
+             *         "id": "e6dda8e7-9c0a-403f-b512-370b24caa8c4",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -12097,7 +12097,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "672dbc51-7776-4cd3-b797-b0318efb71b3",
+             *         "id": "52aed934-97ae-46a3-af5b-755174bf56f2",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -12106,15 +12106,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "c8026cdc-4302-4648-a374-4a2814482e83",
+             *         "id": "c6bc12db-b387-44a7-a84c-75e14063aa49",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "78c55461-8989-491b-8ece-8be9e6e12e7e",
+             *         "id": "36fb566a-6a32-4eba-902f-86bfb3f4a6f7",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "fb49a9eb-d0ee-46fe-9dff-f1868b26926d",
+             *         "id": "80038f31-2c56-4edc-be9f-7847712080ad",
              *         "rule": "ByStack"
              *       }
              *     ]

@@ -12643,19 +12643,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-19T00:33:04.472775Z",
+              "created_at": "2026-09-19T01:50:09.771800Z",
               "first_discovery_id": null,
-              "id": "9dbb6a63-99a8-47ec-87d0-7e84665b600b",
+              "id": "6b25e01e-fbe7-4a1c-9d60-39a3aa58c4e6",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-19T00:33:04.472775Z",
+              "last_seen_at": "2026-09-19T01:50:09.771800Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-19T00:33:04.472775Z",
-              "valid_from": "2026-09-19T00:33:04.472775Z",
+              "updated_at": "2026-09-19T01:50:09.771800Z",
+              "valid_from": "2026-09-19T01:50:09.771800Z",
               "valid_to": null
             }
           },
@@ -14146,19 +14146,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-19T00:33:04.445785Z",
+                      "created_at": "2026-09-19T01:50:09.744117Z",
                       "first_discovery_id": null,
-                      "id": "a081c156-638a-446c-a357-d211744218a0",
+                      "id": "9456abbe-e428-4740-ada6-25608a4cd99f",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-19T00:33:04.445785Z",
+                      "last_seen_at": "2026-09-19T01:50:09.744117Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-19T00:33:04.445785Z",
-                      "valid_from": "2026-09-19T00:33:04.445785Z",
+                      "updated_at": "2026-09-19T01:50:09.744117Z",
+                      "valid_from": "2026-09-19T01:50:09.744117Z",
                       "valid_to": null
                     }
                   ],
@@ -14172,7 +14172,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "HyperFile Server",
+                  "service_definition": "Forgejo",
                   "source": {
                     "type": "Manual"
                   },
@@ -15535,19 +15535,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-19T00:33:04.467133Z",
+                  "created_at": "2026-09-19T01:50:09.765801Z",
                   "first_discovery_id": null,
-                  "id": "0dc16fe3-fc05-4210-964e-08850008cd50",
+                  "id": "2ab2d9f1-6f9b-41d2-9228-c2562caa047d",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-19T00:33:04.467133Z",
+                  "last_seen_at": "2026-09-19T01:50:09.765801Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-19T00:33:04.467133Z",
-                  "valid_from": "2026-09-19T00:33:04.467133Z",
+                  "updated_at": "2026-09-19T01:50:09.765801Z",
+                  "valid_from": "2026-09-19T01:50:09.765801Z",
                   "valid_to": null
                 }
               ],
@@ -15561,7 +15561,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "HyperFile Server",
+              "service_definition": "Forgejo",
               "source": {
                 "type": "Manual"
               },
@@ -17816,19 +17816,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-19T00:33:04.446582Z",
+          "created_at": "2026-09-19T01:50:09.744932Z",
           "first_discovery_id": null,
-          "id": "4f3f7e5b-278a-454e-a2ef-7159e562304c",
+          "id": "09287d41-df15-439c-8e7b-fd7b5a5a14ca",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-19T00:33:04.446582Z",
+          "last_seen_at": "2026-09-19T01:50:09.744932Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-19T00:33:04.446582Z",
-          "valid_from": "2026-09-19T00:33:04.446582Z",
+          "updated_at": "2026-09-19T01:50:09.744932Z",
+          "valid_from": "2026-09-19T01:50:09.744932Z",
           "valid_to": null
         }
       },
@@ -18523,7 +18523,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "HyperFile Server",
+              "service_definition": "Forgejo",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -23907,19 +23907,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-19T00:33:04.444898Z",
+                  "created_at": "2026-09-19T01:50:09.743238Z",
                   "first_discovery_id": null,
-                  "id": "56af65fe-64aa-4b52-9b1e-0f90392f82d7",
+                  "id": "9f3008f0-9d71-465e-b52b-9313fabd4b00",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-19T00:33:04.444898Z",
+                  "last_seen_at": "2026-09-19T01:50:09.743238Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-19T00:33:04.444898Z",
-                  "valid_from": "2026-09-19T00:33:04.444898Z",
+                  "updated_at": "2026-09-19T01:50:09.743238Z",
+                  "valid_from": "2026-09-19T01:50:09.743238Z",
                   "valid_to": null
                 }
               ],
@@ -23933,7 +23933,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "HyperFile Server",
+              "service_definition": "Forgejo",
               "source": {
                 "type": "Manual"
               },
@@ -27590,19 +27590,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-19T00:33:04.427404Z",
+                        "created_at": "2026-09-19T01:50:09.725691Z",
                         "first_discovery_id": null,
-                        "id": "d4ca19c0-353d-4f2c-9558-1f452437a9db",
+                        "id": "94c32eae-df4b-4629-8548-063381b151f0",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-19T00:33:04.427404Z",
+                        "last_seen_at": "2026-09-19T01:50:09.725691Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-19T00:33:04.427404Z",
-                        "valid_from": "2026-09-19T00:33:04.427404Z",
+                        "updated_at": "2026-09-19T01:50:09.725691Z",
+                        "valid_from": "2026-09-19T01:50:09.725691Z",
                         "valid_to": null
                       }
                     ],
@@ -27616,7 +27616,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "HyperFile Server",
+                    "service_definition": "Forgejo",
                     "source": {
                       "type": "Manual"
                     },
@@ -27759,19 +27759,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-19T00:33:04.466068Z",
+                    "created_at": "2026-09-19T01:50:09.764672Z",
                     "first_discovery_id": null,
-                    "id": "2648b70b-f472-44e5-8c43-104231781fab",
+                    "id": "fe35f8c3-260e-4508-bca8-68914f9c5c33",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-19T00:33:04.466068Z",
+                    "last_seen_at": "2026-09-19T01:50:09.764672Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-19T00:33:04.466068Z",
-                    "valid_from": "2026-09-19T00:33:04.466068Z",
+                    "updated_at": "2026-09-19T01:50:09.764672Z",
+                    "valid_from": "2026-09-19T01:50:09.764672Z",
                     "valid_to": null
                   }
                 ],
@@ -27785,7 +27785,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "HyperFile Server",
+                "service_definition": "Forgejo",
                 "source": {
                   "type": "Manual"
                 },
@@ -29910,19 +29910,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-19T00:33:04.446346Z",
+              "created_at": "2026-09-19T01:50:09.744692Z",
               "first_discovery_id": null,
-              "id": "9fd1f326-ff36-4b51-8795-f36c19b37f91",
+              "id": "8c4e12d9-741e-4485-8f0a-dcb5f7e09f5c",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-19T00:33:04.446346Z",
+              "last_seen_at": "2026-09-19T01:50:09.744692Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-19T00:33:04.446346Z",
-              "valid_from": "2026-09-19T00:33:04.446346Z",
+              "updated_at": "2026-09-19T01:50:09.744692Z",
+              "valid_from": "2026-09-19T01:50:09.744692Z",
               "valid_to": null
             }
           ],
@@ -29936,7 +29936,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "HyperFile Server",
+          "service_definition": "Forgejo",
           "source": {
             "type": "Manual"
           },
@@ -31257,7 +31257,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "46a710e1-ceb8-4773-8bb4-7641048fd651",
+                  "id": "586fd17d-43ce-4ed0-9d74-1d176ad1a59e",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -31267,23 +31267,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "aaac4c42-7adc-4922-a37f-ac91389ff411",
+                  "id": "c62eac89-78db-4530-a9b9-d38a29bfbd24",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "13db24ba-dccd-4cd2-9182-d9d492b9a74d",
+                  "id": "47eaaf81-31ed-4323-9dca-dd0ef8e3f0e3",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "11f9b7e1-4dbf-4b35-8b88-6d6127189ea6",
+                  "id": "51349dda-2136-4294-838a-8f20f5817c61",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "aaac4c42-7adc-4922-a37f-ac91389ff411",
+                  "id": "c62eac89-78db-4530-a9b9-d38a29bfbd24",
                   "rule": "ByHost"
                 }
               ]
@@ -31313,19 +31313,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "172a8f38-d284-449f-819f-ff4dd96984d9",
+                "id": "23703af7-9686-4031-80f6-6eb39f9553d6",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "4caf06bd-d668-4b3f-a112-ee6e1fad36a8",
+                "id": "9c22ec42-10ca-4cd4-959e-ffac422988d2",
                 "rule": "ByVLAN"
               },
               {
-                "id": "fbec01bc-87ee-4682-9ac2-b9ad228fa103",
+                "id": "3f10f63e-4ae8-4988-8fd5-c557acc1d356",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "abe7793e-e326-40e8-b9c6-e6ad19ba6400",
+                "id": "a4c19c30-4ed6-47b9-802e-36a3394a002f",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -31343,7 +31343,7 @@
                 }
               },
               {
-                "id": "bfa337f0-be1e-4801-8931-0b26407860d3",
+                "id": "133559ed-7c89-4977-80c9-1e994bd53603",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -31352,15 +31352,15 @@
                 }
               },
               {
-                "id": "61782280-7235-48eb-9fd5-67436775dca5",
+                "id": "fa88e5ae-75d8-43d8-b3ec-3eb293e56725",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "70521f26-d0ee-4b02-b301-53468f8ac8ac",
+                "id": "7080b1b8-b8d1-459b-be65-b9465dd95c58",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "fc763dd0-6393-4c7e-a094-78decb40e003",
+                "id": "b684284b-0078-4fbf-b0d8-cd8e177b596c",
                 "rule": "ByStack"
               }
             ]

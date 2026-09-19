@@ -11,12 +11,13 @@ use uuid::Uuid;
 use super::messages::{
     AirgapExpiring, AirgapRenewal, CancellationInitiated, CheckoutCompleted, DaemonStandby,
     DaemonSunset, DaemonUnreachable, DiscoveryDigest, DiscoveryGuide, Email, EmailAttachment,
-    EmailChangedOld, EmailPreference, InstallCommand, Invite, InvoiceIssued, OidcLinked,
-    OidcUnlinked, OrganizationDeleted, PasswordChanged, PasswordReset, PaymentActionRequired,
-    PaymentFailed, PaymentMethodAdded, PaymentMethodRemoved, PaymentRecovered, PlanChanged,
-    PlanLimitApproaching, PlanLimitReached, SelfHostedPaymentFailed, SelfHostedWelcome,
-    SubscriptionCancelled, SubscriptionPaused, SubscriptionReactivated, SubscriptionResumed,
-    TrialConverted, TrialEnding, TrialExpired, TrialStarted, UsageSummary, Verification,
+    EmailChangedOld, EmailPreference, InstallCommand, Invite, InvoiceCredited, InvoiceIssued,
+    OidcLinked, OidcUnlinked, OrganizationDeleted, PasswordChanged, PasswordReset,
+    PaymentActionRequired, PaymentFailed, PaymentMethodAdded, PaymentMethodRemoved,
+    PaymentRecovered, PlanChanged, PlanLimitApproaching, PlanLimitReached, SelfHostedPaymentFailed,
+    SelfHostedWelcome, SubscriptionCancelled, SubscriptionPaused, SubscriptionReactivated,
+    SubscriptionResumed, TrialConverted, TrialEnding, TrialExpired, TrialStarted, UsageSummary,
+    Verification,
 };
 use super::transport::EmailTransport;
 use crate::server::{
@@ -463,6 +464,26 @@ impl EmailService {
         .await
     }
 
+    /// A plan change that credits more than it charges. Nothing is payable, so
+    /// this says what the credit is and where it goes rather than presenting a
+    /// negative invoice.
+    pub async fn send_invoice_credited_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        invoice: &BillingInvoice,
+    ) -> Result<()> {
+        let credit = format_cents(invoice.total_cents.abs(), &invoice.currency);
+        self.dispatch(
+            to,
+            &InvoiceCredited {
+                plan_name,
+                credit: &credit,
+            },
+        )
+        .await
+    }
+
     /// A sent invoice for a self-hosted licence was finalized. Stripe mails the
     /// document; this says what it covers and that the licence keeps working
     /// until it is paid.
@@ -473,7 +494,7 @@ impl EmailService {
         invoice: &BillingInvoice,
         po_number: Option<String>,
     ) -> Result<()> {
-        let amount = format_cents(invoice.total_cents(), &invoice.currency);
+        let amount = format_cents(invoice.amount_due_cents, &invoice.currency);
         let due_date = invoice.due_date.map(format_timestamp).unwrap_or_default();
         let cta_href = invoice
             .hosted_invoice_url

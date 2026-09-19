@@ -4,7 +4,6 @@
 	import { submitForm } from '$lib/shared/components/forms/form-context';
 	import { max } from '$lib/shared/components/forms/validators';
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
 	import {
 		downloadQuotePdf,
 		useAcceptQuoteMutation,
@@ -14,10 +13,7 @@
 	import { pushSuccess } from '$lib/shared/stores/feedback';
 	import type { components } from '$lib/api/schema';
 	import {
-		billing_invoice_acceptConfirm,
-		billing_invoice_acceptNoPo,
-		billing_invoice_acceptTitle,
-		billing_invoice_acceptWithPo,
+		billing_invoice_acceptCta,
 		billing_invoice_accepted,
 		billing_invoice_downloadQuote,
 		billing_invoice_poNumber,
@@ -60,7 +56,6 @@
 	let showPo = $derived(status.bills_by_invoice || quote != null || status.po_number != null);
 
 	let editingPo = $state(false);
-	let acceptingQuote = $state(false);
 
 	const poForm = createForm(() => ({
 		defaultValues: { po_number: '' },
@@ -85,7 +80,6 @@
 	async function handleAccept() {
 		try {
 			await acceptMutation.mutateAsync();
-			acceptingQuote = false;
 			pushSuccess(billing_invoice_accepted());
 		} catch {
 			// The API client toasts the failure.
@@ -186,8 +180,13 @@
 				<Download class="h-4 w-4" />
 				{downloading ? common_processing() : billing_invoice_downloadQuote()}
 			</button>
-			<button type="button" class="btn-primary" onclick={() => (acceptingQuote = true)}>
-				{billing_invoice_acceptTitle()}
+			<button
+				type="button"
+				class="btn-primary"
+				disabled={acceptMutation.isPending}
+				onclick={handleAccept}
+			>
+				{acceptMutation.isPending ? common_processing() : billing_invoice_acceptCta()}
 			</button>
 			<button
 				type="button"
@@ -200,33 +199,3 @@
 		</div>
 	</div>
 {/if}
-
-<GenericModal
-	isOpen={acceptingQuote}
-	title={billing_invoice_acceptTitle()}
-	size="sm"
-	onClose={() => (acceptingQuote = false)}
->
-	<div class="flex min-h-0 flex-1 flex-col">
-		<div class="p-6">
-			<p class="text-secondary text-sm">
-				{status.po_number
-					? billing_invoice_acceptWithPo({ po: status.po_number })
-					: billing_invoice_acceptNoPo()}
-			</p>
-		</div>
-		<div class="modal-footer flex justify-end gap-3">
-			<button type="button" class="btn-secondary" onclick={() => (acceptingQuote = false)}>
-				{common_cancel()}
-			</button>
-			<button
-				type="button"
-				class="btn-primary"
-				disabled={acceptMutation.isPending}
-				onclick={handleAccept}
-			>
-				{acceptMutation.isPending ? common_processing() : billing_invoice_acceptConfirm()}
-			</button>
-		</div>
-	</div>
-</GenericModal>

@@ -106,7 +106,8 @@ impl BillingService {
                     }
                 };
 
-                self.finalize_latest_invoice(&subscription).await?;
+                self.finalize_latest_invoice(subscription.id.as_str())
+                    .await?;
 
                 tracing::info!(
                     organization_id = %organization_id,
@@ -220,10 +221,19 @@ impl BillingService {
         // The PO number the customer already carries is what the invoice
         // prints; `update_po_number` is the single writer, so accepting does
         // not offer a second place to set it.
-        AcceptQuote::new(quote.id.clone())
+        let accepted = AcceptQuote::new(quote.id.clone())
             .send(&self.stripe)
             .await
             .map_err(|e| anyhow!("Stripe rejected the quote acceptance: {e}"))?;
+
+        // Stripe creates the subscription and leaves its first invoice in
+        // draft for an hour. The buyer asked for an invoice, so send it now.
+        // The `invoice.created` webhook catches anything raised after this
+        // returns, so a slow subscription creation loses nothing.
+        if let Some(subscription) = accepted.subscription.as_ref() {
+            self.finalize_latest_invoice(subscription.id().as_str())
+                .await?;
+        }
 
         tracing::info!(
             organization_id = %organization_id,
@@ -312,6 +322,32 @@ impl BillingService {
                 AuthenticatedEntity::System,
             ))
             .await?;
+        Ok(())
+    }
+
+    /// Webhook: a draft invoice exists. A sent invoice for a self-hosted
+    /// licence is finalized at once rather than waiting out Stripe's hour-long
+    /// draft window, since finalizing is what emails it to the buyer.
+    ///
+    /// This is the general rule behind the eager calls at the paths that
+    /// create subscriptions: it also covers renewals, and quote acceptance,
+    /// where Stripe creates the subscription itself.
+    pub(crate) async fn handle_invoice_created(
+        &self,
+        invoice: stripe_billing::Invoice,
+    ) -> Result<(), Error> {
+        let is_draft = invoice.status == Some(InvoiceStatus::Draft);
+        if !should_finalize_now(is_draft, &BillingInvoice::from(&invoice)) {
+            return Ok(());
+        }
+        let Some(id) = invoice.id.clone() else {
+            return Ok(());
+        };
+        FinalizeInvoiceInvoice::new(id.clone())
+            .auto_advance(true)
+            .send(&self.stripe)
+            .await?;
+        tracing::info!(invoice_id = %id, "Finalized a sent licence invoice on creation");
         Ok(())
     }
 
@@ -460,12 +496,9 @@ impl BillingService {
     /// Finalize the subscription's draft invoice now instead of after
     /// Stripe's hour-long draft window, so the buyer receives it immediately.
     /// Finalizing a sent invoice with auto-advance on emails it.
-    pub(crate) async fn finalize_latest_invoice(
-        &self,
-        subscription: &Subscription,
-    ) -> Result<(), Error> {
+    pub(crate) async fn finalize_latest_invoice(&self, subscription_id: &str) -> Result<(), Error> {
         let drafts = ListInvoice::new()
-            .subscription(subscription.id.to_string())
+            .subscription(subscription_id.to_string())
             .status(InvoiceStatus::Draft)
             .send(&self.stripe)
             .await?;
@@ -595,6 +628,16 @@ impl BillingService {
 
 const SELF_HOSTED_ONLY: &str = "Invoice billing is available on self-hosted plans only";
 
+/// Whether a freshly created invoice should be finalized straight away: a
+/// draft, sent to the customer rather than charged, for a self-hosted licence.
+/// Anything else is left to Stripe, including invoices already finalized by
+/// the path that created them.
+fn should_finalize_now(is_draft: bool, invoice: &BillingInvoice) -> bool {
+    is_draft
+        && invoice.collection == InvoiceCollection::SendInvoice
+        && invoice.license_unpaid_from().is_some()
+}
+
 /// Which plan an invoice covers.
 ///
 /// A live subscription settles it: the org's own plan is what it pays for.
@@ -647,6 +690,61 @@ mod tests {
         get_enterprise_plan, get_free_plan, get_self_hosted_plus_plan,
         get_self_hosted_standard_plan,
     };
+
+    use crate::server::billing::types::base::BillingReason;
+
+    fn licensed_invoice(collection: InvoiceCollection, licensed: bool) -> BillingInvoice {
+        let now = Utc::now();
+        BillingInvoice {
+            stripe_invoice_id: "in_test".to_string(),
+            amount_paid_cents: 0,
+            currency: "usd".to_string(),
+            created_at: now,
+            period_start: now,
+            period_end: now,
+            billing_reason: BillingReason::SubscriptionCycle,
+            line_items: vec![
+                crate::server::billing::types::base::BillingInvoiceLineItem {
+                    description: None,
+                    amount_cents: 400_000,
+                    period_start: now,
+                    period_end: now + chrono::Duration::days(365),
+                    product: Some(if licensed {
+                        get_self_hosted_standard_plan().stripe_product_id()
+                    } else {
+                        get_enterprise_plan().stripe_product_id()
+                    }),
+                },
+            ],
+            invoice_pdf: None,
+            hosted_invoice_url: None,
+            collection,
+            due_date: Some(now + chrono::Duration::days(30)),
+            po_number: None,
+            amount_due_cents: 400_000,
+            total_cents: 400_000,
+        }
+    }
+
+    /// Finalizing is what emails a sent invoice, and a draft otherwise sits in
+    /// Stripe's auto-advance window for an hour.
+    #[test]
+    fn only_a_draft_sent_licence_invoice_is_finalized_on_creation() {
+        let sent = licensed_invoice(InvoiceCollection::SendInvoice, true);
+        assert!(should_finalize_now(true, &sent));
+        // Already finalized by the path that created it.
+        assert!(!should_finalize_now(false, &sent));
+        // Charged automatically: Stripe collects it, nothing to send.
+        assert!(!should_finalize_now(
+            true,
+            &licensed_invoice(InvoiceCollection::ChargeAutomatically, true)
+        ));
+        // A cloud invoice is none of our business here.
+        assert!(!should_finalize_now(
+            true,
+            &licensed_invoice(InvoiceCollection::SendInvoice, false)
+        ));
+    }
 
     fn purchasable() -> Vec<BillingPlan> {
         crate::server::billing::plans::get_purchasable_plans()
