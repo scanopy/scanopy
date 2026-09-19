@@ -2,16 +2,8 @@
 	import { SvelteURL } from 'svelte/reactivity';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import Toast from '$lib/shared/components/feedback/Toast.svelte';
-	import EmailVerificationBanner from '$lib/shared/components/feedback/EmailVerificationBanner.svelte';
-	import DemoBanner from '$lib/shared/components/feedback/DemoBanner.svelte';
-	import LicenseLockedBanner from '$lib/shared/components/feedback/LicenseLockedBanner.svelte';
-	import LicenseGraceBanner from '$lib/shared/components/feedback/LicenseGraceBanner.svelte';
-	import LicenseExpiringBanner from '$lib/shared/components/feedback/LicenseExpiringBanner.svelte';
-	import LicensePendingBanner from '$lib/shared/components/feedback/LicensePendingBanner.svelte';
-	import TrialEndingBanner from '$lib/shared/components/feedback/TrialEndingBanner.svelte';
-	import NoPaymentMethodBanner from '$lib/shared/components/feedback/NoPaymentMethodBanner.svelte';
+	import AppBanners from '$lib/shared/components/feedback/AppBanners.svelte';
 	import TrialExpiryModal from '$lib/shared/components/feedback/TrialExpiryModal.svelte';
-	import PostStripeWelcomeBanner from '$lib/shared/components/feedback/PostStripeWelcomeBanner.svelte';
 	import Sidebar from '$lib/shared/components/layout/Sidebar.svelte';
 	import { onDestroy, onMount } from 'svelte';
 	import { discoverySSEManager } from '$lib/features/discovery/queries';
@@ -26,11 +18,7 @@
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
 	import BillingPlanModal from '$lib/features/billing/BillingPlanModal.svelte';
 	import DaemonPromptModal from '$lib/features/daemons/components/DaemonPromptModal.svelte';
-	import {
-		useConfigQuery,
-		isLicenseApproachingExpiry,
-		isLicenseSigningAvailable
-	} from '$lib/shared/stores/config-query';
+	import { useConfigQuery, isLicenseSigningAvailable } from '$lib/shared/stores/config-query';
 	import {
 		useOrganizationQuery,
 		useDaemonPromptResponseMutation
@@ -337,26 +325,12 @@
 			class:ml-16={sidebarCollapsed}
 			class:ml-48={!sidebarCollapsed}
 		>
-			{#if currentUserQuery.data && !currentUserQuery.data.email_verified}
-				<EmailVerificationBanner email={currentUserQuery.data.email} />
-			{/if}
-			<TrialEndingBanner />
-			<NoPaymentMethodBanner />
-			<PostStripeWelcomeBanner />
-			{#if organization?.plan?.type === 'Demo'}
-				<DemoBanner />
-			{/if}
-			{#if configQuery.data?.license_status === 'expired' || configQuery.data?.license_status === 'invalid'}
-				<LicenseLockedBanner status={configQuery.data.license_status} />
-			{:else if configQuery.data?.license_status === 'pending'}
-				<LicensePendingBanner />
-			{:else if configQuery.data?.license_in_grace_period && configQuery.data?.license_intended_expiry && configQuery.data?.license_expiry}
-				<LicenseGraceBanner
-					intendedExpiry={configQuery.data.license_intended_expiry}
-					hardExpiry={configQuery.data.license_expiry}
-				/>
-			{:else if configQuery.data && isLicenseApproachingExpiry(configQuery.data) && configQuery.data.license_intended_expiry}
-				<LicenseExpiringBanner intendedExpiry={configQuery.data.license_intended_expiry} />
+			<!-- Only while the main app is reachable. When it is gated, the Settings
+			     modal carries the same stack in its frame instead, so exactly one copy
+			     is ever mounted: AppBanner holds its dismissed state locally, and a
+			     second copy behind the overlay would not follow a dismissal. -->
+			{#if !isBillingBlocking}
+				<AppBanners />
 			{/if}
 			<div class="p-4 [&_.sticky]:sticky [&_.sticky]:top-0">
 				<!--

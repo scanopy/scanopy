@@ -48,6 +48,7 @@
 		common_tier,
 		settings_billing_changePlan,
 		settings_billing_license_addPaymentMethodSubtitle,
+		settings_billing_license_airGappedCurrentUntil,
 		settings_billing_license_airGappedNeedsCard,
 		settings_billing_license_airGappedPastDue,
 		settings_billing_license_keyLabel,
@@ -116,6 +117,11 @@
 	// live for an org whose payment just failed. The server would then refuse the
 	// mint after the switch had already retired their online key.
 	let airGappedAvailable = $derived(airGappedIncluded && hasCard && !isPastDue);
+	// The date an air-gapped key stays current until, which is also the date both
+	// locks lift: the plan change and the switch back to an online key. Read from
+	// the org rather than recomputed, so this line cannot disagree with the
+	// server's refusal.
+	let airGappedCurrentUntil = $derived(org?.air_gapped_key_current_until ?? null);
 	let missingCard = $derived(isMissingPaymentMethod(org, billingEnabled));
 	let chargeAmount = $derived(priceToCharge(org));
 
@@ -342,7 +348,17 @@
 								<p class="text-secondary text-sm">{billing_invoice_offlineAfterPayment()}</p>
 							{/if}
 
-							{#if !airGappedIncluded}
+							{#if airGappedCurrentUntil}
+								<!-- The org already holds the key, so this slot says what is locked
+								     rather than why air-gapped is unavailable. It has to come first:
+								     such an org has a card and is not past due, so it falls through
+								     every branch below to no line at all. -->
+								<p class="text-secondary text-sm">
+									{settings_billing_license_airGappedCurrentUntil({
+										date: formatDate(airGappedCurrentUntil)
+									})}
+								</p>
+							{:else if !airGappedIncluded}
 								<p class="text-secondary text-sm">
 									{settings_billing_license_offlineKeyUpsell()}
 									<button type="button" onclick={openPlanPicker} class="text-link hover:underline">

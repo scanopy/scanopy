@@ -19,6 +19,12 @@
 	import { isLicenseSigningAvailable, useConfigQuery } from '$lib/shared/stores/config-query';
 	import { openModal } from '$lib/shared/stores/modal-registry';
 	import { canPay } from '$lib/shared/utils/trial';
+	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
+	import { formatDate } from '$lib/shared/utils/formatting';
+	import {
+		errors_billing_air_gapped_plan_change_blocked,
+		settings_billing_changePlan
+	} from '$lib/paraglide/messages';
 
 	let {
 		isOpen = false,
@@ -144,6 +150,12 @@
 
 	let recommendedPlan = $derived(contextHighlightPlan ?? baseRecommendedPlan);
 
+	// `triggerUpgrade` refuses before opening this, but two routes reach it
+	// anyway: the ?modal=billing-plan deep link is whitelisted for locked orgs,
+	// and the forced picker opens non-dismissible. Offering cards in either case
+	// would strand the user in a picker where every one of them 409s.
+	let airGappedLockedUntil = $derived(organization?.air_gapped_key_current_until ?? null);
+
 	async function handlePlanSelect(plan: BillingPlan) {
 		// A self-hosted plan bought with no trial left and no way to pay on file would
 		// go to Stripe Checkout, which takes cards only. The payment-method dialog
@@ -242,19 +254,30 @@
 	compactPadding={true}
 >
 	<div class="flex min-h-0 flex-1 flex-col">
-		<BillingPlanForm
-			plans={billingPlanHelpers.getMetadata(organization?.plan?.type ?? null)?.is_free
-				? pickablePlans
-				: pickablePlans.filter((p) => billingPlanHelpers.getMetadata(p.type)?.is_free !== true)}
-			{billingPlanHelpers}
-			{featureHelpers}
-			showHosting={signingAvailable}
-			{initialHosting}
-			onPlanSelect={handlePlanSelect}
-			{recommendedPlan}
-			{isReturningCustomer}
-			{isCurrentlyTrialing}
-			currentPlanType={organization?.plan?.type ?? null}
-		/>
+		{#if airGappedLockedUntil}
+			<div class="p-6">
+				<InlineInfo
+					title={settings_billing_changePlan()}
+					body={errors_billing_air_gapped_plan_change_blocked({
+						date: formatDate(airGappedLockedUntil)
+					})}
+				/>
+			</div>
+		{:else}
+			<BillingPlanForm
+				plans={billingPlanHelpers.getMetadata(organization?.plan?.type ?? null)?.is_free
+					? pickablePlans
+					: pickablePlans.filter((p) => billingPlanHelpers.getMetadata(p.type)?.is_free !== true)}
+				{billingPlanHelpers}
+				{featureHelpers}
+				showHosting={signingAvailable}
+				{initialHosting}
+				onPlanSelect={handlePlanSelect}
+				{recommendedPlan}
+				{isReturningCustomer}
+				{isCurrentlyTrialing}
+				currentPlanType={organization?.plan?.type ?? null}
+			/>
+		{/if}
 	</div>
 </GenericModal>

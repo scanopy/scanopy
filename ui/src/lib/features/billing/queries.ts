@@ -8,6 +8,7 @@ import { apiClient } from '$lib/api/client';
 import type { BillingPlan, BillingRate } from './types';
 import type { components } from '$lib/api/schema';
 import { pushError, pushSuccess } from '$lib/shared/stores/feedback';
+import { translateError } from '$lib/i18n/errors';
 import {
 	billing_errorApplyingDiscount,
 	billing_errorBillingPortal,
@@ -20,6 +21,32 @@ import {
 	billing_errorSavingPaymentMethod,
 	billing_errorStartingCardSetup
 } from '$lib/paraglide/messages';
+
+/**
+ * Translate a failed response body into a message.
+ *
+ * The generated schema types `code`, `error` and `params` as nullable, while
+ * `ApiErrorResponse` declares them merely optional, so the two are not
+ * assignable. Convert rather than assert: the runtime value really can carry
+ * `null`, and a cast would only hide that.
+ *
+ * `fallback` covers a failure with no parsed body at all, such as a dropped
+ * connection.
+ */
+function apiErrorMessage(
+	error: components['schemas']['ApiErrorResponse'] | undefined,
+	serverMessage: string | null | undefined,
+	fallback: string
+): string {
+	if (error) {
+		return translateError({
+			code: error.code ?? undefined,
+			error: error.error ?? undefined,
+			params: error.params ?? undefined
+		});
+	}
+	return serverMessage ?? fallback;
+}
 
 type PauseDuration = components['schemas']['PauseDuration'];
 type CancelSubscriptionRequest = components['schemas']['CancelSubscriptionRequest'];
@@ -49,11 +76,16 @@ export function useBillingPlansQuery() {
 export function useCheckoutMutation() {
 	return createMutation(() => ({
 		mutationFn: async (plan: BillingPlan) => {
-			const { data } = await apiClient.POST('/api/billing/checkout', {
-				body: { plan, url: window.location.origin }
+			// `silenceErrors` because `onError` below already toasts. Without it a
+			// coded refusal produced two: the middleware's translated message and a
+			// generic wrapper around a hardcoded string, which is what the error
+			// half was being discarded in favour of.
+			const { data, error } = await apiClient.POST('/api/billing/checkout', {
+				body: { plan, url: window.location.origin },
+				silenceErrors: true
 			});
 			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to get checkout URL');
+				throw new Error(apiErrorMessage(error, data?.error, 'Failed to get checkout URL'));
 			}
 			return data.data;
 		},
@@ -135,11 +167,14 @@ export function useFinalizePaymentMethodMutation() {
 export function useChangePlanMutation() {
 	return createMutation(() => ({
 		mutationFn: async ({ plan, rate }: { plan: BillingPlan; rate: BillingRate }) => {
-			const { data } = await apiClient.POST('/api/billing/change-plan', {
-				body: { plan, rate }
+			// Same double-toast as the checkout mutation above: this endpoint
+			// returns the identical air-gapped 409.
+			const { data, error } = await apiClient.POST('/api/billing/change-plan', {
+				body: { plan, rate },
+				silenceErrors: true
 			});
 			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to change plan');
+				throw new Error(apiErrorMessage(error, data?.error, 'Failed to change plan'));
 			}
 			return data.data;
 		},
