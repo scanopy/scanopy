@@ -155,7 +155,11 @@ services:
         ipv4_address: 172.25.0.7
 
   homeassistant:
-    image: lscr.io/linuxserver/homeassistant:latest
+    # Pinned rather than `latest`: this is a discovery fixture, and upstream rebuilds it daily.
+    # The 2026-09-16 build's first boot outlasted an entire 18-minute release run, so the scan
+    # probed a port nothing was listening on and v0.17.16's release test failed looking like a
+    # discovery bug. Move this deliberately, not by whenever CI last pulled.
+    image: lscr.io/linuxserver/homeassistant:2026.9.2-ls247
     container_name: homeassistant-discovery
     environment:
       - PUID=1000
@@ -166,6 +170,16 @@ services:
     ports:
       - 8123:8123
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8123 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      # First boot on a fresh config volume rewrites permissions across every bundled python
+      # package before the HTTP listener comes up, which CI pays on every run because its volume
+      # is always new. 60s was tried in docker-compose.dev.yml (fa6953e50) and reverted an hour
+      # later (0d1e221f3) for being far too short.
+      start_period: 600s
     networks:
       scanopy-dev:
         ipv4_address: 172.25.0.5
