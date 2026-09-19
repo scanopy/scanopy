@@ -210,21 +210,16 @@ impl BillingService {
 
     /// Accept the open quote: Stripe creates the invoiced subscription from
     /// it, and the subscription webhook retires any trial subscription.
-    pub async fn accept_quote(
-        &self,
-        organization_id: Uuid,
-        po_number: Option<String>,
-    ) -> Result<String, Error> {
+    pub async fn accept_quote(&self, organization_id: Uuid) -> Result<String, Error> {
         let customer_id = self.customer_id(organization_id).await?;
         let quote = self
             .open_quote(&customer_id)
             .await?
             .ok_or_else(|| refused("There is no open quote to accept"))?;
 
-        if po_number.is_some() {
-            self.set_po_number(&customer_id, po_number).await?;
-        }
-
+        // The PO number the customer already carries is what the invoice
+        // prints; `update_po_number` is the single writer, so accepting does
+        // not offer a second place to set it.
         AcceptQuote::new(quote.id.clone())
             .send(&self.stripe)
             .await
@@ -314,43 +309,6 @@ impl BillingService {
                     organization_id: organization.id,
                 },
                 BillingOperation::InvoiceIssued { invoice: snapshot },
-                AuthenticatedEntity::System,
-            ))
-            .await?;
-        Ok(())
-    }
-
-    /// Webhook: Stripe will raise a renewal invoice shortly. Published for
-    /// every plan; the email subscriber narrows it to the organizations that
-    /// need warning, which today means air-gapped licence holders whose server
-    /// never hears about a renewal by itself.
-    pub(crate) async fn handle_invoice_upcoming(
-        &self,
-        invoice: stripe_billing::Invoice,
-    ) -> Result<(), Error> {
-        let Some(organization) = self.get_org_from_invoice(&invoice).await? else {
-            tracing::debug!("No org found for invoice.upcoming — ignoring");
-            return Ok(());
-        };
-        let Some(plan) = organization.base.plan else {
-            return Ok(());
-        };
-        let snapshot = BillingInvoice::from(&invoice);
-        let renews_at = snapshot
-            .license_paid_through()
-            .or(organization.base.next_renewal_at)
-            .unwrap_or(snapshot.period_end);
-
-        self.event_bus
-            .publish(Event::new(
-                OrgScope {
-                    organization_id: organization.id,
-                },
-                BillingOperation::RenewalUpcoming {
-                    plan,
-                    renews_at,
-                    amount_cents: snapshot.total_cents(),
-                },
                 AuthenticatedEntity::System,
             ))
             .await?;

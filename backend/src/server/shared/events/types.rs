@@ -242,15 +242,6 @@ pub enum BillingOperation {
     InvoiceVoided {
         invoice: BillingInvoice,
     },
-    /// Stripe is about to raise the renewal invoice (`invoice.upcoming`, a
-    /// configurable number of days ahead). The only warning an air-gapped
-    /// customer gets before the charge, since their server never calls home.
-    /// Telemetry-only for org state.
-    RenewalUpcoming {
-        plan: BillingPlan,
-        renews_at: DateTime<Utc>,
-        amount_cents: i64,
-    },
     PaymentFailed {
         invoice_id: String,
         amount_cents: i64,
@@ -461,7 +452,6 @@ impl BillingOperation {
             | Self::PaymentSucceeded { .. }
             | Self::InvoiceIssued { .. }
             | Self::InvoiceVoided { .. }
-            | Self::RenewalUpcoming { .. }
             | Self::DiscountApplied { .. }
             | Self::CancellationFeedbackProvided { .. }
             | Self::StripeCustomerCreated { .. }

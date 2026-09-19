@@ -486,6 +486,11 @@ impl BillingService {
             // CommercialSelfHosted).
             return Ok(None);
         }
+        if plan.license_plan().is_some() {
+            // Self-hosted licences are sold at their published annual price;
+            // discounting one to retain a customer is not an offer we make.
+            return Ok(None);
+        }
         let billing_rate = plan.config().rate;
         let sub = self.find_current_subscription(&organization).await?;
 
@@ -566,6 +571,19 @@ impl BillingService {
         // panel client-side, so this is defense in depth.
         if organization.base.last_discount_at.is_some() {
             return Err(anyhow!("You've already used your one-time discount."));
+        }
+
+        // Self-hosted licences are never discounted; `get_save_offer_coupon`
+        // returns nothing for them, so the panel is already hidden.
+        if organization
+            .base
+            .plan
+            .is_some_and(|plan| plan.license_plan().is_some())
+        {
+            return Err(crate::server::shared::types::api::ValidationError::new(
+                "The retention discount is not available on self-hosted plans.",
+            )
+            .into());
         }
 
         // Eligibility gates on our typed `plan_status` (the DB source of truth,

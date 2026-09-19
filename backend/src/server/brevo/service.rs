@@ -129,7 +129,6 @@ impl BrevoService {
             | BillingOperation::PaymentSucceeded { .. }
             | BillingOperation::InvoiceIssued { .. }
             | BillingOperation::InvoiceVoided { .. }
-            | BillingOperation::RenewalUpcoming { .. }
             | BillingOperation::TrialExtended { .. }
             | BillingOperation::CancellationInitiated { .. }
             | BillingOperation::CancellationFeedbackProvided { .. }

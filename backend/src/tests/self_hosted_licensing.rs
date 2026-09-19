@@ -795,3 +795,129 @@ async fn sent_invoices_license_until_due_and_give_back_on_void() {
     assert!(!cancelled.base.bills_by_invoice);
     assert!(!cancelled.can_pay());
 }
+
+/// The air-gapped expiry sweep: who it warns, and that it says so once per
+/// licence period. Stripe's `invoice.upcoming` never fires for invoice-billed
+/// subscriptions, so this sweep is the only warning these customers get.
+#[tokio::test]
+async fn the_airgap_expiry_sweep_warns_once_per_licence_period() {
+    let dir = tempfile::tempdir().unwrap();
+    let (state, _container) = test_state_with_email_dir(Some(dir.path().to_path_buf())).await;
+    let service = &state.services.organization_service;
+    let email_service = state.services.email_service.clone().unwrap();
+
+    let air_gapped = |org: &Organization| {
+        let service = service.clone();
+        let id = org.id;
+        async move {
+            let mut org = service.get_by_id(&id).await.unwrap().unwrap();
+            org.base.license_key_type = Some(LicenseKeyType::Offline);
+            service
+                .update(&mut org, AuthenticatedEntity::System)
+                .await
+                .unwrap();
+        }
+    };
+    let add_owner = |org_id: Uuid, email: &str| {
+        let user_service = state.services.user_service.clone();
+        let mut owner = user(&org_id);
+        owner.base.email = EmailAddress::new_unchecked(email);
+        owner.base.permissions = UserOrgPermissions::Owner;
+        owner.base.email_verified = true;
+        async move {
+            user_service
+                .create(owner, AuthenticatedEntity::System)
+                .await
+                .unwrap();
+        }
+    };
+
+    // Inside the window, air-gapped: warned.
+    let expiring_soon = whole_seconds_from_now(7);
+    let warned = create_org(&state, get_self_hosted_plus_plan(), Some(expiring_soon)).await;
+    air_gapped(&warned).await;
+    add_owner(warned.id, "airgap@example.test").await;
+
+    // Inside the window but on an online key: its server collects the renewal
+    // by itself, so there is nothing to tell it.
+    let online = create_org(&state, get_self_hosted_plus_plan(), Some(expiring_soon)).await;
+    add_owner(online.id, "online@example.test").await;
+
+    // Air-gapped but a long way from expiry: not yet.
+    let later = create_org(
+        &state,
+        get_self_hosted_plus_plan(),
+        Some(whole_seconds_from_now(90)),
+    )
+    .await;
+    air_gapped(&later).await;
+    add_owner(later.id, "later@example.test").await;
+
+    let sent = |dir: &std::path::Path| {
+        std::fs::read_dir(dir)
+            .unwrap()
+            .map(|entry| std::fs::read_to_string(entry.unwrap().path()).unwrap())
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+
+    email_service.warn_expiring_airgap_keys().await.unwrap();
+    let first_pass = sent(dir.path());
+    assert!(
+        first_pass.contains(&expiring_soon.format("%B %-d, %Y").to_string()),
+        "the air-gapped org inside the window should be warned: {first_pass}"
+    );
+    assert_eq!(
+        reload(&state, warned.id)
+            .await
+            .base
+            .notifications
+            .airgap_expiry_notified_through,
+        Some(expiring_soon)
+    );
+    assert!(
+        reload(&state, online.id)
+            .await
+            .base
+            .notifications
+            .airgap_expiry_notified_through
+            .is_none(),
+        "an online-key org has nothing to copy by hand"
+    );
+    assert!(
+        reload(&state, later.id)
+            .await
+            .base
+            .notifications
+            .airgap_expiry_notified_through
+            .is_none(),
+        "an org months from expiry is warned nearer the time"
+    );
+
+    // A second run the same day says nothing further.
+    let before_second = first_pass.len();
+    email_service.warn_expiring_airgap_keys().await.unwrap();
+    assert_eq!(
+        sent(dir.path()).len(),
+        before_second,
+        "the ratchet should stop a second warning for the same period"
+    );
+
+    // A renewal moves paid-through, which re-arms the warning for the new one.
+    let renewed_through = whole_seconds_from_now(10);
+    let mut renewed = reload(&state, warned.id).await;
+    renewed.base.license_paid_through = Some(renewed_through);
+    service
+        .update(&mut renewed, AuthenticatedEntity::System)
+        .await
+        .unwrap();
+    email_service.warn_expiring_airgap_keys().await.unwrap();
+    assert_eq!(
+        reload(&state, warned.id)
+            .await
+            .base
+            .notifications
+            .airgap_expiry_notified_through,
+        Some(renewed_through)
+    );
+}

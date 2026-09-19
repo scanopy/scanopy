@@ -436,13 +436,15 @@ export function useSetUpInvoiceBillingMutation() {
 	}));
 }
 
-/** Mutation hook that accepts the open quote, carrying the PO number onto the invoice. */
+/**
+ * Mutation hook that accepts the open quote. The invoice carries whatever PO
+ * number the billing account holds; `useUpdatePoNumberMutation` is the one
+ * place that sets it.
+ */
 export function useAcceptQuoteMutation() {
 	return createMutation(() => ({
-		mutationFn: async (poNumber: string | null): Promise<string> => {
-			const { data } = await apiClient.POST('/api/billing/quote/accept', {
-				body: { po_number: poNumber }
-			});
+		mutationFn: async (): Promise<string> => {
+			const { data } = await apiClient.POST('/api/billing/quote/accept', {});
 			if (!data?.success || !data.data) {
 				throw new Error(data?.error || 'Failed to accept quote');
 			}

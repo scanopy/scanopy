@@ -26,12 +26,24 @@ use crate::server::{
     daemons::{r#impl::base::Daemon, service::DaemonService},
     digest::payload::DiscoveryDigestPayload,
     hosts::service::HostService,
+    license::mint::PAID_THROUGH_BUFFER_DAYS,
     networks::{r#impl::Network, service::NetworkService},
-    organizations::{r#impl::base::LimitNotificationLevel, service::OrganizationService},
+    organizations::{
+        r#impl::base::{LimitNotificationLevel, Organization},
+        service::OrganizationService,
+    },
     services::service::ServiceService,
-    shared::{services::traits::CrudService, storage::filter::StorableFilter},
+    shared::{
+        services::traits::CrudService, storage::filter::StorableFilter,
+        types::metadata::TypeMetadataProvider,
+    },
     users::service::UserService,
 };
+
+/// How far ahead an air-gapped organization is warned that its licence period
+/// is ending. Long enough to cancel before the renewal bills, or to plan a
+/// move to another plan, which only becomes possible once the key expires.
+const AIRGAP_EXPIRY_WARNING_DAYS: i64 = 14;
 
 /// Counts of entities discovered/created during the trial, plus elapsed days
 /// since org creation. Populates the trial-ending email and the in-app trial
@@ -830,6 +842,87 @@ impl EmailService {
                 .await?;
         }
 
+        Ok(())
+    }
+
+    // ========================================================================
+    // Air-gapped licence expiry sweep (daily)
+    // ========================================================================
+
+    /// Warn every organization holding an air-gapped key whose licence period
+    /// ends soon.
+    ///
+    /// Stripe's `invoice.upcoming` cannot do this job: it fires only for
+    /// subscriptions that are *automatically charged*, so invoice-billed
+    /// customers — the ones most likely to hold an air-gapped key — never
+    /// produce one. Their servers never call home either, so without this
+    /// sweep the first they hear of a renewal is the charge, and the one
+    /// moment their plan becomes changeable passes unannounced.
+    ///
+    /// Each organization is warned once per licence period, tracked by the
+    /// paid-through date on its notifications ratchet, so running daily is
+    /// safe and a renewal re-arms it.
+    pub async fn warn_expiring_airgap_keys(&self) -> Result<()> {
+        let now = Utc::now();
+        let filter = StorableFilter::<Organization>::new_with_airgap_key_expiring_between(
+            now,
+            now + chrono::Duration::days(AIRGAP_EXPIRY_WARNING_DAYS),
+        );
+        let expiring = self.organization_service.get_all(filter).await?;
+
+        for organization in expiring {
+            if let Err(e) = self.warn_expiring_airgap_key(organization).await {
+                tracing::warn!(error = %e, "Failed to warn an org about its expiring air-gapped key");
+            }
+        }
+        Ok(())
+    }
+
+    /// One organization's warning, plus the ratchet write that stops it
+    /// repeating for the same licence period.
+    async fn warn_expiring_airgap_key(&self, mut organization: Organization) -> Result<()> {
+        let (Some(plan), Some(paid_through)) = (
+            organization.base.plan,
+            organization.base.license_paid_through,
+        ) else {
+            return Ok(());
+        };
+        if plan.license_plan().is_none() {
+            return Ok(());
+        }
+        if organization
+            .base
+            .notifications
+            .airgap_expiry_notified_through
+            == Some(paid_through)
+        {
+            return Ok(());
+        }
+
+        let owner = self.get_owner_email(&organization.id).await?;
+        self.send_airgap_expiring_email(
+            owner,
+            plan.name(),
+            &format_timestamp(paid_through + chrono::Duration::days(PAID_THROUGH_BUFFER_DAYS)),
+            &format_timestamp(paid_through),
+            &format_cents(plan.config().base_cents, "usd"),
+            plan.previous_tier().is_some(),
+        )
+        .await?;
+
+        organization
+            .base
+            .notifications
+            .airgap_expiry_notified_through = Some(paid_through);
+        self.organization_service
+            .update(&mut organization, AuthenticatedEntity::System)
+            .await?;
+
+        tracing::info!(
+            organization_id = %organization.id,
+            paid_through = %paid_through,
+            "Warned an air-gapped organization that its license key expires soon"
+        );
         Ok(())
     }
 
