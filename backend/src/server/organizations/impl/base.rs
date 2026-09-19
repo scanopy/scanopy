@@ -80,6 +80,12 @@ pub struct OrgNotifications {
     /// `None` until the first sunset email is sent.
     #[serde(default)]
     pub sunset_notified_floor: Option<Version>,
+    /// The `license_paid_through` an air-gapped organization has already been
+    /// warned about. The warning goes out once per licence period; a renewal
+    /// moves the date, so the next period's warning sends. `None` until the
+    /// first one.
+    #[serde(default)]
+    pub airgap_expiry_notified_through: Option<DateTime<Utc>>,
 }
 
 #[derive(

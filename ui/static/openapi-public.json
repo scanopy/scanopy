@@ -12448,19 +12448,6 @@
   },
   "components": {
     "schemas": {
-      "AcceptQuoteRequest": {
-        "type": "object",
-        "description": "Accept the open quote.",
-        "properties": {
-          "po_number": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "Purchase order raised against the quote, printed on the invoice."
-          }
-        }
-      },
       "ApiErrorResponse": {
         "type": "object",
         "description": "Error response type for API errors (no data field)",
@@ -12656,19 +12643,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-18T11:15:21.744093Z",
+              "created_at": "2026-09-19T00:33:04.472775Z",
               "first_discovery_id": null,
-              "id": "1ac3aec2-a978-47d1-8437-0edb5d361b77",
+              "id": "9dbb6a63-99a8-47ec-87d0-7e84665b600b",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-18T11:15:21.744093Z",
+              "last_seen_at": "2026-09-19T00:33:04.472775Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-18T11:15:21.744093Z",
-              "valid_from": "2026-09-18T11:15:21.744093Z",
+              "updated_at": "2026-09-19T00:33:04.472775Z",
+              "valid_from": "2026-09-19T00:33:04.472775Z",
               "valid_to": null
             }
           },
@@ -14159,19 +14146,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-18T11:15:21.722596Z",
+                      "created_at": "2026-09-19T00:33:04.445785Z",
                       "first_discovery_id": null,
-                      "id": "1bafec38-a12f-4d96-8d50-43cdafdc882f",
+                      "id": "a081c156-638a-446c-a357-d211744218a0",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-18T11:15:21.722596Z",
+                      "last_seen_at": "2026-09-19T00:33:04.445785Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-18T11:15:21.722596Z",
-                      "valid_from": "2026-09-18T11:15:21.722596Z",
+                      "updated_at": "2026-09-19T00:33:04.445785Z",
+                      "valid_from": "2026-09-19T00:33:04.445785Z",
                       "valid_to": null
                     }
                   ],
@@ -14185,7 +14172,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Asterisk",
+                  "service_definition": "HyperFile Server",
                   "source": {
                     "type": "Manual"
                   },
@@ -15548,19 +15535,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-18T11:15:21.738989Z",
+                  "created_at": "2026-09-19T00:33:04.467133Z",
                   "first_discovery_id": null,
-                  "id": "893ff777-1185-4a49-9084-27472cd3311c",
+                  "id": "0dc16fe3-fc05-4210-964e-08850008cd50",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-18T11:15:21.738989Z",
+                  "last_seen_at": "2026-09-19T00:33:04.467133Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-18T11:15:21.738989Z",
-                  "valid_from": "2026-09-18T11:15:21.738989Z",
+                  "updated_at": "2026-09-19T00:33:04.467133Z",
+                  "valid_from": "2026-09-19T00:33:04.467133Z",
                   "valid_to": null
                 }
               ],
@@ -15574,7 +15561,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Asterisk",
+              "service_definition": "HyperFile Server",
               "source": {
                 "type": "Manual"
               },
@@ -17829,19 +17816,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-18T11:15:21.723106Z",
+          "created_at": "2026-09-19T00:33:04.446582Z",
           "first_discovery_id": null,
-          "id": "4e5e9d63-3d0a-42c6-866c-bf9a9afda63c",
+          "id": "4f3f7e5b-278a-454e-a2ef-7159e562304c",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-18T11:15:21.723106Z",
+          "last_seen_at": "2026-09-19T00:33:04.446582Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-18T11:15:21.723106Z",
-          "valid_from": "2026-09-18T11:15:21.723106Z",
+          "updated_at": "2026-09-19T00:33:04.446582Z",
+          "valid_from": "2026-09-19T00:33:04.446582Z",
           "valid_to": null
         }
       },
@@ -18536,7 +18523,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Asterisk",
+              "service_definition": "HyperFile Server",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -23920,19 +23907,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-18T11:15:21.722056Z",
+                  "created_at": "2026-09-19T00:33:04.444898Z",
                   "first_discovery_id": null,
-                  "id": "d5356a94-acb1-4ee4-9bc1-869d448caea0",
+                  "id": "56af65fe-64aa-4b52-9b1e-0f90392f82d7",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-18T11:15:21.722056Z",
+                  "last_seen_at": "2026-09-19T00:33:04.444898Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-18T11:15:21.722056Z",
-                  "valid_from": "2026-09-18T11:15:21.722056Z",
+                  "updated_at": "2026-09-19T00:33:04.444898Z",
+                  "valid_from": "2026-09-19T00:33:04.444898Z",
                   "valid_to": null
                 }
               ],
@@ -23946,7 +23933,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Asterisk",
+              "service_definition": "HyperFile Server",
               "source": {
                 "type": "Manual"
               },
@@ -27603,19 +27590,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-18T11:15:21.711839Z",
+                        "created_at": "2026-09-19T00:33:04.427404Z",
                         "first_discovery_id": null,
-                        "id": "e1367244-da6d-4a9d-ad24-6cf18384f634",
+                        "id": "d4ca19c0-353d-4f2c-9558-1f452437a9db",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-18T11:15:21.711839Z",
+                        "last_seen_at": "2026-09-19T00:33:04.427404Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-18T11:15:21.711839Z",
-                        "valid_from": "2026-09-18T11:15:21.711839Z",
+                        "updated_at": "2026-09-19T00:33:04.427404Z",
+                        "valid_from": "2026-09-19T00:33:04.427404Z",
                         "valid_to": null
                       }
                     ],
@@ -27629,7 +27616,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Asterisk",
+                    "service_definition": "HyperFile Server",
                     "source": {
                       "type": "Manual"
                     },
@@ -27772,19 +27759,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-18T11:15:21.738004Z",
+                    "created_at": "2026-09-19T00:33:04.466068Z",
                     "first_discovery_id": null,
-                    "id": "ef853027-cf92-4416-85ad-bc7a66f56d70",
+                    "id": "2648b70b-f472-44e5-8c43-104231781fab",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-18T11:15:21.738004Z",
+                    "last_seen_at": "2026-09-19T00:33:04.466068Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-18T11:15:21.738004Z",
-                    "valid_from": "2026-09-18T11:15:21.738004Z",
+                    "updated_at": "2026-09-19T00:33:04.466068Z",
+                    "valid_from": "2026-09-19T00:33:04.466068Z",
                     "valid_to": null
                   }
                 ],
@@ -27798,7 +27785,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Asterisk",
+                "service_definition": "HyperFile Server",
                 "source": {
                   "type": "Manual"
                 },
@@ -29923,19 +29910,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-18T11:15:21.722960Z",
+              "created_at": "2026-09-19T00:33:04.446346Z",
               "first_discovery_id": null,
-              "id": "17cab6e0-3db2-47d9-8564-f66424191074",
+              "id": "9fd1f326-ff36-4b51-8795-f36c19b37f91",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-18T11:15:21.722960Z",
+              "last_seen_at": "2026-09-19T00:33:04.446346Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-18T11:15:21.722960Z",
-              "valid_from": "2026-09-18T11:15:21.722960Z",
+              "updated_at": "2026-09-19T00:33:04.446346Z",
+              "valid_from": "2026-09-19T00:33:04.446346Z",
               "valid_to": null
             }
           ],
@@ -29949,7 +29936,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Asterisk",
+          "service_definition": "HyperFile Server",
           "source": {
             "type": "Manual"
           },
@@ -31270,7 +31257,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "5053aa05-831a-4c9c-b01b-8a1b27b8f9d6",
+                  "id": "46a710e1-ceb8-4773-8bb4-7641048fd651",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -31280,23 +31267,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "344a047e-98f9-4510-9bac-bab1a641e3c1",
+                  "id": "aaac4c42-7adc-4922-a37f-ac91389ff411",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "0c72cd26-e9a9-4b91-8d3a-2154506f414a",
+                  "id": "13db24ba-dccd-4cd2-9182-d9d492b9a74d",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "e1102dba-2d87-4bdc-ba62-0c0789fffa66",
+                  "id": "11f9b7e1-4dbf-4b35-8b88-6d6127189ea6",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "344a047e-98f9-4510-9bac-bab1a641e3c1",
+                  "id": "aaac4c42-7adc-4922-a37f-ac91389ff411",
                   "rule": "ByHost"
                 }
               ]
@@ -31326,19 +31313,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "f6704a57-f798-4739-ac6f-55d5a8788b47",
+                "id": "172a8f38-d284-449f-819f-ff4dd96984d9",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "1b2137b0-b80c-4d09-bf56-17653d6d9a1c",
+                "id": "4caf06bd-d668-4b3f-a112-ee6e1fad36a8",
                 "rule": "ByVLAN"
               },
               {
-                "id": "71f2c566-7140-416b-a028-9036783f49b5",
+                "id": "fbec01bc-87ee-4682-9ac2-b9ad228fa103",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "25d47099-c598-4a7d-a5a5-d4462246e056",
+                "id": "abe7793e-e326-40e8-b9c6-e6ad19ba6400",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -31356,7 +31343,7 @@
                 }
               },
               {
-                "id": "0b36b830-6fca-4b12-a543-724f8f87228d",
+                "id": "bfa337f0-be1e-4801-8931-0b26407860d3",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -31365,15 +31352,15 @@
                 }
               },
               {
-                "id": "46f651fc-07c8-4c4f-8e1e-95205da28578",
+                "id": "61782280-7235-48eb-9fd5-67436775dca5",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "23b78b9d-650f-4a73-8886-192f8af87967",
+                "id": "70521f26-d0ee-4b02-b301-53468f8ac8ac",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "0b371827-6e86-4e24-9608-8db88ac24f64",
+                "id": "fc763dd0-6393-4c7e-a094-78decb40e003",
                 "rule": "ByStack"
               }
             ]

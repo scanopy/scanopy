@@ -566,7 +566,8 @@ export interface paths {
         /**
          * Accept the open quote
          * @description Stripe creates the invoiced subscription from the quote and sends the
-         *     first invoice, carrying the purchase order number if one is given.
+         *     first invoice, carrying whatever purchase order number the billing account
+         *     holds (set through `PUT /po-number`).
          */
         post: operations["accept_quote"];
         delete?: never;
@@ -3389,11 +3390,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** @description Accept the open quote. */
-        AcceptQuoteRequest: {
-            /** @description Purchase order raised against the quote, printed on the invoice. */
-            po_number?: string | null;
-        };
         /** @description Error response type for API errors (no data field) */
         ApiErrorResponse: {
             /** @description Machine-readable error code for i18n translation */
@@ -3442,19 +3438,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-18T11:15:21.744122Z",
+             *       "created_at": "2026-09-19T00:33:04.472779Z",
              *       "first_discovery_id": null,
-             *       "id": "dac630c3-eb1b-4cf4-a49f-667662d13866",
+             *       "id": "8881818d-f5fa-4a14-868d-399b3f7b2e55",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-18T11:15:21.744122Z",
+             *       "last_seen_at": "2026-09-19T00:33:04.472779Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-18T11:15:21.744122Z",
-             *       "valid_from": "2026-09-18T11:15:21.744122Z",
+             *       "updated_at": "2026-09-19T00:33:04.472779Z",
+             *       "valid_from": "2026-09-19T00:33:04.472779Z",
              *       "valid_to": null
              *     }
              */
@@ -4115,19 +4111,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-18T11:15:21.722615Z",
+             *               "created_at": "2026-09-19T00:33:04.445767Z",
              *               "first_discovery_id": null,
-             *               "id": "600afa03-30a3-4456-9c75-d1f333c93924",
+             *               "id": "b388d37a-23f8-4613-bc53-c9dfb23f0243",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-18T11:15:21.722615Z",
+             *               "last_seen_at": "2026-09-19T00:33:04.445767Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-18T11:15:21.722615Z",
-             *               "valid_from": "2026-09-18T11:15:21.722615Z",
+             *               "updated_at": "2026-09-19T00:33:04.445767Z",
+             *               "valid_from": "2026-09-19T00:33:04.445767Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4141,7 +4137,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Asterisk",
+             *           "service_definition": "HyperFile Server",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4934,19 +4930,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-18T11:15:21.739368Z",
+             *           "created_at": "2026-09-19T00:33:04.467125Z",
              *           "first_discovery_id": null,
-             *           "id": "7c1864df-a694-4ee7-a8c9-ad4a1d5cbf94",
+             *           "id": "3563dccd-a969-46ff-b7ea-2701bdd5d35a",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-18T11:15:21.739368Z",
+             *           "last_seen_at": "2026-09-19T00:33:04.467125Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-18T11:15:21.739368Z",
-             *           "valid_from": "2026-09-18T11:15:21.739368Z",
+             *           "updated_at": "2026-09-19T00:33:04.467125Z",
+             *           "valid_from": "2026-09-19T00:33:04.467125Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -4960,7 +4956,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Asterisk",
+             *       "service_definition": "HyperFile Server",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -5825,19 +5821,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-18T11:15:21.723127Z",
+         *       "created_at": "2026-09-19T00:33:04.446554Z",
          *       "first_discovery_id": null,
-         *       "id": "6fd3bdff-e9fc-4e15-aeae-a8058f473b2b",
+         *       "id": "c0a4bc7a-3015-432a-b5cd-c144c7a1bfcb",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-18T11:15:21.723127Z",
+         *       "last_seen_at": "2026-09-19T00:33:04.446554Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-18T11:15:21.723127Z",
-         *       "valid_from": "2026-09-18T11:15:21.723127Z",
+         *       "updated_at": "2026-09-19T00:33:04.446554Z",
+         *       "valid_from": "2026-09-19T00:33:04.446554Z",
          *       "valid_to": null
          *     }
          */
@@ -6151,7 +6147,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Asterisk",
+         *           "service_definition": "HyperFile Server",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8323,19 +8319,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-18T11:15:21.722038Z",
+         *               "created_at": "2026-09-19T00:33:04.444890Z",
          *               "first_discovery_id": null,
-         *               "id": "3f120768-2b35-450e-ae67-b2b40ff496b2",
+         *               "id": "80927e34-8676-4da6-89a8-7c01463bf6d1",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-18T11:15:21.722038Z",
+         *               "last_seen_at": "2026-09-19T00:33:04.444890Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-18T11:15:21.722038Z",
-         *               "valid_from": "2026-09-18T11:15:21.722038Z",
+         *               "updated_at": "2026-09-19T00:33:04.444890Z",
+         *               "valid_from": "2026-09-19T00:33:04.444890Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8349,7 +8345,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Asterisk",
+         *           "service_definition": "HyperFile Server",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -11304,19 +11300,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-18T11:15:21.722981Z",
+         *           "created_at": "2026-09-19T00:33:04.446317Z",
          *           "first_discovery_id": null,
-         *           "id": "5dadd948-967b-49b9-9faf-6e65f1ff00c3",
+         *           "id": "f2666698-a5ea-4190-8c50-6983d77823ba",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-18T11:15:21.722981Z",
+         *           "last_seen_at": "2026-09-19T00:33:04.446317Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-18T11:15:21.722981Z",
-         *           "valid_from": "2026-09-18T11:15:21.722981Z",
+         *           "updated_at": "2026-09-19T00:33:04.446317Z",
+         *           "valid_from": "2026-09-19T00:33:04.446317Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -11330,7 +11326,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Asterisk",
+         *       "service_definition": "HyperFile Server",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12032,7 +12028,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "11b7465c-4b5d-4bc8-b982-2b202f957e40",
+             *           "id": "d6081e81-c4c6-4425-a933-fdd028db0cbd",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -12042,23 +12038,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "dd30edfa-5bda-4471-8b69-57c780fa70ab",
+             *           "id": "76d98fee-79db-4653-a287-dcfd56e2b1d2",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "32d09731-7a66-4c30-ab3c-52420e22842a",
+             *           "id": "1b592a0b-2ee1-444d-9dc8-8350c3c1851a",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "ded0fc72-92cf-4c92-95bf-93f4d2d3da36",
+             *           "id": "d80d840d-b354-4a69-86dc-ba53c2dddc51",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "dd30edfa-5bda-4471-8b69-57c780fa70ab",
+             *           "id": "76d98fee-79db-4653-a287-dcfd56e2b1d2",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -12071,19 +12067,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "4740c816-cf6c-4b4e-abcb-99f06d8c6515",
+             *         "id": "c3b493c9-1fdc-4662-a98a-3cfa0b95353c",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "96a4eb2a-6227-445f-9d79-af90b5dcf296",
+             *         "id": "a9341e71-a419-49c9-a64c-95de56c195a2",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "37c80a63-e286-4557-be7f-fb48496dc159",
+             *         "id": "27b39918-25d6-4126-940e-ae1cadd55d6f",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "186b01c3-2488-4d1f-96d8-d599d1aafb0c",
+             *         "id": "56171264-68ae-449f-8155-9dd7d0e7a328",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -12101,7 +12097,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "c5fa7bee-508e-42eb-81d4-cfd9d7dd516d",
+             *         "id": "672dbc51-7776-4cd3-b797-b0318efb71b3",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -12110,15 +12106,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "1bf75964-0da7-40c1-a2a8-1bff5f0274fa",
+             *         "id": "c8026cdc-4302-4648-a374-4a2814482e83",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "6dae8bc9-ad39-4941-917e-1cec9d68cd04",
+             *         "id": "78c55461-8989-491b-8ece-8be9e6e12e7e",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "7e48dd7e-33c3-45e7-bd7a-5cebee27f09a",
+             *         "id": "fb49a9eb-d0ee-46fe-9dff-f1868b26926d",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -13702,11 +13698,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AcceptQuoteRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Quote accepted */
             200: {

@@ -94,9 +94,12 @@
 
 	// Save offers (pause + discount) only apply to Stripe-managed plans —
 	// pausing or discounting a non-Stripe sub is nonsensical and the backend
-	// would 4xx anyway. This just hides the dead-end UI.
+	// would 4xx anyway. This just hides the dead-end UI. Self-hosted licences
+	// are excluded too: an annual licence is not discounted to retain it, and
+	// the server refuses the coupon for them.
 	let canReceiveSaveOffer = $derived(
-		billingPlans.getMetadata(planType ?? null).is_stripe_managed === true
+		billingPlans.getMetadata(planType ?? null).is_stripe_managed === true &&
+			billingPlans.getMetadata(planType ?? null).license_plan == null
 	);
 
 	// An air-gapped key validates without ever reaching us, so it runs to its

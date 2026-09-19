@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 use crate::server::{
     daemons::r#impl::base::DaemonMode,
+    license::types::LicenseKeyType,
     shared::{entities::EntityDiscriminants, storage::traits::SqlValue},
     users::r#impl::permissions::UserOrgPermissions,
 };

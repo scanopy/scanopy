@@ -175,14 +175,16 @@
 		{/if}
 
 		{#if altAction && ready}
-			<button
-				type="button"
-				class="text-link text-sm hover:underline"
-				disabled={busy}
-				onclick={altAction.onclick}
-			>
-				{altAction.label}
-			</button>
+			<div class="text-center">
+				<button
+					type="button"
+					class="text-link text-sm hover:underline"
+					disabled={busy}
+					onclick={altAction.onclick}
+				>
+					{altAction.label}
+				</button>
+			</div>
 		{/if}
 	</div>
 

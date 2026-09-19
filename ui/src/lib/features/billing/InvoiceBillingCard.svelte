@@ -15,13 +15,16 @@
 	import type { components } from '$lib/api/schema';
 	import {
 		billing_invoice_acceptConfirm,
+		billing_invoice_acceptNoPo,
 		billing_invoice_acceptTitle,
+		billing_invoice_acceptWithPo,
 		billing_invoice_accepted,
 		billing_invoice_downloadQuote,
 		billing_invoice_poNumber,
 		billing_invoice_poNumberHelp,
 		billing_invoice_poNumberUpdated,
-		billing_invoice_quoteBody,
+		billing_invoice_quoteBodyNoPo,
+		billing_invoice_quoteBodyWithPo,
 		billing_invoice_quoteCancelled,
 		billing_invoice_quoteTitle,
 		common_cancel,
@@ -72,27 +75,34 @@
 		}
 	}));
 
-	const acceptForm = createForm(() => ({
-		defaultValues: { po_number: '' },
-		onSubmit: async ({ value }) => {
-			try {
-				await acceptMutation.mutateAsync(value.po_number.trim() || null);
-				acceptingQuote = false;
-				pushSuccess(billing_invoice_accepted());
-			} catch {
-				// The API client toasts the failure.
-			}
-		}
-	}));
-
 	function startEditingPo() {
 		poForm.reset({ po_number: status.po_number ?? '' });
 		editingPo = true;
 	}
 
-	function startAccepting() {
-		acceptForm.reset({ po_number: status.po_number ?? '' });
-		acceptingQuote = true;
+	// The PO row above owns the number; accepting a quote just confirms what it
+	// already says, rather than asking a second time and inviting two answers.
+	async function handleAccept() {
+		try {
+			await acceptMutation.mutateAsync();
+			acceptingQuote = false;
+			pushSuccess(billing_invoice_accepted());
+		} catch {
+			// The API client toasts the failure.
+		}
+	}
+
+	// Stripe renders the PDF on demand and it proxies through the backend, so
+	// the wait is long enough to need saying.
+	let downloading = $state(false);
+
+	async function handleDownload() {
+		downloading = true;
+		try {
+			await downloadQuotePdf(quote?.number ?? null);
+		} finally {
+			downloading = false;
+		}
 	}
 
 	async function handleCancelQuote() {
@@ -155,21 +165,28 @@
 			{billing_invoice_quoteTitle({ number: quote.number ?? '' })}
 		</h3>
 		<p class="text-secondary text-sm">
-			{billing_invoice_quoteBody({
-				amount: formatMoney(quote.amount_total_cents, quote.currency),
-				date: formatDate(quote.expires_at)
-			})}
+			{status.po_number
+				? billing_invoice_quoteBodyWithPo({
+						amount: formatMoney(quote.amount_total_cents, quote.currency),
+						date: formatDate(quote.expires_at),
+						po: status.po_number
+					})
+				: billing_invoice_quoteBodyNoPo({
+						amount: formatMoney(quote.amount_total_cents, quote.currency),
+						date: formatDate(quote.expires_at)
+					})}
 		</p>
 		<div class="flex flex-wrap gap-2">
 			<button
 				type="button"
 				class="btn-secondary flex items-center gap-2"
-				onclick={() => downloadQuotePdf(quote?.number ?? null)}
+				disabled={downloading}
+				onclick={handleDownload}
 			>
 				<Download class="h-4 w-4" />
-				{billing_invoice_downloadQuote()}
+				{downloading ? common_processing() : billing_invoice_downloadQuote()}
 			</button>
-			<button type="button" class="btn-primary" onclick={startAccepting}>
+			<button type="button" class="btn-primary" onclick={() => (acceptingQuote = true)}>
 				{billing_invoice_acceptTitle()}
 			</button>
 			<button
@@ -190,33 +207,26 @@
 	size="sm"
 	onClose={() => (acceptingQuote = false)}
 >
-	<form
-		class="flex min-h-0 flex-1 flex-col"
-		onsubmit={(e) => {
-			e.preventDefault();
-			e.stopPropagation();
-			submitForm(acceptForm);
-		}}
-	>
+	<div class="flex min-h-0 flex-1 flex-col">
 		<div class="p-6">
-			<acceptForm.Field name="po_number" validators={{ onBlur: ({ value }) => max(140)(value) }}>
-				{#snippet children(field)}
-					<TextInput
-						label={billing_invoice_poNumber()}
-						id="accept-quote-po-number"
-						helpText={billing_invoice_poNumberHelp()}
-						{field}
-					/>
-				{/snippet}
-			</acceptForm.Field>
+			<p class="text-secondary text-sm">
+				{status.po_number
+					? billing_invoice_acceptWithPo({ po: status.po_number })
+					: billing_invoice_acceptNoPo()}
+			</p>
 		</div>
 		<div class="modal-footer flex justify-end gap-3">
 			<button type="button" class="btn-secondary" onclick={() => (acceptingQuote = false)}>
 				{common_cancel()}
 			</button>
-			<button type="submit" class="btn-primary" disabled={acceptMutation.isPending}>
+			<button
+				type="button"
+				class="btn-primary"
+				disabled={acceptMutation.isPending}
+				onclick={handleAccept}
+			>
 				{acceptMutation.isPending ? common_processing() : billing_invoice_acceptConfirm()}
 			</button>
 		</div>
-	</form>
+	</div>
 </GenericModal>

@@ -224,6 +224,23 @@ async fn main() -> anyhow::Result<()> {
         }
     });
 
+    // Air-gapped licence expiry warnings (daily). An air-gapped customer's
+    // server never calls home and Stripe's upcoming-invoice event does not
+    // fire for invoice-billed subscriptions, so this sweep is the only thing
+    // that reaches them before a renewal bills. Ratcheted per licence period,
+    // so a daily tick sends at most one email per organization per period.
+    if let Some(airgap_email) = state.services.email_service.clone() {
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(24 * 60 * 60));
+            loop {
+                interval.tick().await;
+                if let Err(e) = airgap_email.warn_expiring_airgap_keys().await {
+                    tracing::error!(error = %e, "Air-gapped licence expiry sweep failed");
+                }
+            }
+        });
+    }
+
     // License key periodic re-validation (every 5 minutes). Only runs when a
     // license key is configured — keyless deployments have no license service.
     if let Some(license_revalidate) = state.license_service.clone() {

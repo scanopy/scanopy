@@ -4,7 +4,7 @@
 
 use crate::server::auth::middleware::permissions::{Authorized, Owner};
 use crate::server::billing::types::api::{
-    AcceptQuoteRequest, InvoiceBillingRequest, InvoiceBillingStatus, UpdatePoNumberRequest,
+    InvoiceBillingRequest, InvoiceBillingStatus, UpdatePoNumberRequest,
 };
 use crate::server::config::AppState;
 use crate::server::openapi::tags as api_tags;
@@ -135,12 +135,12 @@ async fn cancel_quote(
 /// Accept the open quote
 ///
 /// Stripe creates the invoiced subscription from the quote and sends the
-/// first invoice, carrying the purchase order number if one is given.
+/// first invoice, carrying whatever purchase order number the billing account
+/// holds (set through `PUT /po-number`).
 #[utoipa::path(
     post,
     path = "/quote/accept",
     tags = [api_tags::BILLING, api_tags::INTERNAL],
-    request_body = AcceptQuoteRequest,
     responses(
         (status = 200, description = "Quote accepted", body = ApiResponse<String>),
         (status = 400, description = "No open quote or billing not enabled", body = ApiErrorResponse),
@@ -150,7 +150,6 @@ async fn cancel_quote(
 async fn accept_quote(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Owner>,
-    Json(request): Json<AcceptQuoteRequest>,
 ) -> ApiResult<Json<ApiResponse<String>>> {
     let organization_id = auth
         .organization_id()
@@ -161,9 +160,7 @@ async fn accept_quote(
         .clone()
         .ok_or_else(ApiError::billing_setup_incomplete)?;
 
-    let result = billing_service
-        .accept_quote(organization_id, request.po_number)
-        .await?;
+    let result = billing_service.accept_quote(organization_id).await?;
     Ok(Json(ApiResponse::success(result)))
 }
 

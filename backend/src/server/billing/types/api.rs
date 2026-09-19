@@ -148,14 +148,6 @@ pub struct PendingQuote {
     pub expires_at: DateTime<Utc>,
 }
 
-/// Accept the open quote.
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct AcceptQuoteRequest {
-    /// Purchase order raised against the quote, printed on the invoice.
-    #[serde(default)]
-    pub po_number: Option<String>,
-}
-
 /// An issued invoice that has not been paid yet.
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct OpenInvoice {
