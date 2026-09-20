@@ -1,6 +1,7 @@
 //! Email check, registration, onboarding setup, and pending-setup application.
 use super::*;
 use crate::server::auth::email_domain::{DomainCheck, check_email_domain};
+use crate::server::auth::r#impl::api::CheckEmailResponse;
 use crate::server::openapi::tags as api_tags;
 
 #[utoipa::path(
@@ -9,14 +10,16 @@ use crate::server::openapi::tags as api_tags;
     tags = [api_tags::AUTH, api_tags::INTERNAL],
     request_body = CheckEmailRequest,
     responses(
-        (status = 200, description = "Email is available", body = EmptyApiResponse),
-        (status = 409, description = "Email already in use", body = ApiErrorResponse),
+        (status = 200, description = "Whether the address is available", body = ApiResponse<CheckEmailResponse>),
+        (status = 403, description = "Password login is disabled", body = ApiErrorResponse),
     )
 )]
 pub(crate) async fn check_email(
     State(state): State<Arc<AppState>>,
     Json(request): Json<CheckEmailRequest>,
-) -> ApiResult<Json<ApiResponse<()>>> {
+) -> ApiResult<Json<ApiResponse<CheckEmailResponse>>> {
+    // A genuine refusal, unlike a taken address: this deployment does not do
+    // password registration at all, so there is no question to answer.
     if state.config.disable_password_login {
         return Err(ApiError::coded(
             StatusCode::FORBIDDEN,
@@ -29,15 +32,12 @@ pub(crate) async fn check_email(
         .user_service
         .get_all(StorableFilter::<User>::new_from_email(&request.email))
         .await?;
-    if !existing.is_empty() {
-        return Err(ApiError::coded(
-            StatusCode::CONFLICT,
-            ErrorCode::UserEmailInUse {
-                email: request.email.to_string(),
-            },
-        ));
-    }
-    Ok(Json(ApiResponse::success(())))
+
+    // Answered, not failed. `register` still returns `UserEmailInUse` for a real
+    // attempt; this endpoint only reports what the caller asked.
+    Ok(Json(ApiResponse::success(CheckEmailResponse {
+        available: existing.is_empty(),
+    })))
 }
 
 #[utoipa::path(

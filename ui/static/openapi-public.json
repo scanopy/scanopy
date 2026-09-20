@@ -12656,19 +12656,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-18T18:53:42.019265Z",
+              "created_at": "2026-09-20T18:34:54.032027Z",
               "first_discovery_id": null,
-              "id": "3b65daa8-fef1-414e-bade-5996e54252ea",
+              "id": "695dab4d-d8a9-40f5-bb49-0785472f2a56",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-18T18:53:42.019265Z",
+              "last_seen_at": "2026-09-20T18:34:54.032027Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-18T18:53:42.019265Z",
-              "valid_from": "2026-09-18T18:53:42.019265Z",
+              "updated_at": "2026-09-20T18:34:54.032027Z",
+              "valid_from": "2026-09-20T18:34:54.032027Z",
               "valid_to": null
             }
           },
@@ -12842,6 +12842,43 @@
                 "format": "int64",
                 "description": "Seats over the target plan's allowance.",
                 "minimum": 0
+              }
+            }
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-readable failure message. Omitted on success."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+          }
+        }
+      },
+      "ApiResponse_CheckEmailResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Check email availability response.\n\nAn address that is already registered is an answer to this question, not a\nfailure of it: the caller asked whether the address is free and got a\ntruthful no. Returning an error for that case forced every client to either\ntreat a 409 as success or suppress the toast that came with it.",
+            "required": [
+              "available"
+            ],
+            "properties": {
+              "available": {
+                "type": "boolean",
+                "description": "Whether the address has no account yet, and so can be registered."
               }
             }
           },
@@ -14159,19 +14196,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-18T18:53:41.991963Z",
+                      "created_at": "2026-09-20T18:34:54.004148Z",
                       "first_discovery_id": null,
-                      "id": "718dff45-1bc7-45c1-b848-8da05ba369ec",
+                      "id": "e162e8b8-1aeb-4be1-b5de-1f5b005ae6c6",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-18T18:53:41.991963Z",
+                      "last_seen_at": "2026-09-20T18:34:54.004148Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-18T18:53:41.991963Z",
-                      "valid_from": "2026-09-18T18:53:41.991963Z",
+                      "updated_at": "2026-09-20T18:34:54.004148Z",
+                      "valid_from": "2026-09-20T18:34:54.004148Z",
                       "valid_to": null
                     }
                   ],
@@ -14185,7 +14222,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Pocket ID",
+                  "service_definition": "MeTube",
                   "source": {
                     "type": "Manual"
                   },
@@ -15548,19 +15585,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-18T18:53:42.013583Z",
+                  "created_at": "2026-09-20T18:34:54.025971Z",
                   "first_discovery_id": null,
-                  "id": "79dcb346-35bb-40c5-88d3-d05842964b82",
+                  "id": "40dddd54-b667-4e5e-8a40-baf656a22041",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-18T18:53:42.013583Z",
+                  "last_seen_at": "2026-09-20T18:34:54.025971Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-18T18:53:42.013583Z",
-                  "valid_from": "2026-09-18T18:53:42.013583Z",
+                  "updated_at": "2026-09-20T18:34:54.025971Z",
+                  "valid_from": "2026-09-20T18:34:54.025971Z",
                   "valid_to": null
                 }
               ],
@@ -15574,7 +15611,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Pocket ID",
+              "service_definition": "MeTube",
               "source": {
                 "type": "Manual"
               },
@@ -17829,19 +17866,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-18T18:53:41.992768Z",
+          "created_at": "2026-09-20T18:34:54.004960Z",
           "first_discovery_id": null,
-          "id": "a57e8705-5e43-4305-9dce-01ae072277d9",
+          "id": "233fca14-fc0f-468f-b48e-7a8542766b4d",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-18T18:53:41.992768Z",
+          "last_seen_at": "2026-09-20T18:34:54.004960Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-18T18:53:41.992768Z",
-          "valid_from": "2026-09-18T18:53:41.992768Z",
+          "updated_at": "2026-09-20T18:34:54.004960Z",
+          "valid_from": "2026-09-20T18:34:54.004960Z",
           "valid_to": null
         }
       },
@@ -18181,6 +18218,19 @@
             "type": "string",
             "format": "email",
             "description": "Email address to check for an existing account."
+          }
+        }
+      },
+      "CheckEmailResponse": {
+        "type": "object",
+        "description": "Check email availability response.\n\nAn address that is already registered is an answer to this question, not a\nfailure of it: the caller asked whether the address is free and got a\ntruthful no. Returning an error for that case forced every client to either\ntreat a 409 as success or suppress the toast that came with it.",
+        "required": [
+          "available"
+        ],
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "description": "Whether the address has no account yet, and so can be registered."
           }
         }
       },
@@ -18536,7 +18586,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Pocket ID",
+              "service_definition": "MeTube",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -23920,19 +23970,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-18T18:53:41.991088Z",
+                  "created_at": "2026-09-20T18:34:54.003275Z",
                   "first_discovery_id": null,
-                  "id": "c7f3cdce-2480-467a-9960-d8e5e69534cd",
+                  "id": "ade0db8b-e3b4-4baf-959f-6bd723596d15",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-18T18:53:41.991088Z",
+                  "last_seen_at": "2026-09-20T18:34:54.003275Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-18T18:53:41.991088Z",
-                  "valid_from": "2026-09-18T18:53:41.991088Z",
+                  "updated_at": "2026-09-20T18:34:54.003275Z",
+                  "valid_from": "2026-09-20T18:34:54.003275Z",
                   "valid_to": null
                 }
               ],
@@ -23946,7 +23996,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Pocket ID",
+              "service_definition": "MeTube",
               "source": {
                 "type": "Manual"
               },
@@ -27612,19 +27662,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-18T18:53:41.973464Z",
+                        "created_at": "2026-09-20T18:34:53.985321Z",
                         "first_discovery_id": null,
-                        "id": "995d7608-90f2-4120-b32b-d68ab5aea3e2",
+                        "id": "0c1a270e-45bb-4c13-8bdf-c65e9f18556c",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-18T18:53:41.973464Z",
+                        "last_seen_at": "2026-09-20T18:34:53.985321Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-18T18:53:41.973464Z",
-                        "valid_from": "2026-09-18T18:53:41.973464Z",
+                        "updated_at": "2026-09-20T18:34:53.985321Z",
+                        "valid_from": "2026-09-20T18:34:53.985321Z",
                         "valid_to": null
                       }
                     ],
@@ -27638,7 +27688,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Pocket ID",
+                    "service_definition": "MeTube",
                     "source": {
                       "type": "Manual"
                     },
@@ -27781,19 +27831,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-18T18:53:42.012507Z",
+                    "created_at": "2026-09-20T18:34:54.024929Z",
                     "first_discovery_id": null,
-                    "id": "48e916d7-ca7c-4c9b-b300-ac09d5dbfcf4",
+                    "id": "e67435b0-8e2e-462d-88f0-f8ba051b1b6f",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-18T18:53:42.012507Z",
+                    "last_seen_at": "2026-09-20T18:34:54.024929Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-18T18:53:42.012507Z",
-                    "valid_from": "2026-09-18T18:53:42.012507Z",
+                    "updated_at": "2026-09-20T18:34:54.024929Z",
+                    "valid_from": "2026-09-20T18:34:54.024929Z",
                     "valid_to": null
                   }
                 ],
@@ -27807,7 +27857,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Pocket ID",
+                "service_definition": "MeTube",
                 "source": {
                   "type": "Manual"
                 },
@@ -29932,19 +29982,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-18T18:53:41.992524Z",
+              "created_at": "2026-09-20T18:34:54.004724Z",
               "first_discovery_id": null,
-              "id": "8b4cf1a9-4626-4c81-8e4a-aa3136cc50ef",
+              "id": "6d4cfa52-0f22-4bc0-a3de-cc2c99b5a538",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-18T18:53:41.992524Z",
+              "last_seen_at": "2026-09-20T18:34:54.004724Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-18T18:53:41.992524Z",
-              "valid_from": "2026-09-18T18:53:41.992524Z",
+              "updated_at": "2026-09-20T18:34:54.004724Z",
+              "valid_from": "2026-09-20T18:34:54.004724Z",
               "valid_to": null
             }
           ],
@@ -29958,7 +30008,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Pocket ID",
+          "service_definition": "MeTube",
           "source": {
             "type": "Manual"
           },
@@ -31279,7 +31329,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "5f19b38e-b4ae-4492-8ba4-d069794174a3",
+                  "id": "6a155d3a-132e-4dec-8e9a-5a943896ae89",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -31289,23 +31339,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "3c23c699-8c6b-431d-bd6f-341a98b5debc",
+                  "id": "8f3bcb10-9a86-409b-b478-6955bb6c7901",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "a833c059-ab84-47a5-931c-9e26c3ff1c7c",
+                  "id": "036cd0d5-e551-4676-aca3-8796da95d54c",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "b2151bd1-bb71-4baa-ae48-d667cefea1d3",
+                  "id": "14ef74eb-8488-4ed9-893f-3354f6ee565d",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "3c23c699-8c6b-431d-bd6f-341a98b5debc",
+                  "id": "8f3bcb10-9a86-409b-b478-6955bb6c7901",
                   "rule": "ByHost"
                 }
               ]
@@ -31335,19 +31385,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "7c247242-964d-4ea6-b1bc-5f55a327693a",
+                "id": "16ab4d62-44f2-465a-9d7e-5007409c7519",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "94daeea0-a810-4a2e-b900-ba9432bdd7c0",
+                "id": "2d343baa-b42e-4d28-afe2-9e48d658a537",
                 "rule": "ByVLAN"
               },
               {
-                "id": "b9e7a04b-8db4-457e-9a6f-66da1b3badff",
+                "id": "41a738ec-7fbd-44b6-94e2-4fee33137159",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "6f33da8d-8523-47bc-9a7f-5a2e829bb539",
+                "id": "b17c8585-192f-4dc2-bc20-053c4aea6f3e",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -31365,7 +31415,7 @@
                 }
               },
               {
-                "id": "4d522680-ece0-43f8-851a-bfdfc1006e51",
+                "id": "7086abce-e86e-435d-8275-307920041ac9",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -31374,15 +31424,15 @@
                 }
               },
               {
-                "id": "6ebbd360-267c-4e07-9972-e0d1b2b0fd2a",
+                "id": "6e8e405b-a8c7-43d9-a399-f4263d7d11ef",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "837f9233-d671-4ba8-8f6e-5296b17c6d31",
+                "id": "b1109f5d-6e66-484d-9f94-8636bd970746",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "a4c63c8c-65b6-479e-bd83-71e629c81765",
+                "id": "b3d8281e-22b4-465a-9ffa-6d581c6cd93f",
                 "rule": "ByStack"
               }
             ]

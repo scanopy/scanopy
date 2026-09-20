@@ -34,7 +34,6 @@
 		users_expires,
 		users_generateInviteLink,
 		users_inviteCopied,
-		users_inviteFailed,
 		users_inviteGeneratedSuccess,
 		users_inviteInstructions,
 		users_inviteLink,
@@ -129,9 +128,8 @@
 			});
 			invite = result;
 			pushSuccess(currentEmail ? users_inviteSentSuccess() : users_inviteGeneratedSuccess());
-		} catch (err) {
-			const action = form.state.values.email ? 'send' : 'generate';
-			pushError(users_inviteFailed({ action, error: String(err) }));
+		} catch {
+			// The API client reports the failure.
 		}
 	}
 

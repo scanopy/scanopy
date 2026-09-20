@@ -4,7 +4,7 @@
 	import { useUpdateSelfMutation } from '$lib/features/users/queries';
 	import Checkbox from '$lib/shared/components/forms/input/Checkbox.svelte';
 	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
-	import { pushError, pushSuccess } from '$lib/shared/stores/feedback';
+	import { pushSuccess } from '$lib/shared/stores/feedback';
 	import type { components } from '$lib/api/schema';
 	import {
 		settings_email_intro,
@@ -18,7 +18,6 @@
 		settings_email_trialDescription,
 		settings_email_requiredLabel,
 		settings_email_requiredDescription,
-		settings_email_updateFailed,
 		settings_email_updated
 	} from '$lib/paraglide/messages';
 
@@ -56,10 +55,9 @@
 				pushSuccess(settings_email_updated());
 			} catch {
 				// Persist failed — revert toggles to the last server value (form.reset is the
-				// same path the hydrate uses, so the checkboxes re-render) and surface a toast.
-				// Never leave the UI claiming a state the server rejected.
+				// same path the hydrate uses, so the checkboxes re-render). The API client
+				// reports the error. Never leave the UI claiming a state the server rejected.
 				resetForm(user.email_settings);
-				pushError(settings_email_updateFailed());
 			}
 		}
 	}));

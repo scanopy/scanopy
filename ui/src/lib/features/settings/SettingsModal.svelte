@@ -152,6 +152,15 @@
 	}
 </script>
 
+<!-- Declared out here, not as a child of the modal, so it can be passed
+     conditionally. While this modal gates the app, the page behind it is covered
+     and this has no close button, so the app's banners have nowhere else to go.
+     Passing `undefined` when dismissible keeps "has banners" a truthful signal:
+     GenericModal stands its title row down on exactly that. -->
+{#snippet bannersSnippet()}
+	<AppBanners />
+{/snippet}
+
 <GenericModal
 	{isOpen}
 	title={common_settings()}
@@ -161,22 +170,13 @@
 	onOpen={handleOpen}
 	preventCloseOnClickOutside={!dismissible}
 	showCloseButton={dismissible}
+	banners={dismissible ? undefined : bannersSnippet}
 	tabs={visibleTabs}
 	{activeTab}
 	onTabChange={handleTabChange}
 >
 	{#snippet headerIcon()}
 		<ModalHeaderIcon Icon={Settings} color="Blue" />
-	{/snippet}
-
-	{#snippet banners()}
-		<!-- While this modal gates the app, the page behind it is covered and this
-		     has no close button, so the app's banners have nowhere else to go. Same
-		     stack, same conditions, rendered in the frame above the title. Without
-		     it an unverified user cannot reach the resend link and is stuck. -->
-		{#if !dismissible}
-			<AppBanners />
-		{/if}
 	{/snippet}
 
 	<!-- flex-1 min-h-0, not a fixed height: the panel is a flex column, and a

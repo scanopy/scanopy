@@ -3442,19 +3442,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-18T18:53:42.019279Z",
+             *       "created_at": "2026-09-20T18:34:54.032044Z",
              *       "first_discovery_id": null,
-             *       "id": "4ceb07fd-d4dc-41ad-81c1-aab7d5b56e18",
+             *       "id": "1234184e-6a90-42b7-83cb-7418995a0e49",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-18T18:53:42.019279Z",
+             *       "last_seen_at": "2026-09-20T18:34:54.032044Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-18T18:53:42.019279Z",
-             *       "valid_from": "2026-09-18T18:53:42.019279Z",
+             *       "updated_at": "2026-09-20T18:34:54.032044Z",
+             *       "valid_from": "2026-09-20T18:34:54.032044Z",
              *       "valid_to": null
              *     }
              */
@@ -3574,6 +3574,26 @@ export interface components {
                  * @description Seats over the target plan's allowance.
                  */
                 excess_seats: number;
+            };
+            /** @description Human-readable failure message. Omitted on success. */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            success: boolean;
+        };
+        ApiResponse_CheckEmailResponse: {
+            /**
+             * @description Check email availability response.
+             *
+             *     An address that is already registered is an answer to this question, not a
+             *     failure of it: the caller asked whether the address is free and got a
+             *     truthful no. Returning an error for that case forced every client to either
+             *     treat a 409 as success or suppress the toast that came with it.
+             */
+            data?: {
+                /** @description Whether the address has no account yet, and so can be registered. */
+                available: boolean;
             };
             /** @description Human-readable failure message. Omitted on success. */
             error?: string | null;
@@ -4115,19 +4135,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-18T18:53:41.991978Z",
+             *               "created_at": "2026-09-20T18:34:54.004179Z",
              *               "first_discovery_id": null,
-             *               "id": "fc1f79b6-7098-4c89-a0be-d87130cbebe0",
+             *               "id": "c9543703-7e90-48bc-8206-6d5cd785bb77",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-18T18:53:41.991978Z",
+             *               "last_seen_at": "2026-09-20T18:34:54.004179Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-18T18:53:41.991978Z",
-             *               "valid_from": "2026-09-18T18:53:41.991978Z",
+             *               "updated_at": "2026-09-20T18:34:54.004179Z",
+             *               "valid_from": "2026-09-20T18:34:54.004179Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4141,7 +4161,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Pocket ID",
+             *           "service_definition": "MeTube",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4934,19 +4954,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-18T18:53:42.013554Z",
+             *           "created_at": "2026-09-20T18:34:54.025989Z",
              *           "first_discovery_id": null,
-             *           "id": "0bd231ed-1efe-4959-85de-45b243894a0c",
+             *           "id": "50244512-1076-4120-9eb3-bbc5cc0c2593",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-18T18:53:42.013554Z",
+             *           "last_seen_at": "2026-09-20T18:34:54.025989Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-18T18:53:42.013554Z",
-             *           "valid_from": "2026-09-18T18:53:42.013554Z",
+             *           "updated_at": "2026-09-20T18:34:54.025989Z",
+             *           "valid_from": "2026-09-20T18:34:54.025989Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -4960,7 +4980,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Pocket ID",
+             *       "service_definition": "MeTube",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -5825,19 +5845,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-18T18:53:41.992791Z",
+         *       "created_at": "2026-09-20T18:34:54.005017Z",
          *       "first_discovery_id": null,
-         *       "id": "a3f4e6d2-73bd-47ec-a76b-9bf214a4af7c",
+         *       "id": "1c230c38-9228-4968-a483-22562f540d59",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-18T18:53:41.992791Z",
+         *       "last_seen_at": "2026-09-20T18:34:54.005017Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-18T18:53:41.992791Z",
-         *       "valid_from": "2026-09-18T18:53:41.992791Z",
+         *       "updated_at": "2026-09-20T18:34:54.005017Z",
+         *       "valid_from": "2026-09-20T18:34:54.005017Z",
          *       "valid_to": null
          *     }
          */
@@ -6052,6 +6072,18 @@ export interface components {
             email: string;
         };
         /**
+         * @description Check email availability response.
+         *
+         *     An address that is already registered is an answer to this question, not a
+         *     failure of it: the caller asked whether the address is free and got a
+         *     truthful no. Returning an error for that case forced every client to either
+         *     treat a 409 as success or suppress the toast that came with it.
+         */
+        CheckEmailResponse: {
+            /** @description Whether the address has no account yet, and so can be registered. */
+            available: boolean;
+        };
+        /**
          * @description Where a device's claim about itself came from.
          *
          *     Named rather than folded into a sentence because the operator's next step depends on it: a
@@ -6151,7 +6183,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Pocket ID",
+         *           "service_definition": "MeTube",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8323,19 +8355,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-18T18:53:41.991091Z",
+         *               "created_at": "2026-09-20T18:34:54.003271Z",
          *               "first_discovery_id": null,
-         *               "id": "d90150b4-db87-40e3-9008-714e80900c34",
+         *               "id": "700f287d-ef71-457c-a595-fe127add340b",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-18T18:53:41.991091Z",
+         *               "last_seen_at": "2026-09-20T18:34:54.003271Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-18T18:53:41.991091Z",
-         *               "valid_from": "2026-09-18T18:53:41.991091Z",
+         *               "updated_at": "2026-09-20T18:34:54.003271Z",
+         *               "valid_from": "2026-09-20T18:34:54.003271Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8349,7 +8381,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Pocket ID",
+         *           "service_definition": "MeTube",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -11315,19 +11347,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-18T18:53:41.992546Z",
+         *           "created_at": "2026-09-20T18:34:54.004772Z",
          *           "first_discovery_id": null,
-         *           "id": "3fd2c552-56d6-48f7-886c-662d4296fa8d",
+         *           "id": "ddeb88b3-4090-48c7-a52b-5f78e339c7d7",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-18T18:53:41.992546Z",
+         *           "last_seen_at": "2026-09-20T18:34:54.004772Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-18T18:53:41.992546Z",
-         *           "valid_from": "2026-09-18T18:53:41.992546Z",
+         *           "updated_at": "2026-09-20T18:34:54.004772Z",
+         *           "valid_from": "2026-09-20T18:34:54.004772Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -11341,7 +11373,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Pocket ID",
+         *       "service_definition": "MeTube",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12043,7 +12075,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "73326ffd-56be-4751-8408-ff964e304198",
+             *           "id": "021a6240-ef42-4401-a6e3-038c904493d4",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -12053,23 +12085,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "c41ee70c-e913-4d0f-9fd4-bece0bc3afcd",
+             *           "id": "86ed96f8-f696-4dbd-a995-45e1fc52f51b",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "90600c11-2383-4471-a932-30ca799cad5a",
+             *           "id": "2acc50e6-380d-4f6e-9bfc-d0b3d29b6962",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "54c99971-d6fd-4da2-8e89-df94ae39e924",
+             *           "id": "cf311041-35c5-4806-8224-a89eb7b6f51b",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "c41ee70c-e913-4d0f-9fd4-bece0bc3afcd",
+             *           "id": "86ed96f8-f696-4dbd-a995-45e1fc52f51b",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -12082,19 +12114,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "6c816922-9051-4e04-af48-b9ae97ecd222",
+             *         "id": "6fedaaca-9837-4cd0-a39d-ac55a0625b8f",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "aaef5698-32a6-43af-8edf-783e1a04ab43",
+             *         "id": "657f5324-a882-46cc-93a1-f89342aa16a0",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "99896ae5-c7fc-48a6-9305-8059ac0dc5b5",
+             *         "id": "9574eede-7313-4792-b049-240910043359",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "3c6bda8e-afe8-4c87-b90c-a0b423defd3c",
+             *         "id": "af0d47da-6744-4256-a582-f1b4c1314ef3",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -12112,7 +12144,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "da3f9779-27af-43a6-835e-2d80304c3e36",
+             *         "id": "93a0e6fb-e6eb-47fd-af56-ea9d9dc6304d",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -12121,15 +12153,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "cc5680bd-691b-4a95-aa0e-36ee385559b4",
+             *         "id": "25df53e5-9776-4a73-95e9-636bcd2f9c18",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "ad00d8c0-7606-4644-807b-856be68076d1",
+             *         "id": "1f946fa8-561c-4bd8-900f-de66e05e4c27",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "81913c5f-65f2-4f7f-8c0f-b076cc335b9d",
+             *         "id": "3a38af92-356e-4a89-adb1-a7ca779896f1",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -12660,17 +12692,17 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Email is available */
+            /** @description Whether the address is available */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse"];
+                    "application/json": components["schemas"]["ApiResponse_CheckEmailResponse"];
                 };
             };
-            /** @description Email already in use */
-            409: {
+            /** @description Password login is disabled */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

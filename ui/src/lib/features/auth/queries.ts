@@ -5,7 +5,7 @@
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
-import { pushError, pushSuccess } from '$lib/shared/stores/feedback';
+import { pushSuccess } from '$lib/shared/stores/feedback';
 import {
 	auth_emailVerified,
 	auth_loggedOut,
@@ -70,9 +70,6 @@ export function useLoginMutation() {
 				localStorage.setItem('hasAccount', 'true');
 			}
 			pushSuccess(auth_welcomeBack({ email: user.email }));
-		},
-		onError: (error: Error) => {
-			pushError(error.message);
 		}
 	}));
 }
@@ -83,17 +80,11 @@ export function useLoginMutation() {
 export function useCheckEmailMutation() {
 	return createMutation(() => ({
 		mutationFn: async (request: { email: string }) => {
-			const { error } = await apiClient.POST('/api/auth/check-email', {
-				body: request,
-				silenceErrors: true
-			} as never);
-			if (error) {
-				const apiErr = error as unknown as Record<string, string>;
-				const err = new Error(apiErr?.error || 'Email check failed');
-				(err as Error & { code?: string }).code = apiErr?.code;
-				throw err;
+			const { data } = await apiClient.POST('/api/auth/check-email', { body: request });
+			if (!data?.success || !data.data) {
+				throw new Error(data?.error || 'Email check failed');
 			}
-			return true;
+			return data.data.available;
 		}
 	}));
 }
@@ -153,9 +144,6 @@ export function useLogoutMutation() {
 			queryClient.clear();
 			resetIdentity();
 			pushSuccess(auth_loggedOut());
-		},
-		onError: (error: Error) => {
-			pushError(error.message);
 		}
 	}));
 }
@@ -174,9 +162,6 @@ export function useForgotPasswordMutation() {
 		},
 		onSuccess: () => {
 			pushSuccess(auth_passwordResetLinkSent());
-		},
-		onError: (error: Error) => {
-			pushError(error.message);
 		}
 	}));
 }
@@ -218,9 +203,6 @@ export function useSetupMutation() {
 				throw new Error(data?.error || 'Failed to save setup data');
 			}
 			return data.data as SetupResponse;
-		},
-		onError: (error: Error) => {
-			pushError(error.message);
 		}
 	}));
 }
@@ -246,9 +228,6 @@ export function useVerifyEmailMutation() {
 				localStorage.setItem('hasAccount', 'true');
 			}
 			pushSuccess(auth_emailVerified());
-		},
-		onError: (error: Error) => {
-			pushError(error.message);
 		}
 	}));
 }
@@ -267,9 +246,6 @@ export function useResendVerificationMutation() {
 		},
 		onSuccess: () => {
 			pushSuccess(auth_verificationEmailSent());
-		},
-		onError: (error: Error) => {
-			pushError(error.message);
 		}
 	}));
 }
@@ -293,9 +269,6 @@ export function useProfileUpdateMutation() {
 		onSuccess: () => {
 			// Refetch organization to pick up ProfileCompleted milestone
 			queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all });
-		},
-		onError: (error: Error) => {
-			pushError(error.message);
 		}
 	}));
 }

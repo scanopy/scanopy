@@ -282,7 +282,7 @@ const cachingMiddleware: Middleware = {
 const BILLING_SELF_HOSTED_PLAN_LOCKED: ErrorCode = 'billing_self_hosted_plan_locked';
 
 const errorMiddleware: Middleware = {
-	async onResponse({ response, options }) {
+	async onResponse({ response }) {
 		if (!response.ok) {
 			// Don't show error toasts for 401 (expected when not logged in)
 			if (response.status === 401) {
@@ -305,18 +305,28 @@ const errorMiddleware: Middleware = {
 				if (errorData.code === BILLING_SELF_HOSTED_PLAN_LOCKED) {
 					return response;
 				}
-				const errorMsg = translateError(errorData);
-				// Only show error if not silenced
-				if (!(options as { silenceErrors?: boolean }).silenceErrors) {
-					pushError(errorMsg);
-				}
+				pushError(translateError(errorData));
 			} catch {
-				if (!(options as { silenceErrors?: boolean }).silenceErrors) {
-					pushError(common_httpError({ status: response.status, statusText: response.statusText }));
-				}
+				pushError(common_httpError({ status: response.status, statusText: response.statusText }));
 			}
 		}
 		return response;
+	},
+
+	// A rejected fetch — dropped connection, DNS failure, CORS — never reaches
+	// `onResponse`, so until now it reported nothing anywhere except the handful
+	// of callers that toasted for themselves. This layer owns error reporting, so
+	// it has to cover that case too.
+	//
+	// Returning undefined leaves the original error to rethrow, so TanStack still
+	// sees the failure. The 429 `throw` above stays inside `onResponse`, outside
+	// the block that feeds this hook, so retries are unaffected.
+	onError({ error }) {
+		pushError(
+			error instanceof Error && error.message
+				? error.message
+				: common_httpError({ status: 0, statusText: 'Network error' })
+		);
 	}
 };
 

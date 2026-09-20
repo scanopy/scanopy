@@ -67,6 +67,18 @@ pub struct CheckEmailRequest {
     pub email: EmailAddress,
 }
 
+/// Check email availability response.
+///
+/// An address that is already registered is an answer to this question, not a
+/// failure of it: the caller asked whether the address is free and got a
+/// truthful no. Returning an error for that case forced every client to either
+/// treat a 409 as success or suppress the toast that came with it.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct CheckEmailResponse {
+    /// Whether the address has no account yet, and so can be registered.
+    pub available: bool,
+}
+
 /// Session user info (stored in session, not in database)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionUser {

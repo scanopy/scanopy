@@ -63,7 +63,6 @@
 		common_close,
 		common_configure,
 		common_continue,
-		common_failedGenerateApiKey,
 		common_install,
 		common_integrations,
 		common_next,
@@ -72,7 +71,6 @@
 		daemons_credentialWizardReturnToInstall,
 		daemons_credentialWizardTargetRequired,
 		daemons_provisioningDaemon,
-		daemons_seedCredentialsFailed,
 		daemons_emailInstallCommand,
 		daemons_installCommandEmailed,
 		daemons_installIveRunCommand,
@@ -437,7 +435,7 @@
 			provisionedDaemonId = result.daemon.id;
 			committedInstallParams = installCommandParams();
 		} catch {
-			pushError(common_failedGenerateApiKey());
+			// The API client reports the failure.
 		} finally {
 			isProvisioning = false;
 		}
@@ -476,7 +474,8 @@
 		try {
 			await updateDiscoveryMutation.mutateAsync({ ...discovery, integration_targets: refs });
 		} catch {
-			pushError(daemons_seedCredentialsFailed());
+			// The API client reports the failure. This is a background sync, so the
+			// generic message loses the hint about checking discovery settings.
 		}
 	}
 

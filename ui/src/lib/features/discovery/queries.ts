@@ -570,9 +570,6 @@ export function useCancelDiscoveryMutation() {
 			}
 
 			return sessionId;
-		},
-		onError: () => {
-			pushError(m.discovery_failedToCancel());
 		}
 		// Note: Success handling happens via SSE when the "Cancelled" phase is received
 	}));
