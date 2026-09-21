@@ -24617,6 +24617,75 @@
             }
           },
           {
+            "type": "object",
+            "title": "DcpSweepTimedOut",
+            "description": "The PROFINET DCP sweep did not report back within its budget, so the run finished\nwithout the devices only it would have found.",
+            "required": [
+              "seconds",
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "DcpSweepTimedOut"
+                ]
+              },
+              "seconds": {
+                "type": "integer",
+                "format": "int32",
+                "description": "The budget the sweep had, in seconds.",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "IcmpSweepTimedOut",
+            "description": "The ICMP sweep did not report back within its budget, so hosts that answer only to ping\nwere not scanned.",
+            "required": [
+              "seconds",
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "IcmpSweepTimedOut"
+                ]
+              },
+              "seconds": {
+                "type": "integer",
+                "format": "int32",
+                "description": "The budget the sweep had, in seconds.",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ReverseDnsTimedOut",
+            "description": "Reverse DNS lookups that got no answer in time, so those hosts have no DNS hostname.",
+            "required": [
+              "count",
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "ReverseDnsTimedOut"
+                ]
+              },
+              "count": {
+                "type": "integer",
+                "format": "int32",
+                "description": "How many lookups went unanswered.",
+                "minimum": 0
+              }
+            }
+          },
+          {
             "allOf": [
               {
                 "$ref": "#/components/schemas/UnmatchedNeighbour",

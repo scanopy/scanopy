@@ -7568,6 +7568,30 @@ export interface components {
              * @description The limit the run hit, in hours.
              */
             hours: number;
+        } | {
+            /** @enum {string} */
+            code: "DcpSweepTimedOut";
+            /**
+             * Format: int32
+             * @description The budget the sweep had, in seconds.
+             */
+            seconds: number;
+        } | {
+            /** @enum {string} */
+            code: "IcmpSweepTimedOut";
+            /**
+             * Format: int32
+             * @description The budget the sweep had, in seconds.
+             */
+            seconds: number;
+        } | {
+            /** @enum {string} */
+            code: "ReverseDnsTimedOut";
+            /**
+             * Format: int32
+             * @description How many lookups went unanswered.
+             */
+            count: number;
         } | (components["schemas"]["UnmatchedNeighbour"] & {
             /** @enum {string} */
             code: "LldpNeighbourNotFound";
