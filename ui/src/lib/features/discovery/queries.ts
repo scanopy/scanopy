@@ -9,7 +9,7 @@ import {
 	keepPreviousData
 } from '@tanstack/svelte-query';
 import { queryClient, queryKeys } from '$lib/api/query-client';
-import { apiClient } from '$lib/api/client';
+import { apiClient, RequestTimeoutError } from '$lib/api/client';
 import type { Discovery } from './types/base';
 import type { components } from '$lib/api/schema';
 import type { DiscoveryUpdatePayload } from './types/api';
@@ -554,25 +554,37 @@ export function useCancelDiscoveryMutation() {
 				m.set(sessionId, true);
 				return m;
 			});
-
-			const { data: result } = await apiClient.POST('/api/v1/discovery/{session_id}/cancel', {
-				params: { path: { session_id: sessionId } }
-			});
-
-			if (!result?.success) {
-				// Clear cancelling state on failure
+			const clearCancelling = () =>
 				cancellingSessions.update((c) => {
 					const m = new Map(c);
 					m.delete(sessionId);
 					return m;
 				});
+
+			let result;
+			try {
+				({ data: result } = await apiClient.POST('/api/v1/discovery/{session_id}/cancel', {
+					params: { path: { session_id: sessionId } }
+				}));
+			} catch (error) {
+				// A request that never answered (a timeout included) left the session marked as
+				// cancelling for good; the stream only clears the mark when the session ends.
+				clearCancelling();
+				throw error;
+			}
+
+			if (!result?.success) {
+				clearCancelling();
 				throw new Error(result?.error || 'Failed to cancel discovery');
 			}
 
 			return sessionId;
 		},
-		onError: () => {
-			pushError(m.discovery_failedToCancel());
+		onError: (error) => {
+			// The client has already said a timed-out cancel went unconfirmed; it may have worked.
+			if (!(error instanceof RequestTimeoutError)) {
+				pushError(m.discovery_failedToCancel());
+			}
 		}
 		// Note: Success handling happens via SSE when the "Cancelled" phase is received
 	}));

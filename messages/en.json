@@ -449,6 +449,8 @@
 	"common_redirecting": "Redirecting...",
 	"common_remove": "Remove",
 	"common_rendering": "Rendering…",
+	"common_requestTimedOut": "The server did not respond in time. Try again in a moment.",
+	"common_requestUnconfirmed": "The server did not confirm in time. The change may still have gone through; refresh to check before trying again.",
 	"common_rescan": "Rescan",
 	"common_resend": "Resend",
 	"common_reset": "Reset",
