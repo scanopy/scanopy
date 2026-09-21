@@ -12643,19 +12643,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-21T13:33:30.073852Z",
+              "created_at": "2026-09-21T13:39:38.803818Z",
               "first_discovery_id": null,
-              "id": "c4e9c9c6-1b5d-4376-8206-70fe83b862a1",
+              "id": "4943d850-3125-4604-91fb-f6cf87f34eae",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-21T13:33:30.073852Z",
+              "last_seen_at": "2026-09-21T13:39:38.803818Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-21T13:33:30.073852Z",
-              "valid_from": "2026-09-21T13:33:30.073852Z",
+              "updated_at": "2026-09-21T13:39:38.803818Z",
+              "valid_from": "2026-09-21T13:39:38.803818Z",
               "valid_to": null
             }
           },
@@ -12829,6 +12829,43 @@
                 "format": "int64",
                 "description": "Seats over the target plan's allowance.",
                 "minimum": 0
+              }
+            }
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-readable failure message. Omitted on success."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+          }
+        }
+      },
+      "ApiResponse_CheckEmailResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Check email availability response.\n\nAn address that is already registered is an answer to this question, not a\nfailure of it: the caller asked whether the address is free and got a\ntruthful no. Returning an error for that case forced every client to either\ntreat a 409 as success or suppress the toast that came with it.",
+            "required": [
+              "available"
+            ],
+            "properties": {
+              "available": {
+                "type": "boolean",
+                "description": "Whether the address has no account yet, and so can be registered."
               }
             }
           },
@@ -14146,19 +14183,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-21T13:33:30.041930Z",
+                      "created_at": "2026-09-21T13:39:38.782751Z",
                       "first_discovery_id": null,
-                      "id": "1cd2a7f8-cded-4108-b38e-01a82e9f3413",
+                      "id": "d9c7e94f-4be4-4cde-857c-cd3b7bbf982e",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-21T13:33:30.041930Z",
+                      "last_seen_at": "2026-09-21T13:39:38.782751Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-21T13:33:30.041930Z",
-                      "valid_from": "2026-09-21T13:33:30.041930Z",
+                      "updated_at": "2026-09-21T13:39:38.782751Z",
+                      "valid_from": "2026-09-21T13:39:38.782751Z",
                       "valid_to": null
                     }
                   ],
@@ -14172,7 +14209,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Firewall",
+                  "service_definition": "Traefik",
                   "source": {
                     "type": "Manual"
                   },
@@ -15535,19 +15572,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-21T13:33:30.066339Z",
+                  "created_at": "2026-09-21T13:39:38.798775Z",
                   "first_discovery_id": null,
-                  "id": "06ef799e-59a4-4795-b170-eb267285a4cf",
+                  "id": "f83f095a-f1c2-4872-9c95-47d079c25e77",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-21T13:33:30.066339Z",
+                  "last_seen_at": "2026-09-21T13:39:38.798775Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-21T13:33:30.066339Z",
-                  "valid_from": "2026-09-21T13:33:30.066339Z",
+                  "updated_at": "2026-09-21T13:39:38.798775Z",
+                  "valid_from": "2026-09-21T13:39:38.798775Z",
                   "valid_to": null
                 }
               ],
@@ -15561,7 +15598,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Firewall",
+              "service_definition": "Traefik",
               "source": {
                 "type": "Manual"
               },
@@ -17816,19 +17853,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-21T13:33:30.042415Z",
+          "created_at": "2026-09-21T13:39:38.783272Z",
           "first_discovery_id": null,
-          "id": "dcceadb4-92d1-4664-adb2-3d35d5673582",
+          "id": "5557c1d9-d1ec-4b91-b6b6-9f9b86216d84",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-21T13:33:30.042415Z",
+          "last_seen_at": "2026-09-21T13:39:38.783272Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-21T13:33:30.042415Z",
-          "valid_from": "2026-09-21T13:33:30.042415Z",
+          "updated_at": "2026-09-21T13:39:38.783272Z",
+          "valid_from": "2026-09-21T13:39:38.783272Z",
           "valid_to": null
         }
       },
@@ -18168,6 +18205,19 @@
             "type": "string",
             "format": "email",
             "description": "Email address to check for an existing account."
+          }
+        }
+      },
+      "CheckEmailResponse": {
+        "type": "object",
+        "description": "Check email availability response.\n\nAn address that is already registered is an answer to this question, not a\nfailure of it: the caller asked whether the address is free and got a\ntruthful no. Returning an error for that case forced every client to either\ntreat a 409 as success or suppress the toast that came with it.",
+        "required": [
+          "available"
+        ],
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "description": "Whether the address has no account yet, and so can be registered."
           }
         }
       },
@@ -18523,7 +18573,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Firewall",
+              "service_definition": "Traefik",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -23907,19 +23957,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-21T13:33:30.041399Z",
+                  "created_at": "2026-09-21T13:39:38.782216Z",
                   "first_discovery_id": null,
-                  "id": "c3ff4fa2-e85e-461e-bdec-2d4b0d1fe685",
+                  "id": "6249cd73-813f-4750-859d-22581228f9db",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-21T13:33:30.041399Z",
+                  "last_seen_at": "2026-09-21T13:39:38.782216Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-21T13:33:30.041399Z",
-                  "valid_from": "2026-09-21T13:33:30.041399Z",
+                  "updated_at": "2026-09-21T13:39:38.782216Z",
+                  "valid_from": "2026-09-21T13:39:38.782216Z",
                   "valid_to": null
                 }
               ],
@@ -23933,7 +23983,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Firewall",
+              "service_definition": "Traefik",
               "source": {
                 "type": "Manual"
               },
@@ -27599,19 +27649,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-21T13:33:30.021181Z",
+                        "created_at": "2026-09-21T13:39:38.772816Z",
                         "first_discovery_id": null,
-                        "id": "8f912d2f-49ec-482f-a204-ba2b9ce4d8bc",
+                        "id": "594d3e77-dd9d-4546-922c-d2099c149a94",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-21T13:33:30.021181Z",
+                        "last_seen_at": "2026-09-21T13:39:38.772816Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-21T13:33:30.021181Z",
-                        "valid_from": "2026-09-21T13:33:30.021181Z",
+                        "updated_at": "2026-09-21T13:39:38.772816Z",
+                        "valid_from": "2026-09-21T13:39:38.772816Z",
                         "valid_to": null
                       }
                     ],
@@ -27625,7 +27675,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Firewall",
+                    "service_definition": "Traefik",
                     "source": {
                       "type": "Manual"
                     },
@@ -27768,19 +27818,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-21T13:33:30.065429Z",
+                    "created_at": "2026-09-21T13:39:38.797875Z",
                     "first_discovery_id": null,
-                    "id": "a4050753-4e23-400b-b473-69f681b16bb6",
+                    "id": "6ecb9639-495b-4257-a818-9a802bf9c945",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-21T13:33:30.065429Z",
+                    "last_seen_at": "2026-09-21T13:39:38.797875Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-21T13:33:30.065429Z",
-                    "valid_from": "2026-09-21T13:33:30.065429Z",
+                    "updated_at": "2026-09-21T13:39:38.797875Z",
+                    "valid_from": "2026-09-21T13:39:38.797875Z",
                     "valid_to": null
                   }
                 ],
@@ -27794,7 +27844,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Firewall",
+                "service_definition": "Traefik",
                 "source": {
                   "type": "Manual"
                 },
@@ -29919,19 +29969,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-21T13:33:30.042272Z",
+              "created_at": "2026-09-21T13:39:38.783125Z",
               "first_discovery_id": null,
-              "id": "d83c304e-0191-412b-b359-ee10a70226ad",
+              "id": "9da5c8c4-899a-42ab-b1e8-10b07545dad5",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-21T13:33:30.042272Z",
+              "last_seen_at": "2026-09-21T13:39:38.783125Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-21T13:33:30.042272Z",
-              "valid_from": "2026-09-21T13:33:30.042272Z",
+              "updated_at": "2026-09-21T13:39:38.783125Z",
+              "valid_from": "2026-09-21T13:39:38.783125Z",
               "valid_to": null
             }
           ],
@@ -29945,7 +29995,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Firewall",
+          "service_definition": "Traefik",
           "source": {
             "type": "Manual"
           },
@@ -31266,7 +31316,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "65de97b6-4f49-4f1d-a2d6-63bc35e05efc",
+                  "id": "ce85e1af-f5f0-48be-8e10-3b892cbc068f",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -31276,23 +31326,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "43076284-a866-430a-ac8d-17a484e11e2e",
+                  "id": "c7cb3364-73f4-48a5-8aac-e3e8c4414d6b",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "5fe24598-0056-491d-b5f3-20e1df9d31d3",
+                  "id": "80e15d8f-872c-4e68-8349-0f69e849be79",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "5f5d3672-5572-40d6-b2c2-ed04953f2d98",
+                  "id": "06036bec-aa4b-4c7f-9d17-d4bcfe01c42e",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "43076284-a866-430a-ac8d-17a484e11e2e",
+                  "id": "c7cb3364-73f4-48a5-8aac-e3e8c4414d6b",
                   "rule": "ByHost"
                 }
               ]
@@ -31322,19 +31372,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "a919cb09-7c15-4127-96e3-1c710dbbc223",
+                "id": "ff57b3dc-9f6f-46dc-91d7-a8418164547b",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "be0e173b-62ae-41a5-8d1e-2df9c0e32e71",
+                "id": "f07eb99c-edff-435b-9929-762818698a1b",
                 "rule": "ByVLAN"
               },
               {
-                "id": "6a79ca2d-9947-4a63-9aad-8557ea678389",
+                "id": "27e12fd5-cbe4-436f-9264-80d2a781a145",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "33473ad0-3c54-4386-871c-dcfdb8fd2e76",
+                "id": "cc1caf27-a7c2-440b-a524-ceebe0420fac",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -31352,7 +31402,7 @@
                 }
               },
               {
-                "id": "b77838e4-e12f-476e-99ef-62edfe622aa3",
+                "id": "b2226ede-8517-4d01-bf25-f5f4cb97156c",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -31361,15 +31411,15 @@
                 }
               },
               {
-                "id": "3f086f73-1cce-4603-92ae-47f8a033e79b",
+                "id": "eec0087a-e212-44fb-9304-f71a43bfcc55",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "5e7cf296-5a6f-4a42-845f-2d32e23a1ed6",
+                "id": "1d1872a9-5cca-4c4f-b4aa-023394693143",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "53913b14-2f4f-41f1-9974-94cbc5fa6542",
+                "id": "f7c181f1-a9b1-4921-ae67-ee74bdf21a5e",
                 "rule": "ByStack"
               }
             ]

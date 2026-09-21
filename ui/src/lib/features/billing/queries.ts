@@ -7,20 +7,8 @@ import { queryKeys, queryClient } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
 import type { BillingPlan, BillingRate } from './types';
 import type { components } from '$lib/api/schema';
-import { pushError, pushSuccess } from '$lib/shared/stores/feedback';
+import { pushSuccess } from '$lib/shared/stores/feedback';
 import { translateError } from '$lib/i18n/errors';
-import {
-	billing_errorApplyingDiscount,
-	billing_errorBillingPortal,
-	billing_errorCancellingSubscription,
-	billing_errorChangingPlan,
-	billing_errorExtendingTrial,
-	billing_errorPausingSubscription,
-	billing_errorReactivatingSubscription,
-	billing_errorResumingSubscription,
-	billing_errorSavingPaymentMethod,
-	billing_errorStartingCardSetup
-} from '$lib/paraglide/messages';
 
 /**
  * Translate a failed response body into a message.
@@ -76,13 +64,8 @@ export function useBillingPlansQuery() {
 export function useCheckoutMutation() {
 	return createMutation(() => ({
 		mutationFn: async (plan: BillingPlan) => {
-			// `silenceErrors` because `onError` below already toasts. Without it a
-			// coded refusal produced two: the middleware's translated message and a
-			// generic wrapper around a hardcoded string, which is what the error
-			// half was being discarded in favour of.
 			const { data, error } = await apiClient.POST('/api/billing/checkout', {
-				body: { plan, url: window.location.origin },
-				silenceErrors: true
+				body: { plan, url: window.location.origin }
 			});
 			if (!data?.success || !data.data) {
 				throw new Error(apiErrorMessage(error, data?.error, 'Failed to get checkout URL'));
@@ -94,9 +77,6 @@ export function useCheckoutMutation() {
 			if (!data.startsWith('http')) {
 				pushSuccess(data);
 			}
-		},
-		onError: (error: Error) => {
-			pushError(billing_errorChangingPlan({ message: error.message }));
 		}
 	}));
 }
@@ -114,9 +94,6 @@ export function useCustomerPortalMutation() {
 				throw new Error(data?.error || 'Failed to get billing portal URL');
 			}
 			return data.data;
-		},
-		onError: (error: Error) => {
-			pushError(billing_errorBillingPortal({ message: error.message }));
 		}
 	}));
 }
@@ -133,9 +110,6 @@ export function useCreateSetupIntentMutation() {
 				throw new Error(data?.error || 'Failed to start card setup');
 			}
 			return data.data.client_secret;
-		},
-		onError: (error: Error) => {
-			pushError(billing_errorStartingCardSetup({ message: error.message }));
 		}
 	}));
 }
@@ -154,9 +128,6 @@ export function useFinalizePaymentMethodMutation() {
 				throw new Error(data?.error || 'Failed to save payment method');
 			}
 			return true;
-		},
-		onError: (error: Error) => {
-			pushError(billing_errorSavingPaymentMethod({ message: error.message }));
 		}
 	}));
 }
@@ -167,11 +138,8 @@ export function useFinalizePaymentMethodMutation() {
 export function useChangePlanMutation() {
 	return createMutation(() => ({
 		mutationFn: async ({ plan, rate }: { plan: BillingPlan; rate: BillingRate }) => {
-			// Same double-toast as the checkout mutation above: this endpoint
-			// returns the identical air-gapped 409.
 			const { data, error } = await apiClient.POST('/api/billing/change-plan', {
-				body: { plan, rate },
-				silenceErrors: true
+				body: { plan, rate }
 			});
 			if (!data?.success || !data.data) {
 				throw new Error(apiErrorMessage(error, data?.error, 'Failed to change plan'));
@@ -180,9 +148,6 @@ export function useChangePlanMutation() {
 		},
 		onSuccess: (data: string) => {
 			pushSuccess(data);
-		},
-		onError: (error: Error) => {
-			pushError(billing_errorChangingPlan({ message: error.message }));
 		}
 	}));
 }
@@ -200,13 +165,10 @@ export function usePauseSubscriptionMutation() {
 				throw new Error(data?.error || 'Failed to pause subscription');
 			}
 			return data.data;
-		},
+		}
 		// No onSuccess toast — the call site fires it AFTER waitForOrgUpdate
 		// confirms the org actually flipped to paused. The API 200 only means
 		// Stripe accepted the request, not that downstream state is consistent.
-		onError: (error: Error) => {
-			pushError(billing_errorPausingSubscription({ message: error.message }));
-		}
 	}));
 }
 
@@ -221,11 +183,8 @@ export function useResumeSubscriptionMutation() {
 				throw new Error(data?.error || 'Failed to resume subscription');
 			}
 			return data.data;
-		},
-		// No onSuccess toast — call site fires it after waitForOrgUpdate.
-		onError: (error: Error) => {
-			pushError(billing_errorResumingSubscription({ message: error.message }));
 		}
+		// No onSuccess toast — call site fires it after waitForOrgUpdate.
 	}));
 }
 
@@ -240,11 +199,8 @@ export function useReactivateSubscriptionMutation() {
 				throw new Error(data?.error || 'Failed to reactivate subscription');
 			}
 			return data.data;
-		},
-		// No onSuccess toast — call site fires it after waitForOrgUpdate.
-		onError: (error: Error) => {
-			pushError(billing_errorReactivatingSubscription({ message: error.message }));
 		}
+		// No onSuccess toast — call site fires it after waitForOrgUpdate.
 	}));
 }
 
@@ -259,11 +215,8 @@ export function useExtendTrialMutation() {
 				throw new Error(data?.error || 'Failed to extend trial');
 			}
 			return data.data;
-		},
-		// No onSuccess toast — call site fires it after waitForOrgUpdate.
-		onError: (error: Error) => {
-			pushError(billing_errorExtendingTrial({ message: error.message }));
 		}
+		// No onSuccess toast — call site fires it after waitForOrgUpdate.
 	}));
 }
 
@@ -279,9 +232,6 @@ export function useCancelSubscriptionMutation() {
 				throw new Error(data?.error || 'Failed to cancel subscription');
 			}
 			return data.data;
-		},
-		onError: (error: Error) => {
-			pushError(billing_errorCancellingSubscription({ message: error.message }));
 		}
 	}));
 }
@@ -318,13 +268,10 @@ export function useApplyDiscountSaveOfferMutation() {
 				throw new Error(data?.error || 'Failed to apply discount');
 			}
 			return data.data;
-		},
+		}
 		// No onSuccess toast — call site fires it after waitForOrgUpdate confirms
 		// `org.last_discount_at` is populated, so success is tied to the actual
 		// downstream write rather than the Stripe acknowledgement.
-		onError: (error: Error) => {
-			pushError(billing_errorApplyingDiscount({ message: error.message }));
-		}
 	}));
 }
 

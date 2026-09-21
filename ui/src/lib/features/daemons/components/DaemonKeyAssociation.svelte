@@ -30,13 +30,11 @@
 	import CodeContainer from '$lib/shared/components/data/CodeContainer.svelte';
 	import OsSelector from './OsSelector.svelte';
 	import type { DaemonOS } from '$lib/features/daemons/utils';
-	import { pushError } from '$lib/shared/stores/feedback';
 	import {
 		common_associating,
 		daemons_bindKey,
 		daemons_bindKeyCta,
 		daemons_bindKeyDaemonPollHelp,
-		daemons_bindKeyFailed,
 		daemons_bindKeyTitle,
 		daemons_bindKeyServerPollWarning,
 		daemons_reconfigureCommandDaemonPoll,
@@ -86,7 +84,7 @@
 			const result = await provisionMutation.mutateAsync({ daemon_id: daemon.id });
 			mintedKey = result.daemon_api_key;
 		} catch {
-			pushError(daemons_bindKeyFailed());
+			// The API client reports the failure.
 		} finally {
 			associating = false;
 		}

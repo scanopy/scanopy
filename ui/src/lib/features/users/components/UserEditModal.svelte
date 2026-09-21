@@ -11,7 +11,7 @@
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useNetworksQuery } from '$lib/features/networks/queries';
 	import { useUpdateUserAsAdminMutation } from '$lib/features/users/queries';
-	import { pushSuccess, pushError } from '$lib/shared/stores/feedback';
+	import { pushSuccess } from '$lib/shared/stores/feedback';
 	import type { User, UserOrgPermissions } from '../types';
 	import type { Network } from '$lib/features/networks/types';
 	import {
@@ -28,7 +28,6 @@
 		users_networkAccessHelp,
 		users_permissionsLevel,
 		users_permissionsLevelHelp,
-		users_updateFailed,
 		users_updateSuccess
 	} from '$lib/paraglide/messages';
 
@@ -115,8 +114,8 @@
 				await updateUserMutation.mutateAsync(updatedUser);
 				pushSuccess(users_updateSuccess({ email: user.email }));
 				onClose();
-			} catch (err) {
-				pushError(users_updateFailed({ error: String(err) }));
+			} catch {
+				// The API client reports the failure.
 			}
 		}
 	}));

@@ -71,8 +71,6 @@
 		discovery_createScheduled,
 		discovery_credentialsDescription,
 		discovery_edit,
-		discovery_failedToDelete,
-		discovery_failedToSave,
 		discovery_noDaemonSelected,
 		discovery_editActiveInfo,
 		discovery_updateDiscovery,
@@ -574,8 +572,8 @@
 						await onCreate(formData);
 					}
 					onClose();
-				} catch (error) {
-					pushError(error instanceof Error ? error.message : discovery_failedToSave());
+				} catch {
+					// The API client reports the failure.
 				} finally {
 					loading = false;
 				}
@@ -692,8 +690,8 @@
 			try {
 				await onDelete(discovery.id);
 				onClose();
-			} catch (error) {
-				pushError(error instanceof Error ? error.message : discovery_failedToDelete());
+			} catch {
+				// The API client reports the failure.
 			} finally {
 				deleting = false;
 			}

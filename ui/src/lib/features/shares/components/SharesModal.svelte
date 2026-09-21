@@ -28,10 +28,8 @@
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import UpgradeButton from '$lib/shared/components/UpgradeButton.svelte';
 	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
-	import { pushError } from '$lib/shared/stores/feedback';
 	import {
 		common_close,
-		common_failedToSave,
 		common_noEntitySelected,
 		common_save,
 		common_saving,
@@ -248,8 +246,8 @@
 			// newly-saved IDs (URLs/embed then become visible for those shares) and form
 			// state is reset from the now-canonical query cache.
 			hydrated = false;
-		} catch (error) {
-			pushError(error instanceof Error ? error.message : common_failedToSave());
+		} catch {
+			// The API client reports the failure.
 		} finally {
 			saving = false;
 		}

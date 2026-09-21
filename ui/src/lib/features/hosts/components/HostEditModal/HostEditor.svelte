@@ -33,7 +33,6 @@
 	import InterfacesForm from './Interfaces/InterfacesForm.svelte';
 	import EntityMetadataSection from '$lib/shared/components/forms/EntityMetadataSection.svelte';
 	import { SvelteMap } from 'svelte/reactivity';
-	import { pushError } from '$lib/shared/stores/feedback';
 	import {
 		common_back,
 		common_cancel,
@@ -55,7 +54,6 @@
 		hosts_editor_snmpTabDesc,
 		hosts_editor_updateHost,
 		hosts_editor_workloadsDesc,
-		hosts_failedToSave,
 		hosts_interfaces_subtitle,
 		hosts_validation_interfaceIndex,
 		hosts_validation_portField,
@@ -194,8 +192,8 @@
 				await onCreate({ host: formData, services: formData.services });
 				handleClose();
 			}
-		} catch (error) {
-			pushError(error instanceof Error ? error.message : hosts_failedToSave());
+		} catch {
+			// The API client reports the failure.
 		} finally {
 			loading = false;
 		}

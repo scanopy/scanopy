@@ -62,10 +62,8 @@
 		settings_org_resetConfirm,
 		settings_org_resetData,
 		settings_org_resetDataHelp,
-		settings_org_resetFailed,
 		settings_org_resetSuccess,
 		settings_org_unableToLoad,
-		settings_org_updateFailed,
 		settings_org_updateName,
 		settings_org_updated
 	} from '$lib/paraglide/messages';
@@ -137,7 +135,7 @@
 			pushSuccess(settings_org_updated());
 			subView = 'main';
 		} catch {
-			pushError(settings_org_updateFailed());
+			// The API client reports the failure.
 		}
 	}
 
@@ -163,7 +161,7 @@
 			await resetOrganizationDataMutation.mutateAsync(org.id);
 			pushSuccess(settings_org_resetSuccess());
 		} catch {
-			pushError(settings_org_resetFailed());
+			// The API client reports the failure.
 		}
 	}
 
@@ -214,7 +212,9 @@
 				pushError(settings_org_populateFailed());
 			}
 		} catch {
-			pushError(settings_org_populateFailed());
+			// The API client reports the failure. The `else` above stays: a poll that
+			// times out without a terminal state throws nothing, so nothing else
+			// would report it.
 		} finally {
 			demoPolling = false;
 		}

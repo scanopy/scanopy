@@ -3438,19 +3438,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-21T13:33:30.073842Z",
+             *       "created_at": "2026-09-21T13:39:38.803816Z",
              *       "first_discovery_id": null,
-             *       "id": "a9c543ad-aec9-4ed9-808c-2323dae41781",
+             *       "id": "f0ef6c4b-2667-485a-a980-90c27a43e3b2",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-21T13:33:30.073842Z",
+             *       "last_seen_at": "2026-09-21T13:39:38.803816Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-21T13:33:30.073842Z",
-             *       "valid_from": "2026-09-21T13:33:30.073842Z",
+             *       "updated_at": "2026-09-21T13:39:38.803816Z",
+             *       "valid_from": "2026-09-21T13:39:38.803816Z",
              *       "valid_to": null
              *     }
              */
@@ -3570,6 +3570,26 @@ export interface components {
                  * @description Seats over the target plan's allowance.
                  */
                 excess_seats: number;
+            };
+            /** @description Human-readable failure message. Omitted on success. */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            success: boolean;
+        };
+        ApiResponse_CheckEmailResponse: {
+            /**
+             * @description Check email availability response.
+             *
+             *     An address that is already registered is an answer to this question, not a
+             *     failure of it: the caller asked whether the address is free and got a
+             *     truthful no. Returning an error for that case forced every client to either
+             *     treat a 409 as success or suppress the toast that came with it.
+             */
+            data?: {
+                /** @description Whether the address has no account yet, and so can be registered. */
+                available: boolean;
             };
             /** @description Human-readable failure message. Omitted on success. */
             error?: string | null;
@@ -4111,19 +4131,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-21T13:33:30.041912Z",
+             *               "created_at": "2026-09-21T13:39:38.782760Z",
              *               "first_discovery_id": null,
-             *               "id": "7ddba26d-1752-4182-b97a-1a0258c4e628",
+             *               "id": "a5a028de-5250-428f-a953-401704602ddc",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-21T13:33:30.041912Z",
+             *               "last_seen_at": "2026-09-21T13:39:38.782760Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-21T13:33:30.041912Z",
-             *               "valid_from": "2026-09-21T13:33:30.041912Z",
+             *               "updated_at": "2026-09-21T13:39:38.782760Z",
+             *               "valid_from": "2026-09-21T13:39:38.782760Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4137,7 +4157,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Firewall",
+             *           "service_definition": "Traefik",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4930,19 +4950,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-21T13:33:30.066332Z",
+             *           "created_at": "2026-09-21T13:39:38.798770Z",
              *           "first_discovery_id": null,
-             *           "id": "3cb868b8-2691-4674-8204-70f23e2e7b66",
+             *           "id": "a924175e-0bf6-4399-ab3d-1e53bab55080",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-21T13:33:30.066332Z",
+             *           "last_seen_at": "2026-09-21T13:39:38.798770Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-21T13:33:30.066332Z",
-             *           "valid_from": "2026-09-21T13:33:30.066332Z",
+             *           "updated_at": "2026-09-21T13:39:38.798770Z",
+             *           "valid_from": "2026-09-21T13:39:38.798770Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -4956,7 +4976,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Firewall",
+             *       "service_definition": "Traefik",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -5821,19 +5841,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-21T13:33:30.042395Z",
+         *       "created_at": "2026-09-21T13:39:38.783279Z",
          *       "first_discovery_id": null,
-         *       "id": "adf6d085-a436-493b-a625-862cc9cc016e",
+         *       "id": "b72c80bf-e769-40bb-9f19-ae6b2f015e1e",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-21T13:33:30.042395Z",
+         *       "last_seen_at": "2026-09-21T13:39:38.783279Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-21T13:33:30.042395Z",
-         *       "valid_from": "2026-09-21T13:33:30.042395Z",
+         *       "updated_at": "2026-09-21T13:39:38.783279Z",
+         *       "valid_from": "2026-09-21T13:39:38.783279Z",
          *       "valid_to": null
          *     }
          */
@@ -6048,6 +6068,18 @@ export interface components {
             email: string;
         };
         /**
+         * @description Check email availability response.
+         *
+         *     An address that is already registered is an answer to this question, not a
+         *     failure of it: the caller asked whether the address is free and got a
+         *     truthful no. Returning an error for that case forced every client to either
+         *     treat a 409 as success or suppress the toast that came with it.
+         */
+        CheckEmailResponse: {
+            /** @description Whether the address has no account yet, and so can be registered. */
+            available: boolean;
+        };
+        /**
          * @description Where a device's claim about itself came from.
          *
          *     Named rather than folded into a sentence because the operator's next step depends on it: a
@@ -6147,7 +6179,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Firewall",
+         *           "service_definition": "Traefik",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8319,19 +8351,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-21T13:33:30.041386Z",
+         *               "created_at": "2026-09-21T13:39:38.782222Z",
          *               "first_discovery_id": null,
-         *               "id": "a47f7507-0c20-496d-96cf-cb5610725be4",
+         *               "id": "4727e406-b90e-4bca-91d3-f52f31687eb1",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-21T13:33:30.041386Z",
+         *               "last_seen_at": "2026-09-21T13:39:38.782222Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-21T13:33:30.041386Z",
-         *               "valid_from": "2026-09-21T13:33:30.041386Z",
+         *               "updated_at": "2026-09-21T13:39:38.782222Z",
+         *               "valid_from": "2026-09-21T13:39:38.782222Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8345,7 +8377,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Firewall",
+         *           "service_definition": "Traefik",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -11311,19 +11343,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-21T13:33:30.042253Z",
+         *           "created_at": "2026-09-21T13:39:38.783134Z",
          *           "first_discovery_id": null,
-         *           "id": "324d3bb3-d852-49c8-9f7c-814a4a742d52",
+         *           "id": "180c51ad-cfa6-44d7-821e-9321466082af",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-21T13:33:30.042253Z",
+         *           "last_seen_at": "2026-09-21T13:39:38.783134Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-21T13:33:30.042253Z",
-         *           "valid_from": "2026-09-21T13:33:30.042253Z",
+         *           "updated_at": "2026-09-21T13:39:38.783134Z",
+         *           "valid_from": "2026-09-21T13:39:38.783134Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -11337,7 +11369,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Firewall",
+         *       "service_definition": "Traefik",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12039,7 +12071,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "48b90bf8-858c-494b-9fd2-8c1651f65c48",
+             *           "id": "250a690b-f891-4f75-90e2-e98e6314fe47",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -12049,23 +12081,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "10883d7f-2a3a-4714-82c3-f251764e45a9",
+             *           "id": "c7a731b3-1a10-465d-9901-50aa3fa89b07",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "7e1db20e-1918-4cbc-8149-73fdf7d7aa9e",
+             *           "id": "d75b26ab-0571-4027-909b-0e69bf1fff24",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "792aeb2e-c3a1-4e2b-85f4-40f83a12312b",
+             *           "id": "11b6b518-b084-4031-aab7-8b163fb2cd06",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "10883d7f-2a3a-4714-82c3-f251764e45a9",
+             *           "id": "c7a731b3-1a10-465d-9901-50aa3fa89b07",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -12078,19 +12110,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "8cd0a0fb-cc02-4b50-8e67-0d60b42c2053",
+             *         "id": "47a1c414-aa61-409f-b246-6d5dea0ee84c",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "32f4febb-9250-4e2e-a32f-4af2922b363a",
+             *         "id": "78aec0f3-3eec-454f-87b0-9ad64429a48f",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "5f93049d-8e2b-4927-a663-d2abfb9afb60",
+             *         "id": "d168e5ce-49ce-4e28-9dc0-cefc83c4f2de",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "34b57d5c-adde-4443-ab4f-8567cbcc31f1",
+             *         "id": "cdbeeca9-f94a-43e2-9612-0771a254da79",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -12108,7 +12140,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "c3d5c9b5-a228-486c-bdf8-7f9678b461e0",
+             *         "id": "b77d5387-4f41-4942-9e6a-fc8eb2b9e60a",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -12117,15 +12149,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "52493275-ea3f-4320-a4c3-c55a6620f884",
+             *         "id": "b043cd8d-f90e-422f-a251-abaa699a53f9",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "24ab8791-0558-4e74-89f2-26af78c79f95",
+             *         "id": "8c55f223-8773-47ab-8ff0-fb9420d7beeb",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "ed4ad636-1a2f-4e81-a316-20b51e2b3b0b",
+             *         "id": "a2077024-977a-4aaa-b8f4-72487735239d",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -12656,17 +12688,17 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Email is available */
+            /** @description Whether the address is available */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse"];
+                    "application/json": components["schemas"]["ApiResponse_CheckEmailResponse"];
                 };
             };
-            /** @description Email already in use */
-            409: {
+            /** @description Password login is disabled */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
