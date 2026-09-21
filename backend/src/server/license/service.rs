@@ -279,14 +279,16 @@ impl LicenseService {
 
         let http_status = response.status();
         match http_status {
-            StatusCode::OK => match response.json::<ApiResponse<EntitlementResponse>>().await {
-                Ok(ApiResponse {
-                    data: Some(data), ..
-                }) => {
+            StatusCode::OK => match response
+                .json::<ApiResponse<EntitlementResponse>>()
+                .await
+                .map(ApiResponse::into_data)
+            {
+                Ok(Some(data)) => {
                     self.apply_entitlement(data.entitlement).await;
                     Ok(())
                 }
-                Ok(_) => Err(anyhow::anyhow!("check-in returned no entitlement")),
+                Ok(None) => Err(anyhow::anyhow!("check-in returned no entitlement")),
                 Err(e) => Err(anyhow::anyhow!("check-in returned an unreadable body: {e}")),
             },
             StatusCode::BAD_REQUEST | StatusCode::FORBIDDEN => {

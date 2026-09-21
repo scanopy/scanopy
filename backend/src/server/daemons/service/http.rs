@@ -66,18 +66,16 @@ impl DaemonService {
 
             let api_response: ApiResponse<T> = response.json().await?;
 
-            if !api_response.success {
+            if !api_response.is_success() {
                 anyhow::bail!(
                     "GET {} failed: {}",
                     path,
-                    api_response
-                        .error
-                        .unwrap_or_else(|| "Unknown error".to_string())
+                    api_response.error().unwrap_or("Unknown error")
                 );
             }
 
             api_response
-                .data
+                .into_data()
                 .ok_or_else(|| anyhow::anyhow!("GET {} response missing data", path))
         })
         .retry(
@@ -144,17 +142,15 @@ impl DaemonService {
 
             let api_response: ApiResponse<T> = response.json().await?;
 
-            if !api_response.success {
+            if !api_response.is_success() {
                 anyhow::bail!(
                     "POST {} failed: {}",
                     path,
-                    api_response
-                        .error
-                        .unwrap_or_else(|| "Unknown error".to_string())
+                    api_response.error().unwrap_or("Unknown error")
                 );
             }
 
-            Ok(api_response.data)
+            Ok(api_response.into_data())
         })
         .retry(
             ExponentialBuilder::default()

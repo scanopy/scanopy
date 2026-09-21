@@ -327,7 +327,7 @@ async fn get_by_id_credential(
     let mut response =
         get_by_id_handler::<Credential>(State(state.clone()), auth, Path(id)).await?;
 
-    if let Some(ref mut credential) = response.data {
+    if let Some(credential) = response.data_mut() {
         hydrate_assignments(&state, std::slice::from_mut(credential)).await?;
     }
 
@@ -377,7 +377,7 @@ async fn update_credential(
     )
     .await?;
 
-    if let Some(ref mut credential) = response.data {
+    if let Some(credential) = response.data_mut() {
         save_assignments(
             &state,
             credential,
@@ -527,7 +527,7 @@ pub async fn create_credential(
     )
     .await?;
 
-    if let Some(ref mut created) = response.data {
+    if let Some(created) = response.data_mut() {
         save_assignments(
             &state,
             created,
