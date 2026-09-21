@@ -1,5 +1,6 @@
 use super::{
-    BILLING_DETAILS_TAGLINE, Body, Content, Email, EmailCategory, EmailPreference, PausableCategory,
+    BILLING_DETAILS_TAGLINE, Body, Content, Email, EmailCategory, EmailPreference,
+    PausableCategory, links,
 };
 
 /// Sent when a trial begins: welcomes the user and points them at adding a
@@ -45,7 +46,7 @@ impl Email for TrialStarted<'_> {
                     )
                     .paragraph(BILLING_DETAILS_TAGLINE),
             )
-            .cta("{base_url}/?modal=settings&tab=billing&{utm}", "Add Payment Method")
+            .cta(links::SETTINGS_BILLING, "Add Payment Method")
             .render()
     }
 }

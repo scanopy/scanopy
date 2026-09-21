@@ -1,4 +1,4 @@
-use super::{Body, Content, Email, EmailCategory, EmailPreference};
+use super::{Body, Content, Email, EmailCategory, EmailPreference, links};
 
 /// Sent when a trial ends without conversion: account moved to Free, with an
 /// upgrade CTA to restore higher limits and scheduled discovery.
@@ -36,7 +36,7 @@ impl Email for TrialExpired<'_> {
                     ))
                     .paragraph("You can still use Scanopy with up to 25 hosts and manual discovery. Upgrade anytime to restore scheduled discovery and higher limits."),
             )
-            .cta("{base_url}/?modal=billing-plan&{utm}", "Upgrade Plan")
+            .cta(links::PLAN_PICKER, "Upgrade Plan")
             .render()
     }
 }

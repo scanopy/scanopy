@@ -547,9 +547,22 @@ async fn main() -> anyhow::Result<()> {
         // Ephemeral release code — remove next release: one-shot backfill of
         // email-domain-classification contact attributes for existing users.
         tracing::info!(target: LOG_TARGET, "  Spawning Brevo domain-classification backfill task");
+        let domain_backfill_service = brevo_service.clone();
         tokio::spawn(async move {
-            if let Err(e) = brevo_service.backfill_domain_classifications().await {
+            if let Err(e) = domain_backfill_service
+                .backfill_domain_classifications()
+                .await
+            {
                 tracing::error!(target: LOG_TARGET, error = %e, "Failed to backfill Brevo domain classifications");
+            }
+        });
+
+        // Ephemeral release code, remove next release: one-shot backfill of
+        // SCANOPY_LICENSED_PLAN for contacts of orgs already on a licensed plan.
+        tracing::info!(target: LOG_TARGET, "  Spawning Brevo licensed-plan contact backfill task");
+        tokio::spawn(async move {
+            if let Err(e) = brevo_service.backfill_licensed_plan_contacts().await {
+                tracing::error!(target: LOG_TARGET, error = %e, "Failed to backfill Brevo licensed-plan contacts");
             }
         });
     }

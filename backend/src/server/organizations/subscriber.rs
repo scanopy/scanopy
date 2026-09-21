@@ -173,6 +173,7 @@ impl Subscriber<BillingOperation> for OrganizationService {
                     to,
                     is_downgrade,
                     next_renewal_at,
+                    license_key_type: _,
                 } => {
                     if organization.base.plan.as_ref() != Some(to) {
                         organization.base.plan = Some(*to);

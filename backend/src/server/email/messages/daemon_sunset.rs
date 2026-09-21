@@ -1,4 +1,4 @@
-use super::{Body, Content, Email, EmailCategory, EmailPreference, PausableCategory};
+use super::{Body, Content, Email, EmailCategory, EmailPreference, PausableCategory, links};
 
 /// Notifies an organization that one or more of its daemons run a version whose
 /// support ends on a scheduled sunset date, and must be upgraded before then to
@@ -56,7 +56,7 @@ r#"                            <ul style="margin: 0 0 20px 0; padding-left: 20px
                     .paragraph("Updating takes a couple of minutes and preserves all of your existing configuration. Update each daemon to the latest version from the Scanopy UI under Discover &gt; Daemons.")
                     .paragraph("Update before the date above to avoid any interruption to your scheduled discoveries."),
             )
-            .cta("{base_url}/?{utm}#daemons", "Update Daemons")
+            .cta(links::APP_DAEMONS, "Update Daemons")
             .render()
     }
 }

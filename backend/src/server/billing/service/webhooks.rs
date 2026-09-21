@@ -217,6 +217,7 @@ impl BillingService {
                                 organization_id: organization.id,
                             },
                             BillingOperation::CancellationInitiated {
+                                plan: organization.base.plan,
                                 reason_code: meta.scanopy_cancel_reason,
                                 stripe_feedback,
                                 stripe_reason,
@@ -410,6 +411,7 @@ impl BillingService {
                         to: plan,
                         is_downgrade: plan.is_free(),
                         next_renewal_at: next_renewal_from_subscription(&sub),
+                        license_key_type: organization.base.license_key_type,
                     },
                     owner.clone().into(),
                 ))
@@ -742,6 +744,7 @@ impl BillingService {
         let internal_reason: Option<String> = None;
         let mrr_amount_cents = mrr_from_subscription(&sub);
         let tenure_days = (Utc::now() - organization.created_at).num_days().max(0) as u32;
+        let license_key_type = organization.base.license_key_type;
 
         let free_plan = get_free_plan();
 
@@ -771,6 +774,7 @@ impl BillingService {
                     .unwrap_or_else(|| Utc::now().timestamp()),
                 mrr_amount_cents,
                 tenure_days,
+                license_key_type,
                 user_service,
                 event_bus,
                 stripe,
@@ -808,6 +812,7 @@ impl BillingService {
         period_end_ts: i64,
         mrr_amount_cents: i64,
         tenure_days: u32,
+        license_key_type: Option<LicenseKeyType>,
         user_service: Arc<UserService>,
         event_bus: Arc<EventBus>,
         stripe: stripe::Client,
@@ -886,6 +891,7 @@ impl BillingService {
                         was_trialing,
                         mrr_amount_cents,
                         tenure_days,
+                        license_key_type,
                     },
                     authentication.clone(),
                 ))

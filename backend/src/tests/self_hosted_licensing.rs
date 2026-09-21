@@ -48,7 +48,7 @@ async fn test_state() -> (Arc<AppState>, ContainerAsync<GenericImage>) {
 
 /// As [`test_state`], but with emails written to `email_log_dir` when one is
 /// given, so a test can read what a subscriber actually rendered.
-async fn test_state_with_email_dir(
+pub(super) async fn test_state_with_email_dir(
     email_log_dir: Option<PathBuf>,
 ) -> (Arc<AppState>, ContainerAsync<GenericImage>) {
     let (pool, database_url, container) = setup_test_db().await;
@@ -66,7 +66,7 @@ async fn test_state_with_email_dir(
     (Arc::new(state), container)
 }
 
-async fn create_org(
+pub(super) async fn create_org(
     state: &AppState,
     plan: BillingPlan,
     paid_through: Option<DateTime<Utc>>,
@@ -93,7 +93,7 @@ async fn set_plan(state: &AppState, organization_id: Uuid, plan: BillingPlan) {
         .unwrap();
 }
 
-async fn reload(state: &AppState, organization_id: Uuid) -> Organization {
+pub(super) async fn reload(state: &AppState, organization_id: Uuid) -> Organization {
     state
         .services
         .organization_service
@@ -794,6 +794,7 @@ async fn sent_invoices_license_until_due_and_give_back_on_void() {
         was_trialing: false,
         mrr_amount_cents: 0,
         tenure_days: 30,
+        license_key_type: None,
     })
     .await
     .unwrap();

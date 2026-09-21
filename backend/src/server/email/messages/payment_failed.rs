@@ -1,4 +1,4 @@
-use super::{Body, Content, Email, EmailCategory, EmailPreference};
+use super::{Body, Content, Email, EmailCategory, EmailPreference, links};
 
 /// Sent when a payment fails: prompts the user to update their payment method to
 /// avoid service interruption.
@@ -30,7 +30,7 @@ impl Email for PaymentFailed {
                     .paragraph("Your recent payment for Scanopy failed. Please update your payment method to avoid service interruption.")
                     .paragraph("If you believe this is an error, check with your bank or try a different payment method."),
             )
-            .cta("{base_url}/?modal=settings&tab=billing&{utm}", "Update Payment Method")
+            .cta(links::SETTINGS_BILLING, "Update Payment Method")
             .render()
     }
 }

@@ -1,4 +1,4 @@
-use super::{Body, Content, Email, EmailCategory, EmailPreference};
+use super::{Body, Content, Email, EmailCategory, EmailPreference, links};
 
 /// Sent when a plan change leaves the customer owing nothing: Stripe credits
 /// the unused part of what they already paid, and the credit comes off their
@@ -39,10 +39,7 @@ impl Email for InvoiceCredited<'_> {
                         self.plan_name, self.credit
                     )),
             )
-            .cta(
-                "{base_url}/?modal=settings&tab=billing&{utm}",
-                "View Billing",
-            )
+            .cta(links::SETTINGS_BILLING, "View Billing")
             .render()
     }
 }

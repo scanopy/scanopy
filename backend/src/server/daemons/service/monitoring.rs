@@ -89,6 +89,16 @@ impl DaemonService {
         let network_name = &network.base.name;
         let daemon_name = &daemon.base.name;
 
+        // Daemons left on a cloud org that moved to a self-hosted plan are
+        // expected to go quiet, and the email's link leads into an app the org
+        // is locked out of. The daemon is still put on standby.
+        if email_service
+            .organization_self_hosted_plan_locked(&org_id)
+            .await?
+        {
+            return Ok(());
+        }
+
         // Send to org owner
         let owners = email_service
             .user_service
@@ -131,6 +141,15 @@ impl DaemonService {
         let org_id = network.base.organization_id;
         let network_name = &network.base.name;
         let daemon_name = &daemon.base.name;
+
+        // Same skip as the standby notification. The daemon is still marked
+        // unreachable.
+        if email_service
+            .organization_self_hosted_plan_locked(&org_id)
+            .await?
+        {
+            return Ok(());
+        }
 
         // Send to org owner
         let owners = email_service

@@ -74,6 +74,27 @@ fn license_issuer(state: &AppState) -> Result<&LicenseIssuer, ApiError> {
         .ok_or_else(|| ApiError::internal_error("License signing is not configured on this server"))
 }
 
+/// Load the caller's organization for a key-management request, refusing a
+/// demo organization. `demo_mode_middleware` lets owners and every GET
+/// through, and all three key endpoints are owner-only, so the refusal has to
+/// live here. A demo org is never on a self-hosted plan, so no paying path is
+/// affected.
+async fn load_organization(
+    state: &AppState,
+    organization_id: Uuid,
+) -> Result<Organization, ApiError> {
+    let organization = state
+        .services
+        .organization_service
+        .get_by_id(&organization_id)
+        .await?
+        .ok_or_else(|| ApiError::entity_not_found::<Organization>(organization_id))?;
+    if organization.base.plan.is_some_and(|plan| plan.is_demo()) {
+        return Err(ApiError::demo_mode_blocked());
+    }
+    Ok(organization)
+}
+
 fn switch_error(error: SwitchKeyTypeError) -> ApiError {
     match error {
         // The request is well formed and the caller is entitled to make it;
@@ -183,16 +204,11 @@ pub async fn create_license_key(
     Json(request): Json<CreateLicenseKeyRequest>,
 ) -> ApiResult<Json<ApiResponse<LicenseKeyResponse>>> {
     let organization_id = auth.require_organization_id()?;
+    let organization = load_organization(&state, organization_id).await?;
     let issuer = license_issuer(&state)?;
     // Refuse an offline key before switching to it, so a refusal (unpaid
     // invoice, no payment) leaves the org's current key in service.
     if request.key_type == LicenseKeyType::Offline {
-        let organization = state
-            .services
-            .organization_service
-            .get_by_id(&organization_id)
-            .await?
-            .ok_or_else(|| ApiError::entity_not_found::<Organization>(organization_id))?;
         mint_key(&state, issuer, &organization, LicenseKeyType::Offline).await?;
     }
     // Asking for the type already issued is a re-read and changes nothing, so
@@ -250,13 +266,8 @@ pub async fn get_current_license_key(
     auth: Authorized<Owner>,
 ) -> ApiResult<Json<ApiResponse<LicenseKeyResponse>>> {
     let organization_id = auth.require_organization_id()?;
+    let organization = load_organization(&state, organization_id).await?;
     let issuer = license_issuer(&state)?;
-    let organization = state
-        .services
-        .organization_service
-        .get_by_id(&organization_id)
-        .await?
-        .ok_or_else(|| ApiError::entity_not_found::<Organization>(organization_id))?;
 
     let key_type = organization.base.license_key_type.unwrap_or_default();
 
@@ -346,6 +357,7 @@ pub async fn rotate_license_key(
     auth: Authorized<Owner>,
 ) -> ApiResult<Json<EmptyApiResponse>> {
     let organization_id = auth.require_organization_id()?;
+    load_organization(&state, organization_id).await?;
     state
         .services
         .organization_service

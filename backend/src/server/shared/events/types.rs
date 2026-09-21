@@ -4,6 +4,7 @@ use crate::server::{
         BillingInvoice, BillingPlan, CancelReason, LimitSource, LimitType, SaveOffer,
     },
     discovery::r#impl::types::DiscoveryType,
+    license::types::LicenseKeyType,
     organizations::r#impl::base::UseCase,
     shared::api_key_common::ApiKeyType,
 };
@@ -205,6 +206,12 @@ pub enum BillingOperation {
         is_downgrade: bool,
         /// `sub.items.data[0].current_period_end` after the change.
         next_renewal_at: Option<DateTime<Utc>>,
+        /// The license key type the org holds, captured at the publish site.
+        /// A change between self-hosted plans reaches an online key on its
+        /// own, and an air-gapped key has to be copied again, so the email
+        /// differs. `None` for an org that never issued a key, and on events
+        /// recorded before this field existed.
+        license_key_type: Option<LicenseKeyType>,
     },
     SubscriptionCancelled {
         plan: BillingPlan,
@@ -217,6 +224,12 @@ pub enum BillingOperation {
         was_trialing: bool,
         mrr_amount_cents: i64,
         tenure_days: u32,
+        /// The license key type the org holds, captured at the publish site.
+        /// An online key dies at the server's next check-in and an air-gapped
+        /// key runs to its embedded expiry, so the email differs. `None` for
+        /// an org that never issued a key, and on events recorded before this
+        /// field existed.
+        license_key_type: Option<LicenseKeyType>,
     },
     PaymentSucceeded {
         invoice: BillingInvoice,
@@ -284,6 +297,10 @@ pub enum BillingOperation {
         new_trial_end: DateTime<Utc>,
     },
     CancellationInitiated {
+        /// The plan being cancelled. Subscribers segment on it: a self-hosted
+        /// plan's cancellation is about a license key, not cloud access.
+        /// `None` on events recorded before this field existed.
+        plan: Option<BillingPlan>,
         reason_code: Option<CancelReason>,
         stripe_feedback: Option<CancellationDetailsFeedback>,
         stripe_reason: Option<CancellationDetailsReason>,
@@ -361,6 +378,7 @@ impl BillingOperation {
             | Self::PaymentFailed { plan, .. }
             | Self::PaymentRecovered { plan, .. } => Some(plan),
             Self::PlanChanged { to, .. } | Self::LicenseReconciled { to, .. } => Some(to),
+            Self::CancellationInitiated { plan, .. } => plan.as_ref(),
             _ => None,
         }
     }
@@ -605,6 +623,7 @@ mod tests {
             was_trialing: true,
             mrr_amount_cents: 9900,
             tenure_days: 42,
+            license_key_type: Some(LicenseKeyType::Offline),
         });
     }
 
@@ -621,6 +640,7 @@ mod tests {
             was_trialing: false,
             mrr_amount_cents: 0,
             tenure_days: 0,
+            license_key_type: None,
         });
     }
 
@@ -651,6 +671,7 @@ mod tests {
     #[test]
     fn cancellation_initiated_round_trip_with_stripe_details() {
         round_trip(BillingOperation::CancellationInitiated {
+            plan: Some(get_free_plan()),
             reason_code: None,
             stripe_feedback: Some(CancellationDetailsFeedback::TooExpensive),
             stripe_reason: Some(CancellationDetailsReason::CancellationRequested),
@@ -664,6 +685,7 @@ mod tests {
     #[test]
     fn cancellation_initiated_round_trip_all_none() {
         round_trip(BillingOperation::CancellationInitiated {
+            plan: None,
             reason_code: None,
             stripe_feedback: None,
             stripe_reason: None,
@@ -729,6 +751,7 @@ mod tests {
             was_trialing: false,
             mrr_amount_cents: 0,
             tenure_days: 10,
+            license_key_type: None,
         };
         assert_eq!(cancelled.plan().map(|p| p.name()), Some("Enterprise"));
         assert_eq!(cancelled.resulting_plan_name(), Some("Free"));
@@ -782,7 +805,48 @@ mod tests {
             to: get_free_plan(),
             is_downgrade: false,
             next_renewal_at: DateTime::<Utc>::from_timestamp(1_800_000_000, 0),
+            license_key_type: Some(LicenseKeyType::Online),
         });
+    }
+
+    /// Ledger rows written before the segmentation fields existed carry no
+    /// such keys, and still have to read back.
+    #[test]
+    fn events_recorded_before_the_segmentation_fields_still_deserialize() {
+        for op in [
+            BillingOperation::PlanChanged {
+                from: get_free_plan(),
+                to: get_free_plan(),
+                is_downgrade: false,
+                next_renewal_at: None,
+                license_key_type: None,
+            },
+            BillingOperation::CancellationInitiated {
+                plan: None,
+                reason_code: None,
+                stripe_feedback: None,
+                stripe_reason: None,
+                comment: None,
+                save_offer_shown: vec![],
+                save_offer_redeemed: None,
+                planned_period_end: DateTime::<Utc>::from_timestamp(1_700_000_000, 0).unwrap(),
+            },
+        ] {
+            let mut json = serde_json::to_value(&op).expect("serialize");
+            strip_key(&mut json, "license_key_type");
+            strip_key(&mut json, "plan");
+            let back: BillingOperation = serde_json::from_value(json).expect("deserialize");
+            assert_eq!(op, back);
+        }
+    }
+
+    fn strip_key(value: &mut serde_json::Value, key: &str) {
+        if let serde_json::Value::Object(map) = value {
+            map.remove(key);
+            for child in map.values_mut() {
+                strip_key(child, key);
+            }
+        }
     }
 
     #[test]

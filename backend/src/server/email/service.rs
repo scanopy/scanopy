@@ -14,10 +14,10 @@ use super::messages::{
     EmailChangedOld, EmailPreference, InstallCommand, Invite, InvoiceCredited, InvoiceIssued,
     OidcLinked, OidcUnlinked, OrganizationDeleted, PasswordChanged, PasswordReset,
     PaymentActionRequired, PaymentFailed, PaymentMethodAdded, PaymentMethodRemoved,
-    PaymentRecovered, PlanChanged, PlanLimitApproaching, PlanLimitReached, SelfHostedPaymentFailed,
-    SelfHostedWelcome, SubscriptionCancelled, SubscriptionPaused, SubscriptionReactivated,
-    SubscriptionResumed, TrialConverted, TrialEnding, TrialExpired, TrialStarted, UsageSummary,
-    Verification,
+    PaymentRecovered, PlanChanged, PlanLimitApproaching, PlanLimitReached, SelfHostedLicenseEnded,
+    SelfHostedPaymentFailed, SelfHostedPlanChanged, SelfHostedTrialEnding, SelfHostedWelcome,
+    SubscriptionCancelled, SubscriptionPaused, SubscriptionReactivated, SubscriptionResumed,
+    TrialConverted, TrialEnding, TrialExpired, TrialStarted, UsageSummary, Verification, links,
 };
 use super::transport::EmailTransport;
 use crate::server::{
@@ -134,6 +134,28 @@ impl EmailService {
                 self.deployment_type.is_self_hosted(),
             )
             .await
+    }
+
+    /// True when an org on `plan` is locked out of this cloud app because it
+    /// bought a self-hosted license here and runs Scanopy on its own server.
+    /// The same two signals as the lock in `auth/middleware/billing.rs`.
+    ///
+    /// The deployment clause is what keeps this off the customer's own
+    /// server: there the org holds the very same plan (`plan_for_license`),
+    /// and its daemon, digest and limit emails are the ones that matter.
+    fn self_hosted_plan_locked(&self, plan: Option<BillingPlan>) -> bool {
+        !self.deployment_type.is_self_hosted()
+            && plan.is_some_and(|plan| plan.license_plan().is_some())
+    }
+
+    /// [`Self::self_hosted_plan_locked`] for callers that hold only the org id.
+    pub async fn organization_self_hosted_plan_locked(&self, org_id: &Uuid) -> Result<bool> {
+        let plan = self
+            .organization_service
+            .get_by_id(org_id)
+            .await?
+            .and_then(|organization| organization.base.plan);
+        Ok(self.self_hosted_plan_locked(plan))
     }
 
     // ========================================================================
@@ -273,6 +295,61 @@ impl EmailService {
         .await
     }
 
+    /// The self-hosted counterpart of [`Self::send_trial_ending_email`]. It
+    /// computes no recap: the hosts and scans a license customer cares about
+    /// are on their own server, so the cloud org's counts are all zero.
+    pub async fn send_self_hosted_trial_ending_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        has_payment: bool,
+        billing_period: &str,
+    ) -> Result<()> {
+        self.dispatch(
+            to,
+            &SelfHostedTrialEnding {
+                plan_name,
+                billing_period,
+                has_payment,
+            },
+        )
+        .await
+    }
+
+    pub async fn send_self_hosted_license_ended_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        was_trial: bool,
+        air_gapped: bool,
+    ) -> Result<()> {
+        self.dispatch(
+            to,
+            &SelfHostedLicenseEnded {
+                plan_name,
+                was_trial,
+                air_gapped,
+            },
+        )
+        .await
+    }
+
+    pub async fn send_self_hosted_plan_changed_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        air_gapped: bool,
+    ) -> Result<()> {
+        self.dispatch(
+            to,
+            &SelfHostedPlanChanged {
+                plan_name,
+                air_gapped,
+            },
+        )
+        .await
+    }
+
     pub async fn send_trial_expired_email(
         &self,
         to: EmailAddress,
@@ -305,8 +382,20 @@ impl EmailService {
         .await
     }
 
-    pub async fn send_plan_changed_email(&self, to: EmailAddress, plan_name: &str) -> Result<()> {
-        self.dispatch(to, &PlanChanged { plan_name }).await
+    pub async fn send_plan_changed_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        license_key_stops: bool,
+    ) -> Result<()> {
+        self.dispatch(
+            to,
+            &PlanChanged {
+                plan_name,
+                license_key_stops,
+            },
+        )
+        .await
     }
 
     pub async fn send_subscription_cancelled_email(
@@ -338,9 +427,16 @@ impl EmailService {
         &self,
         to: EmailAddress,
         period_end: &str,
+        licensed: bool,
     ) -> Result<()> {
-        self.dispatch(to, &CancellationInitiated { period_end })
-            .await
+        self.dispatch(
+            to,
+            &CancellationInitiated {
+                period_end,
+                licensed,
+            },
+        )
+        .await
     }
 
     pub async fn send_subscription_reactivated_email(&self, to: EmailAddress) -> Result<()> {
@@ -453,8 +549,7 @@ impl EmailService {
         to: EmailAddress,
         hosted_invoice_url: Option<String>,
     ) -> Result<()> {
-        let cta_href = hosted_invoice_url
-            .unwrap_or_else(|| format!("{}/?modal=settings&tab=billing", self.public_url));
+        let cta_href = hosted_invoice_url.unwrap_or_else(|| links::SETTINGS_BILLING.to_string());
         self.dispatch(
             to,
             &PaymentActionRequired {
@@ -499,7 +594,7 @@ impl EmailService {
         let cta_href = invoice
             .hosted_invoice_url
             .clone()
-            .unwrap_or_else(|| format!("{}/?modal=settings&tab=billing", self.public_url));
+            .unwrap_or_else(|| links::SETTINGS_BILLING.to_string());
         self.dispatch(
             to,
             &InvoiceIssued {
@@ -694,11 +789,18 @@ impl EmailService {
         daemon_name: &str,
         network_name: &str,
     ) -> Result<()> {
-        // Verify org exists
-        self.organization_service
+        let organization = self
+            .organization_service
             .get_by_id(&org_id)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Organization not found"))?;
+
+        // A guide to discovery and topology in an app the org is locked out of
+        // leads nowhere. Reachable when a daemon key made on a cloud plan is
+        // first used after the switch to a self-hosted one.
+        if self.self_hosted_plan_locked(organization.base.plan) {
+            return Ok(());
+        }
 
         let owner_email = self.get_owner_email(&org_id).await?;
 
@@ -721,6 +823,14 @@ impl EmailService {
             .base
             .plan
             .unwrap_or_else(crate::server::billing::plans::get_free_plan);
+        // On the cloud app a self-hosted plan's seat and network limits govern
+        // the customer's own server. The cloud org's rows are left over from
+        // before the switch (or an invite accepted after it), and an upgrade
+        // nudge about them is noise. Returns before the ratchet write, so an
+        // org that moves back to a cloud plan is still warned.
+        if self.self_hosted_plan_locked(org.base.plan) {
+            return Ok(());
+        }
         let plan_name = plan.to_string();
         let mut notifications = org.base.notifications.clone();
         let mut changed = false;
@@ -1040,6 +1150,13 @@ impl EmailService {
             Some(o) => o,
             None => return Ok(()),
         };
+        // Daemons left on the cloud org after a move to a self-hosted plan are
+        // idle: the org is locked out of the cloud app and its scans run on
+        // its own server. Skipped without advancing the ratchet, so an org
+        // that returns to a cloud plan is told on the next boot.
+        if self.self_hosted_plan_locked(org.base.plan) {
+            return Ok(());
+        }
         // Ratchet: the stored value is the highest floor this org has been told
         // about, and floors are totally ordered, so anything at or below it has
         // already been communicated.

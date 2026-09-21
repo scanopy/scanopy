@@ -1,4 +1,4 @@
-use super::{Body, Content, Email, EmailCategory, EmailPreference};
+use super::{Body, Content, Email, EmailCategory, EmailPreference, links};
 
 /// Confirms that an organization and all of its data have been deleted.
 pub struct OrganizationDeleted;
@@ -29,7 +29,7 @@ impl Email for OrganizationDeleted {
                     .paragraph("Your Scanopy organization has been deleted. All of its data, along with every user account in the organization, has been removed.")
                     .paragraph("If you'd like to use Scanopy again, you can sign up for a new account at any time."),
             )
-            .cta("{base_url}/?{utm}", "Create a New Account")
+            .cta(links::APP_HOME, "Create a New Account")
             .render()
     }
 }

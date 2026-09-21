@@ -1,4 +1,4 @@
-use super::{Body, Content, Email, EmailCategory, EmailPreference};
+use super::{Body, Content, Email, EmailCategory, EmailPreference, links};
 
 /// Sent when a self-hosted licence renews and the organization holds an
 /// air-gapped key. That key carries its expiry inside it and the customer's
@@ -46,10 +46,7 @@ impl Email for AirgapRenewal<'_> {
                         self.current_key_expires
                     )),
             )
-            .cta(
-                "{base_url}/?modal=settings&tab=license&{utm}",
-                "Copy your new key",
-            )
+            .cta(links::SETTINGS_LICENSE, "Copy your new key")
             .render()
     }
 }

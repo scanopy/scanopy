@@ -1,4 +1,4 @@
-use super::{Body, Content, Email, EmailCategory, EmailPreference, PausableCategory};
+use super::{Body, Content, Email, EmailCategory, EmailPreference, PausableCategory, links};
 
 /// Post-daemon-registration walkthrough; the free/paid variant differs in
 /// copy and CTA based on whether the org is on the Free plan.
@@ -45,7 +45,7 @@ r#"                            <ul style="margin: 0 0 20px 0; padding-left: 20px
 "#,
                     ),
             )
-            .cta("{base_url}/?{utm}", "Open Scanopy")
+            .cta(links::APP_HOME, "Open Scanopy")
             .render()
     }
 }

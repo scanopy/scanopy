@@ -1,4 +1,4 @@
-use super::{BILLING_DETAILS_TAGLINE, Body, Content, Email, EmailCategory, EmailPreference};
+use super::{BILLING_DETAILS_TAGLINE, Body, Content, Email, EmailCategory, EmailPreference, links};
 
 /// Sent when a trial converts to a paid subscription: confirms the active plan.
 pub struct TrialConverted<'a> {
@@ -35,10 +35,7 @@ impl Email for TrialConverted<'_> {
                     ))
                     .paragraph(BILLING_DETAILS_TAGLINE),
             )
-            .cta(
-                "{base_url}/?modal=settings&tab=billing&{utm}",
-                "View Billing",
-            )
+            .cta(links::SETTINGS_BILLING, "View Billing")
             .render()
     }
 }

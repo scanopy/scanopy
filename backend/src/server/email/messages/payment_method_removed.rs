@@ -1,4 +1,4 @@
-use super::{Body, Content, Email, EmailCategory, EmailPreference};
+use super::{Body, Content, Email, EmailCategory, EmailPreference, links};
 
 /// Notifies the user that a payment method was removed from their account.
 pub struct PaymentMethodRemoved;
@@ -29,7 +29,7 @@ impl Email for PaymentMethodRemoved {
                     .paragraph("A payment method has been removed from your Scanopy account.")
                     .paragraph("If this wasn't you, sign in to your account, add a payment method back, and review your active sessions in Settings."),
             )
-            .cta("{base_url}/?modal=billing-payment-method&{utm}", "Manage Payment Method")
+            .cta(links::SETTINGS_BILLING, "Manage Payment Method")
             .render()
     }
 }

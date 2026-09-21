@@ -1,4 +1,4 @@
-use super::{Body, Content, Email, EmailCategory, EmailPreference, PausableCategory};
+use super::{Body, Content, Email, EmailCategory, EmailPreference, PausableCategory, links};
 
 /// Notifies that a daemon was put on standby after 30 days without a discovery.
 pub struct DaemonStandby<'a> {
@@ -34,13 +34,14 @@ impl Email for DaemonStandby<'_> {
                         self.daemon_name, self.network_name
                     ))
                     .paragraph("To resume:")
-                    .raw(
+                    .raw(&format!(
 r#"                            <ol style="margin: 0 0 20px 0; padding-left: 20px; font-size: 16px; line-height: 28px; color: #4a4a4a;">
-                                <li>Ensure your daemon is running and connected (<a href="https://scanopy.net/docs/setting-up-daemons/troubleshooting/" style="color: #2563eb; text-decoration: none;">troubleshooting guide</a>).</li>
+                                <li>Ensure your daemon is running and connected (<a href="{}" style="color: #2563eb; text-decoration: none;">troubleshooting guide</a>).</li>
                                 <li>Manually start a discovery by pressing the Play button on the Discoveries page.</li>
                             </ol>
 "#,
-                    )
+                        links::DOCS_DAEMON_TROUBLESHOOTING
+                    ))
                     .paragraph("Your daemon will come off standby and scheduled discoveries will resume automatically."),
             )
             .cta("{base_url}/?{utm}#discovery-scans", "Queue Discovery")
