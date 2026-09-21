@@ -17,6 +17,32 @@ use uuid::Uuid;
 // Phase 1 (0-5%): Self-report + localhost integrations.
 // Phase 2 (5-100%): Network scan with per-host integration probe + execute.
 
+/// How often a running session resends its progress when nothing else has reported.
+const HEARTBEAT_INTERVAL: std::time::Duration = std::time::Duration::from_secs(30);
+
+/// Run `work`, resending the session's progress every `HEARTBEAT_INTERVAL` for as long as it runs.
+///
+/// The server fails a session it hears nothing about for five minutes, and several stretches of a
+/// healthy session report nothing for longer: self-report, integration probes, subnet creation,
+/// subnet resolution, mDNS. The heartbeat loop is a branch of the `select!`, not an arm body, so a
+/// slow heartbeat request runs alongside the work instead of pausing it.
+async fn with_heartbeat<T>(ops: &DiscoveryOps, work: impl std::future::Future<Output = T>) -> T {
+    let heartbeat = async {
+        let mut ticker = tokio::time::interval(HEARTBEAT_INTERVAL);
+        ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        ticker.tick().await;
+        loop {
+            ticker.tick().await;
+            let _ = ops.heartbeat().await;
+        }
+    };
+
+    tokio::select! {
+        result = work => result,
+        never = heartbeat => never,
+    }
+}
+
 impl DiscoveryRunner {
     pub async fn discover(
         &mut self,
@@ -24,11 +50,19 @@ impl DiscoveryRunner {
         cancel: CancellationToken,
     ) -> Result<(), Error> {
         let is_first_run = !self.service.config_store.has_self_reported().await;
-        let gateway_ips = self
-            .service
-            .utils
-            .get_own_routing_table_gateway_ips()
-            .await?;
+        // Gateways only enrich what the scan finds. Failing to read them must not fail the
+        // session before it exists, where nothing could report the failure.
+        let gateway_ips = match self.service.utils.get_own_routing_table_gateway_ips().await {
+            Ok(ips) => ips,
+            Err(e) => {
+                tracing::warn!(
+                    session_id = %request.session_id,
+                    error = %e,
+                    "Could not read the routing table's gateways; scanning without them"
+                );
+                Vec::new()
+            }
+        };
         let ops = DiscoveryOps::new(&self.service, DiscoveryType::from(&*self));
 
         // Local Docker/Podman socket integrations are no longer injected here. They arrive in the
@@ -51,41 +85,32 @@ impl DiscoveryRunner {
             ip_overrides: vec![],
         });
 
-        // Create subnets before session init (like other runners)
-        let created_subnets = match self.create_initial_subnets(&ops, &cancel).await {
-            Ok(subnets) => subnets,
-            Err(e) => {
-                let daemon_id = self.service.config_store.get_id().await?;
-                if let Err(init_err) = ops
-                    .initialize_session(&request, daemon_id, gateway_ips)
-                    .await
-                {
-                    tracing::error!(
-                        "Failed to initialize session for error reporting: {}",
-                        init_err
-                    );
-                    return Err(e);
-                }
-                ops.finish_session(Err(e), cancel).await?;
-                return Ok(());
+        // The session starts first, so the server hears `Started` before any subnet work. That
+        // work can take minutes (in ServerPoll each subnet waits up to two minutes for the server
+        // to confirm it) and used to run before the server knew the session existed.
+        if let Err(e) = ops.start_session(&request, gateway_ips).await {
+            // Without a session there is nothing to report the failure through.
+            if ops.get_session().await.is_err() {
+                return Err(e);
             }
-        };
+            ops.finish_session(Err(e), cancel).await?;
+            return Ok(());
+        }
 
-        // Start session
-        ops.start_session(&request, gateway_ips).await?;
-
-        // Run the orchestrated phases
-        let discovery_result = self
-            .run_unified_phases(&ops, &created_subnets, is_first_run, &cancel)
-            .await;
+        let discovery_result = with_heartbeat(&ops, async {
+            let created_subnets = self.create_initial_subnets(&ops, &cancel).await?;
+            self.run_unified_phases(&ops, &created_subnets, is_first_run, &cancel)
+                .await
+        })
+        .await;
 
         ops.finish_session(discovery_result, cancel).await?;
         Ok(())
     }
 
-    /// Pre-session subnet setup. Merges daemon interface subnets with Docker network
-    /// subnets (host CIDR wins on overlap). Runs before session initialization so
-    /// subnets exist for self-report and localhost integration phases.
+    /// Subnet setup at the start of a session. Merges daemon interface subnets with Docker
+    /// network subnets (host CIDR wins on overlap). Runs before the self-report and localhost
+    /// integration phases, which take the subnets it returns.
     async fn create_initial_subnets(
         &self,
         ops: &DiscoveryOps,
