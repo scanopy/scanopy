@@ -1,4 +1,5 @@
 //! Session lookups, daemon-request building, and session start/update/cancel.
+use super::state::{self, SessionMaps, TerminalEffects, UpdateOutcome};
 use super::*;
 
 impl DiscoveryService {
@@ -369,59 +370,30 @@ impl DiscoveryService {
 
         tracing::debug!("Updated session {:?}", update);
 
+        // Same order as `cleanup_stalled_sessions` and `clear_sessions_for_daemon`.
         let mut sessions = self.sessions.write().await;
-
         let mut last_updated = self.session_last_updated.write().await;
-        // Check if we've seen this session before (used as tombstone for completed sessions)
-        let already_seen = last_updated.contains_key(&update.session_id);
-        // Track last update time
-        last_updated.insert(update.session_id, Utc::now());
+        let mut daemon_sessions = self.daemon_sessions.write().await;
+        let mut pull_cancellations = self.daemon_pull_cancellations.write().await;
+        let mut discovery_sessions = self.discovery_sessions.write().await;
 
-        // Auto-create session if it doesn't exist (handles server restarts during discovery)
-        if let std::collections::hash_map::Entry::Vacant(e) = sessions.entry(update.session_id) {
-            // If we already tracked this session but it's no longer in the sessions map,
-            // it was already processed and removed. Skip redundant terminal updates from
-            // old daemons that don't clear their terminal payload after serving it.
-            if update.phase.is_terminal() && already_seen {
-                tracing::debug!(
-                    session_id = %update.session_id,
-                    phase = %update.phase,
-                    "Ignoring redundant terminal update (already processed)"
-                );
-                return Ok(());
-            }
-
-            tracing::info!(
-                session_id = %update.session_id,
-                daemon_id = %update.daemon_id,
-                network_id = %update.network_id,
-                "Auto-creating session from daemon update"
-            );
-
-            // Track in daemon_sessions map
-            let mut daemon_sessions = self.daemon_sessions.write().await;
-            daemon_sessions
-                .entry(update.daemon_id)
-                .or_default()
-                .push(update.session_id);
-            drop(daemon_sessions);
-
-            // Track in discovery_sessions map so concurrent session guard works
-            if let Some(discovery_id) = update.discovery_id {
-                self.discovery_sessions
-                    .write()
-                    .await
-                    .insert(discovery_id, update.session_id);
-            }
-
-            // Insert the session
-            e.insert(update.clone());
+        let outcome = state::apply_update(
+            &mut SessionMaps {
+                sessions: &mut sessions,
+                last_updated: &mut last_updated,
+                daemon_sessions: &mut daemon_sessions,
+                discovery_sessions: &mut discovery_sessions,
+                pull_cancellations: &mut pull_cancellations,
+            },
+            &update,
+            Utc::now(),
+        );
+        if matches!(outcome, UpdateOutcome::Ignored) {
+            return Ok(());
         }
 
-        let session = sessions.get_mut(&update.session_id).unwrap();
-
-        let daemon_id = session.daemon_id;
-        let network_id = session.network_id;
+        let daemon_id = update.daemon_id;
+        let network_id = update.network_id;
 
         tracing::debug!(
             session_id = %update.session_id,
@@ -460,9 +432,16 @@ impl DiscoveryService {
 
         let _ = self.update_tx.send(update.clone());
 
-        *session = update.clone();
+        let UpdateOutcome::Terminal(effects) = outcome else {
+            return Ok(());
+        };
+        let TerminalEffects {
+            session,
+            parent_discovery_id,
+            promoted,
+        } = *effects;
 
-        if session.phase.is_terminal() {
+        {
             let is_rescan = session.discovery_type.rescan_target_host_id().is_some();
 
             // Here rather than anywhere earlier because this is the one place a terminal payload
@@ -482,15 +461,6 @@ impl DiscoveryService {
                 Ok(Some(network)) => network.base.name,
                 _ => "Unknown Network".to_string(),
             };
-
-            // Reverse-lookup: find discovery_id from session_id
-            let parent_discovery_id = self
-                .discovery_sessions
-                .read()
-                .await
-                .iter()
-                .find(|(_, sid)| **sid == session.session_id)
-                .map(|(did, _)| *did);
 
             // Inherit the transient parent's name for a rescan — it was minted as
             // "Rescan of <host> (<ip>)", the only place host name and address are
@@ -587,9 +557,6 @@ impl DiscoveryService {
                 .publish(session.into_discovery_event())
                 .await?;
 
-            // If user cancelled session, but it finished before we could send cancellation, remove key so it doesn't cancel upcoming sessions
-            self.pull_cancellation_for_daemon(&session.daemon_id).await;
-
             // A rescan's parent exists only to carry the targets to the daemon.
             // Delete it now that the historical row (which the user actually sees)
             // is persisted and its subscribers — including the scan-target subnet
@@ -606,53 +573,23 @@ impl DiscoveryService {
                 );
             }
 
-            // Get next session info BEFORE trying to send request
-            let next_session_info = if let Some(daemon_sessions) = self
-                .daemon_sessions
-                .write()
-                .await
-                .get_mut(&session.daemon_id)
-            {
-                daemon_sessions.retain(|s| *s != session.session_id);
+            discovery_sessions.retain(|_, sid| *sid != update.session_id);
 
-                // Promote next Queued session to Pending and start its stall clock
-                daemon_sessions
-                    .first()
-                    .and_then(|next_session_id| sessions.get_mut(next_session_id))
-                    .map(|next_session| {
-                        next_session.phase = DiscoveryPhase::Pending;
-                        last_updated.insert(next_session.session_id, Utc::now());
-                        (
-                            next_session.discovery_type.clone(),
-                            next_session.session_id,
-                            next_session.discovery_id,
-                        )
-                    })
-            } else {
-                None
-            };
-
-            // Remove the completed session
-            sessions.remove(&update.session_id);
-
-            // Remove from discovery_sessions map (find by session_id value)
-            self.discovery_sessions
-                .write()
-                .await
-                .retain(|_, sid| *sid != update.session_id);
-
-            drop(sessions);
+            drop(discovery_sessions);
+            drop(pull_cancellations);
+            drop(daemon_sessions);
             drop(last_updated);
+            drop(sessions);
 
             // Publish event which will trigger notifying any daemons in ServerPoll to start session
             // If daemon is daemon_poll mode, it will request next session on its next poll
-            if let Some((discovery_type, session_id, discovery_id)) = next_session_info {
+            if let Some(promoted) = promoted {
                 let mut started_payload = DiscoveryUpdatePayload::new(
-                    session_id,
+                    promoted.session_id,
                     daemon_id,
                     network_id,
-                    discovery_type,
-                    discovery_id,
+                    promoted.discovery_type,
+                    promoted.discovery_id,
                 );
                 started_payload.phase = DiscoveryPhase::Pending;
 

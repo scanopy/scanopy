@@ -1,4 +1,5 @@
 //! Old/stalled session cleanup and scheduled-job removal.
+use super::state::{self, SessionMaps};
 use super::*;
 
 impl DiscoveryService {
@@ -83,38 +84,7 @@ impl DiscoveryService {
         let stalled_sessions: Vec<DiscoveryUpdatePayload> = {
             let sessions = self.sessions.read().await;
             let last_updated = self.session_last_updated.read().await;
-
-            sessions
-                .iter()
-                .filter_map(|(session_id, session)| {
-                    // Only check phases that are subject to stall cleanup
-                    if !session.phase.can_be_cleaned_up() {
-                        return None;
-                    }
-
-                    // Check last update time
-                    let is_stalled = if let Some(last_update_time) = last_updated.get(session_id) {
-                        now.signed_duration_since(*last_update_time) > stall_threshold
-                    } else if let Some(started_at) = session.started_at {
-                        now.signed_duration_since(started_at) > stall_threshold
-                    } else {
-                        // Session with no tracking timestamps at all —
-                        // it was dispatched but never reported back. Treat as stalled.
-                        tracing::warn!(
-                            session_id = %session_id,
-                            phase = ?session.phase,
-                            "Session has no tracking timestamps, treating as stalled"
-                        );
-                        true
-                    };
-
-                    if is_stalled {
-                        Some(session.clone())
-                    } else {
-                        None
-                    }
-                })
-                .collect()
+            state::select_stalled(&sessions, &last_updated, now, stall_threshold)
         };
 
         if stalled_sessions.is_empty() {
@@ -189,136 +159,94 @@ impl DiscoveryService {
         let mut daemon_pull_cancellations = self.daemon_pull_cancellations.write().await;
         let mut discovery_sessions = self.discovery_sessions.write().await;
 
-        let mut stalled_count = 0;
+        let stalled_ids: Vec<Uuid> = stalled_sessions.iter().map(|s| s.session_id).collect();
+        let reaped = state::reap(
+            &mut SessionMaps {
+                sessions: &mut sessions,
+                last_updated: &mut last_updated,
+                daemon_sessions: &mut daemon_sessions,
+                discovery_sessions: &mut discovery_sessions,
+                pull_cancellations: &mut daemon_pull_cancellations,
+            },
+            &stalled_ids,
+            now,
+        );
+        let stalled_count = reaped.len();
 
-        for session in stalled_sessions {
-            if let Some(mut session) = sessions.remove(&session.session_id) {
-                let daemon_id = session.daemon_id;
-                let session_id = session.session_id;
-
-                tracing::warn!(
-                    session_id = %session_id,
-                    daemon_id = %daemon_id,
-                    phase = ?session.phase,
-                    "Cleaning up stalled discovery session (no updates for 5+ minutes)"
-                );
-
-                // Update to failed state
-                session.phase = DiscoveryPhase::Failed;
-                session.error = Some(
-                    "Session stalled - no updates received from daemon for more than 5 minutes"
-                        .to_string(),
-                );
-                session.finished_at = Some(now);
-
-                // Remove from daemon sessions queue and promote next Queued → Pending
-                if let Some(queue) = daemon_sessions.get_mut(&daemon_id) {
-                    queue.retain(|id| *id != session_id);
-
-                    // Promote next Queued session to Pending
-                    if let Some(next_session) =
-                        queue.first().and_then(|next_id| sessions.get_mut(next_id))
-                        && next_session.phase == DiscoveryPhase::Queued
-                    {
-                        next_session.phase = DiscoveryPhase::Pending;
-                        last_updated.insert(next_session.session_id, Utc::now());
-                    }
-                }
-
-                // Remove from discovery_sessions map
-                discovery_sessions.retain(|_, sid| *sid != session_id);
-
-                // Remove from last_updated tracking
-                last_updated.remove(&session_id);
-
-                // Broadcast the failed state update
-                let _ = self.update_tx.send(session.clone());
-
-                // Clean up any pending cancellation for this daemon/session
-                if let Some((_, cancel_session_id)) = daemon_pull_cancellations.get(&daemon_id)
-                    && *cancel_session_id == session_id
-                {
-                    daemon_pull_cancellations.remove(&daemon_id);
-                    tracing::debug!(
-                        "Removed stale cancellation flag for daemon {} session {}",
-                        daemon_id,
-                        session_id
-                    );
-                }
-
-                // Create historical discovery record for the stalled session,
-                // but only if the daemon still exists (it may have been deleted,
-                // which would cause a FK violation on the discovery table).
-                let daemon_exists = match self.daemon_service.get() {
-                    Some(ds) => ds
-                        .get_by_id(&session.daemon_id)
-                        .await
-                        .ok()
-                        .flatten()
-                        .is_some(),
-                    None => false,
-                };
-
-                if daemon_exists {
-                    let network_name =
-                        match self.network_service.get_by_id(&session.network_id).await {
-                            Ok(Some(network)) => network.base.name,
-                            _ => "Unknown Network".to_string(),
-                        };
-
-                    let historical_discovery = Discovery {
-                        id: Uuid::new_v4(),
-                        created_at: session.started_at.unwrap_or(now),
-                        updated_at: now,
-                        base: DiscoveryBase {
-                            daemon_id: session.daemon_id,
-                            network_id: session.network_id,
-                            tags: Vec::new(),
-                            name: if matches!(session.discovery_type, DiscoveryType::Unified { .. })
-                            {
-                                "Discovery".to_string()
-                            } else {
-                                format!("{} \u{2014} {}", session.discovery_type, network_name)
-                            },
-                            discovery_type: session.discovery_type.clone(),
-                            run_type: RunType::Historical {
-                                results: Box::new(session),
-                            },
-                        },
-                        scan_count: 0,
-                        force_full_scan: false,
-                        integration_targets: vec![],
-                    };
-
-                    if let Err(e) = self.discovery_storage.create(&historical_discovery).await {
-                        tracing::error!(
-                            "Failed to create historical discovery record for stalled session {}: {}",
-                            session_id,
-                            e
-                        );
-                    }
-                } else {
-                    tracing::debug!(
-                        session_id = %session_id,
-                        daemon_id = %daemon_id,
-                        "Skipping historical record for stalled session — daemon no longer exists"
-                    );
-                }
-
-                stalled_count += 1;
-            }
+        for session in reaped {
+            let _ = self.update_tx.send(session.clone());
+            self.record_stalled_session(session, now).await;
         }
 
         // Evict tombstones: last_updated entries for sessions that no longer exist
         // in the sessions map and are older than the stall threshold. These are left
         // behind after terminal processing to guard against redundant polls from old
         // daemons (see update_session). Safe to clean up once enough time has passed.
-        last_updated.retain(|id, ts| {
-            sessions.contains_key(id) || now.signed_duration_since(*ts) < stall_threshold
-        });
+        state::evict_tombstones(&sessions, &mut last_updated, now, stall_threshold);
 
         if stalled_count > 0 {
             tracing::info!("Cleaned up {} stalled discovery sessions", stalled_count);
+        }
+    }
+
+    /// Write the historical record for a reaped session, if its daemon still exists (a deleted
+    /// daemon's id would violate the discovery table's foreign key).
+    async fn record_stalled_session(
+        &self,
+        session: DiscoveryUpdatePayload,
+        now: chrono::DateTime<Utc>,
+    ) {
+        let session_id = session.session_id;
+        let daemon_id = session.daemon_id;
+
+        let daemon_exists = match self.daemon_service.get() {
+            Some(ds) => ds.get_by_id(&daemon_id).await.ok().flatten().is_some(),
+            None => false,
+        };
+
+        if !daemon_exists {
+            tracing::debug!(
+                session_id = %session_id,
+                daemon_id = %daemon_id,
+                "Skipping historical record for stalled session — daemon no longer exists"
+            );
+            return;
+        }
+
+        let network_name = match self.network_service.get_by_id(&session.network_id).await {
+            Ok(Some(network)) => network.base.name,
+            _ => "Unknown Network".to_string(),
+        };
+
+        let historical_discovery = Discovery {
+            id: Uuid::new_v4(),
+            created_at: session.started_at.unwrap_or(now),
+            updated_at: now,
+            base: DiscoveryBase {
+                daemon_id: session.daemon_id,
+                network_id: session.network_id,
+                tags: Vec::new(),
+                name: if matches!(session.discovery_type, DiscoveryType::Unified { .. }) {
+                    "Discovery".to_string()
+                } else {
+                    format!("{} \u{2014} {}", session.discovery_type, network_name)
+                },
+                discovery_type: session.discovery_type.clone(),
+                run_type: RunType::Historical {
+                    results: Box::new(session),
+                },
+            },
+            scan_count: 0,
+            force_full_scan: false,
+            integration_targets: vec![],
+        };
+
+        if let Err(e) = self.discovery_storage.create(&historical_discovery).await {
+            tracing::error!(
+                session_id = %session_id,
+                error = %e,
+                "Failed to create historical discovery record for stalled session"
+            );
         }
     }
 
