@@ -16,6 +16,7 @@ import type { DiscoveryUpdatePayload } from './types/api';
 import type { Organization } from '../organizations/types';
 import { pushError, pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
 import { BaseSSEManager, type SSEConfig } from '$lib/shared/utils/sse';
+import { discoveryTerminalReasons } from '$lib/shared/stores/metadata';
 import { writable } from 'svelte/store';
 import * as m from '$lib/paraglide/messages';
 import { networkItems } from '$lib/features/networks/columns';
@@ -613,6 +614,26 @@ function isTerminalPhase(phase: DiscoveryUpdatePayload['phase']): boolean {
 	return phase === 'Complete' || phase === 'Cancelled' || phase === 'Failed';
 }
 
+/**
+ * A failed run's toast, sticky like every failure. A daemon's own failure shows its error. For any
+ * other reason the toast names it; a stall shows what to check, since its error only restates
+ * that the daemon went quiet.
+ */
+function pushFailureToast(update: DiscoveryUpdatePayload) {
+	const reason = update.reason;
+	if (!reason || reason === 'DaemonReportedFailure') {
+		if (update.error) pushError(m.discovery_error({ error: update.error }), -1);
+		return;
+	}
+	const detail = discoveryTerminalReasons.getMetadata(reason).is_stall
+		? discoveryTerminalReasons.getDescription(reason)
+		: (update.error ?? discoveryTerminalReasons.getDescription(reason));
+	pushError(
+		m.discovery_stoppedWithReason({ reason: discoveryTerminalReasons.getName(reason), detail }),
+		-1
+	);
+}
+
 // Throttle configuration for query invalidations
 const INVALIDATION_THROTTLE_MS = 1000; // At most 1 invalidation per second
 
@@ -699,8 +720,8 @@ class DiscoverySSEManager extends BaseSSEManager<DiscoveryUpdatePayload> {
 					]);
 				} else if (update.phase === 'Cancelled') {
 					pushWarning(m.discovery_cancelled());
-				} else if (update.phase === 'Failed' && update.error) {
-					pushError(m.discovery_error({ error: update.error }), -1);
+				} else if (update.phase === 'Failed') {
+					pushFailureToast(update);
 				}
 
 				// Invalidate org cache until FirstDiscoveryCompleted milestone appears

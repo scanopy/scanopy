@@ -28,15 +28,14 @@
 	import { Info } from 'lucide-svelte';
 	import { daemonItems } from '$lib/features/daemons/columns';
 	import { networkItems } from '$lib/features/networks/columns';
-	import { toColor, type Color } from '$lib/shared/utils/styling';
+	import { toColor } from '$lib/shared/utils/styling';
 	import type { CardAction } from '$lib/shared/components/data/types';
+	import { runOutcomeTag, type OutcomeTag } from '../../utils/outcome';
 	import {
 		common_created,
 		common_daemon,
 		common_details,
 		common_duration,
-		common_cancelled,
-		common_failed,
 		common_name,
 		common_status,
 		common_warnings,
@@ -237,31 +236,14 @@
 	}
 
 	/**
-	 * How a run ended, as a tag.
-	 *
-	 * A clean completion has nothing to say, so it returns null and the column
-	 * renders empty — the point is that failures, cancellations and warnings
-	 * stand out. Same rule the card's header tag uses.
+	 * How a run ended, as a tag. A clean completion returns null and the column renders empty.
+	 * Warnings have a column of their own: a tag here said only that the run had some, which made
+	 * a single informational note look like a broken credential.
 	 */
-	function outcomeTag(discovery: Discovery): { label: string; color: Color } | null {
-		const results = discovery.run_type.type === 'Historical' ? discovery.run_type.results : null;
-		const phase = results?.phase ?? null;
-		if (!phase) return null;
-
-		switch (phase) {
-			// Warnings have a column of their own. A tag here said only that the run had some,
-			// which made a single informational note look like a broken credential and pushed the
-			// outcome this column exists for out of the way.
-			case 'Complete':
-				return null;
-			case 'Failed':
-				return { label: common_failed(), color: toColor('red') };
-			case 'Cancelled':
-				return { label: common_cancelled(), color: toColor('yellow') };
-			default:
-				// Still running, so worth showing — the phase names its stage.
-				return { label: phase, color: toColor('blue') };
-		}
+	function outcomeTag(discovery: Discovery): OutcomeTag | null {
+		return runOutcomeTag(
+			discovery.run_type.type === 'Historical' ? discovery.run_type.results : null
+		);
 	}
 
 	/** A run's recorded warnings, or none for a row that is not a completed run. */
@@ -339,12 +321,10 @@
 					type: 'string',
 					searchable: true,
 					// Deliberately not filterable. The value is derived from the
-					// `run_type` JSONB through `outcomeTag`, a phase-to-label mapping
-					// that exists only in TypeScript, so the server cannot filter on
-					// it — and this list is server-paginated, where a client-side
-					// filter would narrow the loaded page while the count kept
-					// describing every match. Restoring the filter means moving the
-					// mapping to the backend (TypeMetadataProvider + fixture) first.
+					// `run_type` JSONB (phase and terminal reason) through `outcomeTag`,
+					// and the server has no column to filter on — this list is
+					// server-paginated, where a client-side filter would narrow the
+					// loaded page while the count kept describing every match.
 					groupable: true,
 					getValue: (item) => outcomeTag(item)?.label ?? '',
 					display: {
@@ -352,7 +332,9 @@
 						statusTag: true,
 						getItems: (item) => {
 							const tag = outcomeTag(item);
-							return tag ? [{ id: tag.label, label: tag.label, color: tag.color }] : [];
+							return tag
+								? [{ id: tag.label, label: tag.label, color: tag.color, title: tag.title }]
+								: [];
 						}
 					}
 				},

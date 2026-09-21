@@ -12,7 +12,7 @@
 	import { useSubnetsQuery, getSubnetById } from '$lib/features/subnets/queries';
 	import { useHostsByIds } from '$lib/features/hosts/queries';
 	import scanSettingsFields from '$lib/data/scan-settings.json';
-	import type { FieldDefinition } from '$lib/shared/stores/metadata';
+	import { discoveryTerminalReasons, type FieldDefinition } from '$lib/shared/stores/metadata';
 	import {
 		discovery_runDetails,
 		discovery_hostNamingFallback,
@@ -107,6 +107,16 @@
 		return host ? hostDisplayName(host) : null;
 	});
 
+	// A run recorded before reasons existed has only its phase and error to show.
+	let outcomeTitle = $derived(
+		payload.reason ? discoveryTerminalReasons.getName(payload.reason) : payload.phase
+	);
+	let outcomeBody = $derived(
+		[payload.error, payload.reason ? discoveryTerminalReasons.getDescription(payload.reason) : null]
+			.filter(Boolean)
+			.join(' ') || null
+	);
+
 	let hostNamingLabel = $derived(
 		payload.discovery_type.type === 'Unified'
 			? payload.discovery_type.host_naming_fallback === 'Ip'
@@ -123,9 +133,9 @@
 	{#if payload.phase === 'Complete'}
 		<InlineSuccess title={payload.phase} />
 	{:else if payload.phase === 'Failed'}
-		<InlineDanger title={payload.phase} body={payload.error ?? null} />
+		<InlineDanger title={outcomeTitle} body={outcomeBody} />
 	{:else if payload.phase === 'Cancelled'}
-		<InlineWarning title={payload.phase} />
+		<InlineWarning title={outcomeTitle} body={outcomeBody} />
 	{:else}
 		<InlineInfo title={payload.phase} />
 	{/if}
