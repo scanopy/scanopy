@@ -459,15 +459,36 @@ impl DaemonService {
                         credential_mappings: vec![],
                     }
                 });
-            if let Err(e) = self
+            let session_id = request.session_id;
+            match self
                 .send_discovery_request_to_daemon(daemon, Some(&api_key), request)
                 .await
             {
-                tracing::warn!(
-                    daemon_id = %daemon.id,
-                    "Failed to initiate discovery: {}",
-                    e
-                );
+                Ok(()) => {}
+                // The daemon refused because it is running another session. Nothing will ever
+                // start this one, so end it now rather than leave it in `Starting` until the
+                // stall sweep, refusing every retry of the same discovery meanwhile.
+                Err(e)
+                    if e.downcast_ref::<DaemonHttpError>()
+                        .is_some_and(|h| h.status == reqwest::StatusCode::CONFLICT) =>
+                {
+                    self.discovery_service
+                        .fail_session(
+                            session_id,
+                            DiscoveryTerminalReason::DaemonBusy,
+                            "The daemon was already running another session and refused this one"
+                                .to_string(),
+                        )
+                        .await;
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        daemon_id = %daemon.id,
+                        session_id = %session_id,
+                        error = %e,
+                        "Failed to initiate discovery"
+                    );
+                }
             }
         }
 
