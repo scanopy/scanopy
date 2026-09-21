@@ -17,7 +17,14 @@ impl BrevoEmailProvider {
     pub fn new(api_key: String) -> Self {
         Self {
             api_key,
-            client: Client::new(),
+            // `Client::new()` has no timeout at all, so a hung connection to Brevo held whatever
+            // was sending: the digest email is sent from a discovery's completion. Email is
+            // best-effort, and a send that has not finished in 30s is better abandoned.
+            client: Client::builder()
+                .connect_timeout(std::time::Duration::from_secs(10))
+                .timeout(std::time::Duration::from_secs(30))
+                .build()
+                .expect("Failed to create Brevo HTTP client"),
         }
     }
 }

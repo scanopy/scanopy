@@ -131,6 +131,25 @@ impl DiscoveryService {
         }
     }
 
+    /// Reserve a network for snapshotting, returning a reservation that releases it.
+    ///
+    /// `None` when [`Self::try_acquire_network_for_snapshot`] would return `false`. Prefer this to
+    /// pairing acquire and release by hand: the reservation also releases the network when the
+    /// holder is dropped without releasing it, which is what a request handler's future does when
+    /// its client disconnects.
+    pub async fn try_reserve_network_for_snapshot(
+        self: &Arc<Self>,
+        network_id: Uuid,
+    ) -> Option<SnapshotReservation> {
+        self.try_acquire_network_for_snapshot(network_id)
+            .await
+            .then(|| SnapshotReservation {
+                service: self.clone(),
+                network_id,
+                released: false,
+            })
+    }
+
     /// Atomically reserve a network for snapshotting.
     ///
     /// Returns `true` iff the network has zero non-terminal sessions AND is
@@ -305,5 +324,50 @@ impl DiscoveryService {
         daemon_cancellation_ids
             .remove(daemon_id)
             .unwrap_or((false, Uuid::nil()))
+    }
+}
+
+/// A network reserved for a snapshot.
+///
+/// Release it with [`Self::release`] when the snapshot is done. If it is dropped unreleased (the
+/// request serving the snapshot was abandoned mid-way), it releases the network itself. Without
+/// that, the reservation outlived the request and every later scan on the network waited in
+/// `AwaitingSnapshot`, which the stall sweep never touches, until the server restarted.
+pub struct SnapshotReservation {
+    service: Arc<DiscoveryService>,
+    network_id: Uuid,
+    released: bool,
+}
+
+impl SnapshotReservation {
+    pub async fn release(mut self) {
+        self.service
+            .release_network_for_snapshot(self.network_id)
+            .await;
+        // Set only once the release has run: a release interrupted part-way is finished by `Drop`.
+        // Releasing twice is harmless.
+        self.released = true;
+    }
+}
+
+impl Drop for SnapshotReservation {
+    fn drop(&mut self) {
+        if self.released {
+            return;
+        }
+        // `Drop` cannot await the release, so it runs on its own task. With no runtime left (the
+        // server is shutting down) there is nothing to release: the reservation is in memory only.
+        let Ok(runtime) = tokio::runtime::Handle::try_current() else {
+            return;
+        };
+        tracing::warn!(
+            network_id = %self.network_id,
+            "Snapshot request ended without releasing its network; releasing it now"
+        );
+        let service = self.service.clone();
+        let network_id = self.network_id;
+        runtime.spawn(async move {
+            service.release_network_for_snapshot(network_id).await;
+        });
     }
 }

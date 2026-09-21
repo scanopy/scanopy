@@ -107,6 +107,9 @@ async fn main() -> anyhow::Result<()> {
     let deployment_type = get_deployment_type(&state.config);
 
     // Create discovery cleanup task
+    // Each tick of these loops runs on its own task. A panic inside one used to end the loop for
+    // the life of the process with nothing logged; for the stall sweep that meant no stalled
+    // session was ever reaped again. Now a panic costs one tick and is logged.
     let discovery_cleanup_state = state.clone();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(300));
@@ -116,21 +119,19 @@ async fn main() -> anyhow::Result<()> {
             // Check for timeouts (fail sessions running > 10 minutes)
             // discovery_cleanup_state.discovery_manager.check_timeouts(10).await;
 
-            // Clean up old sessions (remove completed sessions > 24 hours old)
-            discovery_cleanup_state
-                .services
-                .discovery_service
-                .cleanup_old_sessions(24)
-                .await;
+            let discovery_service = discovery_cleanup_state.services.discovery_service.clone();
+            let tick = tokio::spawn(async move {
+                // Clean up old sessions (remove completed sessions > 24 hours old)
+                discovery_service.cleanup_old_sessions(24).await;
 
-            // Sweep transient rescan rows whose session never reached a terminal
-            // phase (server restart mid-scan). 24h is comfortably past the 6h
-            // max_discovery_duration a queued rescan could wait on.
-            discovery_cleanup_state
-                .services
-                .discovery_service
-                .sweep_orphaned_rescans(24)
-                .await;
+                // Sweep transient rescan rows whose session never reached a terminal
+                // phase (server restart mid-scan). 24h is comfortably past the 6h
+                // max_discovery_duration a queued rescan could wait on.
+                discovery_service.sweep_orphaned_rescans(24).await;
+            });
+            if let Err(e) = tick.await {
+                tracing::error!(error = %e, "Discovery cleanup tick panicked; continuing");
+            }
         }
     });
 
@@ -140,7 +141,12 @@ async fn main() -> anyhow::Result<()> {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60)); // Every minute
         loop {
             interval.tick().await;
-            stalled_discovery_cleanup.cleanup_stalled_sessions().await;
+            let discovery_service = stalled_discovery_cleanup.clone();
+            let tick =
+                tokio::spawn(async move { discovery_service.cleanup_stalled_sessions().await });
+            if let Err(e) = tick.await {
+                tracing::error!(error = %e, "Stalled-session sweep panicked; continuing");
+            }
         }
     });
 

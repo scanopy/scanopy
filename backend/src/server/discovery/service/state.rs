@@ -302,6 +302,72 @@ pub(crate) fn reap(
     reaped
 }
 
+/// A queued session promoted by the old-session sweep, with the daemon and network it belongs to.
+pub(crate) struct SweptPromotion {
+    pub daemon_id: Uuid,
+    pub network_id: Uuid,
+    pub promoted: PromotedSession,
+}
+
+/// Remove sessions that finished before `cutoff`, and discovery mappings nothing is using.
+///
+/// A removed session also leaves its daemon's queue, and a `Queued` session left at the head is
+/// promoted, as when any session finishes; before, this sweep removed the head and promoted
+/// nothing, so the rest of the queue waited on a session that was gone.
+///
+/// A discovery mapping is orphaned when its session has left the maps and its tombstone has
+/// expired too. The tombstone check keeps this off mappings `finish_terminal` is still using:
+/// that work runs after the session leaves the maps and removes the mapping last, and it finishes
+/// long before a tombstone expires. What it does catch is a mapping whose removal never ran, which
+/// otherwise refuses every restart of that discovery as already running.
+pub(crate) fn sweep_old(
+    maps: &mut SessionMaps,
+    cutoff: DateTime<Utc>,
+    now: DateTime<Utc>,
+) -> Vec<SweptPromotion> {
+    let old: Vec<Uuid> = maps
+        .sessions
+        .iter()
+        .filter(|(_, s)| s.finished_at.is_some_and(|finished| finished < cutoff))
+        .map(|(id, _)| *id)
+        .collect();
+
+    let mut promotions = Vec::new();
+    for session_id in old {
+        let Some(session) = maps.sessions.remove(&session_id) else {
+            continue;
+        };
+        maps.pull_cancellations.remove(&session.daemon_id);
+        maps.discovery_sessions.retain(|_, sid| *sid != session_id);
+        if let Some(promoted) =
+            remove_from_queue_and_promote_head(maps, session.daemon_id, session_id, now)
+        {
+            promotions.push(SweptPromotion {
+                daemon_id: session.daemon_id,
+                network_id: session.network_id,
+                promoted,
+            });
+        }
+        tracing::debug!(session_id = %session_id, "Cleaned up old discovery session");
+    }
+
+    let sessions = &*maps.sessions;
+    let last_updated = &*maps.last_updated;
+    maps.discovery_sessions.retain(|discovery_id, session_id| {
+        let in_use = sessions.contains_key(session_id) || last_updated.contains_key(session_id);
+        if !in_use {
+            tracing::warn!(
+                discovery_id = %discovery_id,
+                session_id = %session_id,
+                "Removing a discovery mapping left behind by a session that is gone"
+            );
+        }
+        in_use
+    });
+
+    promotions
+}
+
 /// Drop tombstones: stamps for sessions that have left `sessions` and gone quiet for longer than
 /// `threshold`. A tombstone is what lets a redundant terminal re-delivery be recognised and ignored.
 pub(crate) fn evict_tombstones(
@@ -589,6 +655,55 @@ mod tests {
 
         assert!(matches!(late, UpdateOutcome::Ignored));
         assert!(!maps.sessions.contains_key(&stalled.session_id));
+    }
+
+    #[test]
+    fn sweeping_an_old_session_promotes_the_session_queued_behind_it() {
+        let mut maps = Maps::default();
+        let daemon = Uuid::new_v4();
+        let old = maps.start(daemon, DiscoveryPhase::Scanning);
+        let queued = maps.start(daemon, DiscoveryPhase::Queued);
+        maps.sessions.get_mut(&old.session_id).unwrap().finished_at =
+            Some(Utc::now() - Duration::hours(30));
+
+        let promotions = sweep_old(
+            &mut maps.borrow(),
+            Utc::now() - Duration::hours(24),
+            Utc::now(),
+        );
+
+        assert!(!maps.sessions.contains_key(&old.session_id));
+        assert_eq!(
+            maps.sessions[&queued.session_id].phase,
+            DiscoveryPhase::Pending
+        );
+        assert_eq!(
+            promotions.first().map(|p| p.promoted.session_id),
+            Some(queued.session_id)
+        );
+    }
+
+    #[test]
+    fn a_discovery_mapping_is_swept_only_once_its_session_and_tombstone_are_both_gone() {
+        let mut maps = Maps::default();
+        let orphaned_discovery = Uuid::new_v4();
+        let finishing_discovery = Uuid::new_v4();
+        let finishing_session = Uuid::new_v4();
+        maps.discovery_sessions
+            .insert(orphaned_discovery, Uuid::new_v4());
+        // Left the maps a moment ago; its post-lock work still needs the mapping.
+        maps.discovery_sessions
+            .insert(finishing_discovery, finishing_session);
+        maps.last_updated.insert(finishing_session, Utc::now());
+
+        sweep_old(
+            &mut maps.borrow(),
+            Utc::now() - Duration::hours(24),
+            Utc::now(),
+        );
+
+        assert!(!maps.discovery_sessions.contains_key(&orphaned_discovery));
+        assert!(maps.discovery_sessions.contains_key(&finishing_discovery));
     }
 
     #[test]

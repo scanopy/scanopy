@@ -93,17 +93,18 @@ async fn create_snapshot(
 
     // Discovery lock: blocks queueing of new discoveries on this network for
     // the duration of close-and-clone, and rejects this request if a scan is
-    // currently in-flight.
-    let acquired = state
+    // currently in-flight. The reservation releases the network even if this
+    // request is abandoned before the release below.
+    let Some(reservation) = state
         .services
         .discovery_service
-        .try_acquire_network_for_snapshot(req.network_id)
-        .await;
-    if !acquired {
+        .try_reserve_network_for_snapshot(req.network_id)
+        .await
+    else {
         return Err(ApiError::conflict(
             "Network is busy with an in-flight discovery; retry shortly.",
         ));
-    }
+    };
 
     let result = async {
         let snapshot = Snapshot {
@@ -165,11 +166,7 @@ async fn create_snapshot(
     }
     .await;
 
-    state
-        .services
-        .discovery_service
-        .release_network_for_snapshot(req.network_id)
-        .await;
+    reservation.release().await;
 
     let created = result?;
 

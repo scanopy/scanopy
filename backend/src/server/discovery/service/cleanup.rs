@@ -5,33 +5,37 @@ use crate::server::daemons::subscriber::CancelDelivery;
 
 impl DiscoveryService {
     pub async fn cleanup_old_sessions(&self, max_age_hours: i64) {
-        let cutoff = Utc::now() - chrono::Duration::hours(max_age_hours);
-        let mut sessions = self.sessions.write().await;
-        let mut daemon_sessions = self.daemon_sessions.write().await;
-        let mut daemon_pull_cancellations = self.daemon_pull_cancellations.write().await;
-        let mut discovery_sessions = self.discovery_sessions.write().await;
+        let now = Utc::now();
+        let cutoff = now - chrono::Duration::hours(max_age_hours);
 
-        let mut to_remove = Vec::new();
-        for (session_id, session) in sessions.iter() {
-            if let Some(finished_at) = session.finished_at
-                && finished_at < cutoff
-            {
-                to_remove.push(*session_id);
-            }
-        }
+        let promotions = {
+            // The lock order documented on `DiscoveryService`.
+            let mut sessions = self.sessions.write().await;
+            let mut last_updated = self.session_last_updated.write().await;
+            let mut daemon_sessions = self.daemon_sessions.write().await;
+            let mut daemon_pull_cancellations = self.daemon_pull_cancellations.write().await;
+            let mut discovery_sessions = self.discovery_sessions.write().await;
 
-        for session_id in to_remove {
-            if let Some(session) = sessions.remove(&session_id) {
-                daemon_pull_cancellations.remove(&session.daemon_id);
+            state::sweep_old(
+                &mut SessionMaps {
+                    sessions: &mut sessions,
+                    last_updated: &mut last_updated,
+                    daemon_sessions: &mut daemon_sessions,
+                    discovery_sessions: &mut discovery_sessions,
+                    pull_cancellations: &mut daemon_pull_cancellations,
+                },
+                cutoff,
+                now,
+            )
+        };
 
-                if let Some(daemon_sessions) = daemon_sessions.get_mut(&session.daemon_id) {
-                    daemon_sessions.retain(|s| *s != session.session_id);
-                }
-
-                discovery_sessions.retain(|_, sid| *sid != session_id);
-
-                tracing::debug!("Cleaned up old discovery session {}", session_id);
-            }
+        for promotion in promotions {
+            self.publish_promoted(
+                promotion.daemon_id,
+                promotion.network_id,
+                promotion.promoted,
+            )
+            .await;
         }
     }
 
