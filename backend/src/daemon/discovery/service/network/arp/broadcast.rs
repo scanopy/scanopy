@@ -11,6 +11,7 @@ use pnet::packet::Packet;
 use pnet::packet::arp::{ArpHardwareTypes, ArpOperations, ArpPacket, MutableArpPacket};
 use pnet::packet::ethernet::{EtherTypes, EthernetPacket, MutableEthernetPacket};
 use pnet::util::MacAddr;
+use tokio_util::sync::CancellationToken;
 
 use super::types::ArpScanResult;
 
@@ -112,6 +113,7 @@ pub fn scan_subnet(
     retries: u32,
     rate_pps: u32,
     packets_sent: Arc<AtomicU64>,
+    cancel: CancellationToken,
 ) -> Result<std::sync::mpsc::Receiver<ArpScanResult>> {
     use std::sync::mpsc;
 
@@ -131,6 +133,7 @@ pub fn scan_subnet(
             rate_pps,
             packets_sent,
             tx,
+            cancel,
         ) {
             tracing::warn!(error = %e, "ARP scan background thread failed");
         }
@@ -149,6 +152,7 @@ fn scan_subnet_background(
     rate_pps: u32,
     packets_sent: Arc<AtomicU64>,
     result_tx: std::sync::mpsc::Sender<ArpScanResult>,
+    cancel: CancellationToken,
 ) -> Result<()> {
     use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
     use std::sync::{Arc, Mutex};
@@ -353,8 +357,15 @@ fn scan_subnet_background(
     thread::spawn(move || {
         let start = Instant::now();
 
-        // Process each round
+        // Process each round. A cancelled discovery stops sending, and only sending: the loop
+        // still falls through to `sending_done` and the receiver join below, which are what close
+        // the result channel. Skipping them would leave the receiver holding it until its
+        // lifetime cap, and the pipeline waiting on it.
         for round in 1..=total_rounds {
+            if cancel.is_cancelled() {
+                tracing::debug!(round, "ARP scan cancelled; no further requests sent");
+                break;
+            }
             current_round.store(round, Ordering::Relaxed);
 
             // Determine which IPs to scan this round (exclude already found)
@@ -390,6 +401,9 @@ fn scan_subnet_background(
             let mut sent_err = 0u64;
 
             for target_ip in &round_targets {
+                if cancel.is_cancelled() {
+                    break;
+                }
                 let packet = build_arp_request(source_mac_pnet, source_ip, *target_ip);
                 match tx.send_to(&packet, None) {
                     Some(Ok(())) => sent_ok += 1,
@@ -408,6 +422,9 @@ fn scan_subnet_background(
             }
 
             tracing::debug!(round, sent_ok, sent_err, "ARP round send complete");
+            if cancel.is_cancelled() {
+                continue;
+            }
 
             // Wait for responses before next round (targeted retry needs to know who responded)
             thread::sleep(ROUND_WAIT);

@@ -68,6 +68,11 @@ impl DiscoveryIntegration for PodmanIntegration {
         CONTAINER_SCAN_TIMEOUT
     }
 
+    /// The container probe retries its connection internally, well past the default budget.
+    fn probe_timeout(&self) -> Duration {
+        CONTAINER_SCAN_TIMEOUT
+    }
+
     fn probe_gate_ports(&self, credential: &CredentialQueryPayload) -> Vec<PortType> {
         match credential {
             CredentialQueryPayload::PodmanProxy(podman) => vec![PortType::new_tcp(podman.port)],
@@ -107,6 +112,11 @@ impl DiscoveryIntegration for PodmanSocketIntegration {
     }
 
     fn timeout(&self) -> Duration {
+        CONTAINER_SCAN_TIMEOUT
+    }
+
+    /// The container probe retries its connection internally, well past the default budget.
+    fn probe_timeout(&self) -> Duration {
         CONTAINER_SCAN_TIMEOUT
     }
 

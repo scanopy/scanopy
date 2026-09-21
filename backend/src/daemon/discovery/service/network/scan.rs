@@ -315,6 +315,7 @@ impl NetworkScan {
                 scan_rate_pps,
                 arp_total_rounds,
                 &discovery_packets_sent,
+                cancel.clone(),
             )
         } else {
             // Resolves immediately with nothing, so every consumer below takes the same path
@@ -437,6 +438,7 @@ impl NetworkScan {
                     arp_retries,
                     arp_rate_pps,
                     discovery_packets_sent.clone(),
+                    cancel.clone(),
                 ) {
                     Ok(arp_rx) => {
                         // Spawn a task to forward ARP results to the async channel
@@ -2136,6 +2138,7 @@ fn spawn_icmp_sweep(
     rate_pps: u32,
     rounds: u64,
     packets_sent: &Arc<AtomicU64>,
+    cancel: CancellationToken,
 ) -> IcmpSweep {
     let (tx, rx) = tokio::sync::watch::channel(None);
     let packets_sent = packets_sent.clone();
@@ -2143,7 +2146,7 @@ fn spawn_icmp_sweep(
 
     tokio::task::spawn_blocking(move || {
         let mut responders: HashSet<IpAddr> = HashSet::new();
-        match icmp::sweep(targets, retries, rate_pps, packets_sent) {
+        match icmp::sweep(targets, retries, rate_pps, packets_sent, cancel) {
             Ok(results) => {
                 // The sender closes the channel when both sweep threads finish, so this drains
                 // for exactly as long as the sweep runs.

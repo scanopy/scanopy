@@ -157,7 +157,15 @@ impl DiscoveryRunner {
                     Uuid::nil(),
                 )
                 .await
-                .unwrap_or_default()
+                .unwrap_or_else(|e| {
+                    // Scanning goes on without Docker's networks, so the bridge subnets and the
+                    // hosts on them are missing. Said here because nothing downstream will.
+                    tracing::warn!(
+                        error = %e,
+                        "Failed to list Docker networks; scanning without their subnets"
+                    );
+                    Vec::new()
+                })
         } else {
             Vec::new()
         };

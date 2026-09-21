@@ -183,6 +183,16 @@ pub trait DiscoveryIntegration: Send + Sync {
         Duration::from_secs(60)
     }
 
+    /// Maximum time `probe()` may take before the attempt is treated as timed out.
+    ///
+    /// Separate from [`Self::timeout`], which sizes a full collection: SNMP's is fifteen minutes,
+    /// far too long to wait on a probe that has stopped answering. The default covers the slowest
+    /// probe that does real work (gNMI's connect plus a capabilities RPC); integrations whose probe
+    /// retries internally for longer override it.
+    fn probe_timeout(&self) -> Duration {
+        Duration::from_secs(120)
+    }
+
     /// TCP ports that must be detected open before `probe()` is attempted.
     /// Returns empty to always attempt (e.g., SNMP does its own UDP probing).
     fn probe_gate_ports(&self, _credential: &CredentialQueryPayload) -> Vec<PortType> {
