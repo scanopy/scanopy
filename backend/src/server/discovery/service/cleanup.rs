@@ -88,6 +88,9 @@ impl DiscoveryService {
         };
 
         if stalled_sessions.is_empty() {
+            let sessions = self.sessions.read().await;
+            let mut last_updated = self.session_last_updated.write().await;
+            state::evict_tombstones(&sessions, &mut last_updated, now, stall_threshold);
             return;
         }
 
@@ -152,40 +155,63 @@ impl DiscoveryService {
             );
         }
 
-        // Third pass: cleanup session state (write locks)
-        let mut sessions = self.sessions.write().await;
-        let mut last_updated = self.session_last_updated.write().await;
-        let mut daemon_sessions = self.daemon_sessions.write().await;
-        let mut daemon_pull_cancellations = self.daemon_pull_cancellations.write().await;
-        let mut discovery_sessions = self.discovery_sessions.write().await;
+        // Third pass: cleanup session state (write locks, no await while they are held)
+        let reaped = {
+            let mut sessions = self.sessions.write().await;
+            let mut last_updated = self.session_last_updated.write().await;
+            let mut daemon_sessions = self.daemon_sessions.write().await;
+            let mut daemon_pull_cancellations = self.daemon_pull_cancellations.write().await;
+            let mut discovery_sessions = self.discovery_sessions.write().await;
 
-        let stalled_ids: Vec<Uuid> = stalled_sessions.iter().map(|s| s.session_id).collect();
-        let reaped = state::reap(
-            &mut SessionMaps {
-                sessions: &mut sessions,
-                last_updated: &mut last_updated,
-                daemon_sessions: &mut daemon_sessions,
-                discovery_sessions: &mut discovery_sessions,
-                pull_cancellations: &mut daemon_pull_cancellations,
-            },
-            &stalled_ids,
-            now,
-        );
-        let stalled_count = reaped.len();
+            let stalled_ids: Vec<Uuid> = stalled_sessions.iter().map(|s| s.session_id).collect();
+            let reaped = state::reap(
+                &mut SessionMaps {
+                    sessions: &mut sessions,
+                    last_updated: &mut last_updated,
+                    daemon_sessions: &mut daemon_sessions,
+                    discovery_sessions: &mut discovery_sessions,
+                    pull_cancellations: &mut daemon_pull_cancellations,
+                },
+                &stalled_ids,
+                now,
+            );
+            for reaped_session in &reaped {
+                let _ = self.update_tx.send(reaped_session.session.clone());
+            }
+            state::evict_tombstones(&sessions, &mut last_updated, now, stall_threshold);
+            reaped
+        };
 
-        for session in reaped {
-            let _ = self.update_tx.send(session.clone());
-            self.record_stalled_session(session, now).await;
+        if reaped.is_empty() {
+            return;
+        }
+        let reaped_count = reaped.len();
+
+        // Storage writes run on their own task, for the same reason as `update_session`'s: the
+        // sessions have already left the maps, so an interrupted write would lose their record.
+        match self.self_ref.upgrade() {
+            Some(this) => {
+                if let Err(e) =
+                    tokio::spawn(async move { this.finish_reaped(reaped, now).await }).await
+                {
+                    tracing::error!(error = %e, "Recording reaped discovery sessions panicked");
+                }
+            }
+            None => self.finish_reaped(reaped, now).await,
         }
 
-        // Evict tombstones: last_updated entries for sessions that no longer exist
-        // in the sessions map and are older than the stall threshold. These are left
-        // behind after terminal processing to guard against redundant polls from old
-        // daemons (see update_session). Safe to clean up once enough time has passed.
-        state::evict_tombstones(&sessions, &mut last_updated, now, stall_threshold);
+        tracing::info!(count = reaped_count, "Reaped stalled discovery sessions");
+    }
 
-        if stalled_count > 0 {
-            tracing::info!("Cleaned up {} stalled discovery sessions", stalled_count);
+    /// The storage and event work for reaped sessions. Runs with no session lock held.
+    async fn finish_reaped(&self, reaped: Vec<state::ReapedSession>, now: chrono::DateTime<Utc>) {
+        for state::ReapedSession { session, promoted } in reaped {
+            let daemon_id = session.daemon_id;
+            let network_id = session.network_id;
+            self.record_stalled_session(session, now).await;
+            if let Some(promoted) = promoted {
+                self.publish_promoted(daemon_id, network_id, promoted).await;
+            }
         }
     }
 
@@ -193,25 +219,26 @@ impl DiscoveryService {
     /// daemon's id would violate the discovery table's foreign key).
     async fn record_stalled_session(
         &self,
-        session: DiscoveryUpdatePayload,
+        mut session: DiscoveryUpdatePayload,
         now: chrono::DateTime<Utc>,
     ) {
         let session_id = session.session_id;
         let daemon_id = session.daemon_id;
 
-        let daemon_exists = match self.daemon_service.get() {
-            Some(ds) => ds.get_by_id(&daemon_id).await.ok().flatten().is_some(),
-            None => false,
+        let daemon = match self.daemon_service.get() {
+            Some(ds) => ds.get_by_id(&daemon_id).await.ok().flatten(),
+            None => None,
         };
 
-        if !daemon_exists {
+        let Some(daemon) = daemon else {
             tracing::debug!(
                 session_id = %session_id,
                 daemon_id = %daemon_id,
                 "Skipping historical record for stalled session — daemon no longer exists"
             );
             return;
-        }
+        };
+        session.daemon_version = daemon.base.version.map(|v| v.to_string());
 
         let network_name = match self.network_service.get_by_id(&session.network_id).await {
             Ok(Some(network)) => network.base.name,

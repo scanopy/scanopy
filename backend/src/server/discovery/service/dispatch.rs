@@ -1,5 +1,5 @@
 //! Session lookups, daemon-request building, and session start/update/cancel.
-use super::state::{self, SessionMaps, TerminalEffects, UpdateOutcome};
+use super::state::{self, PromotedSession, SessionMaps, TerminalEffects, UpdateOutcome};
 use super::*;
 
 impl DiscoveryService {
@@ -370,79 +370,114 @@ impl DiscoveryService {
 
         tracing::debug!("Updated session {:?}", update);
 
-        // Same order as `cleanup_stalled_sessions` and `clear_sessions_for_daemon`.
-        let mut sessions = self.sessions.write().await;
-        let mut last_updated = self.session_last_updated.write().await;
-        let mut daemon_sessions = self.daemon_sessions.write().await;
-        let mut pull_cancellations = self.daemon_pull_cancellations.write().await;
-        let mut discovery_sessions = self.discovery_sessions.write().await;
+        let outcome = {
+            // Same order as `cleanup_stalled_sessions` and `clear_sessions_for_daemon`.
+            let mut sessions = self.sessions.write().await;
+            let mut last_updated = self.session_last_updated.write().await;
+            let mut daemon_sessions = self.daemon_sessions.write().await;
+            let mut pull_cancellations = self.daemon_pull_cancellations.write().await;
+            let mut discovery_sessions = self.discovery_sessions.write().await;
 
-        let outcome = state::apply_update(
-            &mut SessionMaps {
-                sessions: &mut sessions,
-                last_updated: &mut last_updated,
-                daemon_sessions: &mut daemon_sessions,
-                discovery_sessions: &mut discovery_sessions,
-                pull_cancellations: &mut pull_cancellations,
-            },
-            &update,
-            Utc::now(),
-        );
-        if matches!(outcome, UpdateOutcome::Ignored) {
-            return Ok(());
-        }
+            let outcome = state::apply_update(
+                &mut SessionMaps {
+                    sessions: &mut sessions,
+                    last_updated: &mut last_updated,
+                    daemon_sessions: &mut daemon_sessions,
+                    discovery_sessions: &mut discovery_sessions,
+                    pull_cancellations: &mut pull_cancellations,
+                },
+                &update,
+                Utc::now(),
+            );
 
-        let daemon_id = update.daemon_id;
-        let network_id = update.network_id;
-
-        tracing::debug!(
-            session_id = %update.session_id,
-            phase = %update.phase,
-            progress = %update.progress,
-            "Updated session",
-        );
-
-        // Publish onboarding milestone BEFORE SSE update so it's
-        // in the DB when the SSE-triggered org refetch arrives
-        if update.phase == DiscoveryPhase::Complete
-            && matches!(
-                update.discovery_type,
-                DiscoveryType::Network { .. } | DiscoveryType::Unified { .. }
-            )
-            && let Ok(Some(network)) = self.network_service.get_by_id(&network_id).await
-            && let Ok(Some(org)) = self
-                .organization_service
-                .get_by_id(&network.base.organization_id)
-                .await
-            && org.not_onboarded(&OnboardingOperationDiscriminants::FirstDiscoveryCompleted)
-        {
-            let _ = self
-                .event_bus
-                .publish(Event::new(
-                    OrgScope {
-                        organization_id: org.id,
-                    },
-                    OnboardingOperation::FirstDiscoveryCompleted {
-                        discovery_type: update.discovery_type.clone(),
-                    },
-                    AuthenticatedEntity::System,
-                ))
-                .await;
-        }
-
-        let _ = self.update_tx.send(update.clone());
-
-        let UpdateOutcome::Terminal(effects) = outcome else {
-            return Ok(());
+            // A running session's update reaches the stream while the maps are still locked, so
+            // two updates for one session arrive in the order they were applied. A finished
+            // session's goes out from `finish_terminal`, after the onboarding milestone it follows.
+            if matches!(outcome, UpdateOutcome::Progress) {
+                let _ = self.update_tx.send(update.clone());
+            }
+            outcome
         };
+
+        let effects = match outcome {
+            UpdateOutcome::Ignored => return Ok(()),
+            UpdateOutcome::Progress => {
+                tracing::debug!(
+                    session_id = %update.session_id,
+                    phase = %update.phase,
+                    progress = %update.progress,
+                    "Updated session",
+                );
+                return Ok(());
+            }
+            UpdateOutcome::Terminal(effects) => *effects,
+        };
+
+        // Nothing below holds a session lock. The terminal work writes storage and publishes
+        // events whose subscribers can reach the network (digest emails), and it runs on its own
+        // task so a daemon request that times out and drops this future cannot cut it short: the
+        // session has already left the maps and its tombstone ignores the re-delivery, so an
+        // interrupted tail would lose the run's record. The request still waits for the task, so
+        // callers see the same ordering as before.
+        match self.self_ref.upgrade() {
+            Some(this) => {
+                if let Err(e) =
+                    tokio::spawn(async move { this.finish_terminal(effects).await }).await
+                {
+                    tracing::error!(error = %e, "Finishing a terminal discovery session panicked");
+                }
+            }
+            None => self.finish_terminal(effects).await,
+        }
+
+        Ok(())
+    }
+
+    /// Everything a finished session triggers outside the session maps, in the order its
+    /// subscribers depend on. Runs with no session lock held.
+    async fn finish_terminal(&self, effects: TerminalEffects) {
         let TerminalEffects {
-            session,
+            mut session,
             parent_discovery_id,
             promoted,
-        } = *effects;
+        } = effects;
+        let session_id = session.session_id;
+        let daemon_id = session.daemon_id;
+        let network_id = session.network_id;
 
         {
             let is_rescan = session.discovery_type.rescan_target_host_id().is_some();
+
+            // Publish onboarding milestone BEFORE SSE update so it's
+            // in the DB when the SSE-triggered org refetch arrives
+            if session.phase == DiscoveryPhase::Complete
+                && matches!(
+                    session.discovery_type,
+                    DiscoveryType::Network { .. } | DiscoveryType::Unified { .. }
+                )
+                && let Ok(Some(network)) = self.network_service.get_by_id(&network_id).await
+                && let Ok(Some(org)) = self
+                    .organization_service
+                    .get_by_id(&network.base.organization_id)
+                    .await
+                && org.not_onboarded(&OnboardingOperationDiscriminants::FirstDiscoveryCompleted)
+            {
+                let _ = self
+                    .event_bus
+                    .publish(Event::new(
+                        OrgScope {
+                            organization_id: org.id,
+                        },
+                        OnboardingOperation::FirstDiscoveryCompleted {
+                            discovery_type: session.discovery_type.clone(),
+                        },
+                        AuthenticatedEntity::System,
+                    ))
+                    .await;
+            }
+
+            session.daemon_version = self.daemon_version(daemon_id).await;
+            let _ = self.update_tx.send(session.clone());
 
             // Here rather than anywhere earlier because this is the one place a terminal payload
             // is processed exactly once — a redundant terminal update from an old daemon has
@@ -535,13 +570,19 @@ impl DiscoveryService {
                 historical_discovery.clone().into(),
                 self.get_network_id(&historical_discovery),
                 self.get_organization_id(&historical_discovery),
-            ) {
-                self.event_bus()
-                    .publish(
-                        Event::new(scope, EntityOperation::Created, AuthenticatedEntity::System)
-                            .with_flags(EntityEventFlags::default()),
-                    )
-                    .await?;
+            ) && let Err(e) = self
+                .event_bus()
+                .publish(
+                    Event::new(scope, EntityOperation::Created, AuthenticatedEntity::System)
+                        .with_flags(EntityEventFlags::default()),
+                )
+                .await
+            {
+                tracing::error!(
+                    session_id = %session_id,
+                    error = %e,
+                    "Failed to publish the historical discovery record's creation"
+                );
             }
 
             // The terminal phase event, for subscribers that want to know a session ended.
@@ -553,9 +594,17 @@ impl DiscoveryService {
             // function is called, so its findings are in the row as written and there is no race
             // left to order around. The row still goes first, because the `Created` event above is
             // what carries the session's scanned set to the discovery-FK and digest subscribers.
-            self.event_bus()
+            if let Err(e) = self
+                .event_bus()
                 .publish(session.into_discovery_event())
-                .await?;
+                .await
+            {
+                tracing::error!(
+                    session_id = %session_id,
+                    error = %e,
+                    "Failed to publish the terminal discovery event"
+                );
+            }
 
             // A rescan's parent exists only to carry the targets to the daemon.
             // Delete it now that the historical row (which the user actually sees)
@@ -573,33 +622,56 @@ impl DiscoveryService {
                 );
             }
 
-            discovery_sessions.retain(|_, sid| *sid != update.session_id);
-
-            drop(discovery_sessions);
-            drop(pull_cancellations);
-            drop(daemon_sessions);
-            drop(last_updated);
-            drop(sessions);
-
             // Publish event which will trigger notifying any daemons in ServerPoll to start session
             // If daemon is daemon_poll mode, it will request next session on its next poll
             if let Some(promoted) = promoted {
-                let mut started_payload = DiscoveryUpdatePayload::new(
-                    promoted.session_id,
-                    daemon_id,
-                    network_id,
-                    promoted.discovery_type,
-                    promoted.discovery_id,
-                );
-                started_payload.phase = DiscoveryPhase::Pending;
-
-                self.event_bus()
-                    .publish(started_payload.into_discovery_event())
-                    .await?;
+                self.publish_promoted(daemon_id, network_id, promoted).await;
             }
         }
 
-        Ok(())
+        // Last, and whatever happened above. While the mapping exists, starting this discovery
+        // again is refused as already running, which is what stops a second run beginning while
+        // this one's record is still being written.
+        self.discovery_sessions
+            .write()
+            .await
+            .retain(|_, sid| *sid != session_id);
+    }
+
+    /// Announce a queued session that has moved to the front of its daemon's queue.
+    pub(super) async fn publish_promoted(
+        &self,
+        daemon_id: Uuid,
+        network_id: Uuid,
+        promoted: PromotedSession,
+    ) {
+        let mut started_payload = DiscoveryUpdatePayload::new(
+            promoted.session_id,
+            daemon_id,
+            network_id,
+            promoted.discovery_type,
+            promoted.discovery_id,
+        );
+        started_payload.phase = DiscoveryPhase::Pending;
+
+        if let Err(e) = self
+            .event_bus()
+            .publish(started_payload.into_discovery_event())
+            .await
+        {
+            tracing::error!(
+                session_id = %promoted.session_id,
+                error = %e,
+                "Failed to publish the promoted session"
+            );
+        }
+    }
+
+    /// The daemon's version as the server last recorded it, for stamping a finished session.
+    pub(super) async fn daemon_version(&self, daemon_id: Uuid) -> Option<String> {
+        let daemon_service = self.daemon_service.get()?;
+        let daemon = daemon_service.get_by_id(&daemon_id).await.ok().flatten()?;
+        daemon.base.version.map(|v| v.to_string())
     }
 
     pub async fn cancel_session(
