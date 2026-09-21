@@ -210,6 +210,7 @@ impl CrudService<Daemon> for DaemonService {
 }
 
 mod http;
+pub(crate) use http::DaemonHttpError;
 mod lifecycle;
 mod monitoring;
 mod polling;

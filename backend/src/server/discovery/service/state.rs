@@ -259,17 +259,8 @@ pub(crate) fn reap(
 
         let promoted = remove_from_queue_and_promote_head(maps, daemon_id, *session_id, now);
         maps.discovery_sessions.retain(|_, sid| sid != session_id);
-
-        if let Some((_, cancel_session_id)) = maps.pull_cancellations.get(&daemon_id)
-            && cancel_session_id == session_id
-        {
-            maps.pull_cancellations.remove(&daemon_id);
-            tracing::debug!(
-                daemon_id = %daemon_id,
-                session_id = %session_id,
-                "Removed stale cancellation flag"
-            );
-        }
+        // The daemon's pull cancellation, if the sweep just set one, stays: it is how a DaemonPoll
+        // daemon still running this session learns to stop. It is consumed when the daemon polls.
 
         reaped.push(ReapedSession { session, promoted });
     }
@@ -564,6 +555,24 @@ mod tests {
 
         assert!(matches!(late, UpdateOutcome::Ignored));
         assert!(!maps.sessions.contains_key(&stalled.session_id));
+    }
+
+    #[test]
+    fn reaping_leaves_the_cancellation_a_polling_daemon_has_yet_to_collect() {
+        // The sweep flags a DaemonPoll daemon's session for cancellation, then reaps it. The flag
+        // is the only way that daemon learns to stop.
+        let mut maps = Maps::default();
+        let daemon = Uuid::new_v4();
+        let stalled = maps.start(daemon, DiscoveryPhase::Scanning);
+        maps.pull_cancellations
+            .insert(daemon, (true, stalled.session_id));
+
+        reap(&mut maps.borrow(), &[stalled.session_id], Utc::now());
+
+        assert_eq!(
+            maps.pull_cancellations.get(&daemon),
+            Some(&(true, stalled.session_id))
+        );
     }
 
     #[test]

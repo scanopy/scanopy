@@ -1,6 +1,7 @@
 //! Old/stalled session cleanup and scheduled-job removal.
 use super::state::{self, SessionMaps};
 use super::*;
+use crate::server::daemons::subscriber::CancelDelivery;
 
 impl DiscoveryService {
     pub async fn cleanup_old_sessions(&self, max_age_hours: i64) {
@@ -94,65 +95,18 @@ impl DiscoveryService {
             return;
         }
 
-        // Second pass: request cancellation for stalled sessions (no locks held)
-        // We do BOTH actions to support both daemon modes:
-        // 1. Publish DiscoveryCancelled event - DaemonService subscriber handles ServerPoll mode
-        // 2. Set cancellation flag - DaemonPoll mode checks on next poll via request_work
-        for session in &stalled_sessions {
-            let daemon_id = session.daemon_id;
-            let session_id = session.session_id;
-
-            tracing::warn!(
-                session_id = %session_id,
-                daemon_id = %daemon_id,
-                "Requesting cancellation for stalled session"
-            );
-
-            let discovery_id = self.lookup_discovery_id(&session_id).await;
-            let cancelled_update = DiscoveryUpdatePayload {
-                session_id,
-                network_id: session.network_id,
-                daemon_id,
-                phase: DiscoveryPhase::Cancelled,
-                progress: session.progress,
-                error: None,
-                warnings: Vec::new(),
-                started_at: session.started_at,
-                finished_at: Some(Utc::now()),
-                discovery_type: session.discovery_type.clone(),
-                hosts_discovered: None,
-                estimated_remaining_secs: None,
-                discovery_id,
-                scanned: None,
-                reason: Some(DiscoveryTerminalReason::StalledNoUpdates),
-                last_update_at: None,
-                daemon_version: None,
-            };
-
-            if let Err(e) = self
-                .event_bus()
-                .publish(cancelled_update.into_discovery_event())
-                .await
-            {
-                tracing::warn!(
-                    daemon_id = %session.daemon_id,
-                    session_id = %session.session_id,
-                    error = %e,
-                    "Failed to publish cancellation event for stalled session"
-                );
+        // Second pass (no locks held): tell each daemon to stop, in case it is still running the
+        // session. A ServerPoll daemon is told directly. A DaemonPoll daemon reads a flag when it
+        // next polls for work. Nothing is published here: the one event a stall produces is the
+        // `Failed` one published once the session is reaped.
+        let pulled_by_daemon = self.deliver_stall_cancellations(&stalled_sessions).await;
+        {
+            let mut pull_cancellations = self.daemon_pull_cancellations.write().await;
+            for session in &stalled_sessions {
+                if pulled_by_daemon.contains(&session.session_id) {
+                    pull_cancellations.insert(session.daemon_id, (true, session.session_id));
+                }
             }
-
-            // Set cancellation flag for DaemonPoll mode (checked on next poll)
-            self.daemon_pull_cancellations
-                .write()
-                .await
-                .insert(daemon_id, (true, session_id));
-
-            tracing::info!(
-                daemon_id = %daemon_id,
-                session_id = %session_id,
-                "Cancellation requested for stalled session"
-            );
         }
 
         // Third pass: cleanup session state (write locks, no await while they are held)
@@ -203,11 +157,62 @@ impl DiscoveryService {
         tracing::info!(count = reaped_count, "Reaped stalled discovery sessions");
     }
 
+    /// Ask each stalled session's daemon to stop, concurrently. Returns the sessions whose daemon
+    /// polls for its cancellations, which the caller flags.
+    ///
+    /// Without a daemon service to ask (never the case outside tests), every session is treated
+    /// as pulled, so the flag is set and nothing is lost.
+    async fn deliver_stall_cancellations(
+        &self,
+        stalled_sessions: &[DiscoveryUpdatePayload],
+    ) -> HashSet<Uuid> {
+        let Some(daemon_service) = self.daemon_service.get() else {
+            return stalled_sessions.iter().map(|s| s.session_id).collect();
+        };
+
+        let deliveries = stalled_sessions.iter().map(|session| async move {
+            let delivery = daemon_service
+                .deliver_cancellation(session.daemon_id, session.session_id)
+                .await;
+            (session, delivery)
+        });
+
+        let mut pulled_by_daemon = HashSet::new();
+        for (session, delivery) in futures::future::join_all(deliveries).await {
+            tracing::info!(
+                session_id = %session.session_id,
+                daemon_id = %session.daemon_id,
+                delivery = delivery.outcome(),
+                detail = delivery.detail(),
+                "Asked the daemon to stop a stalled session"
+            );
+            if matches!(delivery, CancelDelivery::PulledByDaemon) {
+                pulled_by_daemon.insert(session.session_id);
+            }
+        }
+        pulled_by_daemon
+    }
+
     /// The storage and event work for reaped sessions. Runs with no session lock held.
     async fn finish_reaped(&self, reaped: Vec<state::ReapedSession>, now: chrono::DateTime<Utc>) {
         for state::ReapedSession { session, promoted } in reaped {
             let daemon_id = session.daemon_id;
             let network_id = session.network_id;
+
+            // The one event a stall produces: `Failed`, carrying why. Metrics and analytics used
+            // to see a stall as a user's cancel.
+            if let Err(e) = self
+                .event_bus()
+                .publish(session.into_discovery_event())
+                .await
+            {
+                tracing::error!(
+                    session_id = %session.session_id,
+                    error = %e,
+                    "Failed to publish the reaped session's terminal event"
+                );
+            }
+
             self.record_stalled_session(session, now).await;
             if let Some(promoted) = promoted {
                 self.publish_promoted(daemon_id, network_id, promoted).await;
