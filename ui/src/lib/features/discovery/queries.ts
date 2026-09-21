@@ -20,6 +20,13 @@ import { writable } from 'svelte/store';
 import * as m from '$lib/paraglide/messages';
 import { networkItems } from '$lib/features/networks/columns';
 import { daemonItems } from '$lib/features/daemons/columns';
+import {
+	discoveryStreamConnected,
+	forgetSession,
+	observeSessions,
+	recordSessionMessage,
+	sessionLastMessageAt
+} from './utils/staleness';
 
 /**
  * Query hook for fetching all discoveries.
@@ -497,7 +504,12 @@ export function useActiveSessionsQuery(getEnabled: () => boolean = () => true) {
 			if (!data?.success || !data.data) {
 				throw new Error(data?.error || 'Failed to fetch active sessions');
 			}
-			return data.data as DiscoveryUpdatePayload[];
+			const sessions = data.data as DiscoveryUpdatePayload[];
+			observeSessions(
+				sessions.map((s) => s.session_id),
+				Date.now()
+			);
+			return sessions;
 		},
 		// Sessions change frequently, keep fresh
 		staleTime: 5 * 1000,
@@ -597,6 +609,10 @@ export function useCancelDiscoveryMutation() {
 // Track last known progress per session to detect changes
 const lastProgress = new Map<string, number>();
 
+function isTerminalPhase(phase: DiscoveryUpdatePayload['phase']): boolean {
+	return phase === 'Complete' || phase === 'Cancelled' || phase === 'Failed';
+}
+
 // Throttle configuration for query invalidations
 const INVALIDATION_THROTTLE_MS = 1000; // At most 1 invalidation per second
 
@@ -640,6 +656,8 @@ class DiscoverySSEManager extends BaseSSEManager<DiscoveryUpdatePayload> {
 
 		// Clear progress tracking for all sessions
 		lastProgress.clear();
+		sessionLastMessageAt.set(new Map());
+		discoveryStreamConnected.set(false);
 
 		super.disconnect();
 	}
@@ -648,6 +666,12 @@ class DiscoverySSEManager extends BaseSSEManager<DiscoveryUpdatePayload> {
 		return {
 			url: '/api/v1/discovery/stream',
 			onMessage: async (update) => {
+				if (isTerminalPhase(update.phase)) {
+					forgetSession(update.session_id);
+				} else {
+					recordSessionMessage(update.session_id, Date.now());
+				}
+
 				// Check if progress increased
 				const last = lastProgress.get(update.session_id) || 0;
 				const current = update.progress || 0;
@@ -692,11 +716,7 @@ class DiscoverySSEManager extends BaseSSEManager<DiscoveryUpdatePayload> {
 						if (!current) current = [];
 
 						// Cleanup for terminal phases
-						if (
-							update.phase === 'Complete' ||
-							update.phase === 'Cancelled' ||
-							update.phase === 'Failed'
-						) {
+						if (isTerminalPhase(update.phase)) {
 							// Clear cancelling state
 							cancellingSessions.update((c) => {
 								const m = new Map(c);
@@ -734,9 +754,19 @@ class DiscoverySSEManager extends BaseSSEManager<DiscoveryUpdatePayload> {
 			},
 			onError: (error) => {
 				console.error('Discovery SSE error:', error);
+				discoveryStreamConnected.set(false);
 				pushError(m.discovery_lostConnection());
 			},
-			onOpen: () => {}
+			onOpen: () => {
+				// Silence while the stream was down says nothing about the daemon, so every session
+				// starts a fresh clock from the reconnect.
+				sessionLastMessageAt.set(new Map());
+				const sessions = queryClient.getQueryData<DiscoveryUpdatePayload[]>(
+					queryKeys.discovery.sessions()
+				);
+				observeSessions((sessions ?? []).map((s) => s.session_id), Date.now());
+				discoveryStreamConnected.set(true);
+			}
 		};
 	}
 }
