@@ -1,4 +1,7 @@
-use crate::daemon::discovery::manager::DaemonDiscoverySessionManager;
+use crate::daemon::discovery::manager::{
+    CancelTarget, DaemonDiscoverySessionManager, InitiateOutcome,
+};
+use crate::daemon::discovery::types::base::{DiscoveryPhase, DiscoveryTerminalReason};
 use crate::daemon::runtime::state::DaemonStatus;
 use crate::daemon::shared::api_client::DaemonApiClient;
 use crate::daemon::shared::config::ConfigStore;
@@ -6,7 +9,7 @@ use crate::daemon::utils::base::DaemonUtils;
 use crate::daemon::utils::base::{PlatformDaemonUtils, create_system_utils};
 use crate::server::daemons::r#impl::api::{
     DaemonDiscoveryRequest, DaemonRegistrationRequest, DaemonRegistrationResponse,
-    DaemonStartupRequest, LegacyCapabilities, ServerCapabilities,
+    DaemonStartupRequest, DiscoveryUpdatePayload, LegacyCapabilities, ServerCapabilities,
 };
 use crate::server::daemons::r#impl::base::Daemon;
 use crate::server::shared::types::api::{ApiError, ApiErrorResponse};
@@ -130,6 +133,57 @@ impl DaemonRuntimeService {
     /// Maximum consecutive poll failures before falling back to outer retry loop
     const MAX_POLL_RETRIES: usize = 5;
 
+    /// Tell the server a session it dispatched was refused because another is running, so it
+    /// ends the session now instead of waiting for the stall sweep. Sent directly: the usual
+    /// update path reports on the running session, and this one never started.
+    async fn report_refused_session(
+        &self,
+        request: &DaemonDiscoveryRequest,
+        running: Uuid,
+        age: Duration,
+    ) {
+        let (daemon_id, network_id) = match (
+            self.config.get_id().await,
+            self.config.get_network_id().await,
+        ) {
+            (Ok(daemon_id), Ok(Some(network_id))) => (daemon_id, network_id),
+            _ => return,
+        };
+
+        let mut payload = DiscoveryUpdatePayload::new(
+            request.session_id,
+            daemon_id,
+            network_id,
+            request.discovery_type.clone(),
+            None,
+        );
+        payload.phase = DiscoveryPhase::Failed;
+        payload.error = Some(format!(
+            "The daemon was already running session {running} (for {}s) and refused this one",
+            age.as_secs()
+        ));
+        payload.finished_at = Some(chrono::Utc::now());
+        payload.reason = Some(DiscoveryTerminalReason::DaemonBusy);
+
+        let path = format!("/api/v1/discovery/{}/update", request.session_id);
+        if let Err(e) = self
+            .api_client
+            .post_no_data(
+                &path,
+                &payload,
+                "Failed to report refused discovery session",
+            )
+            .await
+        {
+            tracing::warn!(
+                target: LOG_TARGET,
+                session_id = %request.session_id,
+                error = %e,
+                "Could not tell the server a discovery session was refused"
+            );
+        }
+    }
+
     pub async fn request_work(&self) -> Result<()> {
         let interval_secs = self.config.get_heartbeat_interval().await?;
         let interval = Duration::from_secs(interval_secs);
@@ -218,8 +272,14 @@ impl DaemonRuntimeService {
             match result {
                 Ok((request, cancel_current_session)) => {
                     if cancel_current_session {
-                        tracing::info!(target: LOG_TARGET, "Received cancellation request from server");
-                        self.discovery_manager.cancel_current_session().await;
+                        // The server's pull cancellation names no session, so it targets
+                        // whatever is running.
+                        let cancelled = self.discovery_manager.cancel(CancelTarget::Current).await;
+                        tracing::info!(
+                            target: LOG_TARGET,
+                            cancelled,
+                            "Received cancellation request from server"
+                        );
                     }
 
                     if let Some(request) = request {
@@ -229,7 +289,13 @@ impl DaemonRuntimeService {
                             request.session_id,
                             request.discovery_type
                         );
-                        self.discovery_manager.initiate_session(request).await;
+                        if let InitiateOutcome::Busy { running, age } = self
+                            .discovery_manager
+                            .try_initiate_session(request.clone())
+                            .await
+                        {
+                            self.report_refused_session(&request, running, age).await;
+                        }
                     }
                 }
                 Err(e) => {

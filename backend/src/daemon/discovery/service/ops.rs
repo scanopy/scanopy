@@ -20,7 +20,7 @@ use crate::{
             service::warnings,
             types::base::{
                 DiscoveryCriticalError, DiscoveryPhase, DiscoverySessionInfo,
-                DiscoverySessionUpdate,
+                DiscoverySessionUpdate, DiscoveryTerminalReason,
             },
             types::warnings::DiscoveryWarning,
         },
@@ -763,62 +763,37 @@ impl DiscoveryOps {
 
         truncate_warnings(&mut warnings);
 
-        // Build the terminal update based on result
-        let terminal_update = match &discovery_result {
-            Ok(_) => {
-                tracing::info!(
-                    session_id = %session_id,
-                    progress = 100,
-                    warnings = warnings.len(),
-                    "Discovery session completed successfully"
-                );
-                DiscoverySessionUpdate {
-                    phase: DiscoveryPhase::Complete,
-                    progress: 100,
-                    error: None,
-                    warnings,
-                    finished_at: Some(Utc::now()),
-                    reason: None,
-                }
-            }
-            Err(_) if cancel.is_cancelled() => {
-                tracing::warn!(
-                    session_id = %session_id,
-                    progress = %final_progress,
-                    "Discovery session cancelled"
-                );
-                DiscoverySessionUpdate {
-                    phase: DiscoveryPhase::Cancelled,
-                    progress: final_progress,
-                    error: None,
-                    warnings,
-                    finished_at: Some(Utc::now()),
-                    reason: None,
-                }
-            }
-            Err(e) => {
+        let warning_count = warnings.len();
+        let terminal_update = terminal_update(
+            &discovery_result,
+            cancel.is_cancelled(),
+            final_progress,
+            warnings,
+            Utc::now(),
+        );
+        match terminal_update.phase {
+            DiscoveryPhase::Complete => tracing::info!(
+                session_id = %session_id,
+                progress = 100,
+                warnings = warning_count,
+                "Discovery session completed successfully"
+            ),
+            DiscoveryPhase::Cancelled => tracing::warn!(
+                session_id = %session_id,
+                progress = %final_progress,
+                "Discovery session cancelled"
+            ),
+            _ => {
                 tracing::error!(
                     session_id = %session_id,
                     progress = %final_progress,
-                    error = %e,
+                    reason = ?terminal_update.reason,
+                    error = terminal_update.error.as_deref().unwrap_or_default(),
                     "Discovery session failed"
                 );
-
-                let error = DiscoveryCriticalError::from_error_string(e.to_string())
-                    .map(|e| e.to_string())
-                    .unwrap_or(format!("Critical error: {}", e));
-
                 cancel.cancel();
-                DiscoverySessionUpdate {
-                    phase: DiscoveryPhase::Failed,
-                    progress: final_progress,
-                    error: Some(error),
-                    warnings,
-                    finished_at: Some(Utc::now()),
-                    reason: None,
-                }
             }
-        };
+        }
 
         // Snapshot canonical IDs of entities scanned this session BEFORE
         // clear_all wipes the buffer. Rides the terminal payload over the
@@ -1551,6 +1526,102 @@ fn map_progress(raw: u8, start: u8, end: u8) -> u8 {
         return raw;
     }
     start + (raw as f64 * (end - start) as f64 / 100.0) as u8
+}
+
+/// A session the daemon ended itself rather than one that failed.
+#[derive(Debug, thiserror::Error)]
+pub enum DiscoveryAbort {
+    /// The session outlived its maximum duration: some part of it stopped responding and never
+    /// reached the checks that enforce the limit from inside the scan.
+    #[error(
+        "The scan ran for {elapsed_secs}s, past its {cap_secs}s maximum, and was stopped. \
+         Part of the scan stopped responding."
+    )]
+    Watchdog { elapsed_secs: u64, cap_secs: u64 },
+}
+
+/// The terminal update a run reports, from how it ended.
+///
+/// A watchdog abort is a failure with its own reason whatever the session's token says: the
+/// session may well have been cancelled first and never reacted, which is the kind of wedge the
+/// watchdog exists for.
+fn terminal_update(
+    result: &Result<(), Error>,
+    cancelled: bool,
+    progress: u8,
+    warnings: Vec<DiscoveryWarning>,
+    now: chrono::DateTime<Utc>,
+) -> DiscoverySessionUpdate {
+    let (phase, progress, error, reason) = match result {
+        Ok(()) => (DiscoveryPhase::Complete, 100, None, None),
+        Err(e) => match e.downcast_ref::<DiscoveryAbort>() {
+            Some(abort @ DiscoveryAbort::Watchdog { .. }) => (
+                DiscoveryPhase::Failed,
+                progress,
+                Some(abort.to_string()),
+                Some(DiscoveryTerminalReason::WatchdogTimeout),
+            ),
+            None if cancelled => (DiscoveryPhase::Cancelled, progress, None, None),
+            None => {
+                let error = DiscoveryCriticalError::from_error_string(e.to_string())
+                    .map(|e| e.to_string())
+                    .unwrap_or(format!("Critical error: {}", e));
+                (DiscoveryPhase::Failed, progress, Some(error), None)
+            }
+        },
+    };
+
+    DiscoverySessionUpdate {
+        phase,
+        progress,
+        error,
+        warnings,
+        finished_at: Some(now),
+        reason,
+    }
+}
+
+#[cfg(test)]
+mod terminal_update_tests {
+    use super::*;
+
+    fn watchdog_abort() -> Result<(), Error> {
+        Err(DiscoveryAbort::Watchdog {
+            elapsed_secs: 22_800,
+            cap_secs: 22_200,
+        }
+        .into())
+    }
+
+    #[test]
+    fn a_watchdog_stop_is_a_failure_with_its_own_reason_even_after_a_cancel() {
+        // A session cancelled and then wedged is exactly what the watchdog ends. Reporting it
+        // as cancelled would say the cancel worked.
+        for cancelled in [false, true] {
+            let update = terminal_update(&watchdog_abort(), cancelled, 99, Vec::new(), Utc::now());
+
+            assert_eq!(update.phase, DiscoveryPhase::Failed);
+            assert_eq!(
+                update.reason,
+                Some(DiscoveryTerminalReason::WatchdogTimeout)
+            );
+        }
+    }
+
+    #[test]
+    fn a_failure_the_daemon_did_not_classify_carries_no_reason_of_its_own() {
+        // The server assigns the reason for an ordinary failure.
+        let update = terminal_update(
+            &Err(anyhow!("connection reset")),
+            false,
+            40,
+            Vec::new(),
+            Utc::now(),
+        );
+
+        assert_eq!(update.phase, DiscoveryPhase::Failed);
+        assert_eq!(update.reason, None);
+    }
 }
 
 #[cfg(test)]
