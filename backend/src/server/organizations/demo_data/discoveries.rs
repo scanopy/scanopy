@@ -1,4 +1,5 @@
 use super::*;
+use crate::daemon::discovery::types::base::DiscoveryTerminalReason;
 use crate::daemon::discovery::types::warnings::{ClaimSource, DiscoveryWarning, SnmpWalkGroup};
 use crate::server::credentials::r#impl::mapping::CredentialQueryPayloadDiscriminants;
 
@@ -124,6 +125,9 @@ pub(super) fn generate_discoveries(
                         estimated_remaining_secs: None,
                         discovery_id: None,
                         scanned: None,
+                        reason: Some(DiscoveryTerminalReason::Completed),
+                        last_update_at: Some(three_weeks_ago + Duration::minutes(12)),
+                        daemon_version: daemon.base.version.as_ref().map(|v| v.to_string()),
                     }),
                 },
                 name: "Discovery".to_string(),
@@ -189,6 +193,9 @@ pub(super) fn generate_discoveries(
                         estimated_remaining_secs: None,
                         discovery_id: None,
                         scanned: None,
+                        reason: Some(DiscoveryTerminalReason::Completed),
+                        last_update_at: Some(one_week_ago + Duration::minutes(8)),
+                        daemon_version: daemon.base.version.as_ref().map(|v| v.to_string()),
                     }),
                 },
                 name: "Discovery".to_string(),

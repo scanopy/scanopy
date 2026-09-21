@@ -692,6 +692,7 @@ impl DiscoveryOps {
             error: None,
             warnings: Vec::new(),
             finished_at: None,
+            reason: None,
         })
         .await?;
 
@@ -777,6 +778,7 @@ impl DiscoveryOps {
                     error: None,
                     warnings,
                     finished_at: Some(Utc::now()),
+                    reason: None,
                 }
             }
             Err(_) if cancel.is_cancelled() => {
@@ -791,6 +793,7 @@ impl DiscoveryOps {
                     error: None,
                     warnings,
                     finished_at: Some(Utc::now()),
+                    reason: None,
                 }
             }
             Err(e) => {
@@ -812,6 +815,7 @@ impl DiscoveryOps {
                     error: Some(error),
                     warnings,
                     finished_at: Some(Utc::now()),
+                    reason: None,
                 }
             }
         };

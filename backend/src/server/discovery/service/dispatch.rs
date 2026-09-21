@@ -702,6 +702,9 @@ impl DiscoveryService {
             // Preserve it: a cancelled rescan still needs its transient subnet
             // reaped and its digest suppressed.
             scanned: None,
+            reason: Some(DiscoveryTerminalReason::UserCancelled),
+            last_update_at: None,
+            daemon_version: None,
         };
 
         // Handle based on current phase

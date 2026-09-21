@@ -16321,6 +16321,13 @@
                 "format": "uuid",
                 "description": "The daemon this entity refers to."
               },
+              "daemon_version": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The daemon's version when the run ended. Stamped by the server at terminal, so it\nsurvives the daemon being deleted or upgraded."
+              },
               "discovery_id": {
                 "type": [
                   "string",
@@ -16366,6 +16373,14 @@
                 "description": "Hosts found so far.",
                 "minimum": 0
               },
+              "last_update_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time",
+                "description": "When the server last heard about this run. Stamped by the server at terminal."
+              },
               "network_id": {
                 "type": "string",
                 "format": "uuid",
@@ -16380,6 +16395,17 @@
                 "format": "int32",
                 "description": "Completion of the current phase, from 0 to 1.",
                 "minimum": 0
+              },
+              "reason": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DiscoveryTerminalReason",
+                    "description": "Why the run ended. Set on terminal payloads; absent on runs recorded before it existed.\nA daemon may send one of the reasons only it can know; the server assigns every other."
+                  }
+                ]
               },
               "scanned": {
                 "oneOf": [
@@ -19699,6 +19725,13 @@
                   "format": "uuid",
                   "description": "The daemon this entity refers to."
                 },
+                "daemon_version": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "The daemon's version when the run ended. Stamped by the server at terminal, so it\nsurvives the daemon being deleted or upgraded."
+                },
                 "discovery_id": {
                   "type": [
                     "string",
@@ -19744,6 +19777,14 @@
                   "description": "Hosts found so far.",
                   "minimum": 0
                 },
+                "last_update_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "description": "When the server last heard about this run. Stamped by the server at terminal."
+                },
                 "network_id": {
                   "type": "string",
                   "format": "uuid",
@@ -19758,6 +19799,17 @@
                   "format": "int32",
                   "description": "Completion of the current phase, from 0 to 1.",
                   "minimum": 0
+                },
+                "reason": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DiscoveryTerminalReason",
+                      "description": "Why the run ended. Set on terminal payloads; absent on runs recorded before it existed.\nA daemon may send one of the reasons only it can know; the server assigns every other."
+                    }
+                  ]
                 },
                 "scanned": {
                   "oneOf": [
@@ -23168,6 +23220,20 @@
           "CDP"
         ]
       },
+      "DiscoveryTerminalReason": {
+        "type": "string",
+        "description": "Why a session reached its terminal phase.\n\n`phase` says *that* a run ended; this says *why*. A stall reaped by the server, a daemon that\nlost its state in a restart and a user pressing cancel all used to land as the same phase with\nno way to tell them apart afterwards, which is what made stall reports undiagnosable.\n\nThe server decides every reason except the two the daemon alone can know, see\n[`Self::daemon_assigned`]. Absent on runs recorded before this field existed.",
+        "enum": [
+          "Completed",
+          "UserCancelled",
+          "DaemonReportedFailure",
+          "StalledNoUpdates",
+          "DaemonRestarted",
+          "DaemonUnreachable",
+          "DaemonBusy",
+          "WatchdogTimeout"
+        ]
+      },
       "DiscoveryType": {
         "oneOf": [
           {
@@ -23360,6 +23426,13 @@
             "format": "uuid",
             "description": "The daemon this entity refers to."
           },
+          "daemon_version": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The daemon's version when the run ended. Stamped by the server at terminal, so it\nsurvives the daemon being deleted or upgraded."
+          },
           "discovery_id": {
             "type": [
               "string",
@@ -23405,6 +23478,14 @@
             "description": "Hosts found so far.",
             "minimum": 0
           },
+          "last_update_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the server last heard about this run. Stamped by the server at terminal."
+          },
           "network_id": {
             "type": "string",
             "format": "uuid",
@@ -23419,6 +23500,17 @@
             "format": "int32",
             "description": "Completion of the current phase, from 0 to 1.",
             "minimum": 0
+          },
+          "reason": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DiscoveryTerminalReason",
+                "description": "Why the run ended. Set on terminal payloads; absent on runs recorded before it existed.\nA daemon may send one of the reasons only it can know; the server assigns every other."
+              }
+            ]
           },
           "scanned": {
             "oneOf": [

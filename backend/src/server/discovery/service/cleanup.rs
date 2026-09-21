@@ -151,6 +151,9 @@ impl DiscoveryService {
                 estimated_remaining_secs: None,
                 discovery_id,
                 scanned: None,
+                reason: Some(DiscoveryTerminalReason::StalledNoUpdates),
+                last_update_at: None,
+                daemon_version: None,
             };
 
             if let Err(e) = self

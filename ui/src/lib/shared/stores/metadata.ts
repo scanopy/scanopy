@@ -9,6 +9,7 @@ import entitySourcesJson from '$lib/data/entity-sources.json';
 import portsJson from '$lib/data/ports.json';
 import discoveryTypesJson from '$lib/data/discovery-types.json';
 import discoveryPhasesJson from '$lib/data/discovery-phases.json';
+import discoveryTerminalReasonsJson from '$lib/data/discovery-terminal-reasons.json';
 import billingPlansJson from '$lib/data/billing-plans-all.json';
 import planStatusesJson from '$lib/data/plan-statuses.json';
 import featuresJson from '$lib/data/features.json';
@@ -94,6 +95,7 @@ export interface MetadataRegistry {
 	ports: TypeMetadata[];
 	discovery_types: TypeMetadata[];
 	discovery_phases: TypeMetadata[];
+	discovery_terminal_reasons: TypeMetadata[];
 	billing_plans: TypeMetadata[];
 	plan_statuses: TypeMetadata[];
 	features: TypeMetadata[];
@@ -260,6 +262,11 @@ export interface DiscoveryTypeMetadata {
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface DiscoveryPhaseMetadata {}
 
+export interface DiscoveryTerminalReasonMetadata {
+	/** The run stopped making progress rather than failing outright. */
+	is_stall: boolean;
+}
+
 export interface ContainerTypeMetadata {
 	title_style: 'External' | 'Inline';
 	is_subcontainer: boolean;
@@ -281,6 +288,7 @@ export const metadata = writable<MetadataRegistry>({
 	ports: portsJson,
 	discovery_types: discoveryTypesJson,
 	discovery_phases: discoveryPhasesJson,
+	discovery_terminal_reasons: discoveryTerminalReasonsJson,
 	billing_plans: billingPlansJson,
 	plan_statuses: planStatusesJson,
 	features: featuresJson,
@@ -486,6 +494,10 @@ export const discoveryPhases = createTypeMetadataHelpers<
 	'discovery_phases',
 	DiscoveryPhaseMetadata
 >('discovery_phases');
+export const discoveryTerminalReasons = createTypeMetadataHelpers<
+	'discovery_terminal_reasons',
+	DiscoveryTerminalReasonMetadata
+>('discovery_terminal_reasons');
 export const billingPlans = createTypeMetadataHelpers<'billing_plans', BillingPlanMetadata>(
 	'billing_plans'
 );

@@ -3906,6 +3906,11 @@ export interface components {
                  */
                 daemon_id: string;
                 /**
+                 * @description The daemon's version when the run ended. Stamped by the server at terminal, so it
+                 *     survives the daemon being deleted or upgraded.
+                 */
+                daemon_version?: string | null;
+                /**
                  * Format: uuid
                  * @description The discovery configuration this session belongs to.
                  *     Always enriched server-side; daemons do not send this field.
@@ -3931,6 +3936,11 @@ export interface components {
                  */
                 hosts_discovered?: number | null;
                 /**
+                 * Format: date-time
+                 * @description When the server last heard about this run. Stamped by the server at terminal.
+                 */
+                last_update_at?: string | null;
+                /**
                  * Format: uuid
                  * @description The network this entity belongs to.
                  */
@@ -3942,6 +3952,7 @@ export interface components {
                  * @description Completion of the current phase, from 0 to 1.
                  */
                 progress: number;
+                reason?: null | components["schemas"]["DiscoveryTerminalReason"];
                 scanned?: null | components["schemas"]["ScannedEntityIds"];
                 /**
                  * Format: uuid
@@ -5560,6 +5571,11 @@ export interface components {
                  */
                 daemon_id: string;
                 /**
+                 * @description The daemon's version when the run ended. Stamped by the server at terminal, so it
+                 *     survives the daemon being deleted or upgraded.
+                 */
+                daemon_version?: string | null;
+                /**
                  * Format: uuid
                  * @description The discovery configuration this session belongs to.
                  *     Always enriched server-side; daemons do not send this field.
@@ -5585,6 +5601,11 @@ export interface components {
                  */
                 hosts_discovered?: number | null;
                 /**
+                 * Format: date-time
+                 * @description When the server last heard about this run. Stamped by the server at terminal.
+                 */
+                last_update_at?: string | null;
+                /**
                  * Format: uuid
                  * @description The network this entity belongs to.
                  */
@@ -5596,6 +5617,7 @@ export interface components {
                  * @description Completion of the current phase, from 0 to 1.
                  */
                 progress: number;
+                reason?: null | components["schemas"]["DiscoveryTerminalReason"];
                 scanned?: null | components["schemas"]["ScannedEntityIds"];
                 /**
                  * Format: uuid
@@ -7089,6 +7111,18 @@ export interface components {
          * @enum {string}
          */
         DiscoveryProtocol: "LLDP" | "CDP";
+        /**
+         * @description Why a session reached its terminal phase.
+         *
+         *     `phase` says *that* a run ended; this says *why*. A stall reaped by the server, a daemon that
+         *     lost its state in a restart and a user pressing cancel all used to land as the same phase with
+         *     no way to tell them apart afterwards, which is what made stall reports undiagnosable.
+         *
+         *     The server decides every reason except the two the daemon alone can know, see
+         *     [`Self::daemon_assigned`]. Absent on runs recorded before this field existed.
+         * @enum {string}
+         */
+        DiscoveryTerminalReason: "Completed" | "UserCancelled" | "DaemonReportedFailure" | "StalledNoUpdates" | "DaemonRestarted" | "DaemonUnreachable" | "DaemonBusy" | "WatchdogTimeout";
         DiscoveryType: {
             /**
              * Format: uuid
@@ -7165,6 +7199,11 @@ export interface components {
              */
             daemon_id: string;
             /**
+             * @description The daemon's version when the run ended. Stamped by the server at terminal, so it
+             *     survives the daemon being deleted or upgraded.
+             */
+            daemon_version?: string | null;
+            /**
              * Format: uuid
              * @description The discovery configuration this session belongs to.
              *     Always enriched server-side; daemons do not send this field.
@@ -7190,6 +7229,11 @@ export interface components {
              */
             hosts_discovered?: number | null;
             /**
+             * Format: date-time
+             * @description When the server last heard about this run. Stamped by the server at terminal.
+             */
+            last_update_at?: string | null;
+            /**
              * Format: uuid
              * @description The network this entity belongs to.
              */
@@ -7201,6 +7245,7 @@ export interface components {
              * @description Completion of the current phase, from 0 to 1.
              */
             progress: number;
+            reason?: null | components["schemas"]["DiscoveryTerminalReason"];
             scanned?: null | components["schemas"]["ScannedEntityIds"];
             /**
              * Format: uuid

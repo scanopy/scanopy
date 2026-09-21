@@ -1,5 +1,5 @@
 use crate::bail_validation;
-use crate::daemon::discovery::types::base::DiscoveryPhase;
+use crate::daemon::discovery::types::base::{DiscoveryPhase, DiscoveryTerminalReason};
 use crate::daemon::runtime::service::LOG_TARGET;
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::credentials::r#impl::mapping::{IntegrationTarget, Target};
