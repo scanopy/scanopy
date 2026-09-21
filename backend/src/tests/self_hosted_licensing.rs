@@ -493,6 +493,8 @@ async fn license_paid_through_follows_self_hosted_trials_and_invoices() {
         hosted_invoice_url: None,
         collection: InvoiceCollection::ChargeAutomatically,
         po_number: None,
+        amount_due_cents: 400_000,
+        total_cents: 400_000,
         due_date: None,
     };
     service
@@ -629,6 +631,8 @@ async fn the_airgap_renewal_email_dates_the_key_already_installed() {
         hosted_invoice_url: None,
         collection: InvoiceCollection::ChargeAutomatically,
         po_number: None,
+        amount_due_cents: 400_000,
+        total_cents: 400_000,
         due_date: None,
     };
 
@@ -700,6 +704,8 @@ async fn sent_invoices_license_until_due_and_give_back_on_void() {
         hosted_invoice_url: None,
         collection: InvoiceCollection::SendInvoice,
         po_number: None,
+        amount_due_cents: 400_000,
+        total_cents: 400_000,
         due_date: Some(due_date),
     };
     let publish = |operation: BillingOperation| {

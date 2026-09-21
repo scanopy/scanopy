@@ -65,6 +65,16 @@ pub struct BillingInvoice {
     /// customer's invoice custom fields when Stripe finalized it.
     #[serde(default)]
     pub po_number: Option<String>,
+    /// What the customer actually owes on this invoice, as Stripe computed it.
+    /// A proration that credits more than it charges comes to zero here, with
+    /// the difference going to the customer's balance rather than a refund.
+    #[serde(default)]
+    pub amount_due_cents: i64,
+    /// The invoice's total, which is negative when it is net a credit. Summing
+    /// the line items is not the same thing: a proration carries a credit line
+    /// beside a charge line, and Stripe applies its own rounding.
+    #[serde(default)]
+    pub total_cents: i64,
 }
 
 /// Name of the invoice custom field carrying the buyer's purchase order.
@@ -119,13 +129,6 @@ impl BillingInvoice {
             .map(|due| due + chrono::Duration::days(INVOICE_PAYMENT_GRACE_DAYS))
     }
 
-    /// Everything this invoice bills for, across all its lines. Unlike
-    /// `amount_paid_cents` this is set before anyone has paid, which is what a
-    /// sent invoice needs.
-    pub fn total_cents(&self) -> i64 {
-        self.line_items.iter().map(|line| line.amount_cents).sum()
-    }
-
     /// Start of the earliest service period this invoice bills on a
     /// self-hosted license plan. Everything before it was already paid (or was
     /// a trial), so an unpaid or voided invoice licenses nothing past it.
@@ -178,6 +181,8 @@ impl From<&stripe_billing::Invoice> for BillingInvoice {
                 .as_ref()
                 .and_then(|fields| fields.iter().find(|field| field.name == PO_NUMBER_FIELD))
                 .map(|field| field.value.clone()),
+            amount_due_cents: inv.amount_due,
+            total_cents: inv.total,
         }
     }
 }
@@ -241,6 +246,8 @@ mod tests {
             hosted_invoice_url: None,
             collection: InvoiceCollection::ChargeAutomatically,
             po_number: None,
+            amount_due_cents: 0,
+            total_cents: 0,
             due_date: None,
         }
     }

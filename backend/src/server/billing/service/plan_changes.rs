@@ -442,7 +442,7 @@ impl BillingService {
             // the buyer needs the document now, whether it is the replacement
             // for the voided one or the prorated difference.
             if bills_by_invoice {
-                self.finalize_latest_invoice(&updated).await?;
+                self.finalize_latest_invoice(updated.id.as_str()).await?;
             }
 
             let is_trialing = sub.status == SubscriptionStatus::Trialing;

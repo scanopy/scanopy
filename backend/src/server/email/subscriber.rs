@@ -196,13 +196,21 @@ impl Subscriber<BillingOperation> for EmailService {
                             .and_then(|org| org.base.plan)
                             .map(|plan| plan.name())
                             .unwrap_or("Scanopy");
-                        self.send_invoice_issued_email(
-                            org_owner,
-                            plan_name,
-                            &invoice,
-                            invoice.po_number.clone(),
-                        )
-                        .await?;
+                        // A downgrade credits more than it charges, so nothing
+                        // is payable and the invoice total is negative. That is
+                        // money owed to the customer, not a bill.
+                        if invoice.amount_due_cents > 0 {
+                            self.send_invoice_issued_email(
+                                org_owner,
+                                plan_name,
+                                &invoice,
+                                invoice.po_number.clone(),
+                            )
+                            .await?;
+                        } else if invoice.total_cents < 0 {
+                            self.send_invoice_credited_email(org_owner, plan_name, &invoice)
+                                .await?;
+                        }
                     }
                 }
                 BillingOperation::PaymentSucceeded {
