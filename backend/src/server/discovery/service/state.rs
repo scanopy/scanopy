@@ -73,12 +73,39 @@ pub(crate) fn apply_update(
     update: &DiscoveryUpdatePayload,
     now: DateTime<Utc>,
 ) -> UpdateOutcome {
+    apply(maps, update, now, Origin::Daemon)
+}
+
+/// Apply an update the server decided on itself, such as failing a session whose daemon
+/// restarted. It differs from a daemon's update in two ways: its reason is kept as given, and it
+/// never creates a session, because the server can only end one it is tracking.
+pub(crate) fn apply_server_update(
+    maps: &mut SessionMaps,
+    update: &DiscoveryUpdatePayload,
+    now: DateTime<Utc>,
+) -> UpdateOutcome {
+    apply(maps, update, now, Origin::Server)
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Origin {
+    Daemon,
+    Server,
+}
+
+fn apply(
+    maps: &mut SessionMaps,
+    update: &DiscoveryUpdatePayload,
+    now: DateTime<Utc>,
+    origin: Origin,
+) -> UpdateOutcome {
     let session_id = update.session_id;
-    let already_seen = maps.last_updated.contains_key(&session_id);
+    let last_heard = maps.last_updated.get(&session_id).copied();
+    let already_seen = last_heard.is_some();
     maps.last_updated.insert(session_id, now);
 
     if !maps.sessions.contains_key(&session_id) {
-        if already_seen {
+        if already_seen || origin == Origin::Server {
             tracing::debug!(
                 session_id = %session_id,
                 phase = %update.phase,
@@ -112,8 +139,15 @@ pub(crate) fn apply_update(
         return UpdateOutcome::Progress;
     }
 
-    session.reason = reason_for_daemon_terminal(session.phase, update.reason);
-    session.last_update_at = Some(now);
+    match origin {
+        Origin::Daemon => {
+            session.reason = reason_for_daemon_terminal(session.phase, update.reason);
+            session.last_update_at = Some(now);
+        }
+        // The server is ending the session on the daemon's behalf, so the daemon was last heard
+        // from before this update, not by it.
+        Origin::Server => session.last_update_at = last_heard,
+    }
     let session = session.clone();
     let parent_discovery_id = maps
         .discovery_sessions
@@ -555,6 +589,46 @@ mod tests {
 
         assert!(matches!(late, UpdateOutcome::Ignored));
         assert!(!maps.sessions.contains_key(&stalled.session_id));
+    }
+
+    #[test]
+    fn a_failure_the_server_decides_keeps_its_reason_and_when_the_daemon_was_last_heard() {
+        let mut maps = Maps::default();
+        let running = maps.start(Uuid::new_v4(), DiscoveryPhase::Scanning);
+        let last_heard = Utc::now() - Duration::seconds(40);
+        maps.last_updated.insert(running.session_id, last_heard);
+        let mut failure = with_phase(&running, DiscoveryPhase::Failed);
+        failure.reason = Some(DiscoveryTerminalReason::DaemonRestarted);
+
+        let UpdateOutcome::Terminal(effects) =
+            apply_server_update(&mut maps.borrow(), &failure, Utc::now())
+        else {
+            panic!("a Failed update is terminal");
+        };
+
+        assert_eq!(
+            effects.session.reason,
+            Some(DiscoveryTerminalReason::DaemonRestarted)
+        );
+        assert_eq!(effects.session.last_update_at, Some(last_heard));
+    }
+
+    #[test]
+    fn the_server_cannot_end_a_session_it_is_not_tracking() {
+        let mut maps = Maps::default();
+        let mut failure = DiscoveryUpdatePayload::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            DiscoveryType::default(),
+            Some(Uuid::new_v4()),
+        );
+        failure.phase = DiscoveryPhase::Failed;
+
+        let outcome = apply_server_update(&mut maps.borrow(), &failure, Utc::now());
+
+        assert!(matches!(outcome, UpdateOutcome::Ignored));
+        assert!(maps.sessions.is_empty());
     }
 
     #[test]

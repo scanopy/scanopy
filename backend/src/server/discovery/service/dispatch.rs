@@ -370,15 +370,63 @@ impl DiscoveryService {
 
         tracing::debug!("Updated session {:?}", update);
 
+        self.record_update(update, state::apply_update).await;
+        Ok(())
+    }
+
+    /// End a running session on the server's own authority, for a failure the daemon cannot report:
+    /// it restarted and lost the session, or it cannot be reached to cancel it. A session that has
+    /// already finished, or is no longer tracked, is left alone; the daemon's own outcome stands.
+    pub async fn fail_session(
+        &self,
+        session_id: Uuid,
+        reason: DiscoveryTerminalReason,
+        error: String,
+    ) {
+        let Some(mut update) = self.get_session(&session_id).await else {
+            return;
+        };
+        if update.phase.is_terminal() {
+            return;
+        }
+
+        tracing::warn!(
+            session_id = %session_id,
+            daemon_id = %update.daemon_id,
+            network_id = %update.network_id,
+            phase = ?update.phase,
+            reason = ?reason,
+            error = %error,
+            "Failing discovery session"
+        );
+
+        update.phase = DiscoveryPhase::Failed;
+        update.error = Some(error);
+        update.finished_at = Some(Utc::now());
+        update.reason = Some(reason);
+        self.record_update(update, state::apply_server_update).await;
+    }
+
+    /// Apply an update to the session maps with `apply`, then run whatever a finished session
+    /// triggers once the locks are released.
+    async fn record_update(
+        &self,
+        update: DiscoveryUpdatePayload,
+        apply: impl FnOnce(
+            &mut SessionMaps<'_>,
+            &DiscoveryUpdatePayload,
+            chrono::DateTime<Utc>,
+        ) -> UpdateOutcome,
+    ) {
         let outcome = {
-            // Same order as `cleanup_stalled_sessions` and `clear_sessions_for_daemon`.
+            // The lock order documented on `DiscoveryService`.
             let mut sessions = self.sessions.write().await;
             let mut last_updated = self.session_last_updated.write().await;
             let mut daemon_sessions = self.daemon_sessions.write().await;
             let mut pull_cancellations = self.daemon_pull_cancellations.write().await;
             let mut discovery_sessions = self.discovery_sessions.write().await;
 
-            let outcome = state::apply_update(
+            let outcome = apply(
                 &mut SessionMaps {
                     sessions: &mut sessions,
                     last_updated: &mut last_updated,
@@ -400,7 +448,7 @@ impl DiscoveryService {
         };
 
         let effects = match outcome {
-            UpdateOutcome::Ignored => return Ok(()),
+            UpdateOutcome::Ignored => return,
             UpdateOutcome::Progress => {
                 tracing::debug!(
                     session_id = %update.session_id,
@@ -408,7 +456,7 @@ impl DiscoveryService {
                     progress = %update.progress,
                     "Updated session",
                 );
-                return Ok(());
+                return;
             }
             UpdateOutcome::Terminal(effects) => *effects,
         };
@@ -429,8 +477,6 @@ impl DiscoveryService {
             }
             None => self.finish_terminal(effects).await,
         }
-
-        Ok(())
     }
 
     /// Everything a finished session triggers outside the session maps, in the order its

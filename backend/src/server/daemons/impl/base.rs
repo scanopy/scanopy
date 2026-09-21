@@ -111,6 +111,12 @@ impl Daemon {
             self.base.version.as_ref(),
         )
     }
+
+    /// Whether this daemon's `ready_for_work` means it is idle; see
+    /// [`crate::server::daemons::r#impl::version::reports_ready_for_work`].
+    pub fn reports_ready_for_work(&self) -> bool {
+        crate::server::daemons::r#impl::version::reports_ready_for_work(self.base.version.as_ref())
+    }
 }
 
 impl Display for Daemon {

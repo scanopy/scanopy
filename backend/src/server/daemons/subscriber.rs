@@ -6,7 +6,9 @@
 use async_trait::async_trait;
 use uuid::Uuid;
 
-use crate::daemon::discovery::types::base::{DiscoveryPhase, DiscoveryPhaseDiscriminants};
+use crate::daemon::discovery::types::base::{
+    DiscoveryPhase, DiscoveryPhaseDiscriminants, DiscoveryTerminalReason,
+};
 use crate::server::daemons::r#impl::base::DaemonMode;
 use crate::server::daemons::service::{DaemonHttpError, DaemonService};
 use crate::server::shared::events::registry::SubscriberRegistration;
@@ -128,7 +130,13 @@ impl Subscriber<DiscoveryPhase> for DaemonService {
                 DiscoveryPhase::Cancelled => {
                     let delivery = self.deliver_cancellation(daemon_id, session_id).await;
                     match &delivery {
-                        CancelDelivery::Delivered | CancelDelivery::PulledByDaemon => {
+                        // `NotRunning` is usually a daemon that finished the session a moment
+                        // before the cancel landed. Its own outcome arrives on the next poll, and
+                        // if the daemon instead restarted, the restart check fails the session
+                        // then. Failing it here would overwrite a real completion.
+                        CancelDelivery::Delivered
+                        | CancelDelivery::PulledByDaemon
+                        | CancelDelivery::NotRunning => {
                             tracing::info!(
                                 daemon_id = %daemon_id,
                                 session_id = %session_id,
@@ -136,7 +144,19 @@ impl Subscriber<DiscoveryPhase> for DaemonService {
                                 "Cancellation passed to the daemon"
                             );
                         }
-                        _ => {
+                        // Nothing will ever end this session from the daemon's side, so the
+                        // server does. Otherwise it sits until the stall sweep, and the next scan
+                        // of the same discovery is refused as already running.
+                        CancelDelivery::Undeliverable(why) => {
+                            self.discovery_service
+                                .fail_session(
+                                    session_id,
+                                    DiscoveryTerminalReason::DaemonUnreachable,
+                                    format!("Cancellation could not reach the daemon: {why}"),
+                                )
+                                .await;
+                        }
+                        CancelDelivery::Failed(_) => {
                             tracing::warn!(
                                 daemon_id = %daemon_id,
                                 session_id = %session_id,

@@ -45,6 +45,17 @@ impl DiscoveryService {
             .collect()
     }
 
+    /// Every session the server is tracking on a daemon, in any phase.
+    pub async fn sessions_on_daemon(&self, daemon_id: &Uuid) -> Vec<DiscoveryUpdatePayload> {
+        self.sessions
+            .read()
+            .await
+            .values()
+            .filter(|session| session.daemon_id == *daemon_id)
+            .cloned()
+            .collect()
+    }
+
     /// Clear all sessions for a daemon from in-memory state.
     /// Used by tests to ensure clean state between phases.
     pub async fn clear_sessions_for_daemon(&self, daemon_id: &Uuid) {
