@@ -349,6 +349,26 @@ pub enum DiscoveryWarning {
         /// Hosts still queued when the run stopped.
         hosts_not_scanned: u32,
     },
+    /// The PROFINET DCP sweep did not report back within its budget, so the run finished
+    /// without the devices only it would have found.
+    #[schema(title = "DcpSweepTimedOut")]
+    DcpSweepTimedOut {
+        /// The budget the sweep had, in seconds.
+        seconds: u32,
+    },
+    /// The ICMP sweep did not report back within its budget, so hosts that answer only to ping
+    /// were not scanned.
+    #[schema(title = "IcmpSweepTimedOut")]
+    IcmpSweepTimedOut {
+        /// The budget the sweep had, in seconds.
+        seconds: u32,
+    },
+    /// Reverse DNS lookups that got no answer in time, so those hosts have no DNS hostname.
+    #[schema(title = "ReverseDnsTimedOut")]
+    ReverseDnsTimedOut {
+        /// How many lookups went unanswered.
+        count: u32,
+    },
 
     // ---- Server-side LLDP/CDP resolution ---------------------------------
     /// The advertised identifier matches no host on this network.
@@ -620,6 +640,9 @@ pub enum DiscoveryWarningCode {
     ConnectionsWithoutProtocolResponse,
     ScanTimeLimitWithEstimate,
     ScanTimeLimit,
+    DcpSweepTimedOut,
+    IcmpSweepTimedOut,
+    ReverseDnsTimedOut,
     LldpNeighbourNotFound,
     LldpNeighbourAmbiguous,
     LldpPortNoStrategy,
@@ -705,6 +728,9 @@ impl DiscoveryWarning {
                 DiscoveryWarningCode::ScanTimeLimitWithEstimate
             }
             Self::ScanTimeLimit { .. } => DiscoveryWarningCode::ScanTimeLimit,
+            Self::DcpSweepTimedOut { .. } => DiscoveryWarningCode::DcpSweepTimedOut,
+            Self::IcmpSweepTimedOut { .. } => DiscoveryWarningCode::IcmpSweepTimedOut,
+            Self::ReverseDnsTimedOut { .. } => DiscoveryWarningCode::ReverseDnsTimedOut,
             Self::LldpNeighbourNotFound(_) => DiscoveryWarningCode::LldpNeighbourNotFound,
             Self::LldpNeighbourAmbiguous(_) => DiscoveryWarningCode::LldpNeighbourAmbiguous,
             Self::LldpPortNoStrategy(_) => DiscoveryWarningCode::LldpPortNoStrategy,
@@ -772,6 +798,9 @@ impl DiscoveryWarning {
             | Self::ConnectionsWithoutProtocolResponse { .. }
             | Self::ScanTimeLimitWithEstimate { .. }
             | Self::ScanTimeLimit { .. }
+            | Self::DcpSweepTimedOut { .. }
+            | Self::IcmpSweepTimedOut { .. }
+            | Self::ReverseDnsTimedOut { .. }
             | Self::LldpNeighbourNotFound(_)
             | Self::LldpNeighbourAmbiguous(_)
             | Self::LldpPortNoStrategy(_)

@@ -156,6 +156,10 @@ where
             note_fallback = false;
             session.note_getbulk_unusable();
         }
+        if session.cancelled() {
+            stop = WalkStop::Cancelled;
+            break;
+        }
         if count >= MAX_WALK_ENTRIES {
             stop = WalkStop::EntryCap;
             break;

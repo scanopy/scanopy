@@ -37,7 +37,7 @@ use cidr::IpCidr;
 use futures::StreamExt;
 use pnet::datalink;
 use std::collections::{HashMap, HashSet};
-use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 use std::{net::IpAddr, sync::Arc};
 use tokio::sync::mpsc as tokio_mpsc;
@@ -243,6 +243,12 @@ impl NetworkScan {
             .into_iter()
             .filter(dcp::is_dcp_capable)
             .collect();
+        // Each interface listens for `LISTEN_WINDOW`. The wait for the result is bounded by that
+        // plus a margin, counted from when the pipeline asks for it, by which point the sweep has
+        // usually been running for minutes.
+        let dcp_budget = dcp::LISTEN_WINDOW
+            * u32::try_from(dcp_capable_interfaces.len()).unwrap_or(u32::MAX)
+            + Duration::from_secs(10);
         let (dcp_tx, dcp_sweep) = tokio::sync::oneshot::channel();
         std::thread::spawn(move || {
             let mut found = Vec::new();
@@ -303,7 +309,13 @@ impl NetworkScan {
                 }
             }
             discovery_packets_total += targets.len() as u64 * arp_total_rounds;
-            spawn_icmp_sweep(targets, arp_retries, scan_rate_pps, &discovery_packets_sent)
+            spawn_icmp_sweep(
+                targets,
+                arp_retries,
+                scan_rate_pps,
+                arp_total_rounds,
+                &discovery_packets_sent,
+            )
         } else {
             // Resolves immediately with nothing, so every consumer below takes the same path
             // whether or not ICMP is available.
@@ -1280,8 +1292,6 @@ impl NetworkScan {
             }
         }
 
-        ops.report_progress(100).await?;
-
         // A credential pinned to an in-scope address that nothing answered at is skipped just as
         // silently as one pinned outside the scanned subnets — the deep scan only ever runs for
         // hosts that responded. Only knowable once the run is over, hence here rather than
@@ -1302,19 +1312,25 @@ impl NetworkScan {
 
         // Addresses that completed a handshake and then answered nothing. Raised per subnet, at the
         // end, because the middlebox that causes it causes it for the whole range at once.
-        let declined = self.declined_warnings();
-        if !declined.is_empty()
+        let mut end_of_run = self.declined_warnings();
+        // Degradations the run survived by going on without something: the ping sweep's
+        // responders, and hostnames from reverse DNS.
+        end_of_run.extend(icmp_responders.timeout_warning());
+        end_of_run.extend(self.reverse_dns_warning());
+        if !end_of_run.is_empty()
             && let Ok(session_state) = ops.get_session().await
             && let Ok(mut warnings) = session_state.warnings.lock()
         {
-            warnings.extend(declined);
+            warnings.extend(end_of_run);
         }
 
         // Collect and submit whatever the DCP sweep found. By now its listen window (a few
         // seconds per interface) has almost always already elapsed against the rest of this
-        // pipeline, so this await is ordinarily immediate.
-        match dcp_sweep.await {
-            Ok(found) => {
+        // pipeline, so this await is ordinarily immediate. It is bounded all the same: the sweep
+        // runs on a plain thread that no cancel reaches, and a capture read that never returns
+        // used to leave the session waiting here forever, after it had already reported 100%.
+        match tokio::time::timeout(dcp_budget, dcp_sweep).await {
+            Ok(Ok(found)) => {
                 let dcp_count = found.len();
                 for response in found {
                     self.submit_dcp_host(session.info.network_id, response, ops, &cancel)
@@ -1324,8 +1340,24 @@ impl NetworkScan {
                     tracing::info!(dcp_count, "PROFINET DCP sweep found devices");
                 }
             }
-            Err(e) => tracing::warn!(error = %e, "DCP sweep thread failed to report back"),
+            Ok(Err(e)) => tracing::warn!(error = %e, "DCP sweep thread failed to report back"),
+            Err(_) => {
+                tracing::warn!(
+                    session_id = %session.info.session_id,
+                    budget_secs = dcp_budget.as_secs(),
+                    "DCP sweep did not report back in time; finishing without it"
+                );
+                if let Ok(mut warnings) = session.warnings.lock() {
+                    warnings.push(DiscoveryWarning::DcpSweepTimedOut {
+                        seconds: u32::try_from(dcp_budget.as_secs()).unwrap_or(u32::MAX),
+                    });
+                }
+            }
         }
+
+        // Only now: 100% promises the server the session is about to finish, and DCP submission
+        // above can take a while.
+        ops.report_progress(100).await?;
 
         let discovered = hosts_discovered.load(Ordering::Relaxed);
         tracing::info!(
@@ -2033,6 +2065,10 @@ impl NetworkScan {
 #[derive(Clone)]
 pub(super) struct IcmpSweep {
     rx: tokio::sync::watch::Receiver<Option<Arc<HashSet<IpAddr>>>>,
+    /// How long a consumer waits for the result before going on without it.
+    budget: Duration,
+    /// Set when a consumer gave up waiting, so the run can say what it went without.
+    timed_out: Arc<AtomicBool>,
 }
 
 impl IcmpSweep {
@@ -2040,18 +2076,56 @@ impl IcmpSweep {
     /// nothing, so there is no "is ICMP on?" branch anywhere downstream.
     fn unavailable() -> Self {
         let (_tx, rx) = tokio::sync::watch::channel(Some(Arc::new(HashSet::new())));
-        Self { rx }
+        Self {
+            rx,
+            budget: Duration::ZERO,
+            timed_out: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    /// How long to wait for a sweep of `targets` addresses over `rounds` rounds at `rate_pps`.
+    ///
+    /// Comfortably past when the sweep finishes on its own: on unix its receiver stops after five
+    /// minutes whatever happens, and elsewhere it runs as long as sending takes at the configured
+    /// rate. A budget below either would cut short sweeps that complete today.
+    fn budget(targets: usize, rounds: u64, rate_pps: u32) -> Duration {
+        let expected_send_secs = targets as u64 * rounds / u64::from(rate_pps.max(1));
+        Duration::from_secs((expected_send_secs * 2 + 60).max(330))
     }
 
     /// The addresses that answered, once the sweep has finished.
+    ///
+    /// Waits at most `budget`. The sweep's producer runs on the blocking pool; if it never gets
+    /// there, or never finishes, this used to wait forever while holding the channel that tells
+    /// the pipeline discovery is over, so the scan ran on to its six-hour limit.
     async fn responders(&mut self) -> Arc<HashSet<IpAddr>> {
-        match self.rx.wait_for(|v| v.is_some()).await {
-            Ok(value) => value.clone().unwrap_or_default(),
+        match tokio::time::timeout(self.budget, self.rx.wait_for(|v| v.is_some())).await {
+            Ok(Ok(value)) => value.clone().unwrap_or_default(),
             // The producer task died. Degrading to "nothing answered" keeps the scan running with
             // exactly the pre-ICMP behaviour, which is the right failure mode for a signal that is
             // only ever additive.
-            Err(_) => Arc::new(HashSet::new()),
+            Ok(Err(_)) => Arc::new(HashSet::new()),
+            // The same degradation, but one the run reports: hosts that answer only to ping were
+            // not scanned.
+            Err(_) => {
+                if !self.timed_out.swap(true, Ordering::Relaxed) {
+                    tracing::warn!(
+                        budget_secs = self.budget.as_secs(),
+                        "ICMP sweep did not report back in time; continuing without it"
+                    );
+                }
+                Arc::new(HashSet::new())
+            }
         }
+    }
+
+    /// The warning for a sweep a consumer gave up on, if one did.
+    fn timeout_warning(&self) -> Option<DiscoveryWarning> {
+        self.timed_out
+            .load(Ordering::Relaxed)
+            .then(|| DiscoveryWarning::IcmpSweepTimedOut {
+                seconds: u32::try_from(self.budget.as_secs()).unwrap_or(u32::MAX),
+            })
     }
 }
 
@@ -2060,10 +2134,12 @@ fn spawn_icmp_sweep(
     targets: Vec<std::net::Ipv4Addr>,
     retries: u32,
     rate_pps: u32,
+    rounds: u64,
     packets_sent: &Arc<AtomicU64>,
 ) -> IcmpSweep {
     let (tx, rx) = tokio::sync::watch::channel(None);
     let packets_sent = packets_sent.clone();
+    let budget = IcmpSweep::budget(targets.len(), rounds, rate_pps);
 
     tokio::task::spawn_blocking(move || {
         let mut responders: HashSet<IpAddr> = HashSet::new();
@@ -2083,7 +2159,11 @@ fn spawn_icmp_sweep(
         let _ = tx.send(Some(Arc::new(responders)));
     });
 
-    IcmpSweep { rx }
+    IcmpSweep {
+        rx,
+        budget,
+        timed_out: Arc::new(AtomicBool::new(false)),
+    }
 }
 
 /// Credentials pinned to an in-scope address that no host answered at.

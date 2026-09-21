@@ -263,6 +263,7 @@ impl DiscoveryIntegration for SnmpIntegration {
                 return Ok(Completeness::Complete);
             }
         };
+        session.watch_cancel(ctx.cancel.clone());
 
         // Query system info
         let info = query_or_default(ip, "system_info", query_system_info(&mut session, ip)).await;
@@ -591,8 +592,9 @@ impl DiscoveryIntegration for SnmpIntegration {
         let mut context_session = match bridge_context(credential) {
             Some(name) => {
                 match create_session(ip, credential, port, SnmpContext::FromCredential).await {
-                    Ok(s) => {
+                    Ok(mut s) => {
                         tracing::debug!(ip = %ip, context = name, "Opened bridge-context session");
+                        s.watch_cancel(ctx.cancel.clone());
                         Some(s)
                     }
                     Err(e) => {

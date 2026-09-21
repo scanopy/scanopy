@@ -193,6 +193,8 @@ impl DiscoveryWarningCode {
 
             Self::ScanTimeLimitWithEstimate => &["hours", "hosts_not_scanned", "minutes_remaining"],
             Self::ScanTimeLimit => &["hours", "hosts_not_scanned"],
+            Self::DcpSweepTimedOut | Self::IcmpSweepTimedOut => &["seconds"],
+            Self::ReverseDnsTimedOut => &["count"],
 
             // No `examples` slot: the pairs these name are a list, and the UI renders them as one
             // under the sentence rather than joining eight of them into its last clause.
@@ -238,7 +240,12 @@ impl DiscoveryWarningCode {
             | Self::CredentialUnreachable
             | Self::CredentialTimedOut
             | Self::ScanTimeLimitWithEstimate
-            | Self::ScanTimeLimit => Severity::Lost,
+            | Self::ScanTimeLimit
+            | Self::DcpSweepTimedOut
+            | Self::IcmpSweepTimedOut => Severity::Lost,
+
+            // The host is still recorded; it is only missing a name DNS would have given it.
+            Self::ReverseDnsTimedOut => Severity::Degraded,
 
             // Not `Lost`: nothing was lost. Addresses that answered a handshake and nothing else
             // were declined, and on the evidence they hold nothing. What the reader has to decide
@@ -345,7 +352,11 @@ impl DiscoveryWarningCode {
             | Self::ClaimedCapabilityReadCutShort
             | Self::LldpLocalPortDroppedReadCutShort
             | Self::MalformedNeighboursWalkCutShort
-            | Self::VlanRecordingFailed => WarningRemedy::ClearsOnTheNextScan,
+            | Self::VlanRecordingFailed
+            // A sweep or lookup that did not answer in time, so the run went on without it.
+            | Self::DcpSweepTimedOut
+            | Self::IcmpSweepTimedOut
+            | Self::ReverseDnsTimedOut => WarningRemedy::ClearsOnTheNextScan,
 
             // Facts about a device, or about data that arrived malformed and stays that way.
             Self::SnmpWalkUnsupported
@@ -434,6 +445,9 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
             Self::ConnectionsWithoutProtocolResponse => "Handshakes with nothing behind them",
             Self::ScanTimeLimitWithEstimate => "Scan hit its time limit",
             Self::ScanTimeLimit => "Scan hit its time limit",
+            Self::DcpSweepTimedOut => "PROFINET sweep timed out",
+            Self::IcmpSweepTimedOut => "Ping sweep timed out",
+            Self::ReverseDnsTimedOut => "Reverse DNS lookups timed out",
             Self::LldpNeighbourNotFound => "Neighbour device not discovered",
             Self::LldpNeighbourAmbiguous => "Neighbour device identifier not unique",
             Self::LldpPortNoStrategy => "No lookup for the advertised port id",
@@ -565,6 +579,15 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
             }
             Self::ScanTimeLimit => {
                 "Scan hit its time limit ({hours}h) — {hosts_not_scanned} host(s) not scanned. Raise Max Discovery Duration or rescan."
+            }
+            Self::DcpSweepTimedOut => {
+                "The PROFINET device sweep did not finish within {seconds}s, so devices that answer only to it are missing from this scan. If this repeats, the packet capture driver on the daemon's host is not honouring its read timeout."
+            }
+            Self::IcmpSweepTimedOut => {
+                "The ping sweep did not finish within {seconds}s, so hosts that answer only to ping are missing from this scan."
+            }
+            Self::ReverseDnsTimedOut => {
+                "{count} reverse DNS lookup(s) got no answer in time, so those hosts have no hostname from DNS in this scan. If this repeats, check the DNS resolver the daemon's host uses."
             }
             Self::LldpNeighbourNotFound => {
                 "LLDP/CDP neighbours name devices this network has not discovered ({count} in total), so they draw no links. This is expected where the far end is an endpoint or unmanaged device; a device that should have been scanned means the identifier it advertises is not one this network holds."
