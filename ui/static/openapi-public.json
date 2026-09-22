@@ -9314,6 +9314,16 @@
               }
             }
           },
+          "403": {
+            "description": "Share is disabled or expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Share not found",
             "content": {
@@ -12645,19 +12655,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-22T13:35:57.913881Z",
+              "created_at": "2026-09-22T20:20:09.735281Z",
               "first_discovery_id": null,
-              "id": "34bec318-94d7-4709-a2e9-5e53fe05c780",
+              "id": "5d2f31b6-2cfd-4063-baa0-c4187a7264a6",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-22T13:35:57.913881Z",
+              "last_seen_at": "2026-09-22T20:20:09.735281Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-22T13:35:57.913881Z",
-              "valid_from": "2026-09-22T13:35:57.913881Z",
+              "updated_at": "2026-09-22T20:20:09.735281Z",
+              "valid_from": "2026-09-22T20:20:09.735281Z",
               "valid_to": null
             }
           },
@@ -14229,19 +14239,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-22T13:35:57.898228Z",
+                      "created_at": "2026-09-22T20:20:09.719461Z",
                       "first_discovery_id": null,
-                      "id": "2c8b41fa-b875-4de3-988b-c1edcf1fc8e4",
+                      "id": "deb2e29c-faa0-4e96-b639-cc0e3881ccf5",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-22T13:35:57.898228Z",
+                      "last_seen_at": "2026-09-22T20:20:09.719461Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-22T13:35:57.898228Z",
-                      "valid_from": "2026-09-22T13:35:57.898228Z",
+                      "updated_at": "2026-09-22T20:20:09.719461Z",
+                      "valid_from": "2026-09-22T20:20:09.719461Z",
                       "valid_to": null
                     }
                   ],
@@ -14255,7 +14265,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Promtail",
+                  "service_definition": "OpenVPN",
                   "source": {
                     "type": "Manual"
                   },
@@ -15634,19 +15644,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-22T13:35:57.910037Z",
+                  "created_at": "2026-09-22T20:20:09.731431Z",
                   "first_discovery_id": null,
-                  "id": "9aba4e42-ca13-42f0-9c4a-cab89a9a98c9",
+                  "id": "cd85265d-b1bc-42c3-8112-4cf77e733de2",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-22T13:35:57.910037Z",
+                  "last_seen_at": "2026-09-22T20:20:09.731431Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-22T13:35:57.910037Z",
-                  "valid_from": "2026-09-22T13:35:57.910037Z",
+                  "updated_at": "2026-09-22T20:20:09.731431Z",
+                  "valid_from": "2026-09-22T20:20:09.731431Z",
                   "valid_to": null
                 }
               ],
@@ -15660,7 +15670,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Promtail",
+              "service_definition": "OpenVPN",
               "source": {
                 "type": "Manual"
               },
@@ -15851,6 +15861,59 @@
                 "type": "string",
                 "format": "date-time",
                 "description": "When this record stops being valid."
+              }
+            }
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
+      "ApiResponse_ShareWithTopology": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Share with topology data (returned after authentication/verification).\n\nReturns the slim topology row (`{ id, network_id, options }`) plus the\n`TopologyData` bundle (entities + the per-view graph built on request). The\nshare viewer composes these with the same `toRenderableTopology` the app\nuses — no server-side merge.",
+            "required": [
+              "share",
+              "topology",
+              "data",
+              "export_features"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/TopologyData",
+                "description": "Entities and graph for the requested view."
+              },
+              "export_features": {
+                "$ref": "#/components/schemas/ExportFeatures",
+                "description": "Which exports the share creator's plan allows."
+              },
+              "share": {
+                "$ref": "#/components/schemas/PublicShareMetadata",
+                "description": "Public metadata for the share itself."
+              },
+              "topology": {
+                "$ref": "#/components/schemas/Topology",
+                "description": "The shared topology record."
               }
             }
           },
@@ -17963,19 +18026,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-22T13:35:57.898631Z",
+          "created_at": "2026-09-22T20:20:09.719865Z",
           "first_discovery_id": null,
-          "id": "6e0d02ee-8ace-4edc-bbf6-64191fe34346",
+          "id": "46beb33c-e78e-4b8a-8f5d-30d87527797e",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-22T13:35:57.898631Z",
+          "last_seen_at": "2026-09-22T20:20:09.719865Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-22T13:35:57.898631Z",
-          "valid_from": "2026-09-22T13:35:57.898631Z",
+          "updated_at": "2026-09-22T20:20:09.719865Z",
+          "valid_from": "2026-09-22T20:20:09.719865Z",
           "valid_to": null
         }
       },
@@ -18683,7 +18746,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Promtail",
+              "service_definition": "OpenVPN",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -23171,6 +23234,49 @@
           }
         }
       },
+      "ExportFeatures": {
+        "type": "object",
+        "description": "Export feature flags derived from the share creator's billing plan",
+        "required": [
+          "png_export",
+          "svg_export",
+          "mermaid_export",
+          "confluence_export",
+          "pdf_export",
+          "html_export",
+          "remove_created_with"
+        ],
+        "properties": {
+          "confluence_export": {
+            "type": "boolean",
+            "description": "Viewer may export the diagram for Confluence."
+          },
+          "html_export": {
+            "type": "boolean",
+            "description": "Viewer may export the diagram as standalone HTML."
+          },
+          "mermaid_export": {
+            "type": "boolean",
+            "description": "Viewer may export the diagram as Mermaid."
+          },
+          "pdf_export": {
+            "type": "boolean",
+            "description": "Viewer may export the diagram as PDF."
+          },
+          "png_export": {
+            "type": "boolean",
+            "description": "Viewer may export the diagram as PNG."
+          },
+          "remove_created_with": {
+            "type": "boolean",
+            "description": "Exports omit the Scanopy attribution line."
+          },
+          "svg_export": {
+            "type": "boolean",
+            "description": "Viewer may export the diagram as SVG."
+          }
+        }
+      },
       "FieldDefinition": {
         "type": "object",
         "description": "Definition of a form field for dynamic UI rendering.\n\nOne definition serves every dynamic form: credential types and discovery scan settings both\nbuild these, and the frontend renders them through the same switch. Reaches the UI through\nbuild-time fixtures (`credential-types.json`, `integrations.json`, `scan-settings.json`) and,\nfor the generated TypeScript union, through the OpenAPI schema.",
@@ -24176,19 +24282,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-22T13:35:57.897792Z",
+                  "created_at": "2026-09-22T20:20:09.719005Z",
                   "first_discovery_id": null,
-                  "id": "a49e1f76-247d-4301-91f4-eee82ebea9d2",
+                  "id": "7a865d58-632d-4bbc-b843-c1ea8db6e1d5",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-22T13:35:57.897792Z",
+                  "last_seen_at": "2026-09-22T20:20:09.719005Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-22T13:35:57.897792Z",
-                  "valid_from": "2026-09-22T13:35:57.897792Z",
+                  "updated_at": "2026-09-22T20:20:09.719005Z",
+                  "valid_from": "2026-09-22T20:20:09.719005Z",
                   "valid_to": null
                 }
               ],
@@ -24202,7 +24308,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Promtail",
+              "service_definition": "OpenVPN",
               "source": {
                 "type": "Manual"
               },
@@ -27868,19 +27974,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-22T13:35:57.891453Z",
+                        "created_at": "2026-09-22T20:20:09.712583Z",
                         "first_discovery_id": null,
-                        "id": "0ee73e61-3d14-4941-a01b-d24d5cd88c46",
+                        "id": "3679e69c-ce3a-4484-b369-fc6025d4af8d",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-22T13:35:57.891453Z",
+                        "last_seen_at": "2026-09-22T20:20:09.712583Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-22T13:35:57.891453Z",
-                        "valid_from": "2026-09-22T13:35:57.891453Z",
+                        "updated_at": "2026-09-22T20:20:09.712583Z",
+                        "valid_from": "2026-09-22T20:20:09.712583Z",
                         "valid_to": null
                       }
                     ],
@@ -27894,7 +28000,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Promtail",
+                    "service_definition": "OpenVPN",
                     "source": {
                       "type": "Manual"
                     },
@@ -28037,19 +28143,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-22T13:35:57.909275Z",
+                    "created_at": "2026-09-22T20:20:09.730691Z",
                     "first_discovery_id": null,
-                    "id": "d7050efb-c480-44de-9484-dae295b3901b",
+                    "id": "849b83db-101c-4a08-94f5-564fa6454125",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-22T13:35:57.909275Z",
+                    "last_seen_at": "2026-09-22T20:20:09.730691Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-22T13:35:57.909275Z",
-                    "valid_from": "2026-09-22T13:35:57.909275Z",
+                    "updated_at": "2026-09-22T20:20:09.730691Z",
+                    "valid_from": "2026-09-22T20:20:09.730691Z",
                     "valid_to": null
                   }
                 ],
@@ -28063,7 +28169,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Promtail",
+                "service_definition": "OpenVPN",
                 "source": {
                   "type": "Manual"
                 },
@@ -30188,19 +30294,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-22T13:35:57.898507Z",
+              "created_at": "2026-09-22T20:20:09.719739Z",
               "first_discovery_id": null,
-              "id": "62e85751-82a8-46ed-939b-55219ae23c93",
+              "id": "1a78ef4b-d953-4189-af91-e20ff6451893",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-22T13:35:57.898507Z",
+              "last_seen_at": "2026-09-22T20:20:09.719739Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-22T13:35:57.898507Z",
-              "valid_from": "2026-09-22T13:35:57.898507Z",
+              "updated_at": "2026-09-22T20:20:09.719739Z",
+              "valid_from": "2026-09-22T20:20:09.719739Z",
               "valid_to": null
             }
           ],
@@ -30214,7 +30320,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Promtail",
+          "service_definition": "OpenVPN",
           "source": {
             "type": "Manual"
           },
@@ -30701,6 +30807,53 @@
           "show_zoom_controls": {
             "type": "boolean",
             "description": "Viewer sees the zoom controls."
+          }
+        }
+      },
+      "ShareTopologyRequest": {
+        "type": "object",
+        "required": [
+          "view"
+        ],
+        "properties": {
+          "access_token": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Server-issued access token obtained from `/verify`. Required when the share has a password."
+          },
+          "view": {
+            "$ref": "#/components/schemas/TopologyView",
+            "description": "Which topology view to return data for"
+          }
+        }
+      },
+      "ShareWithTopology": {
+        "type": "object",
+        "description": "Share with topology data (returned after authentication/verification).\n\nReturns the slim topology row (`{ id, network_id, options }`) plus the\n`TopologyData` bundle (entities + the per-view graph built on request). The\nshare viewer composes these with the same `toRenderableTopology` the app\nuses — no server-side merge.",
+        "required": [
+          "share",
+          "topology",
+          "data",
+          "export_features"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TopologyData",
+            "description": "Entities and graph for the requested view."
+          },
+          "export_features": {
+            "$ref": "#/components/schemas/ExportFeatures",
+            "description": "Which exports the share creator's plan allows."
+          },
+          "share": {
+            "$ref": "#/components/schemas/PublicShareMetadata",
+            "description": "Public metadata for the share itself."
+          },
+          "topology": {
+            "$ref": "#/components/schemas/Topology",
+            "description": "The shared topology record."
           }
         }
       },
@@ -31535,7 +31688,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "ea0002c3-5d8e-471c-b706-2231df85c030",
+                  "id": "b0ebaab2-01a7-4bf0-a8a8-2b1284f221fa",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -31545,23 +31698,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "9877d4d7-805f-4881-b4e7-288b6bb94667",
+                  "id": "73d6212b-1246-4b1b-ad7d-dffc130bd7e6",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "98109ad7-ef9d-4d01-889d-69c077f7b043",
+                  "id": "4e7a6d86-5aef-4dc6-a0c0-e274bb2d4bde",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "fdb10e98-25b2-4772-b2d8-81c6f9d8ffc2",
+                  "id": "d51e363c-0e22-451f-877b-6570695f14fb",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "9877d4d7-805f-4881-b4e7-288b6bb94667",
+                  "id": "73d6212b-1246-4b1b-ad7d-dffc130bd7e6",
                   "rule": "ByHost"
                 }
               ]
@@ -31591,19 +31744,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "8c420b8a-0aa3-4b74-a1de-76fff6859a7b",
+                "id": "080ecbfd-5d00-451a-bac6-f39be49ff054",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "b3b9ce03-6e30-4f4e-8e0e-eafbaad66b78",
+                "id": "cd22ea24-1ba6-4a56-add6-1de720295092",
                 "rule": "ByVLAN"
               },
               {
-                "id": "d99e03cb-f94d-4462-9b36-e0d5f0ef4206",
+                "id": "51880ee0-d4b0-4ded-a406-df26e589211e",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "d2ba5043-b21f-45b5-9776-6649ce38e847",
+                "id": "d0e18826-6f74-4e38-af7d-c95b32a899e9",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -31621,7 +31774,7 @@
                 }
               },
               {
-                "id": "299d0d14-10ee-486f-b909-f56a2ee0b529",
+                "id": "05ad752c-cd92-43f2-8d58-f5612e012006",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -31630,15 +31783,15 @@
                 }
               },
               {
-                "id": "afabc60a-9d53-4e46-8665-e6d452118d3b",
+                "id": "4aa50b17-77d6-490e-b5e6-1b841e658432",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "51642331-3056-4206-a5f8-78494c7ccaf6",
+                "id": "a7518910-f726-473e-9be8-190d2b3218ee",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "bae9baba-2d35-4e6f-9482-0a6788ceabb3",
+                "id": "0df09202-fa89-4bec-8118-c963865695e4",
                 "rule": "ByStack"
               }
             ]

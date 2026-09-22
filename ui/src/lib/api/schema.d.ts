@@ -2710,6 +2710,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/shares/public/{id}/topology": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get topology data for a public share */
+        post: operations["get_share_topology"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/shares/public/{id}/verify": {
         parameters: {
             query?: never;
@@ -3449,19 +3466,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-22T13:35:57.854237Z",
+             *       "created_at": "2026-09-22T20:20:09.669093Z",
              *       "first_discovery_id": null,
-             *       "id": "688d1582-96d4-4634-bd8e-9a6396455b31",
+             *       "id": "ab48cbfd-a1d1-4a45-a132-94ff47fd6c3c",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-22T13:35:57.854237Z",
+             *       "last_seen_at": "2026-09-22T20:20:09.669093Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-22T13:35:57.854237Z",
-             *       "valid_from": "2026-09-22T13:35:57.854237Z",
+             *       "updated_at": "2026-09-22T20:20:09.669093Z",
+             *       "valid_from": "2026-09-22T20:20:09.669093Z",
              *       "valid_to": null
              *     }
              */
@@ -4279,19 +4296,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-22T13:35:57.828547Z",
+             *               "created_at": "2026-09-22T20:20:09.639794Z",
              *               "first_discovery_id": null,
-             *               "id": "5a0ce0bb-eccc-4770-b963-da2e72a43e60",
+             *               "id": "f6bfe6e9-1102-440f-9e58-44fb90512e94",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-22T13:35:57.828547Z",
+             *               "last_seen_at": "2026-09-22T20:20:09.639794Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-22T13:35:57.828547Z",
-             *               "valid_from": "2026-09-22T13:35:57.828547Z",
+             *               "updated_at": "2026-09-22T20:20:09.639794Z",
+             *               "valid_from": "2026-09-22T20:20:09.639794Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4305,7 +4322,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Promtail",
+             *           "service_definition": "OpenVPN",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5210,19 +5227,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-22T13:35:57.848574Z",
+             *           "created_at": "2026-09-22T20:20:09.663149Z",
              *           "first_discovery_id": null,
-             *           "id": "b1f7d66d-eeb3-40b2-9567-5be2c690697c",
+             *           "id": "be507934-8e4e-473f-9dbd-20e278e65703",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-22T13:35:57.848574Z",
+             *           "last_seen_at": "2026-09-22T20:20:09.663149Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-22T13:35:57.848574Z",
-             *           "valid_from": "2026-09-22T13:35:57.848574Z",
+             *           "updated_at": "2026-09-22T20:20:09.663149Z",
+             *           "valid_from": "2026-09-22T20:20:09.663149Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5236,7 +5253,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Promtail",
+             *       "service_definition": "OpenVPN",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -5403,6 +5420,39 @@ export interface components {
                  * @description When this record stops being valid.
                  */
                 expires_at: string;
+            };
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_ShareWithTopology: {
+            /**
+             * @description Share with topology data (returned after authentication/verification).
+             *
+             *     Returns the slim topology row (`{ id, network_id, options }`) plus the
+             *     `TopologyData` bundle (entities + the per-view graph built on request). The
+             *     share viewer composes these with the same `toRenderableTopology` the app
+             *     uses — no server-side merge.
+             */
+            data?: {
+                /** @description Entities and graph for the requested view. */
+                data: components["schemas"]["TopologyData"];
+                /** @description Which exports the share creator's plan allows. */
+                export_features: components["schemas"]["ExportFeatures"];
+                /** @description Public metadata for the share itself. */
+                share: components["schemas"]["PublicShareMetadata"];
+                /** @description The shared topology record. */
+                topology: components["schemas"]["Topology"];
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -6269,19 +6319,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-22T13:35:57.829236Z",
+         *       "created_at": "2026-09-22T20:20:09.640591Z",
          *       "first_discovery_id": null,
-         *       "id": "32da78a1-1362-4313-bf6c-8de69d311e2b",
+         *       "id": "a71e660b-4aa6-45dd-aa71-7cb0870cedfa",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-22T13:35:57.829236Z",
+         *       "last_seen_at": "2026-09-22T20:20:09.640591Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-22T13:35:57.829236Z",
-         *       "valid_from": "2026-09-22T13:35:57.829236Z",
+         *       "updated_at": "2026-09-22T20:20:09.640591Z",
+         *       "valid_from": "2026-09-22T20:20:09.640591Z",
          *       "valid_to": null
          *     }
          */
@@ -6607,7 +6657,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Promtail",
+         *           "service_definition": "OpenVPN",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8448,6 +8498,23 @@ export interface components {
             /** @description Guest name as configured on the ESXi host. */
             vm_name?: string | null;
         };
+        /** @description Export feature flags derived from the share creator's billing plan */
+        ExportFeatures: {
+            /** @description Viewer may export the diagram for Confluence. */
+            confluence_export: boolean;
+            /** @description Viewer may export the diagram as standalone HTML. */
+            html_export: boolean;
+            /** @description Viewer may export the diagram as Mermaid. */
+            mermaid_export: boolean;
+            /** @description Viewer may export the diagram as PDF. */
+            pdf_export: boolean;
+            /** @description Viewer may export the diagram as PNG. */
+            png_export: boolean;
+            /** @description Exports omit the Scanopy attribution line. */
+            remove_created_with: boolean;
+            /** @description Viewer may export the diagram as SVG. */
+            svg_export: boolean;
+        };
         /**
          * @description Definition of a form field for dynamic UI rendering.
          *
@@ -8826,19 +8893,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-22T13:35:57.827713Z",
+         *               "created_at": "2026-09-22T20:20:09.638914Z",
          *               "first_discovery_id": null,
-         *               "id": "c1ff9698-1f48-4028-919a-844f2c6b8a54",
+         *               "id": "9e414420-475c-4338-839d-1a06fc792dda",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-22T13:35:57.827713Z",
+         *               "last_seen_at": "2026-09-22T20:20:09.638914Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-22T13:35:57.827713Z",
-         *               "valid_from": "2026-09-22T13:35:57.827713Z",
+         *               "updated_at": "2026-09-22T20:20:09.638914Z",
+         *               "valid_from": "2026-09-22T20:20:09.638914Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8852,7 +8919,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Promtail",
+         *           "service_definition": "OpenVPN",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -11818,19 +11885,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-22T13:35:57.829020Z",
+         *           "created_at": "2026-09-22T20:20:09.640334Z",
          *           "first_discovery_id": null,
-         *           "id": "6d24ed7b-f6ad-4425-8331-af8254e1d45f",
+         *           "id": "bcffd9b8-f958-403b-8128-eb64cb946a7d",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-22T13:35:57.829020Z",
+         *           "last_seen_at": "2026-09-22T20:20:09.640334Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-22T13:35:57.829020Z",
-         *           "valid_from": "2026-09-22T13:35:57.829020Z",
+         *           "updated_at": "2026-09-22T20:20:09.640334Z",
+         *           "valid_from": "2026-09-22T20:20:09.640334Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -11844,7 +11911,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Promtail",
+         *       "service_definition": "OpenVPN",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12109,6 +12176,30 @@ export interface components {
             show_minimap: boolean;
             /** @description Viewer sees the zoom controls. */
             show_zoom_controls: boolean;
+        };
+        ShareTopologyRequest: {
+            /** @description Server-issued access token obtained from `/verify`. Required when the share has a password. */
+            access_token?: string | null;
+            /** @description Which topology view to return data for */
+            view: components["schemas"]["TopologyView"];
+        };
+        /**
+         * @description Share with topology data (returned after authentication/verification).
+         *
+         *     Returns the slim topology row (`{ id, network_id, options }`) plus the
+         *     `TopologyData` bundle (entities + the per-view graph built on request). The
+         *     share viewer composes these with the same `toRenderableTopology` the app
+         *     uses — no server-side merge.
+         */
+        ShareWithTopology: {
+            /** @description Entities and graph for the requested view. */
+            data: components["schemas"]["TopologyData"];
+            /** @description Which exports the share creator's plan allows. */
+            export_features: components["schemas"]["ExportFeatures"];
+            /** @description Public metadata for the share itself. */
+            share: components["schemas"]["PublicShareMetadata"];
+            /** @description The shared topology record. */
+            topology: components["schemas"]["Topology"];
         };
         Snapshot: components["schemas"]["SnapshotBase"] & {
             /**
@@ -12546,7 +12637,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "4a68f1da-dd56-4c52-9507-d5a1f1c749c8",
+             *           "id": "1865099f-e6aa-4e27-8400-16832a5e1c29",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -12556,23 +12647,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "14478f29-5032-4f21-8549-6b0617036277",
+             *           "id": "acf07384-b4d8-4ecf-a2bf-e57ebc7bdcc3",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "fae56d8e-0ade-4f3a-9a74-2079dab4574f",
+             *           "id": "dafc4df5-8790-4fdc-b947-e72e5b690fce",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "9494d1a9-6ac8-46a1-add2-cd55802c8728",
+             *           "id": "18d1c2c9-d34a-454e-885e-3660bf9bdb46",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "14478f29-5032-4f21-8549-6b0617036277",
+             *           "id": "acf07384-b4d8-4ecf-a2bf-e57ebc7bdcc3",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -12585,19 +12676,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "481b0ef5-1fa8-4988-b40e-9ed2c9d93a86",
+             *         "id": "68aab79d-8142-4117-914b-558f1129a58f",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "55169aad-08c0-4e97-af89-00222390d5b4",
+             *         "id": "ef017fdc-7236-48e1-9f7e-cd2724959f46",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "5d51186e-e367-4a5e-a6fa-8ea64e2f7020",
+             *         "id": "e0c42c6e-73c5-488a-8dc5-7511c946b13b",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "5a3be504-47e8-44f4-999c-4a31af44b8f8",
+             *         "id": "d36052e9-9b25-4921-9ff4-9b075cc9fd7f",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -12615,7 +12706,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "634b2550-4739-4eb9-8360-5cb6d83d3742",
+             *         "id": "311201c4-d385-4508-b338-1f7208ee1153",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -12624,15 +12715,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "b85fd4af-ea84-4a00-a881-5caaf4f98876",
+             *         "id": "e3b6e3c0-60c4-47f4-8e28-47a06ac3b55e",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "715a2d32-8509-4399-b240-7bac1953356a",
+             *         "id": "44aaf293-ef88-4438-8f21-2c8d187561ee",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "5b182845-deb6-47aa-8136-fb53b41721bc",
+             *         "id": "509dadae-b7a7-4ef3-ae5b-a4f0334aa9f6",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -19462,8 +19553,101 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_PublicShareMetadata"];
                 };
             };
+            /** @description Share is disabled or expired */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
             /** @description Share not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_share_topology: {
+        parameters: {
+            query?: {
+                /** @description Return the share prepared for embedding in another page. */
+                embed?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Share ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShareTopologyRequest"];
+            };
+        };
+        responses: {
+            /** @description Share metadata and topology data */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_ShareWithTopology"];
+                };
+            };
+            /** @description View is not enabled on this share */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Access token missing, expired or tampered with */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Embedding is not included in the share owner's plan */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Share is disabled or expired, or its password was not verified */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Share not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Too many requests for this share */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -19498,6 +19682,15 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_ShareAccessTokenResponse"];
                 };
             };
+            /** @description Share has no password to verify */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
             /** @description Invalid password */
             401: {
                 headers: {
@@ -19507,8 +19700,26 @@ export interface operations {
                     "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
+            /** @description Share is disabled or expired */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
             /** @description Share not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Too many attempts for this share */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

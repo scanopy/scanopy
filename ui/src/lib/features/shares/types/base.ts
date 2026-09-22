@@ -1,6 +1,5 @@
 // Re-export generated types from OpenAPI schema
 import type { components } from '$lib/api/schema';
-import type { Topology } from '$lib/features/topology/types/base';
 import { utcTimeZoneSentinel, uuidv4Sentinel } from '$lib/shared/utils/formatting';
 
 export type Share = components['schemas']['Share'];
@@ -9,27 +8,15 @@ export type CreateUpdateShareRequest = components['schemas']['CreateUpdateShareR
 export type PublicShareMetadata = components['schemas']['PublicShareMetadata'];
 export type TopologyData = components['schemas']['TopologyData'];
 
-export interface ExportFeatures {
-	png_export: boolean;
-	svg_export: boolean;
-	mermaid_export: boolean;
-	confluence_export: boolean;
-	pdf_export: boolean;
-	html_export: boolean;
-	remove_created_with: boolean;
-}
+export type ExportFeatures = components['schemas']['ExportFeatures'];
+export type TopologyView = components['schemas']['TopologyView'];
 
-// Frontend-specific type: combines share metadata with the slim topology row
-// and the TopologyData bundle (entities + per-view graph built on request).
-// The share viewer composes these into a RenderableTopology with the same
-// `toRenderableTopology` the app uses — shared users can't load entities via
-// the per-entity endpoints with their own credentials, so the bundle ships them.
-export interface ShareWithTopology {
-	share: PublicShareMetadata;
-	topology: Topology;
-	data: TopologyData;
-	export_features: ExportFeatures;
-}
+// Share metadata plus the slim topology row and the TopologyData bundle
+// (entities + per-view graph built on request). The share viewer composes these
+// into a RenderableTopology with the same `toRenderableTopology` the app uses —
+// shared users can't load entities via the per-entity endpoints with their own
+// credentials, so the bundle ships them.
+export type ShareWithTopology = components['schemas']['ShareWithTopology'];
 
 export const defaultShareOptions: ShareOptions = {
 	show_inspect_panel: true,

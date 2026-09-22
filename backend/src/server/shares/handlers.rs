@@ -80,7 +80,8 @@ mod generated {
     crate::crud_export_csv_handler!(Share);
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema, utoipa::IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ShareQuery {
     /// Return the share prepared for embedding in another page.
     #[serde(default)]
@@ -114,10 +115,7 @@ pub fn create_public_router() -> OpenApiRouter<Arc<AppState>> {
     OpenApiRouter::new()
         .routes(routes!(get_public_share_metadata))
         .routes(routes!(verify_share_password))
-        .route(
-            "/public/{id}/topology",
-            axum::routing::post(get_share_topology),
-        )
+        .routes(routes!(get_share_topology))
 }
 
 // ============================================================================
@@ -267,6 +265,7 @@ async fn get_share_org_plan(state: &AppState, share: &Share) -> Result<BillingPl
     params(("id" = Uuid, Path, description = "Share ID")),
     responses(
         (status = 200, description = "Share metadata", body = ApiResponse<PublicShareMetadata>),
+        (status = 403, description = "Share is disabled or expired", body = ApiErrorResponse),
         (status = 404, description = "Share not found", body = ApiErrorResponse),
     )
 )]
@@ -325,8 +324,11 @@ async fn get_public_share_metadata(
     request_body = String,
     responses(
         (status = 200, description = "Password verified; access token issued", body = ApiResponse<ShareAccessTokenResponse>),
+        (status = 400, description = "Share has no password to verify", body = ApiErrorResponse),
         (status = 401, description = "Invalid password", body = ApiErrorResponse),
+        (status = 403, description = "Share is disabled or expired", body = ApiErrorResponse),
         (status = 404, description = "Share not found", body = ApiErrorResponse),
+        (status = 429, description = "Too many attempts for this share", body = ApiErrorResponse),
     )
 )]
 async fn verify_share_password(
@@ -368,6 +370,22 @@ async fn verify_share_password(
 }
 
 /// Get topology data for a public share
+#[utoipa::path(
+    post,
+    path = "/public/{id}/topology",
+    tags = [Share::ENTITY_NAME_PLURAL, api_tags::INTERNAL],
+    params(("id" = Uuid, Path, description = "Share ID"), ShareQuery),
+    request_body = ShareTopologyRequest,
+    responses(
+        (status = 200, description = "Share metadata and topology data", body = ApiResponse<ShareWithTopology>),
+        (status = 400, description = "View is not enabled on this share", body = ApiErrorResponse),
+        (status = 401, description = "Access token missing, expired or tampered with", body = ApiErrorResponse),
+        (status = 402, description = "Embedding is not included in the share owner's plan", body = ApiErrorResponse),
+        (status = 403, description = "Share is disabled or expired, or its password was not verified", body = ApiErrorResponse),
+        (status = 404, description = "Share not found", body = ApiErrorResponse),
+        (status = 429, description = "Too many requests for this share", body = ApiErrorResponse),
+    )
+)]
 async fn get_share_topology(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,

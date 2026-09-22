@@ -38,14 +38,14 @@
 			topologyData.topology,
 			entityBundleFrom(d),
 			topologyData.share.name,
-			currentView as TopologyView
+			currentView
 		);
 	});
 	let viewLoading = $state(false);
 	let error: string | null = $state(null);
 	let passwordVerified = $state(false);
-	let enabledViews: string[] = $state([]);
-	let currentView: string = $state('L3Logical');
+	let enabledViews: TopologyView[] = $state([]);
+	let currentView: TopologyView = $state('L3Logical');
 
 	// Apply theme override from query parameter (already handled by app.html flash script,
 	// but we also lock it so the theme store doesn't override it during the session)
@@ -160,10 +160,14 @@
 	}
 
 	async function handleViewChange(view: string) {
-		if (!shareId || view === currentView) return;
+		// The switcher hands back a plain string. Match it against the share's own
+		// enabled views, which are typed: that narrows without re-listing the
+		// union, and drops anything the share does not actually offer.
+		const next = enabledViews.find((enabled) => enabled === view);
+		if (!shareId || !next || next === currentView) return;
 
 		viewLoading = true;
-		currentView = view;
+		currentView = next;
 
 		const accessToken = shareMetadata?.requires_password
 			? getStoredShareAccessToken(shareId)
@@ -172,7 +176,7 @@
 		const topoResult = await getPublicShareTopology(shareId, {
 			embed: isEmbed,
 			access_token: accessToken ?? undefined,
-			view
+			view: next
 		});
 
 		if (topoResult.success && topoResult.data) {
