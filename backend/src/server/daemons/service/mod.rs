@@ -110,7 +110,7 @@ pub struct DaemonService {
     entity_tag_service: Arc<EntityTagService>,
 
     // Direct dependencies (passed to constructor)
-    discovery_service: Arc<DiscoveryService>,
+    pub(super) discovery_service: Arc<DiscoveryService>,
     credential_service: Arc<CredentialService>,
     subnet_service: Arc<SubnetService>,
     network_service: Arc<NetworkService>,
@@ -210,6 +210,7 @@ impl CrudService<Daemon> for DaemonService {
 }
 
 mod http;
+pub(crate) use http::DaemonHttpError;
 mod lifecycle;
 mod monitoring;
 mod polling;

@@ -24,7 +24,7 @@
 	import { canPay, getTrialDaysLeft, isMissingPaymentMethod } from '$lib/shared/utils/trial';
 	import { pushError, pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
 	import { trackEvent } from '$lib/shared/utils/analytics';
-	import { copyViaSelection } from '$lib/shared/utils/clipboard';
+	import { copyText } from '$lib/shared/utils/clipboard';
 	import { formatTimestamp } from '$lib/shared/utils/formatting';
 	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
 	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
@@ -201,13 +201,7 @@
 
 	async function copyKey(key: string, type: LicenseKeyType) {
 		try {
-			if (window.isSecureContext && navigator.clipboard) {
-				await navigator.clipboard.writeText(key);
-			} else if (!copyViaSelection(key)) {
-				// Plain-HTTP self-hosts have no navigator.clipboard; the selection copy is
-				// the fallback, and it can still be refused.
-				throw new Error('the browser refused the copy');
-			}
+			await copyText(key);
 			pushSuccess(common_copied());
 			trackEvent('license_key_copied', { key_type: type });
 		} catch (error) {

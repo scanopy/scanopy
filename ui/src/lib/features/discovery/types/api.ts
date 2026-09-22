@@ -3,6 +3,7 @@ import type { components } from '$lib/api/schema';
 // Re-export generated types
 export type DiscoveryType = components['schemas']['DiscoveryType'];
 export type DiscoveryPhase = components['schemas']['DiscoveryPhase'];
+export type DiscoveryTerminalReason = components['schemas']['DiscoveryTerminalReason'];
 export type HostNamingFallback = components['schemas']['HostNamingFallback'];
 
 // Variant types from DiscoveryType union for type guards

@@ -135,6 +135,7 @@ pub fn sweep(
     retries: u32,
     rate_pps: u32,
     packets_sent: Arc<AtomicU64>,
+    cancel: tokio_util::sync::CancellationToken,
 ) -> Result<std::sync::mpsc::Receiver<IcmpScanResult>> {
     use std::sync::Mutex;
     use std::sync::atomic::{AtomicBool, Ordering};
@@ -227,7 +228,13 @@ pub fn sweep(
     });
 
     thread::spawn(move || {
+        // As in the ARP sender: cancelling stops sending, and the loop still falls through to
+        // `sending_done` and the join that close the result channel.
         for round in 1..=total_rounds {
+            if cancel.is_cancelled() {
+                tracing::debug!(round, "ICMP sweep cancelled; no further echoes sent");
+                break;
+            }
             let round_targets: Vec<Ipv4Addr> = {
                 let found = found.lock().unwrap();
                 target_set
@@ -247,6 +254,9 @@ pub fn sweep(
 
             let mut buf = [0u8; ECHO_PACKET_LEN];
             for (index, target) in round_targets.iter().enumerate() {
+                if cancel.is_cancelled() {
+                    break;
+                }
                 // Rebuild per target: the sequence number varies, and with it the checksum.
                 buf.fill(0);
                 build_echo_request(&mut buf, identifier, (round as usize * 1024 + index) as u16);
@@ -262,7 +272,9 @@ pub fn sweep(
                 thread::sleep(send_delay);
             }
 
-            thread::sleep(ROUND_WAIT);
+            if !cancel.is_cancelled() {
+                thread::sleep(ROUND_WAIT);
+            }
         }
 
         sending_done.store(true, Ordering::Relaxed);
@@ -293,6 +305,7 @@ pub fn sweep(
     _retries: u32,
     _rate_pps: u32,
     _packets_sent: std::sync::Arc<std::sync::atomic::AtomicU64>,
+    _cancel: tokio_util::sync::CancellationToken,
 ) -> anyhow::Result<std::sync::mpsc::Receiver<super::types::IcmpScanResult>> {
     Err(anyhow::anyhow!(
         "Raw ICMP sockets are not used on Windows; see the iphlpapi path"

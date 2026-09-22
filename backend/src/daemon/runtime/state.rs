@@ -230,6 +230,9 @@ impl DaemonState {
                 },
                 discovery_id: Some(s.info.discovery_id),
                 scanned: None,
+                reason: None,
+                last_update_at: None,
+                daemon_version: None,
             });
         }
         drop(session);

@@ -10,7 +10,11 @@ import type { paths, components } from './schema';
 import { pushError } from '$lib/shared/stores/feedback';
 import { translateError, type ApiErrorResponse } from '$lib/i18n/errors';
 import type { ErrorCode } from '$lib/generated/error-codes';
-import { common_httpError } from '$lib/paraglide/messages';
+import {
+	common_httpError,
+	common_requestTimedOut,
+	common_requestUnconfirmed
+} from '$lib/paraglide/messages';
 import { env } from '$env/dynamic/public';
 
 // Re-export schema types for convenience
@@ -47,6 +51,86 @@ export class ApiError extends Error {
 		this.code = code;
 	}
 }
+
+/** A request the server did not answer within its budget. */
+export class RequestTimeoutError extends Error {
+	readonly timeoutMs: number;
+	readonly method: string;
+	constructor(timeoutMs: number, method: string) {
+		super(`Request timed out after ${timeoutMs}ms`);
+		this.name = 'RequestTimeoutError';
+		this.timeoutMs = timeoutMs;
+		this.method = method;
+	}
+}
+
+/**
+ * How long a request may wait for the server. Without a limit, a request the server never
+ * answers holds its concurrency slot and leaves whatever is waiting on it, the Scans tab's session
+ * list for one, loading for good.
+ */
+const DEFAULT_TIMEOUT_MS = 30_000;
+
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+/**
+ * Requests that legitimately take longer than the default, with their own budget. `null` means no
+ * limit: the work scales with the size of the network and has no useful ceiling.
+ *
+ * Keyed by the schema path, so renaming an endpoint breaks the build here rather than quietly
+ * dropping its budget.
+ */
+const TIMEOUT_OVERRIDES: {
+	method: HttpMethod;
+	path: keyof paths;
+	timeoutMs: number | null;
+}[] = [
+	// The whole network's entities are copied in one transaction inside the request.
+	{ method: 'POST', path: '/api/v1/snapshots', timeoutMs: null },
+	{ method: 'POST', path: '/api/v1/organizations/{id}/reset', timeoutMs: null },
+	{ method: 'POST', path: '/api/v1/organizations/{id}/populate-demo', timeoutMs: null },
+	{ method: 'POST', path: '/api/v1/daemons/bulk-delete', timeoutMs: null },
+	{ method: 'POST', path: '/api/v1/discovery/bulk-delete', timeoutMs: null },
+	{ method: 'POST', path: '/api/v1/hosts/bulk-delete', timeoutMs: null },
+	{ method: 'POST', path: '/api/v1/subnets/bulk-delete', timeoutMs: null },
+	// These can contact a daemon, retrying for up to about two and a half minutes.
+	{ method: 'POST', path: '/api/v1/discovery/start-session', timeoutMs: 180_000 },
+	{ method: 'POST', path: '/api/v1/hosts/{id}/rescan', timeoutMs: 180_000 },
+	{ method: 'POST', path: '/api/v1/daemons/{id}/retry-connection', timeoutMs: 180_000 },
+	{ method: 'POST', path: '/api/v1/discovery/{session_id}/cancel', timeoutMs: 60_000 },
+	{ method: 'POST', path: '/api/v1/daemons/test-reachability', timeoutMs: 60_000 },
+	{ method: 'POST', path: '/api/v1/daemons/provision', timeoutMs: 120_000 },
+	// Sends an email over the organisation's mail server.
+	{ method: 'POST', path: '/api/v1/daemons/email-install-command', timeoutMs: 120_000 },
+	{ method: 'POST', path: '/api/v1/subnets/{id}/merge', timeoutMs: 120_000 },
+	// Graph builds over the whole network.
+	{ method: 'GET', path: '/api/v1/topology', timeoutMs: 120_000 },
+	{ method: 'GET', path: '/api/v1/topology/data', timeoutMs: 120_000 },
+	{ method: 'GET', path: '/api/v1/topology/{id}', timeoutMs: 120_000 }
+];
+
+/** Billing calls go to Stripe from inside the request, and a plan change can take a while. */
+const BILLING_TIMEOUT_MS = 90_000;
+
+function timeoutFor(method: string, schemaPath: string): number | null {
+	const override = TIMEOUT_OVERRIDES.find((o) => o.method === method && o.path === schemaPath);
+	if (override) return override.timeoutMs;
+	if (schemaPath.startsWith('/api/billing/') || schemaPath.startsWith('/api/v1/licenses/')) {
+		return BILLING_TIMEOUT_MS;
+	}
+	return DEFAULT_TIMEOUT_MS;
+}
+
+/** Per-request settings carried on the `Request` into `rateLimitedFetch`. */
+type RequestSettings = { timeoutMs?: number | null; silenceErrors?: boolean };
+
+/** Stamps each request with its budget. The timer itself starts in `rateLimitedFetch`. */
+const timeoutMiddleware: Middleware = {
+	onRequest({ request, schemaPath }) {
+		(request as Request & RequestSettings).timeoutMs = timeoutFor(request.method, schemaPath);
+		return undefined;
+	}
+};
 
 // Global rate limit state — when any request gets 429'd, all requests wait
 // Persisted to sessionStorage so it survives page refreshes
@@ -161,8 +245,33 @@ function drainQueue(): void {
  */
 async function rateLimitedFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
 	await acquireSlot();
+
+	// Armed only now that the request holds a slot: during rate-limit recovery the queue releases
+	// one request every half second, and a budget started at call time would be spent waiting.
+	const settings: RequestSettings =
+		input instanceof Request ? (input as Request & RequestSettings) : {};
+	const timeoutMs = settings.timeoutMs === undefined ? DEFAULT_TIMEOUT_MS : settings.timeoutMs;
+	const method = input instanceof Request ? input.method : (init?.method ?? 'GET');
+	const controller = new AbortController();
+	// A caller's own abort still wins.
+	const callerSignal = input instanceof Request ? input.signal : (init?.signal ?? undefined);
+	const forwardAbort = () => controller.abort(callerSignal?.reason);
+	if (callerSignal?.aborted) {
+		controller.abort(callerSignal.reason);
+	} else {
+		callerSignal?.addEventListener('abort', forwardAbort, { once: true });
+	}
+	let timedOut = false;
+	const timer =
+		timeoutMs === null
+			? undefined
+			: setTimeout(() => {
+					timedOut = true;
+					controller.abort();
+				}, timeoutMs);
+
 	try {
-		const response = await fetch(input, init);
+		const response = await fetch(input, { ...init, signal: controller.signal });
 
 		if (response.status === 429) {
 			const retryAfterHeader = response.headers.get('Retry-After');
@@ -173,7 +282,20 @@ async function rateLimitedFetch(input: RequestInfo | URL, init?: RequestInit): P
 		}
 
 		return response;
+	} catch (error) {
+		if (timedOut && timeoutMs !== null) {
+			// An aborted request never reaches `errorMiddleware`, so the toast is raised here. For
+			// anything but a read, the server may well have done the work and only the answer was
+			// lost, and the message says so rather than calling it a failure.
+			if (!settings.silenceErrors) {
+				pushError(method === 'GET' ? common_requestTimedOut() : common_requestUnconfirmed());
+			}
+			throw new RequestTimeoutError(timeoutMs, method);
+		}
+		throw error;
 	} finally {
+		if (timer !== undefined) clearTimeout(timer);
+		callerSignal?.removeEventListener('abort', forwardAbort);
 		releaseSlot();
 	}
 }
@@ -353,7 +475,8 @@ export const apiClient = createClient<paths>({
 	fetch: rateLimitedFetch
 });
 
-// Add middleware (rate limiting handled by custom fetch wrapper above)
+// Add middleware (rate limiting and timeouts handled by custom fetch wrapper above)
+apiClient.use(timeoutMiddleware);
 apiClient.use(cachingMiddleware);
 apiClient.use(errorMiddleware);
 

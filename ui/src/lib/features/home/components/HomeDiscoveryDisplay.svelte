@@ -1,6 +1,6 @@
 <script lang="ts" module>
 	import { entities } from '$lib/shared/stores/metadata';
-	import { toColor } from '$lib/shared/utils/styling';
+	import { runOutcomeTag } from '$lib/features/discovery/utils/outcome';
 	import { formatTimestamp } from '$lib/shared/utils/formatting';
 	import type { Discovery } from '$lib/features/discovery/types/base';
 	import type { Daemon } from '$lib/features/daemons/types/base';
@@ -31,23 +31,11 @@
 		getIcon: () => entities.getIconComponent('Discovery'),
 		getIconColor: () => entities.getColorHelper('Discovery').icon,
 		getTags: (discovery) => {
-			const phase =
-				discovery.run_type.type === 'Historical' && discovery.run_type.results
-					? (discovery.run_type.results.phase ?? null)
-					: null;
-
-			if (!phase) return [];
-
-			switch (phase) {
-				case 'Complete':
-					return [{ label: 'Complete', color: toColor('green') }];
-				case 'Failed':
-					return [{ label: 'Failed', color: toColor('red') }];
-				case 'Cancelled':
-					return [{ label: 'Cancelled', color: toColor('yellow') }];
-				default:
-					return [{ label: phase, color: toColor('blue') }];
-			}
+			const tag = runOutcomeTag(
+				discovery.run_type.type === 'Historical' ? discovery.run_type.results : null,
+				{ includeCompleted: true }
+			);
+			return tag ? [tag] : [];
 		}
 	};
 </script>

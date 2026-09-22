@@ -176,6 +176,18 @@ pub fn supports_full_server_poll(version: Option<&Version>) -> bool {
     version.is_some_and(|v| v >= &minimum_full_server_poll())
 }
 
+/// Minimum daemon version whose status reports `ready_for_work` (>= 0.14.17). Older daemons omit
+/// the field and the server reads it as `true` (its serde default on `DaemonStatus`), so their
+/// "ready" says nothing about whether they are running a session.
+pub fn minimum_ready_for_work() -> Version {
+    Version::new(0, 14, 17)
+}
+
+/// Returns true if the daemon's `ready_for_work` can be believed (>= 0.14.17).
+pub fn reports_ready_for_work(version: Option<&Version>) -> bool {
+    version.is_some_and(|v| v >= &minimum_ready_for_work())
+}
+
 /// Minimum daemon version that ships with server-provisioned identity: it is
 /// installed against a pre-provisioned record bound to a 1:1 api key, learns its
 /// identity from the register / first-contact handshake, and no longer relies on

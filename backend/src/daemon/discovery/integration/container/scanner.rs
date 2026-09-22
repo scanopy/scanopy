@@ -45,6 +45,10 @@ const CONCURRENT_CONTAINER_SCANS: usize = 15;
 /// through the container socket.
 const PROBE_BODY_LIMIT: usize = 65536;
 
+/// How long an exec inside a container gets to finish writing its output. The commands run are a
+/// `cat` of the socket tables and a batch of loopback HTTP probes; both finish in seconds.
+const EXEC_OUTPUT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
 /// One `(port, path)` a container answered on, before it is attributed to any address.
 ///
 /// The probe runs over loopback inside the container, so its answers are the same whichever of
@@ -1028,11 +1032,26 @@ exec(\\\"try:\\\\n p=urllib.request.urlopen(r,context=c,timeout=1)\\\\nexcept Ex
 
         use futures::StreamExt;
         let mut captured = String::new();
+        // Creating and starting the exec are bounded by the client's own timeout; reading its
+        // output was not, so an exec that never closed its stream held the container scan until
+        // the integration's five-minute cap. Stopping early returns `None` rather than the partial
+        // output: a truncated `/proc/net/tcp` parses as a shorter, wrong port list.
+        let deadline = tokio::time::sleep(EXEC_OUTPUT_TIMEOUT);
+        tokio::pin!(deadline);
         loop {
             tokio::select! {
                 _ = cancel.cancelled() => {
                     tracing::debug!(container = container_name, "Container exec cancelled");
-                    break;
+                    return None;
+                }
+                _ = &mut deadline => {
+                    tracing::warn!(
+                        container = container_name,
+                        timeout_secs = EXEC_OUTPUT_TIMEOUT.as_secs(),
+                        "Container exec produced no end of output in time; probing its ports \
+                         from outside instead"
+                    );
+                    return None;
                 }
                 msg = output.next() => {
                     match msg {

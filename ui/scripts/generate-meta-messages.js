@@ -47,6 +47,13 @@ export const COVERED_FIXTURES = [
 	{ file: 'billing-plans-all.json', key: 'billing_plans', kind: 'typeMetadata' },
 	{ file: 'features.json', key: 'features', kind: 'typeMetadata' },
 	{ file: 'discovery-types.json', key: 'discovery_types', kind: 'typeMetadata' },
+	// Why a scan ended. The description is the sentence a customer reads on a failed or stalled
+	// run and pastes into a support request, so it has to be translatable.
+	{
+		file: 'discovery-terminal-reasons.json',
+		key: 'discovery_terminal_reasons',
+		kind: 'typeMetadata'
+	},
 	{ file: 'dependency-types.json', key: 'dependency_types', kind: 'typeMetadata' },
 	{ file: 'permissions.json', key: 'permissions', kind: 'typeMetadata' },
 	{ file: 'scan-settings.json', key: 'scan_settings', kind: 'fieldDefinitions' },

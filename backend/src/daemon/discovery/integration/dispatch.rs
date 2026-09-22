@@ -13,6 +13,7 @@ use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 use crate::daemon::discovery::credentials::{ApplicableCredential, resolve_credentials_for_ip};
+use crate::daemon::discovery::integration::ProbeFailure;
 use crate::daemon::discovery::service::ops::{DiscoveryOps, HostData};
 use crate::daemon::discovery::service::warnings::{
     AttemptOutcome, CredentialIssue, CredentialIssueReason, issue_for_attempt,
@@ -49,9 +50,14 @@ async fn attempt_credential(
     user_assigned: bool,
     credential_id: Option<Uuid>,
 ) -> Result<ProbeSuccess, Option<CredentialIssue>> {
-    let failure = match integration.probe(ctx).await {
-        Ok(success) => return Ok(success),
-        Err(failure) => failure,
+    // Bounded like `execute()` is: a probe that stops answering used to hold its host, and on the
+    // localhost path the whole session, with nothing reporting progress. `TimedOut` rather than
+    // `CollectionTimedOut`: a probe that never answered never authenticated.
+    let budget = integration.probe_timeout();
+    let failure = match tokio::time::timeout(budget, integration.probe(ctx)).await {
+        Ok(Ok(success)) => return Ok(success),
+        Ok(Err(failure)) => failure,
+        Err(_) => ProbeFailure::timed_out(format!("no answer within {}s", budget.as_secs())),
     };
     let outcome = failure.outcome();
 
@@ -614,13 +620,7 @@ pub async fn execute_integrations(
 
         if let Err(e) =
             execute_with_progress_reporting(integration.as_ref(), &ctx, host_data, || async {
-                let pct = params
-                    .ops
-                    .get_session()
-                    .await
-                    .map(|s| s.last_progress.load(std::sync::atomic::Ordering::Relaxed))
-                    .unwrap_or(0);
-                let _ = params.ops.report_progress(pct).await;
+                let _ = params.ops.heartbeat().await;
             })
             .await
         {

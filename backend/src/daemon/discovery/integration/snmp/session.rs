@@ -83,6 +83,9 @@ fn starting_request_id() -> i32 {
 pub struct SnmpSession {
     inner: Box<AsyncSession>,
     getbulk_unusable: bool,
+    /// The discovery's cancellation, checked between the requests of a walk. A table walk can run
+    /// for a minute or more, and nothing else in it looks at the token.
+    cancel: Option<tokio_util::sync::CancellationToken>,
 }
 
 impl SnmpSession {
@@ -90,7 +93,19 @@ impl SnmpSession {
         Self {
             inner: Box::new(inner),
             getbulk_unusable: false,
+            cancel: None,
         }
+    }
+
+    /// Stop walks on this session when `token` is cancelled.
+    pub fn watch_cancel(&mut self, token: tokio_util::sync::CancellationToken) {
+        self.cancel = Some(token);
+    }
+
+    pub fn is_cancelled(&self) -> bool {
+        self.cancel
+            .as_ref()
+            .is_some_and(tokio_util::sync::CancellationToken::is_cancelled)
     }
 
     /// Whether a walk on this host has already found getbulk unanswerable.

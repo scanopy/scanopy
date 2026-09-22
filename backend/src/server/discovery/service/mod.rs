@@ -1,5 +1,5 @@
 use crate::bail_validation;
-use crate::daemon::discovery::types::base::DiscoveryPhase;
+use crate::daemon::discovery::types::base::{DiscoveryPhase, DiscoveryTerminalReason};
 use crate::daemon::runtime::service::LOG_TARGET;
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::credentials::r#impl::mapping::{IntegrationTarget, Target};
@@ -35,6 +35,13 @@ use tokio_cron_scheduler::{JobBuilder, JobScheduler};
 use uuid::Uuid;
 
 /// Server-side session management for discovery
+///
+/// **Lock order.** Any code holding more than one of the session locks takes them in this order:
+/// `running_snapshots` → `sessions` → `session_last_updated` → `daemon_sessions` →
+/// `daemon_pull_cancellations` → `discovery_sessions`. Taking a later one and then waiting on an
+/// earlier one deadlocks against a writer doing the opposite, and a deadlock here is not bounded
+/// by anything: every session read, including the UI's poll, dispatch and the stall sweep itself,
+/// queues behind it until the server restarts.
 pub struct DiscoveryService {
     self_ref: Weak<Self>,
     discovery_storage: Arc<GenericPostgresStorage<Discovery>>,
@@ -217,3 +224,4 @@ mod dispatch;
 mod lifecycle;
 mod scheduling;
 mod sessions;
+mod state;

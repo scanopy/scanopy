@@ -161,6 +161,160 @@ impl TypeMetadataProvider for DiscoveryPhase {
     }
 }
 
+/// Why a session reached its terminal phase.
+///
+/// `phase` says *that* a run ended; this says *why*. A stall reaped by the server, a daemon that
+/// lost its state in a restart and a user pressing cancel all used to land as the same phase with
+/// no way to tell them apart afterwards, which is what made stall reports undiagnosable.
+///
+/// The server decides every reason except the two the daemon alone can know, see
+/// [`Self::daemon_assigned`]. Absent on runs recorded before this field existed.
+#[derive(
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    ToSchema,
+    EnumDiscriminants,
+    EnumIter,
+)]
+#[strum_discriminants(derive(
+    Hash,
+    EnumIter,
+    strum::Display,
+    strum::AsRefStr,
+    Serialize,
+    Deserialize
+))]
+pub enum DiscoveryTerminalReason {
+    Completed,
+    UserCancelled,
+    /// The daemon reported `Failed` without a more specific reason.
+    DaemonReportedFailure,
+    /// The server received nothing for the session within the stall threshold.
+    StalledNoUpdates,
+    /// The daemon came back ready for work while the server still had the session running.
+    DaemonRestarted,
+    /// Cancellation could not be delivered because the daemon is unreachable or unusable.
+    DaemonUnreachable,
+    /// The daemon refused the session because it was already running another.
+    DaemonBusy,
+    /// The daemon's watchdog ended a session that outlived its maximum duration.
+    WatchdogTimeout,
+}
+
+impl DiscoveryTerminalReason {
+    /// Reasons only the daemon can observe. The server keeps these when a daemon reports them and
+    /// overwrites any other value a daemon sends, so the server stays the authority for the rest.
+    pub fn daemon_assigned(self) -> bool {
+        matches!(
+            self,
+            DiscoveryTerminalReason::DaemonBusy | DiscoveryTerminalReason::WatchdogTimeout
+        )
+    }
+
+    /// The run stopped making progress rather than failing outright.
+    pub fn is_stall(self) -> bool {
+        matches!(
+            self,
+            DiscoveryTerminalReason::StalledNoUpdates | DiscoveryTerminalReason::WatchdogTimeout
+        )
+    }
+}
+
+impl HasId for DiscoveryTerminalReason {
+    fn id(&self) -> &'static str {
+        match self {
+            DiscoveryTerminalReason::Completed => "Completed",
+            DiscoveryTerminalReason::UserCancelled => "UserCancelled",
+            DiscoveryTerminalReason::DaemonReportedFailure => "DaemonReportedFailure",
+            DiscoveryTerminalReason::StalledNoUpdates => "StalledNoUpdates",
+            DiscoveryTerminalReason::DaemonRestarted => "DaemonRestarted",
+            DiscoveryTerminalReason::DaemonUnreachable => "DaemonUnreachable",
+            DiscoveryTerminalReason::DaemonBusy => "DaemonBusy",
+            DiscoveryTerminalReason::WatchdogTimeout => "WatchdogTimeout",
+        }
+    }
+}
+
+impl EntityMetadataProvider for DiscoveryTerminalReason {
+    fn color(&self) -> Color {
+        match self {
+            DiscoveryTerminalReason::Completed => Color::Green,
+            DiscoveryTerminalReason::UserCancelled => Color::Gray,
+            DiscoveryTerminalReason::DaemonReportedFailure => Color::Red,
+            DiscoveryTerminalReason::StalledNoUpdates => Color::Amber,
+            DiscoveryTerminalReason::DaemonRestarted => Color::Orange,
+            DiscoveryTerminalReason::DaemonUnreachable => Color::Red,
+            DiscoveryTerminalReason::DaemonBusy => Color::Amber,
+            DiscoveryTerminalReason::WatchdogTimeout => Color::Amber,
+        }
+    }
+
+    fn icon(&self) -> Icon {
+        match self {
+            DiscoveryTerminalReason::Completed => Icon::Check,
+            DiscoveryTerminalReason::UserCancelled => Icon::CircleSlash,
+            DiscoveryTerminalReason::DaemonReportedFailure => Icon::X,
+            DiscoveryTerminalReason::StalledNoUpdates => Icon::Clock,
+            DiscoveryTerminalReason::DaemonRestarted => Icon::RotateCcw,
+            DiscoveryTerminalReason::DaemonUnreachable => Icon::Unplug,
+            DiscoveryTerminalReason::DaemonBusy => Icon::Hourglass,
+            DiscoveryTerminalReason::WatchdogTimeout => Icon::TimerOff,
+        }
+    }
+}
+
+impl TypeMetadataProvider for DiscoveryTerminalReason {
+    fn name(&self) -> &'static str {
+        match self {
+            DiscoveryTerminalReason::Completed => "Completed",
+            DiscoveryTerminalReason::UserCancelled => "Cancelled",
+            DiscoveryTerminalReason::DaemonReportedFailure => "Failed",
+            DiscoveryTerminalReason::StalledNoUpdates => "Stalled",
+            DiscoveryTerminalReason::DaemonRestarted => "Daemon restarted",
+            DiscoveryTerminalReason::DaemonUnreachable => "Daemon unreachable",
+            DiscoveryTerminalReason::DaemonBusy => "Daemon busy",
+            DiscoveryTerminalReason::WatchdogTimeout => "Timed out",
+        }
+    }
+
+    fn description(&self) -> &'static str {
+        match self {
+            DiscoveryTerminalReason::Completed => "The scan finished normally.",
+            DiscoveryTerminalReason::UserCancelled => {
+                "Someone stopped this scan before it finished."
+            }
+            DiscoveryTerminalReason::DaemonReportedFailure => {
+                "The daemon reported an error and stopped the scan. The error message says what failed."
+            }
+            DiscoveryTerminalReason::StalledNoUpdates => {
+                "The server heard nothing from the daemon for 5 minutes and stopped waiting. Check that the daemon is running and can reach the server."
+            }
+            DiscoveryTerminalReason::DaemonRestarted => {
+                "The daemon restarted during the scan, so the scan's progress was lost. The daemon's logs show why it restarted."
+            }
+            DiscoveryTerminalReason::DaemonUnreachable => {
+                "The server could not reach the daemon to stop this scan. Check that the daemon is running and reachable from the server."
+            }
+            DiscoveryTerminalReason::DaemonBusy => {
+                "The daemon was already running another scan and refused this one."
+            }
+            DiscoveryTerminalReason::WatchdogTimeout => {
+                "The scan ran past its maximum duration without finishing, so the daemon stopped it. Part of the scan stopped responding; the daemon's logs name the phase."
+            }
+        }
+    }
+
+    fn metadata(&self) -> serde_json::Value {
+        serde_json::json!({ "is_stall": self.is_stall() })
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct DiscoverySessionInfo {
     pub session_id: Uuid,
@@ -181,6 +335,9 @@ pub struct DiscoverySessionUpdate {
     /// left un-scanned). Distinct from `error`, which marks the run as failed.
     pub warnings: Vec<DiscoveryWarning>,
     pub finished_at: Option<DateTime<Utc>>,
+    /// Set only for the reasons the daemon alone can know; see
+    /// [`DiscoveryTerminalReason::daemon_assigned`].
+    pub reason: Option<DiscoveryTerminalReason>,
 }
 
 impl DiscoverySessionUpdate {
@@ -191,6 +348,7 @@ impl DiscoverySessionUpdate {
             error: None,
             warnings: Vec::new(),
             finished_at: None,
+            reason: None,
         }
     }
 }

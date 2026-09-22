@@ -25,7 +25,8 @@
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
 	import { pushError, pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
-	import { copyViaSelection } from '$lib/shared/utils/clipboard';
+	import { copyText } from '$lib/shared/utils/clipboard';
+	import { formatDiagnostics } from '../../utils/diagnostics';
 	import type { Daemon } from '$lib/features/daemons/types/base';
 	import type { Host } from '$lib/features/hosts/types/base';
 	import { useSubnetsQuery } from '$lib/features/subnets/queries';
@@ -65,6 +66,7 @@
 		common_performance,
 		common_targets,
 		daemons_credentialWizardTargetRequired,
+		discovery_copyDiagnostics,
 		discovery_copyWarningData,
 		discovery_couldNotGetNetworkId,
 		discovery_createDiscovery,
@@ -131,6 +133,9 @@
 
 	let isEditing = $derived(discovery !== null);
 	let isHistoricalRun = $derived(discovery?.run_type.type === 'Historical');
+	let historicalResults = $derived(
+		discovery?.run_type.type === 'Historical' ? discovery.run_type.results : null
+	);
 	let historicalWarnings = $derived(
 		discovery?.run_type.type === 'Historical' ? (discovery.run_type.results.warnings ?? []) : []
 	);
@@ -144,19 +149,24 @@
 	 * chips show names resolved live rather than what the scan recorded. The payload is the
 	 * durable artefact — every code with its own fields, one object per occurrence.
 	 *
-	 * `navigator.clipboard` is gated to secure contexts, and Scanopy supports plain-HTTP
-	 * self-hosts — the same trap `crypto.randomUUID` carries — so it is used only where it exists
-	 * and a selection-based copy stands in elsewhere. That is the deployment most likely to be
-	 * sharing warnings with us, so failing there would miss the point of the button.
+	 * `copyText` falls back to a selection copy on plain-HTTP self-hosts, the deployment most
+	 * likely to be sharing warnings with us.
 	 */
 	async function copyWarningData() {
-		const raw = JSON.stringify(historicalWarnings, null, 2);
+		await copyToClipboard(JSON.stringify(historicalWarnings, null, 2));
+	}
+
+	/**
+	 * Put the run's identifiers, versions and timings on the clipboard as plain text, for a
+	 * support thread about a run that failed or was cancelled.
+	 */
+	async function copyDiagnostics() {
+		if (historicalResults) await copyToClipboard(formatDiagnostics(historicalResults));
+	}
+
+	async function copyToClipboard(text: string) {
 		try {
-			if (window.isSecureContext && navigator.clipboard) {
-				await navigator.clipboard.writeText(raw);
-			} else if (!copyViaSelection(raw)) {
-				throw new Error('the browser refused the copy');
-			}
+			await copyText(text);
 			pushSuccess(common_copied());
 		} catch (error) {
 			pushWarning(common_failedToCopy({ error: String(error) }));
@@ -848,6 +858,16 @@
 						>
 							<Copy class="h-4 w-4" />
 							<span>{discovery_copyWarningData()}</span>
+						</button>
+					{/if}
+					{#if historicalResults?.phase === 'Failed' || historicalResults?.phase === 'Cancelled'}
+						<button
+							type="button"
+							class="btn-secondary flex items-center gap-1"
+							onclick={copyDiagnostics}
+						>
+							<Copy class="h-4 w-4" />
+							<span>{discovery_copyDiagnostics()}</span>
 						</button>
 					{/if}
 					{#if isEditing || isHistoricalRun}

@@ -17,10 +17,18 @@ import type { DiscoveryUpdatePayload } from './types/api';
 import type { Organization } from '../organizations/types';
 import { pushError, pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
 import { BaseSSEManager, type SSEConfig } from '$lib/shared/utils/sse';
+import { discoveryTerminalReasons } from '$lib/shared/stores/metadata';
 import { writable } from 'svelte/store';
 import * as m from '$lib/paraglide/messages';
 import { networkItems } from '$lib/features/networks/columns';
 import { daemonItems } from '$lib/features/daemons/columns';
+import {
+	discoveryStreamConnected,
+	forgetSession,
+	observeSessions,
+	recordSessionMessage,
+	sessionLastMessageAt
+} from './utils/staleness';
 
 /**
  * Query hook for fetching all discoveries.
@@ -481,9 +489,14 @@ export function useActiveSessionsQuery(getEnabled: () => boolean = () => true) {
 	return createQuery(() => ({
 		queryKey: queryKeys.discovery.sessions(),
 		queryFn: async () => {
-			return unwrapData(
+			const sessions = unwrapData(
 				await apiClient.GET('/api/v1/discovery/active-sessions', {})
 			) as DiscoveryUpdatePayload[];
+			observeSessions(
+				sessions.map((s) => s.session_id),
+				Date.now()
+			);
+			return sessions;
 		},
 		// Sessions change frequently, keep fresh
 		staleTime: 5 * 1000,
@@ -538,18 +551,27 @@ export function useCancelDiscoveryMutation() {
 				m.set(sessionId, true);
 				return m;
 			});
-
-			const result = await apiClient.POST('/api/v1/discovery/{session_id}/cancel', {
-				params: { path: { session_id: sessionId } }
-			});
-
-			if (!result.response.ok) {
-				// Clear cancelling state on failure, before the throw below
+			const clearCancelling = () =>
 				cancellingSessions.update((c) => {
 					const m = new Map(c);
 					m.delete(sessionId);
 					return m;
 				});
+
+			const result = await apiClient
+				.POST('/api/v1/discovery/{session_id}/cancel', {
+					params: { path: { session_id: sessionId } }
+				})
+				.catch((error: unknown) => {
+					// A request that never answered (a timeout included) left the session marked as
+					// cancelling for good; the stream only clears the mark when the session ends.
+					clearCancelling();
+					throw error;
+				});
+
+			if (!result.response.ok) {
+				// Clear cancelling state on failure, before the throw below
+				clearCancelling();
 			}
 			requireSuccess(result);
 
@@ -565,6 +587,30 @@ export function useCancelDiscoveryMutation() {
 
 // Track last known progress per session to detect changes
 const lastProgress = new Map<string, number>();
+
+function isTerminalPhase(phase: DiscoveryUpdatePayload['phase']): boolean {
+	return phase === 'Complete' || phase === 'Cancelled' || phase === 'Failed';
+}
+
+/**
+ * A failed run's toast, sticky like every failure. A daemon's own failure shows its error. For any
+ * other reason the toast names it; a stall shows what to check, since its error only restates
+ * that the daemon went quiet.
+ */
+function pushFailureToast(update: DiscoveryUpdatePayload) {
+	const reason = update.reason;
+	if (!reason || reason === 'DaemonReportedFailure') {
+		if (update.error) pushError(m.discovery_error({ error: update.error }), -1);
+		return;
+	}
+	const detail = discoveryTerminalReasons.getMetadata(reason).is_stall
+		? discoveryTerminalReasons.getDescription(reason)
+		: (update.error ?? discoveryTerminalReasons.getDescription(reason));
+	pushError(
+		m.discovery_stoppedWithReason({ reason: discoveryTerminalReasons.getName(reason), detail }),
+		-1
+	);
+}
 
 // Throttle configuration for query invalidations
 const INVALIDATION_THROTTLE_MS = 1000; // At most 1 invalidation per second
@@ -609,6 +655,8 @@ class DiscoverySSEManager extends BaseSSEManager<DiscoveryUpdatePayload> {
 
 		// Clear progress tracking for all sessions
 		lastProgress.clear();
+		sessionLastMessageAt.set(new Map());
+		discoveryStreamConnected.set(false);
 
 		super.disconnect();
 	}
@@ -617,6 +665,12 @@ class DiscoverySSEManager extends BaseSSEManager<DiscoveryUpdatePayload> {
 		return {
 			url: '/api/v1/discovery/stream',
 			onMessage: async (update) => {
+				if (isTerminalPhase(update.phase)) {
+					forgetSession(update.session_id);
+				} else {
+					recordSessionMessage(update.session_id, Date.now());
+				}
+
 				// Check if progress increased
 				const last = lastProgress.get(update.session_id) || 0;
 				const current = update.progress || 0;
@@ -644,8 +698,8 @@ class DiscoverySSEManager extends BaseSSEManager<DiscoveryUpdatePayload> {
 					]);
 				} else if (update.phase === 'Cancelled') {
 					pushWarning(m.discovery_cancelled());
-				} else if (update.phase === 'Failed' && update.error) {
-					pushError(m.discovery_error({ error: update.error }), -1);
+				} else if (update.phase === 'Failed') {
+					pushFailureToast(update);
 				}
 
 				// Invalidate org cache until FirstDiscoveryCompleted milestone appears
@@ -661,11 +715,7 @@ class DiscoverySSEManager extends BaseSSEManager<DiscoveryUpdatePayload> {
 						if (!current) current = [];
 
 						// Cleanup for terminal phases
-						if (
-							update.phase === 'Complete' ||
-							update.phase === 'Cancelled' ||
-							update.phase === 'Failed'
-						) {
+						if (isTerminalPhase(update.phase)) {
 							// Clear cancelling state
 							cancellingSessions.update((c) => {
 								const m = new Map(c);
@@ -703,9 +753,22 @@ class DiscoverySSEManager extends BaseSSEManager<DiscoveryUpdatePayload> {
 			},
 			onError: (error) => {
 				console.error('Discovery SSE error:', error);
+				discoveryStreamConnected.set(false);
 				pushError(m.discovery_lostConnection());
 			},
-			onOpen: () => {}
+			onOpen: () => {
+				// Silence while the stream was down says nothing about the daemon, so every session
+				// starts a fresh clock from the reconnect.
+				sessionLastMessageAt.set(new Map());
+				const sessions = queryClient.getQueryData<DiscoveryUpdatePayload[]>(
+					queryKeys.discovery.sessions()
+				);
+				observeSessions(
+					(sessions ?? []).map((s) => s.session_id),
+					Date.now()
+				);
+				discoveryStreamConnected.set(true);
+			}
 		};
 	}
 }

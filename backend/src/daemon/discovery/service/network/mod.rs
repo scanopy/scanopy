@@ -85,6 +85,8 @@ pub struct NetworkScan {
     /// for one reason, and 254 copies of a sentence is not 254 findings. Emitted as one warning per
     /// subnet when the run finishes.
     declined: std::sync::Arc<std::sync::Mutex<HashMap<String, DeclinedAddresses>>>,
+    /// Bounds reverse DNS and counts the lookups that went unanswered.
+    reverse_dns: Arc<dns::ReverseDns>,
 }
 
 /// What one subnet's declined addresses had in common.
@@ -140,6 +142,7 @@ impl NetworkScan {
             target_ips,
             light_scan_ports,
             declined: std::sync::Arc::new(std::sync::Mutex::new(HashMap::new())),
+            reverse_dns: Arc::new(dns::ReverseDns::default()),
         }
     }
 

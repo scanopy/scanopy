@@ -1,7 +1,7 @@
 //! Shared fixture generation logic used by both the `generate-fixtures` binary
 //! and integration tests.
 
-use crate::daemon::discovery::types::base::DiscoveryPhase;
+use crate::daemon::discovery::types::base::{DiscoveryPhase, DiscoveryTerminalReason};
 use crate::daemon::discovery::types::warnings::{
     ClaimSource, DiscoveryWarningCode, MalformedNeighbourConsequence, SnmpWalkGroup, WarningRemedy,
 };
@@ -92,6 +92,15 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
     let discovery_phases: Vec<TypeMetadata> =
         DiscoveryPhase::iter().map(|p| p.to_metadata()).collect();
     write_fixture(&discovery_phases, output_dir, "discovery-phases.json");
+
+    let discovery_terminal_reasons: Vec<TypeMetadata> = DiscoveryTerminalReason::iter()
+        .map(|r| r.to_metadata())
+        .collect();
+    write_fixture(
+        &discovery_terminal_reasons,
+        output_dir,
+        "discovery-terminal-reasons.json",
+    );
 
     // Scan warnings: the code carries the sentence template, and the three enums after it carry
     // the values that fill its slots. All four have to reach the UI, or the English the codes
