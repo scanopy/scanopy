@@ -418,13 +418,16 @@ impl DiscoveryService {
             chrono::DateTime<Utc>,
         ) -> UpdateOutcome,
     ) {
-        let outcome = {
+        let (outcome, previous) = {
             // The lock order documented on `DiscoveryService`.
             let mut sessions = self.sessions.write().await;
             let mut last_updated = self.session_last_updated.write().await;
             let mut daemon_sessions = self.daemon_sessions.write().await;
             let mut pull_cancellations = self.daemon_pull_cancellations.write().await;
             let mut discovery_sessions = self.discovery_sessions.write().await;
+            let previous = sessions
+                .get(&update.session_id)
+                .map(|s| (s.phase, s.started_at));
 
             let outcome = apply(
                 &mut SessionMaps {
@@ -444,8 +447,24 @@ impl DiscoveryService {
             if matches!(outcome, UpdateOutcome::Progress) {
                 let _ = self.update_tx.send(update.clone());
             }
-            outcome
+            (outcome, previous)
         };
+
+        // Once per transition, so a session's log reads as its sequence of phases. A session the
+        // server had no record of (after a server restart) logs its first phase with no previous.
+        if !matches!(outcome, UpdateOutcome::Ignored)
+            && previous.map(|(phase, _)| phase) != Some(update.phase)
+        {
+            let started_at = previous.and_then(|(_, s)| s).or(update.started_at);
+            tracing::info!(
+                session_id = %update.session_id,
+                daemon_id = %update.daemon_id,
+                previous_phase = ?previous.map(|(phase, _)| phase),
+                phase = %update.phase,
+                elapsed_secs = started_at.map(|s| (Utc::now() - s).num_seconds()),
+                "Discovery session changed phase"
+            );
+        }
 
         let effects = match outcome {
             UpdateOutcome::Ignored => return,
@@ -490,6 +509,7 @@ impl DiscoveryService {
         let session_id = session.session_id;
         let daemon_id = session.daemon_id;
         let network_id = session.network_id;
+        record_session_duration(&session);
 
         {
             let is_rescan = session.discovery_type.rescan_target_host_id().is_some();
@@ -865,4 +885,19 @@ impl DiscoveryService {
             }
         }
     }
+}
+
+/// Wall-clock time from start to end of a session that ended, by terminal reason. A session that
+/// never started (refused as busy, or dropped from the queue) has no duration to record.
+pub(super) fn record_session_duration(session: &DiscoveryUpdatePayload) {
+    use crate::server::shared::types::metadata::HasId;
+    let (Some(started), Some(finished)) = (session.started_at, session.finished_at) else {
+        return;
+    };
+    let seconds = finished.signed_duration_since(started).num_milliseconds().max(0) as f64 / 1000.0;
+    metrics::histogram!(
+        "scanopy_discovery_session_duration_seconds",
+        "reason" => session.reason.map(|r| r.id()).unwrap_or("none"),
+    )
+    .record(seconds);
 }

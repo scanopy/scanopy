@@ -884,25 +884,8 @@ impl DiscoveryOps {
             payload.estimated_remaining_secs = Some(estimate);
         }
 
-        let path = format!("/api/v1/discovery/{}/update", session.info.session_id);
-
         // Progress updates are non-critical - log errors but don't fail discovery
-        if let Err(e) = self
-            .api_client
-            .post_no_data(&path, &payload, "Failed to report discovery update")
-            .await
-        {
-            tracing::warn!(
-                session_id = %session.info.session_id,
-                error = %e,
-                "Failed to report discovery update"
-            );
-        } else {
-            tracing::trace!(
-                "Discovery update reported for session {}",
-                session.info.session_id
-            );
-        }
+        self.post_session_update(&session, &payload).await;
 
         Ok(())
     }
@@ -1129,21 +1112,53 @@ impl DiscoveryOps {
                 payload.estimated_remaining_secs = Some(estimate);
             }
 
-            let path = format!("/api/v1/discovery/{}/update", session.info.session_id);
-            if let Err(e) = self
-                .api_client
-                .post_no_data(&path, &payload, "Failed to report discovery update")
-                .await
-            {
+            self.post_session_update(&session, &payload).await;
+        }
+
+        Ok(())
+    }
+
+    /// POST a session update, counting failures in a row so the log shows a daemon losing touch
+    /// with the server before the server gives up on the session.
+    async fn post_session_update(
+        &self,
+        session: &super::base::DiscoverySession,
+        payload: &DiscoveryUpdatePayload,
+    ) {
+        use std::sync::atomic::Ordering;
+
+        let path = format!("/api/v1/discovery/{}/update", session.info.session_id);
+        match self
+            .api_client
+            .post_no_data(&path, payload, "Failed to report discovery update")
+            .await
+        {
+            Err(e) => {
+                let failures = session
+                    .consecutive_report_failures
+                    .fetch_add(1, Ordering::Relaxed)
+                    + 1;
                 tracing::warn!(
                     session_id = %session.info.session_id,
+                    phase = %payload.phase,
+                    consecutive_failures = failures,
                     error = %e,
                     "Failed to report discovery update"
                 );
             }
+            Ok(()) => {
+                let failures = session
+                    .consecutive_report_failures
+                    .swap(0, Ordering::Relaxed);
+                if failures > 0 {
+                    tracing::info!(
+                        session_id = %session.info.session_id,
+                        failed_before = failures,
+                        "Discovery updates reaching the server again"
+                    );
+                }
+            }
         }
-
-        Ok(())
     }
 
     /// Create a host with its children.

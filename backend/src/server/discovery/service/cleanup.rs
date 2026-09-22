@@ -88,6 +88,7 @@ impl DiscoveryService {
         // First pass: identify stalled sessions (read locks only)
         let stalled_sessions: Vec<DiscoveryUpdatePayload> = {
             let sessions = self.sessions.read().await;
+            record_active_sessions(&sessions);
             let last_updated = self.session_last_updated.read().await;
             state::select_stalled(&sessions, &last_updated, now, stall_threshold)
         };
@@ -202,6 +203,7 @@ impl DiscoveryService {
         for state::ReapedSession { session, promoted } in reaped {
             let daemon_id = session.daemon_id;
             let network_id = session.network_id;
+            super::dispatch::record_session_duration(&session);
 
             // The one event a stall produces: `Failed`, carrying why. Metrics and analytics used
             // to see a stall as a user's cancel.
@@ -323,5 +325,17 @@ impl DiscoveryService {
                 }
             });
         }
+    }
+}
+
+/// Live sessions by phase, set on every stall sweep. Every non-terminal phase is set, zeros
+/// included, so a phase that empties reads 0 rather than holding its last count. Terminal sessions
+/// leave the map as they end, so there is nothing to count for them.
+fn record_active_sessions(sessions: &HashMap<Uuid, DiscoveryUpdatePayload>) {
+    use strum::IntoEnumIterator;
+    for phase in DiscoveryPhase::iter().filter(|p| !p.is_terminal()) {
+        let count = sessions.values().filter(|s| s.phase == phase).count();
+        metrics::gauge!("scanopy_discovery_sessions_active", "phase" => phase.to_string())
+            .set(count as f64);
     }
 }

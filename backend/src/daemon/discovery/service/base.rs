@@ -125,6 +125,9 @@ pub struct DiscoverySession {
     pub estimated_remaining_secs: Arc<AtomicU32>,
     pub progress_range_start: Arc<AtomicU8>,
     pub progress_range_end: Arc<AtomicU8>,
+    /// Session updates in a row the server did not accept. The server reaps a session it hears
+    /// nothing from for 5 minutes, so a count that keeps climbing in the log predicts that reap.
+    pub consecutive_report_failures: Arc<AtomicU32>,
     /// Non-fatal warnings accumulated during the run (e.g. the discovery hit its
     /// time limit and left hosts un-scanned). Surfaced in the terminal session
     /// update so the user sees them without the run being marked as failed.
@@ -184,6 +187,7 @@ impl DiscoverySession {
             estimated_remaining_secs: Arc::new(AtomicU32::new(u32::MAX)),
             progress_range_start: Arc::new(AtomicU8::new(0)),
             progress_range_end: Arc::new(AtomicU8::new(100)),
+            consecutive_report_failures: Arc::new(AtomicU32::new(0)),
             warnings: Arc::new(std::sync::Mutex::new(Vec::new())),
             incomplete_snmp_walks: Arc::new(std::sync::Mutex::new(Vec::new())),
             contradicted_claims: Arc::new(std::sync::Mutex::new(Vec::new())),

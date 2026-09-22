@@ -44,6 +44,9 @@ async fn with_heartbeat<T>(ops: &DiscoveryOps, work: impl std::future::Future<Ou
 }
 
 impl DiscoveryRunner {
+    /// Every line logged while the session runs carries its id, including those from the scan
+    /// pipeline and integrations, which do not know which session they serve.
+    #[tracing::instrument(name = "discovery", skip_all, fields(session_id = %request.session_id))]
     pub async fn discover(
         &mut self,
         request: DaemonDiscoveryRequest,

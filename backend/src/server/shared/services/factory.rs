@@ -44,7 +44,7 @@ use crate::server::{
     vlans::service::VlanService,
 };
 use anyhow::Result;
-use metrics_exporter_prometheus::{PrometheusBuilder, PrometheusHandle};
+use metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle};
 use std::sync::{Arc, OnceLock};
 
 // Global Prometheus handle - the recorder can only be installed once per process
@@ -102,6 +102,16 @@ impl ServiceFactory {
         let prometheus_handle = PROMETHEUS_HANDLE
             .get_or_init(|| {
                 PrometheusBuilder::new()
+                    // Buckets rather than the default summary, so durations aggregate across
+                    // servers. They span 30s to the 6h default scan ceiling and past it.
+                    .set_buckets_for_metric(
+                        Matcher::Full("scanopy_discovery_session_duration_seconds".to_string()),
+                        &[
+                            30.0, 60.0, 120.0, 300.0, 600.0, 1800.0, 3600.0, 7200.0, 14400.0,
+                            21600.0, 43200.0,
+                        ],
+                    )
+                    .expect("session duration buckets are non-empty")
                     .install_recorder()
                     .expect("failed to install Prometheus recorder")
             })

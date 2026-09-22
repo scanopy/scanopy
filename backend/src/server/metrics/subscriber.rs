@@ -8,15 +8,23 @@
 //! Discovery scan warnings get a third, `scanopy_discovery_warnings_total{code, integration}`,
 //! because neither label fits the two above: the question an operator asks of a warning is which
 //! failure mode and whose integration, not which entity changed.
+//!
+//! How sessions end gets `scanopy_discovery_terminal_total{phase, reason}`. The session duration
+//! histogram and the active-sessions gauge live with the discovery service, which holds the
+//! timestamps and the live session map.
 
 use anyhow::Error;
 use async_trait::async_trait;
 use strum::IntoDiscriminant;
 
 use crate::{
-    daemon::discovery::types::{base::DiscoveryPhase, warnings::DiscoveryWarningCode},
+    daemon::discovery::types::{
+        base::{DiscoveryPhase, DiscoveryTerminalReason},
+        warnings::DiscoveryWarningCode,
+    },
     server::{
         metrics::service::MetricsService,
+        shared::types::metadata::HasId,
         shared::events::{
             registry::SubscriberRegistration,
             traits::{EntityEventFilter, Event, EventFilter, Subscriber},
@@ -65,6 +73,21 @@ fn record_discovery_warning(code: DiscoveryWarningCode, integration: Option<impl
         "scanopy_discovery_warnings_total",
         "code" => code.to_string(),
         "integration" => integration.map(|i| i.to_string()).unwrap_or_else(|| "none".to_string()),
+    )
+    .increment(1);
+}
+
+/// How discovery sessions end, by phase and terminal reason.
+///
+/// A separate series rather than a `reason` label on `scanopy_events_total`, which would put the
+/// label on every category. `reason` is `none` for a terminal event with no reason, which only a
+/// server older than the reason field publishes. Both labels are bounded: three terminal phases
+/// against eight reasons.
+fn record_discovery_terminal(phase: DiscoveryPhase, reason: Option<DiscoveryTerminalReason>) {
+    metrics::counter!(
+        "scanopy_discovery_terminal_total",
+        "phase" => phase.to_string(),
+        "reason" => reason.map(|r| r.id()).unwrap_or("none"),
     )
     .increment(1);
 }
@@ -157,6 +180,9 @@ impl Subscriber<DiscoveryPhase> for MetricsService {
     async fn handle(&self, events: Vec<Event<DiscoveryPhase>>) -> Result<(), Error> {
         for event in events {
             record_event("discovery", event.operation);
+            if event.operation.is_terminal() {
+                record_discovery_terminal(event.operation, event.scope.reason);
+            }
         }
         Ok(())
     }
