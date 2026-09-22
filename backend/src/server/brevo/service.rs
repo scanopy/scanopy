@@ -813,16 +813,10 @@ impl BrevoService {
         self.update_company_by_org(event.scope.organization_id, company_attrs)
             .await?;
 
-        // A move to Free is a lapse, not a move to cloud. Skip the write so a
-        // lapsed license buyer stays out of the daemon-install sends until the
-        // org buys a cloud plan.
-        if !to.is_free() {
-            self.sync_contacts_licensed_plan(
-                event.scope.organization_id,
-                to.license_plan().is_some(),
-            )
+        // A lapse keeps the org on its plan and raises no PlanChanged, so any
+        // plan this event carries is one the org chose: the flag follows it.
+        self.sync_contacts_licensed_plan(event.scope.organization_id, to.license_plan().is_some())
             .await?;
-        }
 
         if let Some(email) = self.get_owner_email(event.scope.organization_id).await
             && let Err(e) = self

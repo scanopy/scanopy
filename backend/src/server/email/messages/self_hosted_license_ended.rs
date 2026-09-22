@@ -81,7 +81,7 @@ impl Email for SelfHostedLicenseEnded<'_> {
 
         Body::new()
             .content(content)
-            .cta(links::PLAN_PICKER, "Renew license")
+            .cta(links::SETTINGS_LICENSE, "Renew license")
             .render()
     }
 }

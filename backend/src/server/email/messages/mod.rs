@@ -605,6 +605,7 @@ mod tests {
             &CancellationInitiated {
                 period_end: "January 1, 2026",
                 licensed: false,
+                key_expires: "January 8, 2026",
             },
         );
         f(
@@ -612,6 +613,7 @@ mod tests {
             &CancellationInitiated {
                 period_end: "January 1, 2026",
                 licensed: true,
+                key_expires: "January 8, 2026",
             },
         );
         f("subscription_reactivated", &SubscriptionReactivated);
@@ -690,6 +692,7 @@ mod tests {
                 plan_name: "Self-Hosted Standard",
                 billing_period: "Yearly",
                 has_payment: true,
+                key_expires: "October 8, 2026",
             },
         );
         f(
@@ -698,6 +701,7 @@ mod tests {
                 plan_name: "Self-Hosted Standard",
                 billing_period: "Yearly",
                 has_payment: false,
+                key_expires: "October 8, 2026",
             },
         );
         f(
