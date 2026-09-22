@@ -366,6 +366,15 @@ impl BillingService {
             return Ok(());
         };
 
+        // Going past due is a transition, not a repeatable fact. How often
+        // this arrives is Stripe's to decide: an Automation can be set to
+        // repeat, deliveries are retried, and a second trigger for the same
+        // transition is a reasonable thing to add. Without this guard each
+        // one bills the customer another overdue email.
+        if organization.base.plan_status == Some(PlanStatus::PastDue) {
+            return Ok(());
+        }
+
         tracing::info!(
             organization_id = %organization.id,
             invoice_id = %snapshot.stripe_invoice_id,
