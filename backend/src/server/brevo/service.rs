@@ -1130,48 +1130,6 @@ impl BrevoService {
         Ok(())
     }
 
-    /// One-shot backfill of `SCANOPY_LICENSED_PLAN` for the contacts of every
-    /// org already on a licensed self-hosted plan, spawned once at server
-    /// startup. Ephemeral release code: remove it in the release after the
-    /// attribute ships.
-    ///
-    /// Only `true` needs backfilling because the Brevo filters test "is
-    /// true". Idempotent: it upserts the same value, so re-running on every
-    /// startup during this release is safe.
-    pub async fn backfill_licensed_plan_contacts(&self) -> Result<()> {
-        let orgs = self
-            .organization_service
-            .get_all(StorableFilter::<Organization>::new_with_brevo_company_id())
-            .await?;
-
-        let licensed_orgs: Vec<Organization> = orgs
-            .into_iter()
-            .filter(|org| {
-                org.base
-                    .plan
-                    .as_ref()
-                    .is_some_and(|p| p.license_plan().is_some())
-            })
-            .collect();
-        let total = licensed_orgs.len();
-
-        for org in licensed_orgs {
-            if let Err(e) = self.sync_contacts_licensed_plan(org.id, true).await {
-                tracing::warn!(
-                    error = %e,
-                    organization_id = %org.id,
-                    "Failed to backfill Brevo licensed-plan attribute"
-                );
-            }
-        }
-
-        tracing::info!(
-            organizations = total,
-            "Brevo licensed-plan contact backfill complete"
-        );
-        Ok(())
-    }
-
     async fn sync_organization_with_backfill(
         &self,
         mut org: Organization,
