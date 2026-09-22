@@ -8,6 +8,7 @@
 import { createQuery, createMutation } from '@tanstack/svelte-query';
 import { queryClient, queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { unwrapData } from '$lib/api/query-helpers';
 import type { Topology, TopologyEdge, TopologyOptions, RenderableTopology } from './types/base';
 import type { ContainerGraphRule, ElementGraphRule, ElementRule } from './types/grouping';
 import { makeGraphRule } from './types/grouping';
@@ -244,13 +245,11 @@ export function useTopologiesQuery(enabled?: () => boolean) {
 	return createQuery(() => ({
 		queryKey: queryKeys.topology.all,
 		queryFn: async () => {
-			const { data } = await apiClient.GET('/api/v1/topology', {
-				params: { query: { limit: 0 } }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to fetch topologies');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.GET('/api/v1/topology', {
+					params: { query: { limit: 0 } }
+				})
+			);
 		},
 		...(enabled ? { enabled } : {})
 	}));
@@ -288,13 +287,11 @@ export function useTopologyDataQuery(
 				throw new Error('No network ID provided');
 			}
 			const snapshot_id = snapshotId();
-			const { data } = await apiClient.GET('/api/v1/topology/data', {
-				params: { query: { network_id, snapshot_id } }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to fetch topology data');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.GET('/api/v1/topology/data', {
+					params: { query: { network_id, snapshot_id } }
+				})
+			);
 		},
 		enabled: () => !!networkId() && (enabled?.() ?? true)
 	}));
@@ -324,13 +321,11 @@ export function useTopologyQuery(id: () => string | undefined) {
 			if (!topologyId) {
 				throw new Error('No topology ID provided');
 			}
-			const { data } = await apiClient.GET('/api/v1/topology/{id}', {
-				params: { path: { id: topologyId } }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to fetch topology');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.GET('/api/v1/topology/{id}', {
+					params: { path: { id: topologyId } }
+				})
+			);
 		},
 		enabled: () => !!id()
 	}));
@@ -377,18 +372,17 @@ export function useUpdateNodePositionMutation() {
 			nodeId: string;
 			position: { x: number; y: number };
 		}) => {
-			const { data } = await apiClient.POST('/api/v1/topology/{id}/node-position', {
-				params: { path: { id: params.topologyId } },
-				body: {
-					network_id: params.networkId,
-					view: params.view,
-					node_id: params.nodeId,
-					position: params.position
-				}
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to update node position');
-			}
+			requireSuccess(
+				await apiClient.POST('/api/v1/topology/{id}/node-position', {
+					params: { path: { id: params.topologyId } },
+					body: {
+						network_id: params.networkId,
+						view: params.view,
+						node_id: params.nodeId,
+						position: params.position
+					}
+				})
+			);
 		}
 	}));
 }
@@ -408,19 +402,18 @@ export function useUpdateNodeResizeMutation() {
 			size: { x: number; y: number };
 			position: { x: number; y: number };
 		}) => {
-			const { data } = await apiClient.POST('/api/v1/topology/{id}/node-resize', {
-				params: { path: { id: params.topologyId } },
-				body: {
-					network_id: params.networkId,
-					view: params.view,
-					node_id: params.nodeId,
-					size: params.size,
-					position: params.position
-				}
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to resize node');
-			}
+			requireSuccess(
+				await apiClient.POST('/api/v1/topology/{id}/node-resize', {
+					params: { path: { id: params.topologyId } },
+					body: {
+						network_id: params.networkId,
+						view: params.view,
+						node_id: params.nodeId,
+						size: params.size,
+						position: params.position
+					}
+				})
+			);
 		}
 	}));
 }
@@ -440,19 +433,18 @@ export function useUpdateEdgeHandlesMutation() {
 			sourceHandle: 'Top' | 'Bottom' | 'Left' | 'Right';
 			targetHandle: 'Top' | 'Bottom' | 'Left' | 'Right';
 		}) => {
-			const { data } = await apiClient.POST('/api/v1/topology/{id}/edge-handles', {
-				params: { path: { id: params.topologyId } },
-				body: {
-					network_id: params.networkId,
-					view: params.view,
-					edge_id: params.edgeId,
-					source_handle: params.sourceHandle,
-					target_handle: params.targetHandle
-				}
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to update edge handles');
-			}
+			requireSuccess(
+				await apiClient.POST('/api/v1/topology/{id}/edge-handles', {
+					params: { path: { id: params.topologyId } },
+					body: {
+						network_id: params.networkId,
+						view: params.view,
+						edge_id: params.edgeId,
+						source_handle: params.sourceHandle,
+						target_handle: params.targetHandle
+					}
+				})
+			);
 		}
 	}));
 }

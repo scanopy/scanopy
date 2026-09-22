@@ -243,7 +243,6 @@
 	"common_daemon": "Daemon",
 	"common_daemons": "Daemons",
 	"common_dark": "Dark",
-	"common_dataLoadingFailed": "Data loading failed: {error}",
 	"common_days": "days",
 	"common_debug": "Debug",
 	"common_delete": "Delete",

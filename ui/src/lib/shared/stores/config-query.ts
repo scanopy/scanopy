@@ -5,6 +5,7 @@
 import { createQuery } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { unwrapData } from '$lib/api/query-helpers';
 import type { components } from '$lib/api/schema';
 
 export type OidcProviderMetadata = components['schemas']['OidcProviderMetadata'];
@@ -86,11 +87,7 @@ export function useConfigQuery() {
 	return createQuery(() => ({
 		queryKey: queryKeys.config.all,
 		queryFn: async () => {
-			const { data } = await apiClient.GET('/api/config', {});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to fetch config');
-			}
-			return data.data as PublicServerConfig;
+			return unwrapData(await apiClient.GET('/api/config', {})) as PublicServerConfig;
 		},
 		staleTime: Infinity, // Config rarely changes
 		gcTime: Infinity

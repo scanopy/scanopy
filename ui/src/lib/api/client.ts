@@ -32,11 +32,19 @@ export type ApiResponse<T> = {
 export class ApiError extends Error {
 	status: number;
 	retryAfter: number | null;
-	constructor(message: string, status: number, retryAfter: number | null = null) {
+	/** The backend's error code, when the failure carried one. */
+	code: string | null;
+	constructor(
+		message: string,
+		status: number,
+		retryAfter: number | null = null,
+		code: string | null = null
+	) {
 		super(message);
 		this.name = 'ApiError';
 		this.status = status;
 		this.retryAfter = retryAfter;
+		this.code = code;
 	}
 }
 

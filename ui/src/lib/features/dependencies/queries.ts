@@ -5,6 +5,7 @@
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
 import type { Dependency } from './types/base';
 
 /**
@@ -16,13 +17,11 @@ export function useDependenciesQuery(atGetter?: () => string | undefined) {
 		return {
 			queryKey: at ? [...queryKeys.dependencies.all, 'asOf', at] : queryKeys.dependencies.all,
 			queryFn: async () => {
-				const { data } = await apiClient.GET('/api/v1/dependencies', {
-					params: { query: { limit: 0, at } }
-				});
-				if (!data?.success || !data.data) {
-					throw new Error(data?.error || 'Failed to fetch dependencies');
-				}
-				return data.data;
+				return unwrapData(
+					await apiClient.GET('/api/v1/dependencies', {
+						params: { query: { limit: 0, at } }
+					})
+				);
 			}
 		};
 	});
@@ -36,11 +35,7 @@ export function useCreateDependencyMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (dependency: Dependency) => {
-			const { data } = await apiClient.POST('/api/v1/dependencies', { body: dependency });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to create dependency');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/v1/dependencies', { body: dependency }));
 		},
 		onSuccess: (newDependency: Dependency) => {
 			queryClient.setQueryData<Dependency[]>(queryKeys.dependencies.all, (old) =>
@@ -60,15 +55,12 @@ export function useUpdateDependencyMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (dependency: Dependency) => {
-			const { data } = await apiClient.PUT('/api/v1/dependencies/{id}', {
-				params: { path: { id: dependency.id } },
-				body: dependency
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to update dependency');
-			}
-
-			return data.data;
+			return unwrapData(
+				await apiClient.PUT('/api/v1/dependencies/{id}', {
+					params: { path: { id: dependency.id } },
+					body: dependency
+				})
+			);
 		},
 		onSuccess: (updatedDependency: Dependency) => {
 			queryClient.setQueryData<Dependency[]>(
@@ -89,12 +81,11 @@ export function useDeleteDependencyMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (id: string) => {
-			const { data } = await apiClient.DELETE('/api/v1/dependencies/{id}', {
-				params: { path: { id } }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete dependency');
-			}
+			requireSuccess(
+				await apiClient.DELETE('/api/v1/dependencies/{id}', {
+					params: { path: { id } }
+				})
+			);
 			return id;
 		},
 		onSuccess: (id: string) => {
@@ -120,10 +111,7 @@ export function useBulkDeleteDependenciesMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (ids: string[]) => {
-			const { data } = await apiClient.POST('/api/v1/dependencies/bulk-delete', { body: ids });
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete dependencies');
-			}
+			requireSuccess(await apiClient.POST('/api/v1/dependencies/bulk-delete', { body: ids }));
 			return ids;
 		},
 		onSuccess: (ids: string[]) => {
@@ -150,13 +138,12 @@ export function useUpdateDependencyDescriptionMutation() {
 			const currentDependency = dependencies?.find((d) => d.id === data.dependencyId);
 			if (!currentDependency) throw new Error('Dependency not found in cache');
 
-			const { data: result } = await apiClient.PUT('/api/v1/dependencies/{id}', {
-				params: { path: { id: data.dependencyId } },
-				body: { ...currentDependency, description: data.description }
-			});
-			if (!result?.success || !result.data)
-				throw new Error(result?.error || 'Failed to update dependency description');
-			return result.data;
+			return unwrapData(
+				await apiClient.PUT('/api/v1/dependencies/{id}', {
+					params: { path: { id: data.dependencyId } },
+					body: { ...currentDependency, description: data.description }
+				})
+			);
 		},
 		onSuccess: (updatedDependency: Dependency) => {
 			queryClient.setQueryData<Dependency[]>(

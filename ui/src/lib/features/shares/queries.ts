@@ -5,6 +5,7 @@
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
 import type { Share, CreateUpdateShareRequest } from './types/base';
 
 /**
@@ -14,13 +15,11 @@ export function useSharesQuery() {
 	return createQuery(() => ({
 		queryKey: queryKeys.shares.all,
 		queryFn: async () => {
-			const { data } = await apiClient.GET('/api/v1/shares', {
-				params: { query: { limit: 0 } }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to fetch shares');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.GET('/api/v1/shares', {
+					params: { query: { limit: 0 } }
+				})
+			);
 		}
 	}));
 }
@@ -33,11 +32,7 @@ export function useCreateShareMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (request: CreateUpdateShareRequest) => {
-			const { data } = await apiClient.POST('/api/v1/shares', { body: request });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to create share');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/v1/shares', { body: request }));
 		},
 		onSuccess: (newShare: Share) => {
 			queryClient.setQueryData<Share[]>(queryKeys.shares.all, (old) =>
@@ -55,14 +50,12 @@ export function useUpdateShareMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async ({ id, request }: { id: string; request: CreateUpdateShareRequest }) => {
-			const { data } = await apiClient.PUT('/api/v1/shares/{id}', {
-				params: { path: { id } },
-				body: request
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to update share');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.PUT('/api/v1/shares/{id}', {
+					params: { path: { id } },
+					body: request
+				})
+			);
 		},
 		onSuccess: (updatedShare: Share) => {
 			queryClient.setQueryData<Share[]>(
@@ -81,12 +74,11 @@ export function useDeleteShareMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (id: string) => {
-			const { data } = await apiClient.DELETE('/api/v1/shares/{id}', {
-				params: { path: { id } }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete share');
-			}
+			requireSuccess(
+				await apiClient.DELETE('/api/v1/shares/{id}', {
+					params: { path: { id } }
+				})
+			);
 			return id;
 		},
 		onSuccess: (id: string) => {
@@ -106,10 +98,7 @@ export function useBulkDeleteSharesMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (ids: string[]) => {
-			const { data } = await apiClient.POST('/api/v1/shares/bulk-delete', { body: ids });
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete shares');
-			}
+			requireSuccess(await apiClient.POST('/api/v1/shares/bulk-delete', { body: ids }));
 			return ids;
 		},
 		onSuccess: (ids: string[]) => {

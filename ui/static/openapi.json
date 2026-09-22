@@ -15297,6 +15297,7 @@
       },
       "ApiResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15309,7 +15310,7 @@
               },
               {
                 "$ref": "#/components/schemas/TupleUnit",
-                "description": "The result payload. Omitted on failure."
+                "description": "The result payload."
               }
             ],
             "description": "The result payload. Omitted on failure."
@@ -15319,7 +15320,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15327,12 +15328,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Binding": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15422,19 +15424,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-20T18:34:54.032044Z",
+              "created_at": "2026-09-22T13:06:02.335939Z",
               "first_discovery_id": null,
-              "id": "1234184e-6a90-42b7-83cb-7418995a0e49",
+              "id": "fb197455-54d5-48ef-a7b3-205ecf7fd5c7",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-20T18:34:54.032044Z",
+              "last_seen_at": "2026-09-22T13:06:02.335939Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-20T18:34:54.032044Z",
-              "valid_from": "2026-09-20T18:34:54.032044Z",
+              "updated_at": "2026-09-22T13:06:02.335939Z",
+              "valid_from": "2026-09-22T13:06:02.335939Z",
               "valid_to": null
             }
           },
@@ -15443,7 +15445,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15451,12 +15453,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_BulkDeleteResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15487,7 +15490,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15495,12 +15498,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_BulkTagResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15525,7 +15529,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15533,12 +15537,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_CancelSubscriptionResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15563,7 +15568,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15571,12 +15576,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_ChangePlanPreview": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15616,7 +15622,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15624,12 +15630,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_CheckEmailResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15653,7 +15660,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15661,12 +15668,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Credential": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15713,7 +15721,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15721,12 +15729,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Daemon": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15773,7 +15782,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15781,12 +15790,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_DaemonApiKey": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15833,7 +15843,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15841,12 +15851,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_DaemonApiKeyResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15877,7 +15888,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15885,12 +15896,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_DaemonRegistrationResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15931,7 +15943,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15939,12 +15951,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_DaemonResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -16002,7 +16015,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16010,12 +16023,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_DashboardSummary": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -16063,7 +16077,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16071,12 +16085,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_DemoPopulateStatus": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -16160,7 +16175,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16168,12 +16183,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Dependency": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -16266,7 +16282,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16274,12 +16290,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Discovery": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -16345,7 +16362,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16353,12 +16370,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_DiscoveryUpdatePayload": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -16479,7 +16497,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16487,12 +16505,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_EntitlementResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -16516,7 +16535,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16524,12 +16543,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_HostResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -16962,19 +16982,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-20T18:34:54.004179Z",
+                      "created_at": "2026-09-22T13:06:02.315503Z",
                       "first_discovery_id": null,
-                      "id": "c9543703-7e90-48bc-8206-6d5cd785bb77",
+                      "id": "85d537b3-73f7-4f3f-878b-e0662bd5dc8f",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-20T18:34:54.004179Z",
+                      "last_seen_at": "2026-09-22T13:06:02.315503Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-20T18:34:54.004179Z",
-                      "valid_from": "2026-09-20T18:34:54.004179Z",
+                      "updated_at": "2026-09-22T13:06:02.315503Z",
+                      "valid_from": "2026-09-22T13:06:02.315503Z",
                       "valid_to": null
                     }
                   ],
@@ -16988,7 +17008,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "MeTube",
+                  "service_definition": "SIP Server",
                   "source": {
                     "type": "Manual"
                   },
@@ -17021,7 +17041,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17029,12 +17049,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_IPAddress": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -17148,7 +17169,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17156,12 +17177,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_InstallArtifacts": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -17210,7 +17232,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17218,12 +17240,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Interface": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -17326,7 +17349,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17334,12 +17357,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Invite": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -17386,7 +17410,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17394,12 +17418,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_InvoiceBillingStatus": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -17450,7 +17475,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17458,12 +17483,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_LicenseKeyResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -17492,7 +17518,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17500,12 +17526,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Network": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -17569,7 +17596,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17577,12 +17604,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_OnboardingStateResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -17643,7 +17671,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17651,12 +17679,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Option_SaveOfferCoupon": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -17706,7 +17735,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17714,12 +17743,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Organization": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -17766,7 +17796,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17774,12 +17804,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Port": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -17890,7 +17921,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17898,12 +17929,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_ProvisionDaemonResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -17934,7 +17966,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17942,12 +17974,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_PublicConfigResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -18136,7 +18169,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -18144,12 +18177,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_PublicShareMetadata": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -18197,7 +18231,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -18205,12 +18239,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_ServerCapabilities": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -18246,7 +18281,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -18254,12 +18289,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Service": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -18351,19 +18387,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-20T18:34:54.025989Z",
+                  "created_at": "2026-09-22T13:06:02.331275Z",
                   "first_discovery_id": null,
-                  "id": "50244512-1076-4120-9eb3-bbc5cc0c2593",
+                  "id": "989246dd-2277-486e-ad59-70657fa922c4",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-20T18:34:54.025989Z",
+                  "last_seen_at": "2026-09-22T13:06:02.331275Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-20T18:34:54.025989Z",
-                  "valid_from": "2026-09-20T18:34:54.025989Z",
+                  "updated_at": "2026-09-22T13:06:02.331275Z",
+                  "valid_from": "2026-09-22T13:06:02.331275Z",
                   "valid_to": null
                 }
               ],
@@ -18377,7 +18413,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "MeTube",
+              "service_definition": "SIP Server",
               "source": {
                 "type": "Manual"
               },
@@ -18394,7 +18430,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -18402,12 +18438,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_SetupIntentResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -18431,7 +18468,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -18439,12 +18476,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_SetupResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -18469,7 +18507,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -18477,12 +18515,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Share": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -18529,7 +18568,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -18537,12 +18576,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_ShareAccessTokenResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -18572,7 +18612,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -18580,12 +18620,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Snapshot": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -18632,7 +18673,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -18640,12 +18681,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_String": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -18660,7 +18702,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -18668,12 +18710,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Subnet": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -18790,7 +18833,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -18798,12 +18841,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Tag": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -18887,7 +18931,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -18895,12 +18939,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_TestReachabilityResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -18938,7 +18983,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -18946,12 +18991,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Topology": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -18998,7 +19044,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -19006,12 +19052,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_TopologyData": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -19220,7 +19267,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -19228,12 +19275,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_User": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -19280,7 +19328,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -19288,12 +19336,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_UserApiKey": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -19340,7 +19389,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -19348,12 +19397,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_UserApiKeyResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -19384,7 +19434,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -19392,12 +19442,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Vec_BillingPlan": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -19658,7 +19709,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -19666,12 +19717,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Vec_Credential": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -19721,7 +19773,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -19729,12 +19781,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Vec_DiscoveryUpdatePayload": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -19859,7 +19912,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -19867,12 +19920,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Vec_Invite": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -19922,7 +19976,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -19930,12 +19984,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_VersionInfo": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -19974,7 +20029,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -19982,12 +20037,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Vlan": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -20082,7 +20138,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -20090,12 +20146,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_VlanDiscoveryResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -20122,7 +20179,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -20130,12 +20187,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_u32": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -20152,7 +20210,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -20160,7 +20218,7 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
@@ -20632,19 +20690,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-20T18:34:54.005017Z",
+          "created_at": "2026-09-22T13:06:02.315947Z",
           "first_discovery_id": null,
-          "id": "1c230c38-9228-4968-a483-22562f540d59",
+          "id": "214da4f0-cb63-40c8-8807-39b007b3eb75",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-20T18:34:54.005017Z",
+          "last_seen_at": "2026-09-22T13:06:02.315947Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-20T18:34:54.005017Z",
-          "valid_from": "2026-09-20T18:34:54.005017Z",
+          "updated_at": "2026-09-22T13:06:02.315947Z",
+          "valid_from": "2026-09-22T13:06:02.315947Z",
           "valid_to": null
         }
       },
@@ -21352,7 +21410,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "MeTube",
+              "service_definition": "SIP Server",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -26736,19 +26794,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-20T18:34:54.003271Z",
+                  "created_at": "2026-09-22T13:06:02.314985Z",
                   "first_discovery_id": null,
-                  "id": "700f287d-ef71-457c-a595-fe127add340b",
+                  "id": "ab5209b1-2406-4fa7-96ca-7497a0443117",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-20T18:34:54.003271Z",
+                  "last_seen_at": "2026-09-22T13:06:02.314985Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-20T18:34:54.003271Z",
-                  "valid_from": "2026-09-20T18:34:54.003271Z",
+                  "updated_at": "2026-09-22T13:06:02.314985Z",
+                  "valid_from": "2026-09-22T13:06:02.314985Z",
                   "valid_to": null
                 }
               ],
@@ -26762,7 +26820,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "MeTube",
+              "service_definition": "SIP Server",
               "source": {
                 "type": "Manual"
               },
@@ -30428,19 +30486,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-20T18:34:53.985326Z",
+                        "created_at": "2026-09-22T13:06:02.305203Z",
                         "first_discovery_id": null,
-                        "id": "e5d92967-06e2-45ea-8ff4-460d1d01562a",
+                        "id": "344bbbea-7242-46d5-befa-662410e0c200",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-20T18:34:53.985326Z",
+                        "last_seen_at": "2026-09-22T13:06:02.305203Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-20T18:34:53.985326Z",
-                        "valid_from": "2026-09-20T18:34:53.985326Z",
+                        "updated_at": "2026-09-22T13:06:02.305203Z",
+                        "valid_from": "2026-09-22T13:06:02.305203Z",
                         "valid_to": null
                       }
                     ],
@@ -30454,7 +30512,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "MeTube",
+                    "service_definition": "SIP Server",
                     "source": {
                       "type": "Manual"
                     },
@@ -30597,19 +30655,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-20T18:34:54.024929Z",
+                    "created_at": "2026-09-22T13:06:02.330408Z",
                     "first_discovery_id": null,
-                    "id": "02767494-79f5-4828-99c6-dca5b03770dd",
+                    "id": "e592f465-515d-4b79-8935-af2d709751da",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-20T18:34:54.024929Z",
+                    "last_seen_at": "2026-09-22T13:06:02.330408Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-20T18:34:54.024929Z",
-                    "valid_from": "2026-09-20T18:34:54.024929Z",
+                    "updated_at": "2026-09-22T13:06:02.330408Z",
+                    "valid_from": "2026-09-22T13:06:02.330408Z",
                     "valid_to": null
                   }
                 ],
@@ -30623,7 +30681,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "MeTube",
+                "service_definition": "SIP Server",
                 "source": {
                   "type": "Manual"
                 },
@@ -32748,19 +32806,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-20T18:34:54.004772Z",
+              "created_at": "2026-09-22T13:06:02.315808Z",
               "first_discovery_id": null,
-              "id": "ddeb88b3-4090-48c7-a52b-5f78e339c7d7",
+              "id": "c89ed879-a2e3-461f-b672-51a7d4f6d1ab",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-20T18:34:54.004772Z",
+              "last_seen_at": "2026-09-22T13:06:02.315808Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-20T18:34:54.004772Z",
-              "valid_from": "2026-09-20T18:34:54.004772Z",
+              "updated_at": "2026-09-22T13:06:02.315808Z",
+              "valid_from": "2026-09-22T13:06:02.315808Z",
               "valid_to": null
             }
           ],
@@ -32774,7 +32832,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "MeTube",
+          "service_definition": "SIP Server",
           "source": {
             "type": "Manual"
           },
@@ -34095,7 +34153,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "021a6240-ef42-4401-a6e3-038c904493d4",
+                  "id": "bd24d77c-a24f-43b2-93f1-410c163c05d3",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -34105,23 +34163,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "86ed96f8-f696-4dbd-a995-45e1fc52f51b",
+                  "id": "91f4dfd9-efd6-4c9c-af27-bc971140cc9f",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "2acc50e6-380d-4f6e-9bfc-d0b3d29b6962",
+                  "id": "e9ceecd7-e5e3-49be-b910-3e10aee8ce8a",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "cf311041-35c5-4806-8224-a89eb7b6f51b",
+                  "id": "937838cc-cc5b-413f-8d9c-c361f07e78da",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "86ed96f8-f696-4dbd-a995-45e1fc52f51b",
+                  "id": "91f4dfd9-efd6-4c9c-af27-bc971140cc9f",
                   "rule": "ByHost"
                 }
               ]
@@ -34151,19 +34209,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "6fedaaca-9837-4cd0-a39d-ac55a0625b8f",
+                "id": "9c559bb9-dd49-48ea-adc3-a9cccd48eaaf",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "657f5324-a882-46cc-93a1-f89342aa16a0",
+                "id": "c2716038-ebd7-4781-b149-5b2bd737bfb1",
                 "rule": "ByVLAN"
               },
               {
-                "id": "9574eede-7313-4792-b049-240910043359",
+                "id": "48d77d57-2db0-4021-9dd2-be51a407c176",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "af0d47da-6744-4256-a582-f1b4c1314ef3",
+                "id": "d03adfb0-4dde-49b5-9cba-d6f4a87f25d6",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -34181,7 +34239,7 @@
                 }
               },
               {
-                "id": "93a0e6fb-e6eb-47fd-af56-ea9d9dc6304d",
+                "id": "00651afe-ee4d-43eb-a5b4-482e203f5177",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -34190,15 +34248,15 @@
                 }
               },
               {
-                "id": "25df53e5-9776-4a73-95e9-636bcd2f9c18",
+                "id": "6cdd18ea-c035-439d-9290-af02987f6c51",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "1f946fa8-561c-4bd8-900f-de66e05e4c27",
+                "id": "37e7a305-2a83-4d58-9fab-684b2d234937",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "3a38af92-356e-4a89-adb1-a7ca779896f1",
+                "id": "3599b548-ed41-4c33-8819-cf8a021ab623",
                 "rule": "ByStack"
               }
             ]
