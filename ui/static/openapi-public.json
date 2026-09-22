@@ -12655,19 +12655,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-22T20:48:50.336157Z",
+              "created_at": "2026-09-22T21:38:17.198555Z",
               "first_discovery_id": null,
-              "id": "a94219ba-7b06-446d-bdac-9a74dd7b7a58",
+              "id": "6881ebc3-4101-48f6-bb12-f92ee12b0fc1",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-22T20:48:50.336157Z",
+              "last_seen_at": "2026-09-22T21:38:17.198555Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-22T20:48:50.336157Z",
-              "valid_from": "2026-09-22T20:48:50.336157Z",
+              "updated_at": "2026-09-22T21:38:17.198555Z",
+              "valid_from": "2026-09-22T21:38:17.198555Z",
               "valid_to": null
             }
           },
@@ -14239,19 +14239,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-22T20:48:50.320379Z",
+                      "created_at": "2026-09-22T21:38:17.182468Z",
                       "first_discovery_id": null,
-                      "id": "03aea6ea-719e-4d4c-8585-1be8cfba77b0",
+                      "id": "a53ca9b5-8108-4521-a4b9-f6d5e9feb8ff",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-22T20:48:50.320379Z",
+                      "last_seen_at": "2026-09-22T21:38:17.182468Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-22T20:48:50.320379Z",
-                      "valid_from": "2026-09-22T20:48:50.320379Z",
+                      "updated_at": "2026-09-22T21:38:17.182468Z",
+                      "valid_from": "2026-09-22T21:38:17.182468Z",
                       "valid_to": null
                     }
                   ],
@@ -14265,7 +14265,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Tasmota",
+                  "service_definition": "BookLore",
                   "source": {
                     "type": "Manual"
                   },
@@ -15644,19 +15644,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-22T20:48:50.332267Z",
+                  "created_at": "2026-09-22T21:38:17.194672Z",
                   "first_discovery_id": null,
-                  "id": "78c15a5a-c46e-4a6b-8c11-c07b1863e3ed",
+                  "id": "426c15cd-e115-4ba5-8a44-b0080ea5a591",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-22T20:48:50.332267Z",
+                  "last_seen_at": "2026-09-22T21:38:17.194672Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-22T20:48:50.332267Z",
-                  "valid_from": "2026-09-22T20:48:50.332267Z",
+                  "updated_at": "2026-09-22T21:38:17.194672Z",
+                  "valid_from": "2026-09-22T21:38:17.194672Z",
                   "valid_to": null
                 }
               ],
@@ -15670,7 +15670,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Tasmota",
+              "service_definition": "BookLore",
               "source": {
                 "type": "Manual"
               },
@@ -18026,19 +18026,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-22T20:48:50.320776Z",
+          "created_at": "2026-09-22T21:38:17.182868Z",
           "first_discovery_id": null,
-          "id": "f5e4ed18-9eb6-4738-8eb0-32cedeb0787a",
+          "id": "0cc13838-636c-4c9c-8ecb-7502a8952cd3",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-22T20:48:50.320776Z",
+          "last_seen_at": "2026-09-22T21:38:17.182868Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-22T20:48:50.320776Z",
-          "valid_from": "2026-09-22T20:48:50.320776Z",
+          "updated_at": "2026-09-22T21:38:17.182868Z",
+          "valid_from": "2026-09-22T21:38:17.182868Z",
           "valid_to": null
         }
       },
@@ -18746,7 +18746,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Tasmota",
+              "service_definition": "BookLore",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -24282,19 +24282,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-22T20:48:50.319936Z",
+                  "created_at": "2026-09-22T21:38:17.182036Z",
                   "first_discovery_id": null,
-                  "id": "3c0f1c2e-6d0f-4e45-b167-9dd679ad80fa",
+                  "id": "3cd95949-1e3e-4627-94c5-f8e97d484292",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-22T20:48:50.319936Z",
+                  "last_seen_at": "2026-09-22T21:38:17.182036Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-22T20:48:50.319936Z",
-                  "valid_from": "2026-09-22T20:48:50.319936Z",
+                  "updated_at": "2026-09-22T21:38:17.182036Z",
+                  "valid_from": "2026-09-22T21:38:17.182036Z",
                   "valid_to": null
                 }
               ],
@@ -24308,7 +24308,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Tasmota",
+              "service_definition": "BookLore",
               "source": {
                 "type": "Manual"
               },
@@ -27974,19 +27974,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-22T20:48:50.313547Z",
+                        "created_at": "2026-09-22T21:38:17.175710Z",
                         "first_discovery_id": null,
-                        "id": "0a8112e5-84b1-4413-8445-6f51925fe176",
+                        "id": "0ee9191c-8593-47c8-b93c-e407b8b2beb9",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-22T20:48:50.313547Z",
+                        "last_seen_at": "2026-09-22T21:38:17.175710Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-22T20:48:50.313547Z",
-                        "valid_from": "2026-09-22T20:48:50.313547Z",
+                        "updated_at": "2026-09-22T21:38:17.175710Z",
+                        "valid_from": "2026-09-22T21:38:17.175710Z",
                         "valid_to": null
                       }
                     ],
@@ -28000,7 +28000,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Tasmota",
+                    "service_definition": "BookLore",
                     "source": {
                       "type": "Manual"
                     },
@@ -28143,19 +28143,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-22T20:48:50.331474Z",
+                    "created_at": "2026-09-22T21:38:17.193825Z",
                     "first_discovery_id": null,
-                    "id": "03f9e93e-b7b2-46e4-b80b-0f0328b79dde",
+                    "id": "1f2e85d5-6964-4a2a-a0e3-66e102f86b07",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-22T20:48:50.331474Z",
+                    "last_seen_at": "2026-09-22T21:38:17.193825Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-22T20:48:50.331474Z",
-                    "valid_from": "2026-09-22T20:48:50.331474Z",
+                    "updated_at": "2026-09-22T21:38:17.193825Z",
+                    "valid_from": "2026-09-22T21:38:17.193825Z",
                     "valid_to": null
                   }
                 ],
@@ -28169,7 +28169,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Tasmota",
+                "service_definition": "BookLore",
                 "source": {
                   "type": "Manual"
                 },
@@ -30294,19 +30294,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-22T20:48:50.320654Z",
+              "created_at": "2026-09-22T21:38:17.182743Z",
               "first_discovery_id": null,
-              "id": "2aba69b8-8f86-40c9-967e-6128182801c2",
+              "id": "c46512bd-e158-4b9c-be35-eedcc1999c8f",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-22T20:48:50.320654Z",
+              "last_seen_at": "2026-09-22T21:38:17.182743Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-22T20:48:50.320654Z",
-              "valid_from": "2026-09-22T20:48:50.320654Z",
+              "updated_at": "2026-09-22T21:38:17.182743Z",
+              "valid_from": "2026-09-22T21:38:17.182743Z",
               "valid_to": null
             }
           ],
@@ -30320,7 +30320,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Tasmota",
+          "service_definition": "BookLore",
           "source": {
             "type": "Manual"
           },
@@ -31688,7 +31688,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "ba0eb133-27be-44c7-a318-7f3efe300536",
+                  "id": "edc1b557-addb-40c6-9715-627b72dfc8e4",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -31698,23 +31698,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "4e2706e2-a0a9-453a-b342-d096b55d96cc",
+                  "id": "19498aca-fea1-4aef-bac0-5abce114b11f",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "0099609a-b430-4ff7-8555-00b335355bef",
+                  "id": "acbbe96a-50a7-4272-8291-0b26ae669195",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "6e74bce6-ef7d-451a-96db-3dc810851fba",
+                  "id": "8498e86c-63ca-4d9e-a732-f0a50e223e07",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "4e2706e2-a0a9-453a-b342-d096b55d96cc",
+                  "id": "19498aca-fea1-4aef-bac0-5abce114b11f",
                   "rule": "ByHost"
                 }
               ]
@@ -31744,19 +31744,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "d34977cf-cbad-4234-8cfa-a19d8960d8a2",
+                "id": "c4fb3389-bf37-4090-9b2d-39e16362688f",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "3336d44a-b613-471f-b385-caa68775164f",
+                "id": "56801313-a089-4236-a48e-9348f12a4850",
                 "rule": "ByVLAN"
               },
               {
-                "id": "cc91ee67-d12c-4a49-ad51-c3b7c7f08cca",
+                "id": "b40f5f56-92f1-4f30-86e2-279c42981b88",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "f82b8ca8-4980-4b19-9221-bd85f8282b7c",
+                "id": "778e4eb2-3a4b-4a42-82aa-246195074ed2",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -31774,7 +31774,7 @@
                 }
               },
               {
-                "id": "ca501dc0-0e03-4cc7-9cca-c692eca9c9fb",
+                "id": "283347a2-df26-4e07-927f-62b3af989e4c",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -31783,15 +31783,15 @@
                 }
               },
               {
-                "id": "504706c0-54e9-4970-b7f1-d39b63bbbda9",
+                "id": "02c063e2-1e4a-47a3-844b-c35f7dcb609b",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "1ad0fb7d-ab96-488e-ba99-657a81535e68",
+                "id": "e52113ba-d879-41f9-96ae-9478354d30c7",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "b73b38e6-1822-479a-9102-44ad83ff3545",
+                "id": "e229d56f-cc88-4e3a-a425-7aca9ebcd64b",
                 "rule": "ByStack"
               }
             ]
