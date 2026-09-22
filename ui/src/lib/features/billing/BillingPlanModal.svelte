@@ -16,6 +16,7 @@
 	import {
 		hadLicensedPlan,
 		hasLicensedPlan,
+		isPlanLapsed,
 		isBillingPlanActive
 	} from '$lib/features/organizations/types';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
@@ -280,6 +281,7 @@
 				{isReturningCustomer}
 				{isCurrentlyTrialing}
 				currentPlanType={organization?.plan?.type ?? null}
+				currentPlanLapsed={organization != null && isPlanLapsed(organization)}
 			/>
 		{/if}
 	</div>

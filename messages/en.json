@@ -69,6 +69,7 @@
 	"billing_cardError": "We couldn't process your card. Please check your details and try again.",
 	"billing_cardLoadError": "Card payment couldn't be loaded. Please try again later.",
 	"billing_compareAllFeatures": "Compare all features",
+	"billing_continueOnPlan": "Continue on {plan}",
 	"billing_dayFreeTrial": "{days}-day free trial",
 	"billing_daysCount": "{count} days",
 	"billing_discountApplied": "Discount applied to your subscription.",

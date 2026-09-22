@@ -23,11 +23,7 @@
 		useOrganizationQuery,
 		useDaemonPromptResponseMutation
 	} from '$lib/features/organizations/queries';
-	import {
-		hasLicensedPlan,
-		isBillingPlanActive,
-		isPlanLapsed
-	} from '$lib/features/organizations/types';
+	import { hasLicensedPlan, isBillingPlanActive } from '$lib/features/organizations/types';
 	import { billingPlans } from '$lib/shared/stores/metadata';
 	import { licenseTabVisible } from '$lib/features/settings/license-tab';
 	import { reopenSettingsAfterBilling } from '$lib/features/billing/stores';
@@ -105,18 +101,6 @@
 	// the user has responded to it (either CTA persists an onboarding milestone).
 	let isViewer = $derived(currentUserQuery.data?.permissions === 'Viewer');
 	let isOwner = $derived(currentUserQuery.data?.permissions === 'Owner');
-	// A lapsed cloud org (subscription ended, no paid plan chosen since) keeps
-	// its plan and browses read-only: the backend refuses writes, the banner
-	// carries the CTA, and the plan picker opens once on load for owners so
-	// the way back is in front of them without locking them out of the app.
-	let isLapsed = $derived(billingEnabled && organization != null && isPlanLapsed(organization));
-	let lapsedPickerShown = $state(false);
-	$effect(() => {
-		if (isLapsed && isOwner && appInitialized && !lapsedPickerShown && !$modalState.name) {
-			lapsedPickerShown = true;
-			openModal('billing-plan');
-		}
-	});
 	let daemonPromptResponded = $derived(
 		(organization?.onboarding?.includes('DaemonPromptDismissed') ?? false) ||
 			(organization?.onboarding?.includes('DaemonPromptAccepted') ?? false)

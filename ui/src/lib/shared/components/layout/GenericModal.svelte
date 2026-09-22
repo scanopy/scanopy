@@ -155,15 +155,20 @@
 			}
 
 			if (name) {
-				// Read subEntityId, returnUrl, returnTitle before openModal clears them
+				// Read subEntityId, returnUrl, returnTitle and entityData before openModal
+				// clears them. entityData is what the opener handed this modal (the plan a
+				// payment dialog is collecting a card for); re-registering without it
+				// dropped the plan the moment the dialog opened.
 				const subEntityId = state.name === name ? state.subEntityId : null;
 				const returnUrl = state.name === name ? (state.returnUrl ?? undefined) : undefined;
 				const savedReturnTitle = state.name === name ? (state.returnTitle ?? undefined) : undefined;
+				const entityData = state.name === name ? (state.entityData ?? undefined) : undefined;
 				openModal(name, {
 					id: entityId,
 					tab: activeTab || undefined,
 					returnUrl,
-					returnTitle: savedReturnTitle
+					returnTitle: savedReturnTitle,
+					entityData
 				});
 				if (subEntityId && onSubEntityNavigation) {
 					onSubEntityNavigation(subEntityId);
