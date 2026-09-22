@@ -7,10 +7,8 @@
 	import type { Discovery } from '../../types/base';
 	import { discoveryFields, formatScheduleDisplay, cancellingSessions } from '../../queries';
 	import { formatTimestamp } from '$lib/shared/utils/formatting';
-	import ProgressTrack from '$lib/shared/components/data/ProgressTrack.svelte';
-	import AnimatedProgressBar from '../cards/AnimatedProgressBar.svelte';
+	import SessionProgress from '../cards/SessionProgress.svelte';
 	import DiscoveryEstimation from '../DiscoveryEstimation.svelte';
-	import { sessionStallMinutes } from '../../utils/staleness';
 	import DiscoveryEditModal from '../DiscoveryModal/DiscoveryEditModal.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import { getFieldKey, type FieldConfig } from '$lib/shared/components/data/types';
@@ -412,21 +410,16 @@
 
 			<DiscoveryEstimation
 				{phase}
-				session_id={session.session_id}
 				hosts_discovered={session.hosts_discovered}
 				estimated_remaining_secs={session.estimated_remaining_secs}
 			/>
 
-			<div class="flex items-center gap-2">
-				<ProgressTrack class="flex-1">
-					<AnimatedProgressBar
-						progress={session.progress}
-						stalled={!isCancelling &&
-							$sessionStallMinutes(session.session_id, session.phase) !== null}
-					/>
-				</ProgressTrack>
-				<span class="text-secondary text-xs">{session.progress}%</span>
-			</div>
+			<SessionProgress
+				session_id={session.session_id}
+				phase={session.phase}
+				progress={session.progress}
+				cancelling={isCancelling}
+			/>
 		</div>
 	{:else}
 		<span class="text-muted" aria-hidden="true">—</span>

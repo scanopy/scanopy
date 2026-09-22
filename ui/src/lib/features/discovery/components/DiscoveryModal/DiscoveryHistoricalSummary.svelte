@@ -12,7 +12,7 @@
 	import { useSubnetsQuery, getSubnetById } from '$lib/features/subnets/queries';
 	import { useHostsByIds } from '$lib/features/hosts/queries';
 	import scanSettingsFields from '$lib/data/scan-settings.json';
-	import { discoveryTerminalReasons, type FieldDefinition } from '$lib/shared/stores/metadata';
+	import type { FieldDefinition } from '$lib/shared/stores/metadata';
 	import {
 		discovery_runDetails,
 		discovery_hostNamingFallback,
@@ -107,16 +107,6 @@
 		return host ? hostDisplayName(host) : null;
 	});
 
-	// A run recorded before reasons existed has only its phase and error to show.
-	let outcomeTitle = $derived(
-		payload.reason ? discoveryTerminalReasons.getName(payload.reason) : payload.phase
-	);
-	let outcomeBody = $derived(
-		[payload.error, payload.reason ? discoveryTerminalReasons.getDescription(payload.reason) : null]
-			.filter(Boolean)
-			.join(' ') || null
-	);
-
 	let hostNamingLabel = $derived(
 		payload.discovery_type.type === 'Unified'
 			? payload.discovery_type.host_naming_fallback === 'Ip'
@@ -127,15 +117,16 @@
 </script>
 
 <div class="space-y-4">
-	<!-- Status Banner -->
-	<!-- Warnings are a tab of their own, and the tab is the place that says so. Repeating it here
-	     left the details reporting on a list it does not show. -->
+	<!-- Status Banner: the phase, and only the phase. Why a run ended the way it did, and the
+	     error that came with it, belong to the Issues tab, which is where a reader goes when
+	     something went wrong. -->
+
 	{#if payload.phase === 'Complete'}
 		<InlineSuccess title={payload.phase} />
 	{:else if payload.phase === 'Failed'}
-		<InlineDanger title={outcomeTitle} body={outcomeBody} />
+		<InlineDanger title={payload.phase} />
 	{:else if payload.phase === 'Cancelled'}
-		<InlineWarning title={outcomeTitle} body={outcomeBody} />
+		<InlineWarning title={payload.phase} />
 	{:else}
 		<InlineInfo title={payload.phase} />
 	{/if}
