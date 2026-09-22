@@ -6,7 +6,9 @@ use crate::server::billing::types::api::{
 };
 use crate::server::billing::types::base::{InvoiceCollection, PO_NUMBER_FIELD};
 use crate::server::shared::types::api::ValidationError;
-use stripe_billing::invoice::{FinalizeInvoiceInvoice, ListInvoice, VoidInvoiceInvoice};
+use stripe_billing::invoice::{
+    FinalizeInvoiceInvoice, ListInvoice, RetrieveInvoice, VoidInvoiceInvoice,
+};
 use stripe_billing::quote::{
     AcceptQuote, CancelQuote, CreateQuote, CreateQuoteInvoiceSettings, CreateQuoteLineItems,
     CreateQuoteSubscriptionData, FinalizeQuoteQuote, ListQuote,
@@ -365,19 +367,43 @@ impl BillingService {
             tracing::debug!("No org found for overdue invoice — ignoring");
             return Ok(());
         };
+        self.report_invoice_overdue(&organization, snapshot).await
+    }
 
+    /// Move an organization to past due for an unpaid sent invoice, once.
+    ///
+    /// Shared by the two things that can notice: the subscription going
+    /// `past_due`, which is what Stripe does by itself at the due date, and
+    /// the `invoice.overdue` webhook, which only arrives if an Automation is
+    /// configured to send it.
+    pub(crate) async fn report_invoice_overdue(
+        &self,
+        organization: &Organization,
+        invoice: BillingInvoice,
+    ) -> Result<(), Error> {
         // Going past due is a transition, not a repeatable fact. How often
         // this arrives is Stripe's to decide: an Automation can be set to
-        // repeat, deliveries are retried, and a second trigger for the same
-        // transition is a reasonable thing to add. Without this guard each
-        // one bills the customer another overdue email.
+        // repeat, deliveries are retried, and there are now two triggers for
+        // the one transition. Without this guard each sends another email.
         if organization.base.plan_status == Some(PlanStatus::PastDue) {
+            return Ok(());
+        }
+
+        // Past due is a lesser state than lapsed: it keeps the app writable,
+        // and the scheduler and daemon work handout keep serving. An org that
+        // lapsed still holding an open invoice would be let back in by this,
+        // since nothing voids its invoices when the subscription ends.
+        if organization.is_lapsed() {
+            tracing::debug!(
+                organization_id = %organization.id,
+                "Org has lapsed; leaving it there rather than moving it to past due"
+            );
             return Ok(());
         }
 
         tracing::info!(
             organization_id = %organization.id,
-            invoice_id = %snapshot.stripe_invoice_id,
+            invoice_id = %invoice.stripe_invoice_id,
             "Sent licence invoice is overdue"
         );
         self.event_bus
@@ -385,11 +411,33 @@ impl BillingService {
                 OrgScope {
                     organization_id: organization.id,
                 },
-                BillingOperation::InvoiceOverdue { invoice: snapshot },
+                BillingOperation::InvoiceOverdue { invoice },
                 AuthenticatedEntity::System,
             ))
             .await?;
         Ok(())
+    }
+
+    /// The organization's oldest unpaid licence invoice, for the paths that
+    /// start from a subscription rather than an invoice.
+    pub(crate) async fn open_license_invoice(
+        &self,
+        organization: &Organization,
+    ) -> Result<Option<BillingInvoice>, Error> {
+        let Some(customer_id) = organization
+            .base
+            .stripe_customer_id
+            .clone()
+            .map(CustomerId::from)
+        else {
+            return Ok(None);
+        };
+        Ok(self
+            .open_license_invoices(&customer_id)
+            .await?
+            .iter()
+            .map(BillingInvoice::from)
+            .find(|invoice| invoice.provisional_paid_through().is_some()))
     }
 
     /// Webhook: a sent invoice was voided or marked uncollectible, so it will
@@ -558,20 +606,35 @@ impl BillingService {
     /// happened. Left unhandled it surfaced as a 500 on quote acceptance and
     /// made Stripe redeliver `invoice.created` forever.
     async fn finalize_invoice(&self, id: stripe_shared::InvoiceId) -> Result<(), Error> {
-        match FinalizeInvoiceInvoice::new(id.clone())
+        let Err(finalize_error) = FinalizeInvoiceInvoice::new(id.clone())
             .auto_advance(true)
             .send(&self.stripe)
             .await
-        {
-            Ok(_) => {
-                tracing::info!(invoice_id = %id, "Finalized a sent licence invoice");
+        else {
+            tracing::info!(invoice_id = %id, "Finalized a sent licence invoice");
+            return Ok(());
+        };
+
+        // Ask the invoice what state it reached rather than reading the
+        // failure: Stripe leaves `code` unset on the re-finalize rejection, so
+        // only its English message identifies it and that is copy, not API.
+        // A draft that is no longer a draft was finalized by whoever won, and
+        // this also covers Stripe auto-advancing it out from under us.
+        match RetrieveInvoice::new(id.clone()).send(&self.stripe).await {
+            Ok(invoice) if invoice.status != Some(InvoiceStatus::Draft) => {
+                tracing::debug!(
+                    invoice_id = %id,
+                    status = ?invoice.status,
+                    error = %finalize_error,
+                    "Invoice was already finalized elsewhere"
+                );
                 Ok(())
             }
-            Err(error) if already_finalized(&error) => {
-                tracing::debug!(invoice_id = %id, "Invoice was already finalized elsewhere");
-                Ok(())
-            }
-            Err(error) => Err(error.into()),
+            Ok(_) => Err(finalize_error.into()),
+            Err(retrieve_error) => Err(anyhow!(
+                "Invoice {id} could not be finalized ({finalize_error}) \
+                 or read back ({retrieve_error})"
+            )),
         }
     }
 
@@ -692,16 +755,6 @@ impl BillingService {
 
 const SELF_HOSTED_ONLY: &str = "Invoice billing is available on self-hosted plans only";
 
-/// Whether a failed finalize means the invoice was already finalized, which
-/// is the benign outcome of two paths racing to send the same draft.
-fn already_finalized(error: &stripe::StripeError) -> bool {
-    matches!(
-        error,
-        stripe::StripeError::Stripe(api_error, _)
-            if api_error.code == Some(stripe_shared::ApiErrorsCode::InvoiceNotEditable)
-    )
-}
-
 /// Whether a freshly created invoice should be finalized straight away: a
 /// draft, sent to the customer rather than charged, for a self-hosted licence.
 /// Anything else is left to Stripe, including invoices already finalized by
@@ -818,45 +871,6 @@ mod tests {
             true,
             &licensed_invoice(InvoiceCollection::SendInvoice, false)
         ));
-    }
-
-    fn stripe_error(code: Option<stripe_shared::ApiErrorsCode>) -> stripe::StripeError {
-        stripe::StripeError::Stripe(
-            Box::new(stripe_shared::ApiErrors {
-                advice_code: None,
-                charge: None,
-                code,
-                decline_code: None,
-                doc_url: None,
-                message: None,
-                network_advice_code: None,
-                network_decline_code: None,
-                param: None,
-                payment_intent: None,
-                payment_method: None,
-                payment_method_type: None,
-                request_log_url: None,
-                setup_intent: None,
-                source: None,
-                type_: stripe_shared::ApiErrorsType::InvalidRequestError,
-            }),
-            400,
-        )
-    }
-
-    /// The eager finalize and the `invoice.created` webhook race on the same
-    /// draft, so the loser has to read "already finalized" as success. Every
-    /// other failure still has to reach the caller.
-    #[test]
-    fn only_an_already_finalized_invoice_is_tolerated() {
-        assert!(already_finalized(&stripe_error(Some(
-            stripe_shared::ApiErrorsCode::InvoiceNotEditable
-        ))));
-        assert!(!already_finalized(&stripe_error(Some(
-            stripe_shared::ApiErrorsCode::CustomerMaxSubscriptions
-        ))));
-        assert!(!already_finalized(&stripe_error(None)));
-        assert!(!already_finalized(&stripe::StripeError::Timeout));
     }
 
     fn purchasable() -> Vec<BillingPlan> {
