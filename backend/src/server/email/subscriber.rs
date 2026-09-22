@@ -32,6 +32,25 @@ use crate::server::{
     },
 };
 
+impl EmailService {
+    /// Formatted date a lapsed org's online key stops working: the period it
+    /// paid or trialled for, plus the buffer every key is minted with. The
+    /// org keeps its plan, so the cloud serves its entitlement until then.
+    async fn license_key_expires(&self, organization_id: uuid::Uuid) -> Result<String, Error> {
+        Ok(self
+            .organization_service
+            .get_by_id(&organization_id)
+            .await?
+            .and_then(|org| org.base.license_paid_through)
+            .map(|at| {
+                (at + chrono::Duration::days(PAID_THROUGH_BUFFER_DAYS))
+                    .format("%B %-d, %Y")
+                    .to_string()
+            })
+            .unwrap_or_else(|| "the end of the period you paid for".to_string()))
+    }
+}
+
 #[async_trait]
 impl Subscriber<BillingOperation> for EmailService {
     fn filter(&self) -> EventFilter<BillingOperation> {
@@ -104,11 +123,15 @@ impl Subscriber<BillingOperation> for EmailService {
                         .await?;
                     } else if plan.license_plan().is_some() {
                         // Air-gapped keys are not issued during a trial.
+                        let key_expires = self
+                            .license_key_expires(event.scope.organization_id)
+                            .await?;
                         self.send_self_hosted_license_ended_email(
                             org_owner,
                             plan.name(),
                             true,
                             false,
+                            &key_expires,
                         )
                         .await?;
                     } else {
@@ -192,16 +215,27 @@ impl Subscriber<BillingOperation> for EmailService {
                     license_key_type,
                     ..
                 } => {
-                    // Decided on the plan the event carries: the organization
-                    // subscriber moves the org row to Free off this same
-                    // event, and dispatch order is unspecified. An unconverted
-                    // trial arrives here too, as `was_trialing`.
+                    // Decided on the plan the event carries. An unconverted
+                    // trial arrives here too, as `was_trialing`: Stripe ends a
+                    // card-less trial by deleting the subscription, so the
+                    // trial-expired email is sent from this arm.
                     if plan.license_plan().is_some() {
+                        let key_expires = self
+                            .license_key_expires(event.scope.organization_id)
+                            .await?;
                         self.send_self_hosted_license_ended_email(
                             org_owner,
                             plan.name(),
                             was_trialing,
                             license_key_type == Some(LicenseKeyType::Offline),
+                            &key_expires,
+                        )
+                        .await?;
+                    } else if was_trialing {
+                        self.send_trial_expired_email(
+                            org_owner,
+                            plan.name(),
+                            plan.billing_period(),
                         )
                         .await?;
                     } else {

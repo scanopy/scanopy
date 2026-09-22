@@ -31,6 +31,7 @@
 	import type { Host } from '$lib/features/hosts/types/base';
 	import { useSubnetsQuery } from '$lib/features/subnets/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { isPlanLapsed } from '$lib/features/organizations/types';
 	import { billingPlans } from '$lib/shared/stores/metadata';
 	import {
 		Info,
@@ -107,6 +108,9 @@
 
 	const organizationQuery = useOrganizationQuery();
 	let org = $derived(organizationQuery.data);
+	// The scheduler skips a lapsed org the way it skips a Free one; the plan's
+	// own feature flags still decide the run-type default below.
+	let scheduleLapsed = $derived(org != null && isPlanLapsed(org));
 	const subnetsQuery = useSubnetsQuery();
 	let subnetsData = $derived(subnetsQuery.data ?? []);
 	let hasScheduledDiscovery = $derived.by(() => {
@@ -806,7 +810,8 @@
 						bind:formData
 						{readOnly}
 						bind:rawCronMode
-						schedulePaused={!hasScheduledDiscovery}
+						schedulePaused={!hasScheduledDiscovery || scheduleLapsed}
+						{scheduleLapsed}
 					/>
 				</div>
 			{/if}

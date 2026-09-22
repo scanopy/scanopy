@@ -298,8 +298,14 @@ impl BillingService {
             let authentication: AuthenticatedEntity = owner.clone().into();
             let is_trialing = sub.status == SubscriptionStatus::Trialing;
 
-            // Checkout completed (first subscription creation, or upgrade from Free)
-            if prior_status.is_none() || prior_was_free {
+            // Checkout completed: first subscription creation, upgrade from
+            // Free, or a lapsed org choosing a paid plan again. The last case
+            // needs this arm even when the plan name is unchanged, because
+            // nothing else implies Active for it.
+            if prior_status.is_none()
+                || prior_was_free
+                || prior_status == Some(PlanStatus::Cancelled)
+            {
                 let plan_config = plan.config();
                 self.event_bus
                     .publish(Event::new(

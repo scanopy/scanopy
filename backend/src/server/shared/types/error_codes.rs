@@ -205,6 +205,9 @@ pub enum ErrorCode {
     /// Organization is on a self-hosted plan, so the cloud app's main routes
     /// are closed to it
     BillingSelfHostedPlanLocked,
+    /// The org's subscription ended and it has not chosen a paid plan since,
+    /// so the app is read-only for it
+    BillingPlanLapsed,
     /// Cannot leave an air-gapped key until the current licence period ends
     BillingAirGappedKeyStillCurrent,
     /// Cannot change plan while an air-gapped key is still current. The key
@@ -368,6 +371,9 @@ impl ErrorCode {
             Self::BillingSelfHostedPlanLocked => {
                 "This organization is on a self-hosted plan. Manage its license in Settings, or switch to a cloud plan to use the app."
             }
+            Self::BillingPlanLapsed => {
+                "Your plan has lapsed. Choose a paid plan in Settings to make changes again."
+            }
             Self::BillingAirGappedKeyStillCurrent => {
                 "Your air-gapped key is still valid. You can switch back to an online key once the current license period ends."
             }
@@ -431,6 +437,7 @@ impl ErrorCode {
             | Self::BillingSubscriptionRequired
             | Self::BillingSetupIncomplete
             | Self::BillingSelfHostedPlanLocked
+            | Self::BillingPlanLapsed
             | Self::BillingAirGappedKeyStillCurrent
             | Self::RateLimitExceeded
             | Self::DatabaseError => None,

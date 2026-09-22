@@ -247,13 +247,13 @@ impl BillingService {
                 organization_id = %organization_id,
                 subscription_id = %sub.id,
                 is_trialing,
-                "Scheduled downgrade to Free at period end"
+                "Scheduled cancellation at period end"
             );
 
             if is_trialing {
-                Ok("Your plan will change to Free when your trial ends.".to_string())
+                Ok("Your subscription ends when your trial ends. After that your account is read-only until you choose a paid plan.".to_string())
             } else {
-                Ok("Your plan will change to Free at the end of your billing cycle.".to_string())
+                Ok("Your subscription ends at the end of your billing cycle. After that your account is read-only until you choose a paid plan.".to_string())
             }
         } else {
             Err(anyhow!("No active subscription found"))

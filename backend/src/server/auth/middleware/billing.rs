@@ -11,6 +11,10 @@
 //! Orgs on a self-hosted license plan (SelfHostedStandard / SelfHostedPlus)
 //! run Scanopy on their own servers, so on the cloud they only reach the
 //! routes the Settings modal needs; everything else returns 403.
+//!
+//! A lapsed org (subscription ended, no paid plan chosen since) keeps its
+//! plan and can read everything, but every mutating request outside the
+//! Settings routes returns 402 until it chooses a paid plan.
 
 use crate::server::{
     auth::middleware::{auth::AuthenticatedEntity, cache::CachedNetwork},
@@ -116,24 +120,28 @@ pub async fn require_billing_for_users(
     }
 
     // Check subscription status. None = no subscription yet (must select a
-    // plan); Cancelled = revoke access; everything else allows the request
-    // through (Active / Trialing / PendingCancellation / PastDue / Paused all
-    // keep features available — Paused is a Stripe collection pause, not a
-    // feature lockout).
-    use crate::server::billing::types::base::PlanStatus;
-    match organization.base.plan_status {
-        Some(PlanStatus::Cancelled) => {
-            billing_error_response("Your subscription has been canceled. Please renew to continue.")
+    // plan); Cancelled = the subscription ended and the org kept its plan, so
+    // it is read-only until it chooses a paid plan; everything else allows
+    // the request through (Active / Trialing / PendingCancellation / PastDue
+    // / Paused all keep features available — Paused is a Stripe collection
+    // pause, not a feature lockout).
+    if organization.is_lapsed() {
+        if request.method().is_safe() || settings_route(request.method(), request.uri().path()) {
+            return next.run(request).await;
         }
+        return ApiError::billing_plan_lapsed().into_response();
+    }
+    match organization.base.plan_status {
         Some(_) => next.run(request).await,
         None => billing_error_response("Active billing plan required. Please select a plan."),
     }
 }
 
 /// Billed routes the Settings modal calls, which stay open to an org on a
-/// self-hosted license plan: reading, renaming, and deleting the org, and
-/// editing the current user. Everything else Settings needs (auth, billing,
-/// licenses, config) sits outside this middleware already.
+/// self-hosted license plan and to a lapsed org: reading, renaming, and
+/// deleting the org, and editing the current user. Everything else Settings
+/// needs (auth, billing, licenses, config) sits outside this middleware
+/// already.
 fn settings_route(method: &Method, path: &str) -> bool {
     const ORGANIZATIONS: &str = "/api/v1/organizations";
     const USERS: &str = "/api/v1/users";

@@ -727,9 +727,8 @@ impl BrevoService {
     }
 
     async fn handle_subscription_cancelled(&self, event: &Event<BillingOperation>) -> Result<()> {
-        // Cancellation always downgrades to Free. Used to ride a chained
-        // PlanChanged{to: Free} for the plan_type write; now folded in here
-        // so the cancel-side-effects path emits exactly one event.
+        // The org keeps the plan it lapsed from, so plan_type carries it;
+        // plan_status is what says the subscription ended.
         let was_trialing = matches!(
             &event.operation,
             BillingOperation::SubscriptionCancelled {
@@ -737,9 +736,10 @@ impl BrevoService {
                 ..
             }
         );
-        let company_attrs = CompanyAttributes::new()
-            .with_plan_status(PlanStatus::Cancelled)
-            .with_plan_type("Free");
+        let mut company_attrs = CompanyAttributes::new().with_plan_status(PlanStatus::Cancelled);
+        if let Some(plan) = event.operation.resulting_plan_name() {
+            company_attrs = company_attrs.with_plan_type(plan);
+        }
         self.update_company_by_org(event.scope.organization_id, company_attrs)
             .await?;
 

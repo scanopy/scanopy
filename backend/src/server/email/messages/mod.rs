@@ -682,6 +682,7 @@ mod tests {
                 plan_name: "Self-Hosted Standard",
                 was_trial: true,
                 air_gapped: false,
+                key_expires: "March 22, 2026",
             },
         );
         f(
@@ -690,6 +691,7 @@ mod tests {
                 plan_name: "Self-Hosted Plus",
                 was_trial: false,
                 air_gapped: false,
+                key_expires: "March 22, 2026",
             },
         );
         f(
@@ -698,6 +700,7 @@ mod tests {
                 plan_name: "Self-Hosted Plus",
                 was_trial: false,
                 air_gapped: true,
+                key_expires: "March 22, 2026",
             },
         );
         f(

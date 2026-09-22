@@ -383,23 +383,14 @@ impl BillingOperation {
         }
     }
 
-    /// Plan the org *lands on* after this event. For the downgrade-to-Free
-    /// outcomes — `SubscriptionCancelled` and an unconverted `TrialEnded` —
-    /// `plan()` carries the outgoing paid plan, but the org is moved to Free
-    /// (the rewrite lives in the org subscriber's matching arm). Use this for
-    /// the PostHog person/group `plan_type` so a churned org isn't mislabelled
-    /// with its old paid plan; the literal event payload (the PostHog
-    /// `metadata` blob) still serializes the carried plan unchanged.
+    /// Plan the org *lands on* after this event, for the PostHog person/group
+    /// `plan_type`. A `SubscriptionCancelled` or unconverted `TrialEnded`
+    /// leaves the org on the plan it carries (lapsed, read-only), so this is
+    /// `plan()` for every variant; it stays a separate accessor so the
+    /// analytics call site names the intent.
     pub fn resulting_plan_name(&self) -> Option<&'static str> {
-        use crate::server::billing::plans::get_free_plan;
         use crate::server::shared::types::metadata::TypeMetadataProvider;
-        match self {
-            Self::SubscriptionCancelled { .. }
-            | Self::TrialEnded {
-                converted: false, ..
-            } => Some(get_free_plan().name()),
-            _ => self.plan().map(|p| p.name()),
-        }
+        self.plan().map(|p| p.name())
     }
 
     /// Canonical mapping from a billing event to the `PlanStatus` it implies
@@ -412,13 +403,19 @@ impl BillingOperation {
             Self::CheckoutCompleted { .. }
             | Self::PaymentRecovered { .. }
             | Self::Resumed { .. }
-            | Self::Reactivated { trialing: false, .. }
-            // A full cancellation / unconverted trial downgrades the org to the
-            // Free plan, which is an *active* plan. The plan rewrite to Free
-            // lives in the org subscriber's matching arm (status alone can't
-            // express it); the status these events imply is Active.
-            | Self::SubscriptionCancelled { .. }
-            | Self::TrialEnded { converted: false, .. } => Some(PlanStatus::Active),
+            | Self::Reactivated {
+                trialing: false, ..
+            } => Some(PlanStatus::Active),
+
+            // A full cancellation / unconverted trial leaves the org on the
+            // plan it carries, lapsed: read-only until it chooses a paid plan.
+            // The org subscriber's matching arm clears the subscription
+            // mirrors (renewal date, invoice billing, discount) off the same
+            // event; the status is what makes it read-only.
+            Self::SubscriptionCancelled { .. }
+            | Self::TrialEnded {
+                converted: false, ..
+            } => Some(PlanStatus::Cancelled),
 
             Self::Reactivated { trialing: true, .. }
             | Self::TrialStarted { .. }
@@ -734,12 +731,13 @@ mod tests {
     }
 
     #[test]
-    fn resulting_plan_name_maps_downgrades_to_free() {
+    fn an_ended_subscription_lapses_on_the_plan_it_carries() {
         use crate::server::billing::plans::get_enterprise_plan;
-        use crate::server::shared::types::metadata::TypeMetadataProvider;
+        use crate::server::billing::types::base::PlanStatus;
 
-        // Cancelling a paid plan lands the org on Free, even though the event
-        // still carries the outgoing (paid) plan.
+        // Cancelling a paid plan leaves the org on that plan, lapsed: the
+        // analytics plan label stays, and the implied status is what makes
+        // the org read-only.
         let cancelled = BillingOperation::SubscriptionCancelled {
             plan: get_enterprise_plan(),
             reason_code: None,
@@ -753,24 +751,26 @@ mod tests {
             tenure_days: 10,
             license_key_type: None,
         };
-        assert_eq!(cancelled.plan().map(|p| p.name()), Some("Enterprise"));
-        assert_eq!(cancelled.resulting_plan_name(), Some("Free"));
+        assert_eq!(cancelled.resulting_plan_name(), Some("Enterprise"));
+        assert_eq!(cancelled.implied_status(), Some(PlanStatus::Cancelled));
 
-        // An unconverted trial also lands on Free.
+        // An unconverted trial lapses the same way.
         let trial_lost = BillingOperation::TrialEnded {
             plan: get_enterprise_plan(),
             converted: false,
             next_renewal_at: None,
         };
-        assert_eq!(trial_lost.resulting_plan_name(), Some("Free"));
+        assert_eq!(trial_lost.resulting_plan_name(), Some("Enterprise"));
+        assert_eq!(trial_lost.implied_status(), Some(PlanStatus::Cancelled));
 
-        // A converted trial keeps the paid plan it carries.
+        // A converted trial keeps the paid plan it carries, live.
         let trial_won = BillingOperation::TrialEnded {
             plan: get_enterprise_plan(),
             converted: true,
             next_renewal_at: DateTime::<Utc>::from_timestamp(1_800_000_000, 0),
         };
         assert_eq!(trial_won.resulting_plan_name(), Some("Enterprise"));
+        assert_eq!(trial_won.implied_status(), Some(PlanStatus::Active));
 
         // Non-downgrade events return the plan they carry.
         let checkout = BillingOperation::CheckoutCompleted {

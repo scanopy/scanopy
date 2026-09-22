@@ -2,16 +2,20 @@ use super::{Body, Content, Email, EmailCategory, EmailPreference, links};
 
 /// Sent instead of the cloud cancelled / trial-expired emails when the
 /// subscription that ended was for a self-hosted plan. Those emails describe
-/// life on the Free cloud plan (25 hosts, manual discovery). This customer's
-/// hosts are on their own server, and what they lose is the license key.
+/// a read-only cloud account. This customer's hosts are on their own server,
+/// and what they lose is the license key.
 pub struct SelfHostedLicenseEnded<'a> {
     pub plan_name: &'a str,
     /// The subscription ended because a trial ran out with no payment method,
     /// as opposed to a paid subscription being cancelled.
     pub was_trial: bool,
-    /// An online key is refused at the server's next check-in. An air-gapped
-    /// key carries its expiry inside it and runs until then.
+    /// An online key keeps working until `key_expires`, the end of the period
+    /// the org paid (or trialled) for plus the usual buffer, because the org
+    /// keeps its plan and the cloud keeps serving its entitlement until then.
+    /// An air-gapped key carries its expiry inside it and runs until then.
     pub air_gapped: bool,
+    /// Formatted date the online key stops working.
+    pub key_expires: &'a str,
 }
 
 impl Email for SelfHostedLicenseEnded<'_> {
@@ -64,14 +68,16 @@ impl Email for SelfHostedLicenseEnded<'_> {
                 "You are using an air-gapped key. It keeps working until the expiry date it was issued with, and after that your server stops accepting it and goes read-only.",
             )
         } else {
-            content.paragraph(
-                "Your server stops accepting the license key at its next check-in, within a few hours, and goes read-only. Your data stays on your server.",
-            )
+            content.paragraph(&format!(
+                "Your license key keeps working until {}. After that your server stops accepting it and goes read-only. Your data stays on your server.",
+                self.key_expires
+            ))
         };
 
-        content = content.paragraph(
-            "Pick a self-hosted plan again to restore your license. Your Scanopy Cloud account is on the Free plan in the meantime.",
-        );
+        content = content.paragraph(&format!(
+            "Your Scanopy Cloud account stays on {}. Renew from Settings to keep the same key working, or choose another self-hosted plan.",
+            self.plan_name
+        ));
 
         Body::new()
             .content(content)

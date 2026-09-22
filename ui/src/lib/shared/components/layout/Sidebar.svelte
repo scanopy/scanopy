@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { isBillingPlanActive } from '$lib/features/organizations/types';
+	import { isBillingPlanActive, isPlanLapsed } from '$lib/features/organizations/types';
 	import SettingsModal from '$lib/features/settings/SettingsModal.svelte';
 	import SupportModal from '$lib/features/support/SupportModal.svelte';
 	import { billingPlans, entities } from '$lib/shared/stores/metadata';
@@ -147,7 +147,12 @@
 		if (trialDaysLeft === 1) return billing_trialPillOneDay();
 		return billing_trialPill({ days: trialDaysLeft });
 	});
-	let isReadOnly = $derived(userPermissions === 'Viewer');
+	// A lapsed org (subscription ended, no paid plan chosen since) is read-only
+	// for everyone: the backend refuses its writes, so the tabs drop their edit
+	// affordances the same way they do for a Viewer.
+	let isReadOnly = $derived(
+		userPermissions === 'Viewer' || (organization != null && isPlanLapsed(organization))
+	);
 
 	let showSupport = $state(false);
 

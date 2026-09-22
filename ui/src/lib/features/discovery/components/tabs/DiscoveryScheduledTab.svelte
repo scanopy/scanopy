@@ -33,6 +33,7 @@
 	import { useNetworksQuery } from '$lib/features/networks/queries';
 	import { useHostsByIds } from '$lib/features/hosts/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { isPlanLapsed } from '$lib/features/organizations/types';
 	import { hasDaemon } from '$lib/shared/onboarding/checklist';
 	import type { components } from '$lib/api/schema';
 	import type { TabProps } from '$lib/shared/types';
@@ -56,6 +57,7 @@
 		common_schedule,
 		common_status,
 		discovery_schedulePausedFreePlan,
+		discovery_schedulePausedLapsed,
 		common_edit,
 		common_enable,
 		common_run,
@@ -291,11 +293,16 @@
 	}
 
 	/**
-	 * Whether the org's plan runs schedules at all. A free plan keeps the cron on
-	 * the record but never fires it, so the schedule reads as paused rather than
-	 * as a time that will not happen.
+	 * Whether the org's schedules fire at all. A free plan keeps the cron on the
+	 * record but never fires it, and a lapsed org (subscription ended, no paid
+	 * plan chosen since) is skipped by the scheduler the same way, so the
+	 * schedule reads as paused rather than as a time that will not happen.
 	 */
+	let scheduleLapsed = $derived(
+		organizationQuery.data != null && isPlanLapsed(organizationQuery.data)
+	);
 	let schedulePaused = $derived.by(() => {
+		if (scheduleLapsed) return true;
 		const planType = organizationQuery.data?.plan?.type;
 		if (!planType) return false;
 		return !billingPlans.getMetadata(planType).features.scheduled_discovery;
@@ -355,9 +362,11 @@
 			getValue: (item) =>
 				item.run_type.type !== 'Scheduled'
 					? common_manual()
-					: schedulePaused
-						? discovery_schedulePausedFreePlan()
-						: formatScheduleDisplay(item.run_type.cron_schedule, item.run_type.timezone),
+					: scheduleLapsed
+						? discovery_schedulePausedLapsed()
+						: schedulePaused
+							? discovery_schedulePausedFreePlan()
+							: formatScheduleDisplay(item.run_type.cron_schedule, item.run_type.timezone),
 			display: { hiddenByDefault: true }
 		},
 		{

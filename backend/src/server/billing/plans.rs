@@ -18,28 +18,20 @@ pub const SELF_HOSTED_PLUS_ORGS: u64 = 5;
 /// Card-less trial length for both paid self-hosted tiers.
 pub const SELF_HOSTED_TRIAL_DAYS: u32 = 14;
 
-/// Returns the canonical list of billing plans for Scanopy.
+/// Returns the canonical list of purchasable cloud plans for Scanopy.
 /// This is the single source of truth for plan definitions.
+///
+/// Starter is no longer sold: the variant stays for the organizations that
+/// hold it, but it is absent here so it reaches neither Stripe product
+/// initialization, checkout validation, nor the plan picker.
 fn get_default_plans() -> Vec<BillingPlan> {
     vec![
-        BillingPlan::Starter(PlanConfig {
-            base_cents: 1499,
-            rate: BillingRate::Month,
-            trial_days: 14,
-            seat_cents: None,
-            network_cents: None,
-            host_cents: None,
-            included_seats: Some(1),
-            included_networks: Some(1),
-            included_hosts: None,
-            included_orgs: None,
-        }),
         BillingPlan::Pro(PlanConfig {
-            base_cents: 4999,
+            base_cents: 9999,
             rate: BillingRate::Month,
             trial_days: 14,
             seat_cents: None,
-            network_cents: Some(1000),
+            network_cents: Some(2500),
             host_cents: None,
             included_seats: Some(1),
             included_networks: Some(3),
@@ -47,11 +39,11 @@ fn get_default_plans() -> Vec<BillingPlan> {
             included_orgs: None,
         }),
         BillingPlan::Business(PlanConfig {
-            base_cents: 9999,
+            base_cents: 24999,
             rate: BillingRate::Month,
             trial_days: 14,
-            seat_cents: Some(1000),
-            network_cents: Some(700),
+            seat_cents: Some(1500),
+            network_cents: Some(1500),
             host_cents: None,
             included_seats: Some(5),
             included_networks: Some(15),

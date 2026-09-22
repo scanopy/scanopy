@@ -72,6 +72,12 @@ impl Subscriber<EntityOperation> for BillingService {
             if plan.config().seat_cents.is_none() && plan.config().network_cents.is_none() {
                 continue;
             }
+            // A lapsed org has no live subscription to carry add-on
+            // quantities; the one entity change it can still make (deleting
+            // the org) would otherwise fail here looking for one.
+            if org.is_lapsed() {
+                continue;
+            }
 
             self.update_addon_prices(org, network_count as u64, seat_count as u64)
                 .await?;

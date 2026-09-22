@@ -959,8 +959,23 @@ impl DaemonService {
     /// Get pending discovery work for a daemon.
     /// When work is returned, the session is immediately transitioned to Starting phase
     /// to prevent it from being dispatched again on subsequent poll cycles.
-    /// Returns None if there's already an active session running on the daemon.
-    pub async fn get_pending_work(&self, daemon_id: Uuid) -> Option<DiscoveryUpdatePayload> {
+    /// Returns None if there's already an active session running on the daemon,
+    /// or if the daemon's org is lapsed.
+    pub async fn get_pending_work(&self, daemon: &Daemon) -> Option<DiscoveryUpdatePayload> {
+        // A lapsed org (subscription ended, no paid plan chosen since) is
+        // read-only: it gets no new sessions, not even a daemon's initial run.
+        // Its daemons keep reporting status through process_status so they
+        // show as connected the moment it chooses a plan again. Both
+        // DaemonPoll and ServerPoll funnel through here, so this is the one
+        // place that decision lives.
+        if self
+            .network_organization_is_lapsed(daemon.base.network_id)
+            .await
+        {
+            return None;
+        }
+        let daemon_id = daemon.id;
+
         // Don't dispatch new work if there's already an active session
         if self
             .discovery_service
@@ -994,6 +1009,21 @@ impl DaemonService {
         } else {
             None
         }
+    }
+
+    /// Whether the org owning `network_id` is lapsed. A lookup failure reads as
+    /// not lapsed: the daemon then gets the work it would have got before this
+    /// check existed, and the billed result routes still refuse a lapsed org.
+    async fn network_organization_is_lapsed(&self, network_id: Uuid) -> bool {
+        let Ok(Some(network)) = self.network_service.get_by_id(&network_id).await else {
+            return false;
+        };
+        matches!(
+            self.organization_service
+                .get_by_id(&network.base.organization_id)
+                .await,
+            Ok(Some(org)) if org.is_lapsed()
+        )
     }
 
     /// Start the initial session for any of the daemon's live discoveries that have

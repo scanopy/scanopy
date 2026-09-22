@@ -451,12 +451,12 @@ impl BillingPlan {
     /// Returns the next-lower-tier plan within this plan's ladder.
     /// Two independent ladders: the cloud tiers (Free → … → Enterprise) and
     /// the self-hosted commercial tiers (Community → Standard → Plus). Returns
-    /// None for the bottom of a ladder and for plans in no ladder (Team, Demo).
+    /// None for the bottom of a ladder and for plans in no ladder (Starter and
+    /// Team, which are no longer sold, and Demo).
     pub fn previous_tier(&self) -> Option<BillingPlanDiscriminants> {
         let ladders: [&[BillingPlanDiscriminants]; 2] = [
             &[
                 BillingPlanDiscriminants::Free,
-                BillingPlanDiscriminants::Starter,
                 BillingPlanDiscriminants::Pro,
                 BillingPlanDiscriminants::Business,
                 BillingPlanDiscriminants::Enterprise,

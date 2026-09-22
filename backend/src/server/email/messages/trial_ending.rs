@@ -55,7 +55,7 @@ impl Email for TrialEnding<'_> {
                     "Your {} {} trial ends in 3 days. To keep all your features and data, add a payment method before the trial expires.",
                     self.plan_name, self.billing_period
                 ))
-                .paragraph("If no payment method is added, your account will be downgraded to the Free plan, which includes up to 25 hosts with manual discovery only.")
+                .paragraph("If no payment method is added, your account becomes read-only when the trial ends until you choose a paid plan.")
                 .paragraph(BILLING_DETAILS_TAGLINE)
         };
 
