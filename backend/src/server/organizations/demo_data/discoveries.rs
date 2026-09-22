@@ -213,52 +213,6 @@ pub(super) fn generate_discoveries(
     let dc = find_network("Data Center");
     if let Some(daemon) = find_daemon("DC") {
         let dc_subnet_ids = find_subnets_for_network(dc.id);
-
-        // Historical — stalled 10 days ago. The daemon went quiet partway through and the server
-        // stopped waiting; the run's detail says what to check.
-        let ten_days_ago = now - Duration::days(10);
-        let last_heard = ten_days_ago + Duration::minutes(34);
-        let dc_unified = unified(daemon, Some(dc_subnet_ids.clone()));
-        discoveries.push(Discovery {
-            id: Uuid::new_v4(),
-            created_at: ten_days_ago,
-            updated_at: ten_days_ago,
-            base: DiscoveryBase {
-                discovery_type: dc_unified.clone(),
-                run_type: RunType::Historical {
-                    results: Box::new(DiscoveryUpdatePayload {
-                        session_id: Uuid::new_v4(),
-                        daemon_id: daemon.id,
-                        network_id: dc.id,
-                        phase: DiscoveryPhase::Failed,
-                        discovery_type: dc_unified,
-                        progress: 61,
-                        error: Some(
-                            "Session stalled - no updates received from daemon for more than 5 minutes"
-                                .to_string(),
-                        ),
-                        warnings: Vec::new(),
-                        started_at: Some(ten_days_ago),
-                        finished_at: Some(last_heard + Duration::minutes(5)),
-                        hosts_discovered: Some(38),
-                        estimated_remaining_secs: None,
-                        discovery_id: None,
-                        scanned: None,
-                        reason: Some(DiscoveryTerminalReason::StalledNoUpdates),
-                        last_update_at: Some(last_heard),
-                        daemon_version: daemon.base.version.as_ref().map(|v| v.to_string()),
-                    }),
-                },
-                name: "Discovery".to_string(),
-                daemon_id: daemon.id,
-                network_id: dc.id,
-                tags: vec![],
-            },
-            scan_count: 0,
-            force_full_scan: false,
-            integration_targets: snmp_network_targets(),
-        });
-
         discoveries.push(Discovery {
             id: Uuid::new_v4(),
             created_at: now,
