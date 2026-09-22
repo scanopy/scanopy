@@ -1,4 +1,16 @@
 /**
+ * Put `text` on the clipboard, through `navigator.clipboard` where the page is a secure context
+ * and a selection copy elsewhere. Throws when the browser refuses both.
+ */
+export async function copyText(text: string): Promise<void> {
+	if (window.isSecureContext && navigator.clipboard) {
+		await navigator.clipboard.writeText(text);
+	} else if (!copyViaSelection(text)) {
+		throw new Error('the browser refused the copy');
+	}
+}
+
+/**
  * Copy text by selecting it in an off-screen field. `navigator.clipboard` is gated to secure
  * contexts and Scanopy supports plain-HTTP self-hosts, so this is the path those pages use.
  */
