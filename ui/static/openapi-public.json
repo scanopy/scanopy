@@ -9314,6 +9314,16 @@
               }
             }
           },
+          "403": {
+            "description": "Share is disabled or expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Share not found",
             "content": {
@@ -12645,19 +12655,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-22T18:01:27.154338Z",
+              "created_at": "2026-09-22T20:48:50.336157Z",
               "first_discovery_id": null,
-              "id": "864fba2a-f499-4e77-b717-b7d5c46fbb50",
+              "id": "a94219ba-7b06-446d-bdac-9a74dd7b7a58",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-22T18:01:27.154338Z",
+              "last_seen_at": "2026-09-22T20:48:50.336157Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-22T18:01:27.154338Z",
-              "valid_from": "2026-09-22T18:01:27.154338Z",
+              "updated_at": "2026-09-22T20:48:50.336157Z",
+              "valid_from": "2026-09-22T20:48:50.336157Z",
               "valid_to": null
             }
           },
@@ -14229,19 +14239,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-22T18:01:27.138618Z",
+                      "created_at": "2026-09-22T20:48:50.320379Z",
                       "first_discovery_id": null,
-                      "id": "18592b98-cacc-4a66-a694-e1345af9a9ba",
+                      "id": "03aea6ea-719e-4d4c-8585-1be8cfba77b0",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-22T18:01:27.138618Z",
+                      "last_seen_at": "2026-09-22T20:48:50.320379Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-22T18:01:27.138618Z",
-                      "valid_from": "2026-09-22T18:01:27.138618Z",
+                      "updated_at": "2026-09-22T20:48:50.320379Z",
+                      "valid_from": "2026-09-22T20:48:50.320379Z",
                       "valid_to": null
                     }
                   ],
@@ -14255,7 +14265,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Nomad",
+                  "service_definition": "Tasmota",
                   "source": {
                     "type": "Manual"
                   },
@@ -15634,19 +15644,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-22T18:01:27.150516Z",
+                  "created_at": "2026-09-22T20:48:50.332267Z",
                   "first_discovery_id": null,
-                  "id": "3729f082-96a9-41e1-81a0-cc51f082255f",
+                  "id": "78c15a5a-c46e-4a6b-8c11-c07b1863e3ed",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-22T18:01:27.150516Z",
+                  "last_seen_at": "2026-09-22T20:48:50.332267Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-22T18:01:27.150516Z",
-                  "valid_from": "2026-09-22T18:01:27.150516Z",
+                  "updated_at": "2026-09-22T20:48:50.332267Z",
+                  "valid_from": "2026-09-22T20:48:50.332267Z",
                   "valid_to": null
                 }
               ],
@@ -15660,7 +15670,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Nomad",
+              "service_definition": "Tasmota",
               "source": {
                 "type": "Manual"
               },
@@ -15851,6 +15861,59 @@
                 "type": "string",
                 "format": "date-time",
                 "description": "When this record stops being valid."
+              }
+            }
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
+      "ApiResponse_ShareWithTopology": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Share with topology data (returned after authentication/verification).\n\nReturns the slim topology row (`{ id, network_id, options }`) plus the\n`TopologyData` bundle (entities + the per-view graph built on request). The\nshare viewer composes these with the same `toRenderableTopology` the app\nuses — no server-side merge.",
+            "required": [
+              "share",
+              "topology",
+              "data",
+              "export_features"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/TopologyData",
+                "description": "Entities and graph for the requested view."
+              },
+              "export_features": {
+                "$ref": "#/components/schemas/ExportFeatures",
+                "description": "Which exports the share creator's plan allows."
+              },
+              "share": {
+                "$ref": "#/components/schemas/PublicShareMetadata",
+                "description": "Public metadata for the share itself."
+              },
+              "topology": {
+                "$ref": "#/components/schemas/Topology",
+                "description": "The shared topology record."
               }
             }
           },
@@ -17963,19 +18026,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-22T18:01:27.139013Z",
+          "created_at": "2026-09-22T20:48:50.320776Z",
           "first_discovery_id": null,
-          "id": "e38a513e-7fac-4be6-98d9-d6c31fc8163d",
+          "id": "f5e4ed18-9eb6-4738-8eb0-32cedeb0787a",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-22T18:01:27.139013Z",
+          "last_seen_at": "2026-09-22T20:48:50.320776Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-22T18:01:27.139013Z",
-          "valid_from": "2026-09-22T18:01:27.139013Z",
+          "updated_at": "2026-09-22T20:48:50.320776Z",
+          "valid_from": "2026-09-22T20:48:50.320776Z",
           "valid_to": null
         }
       },
@@ -18683,7 +18746,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Nomad",
+              "service_definition": "Tasmota",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -23171,6 +23234,49 @@
           }
         }
       },
+      "ExportFeatures": {
+        "type": "object",
+        "description": "Export feature flags derived from the share creator's billing plan",
+        "required": [
+          "png_export",
+          "svg_export",
+          "mermaid_export",
+          "confluence_export",
+          "pdf_export",
+          "html_export",
+          "remove_created_with"
+        ],
+        "properties": {
+          "confluence_export": {
+            "type": "boolean",
+            "description": "Viewer may export the diagram for Confluence."
+          },
+          "html_export": {
+            "type": "boolean",
+            "description": "Viewer may export the diagram as standalone HTML."
+          },
+          "mermaid_export": {
+            "type": "boolean",
+            "description": "Viewer may export the diagram as Mermaid."
+          },
+          "pdf_export": {
+            "type": "boolean",
+            "description": "Viewer may export the diagram as PDF."
+          },
+          "png_export": {
+            "type": "boolean",
+            "description": "Viewer may export the diagram as PNG."
+          },
+          "remove_created_with": {
+            "type": "boolean",
+            "description": "Exports omit the Scanopy attribution line."
+          },
+          "svg_export": {
+            "type": "boolean",
+            "description": "Viewer may export the diagram as SVG."
+          }
+        }
+      },
       "FieldDefinition": {
         "type": "object",
         "description": "Definition of a form field for dynamic UI rendering.\n\nOne definition serves every dynamic form: credential types and discovery scan settings both\nbuild these, and the frontend renders them through the same switch. Reaches the UI through\nbuild-time fixtures (`credential-types.json`, `integrations.json`, `scan-settings.json`) and,\nfor the generated TypeScript union, through the OpenAPI schema.",
@@ -24176,19 +24282,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-22T18:01:27.138181Z",
+                  "created_at": "2026-09-22T20:48:50.319936Z",
                   "first_discovery_id": null,
-                  "id": "6c984414-a9d6-4084-ae30-4bc028f3cc0e",
+                  "id": "3c0f1c2e-6d0f-4e45-b167-9dd679ad80fa",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-22T18:01:27.138181Z",
+                  "last_seen_at": "2026-09-22T20:48:50.319936Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-22T18:01:27.138181Z",
-                  "valid_from": "2026-09-22T18:01:27.138181Z",
+                  "updated_at": "2026-09-22T20:48:50.319936Z",
+                  "valid_from": "2026-09-22T20:48:50.319936Z",
                   "valid_to": null
                 }
               ],
@@ -24202,7 +24308,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Nomad",
+              "service_definition": "Tasmota",
               "source": {
                 "type": "Manual"
               },
@@ -27868,19 +27974,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-22T18:01:27.131853Z",
+                        "created_at": "2026-09-22T20:48:50.313547Z",
                         "first_discovery_id": null,
-                        "id": "09b72bbf-3fd8-48f3-89f5-5b5aa2f9ce6f",
+                        "id": "0a8112e5-84b1-4413-8445-6f51925fe176",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-22T18:01:27.131853Z",
+                        "last_seen_at": "2026-09-22T20:48:50.313547Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-22T18:01:27.131853Z",
-                        "valid_from": "2026-09-22T18:01:27.131853Z",
+                        "updated_at": "2026-09-22T20:48:50.313547Z",
+                        "valid_from": "2026-09-22T20:48:50.313547Z",
                         "valid_to": null
                       }
                     ],
@@ -27894,7 +28000,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Nomad",
+                    "service_definition": "Tasmota",
                     "source": {
                       "type": "Manual"
                     },
@@ -28037,19 +28143,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-22T18:01:27.149763Z",
+                    "created_at": "2026-09-22T20:48:50.331474Z",
                     "first_discovery_id": null,
-                    "id": "53ff3de0-0bf7-4132-b569-cb72e1f7b3b5",
+                    "id": "03f9e93e-b7b2-46e4-b80b-0f0328b79dde",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-22T18:01:27.149763Z",
+                    "last_seen_at": "2026-09-22T20:48:50.331474Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-22T18:01:27.149763Z",
-                    "valid_from": "2026-09-22T18:01:27.149763Z",
+                    "updated_at": "2026-09-22T20:48:50.331474Z",
+                    "valid_from": "2026-09-22T20:48:50.331474Z",
                     "valid_to": null
                   }
                 ],
@@ -28063,7 +28169,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Nomad",
+                "service_definition": "Tasmota",
                 "source": {
                   "type": "Manual"
                 },
@@ -30188,19 +30294,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-22T18:01:27.138886Z",
+              "created_at": "2026-09-22T20:48:50.320654Z",
               "first_discovery_id": null,
-              "id": "63d4e1f8-571d-47f9-b2b8-2ea1b3f46b8d",
+              "id": "2aba69b8-8f86-40c9-967e-6128182801c2",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-22T18:01:27.138886Z",
+              "last_seen_at": "2026-09-22T20:48:50.320654Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-22T18:01:27.138886Z",
-              "valid_from": "2026-09-22T18:01:27.138886Z",
+              "updated_at": "2026-09-22T20:48:50.320654Z",
+              "valid_from": "2026-09-22T20:48:50.320654Z",
               "valid_to": null
             }
           ],
@@ -30214,7 +30320,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Nomad",
+          "service_definition": "Tasmota",
           "source": {
             "type": "Manual"
           },
@@ -30701,6 +30807,53 @@
           "show_zoom_controls": {
             "type": "boolean",
             "description": "Viewer sees the zoom controls."
+          }
+        }
+      },
+      "ShareTopologyRequest": {
+        "type": "object",
+        "required": [
+          "view"
+        ],
+        "properties": {
+          "access_token": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Server-issued access token obtained from `/verify`. Required when the share has a password."
+          },
+          "view": {
+            "$ref": "#/components/schemas/TopologyView",
+            "description": "Which topology view to return data for"
+          }
+        }
+      },
+      "ShareWithTopology": {
+        "type": "object",
+        "description": "Share with topology data (returned after authentication/verification).\n\nReturns the slim topology row (`{ id, network_id, options }`) plus the\n`TopologyData` bundle (entities + the per-view graph built on request). The\nshare viewer composes these with the same `toRenderableTopology` the app\nuses — no server-side merge.",
+        "required": [
+          "share",
+          "topology",
+          "data",
+          "export_features"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TopologyData",
+            "description": "Entities and graph for the requested view."
+          },
+          "export_features": {
+            "$ref": "#/components/schemas/ExportFeatures",
+            "description": "Which exports the share creator's plan allows."
+          },
+          "share": {
+            "$ref": "#/components/schemas/PublicShareMetadata",
+            "description": "Public metadata for the share itself."
+          },
+          "topology": {
+            "$ref": "#/components/schemas/Topology",
+            "description": "The shared topology record."
           }
         }
       },
@@ -31535,7 +31688,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "77b9fc97-e460-4e7a-838d-195a8c4362fd",
+                  "id": "ba0eb133-27be-44c7-a318-7f3efe300536",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -31545,23 +31698,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "3060da9c-7fe1-4f2f-855c-e8034a1094d4",
+                  "id": "4e2706e2-a0a9-453a-b342-d096b55d96cc",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "17710881-dc67-4336-b13b-f4375189d249",
+                  "id": "0099609a-b430-4ff7-8555-00b335355bef",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "62f1fbd9-a04c-417f-983c-ed611599e1c0",
+                  "id": "6e74bce6-ef7d-451a-96db-3dc810851fba",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "3060da9c-7fe1-4f2f-855c-e8034a1094d4",
+                  "id": "4e2706e2-a0a9-453a-b342-d096b55d96cc",
                   "rule": "ByHost"
                 }
               ]
@@ -31591,19 +31744,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "2cd25821-1f25-44c0-b5e3-01a2c2134849",
+                "id": "d34977cf-cbad-4234-8cfa-a19d8960d8a2",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "85561a69-134d-4900-96b3-a9696dce12ec",
+                "id": "3336d44a-b613-471f-b385-caa68775164f",
                 "rule": "ByVLAN"
               },
               {
-                "id": "0d03c09d-6788-46e8-bfcc-dc21eaf6bba3",
+                "id": "cc91ee67-d12c-4a49-ad51-c3b7c7f08cca",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "153c1ce9-4448-42f6-9264-345fcb0c755c",
+                "id": "f82b8ca8-4980-4b19-9221-bd85f8282b7c",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -31621,7 +31774,7 @@
                 }
               },
               {
-                "id": "6c3b29c0-5f63-42a3-bd29-c33076672a38",
+                "id": "ca501dc0-0e03-4cc7-9cca-c692eca9c9fb",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -31630,15 +31783,15 @@
                 }
               },
               {
-                "id": "917d0ce2-c71b-475c-9965-a132c5bb94e3",
+                "id": "504706c0-54e9-4970-b7f1-d39b63bbbda9",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "dd00480a-ae5e-4cfc-ba8c-af66dc70cbb8",
+                "id": "1ad0fb7d-ab96-488e-ba99-657a81535e68",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "a5cfa51c-97a9-452d-a0dc-f334230dbfd6",
+                "id": "b73b38e6-1822-479a-9102-44ad83ff3545",
                 "rule": "ByStack"
               }
             ]

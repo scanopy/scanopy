@@ -2710,6 +2710,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/shares/public/{id}/topology": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get topology data for a public share */
+        post: operations["get_share_topology"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/shares/public/{id}/verify": {
         parameters: {
             query?: never;
@@ -3449,19 +3466,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-22T18:01:27.093679Z",
+             *       "created_at": "2026-09-22T20:48:50.275446Z",
              *       "first_discovery_id": null,
-             *       "id": "7138356c-185f-4d70-97ed-67555711143f",
+             *       "id": "eabf10ea-371a-4a7b-8cf9-466c65c7d39e",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-22T18:01:27.093679Z",
+             *       "last_seen_at": "2026-09-22T20:48:50.275446Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-22T18:01:27.093679Z",
-             *       "valid_from": "2026-09-22T18:01:27.093679Z",
+             *       "updated_at": "2026-09-22T20:48:50.275446Z",
+             *       "valid_from": "2026-09-22T20:48:50.275446Z",
              *       "valid_to": null
              *     }
              */
@@ -4279,19 +4296,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-22T18:01:27.065566Z",
+             *               "created_at": "2026-09-22T20:48:50.253817Z",
              *               "first_discovery_id": null,
-             *               "id": "b5b9748a-c150-4139-884c-b97978928e0b",
+             *               "id": "04ce8ccb-ed98-4b80-8480-604a85f1fd9c",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-22T18:01:27.065566Z",
+             *               "last_seen_at": "2026-09-22T20:48:50.253817Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-22T18:01:27.065566Z",
-             *               "valid_from": "2026-09-22T18:01:27.065566Z",
+             *               "updated_at": "2026-09-22T20:48:50.253817Z",
+             *               "valid_from": "2026-09-22T20:48:50.253817Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4305,7 +4322,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Nomad",
+             *           "service_definition": "Tasmota",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5210,19 +5227,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-22T18:01:27.087941Z",
+             *           "created_at": "2026-09-22T20:48:50.270386Z",
              *           "first_discovery_id": null,
-             *           "id": "adc65235-ae16-4107-98fb-b0f03218ac1c",
+             *           "id": "62e48f02-e15b-4d00-99eb-0cb430e29744",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-22T18:01:27.087941Z",
+             *           "last_seen_at": "2026-09-22T20:48:50.270386Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-22T18:01:27.087941Z",
-             *           "valid_from": "2026-09-22T18:01:27.087941Z",
+             *           "updated_at": "2026-09-22T20:48:50.270386Z",
+             *           "valid_from": "2026-09-22T20:48:50.270386Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5236,7 +5253,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Nomad",
+             *       "service_definition": "Tasmota",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -5403,6 +5420,39 @@ export interface components {
                  * @description When this record stops being valid.
                  */
                 expires_at: string;
+            };
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_ShareWithTopology: {
+            /**
+             * @description Share with topology data (returned after authentication/verification).
+             *
+             *     Returns the slim topology row (`{ id, network_id, options }`) plus the
+             *     `TopologyData` bundle (entities + the per-view graph built on request). The
+             *     share viewer composes these with the same `toRenderableTopology` the app
+             *     uses — no server-side merge.
+             */
+            data?: {
+                /** @description Entities and graph for the requested view. */
+                data: components["schemas"]["TopologyData"];
+                /** @description Which exports the share creator's plan allows. */
+                export_features: components["schemas"]["ExportFeatures"];
+                /** @description Public metadata for the share itself. */
+                share: components["schemas"]["PublicShareMetadata"];
+                /** @description The shared topology record. */
+                topology: components["schemas"]["Topology"];
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -6269,19 +6319,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-22T18:01:27.066383Z",
+         *       "created_at": "2026-09-22T20:48:50.254289Z",
          *       "first_discovery_id": null,
-         *       "id": "1e3b8e99-ebdf-4372-abdc-0c49ff6665ca",
+         *       "id": "4754302f-8234-427c-8468-b3753d238322",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-22T18:01:27.066383Z",
+         *       "last_seen_at": "2026-09-22T20:48:50.254289Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-22T18:01:27.066383Z",
-         *       "valid_from": "2026-09-22T18:01:27.066383Z",
+         *       "updated_at": "2026-09-22T20:48:50.254289Z",
+         *       "valid_from": "2026-09-22T20:48:50.254289Z",
          *       "valid_to": null
          *     }
          */
@@ -6607,7 +6657,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Nomad",
+         *           "service_definition": "Tasmota",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8448,6 +8498,23 @@ export interface components {
             /** @description Guest name as configured on the ESXi host. */
             vm_name?: string | null;
         };
+        /** @description Export feature flags derived from the share creator's billing plan */
+        ExportFeatures: {
+            /** @description Viewer may export the diagram for Confluence. */
+            confluence_export: boolean;
+            /** @description Viewer may export the diagram as standalone HTML. */
+            html_export: boolean;
+            /** @description Viewer may export the diagram as Mermaid. */
+            mermaid_export: boolean;
+            /** @description Viewer may export the diagram as PDF. */
+            pdf_export: boolean;
+            /** @description Viewer may export the diagram as PNG. */
+            png_export: boolean;
+            /** @description Exports omit the Scanopy attribution line. */
+            remove_created_with: boolean;
+            /** @description Viewer may export the diagram as SVG. */
+            svg_export: boolean;
+        };
         /**
          * @description Definition of a form field for dynamic UI rendering.
          *
@@ -8826,19 +8893,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-22T18:01:27.064691Z",
+         *               "created_at": "2026-09-22T20:48:50.253186Z",
          *               "first_discovery_id": null,
-         *               "id": "bee137ff-fe43-4503-9f09-5dc3731f86d9",
+         *               "id": "aab3920d-32be-4aba-aafd-7c905e4cc155",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-22T18:01:27.064691Z",
+         *               "last_seen_at": "2026-09-22T20:48:50.253186Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-22T18:01:27.064691Z",
-         *               "valid_from": "2026-09-22T18:01:27.064691Z",
+         *               "updated_at": "2026-09-22T20:48:50.253186Z",
+         *               "valid_from": "2026-09-22T20:48:50.253186Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8852,7 +8919,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Nomad",
+         *           "service_definition": "Tasmota",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -11818,19 +11885,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-22T18:01:27.066122Z",
+         *           "created_at": "2026-09-22T20:48:50.254143Z",
          *           "first_discovery_id": null,
-         *           "id": "b39cebd6-022a-43f5-a3db-695edbd25c2f",
+         *           "id": "7e106e60-41ee-4d75-bdf2-4127cafe2fa9",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-22T18:01:27.066122Z",
+         *           "last_seen_at": "2026-09-22T20:48:50.254143Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-22T18:01:27.066122Z",
-         *           "valid_from": "2026-09-22T18:01:27.066122Z",
+         *           "updated_at": "2026-09-22T20:48:50.254143Z",
+         *           "valid_from": "2026-09-22T20:48:50.254143Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -11844,7 +11911,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Nomad",
+         *       "service_definition": "Tasmota",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12109,6 +12176,30 @@ export interface components {
             show_minimap: boolean;
             /** @description Viewer sees the zoom controls. */
             show_zoom_controls: boolean;
+        };
+        ShareTopologyRequest: {
+            /** @description Server-issued access token obtained from `/verify`. Required when the share has a password. */
+            access_token?: string | null;
+            /** @description Which topology view to return data for */
+            view: components["schemas"]["TopologyView"];
+        };
+        /**
+         * @description Share with topology data (returned after authentication/verification).
+         *
+         *     Returns the slim topology row (`{ id, network_id, options }`) plus the
+         *     `TopologyData` bundle (entities + the per-view graph built on request). The
+         *     share viewer composes these with the same `toRenderableTopology` the app
+         *     uses — no server-side merge.
+         */
+        ShareWithTopology: {
+            /** @description Entities and graph for the requested view. */
+            data: components["schemas"]["TopologyData"];
+            /** @description Which exports the share creator's plan allows. */
+            export_features: components["schemas"]["ExportFeatures"];
+            /** @description Public metadata for the share itself. */
+            share: components["schemas"]["PublicShareMetadata"];
+            /** @description The shared topology record. */
+            topology: components["schemas"]["Topology"];
         };
         Snapshot: components["schemas"]["SnapshotBase"] & {
             /**
@@ -12546,7 +12637,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "ebd16bcf-fe2c-447f-9634-799e63c67244",
+             *           "id": "45aa07eb-07c9-4745-ace7-d74408c28a2b",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -12556,23 +12647,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "155e74b1-0ad2-447c-86d4-320d9ce89de0",
+             *           "id": "bd016f68-86d7-4302-aa71-1e07b5def85a",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "251c7287-04f0-490e-8214-aa8dd0cde443",
+             *           "id": "6fbf4336-967a-491d-bc0d-ec5f2bf7fdfc",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "04d4dfa7-d0d9-4744-ae7e-3e5fe81d80b6",
+             *           "id": "7afc8d08-3e48-49fe-91a6-3bd8d763dd34",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "155e74b1-0ad2-447c-86d4-320d9ce89de0",
+             *           "id": "bd016f68-86d7-4302-aa71-1e07b5def85a",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -12585,19 +12676,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "e7247b06-792c-4340-b45f-10fd27658122",
+             *         "id": "6c3ee3a4-f791-40ad-961a-a8ffc561594b",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "76305c31-f55b-4c40-b3be-98bf3be93b3d",
+             *         "id": "459666c0-39ad-451e-bf93-4b1a7608b78a",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "57de4d52-cd9d-4e82-a2ac-be18985e2826",
+             *         "id": "454457e7-adae-474b-b81f-7ca32c98845a",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "8c523118-5865-4514-a70f-f016abdf7a33",
+             *         "id": "40c254f4-0a62-4057-ad37-d102c7b9c6d2",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -12615,7 +12706,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "14d5e0bd-835b-4782-b851-870be3100de2",
+             *         "id": "49ff68bc-f0db-43d4-b45c-6bffbf1fc31b",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -12624,15 +12715,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "7935c42b-458c-408e-9c10-a4cefe24ec97",
+             *         "id": "6cedb705-33df-4244-b443-adf26beac64e",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "de93ddda-6b7b-42b0-a353-ed24a818e7a8",
+             *         "id": "82ed6c75-fd69-4d27-9c19-caa8aa486c37",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "db487350-1880-4451-a292-4bec3c8cce4e",
+             *         "id": "9b93617a-99ee-4a20-a612-cfccf15be49b",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -19462,8 +19553,101 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_PublicShareMetadata"];
                 };
             };
+            /** @description Share is disabled or expired */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
             /** @description Share not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_share_topology: {
+        parameters: {
+            query?: {
+                /** @description Return the share prepared for embedding in another page. */
+                embed?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Share ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShareTopologyRequest"];
+            };
+        };
+        responses: {
+            /** @description Share metadata and topology data */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_ShareWithTopology"];
+                };
+            };
+            /** @description View is not enabled on this share */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Access token missing, expired or tampered with */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Embedding is not included in the share owner's plan */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Share is disabled or expired, or its password was not verified */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Share not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Too many requests for this share */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -19498,6 +19682,15 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_ShareAccessTokenResponse"];
                 };
             };
+            /** @description Share has no password to verify */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
             /** @description Invalid password */
             401: {
                 headers: {
@@ -19507,8 +19700,26 @@ export interface operations {
                     "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
+            /** @description Share is disabled or expired */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
             /** @description Share not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Too many attempts for this share */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
