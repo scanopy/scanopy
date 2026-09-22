@@ -157,18 +157,27 @@ impl PaginatedApiMeta {
     }
 }
 
+/// The success envelope.
+///
+/// Fields are private so the only way to build one is [`ApiResponse::success`].
+/// A handler that fails returns an [`ApiError`], which sends a real error status
+/// with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
+/// of the API by construction rather than by convention: a client can trust the
+/// status code, and the frontend's error middleware sees every failure.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ApiResponse<T> {
-    /// `true` when the request succeeded. `false` responses carry `error` instead of `data`.
-    pub success: bool,
-    /// The result payload. Omitted on failure.
+    /// `true` for every response a handler sends. `false` only when a client
+    /// parses an error body into this envelope, as the daemon and the server's
+    /// daemon client do; that is what [`ApiResponse::is_success`] is for.
+    success: bool,
+    /// The result payload. Omitted when an error body was parsed.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<T>,
-    /// Human-readable failure message. Omitted on success.
+    data: Option<T>,
+    /// Human-readable failure message, present only when an error body was parsed.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub error: Option<String>,
+    error: Option<String>,
     /// API and server version metadata.
-    pub meta: ApiMeta,
+    meta: ApiMeta,
 }
 
 pub type EmptyApiResponse = ApiResponse<()>;
@@ -218,13 +227,29 @@ impl<T> ApiResponse<T> {
         }
     }
 
-    pub fn error(message: String) -> Self {
-        Self {
-            success: false,
-            data: None,
-            error: Some(message),
-            meta: ApiMeta::default(),
-        }
+    /// Whether the envelope carries a result. Only a client that parsed an error
+    /// body into this type will see `false`.
+    pub fn is_success(&self) -> bool {
+        self.success
+    }
+
+    pub fn data(&self) -> Option<&T> {
+        self.data.as_ref()
+    }
+
+    /// For handlers that wrap a generic one and fill in fields it does not know
+    /// about, such as a network's credential ids from their junction table.
+    pub fn data_mut(&mut self) -> Option<&mut T> {
+        self.data.as_mut()
+    }
+
+    pub fn into_data(self) -> Option<T> {
+        self.data
+    }
+
+    /// The failure message, when an error body was parsed into this envelope.
+    pub fn error(&self) -> Option<&str> {
+        self.error.as_deref()
     }
 }
 

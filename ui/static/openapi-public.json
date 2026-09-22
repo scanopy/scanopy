@@ -12518,6 +12518,7 @@
       },
       "ApiResponse": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -12530,7 +12531,7 @@
               },
               {
                 "$ref": "#/components/schemas/TupleUnit",
-                "description": "The result payload. Omitted on failure."
+                "description": "The result payload. Omitted when an error body was parsed."
               }
             ],
             "description": "The result payload. Omitted on failure."
@@ -12540,7 +12541,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -12548,12 +12549,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Binding": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -12643,19 +12645,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-21T13:39:38.803818Z",
+              "created_at": "2026-09-22T12:49:53.066703Z",
               "first_discovery_id": null,
-              "id": "4943d850-3125-4604-91fb-f6cf87f34eae",
+              "id": "74141343-9949-4d9a-a992-409be29e2b56",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-21T13:39:38.803818Z",
+              "last_seen_at": "2026-09-22T12:49:53.066703Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-21T13:39:38.803818Z",
-              "valid_from": "2026-09-21T13:39:38.803818Z",
+              "updated_at": "2026-09-22T12:49:53.066703Z",
+              "valid_from": "2026-09-22T12:49:53.066703Z",
               "valid_to": null
             }
           },
@@ -12664,7 +12666,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -12672,12 +12674,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_BulkDeleteResponse": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -12708,7 +12711,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -12716,12 +12719,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_BulkTagResponse": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -12746,7 +12750,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -12754,12 +12758,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_CancelSubscriptionResponse": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -12784,7 +12789,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -12792,12 +12797,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_ChangePlanPreview": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -12837,7 +12843,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -12845,12 +12851,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_CheckEmailResponse": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -12874,7 +12881,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -12882,12 +12889,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Credential": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -12934,7 +12942,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -12942,12 +12950,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Daemon": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -12994,7 +13003,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -13002,12 +13011,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_DaemonApiKey": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -13054,7 +13064,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -13062,12 +13072,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_DaemonApiKeyResponse": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -13098,7 +13109,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -13106,12 +13117,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_DaemonRegistrationResponse": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -13152,7 +13164,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -13160,12 +13172,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_DaemonResponse": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -13223,7 +13236,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -13231,12 +13244,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_DashboardSummary": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -13284,7 +13298,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -13292,12 +13306,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_DemoPopulateStatus": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -13381,7 +13396,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -13389,12 +13404,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Dependency": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -13487,7 +13503,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -13495,12 +13511,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Discovery": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -13566,7 +13583,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -13574,12 +13591,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_DiscoveryUpdatePayload": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -13700,7 +13718,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -13708,12 +13726,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_EntitlementResponse": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -13737,7 +13756,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -13745,12 +13764,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_HostResponse": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -14183,19 +14203,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-21T13:39:38.782751Z",
+                      "created_at": "2026-09-22T12:49:53.045064Z",
                       "first_discovery_id": null,
-                      "id": "d9c7e94f-4be4-4cde-857c-cd3b7bbf982e",
+                      "id": "ccc0ffa5-2081-454b-9c3c-6274e20b4e95",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-21T13:39:38.782751Z",
+                      "last_seen_at": "2026-09-22T12:49:53.045064Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-21T13:39:38.782751Z",
-                      "valid_from": "2026-09-21T13:39:38.782751Z",
+                      "updated_at": "2026-09-22T12:49:53.045064Z",
+                      "valid_from": "2026-09-22T12:49:53.045064Z",
                       "valid_to": null
                     }
                   ],
@@ -14209,7 +14229,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Traefik",
+                  "service_definition": "WGDashboard",
                   "source": {
                     "type": "Manual"
                   },
@@ -14242,7 +14262,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14250,12 +14270,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_IPAddress": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -14369,7 +14390,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14377,12 +14398,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_InstallArtifacts": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -14431,7 +14453,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14439,12 +14461,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Interface": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -14547,7 +14570,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14555,12 +14578,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Invite": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -14607,7 +14631,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14615,12 +14639,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_InvoiceBillingStatus": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -14671,7 +14696,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14679,12 +14704,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_LicenseKeyResponse": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -14713,7 +14739,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14721,12 +14747,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Network": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -14790,7 +14817,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14798,12 +14825,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_OnboardingStateResponse": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -14864,7 +14892,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14872,12 +14900,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Option_SaveOfferCoupon": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -14927,7 +14956,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14935,12 +14964,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Organization": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -14987,7 +15017,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14995,12 +15025,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Port": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -15111,7 +15142,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15119,12 +15150,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_ProvisionDaemonResponse": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -15155,7 +15187,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15163,12 +15195,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_PublicConfigResponse": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -15357,7 +15390,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15365,12 +15398,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_PublicShareMetadata": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -15418,7 +15452,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15426,12 +15460,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_ServerCapabilities": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -15467,7 +15502,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15475,12 +15510,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Service": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -15572,19 +15608,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-21T13:39:38.798775Z",
+                  "created_at": "2026-09-22T12:49:53.061762Z",
                   "first_discovery_id": null,
-                  "id": "f83f095a-f1c2-4872-9c95-47d079c25e77",
+                  "id": "eb3f565f-5323-4d59-8f7f-3b6224cf8e48",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-21T13:39:38.798775Z",
+                  "last_seen_at": "2026-09-22T12:49:53.061762Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-21T13:39:38.798775Z",
-                  "valid_from": "2026-09-21T13:39:38.798775Z",
+                  "updated_at": "2026-09-22T12:49:53.061762Z",
+                  "valid_from": "2026-09-22T12:49:53.061762Z",
                   "valid_to": null
                 }
               ],
@@ -15598,7 +15634,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Traefik",
+              "service_definition": "WGDashboard",
               "source": {
                 "type": "Manual"
               },
@@ -15615,7 +15651,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15623,12 +15659,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_SetupIntentResponse": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -15652,7 +15689,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15660,12 +15697,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_SetupResponse": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -15690,7 +15728,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15698,12 +15736,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Share": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -15750,7 +15789,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15758,12 +15797,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_ShareAccessTokenResponse": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -15793,7 +15833,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15801,12 +15841,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Snapshot": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -15853,7 +15894,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15861,12 +15902,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_String": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -15881,7 +15923,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15889,12 +15931,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Subnet": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -16011,7 +16054,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16019,12 +16062,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Tag": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -16108,7 +16152,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16116,12 +16160,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_TestReachabilityResponse": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -16159,7 +16204,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16167,12 +16212,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Topology": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -16219,7 +16265,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16227,12 +16273,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_TopologyData": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -16441,7 +16488,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16449,12 +16496,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_User": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -16501,7 +16549,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16509,12 +16557,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_UserApiKey": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -16561,7 +16610,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16569,12 +16618,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_UserApiKeyResponse": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -16605,7 +16655,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16613,12 +16663,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Vec_BillingPlan": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -16879,7 +16930,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16887,12 +16938,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Vec_Credential": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -16942,7 +16994,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16950,12 +17002,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Vec_DiscoveryUpdatePayload": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -17080,7 +17133,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17088,12 +17141,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Vec_Invite": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -17143,7 +17197,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17151,12 +17205,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_VersionInfo": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -17195,7 +17250,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17203,12 +17258,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_Vlan": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -17303,7 +17359,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17311,12 +17367,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_VlanDiscoveryResponse": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -17343,7 +17400,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17351,12 +17408,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
       "ApiResponse_u32": {
         "type": "object",
+        "description": "The success envelope.\n\nFields are private so the only way to build one is [`ApiResponse::success`].\nA handler that fails returns an [`ApiError`], which sends a real error status\nwith an [`ApiErrorResponse`] body. That keeps \"200 with `success: false`\" out\nof the API by construction rather than by convention: a client can trust the\nstatus code, and the frontend's error middleware sees every failure.",
         "required": [
           "success",
           "meta"
@@ -17373,7 +17431,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Human-readable failure message, present only when an error body was parsed."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17381,7 +17439,7 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "`true` for every response a handler sends. `false` only when a client\nparses an error body into this envelope, as the daemon and the server's\ndaemon client do; that is what [`ApiResponse::is_success`] is for."
           }
         }
       },
@@ -17853,19 +17911,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-21T13:39:38.783272Z",
+          "created_at": "2026-09-22T12:49:53.045572Z",
           "first_discovery_id": null,
-          "id": "5557c1d9-d1ec-4b91-b6b6-9f9b86216d84",
+          "id": "a6bee325-6b62-47e1-9f34-1725d869b575",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-21T13:39:38.783272Z",
+          "last_seen_at": "2026-09-22T12:49:53.045572Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-21T13:39:38.783272Z",
-          "valid_from": "2026-09-21T13:39:38.783272Z",
+          "updated_at": "2026-09-22T12:49:53.045572Z",
+          "valid_from": "2026-09-22T12:49:53.045572Z",
           "valid_to": null
         }
       },
@@ -18573,7 +18631,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Traefik",
+              "service_definition": "WGDashboard",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -23957,19 +24015,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-21T13:39:38.782216Z",
+                  "created_at": "2026-09-22T12:49:53.044501Z",
                   "first_discovery_id": null,
-                  "id": "6249cd73-813f-4750-859d-22581228f9db",
+                  "id": "6de663b0-5d07-4e43-be66-73b739a4b54e",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-21T13:39:38.782216Z",
+                  "last_seen_at": "2026-09-22T12:49:53.044501Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-21T13:39:38.782216Z",
-                  "valid_from": "2026-09-21T13:39:38.782216Z",
+                  "updated_at": "2026-09-22T12:49:53.044501Z",
+                  "valid_from": "2026-09-22T12:49:53.044501Z",
                   "valid_to": null
                 }
               ],
@@ -23983,7 +24041,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Traefik",
+              "service_definition": "WGDashboard",
               "source": {
                 "type": "Manual"
               },
@@ -27649,19 +27707,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-21T13:39:38.772816Z",
+                        "created_at": "2026-09-22T12:49:53.034265Z",
                         "first_discovery_id": null,
-                        "id": "594d3e77-dd9d-4546-922c-d2099c149a94",
+                        "id": "e5526d7f-1a85-4859-a8a4-faa7d50bf524",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-21T13:39:38.772816Z",
+                        "last_seen_at": "2026-09-22T12:49:53.034265Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-21T13:39:38.772816Z",
-                        "valid_from": "2026-09-21T13:39:38.772816Z",
+                        "updated_at": "2026-09-22T12:49:53.034265Z",
+                        "valid_from": "2026-09-22T12:49:53.034265Z",
                         "valid_to": null
                       }
                     ],
@@ -27675,7 +27733,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Traefik",
+                    "service_definition": "WGDashboard",
                     "source": {
                       "type": "Manual"
                     },
@@ -27818,19 +27876,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-21T13:39:38.797875Z",
+                    "created_at": "2026-09-22T12:49:53.060903Z",
                     "first_discovery_id": null,
-                    "id": "6ecb9639-495b-4257-a818-9a802bf9c945",
+                    "id": "33980a02-3b26-41b6-a750-705f9c668b5c",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-21T13:39:38.797875Z",
+                    "last_seen_at": "2026-09-22T12:49:53.060903Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-21T13:39:38.797875Z",
-                    "valid_from": "2026-09-21T13:39:38.797875Z",
+                    "updated_at": "2026-09-22T12:49:53.060903Z",
+                    "valid_from": "2026-09-22T12:49:53.060903Z",
                     "valid_to": null
                   }
                 ],
@@ -27844,7 +27902,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Traefik",
+                "service_definition": "WGDashboard",
                 "source": {
                   "type": "Manual"
                 },
@@ -29969,19 +30027,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-21T13:39:38.783125Z",
+              "created_at": "2026-09-22T12:49:53.045416Z",
               "first_discovery_id": null,
-              "id": "9da5c8c4-899a-42ab-b1e8-10b07545dad5",
+              "id": "99d667dd-0155-4ea4-b7c7-d7fd4e0c6add",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-21T13:39:38.783125Z",
+              "last_seen_at": "2026-09-22T12:49:53.045416Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-21T13:39:38.783125Z",
-              "valid_from": "2026-09-21T13:39:38.783125Z",
+              "updated_at": "2026-09-22T12:49:53.045416Z",
+              "valid_from": "2026-09-22T12:49:53.045416Z",
               "valid_to": null
             }
           ],
@@ -29995,7 +30053,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Traefik",
+          "service_definition": "WGDashboard",
           "source": {
             "type": "Manual"
           },
@@ -31316,7 +31374,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "ce85e1af-f5f0-48be-8e10-3b892cbc068f",
+                  "id": "1ff4e688-87c7-4b84-aa21-fe7d9af6689c",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -31326,23 +31384,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "c7cb3364-73f4-48a5-8aac-e3e8c4414d6b",
+                  "id": "1b106221-496c-401f-b0b3-82d647d94b1f",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "80e15d8f-872c-4e68-8349-0f69e849be79",
+                  "id": "0f89793c-896a-428f-981d-7c957cac864f",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "06036bec-aa4b-4c7f-9d17-d4bcfe01c42e",
+                  "id": "63a99804-d57d-4de4-94ab-709e0a5a345c",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "c7cb3364-73f4-48a5-8aac-e3e8c4414d6b",
+                  "id": "1b106221-496c-401f-b0b3-82d647d94b1f",
                   "rule": "ByHost"
                 }
               ]
@@ -31372,19 +31430,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "ff57b3dc-9f6f-46dc-91d7-a8418164547b",
+                "id": "5dcee0c7-91b3-4160-ad5c-fe42d0f216db",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "f07eb99c-edff-435b-9929-762818698a1b",
+                "id": "12c98bdf-f852-4919-985a-a31ac0312f98",
                 "rule": "ByVLAN"
               },
               {
-                "id": "27e12fd5-cbe4-436f-9264-80d2a781a145",
+                "id": "ecfcb07c-2ae4-48c9-bbc5-7585057634a3",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "cc1caf27-a7c2-440b-a524-ceebe0420fac",
+                "id": "32623f1e-f5e3-48bc-b839-466206fccf31",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -31402,7 +31460,7 @@
                 }
               },
               {
-                "id": "b2226ede-8517-4d01-bf25-f5f4cb97156c",
+                "id": "03e686fb-35de-412c-9b2e-dba6cdd8127e",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -31411,15 +31469,15 @@
                 }
               },
               {
-                "id": "eec0087a-e212-44fb-9304-f71a43bfcc55",
+                "id": "83907b4b-cfcb-4b90-bc8e-2242d6a62f51",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "1d1872a9-5cca-4c4f-b4aa-023394693143",
+                "id": "dd452b3c-c117-4333-a38c-44be475d74d8",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "f7c181f1-a9b1-4921-ae67-ee74bdf21a5e",
+                "id": "90446746-3b6f-4877-bd4e-dc373c619016",
                 "rule": "ByStack"
               }
             ]

@@ -112,7 +112,7 @@ fn whole_seconds_from_now(days: i64) -> DateTime<Utc> {
 async fn request_entitlement(state: &Arc<AppState>, key: String) -> Result<String, StatusCode> {
     get_entitlement(State(state.clone()), Json(EntitlementRequest { key }))
         .await
-        .map(|Json(response)| response.data.unwrap().entitlement)
+        .map(|Json(response)| response.into_data().unwrap().entitlement)
         .map_err(|error| error.status)
 }
 

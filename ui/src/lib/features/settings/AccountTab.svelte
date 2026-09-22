@@ -40,11 +40,8 @@
 		settings_account_authMethods,
 		settings_account_credentialsUpdated,
 		settings_account_currentPasswordPlaceholder,
-		settings_account_emailChangeFailed,
 		settings_account_emailChangeIntro,
 		settings_account_enterEmail,
-		settings_account_failedToUnlink,
-		settings_account_failedToUpdate,
 		settings_account_linkedOn,
 		settings_account_loadingUser,
 		settings_account_noChanges,
@@ -121,8 +118,6 @@
 					queryClient.setQueryData<User>(queryKeys.auth.currentUser(), data.data);
 					pushSuccess(settings_account_credentialsUpdated());
 					subView = 'main';
-				} else {
-					pushError(data?.error || settings_account_failedToUpdate());
 				}
 			} finally {
 				savingCredentials = false;
@@ -145,8 +140,6 @@
 					pushSuccess(settings_account_verificationSentTo({ email: newEmail }));
 					emailChangeForm.reset({ currentPassword: '', newEmail: '' });
 					subView = 'main';
-				} else {
-					pushError(data?.error || settings_account_emailChangeFailed());
 				}
 			} finally {
 				emailChangeLoading = false;
@@ -180,8 +173,6 @@
 		if (data?.success && data.data) {
 			queryClient.setQueryData<User>(queryKeys.auth.currentUser(), data.data);
 			pushSuccess(settings_account_oidcUnlinked());
-		} else {
-			pushError(data?.error || settings_account_failedToUnlink());
 		}
 	}
 

@@ -108,7 +108,7 @@ async fn get_by_id_network(
     .await?;
 
     // Hydrate credential_ids from junction table
-    if let Some(ref mut network) = response.data {
+    if let Some(network) = response.data_mut() {
         network.base.credential_ids = state
             .services
             .credential_service
@@ -158,7 +158,7 @@ async fn create_network(
     )
     .await?;
 
-    if let Some(network) = &response.data {
+    if let Some(network) = response.data() {
         // Sync credentials to junction table
         state
             .services
@@ -273,7 +273,7 @@ async fn update_network(
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 
     // Hydrate credential_ids on the response
-    if let Some(ref mut network) = response.data {
+    if let Some(network) = response.data_mut() {
         network.base.credential_ids = credential_ids;
     }
 

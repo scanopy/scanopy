@@ -371,15 +371,13 @@ impl TestClient {
             .await
             .map_err(|e| format!("Failed to parse {} response: {}", operation, e))?;
 
-        if !api_response.success {
-            let error = api_response
-                .error
-                .unwrap_or_else(|| "Unknown error".to_string());
+        if !api_response.is_success() {
+            let error = api_response.error().unwrap_or("Unknown error");
             return Err(format!("{} returned error: {}", operation, error));
         }
 
         api_response
-            .data
+            .into_data()
             .ok_or_else(|| format!("No data in {} response", operation))
     }
 }
