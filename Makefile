@@ -195,6 +195,7 @@ dump-db:
 dev-fresh:
 	make fresh-db
 	make migrate-db
+	make generate-fixtures
 	@trap 'kill 0' EXIT; \
 	cd ui && npm run dev & \
 	export DATABASE_URL="postgresql://postgres:password@localhost:5432/scanopy" && \
@@ -368,7 +369,7 @@ generate-types: generate-api-types generate-error-codes
 
 generate-api-types:
 	@echo "Exporting OpenAPI spec from backend..."
-	cd backend && cargo test generate_openapi_spec -- --nocapture
+	cd backend && cargo run --bin generate-openapi
 	@echo "Generating TypeScript types from OpenAPI spec..."
 	cd ui && npm run generate:api
 	@echo "TypeScript types exported to ui/src/lib/api/schema.d.ts"

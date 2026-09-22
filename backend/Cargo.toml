@@ -17,6 +17,10 @@ name = "generate-error-codes"
 path = "src/bin/generate-error-codes.rs"
 
 [[bin]]
+name = "generate-openapi"
+path = "src/bin/generate-openapi.rs"
+
+[[bin]]
 name = "generate-fixtures"
 path = "src/bin/generate-fixtures.rs"
 
