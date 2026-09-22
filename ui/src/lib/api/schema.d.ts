@@ -3425,54 +3425,43 @@ export interface components {
             server_version: string;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse: {
             /** @description The result payload. Omitted on failure. */
             data?: null | components["schemas"]["TupleUnit"];
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Binding: {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-22T13:00:56.355544Z",
+             *       "created_at": "2026-09-22T13:35:57.854237Z",
              *       "first_discovery_id": null,
-             *       "id": "42b427f8-3bee-48d8-982b-e52023387ab0",
+             *       "id": "688d1582-96d4-4634-bd8e-9a6396455b31",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-22T13:00:56.355544Z",
+             *       "last_seen_at": "2026-09-22T13:35:57.854237Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-22T13:00:56.355544Z",
-             *       "valid_from": "2026-09-22T13:00:56.355544Z",
+             *       "updated_at": "2026-09-22T13:35:57.854237Z",
+             *       "valid_from": "2026-09-22T13:35:57.854237Z",
              *       "valid_to": null
              *     }
              */
@@ -3523,25 +3512,19 @@ export interface components {
                  */
                 readonly valid_to?: string | null;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_BulkDeleteResponse: {
             /** @description The result payload. Omitted on failure. */
@@ -3551,25 +3534,19 @@ export interface components {
                 /** @description How many IDs the request asked to delete. */
                 requested_count: number;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_BulkTagResponse: {
             /** @description Response for bulk tag operations */
@@ -3577,25 +3554,19 @@ export interface components {
                 /** @description Number of entities affected */
                 affected_count: number;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_CancelSubscriptionResponse: {
             /** @description The result payload. Omitted on failure. */
@@ -3606,25 +3577,19 @@ export interface components {
                  */
                 period_end: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_ChangePlanPreview: {
             /** @description The result payload. Omitted on failure. */
@@ -3645,25 +3610,19 @@ export interface components {
                  */
                 excess_seats: number;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_CheckEmailResponse: {
             /**
@@ -3678,25 +3637,19 @@ export interface components {
                 /** @description Whether the address has no account yet, and so can be registered. */
                 available: boolean;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Credential: {
             /** @description The result payload. Omitted on failure. */
@@ -3717,25 +3670,19 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Daemon: {
             /** @description The result payload. Omitted on failure. */
@@ -3756,25 +3703,19 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_DaemonApiKey: {
             /** @description The result payload. Omitted on failure. */
@@ -3795,25 +3736,19 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_DaemonApiKeyResponse: {
             /** @description The result payload. Omitted on failure. */
@@ -3826,25 +3761,19 @@ export interface components {
                  */
                 readonly key: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_DaemonRegistrationResponse: {
             /** @description Daemon registration response from server to daemon */
@@ -3858,25 +3787,19 @@ export interface components {
                 host_id: string;
                 server_capabilities?: null | components["schemas"]["ServerCapabilities"];
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_DaemonResponse: {
             /** @description Daemon response for UI including computed version status */
@@ -3905,25 +3828,19 @@ export interface components {
                 /** @description Computed version status including health and warnings */
                 version_status: components["schemas"]["DaemonVersionStatus"];
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_DashboardSummary: {
             /** @description Dashboard summary response */
@@ -3937,25 +3854,19 @@ export interface components {
                 /** @description The most recent discovery runs, newest first. */
                 recent_discoveries: components["schemas"]["Discovery"][];
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_DemoPopulateStatus: {
             /**
@@ -3990,25 +3901,19 @@ export interface components {
                 /** @enum {string} */
                 state: "failed";
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Dependency: {
             /**
@@ -4068,25 +3973,19 @@ export interface components {
                  */
                 readonly valid_to?: string | null;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Discovery: {
             /** @description The result payload. Omitted on failure. */
@@ -4127,25 +4026,19 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_DiscoveryUpdatePayload: {
             /** @description Progress update from daemon to server during discovery */
@@ -4155,6 +4048,11 @@ export interface components {
                  * @description The daemon this entity refers to.
                  */
                 daemon_id: string;
+                /**
+                 * @description The daemon's version when the run ended. Stamped by the server at terminal, so it
+                 *     survives the daemon being deleted or upgraded.
+                 */
+                daemon_version?: string | null;
                 /**
                  * Format: uuid
                  * @description The discovery configuration this session belongs to.
@@ -4181,6 +4079,11 @@ export interface components {
                  */
                 hosts_discovered?: number | null;
                 /**
+                 * Format: date-time
+                 * @description When the server last heard about this run. Stamped by the server at terminal.
+                 */
+                last_update_at?: string | null;
+                /**
                  * Format: uuid
                  * @description The network this entity belongs to.
                  */
@@ -4192,6 +4095,7 @@ export interface components {
                  * @description Completion of the current phase, from 0 to 1.
                  */
                 progress: number;
+                reason?: null | components["schemas"]["DiscoveryTerminalReason"];
                 scanned?: null | components["schemas"]["ScannedEntityIds"];
                 /**
                  * Format: uuid
@@ -4214,25 +4118,19 @@ export interface components {
                  */
                 warnings?: components["schemas"]["DiscoveryWarning"][];
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_EntitlementResponse: {
             /** @description Data returned inside `ApiResponse` by [`ENTITLEMENT_PATH`]. */
@@ -4243,25 +4141,19 @@ export interface components {
                  */
                 entitlement: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_HostResponse: {
             /**
@@ -4387,19 +4279,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-22T13:00:56.333442Z",
+             *               "created_at": "2026-09-22T13:35:57.828547Z",
              *               "first_discovery_id": null,
-             *               "id": "866f3183-d734-4255-9d86-830f69004a5e",
+             *               "id": "5a0ce0bb-eccc-4770-b963-da2e72a43e60",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-22T13:00:56.333442Z",
+             *               "last_seen_at": "2026-09-22T13:35:57.828547Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-22T13:00:56.333442Z",
-             *               "valid_from": "2026-09-22T13:00:56.333442Z",
+             *               "updated_at": "2026-09-22T13:35:57.828547Z",
+             *               "valid_from": "2026-09-22T13:35:57.828547Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4413,7 +4305,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "NCPA Agent",
+             *           "service_definition": "Promtail",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4573,25 +4465,19 @@ export interface components {
                  */
                 virtualization_service_id?: string | null;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_IPAddress: {
             /**
@@ -4663,25 +4549,19 @@ export interface components {
                  */
                 readonly valid_to?: string | null;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_InstallArtifacts: {
             /**
@@ -4704,25 +4584,19 @@ export interface components {
                 /** @description Download for Windows. */
                 windows: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Interface: {
             /** @description The result payload. Omitted on failure. */
@@ -4784,25 +4658,19 @@ export interface components {
                  */
                 readonly valid_to?: string | null;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Invite: {
             /** @description The result payload. Omitted on failure. */
@@ -4823,25 +4691,19 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_InvoiceBillingStatus: {
             /** @description Invoice billing state shown on the License tab. */
@@ -4853,25 +4715,19 @@ export interface components {
                 /** @description Purchase order number printed on invoices. */
                 po_number?: string | null;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_LicenseKeyResponse: {
             /** @description The result payload. Omitted on failure. */
@@ -4881,25 +4737,19 @@ export interface components {
                 /** @description Which key this is. An organization has one issued at a time. */
                 key_type: components["schemas"]["LicenseKeyType"];
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Network: {
             /**
@@ -4943,25 +4793,19 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_OnboardingStateResponse: {
             /** @description Response from onboarding state endpoint */
@@ -4978,25 +4822,19 @@ export interface components {
                 step?: string | null;
                 use_case?: null | components["schemas"]["UseCase"];
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Option_SaveOfferCoupon: {
             /** @description The result payload. Omitted on failure. */
@@ -5019,25 +4857,19 @@ export interface components {
                  */
                 percent_off: number;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Organization: {
             /** @description The result payload. Omitted on failure. */
@@ -5058,25 +4890,19 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Port: {
             /**
@@ -5145,25 +4971,19 @@ export interface components {
                  */
                 readonly valid_to?: string | null;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_ProvisionDaemonResponse: {
             /**
@@ -5184,25 +5004,19 @@ export interface components {
                  */
                 readonly daemon_api_key: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_PublicConfigResponse: {
             /** @description The result payload. Omitted on failure. */
@@ -5317,25 +5131,19 @@ export interface components {
                  */
                 stripe_publishable_key?: string | null;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_PublicShareMetadata: {
             /** @description Public share metadata (returned without authentication) */
@@ -5358,25 +5166,19 @@ export interface components {
                 /** @description Whether a password must be supplied before the topology is returned. */
                 requires_password: boolean;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_ServerCapabilities: {
             /** @description Server capabilities returned on startup/registration */
@@ -5388,25 +5190,19 @@ export interface components {
                 /** @description Server software version */
                 server_version: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Service: {
             /**
@@ -5414,19 +5210,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-22T13:00:56.349799Z",
+             *           "created_at": "2026-09-22T13:35:57.848574Z",
              *           "first_discovery_id": null,
-             *           "id": "9869c939-0e4e-4546-b3bd-7cdedf686e7d",
+             *           "id": "b1f7d66d-eeb3-40b2-9567-5be2c690697c",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-22T13:00:56.349799Z",
+             *           "last_seen_at": "2026-09-22T13:35:57.848574Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-22T13:00:56.349799Z",
-             *           "valid_from": "2026-09-22T13:00:56.349799Z",
+             *           "updated_at": "2026-09-22T13:35:57.848574Z",
+             *           "valid_from": "2026-09-22T13:35:57.848574Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5440,7 +5236,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "NCPA Agent",
+             *       "service_definition": "Promtail",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -5499,25 +5295,19 @@ export interface components {
                  */
                 readonly valid_to?: string | null;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_SetupIntentResponse: {
             /**
@@ -5528,25 +5318,19 @@ export interface components {
                 /** @description Stripe SetupIntent client secret, used to mount the Payment Element. */
                 client_secret: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_SetupResponse: {
             /** @description Response from setup endpoint */
@@ -5557,25 +5341,19 @@ export interface components {
                  */
                 network_id: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Share: {
             /** @description The result payload. Omitted on failure. */
@@ -5596,25 +5374,19 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_ShareAccessTokenResponse: {
             /**
@@ -5632,25 +5404,19 @@ export interface components {
                  */
                 expires_at: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Snapshot: {
             /** @description The result payload. Omitted on failure. */
@@ -5671,48 +5437,36 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_String: {
             /** @description The result payload. Omitted on failure. */
             data?: string;
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Subnet: {
             /**
@@ -5787,25 +5541,19 @@ export interface components {
                  */
                 readonly valid_to?: string | null;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Tag: {
             /**
@@ -5856,25 +5604,19 @@ export interface components {
                  */
                 readonly valid_to?: string | null;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_TestReachabilityResponse: {
             /** @description Response from a reachability test. */
@@ -5886,25 +5628,19 @@ export interface components {
                 /** @description Whether the TCP connection succeeded */
                 reachable: boolean;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Topology: {
             /** @description The result payload. Omitted on failure. */
@@ -5925,25 +5661,19 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_TopologyData: {
             /**
@@ -6029,25 +5759,19 @@ export interface components {
                 /** @description VLANs included in this topology. */
                 vlans: components["schemas"]["Vlan"][];
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_User: {
             /** @description The result payload. Omitted on failure. */
@@ -6068,25 +5792,19 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_UserApiKey: {
             /** @description The result payload. Omitted on failure. */
@@ -6107,25 +5825,19 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_UserApiKeyResponse: {
             /**
@@ -6141,25 +5853,19 @@ export interface components {
                  */
                 readonly key: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Vec_BillingPlan: {
             /** @description The result payload. Omitted on failure. */
@@ -6197,25 +5903,19 @@ export interface components {
                 /** @enum {string} */
                 type: "SelfHostedPlus";
             }))[];
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Vec_Credential: {
             /** @description The result payload. Omitted on failure. */
@@ -6236,25 +5936,19 @@ export interface components {
                  */
                 readonly updated_at: string;
             })[];
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Vec_DiscoveryUpdatePayload: {
             /** @description The result payload. Omitted on failure. */
@@ -6264,6 +5958,11 @@ export interface components {
                  * @description The daemon this entity refers to.
                  */
                 daemon_id: string;
+                /**
+                 * @description The daemon's version when the run ended. Stamped by the server at terminal, so it
+                 *     survives the daemon being deleted or upgraded.
+                 */
+                daemon_version?: string | null;
                 /**
                  * Format: uuid
                  * @description The discovery configuration this session belongs to.
@@ -6290,6 +5989,11 @@ export interface components {
                  */
                 hosts_discovered?: number | null;
                 /**
+                 * Format: date-time
+                 * @description When the server last heard about this run. Stamped by the server at terminal.
+                 */
+                last_update_at?: string | null;
+                /**
                  * Format: uuid
                  * @description The network this entity belongs to.
                  */
@@ -6301,6 +6005,7 @@ export interface components {
                  * @description Completion of the current phase, from 0 to 1.
                  */
                 progress: number;
+                reason?: null | components["schemas"]["DiscoveryTerminalReason"];
                 scanned?: null | components["schemas"]["ScannedEntityIds"];
                 /**
                  * Format: uuid
@@ -6323,25 +6028,19 @@ export interface components {
                  */
                 warnings?: components["schemas"]["DiscoveryWarning"][];
             }[];
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Vec_Invite: {
             /** @description The result payload. Omitted on failure. */
@@ -6362,25 +6061,19 @@ export interface components {
                  */
                 readonly updated_at: string;
             })[];
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_VersionInfo: {
             /** @description Version information for API compatibility checking */
@@ -6398,25 +6091,19 @@ export interface components {
                  */
                 server_version: string;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_Vlan: {
             /** @description The result payload. Omitted on failure. */
@@ -6467,25 +6154,19 @@ export interface components {
                  */
                 readonly valid_to?: string | null;
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_VlanDiscoveryResponse: {
             /** @description Response for discovery upsert */
@@ -6493,25 +6174,19 @@ export interface components {
                 /** @description Mapping of vlan_number → VLAN entity UUID */
                 vlans: components["schemas"]["VlanDiscoveryResponseItem"][];
             };
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
-         * @description The success envelope.
-         *
-         *     Fields are private so the only way to build one is [`ApiResponse::success`].
-         *     A handler that fails returns an [`ApiError`], which sends a real error status
-         *     with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-         *     of the API by construction rather than by convention: a client can trust the
-         *     status code, and the frontend's error middleware sees every failure.
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
          */
         ApiResponse_u32: {
             /**
@@ -6519,15 +6194,14 @@ export interface components {
              * @description The result payload. Omitted on failure.
              */
             data?: number;
-            /** @description Human-readable failure message, present only when an error body was parsed. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /**
-             * @description `true` for every response a handler sends. `false` only when a client
-             *     parses an error body into this envelope, as the daemon and the server's
-             *     daemon client do; that is what [`ApiResponse::is_success`] is for.
-             */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
@@ -6595,19 +6269,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-22T13:00:56.333912Z",
+         *       "created_at": "2026-09-22T13:35:57.829236Z",
          *       "first_discovery_id": null,
-         *       "id": "0ca1b906-a485-4354-b2ef-5a0356639913",
+         *       "id": "32da78a1-1362-4313-bf6c-8de69d311e2b",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-22T13:00:56.333912Z",
+         *       "last_seen_at": "2026-09-22T13:35:57.829236Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-22T13:00:56.333912Z",
-         *       "valid_from": "2026-09-22T13:00:56.333912Z",
+         *       "updated_at": "2026-09-22T13:35:57.829236Z",
+         *       "valid_from": "2026-09-22T13:35:57.829236Z",
          *       "valid_to": null
          *     }
          */
@@ -6933,7 +6607,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "NCPA Agent",
+         *           "service_definition": "Promtail",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -7875,6 +7549,18 @@ export interface components {
          * @enum {string}
          */
         DiscoveryProtocol: "LLDP" | "CDP";
+        /**
+         * @description Why a session reached its terminal phase.
+         *
+         *     `phase` says *that* a run ended; this says *why*. A stall reaped by the server, a daemon that
+         *     lost its state in a restart and a user pressing cancel all used to land as the same phase with
+         *     no way to tell them apart afterwards, which is what made stall reports undiagnosable.
+         *
+         *     The server decides every reason except the two the daemon alone can know, see
+         *     [`Self::daemon_assigned`]. Absent on runs recorded before this field existed.
+         * @enum {string}
+         */
+        DiscoveryTerminalReason: "Completed" | "UserCancelled" | "DaemonReportedFailure" | "StalledNoUpdates" | "DaemonRestarted" | "DaemonUnreachable" | "DaemonBusy" | "WatchdogTimeout";
         DiscoveryType: {
             /**
              * Format: uuid
@@ -7951,6 +7637,11 @@ export interface components {
              */
             daemon_id: string;
             /**
+             * @description The daemon's version when the run ended. Stamped by the server at terminal, so it
+             *     survives the daemon being deleted or upgraded.
+             */
+            daemon_version?: string | null;
+            /**
              * Format: uuid
              * @description The discovery configuration this session belongs to.
              *     Always enriched server-side; daemons do not send this field.
@@ -7976,6 +7667,11 @@ export interface components {
              */
             hosts_discovered?: number | null;
             /**
+             * Format: date-time
+             * @description When the server last heard about this run. Stamped by the server at terminal.
+             */
+            last_update_at?: string | null;
+            /**
              * Format: uuid
              * @description The network this entity belongs to.
              */
@@ -7987,6 +7683,7 @@ export interface components {
              * @description Completion of the current phase, from 0 to 1.
              */
             progress: number;
+            reason?: null | components["schemas"]["DiscoveryTerminalReason"];
             scanned?: null | components["schemas"]["ScannedEntityIds"];
             /**
              * Format: uuid
@@ -8309,6 +8006,30 @@ export interface components {
              * @description The limit the run hit, in hours.
              */
             hours: number;
+        } | {
+            /** @enum {string} */
+            code: "DcpSweepTimedOut";
+            /**
+             * Format: int32
+             * @description The budget the sweep had, in seconds.
+             */
+            seconds: number;
+        } | {
+            /** @enum {string} */
+            code: "IcmpSweepTimedOut";
+            /**
+             * Format: int32
+             * @description The budget the sweep had, in seconds.
+             */
+            seconds: number;
+        } | {
+            /** @enum {string} */
+            code: "ReverseDnsTimedOut";
+            /**
+             * Format: int32
+             * @description How many lookups went unanswered.
+             */
+            count: number;
         } | (components["schemas"]["UnmatchedNeighbour"] & {
             /** @enum {string} */
             code: "LldpNeighbourNotFound";
@@ -9105,19 +8826,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-22T13:00:56.332905Z",
+         *               "created_at": "2026-09-22T13:35:57.827713Z",
          *               "first_discovery_id": null,
-         *               "id": "fd751cb7-981d-4fde-a291-f157801a2808",
+         *               "id": "c1ff9698-1f48-4028-919a-844f2c6b8a54",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-22T13:00:56.332905Z",
+         *               "last_seen_at": "2026-09-22T13:35:57.827713Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-22T13:00:56.332905Z",
-         *               "valid_from": "2026-09-22T13:00:56.332905Z",
+         *               "updated_at": "2026-09-22T13:35:57.827713Z",
+         *               "valid_from": "2026-09-22T13:35:57.827713Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9131,7 +8852,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "NCPA Agent",
+         *           "service_definition": "Promtail",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -12097,19 +11818,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-22T13:00:56.333769Z",
+         *           "created_at": "2026-09-22T13:35:57.829020Z",
          *           "first_discovery_id": null,
-         *           "id": "77859f9b-9d44-44fc-a244-a48212e0f048",
+         *           "id": "6d24ed7b-f6ad-4425-8331-af8254e1d45f",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-22T13:00:56.333769Z",
+         *           "last_seen_at": "2026-09-22T13:35:57.829020Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-22T13:00:56.333769Z",
-         *           "valid_from": "2026-09-22T13:00:56.333769Z",
+         *           "updated_at": "2026-09-22T13:35:57.829020Z",
+         *           "valid_from": "2026-09-22T13:35:57.829020Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12123,7 +11844,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "NCPA Agent",
+         *       "service_definition": "Promtail",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12825,7 +12546,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "81016e6c-b3c9-4ac2-88a2-791bdff45b19",
+             *           "id": "4a68f1da-dd56-4c52-9507-d5a1f1c749c8",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -12835,23 +12556,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "8e2ba3d1-8dad-4b47-965f-f8f0b2ec96ca",
+             *           "id": "14478f29-5032-4f21-8549-6b0617036277",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "3a92ff36-0cc6-40f0-8fa5-62e5c6c26a3f",
+             *           "id": "fae56d8e-0ade-4f3a-9a74-2079dab4574f",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "2e97b762-59d4-4448-818a-9652ace79bb4",
+             *           "id": "9494d1a9-6ac8-46a1-add2-cd55802c8728",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "8e2ba3d1-8dad-4b47-965f-f8f0b2ec96ca",
+             *           "id": "14478f29-5032-4f21-8549-6b0617036277",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -12864,19 +12585,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "a63d3182-f56e-43e7-8c10-9ed1426f49d5",
+             *         "id": "481b0ef5-1fa8-4988-b40e-9ed2c9d93a86",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "6377718d-8235-4bb0-8653-af3594a0896c",
+             *         "id": "55169aad-08c0-4e97-af89-00222390d5b4",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "3ffe4b54-f1dc-4f71-9421-0c3c899b664f",
+             *         "id": "5d51186e-e367-4a5e-a6fa-8ea64e2f7020",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "31e8b446-0690-48d6-8ae7-ba389cb4e16f",
+             *         "id": "5a3be504-47e8-44f4-999c-4a31af44b8f8",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -12894,7 +12615,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "a88748ad-d1d9-4786-bdc3-07f1c4e3a494",
+             *         "id": "634b2550-4739-4eb9-8360-5cb6d83d3742",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -12903,15 +12624,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "644c3375-03c4-4a85-a68a-0ef5d81a79ad",
+             *         "id": "b85fd4af-ea84-4a00-a881-5caaf4f98876",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "d1eb5878-ffd7-4212-ad5b-3a69893c698c",
+             *         "id": "715a2d32-8509-4399-b240-7bac1953356a",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "a0f4dce3-546e-4900-902f-e2fa3a26a890",
+             *         "id": "5b182845-deb6-47aa-8136-fb53b41721bc",
              *         "rule": "ByStack"
              *       }
              *     ]

@@ -284,9 +284,10 @@ async function rateLimitedFetch(input: RequestInfo | URL, init?: RequestInit): P
 		return response;
 	} catch (error) {
 		if (timedOut && timeoutMs !== null) {
-			// An aborted request never reaches `errorMiddleware`, so the toast is raised here. For
-			// anything but a read, the server may well have done the work and only the answer was
-			// lost, and the message says so rather than calling it a failure.
+			// The toast is raised here rather than in `errorMiddleware.onError`, which skips this
+			// error: only this layer knows whether the caller silenced errors and which method timed
+			// out. For anything but a read, the server may well have done the work and only the
+			// answer was lost, and the message says so rather than calling it a failure.
 			if (!settings.silenceErrors) {
 				pushError(method === 'GET' ? common_requestTimedOut() : common_requestUnconfirmed());
 			}
@@ -452,6 +453,8 @@ const errorMiddleware: Middleware = {
 	// sees the failure. The 429 `throw` above stays inside `onResponse`, outside
 	// the block that feeds this hook, so retries are unaffected.
 	onError({ error }) {
+		// Already reported where the timeout was detected, with wording that depends on the method.
+		if (error instanceof RequestTimeoutError) return;
 		pushError(
 			error instanceof Error && error.message
 				? error.message

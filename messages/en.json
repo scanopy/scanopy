@@ -282,7 +282,6 @@
 	"common_export": "Export",
 	"common_exportFailed": "Export failed: {error}",
 	"common_exporting": "Exporting...",
-	"common_failed": "Failed",
 	"common_failedToCopy": "Failed to copy to clipboard: {error}",
 	"common_feature": "Feature",
 	"common_fields": "Fields",
