@@ -1,5 +1,6 @@
 //! Stripe webhook ingestion and subscription/payment-method event handlers.
 use super::*;
+use stripe_shared::SubscriptionCollectionMethod;
 
 impl BillingService {
     /// Handle webhook events
@@ -545,6 +546,18 @@ impl BillingService {
                 .await?;
         }
 
+        // An unpaid sent invoice is the one way a licence buyer stops paying,
+        // and Stripe reports it here: "if the subscription's collection_method
+        // is set to send_invoice, it becomes past_due when its invoice remains
+        // unpaid by the due date". No charge is attempted on one, so
+        // `invoice.payment_failed` never fires, and `invoice.overdue` only
+        // arrives when a Billing Automation is configured to send it.
+        if sent_invoice_went_past_due(prior_status, sub.status, sub.collection_method)
+            && let Some(invoice) = self.open_license_invoice(&organization).await?
+        {
+            self.report_invoice_overdue(&organization, invoice).await?;
+        }
+
         tracing::info!(
             "Updated organization {} subscription status to {}",
             org_id,
@@ -910,5 +923,53 @@ impl BillingService {
         }
 
         Ok(())
+    }
+}
+
+/// Whether this subscription update is the moment a sent invoice's buyer fell
+/// behind: past due now, not before, on a subscription Stripe bills by
+/// invoice rather than charging.
+fn sent_invoice_went_past_due(
+    prior_status: Option<PlanStatus>,
+    status: SubscriptionStatus,
+    collection_method: SubscriptionCollectionMethod,
+) -> bool {
+    status == SubscriptionStatus::PastDue
+        && prior_status != Some(PlanStatus::PastDue)
+        && collection_method == SubscriptionCollectionMethod::SendInvoice
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Stripe attempts no charge on a sent invoice, so this transition is the
+    /// only notice that one went unpaid. A card subscription reaches past due
+    /// through the charge-attempt events instead, and must not double up.
+    #[test]
+    fn only_a_sent_invoice_newly_past_due_is_reported() {
+        assert!(sent_invoice_went_past_due(
+            Some(PlanStatus::Active),
+            SubscriptionStatus::PastDue,
+            SubscriptionCollectionMethod::SendInvoice
+        ));
+        // Already reported: the org is sitting in past due.
+        assert!(!sent_invoice_went_past_due(
+            Some(PlanStatus::PastDue),
+            SubscriptionStatus::PastDue,
+            SubscriptionCollectionMethod::SendInvoice
+        ));
+        // A card subscription: invoice.payment_failed owns this.
+        assert!(!sent_invoice_went_past_due(
+            Some(PlanStatus::Active),
+            SubscriptionStatus::PastDue,
+            SubscriptionCollectionMethod::ChargeAutomatically
+        ));
+        // Any other status change on an invoice-billed subscription.
+        assert!(!sent_invoice_went_past_due(
+            Some(PlanStatus::Trialing),
+            SubscriptionStatus::Active,
+            SubscriptionCollectionMethod::SendInvoice
+        ));
     }
 }
