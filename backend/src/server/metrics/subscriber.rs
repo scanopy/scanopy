@@ -80,14 +80,17 @@ fn record_discovery_warning(code: DiscoveryWarningCode, integration: Option<impl
 /// How discovery sessions end, by phase and terminal reason.
 ///
 /// A separate series rather than a `reason` label on `scanopy_events_total`, which would put the
-/// label on every category. `reason` is `none` for a terminal event with no reason, which only a
-/// server older than the reason field publishes. Both labels are bounded: three terminal phases
-/// against eight reasons.
-fn record_discovery_terminal(phase: DiscoveryPhase, reason: Option<DiscoveryTerminalReason>) {
+/// label on every category. Both labels are bounded: three terminal phases against eight reasons.
+///
+/// A session that ends always carries a reason. A terminal-phase event without one is a cancel
+/// request for a running session, published before the daemon stops; it is not an ending and is
+/// not counted. A queued session cancelled before dispatch publishes no event, so the cancel path
+/// records it directly.
+pub(crate) fn record_discovery_terminal(phase: DiscoveryPhase, reason: DiscoveryTerminalReason) {
     metrics::counter!(
         "scanopy_discovery_terminal_total",
         "phase" => phase.to_string(),
-        "reason" => reason.map(|r| r.id()).unwrap_or("none"),
+        "reason" => reason.id(),
     )
     .increment(1);
 }
@@ -180,8 +183,10 @@ impl Subscriber<DiscoveryPhase> for MetricsService {
     async fn handle(&self, events: Vec<Event<DiscoveryPhase>>) -> Result<(), Error> {
         for event in events {
             record_event("discovery", event.operation);
-            if event.operation.is_terminal() {
-                record_discovery_terminal(event.operation, event.scope.reason);
+            if event.operation.is_terminal()
+                && let Some(reason) = event.scope.reason
+            {
+                record_discovery_terminal(event.operation, reason);
             }
         }
         Ok(())

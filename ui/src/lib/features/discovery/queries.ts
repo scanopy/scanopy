@@ -599,10 +599,12 @@ function isTerminalPhase(phase: DiscoveryUpdatePayload['phase']): boolean {
  */
 function pushFailureToast(update: DiscoveryUpdatePayload) {
 	const reason = update.reason;
-	if (!reason || reason === 'DaemonReportedFailure') {
-		if (update.error) pushError(m.discovery_error({ error: update.error }), -1);
+	if ((!reason || reason === 'DaemonReportedFailure') && update.error) {
+		pushError(m.discovery_error({ error: update.error }), -1);
 		return;
 	}
+	// A server older than the reason field, with no error to show either.
+	if (!reason) return;
 	const detail = discoveryTerminalReasons.getMetadata(reason).is_stall
 		? discoveryTerminalReasons.getDescription(reason)
 		: (update.error ?? discoveryTerminalReasons.getDescription(reason));

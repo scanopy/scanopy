@@ -155,7 +155,9 @@ impl DaemonRuntimeService {
             daemon_id,
             network_id,
             request.discovery_type.clone(),
-            None,
+            // The server replaces its stored session with this payload, so the historical row
+            // keeps its discovery only if the payload names it.
+            Some(request.discovery_id),
         );
         payload.phase = DiscoveryPhase::Failed;
         payload.error = Some(format!(

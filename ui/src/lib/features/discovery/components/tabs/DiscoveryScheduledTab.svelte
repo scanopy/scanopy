@@ -421,7 +421,8 @@
 				<ProgressTrack class="flex-1">
 					<AnimatedProgressBar
 						progress={session.progress}
-						stalled={$sessionStallMinutes(session.session_id, session.phase) !== null}
+						stalled={!isCancelling &&
+							$sessionStallMinutes(session.session_id, session.phase) !== null}
 					/>
 				</ProgressTrack>
 				<span class="text-secondary text-xs">{session.progress}%</span>

@@ -207,7 +207,9 @@ impl DiscoveryService {
         // their next phase. Walk daemons in turn so the Queued/Pending
         // decision matches start_session's "promote only if daemon has no
         // other dispatched sessions" rule.
+        // The lock order documented on `DiscoveryService`.
         let mut sessions = self.sessions.write().await;
+        let mut last_updated = self.session_last_updated.write().await;
         let daemon_sessions = self.daemon_sessions.read().await;
 
         let mut to_publish: Vec<DiscoveryUpdatePayload> = Vec::new();
@@ -249,10 +251,7 @@ impl DiscoveryService {
                     session.phase = DiscoveryPhase::Queued;
                 } else {
                     session.phase = DiscoveryPhase::Pending;
-                    self.session_last_updated
-                        .write()
-                        .await
-                        .insert(session_id, Utc::now());
+                    last_updated.insert(session_id, Utc::now());
                     to_publish.push(session.clone());
                 }
                 let _ = self.update_tx.send(session.clone());
@@ -260,6 +259,7 @@ impl DiscoveryService {
         }
 
         drop(daemon_sessions);
+        drop(last_updated);
         drop(sessions);
 
         for payload in to_publish {

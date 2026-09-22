@@ -214,6 +214,19 @@ fn remove_from_queue_and_promote_head(
     })
 }
 
+/// Drop a session cancelled before any daemon had it (`Queued`, `Pending` or `AwaitingSnapshot`),
+/// promoting the next session on the same terms as a finished one. Its stamp, if it had one, stays
+/// as a tombstone.
+pub(crate) fn cancel_undispatched(
+    maps: &mut SessionMaps,
+    session_id: Uuid,
+    now: DateTime<Utc>,
+) -> Option<PromotedSession> {
+    let session = maps.sessions.remove(&session_id)?;
+    maps.discovery_sessions.retain(|_, sid| *sid != session_id);
+    remove_from_queue_and_promote_head(maps, session.daemon_id, session_id, now)
+}
+
 /// Sessions the daemon has gone quiet on for longer than `threshold`.
 ///
 /// Only phases where a daemon is expected to be making progress qualify (see
@@ -800,5 +813,36 @@ mod tests {
             maps.sessions[&awaiting.session_id].phase,
             DiscoveryPhase::AwaitingSnapshot
         );
+    }
+
+    #[test]
+    fn cancelling_a_pending_session_promotes_a_queued_one_but_not_one_awaiting_a_snapshot() {
+        let now = Utc::now();
+        for (behind, promoted) in [
+            (DiscoveryPhase::Queued, true),
+            (DiscoveryPhase::AwaitingSnapshot, false),
+        ] {
+            let mut maps = Maps::default();
+            let daemon = Uuid::new_v4();
+            let pending = maps.start(daemon, DiscoveryPhase::Pending);
+            let next = maps.start(daemon, behind);
+
+            let result = cancel_undispatched(&mut maps.borrow(), pending.session_id, now);
+
+            assert!(!maps.sessions.contains_key(&pending.session_id));
+            assert!(
+                !maps
+                    .discovery_sessions
+                    .values()
+                    .any(|sid| *sid == pending.session_id)
+            );
+            assert_eq!(result.is_some(), promoted, "behind: {behind:?}");
+            let expected = if promoted {
+                DiscoveryPhase::Pending
+            } else {
+                behind
+            };
+            assert_eq!(maps.sessions[&next.session_id].phase, expected);
+        }
     }
 }

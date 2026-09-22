@@ -5,7 +5,7 @@
  */
 
 import { QueryClient } from '@tanstack/svelte-query';
-import { ApiError } from './client';
+import { ApiError, RequestTimeoutError } from './client';
 
 /**
  * Create a QueryClient with application-specific defaults
@@ -22,6 +22,11 @@ export function createQueryClient(): QueryClient {
 				retry: (failureCount, error) => {
 					if (error instanceof ApiError && error.status === 429) {
 						return failureCount < 3;
+					}
+					// A request the server did not answer within its budget has already waited that
+					// long and been reported; a retry repeats both.
+					if (error instanceof RequestTimeoutError) {
+						return false;
 					}
 					return failureCount < 2;
 				},

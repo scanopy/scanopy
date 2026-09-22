@@ -170,12 +170,6 @@ impl DiscoveryService {
                             && discovery.scan_count.is_multiple_of(full_scan_interval))));
         }
 
-        // Track discovery -> session mapping
-        self.discovery_sessions
-            .write()
-            .await
-            .insert(discovery.id, session_id);
-
         // Hold running_snapshots.read across the session insertion. This
         // serializes against try_acquire_network_for_snapshot (which takes
         // running_snapshots.write before reading sessions): the snapshot
@@ -213,11 +207,21 @@ impl DiscoveryService {
                 .insert(session_id, Utc::now());
         }
 
-        // Add to session map
-        self.sessions
-            .write()
-            .await
-            .insert(session_id, session_payload.clone());
+        // The session and its discovery mapping go in under one pair of guards. Inserted apart,
+        // `sweep_old` could see the mapping with no session and no tombstone (a `Queued` or
+        // `AwaitingSnapshot` session is never stamped) and drop it, losing the guard below for
+        // this run. The re-check closes the gap since the check at the top.
+        {
+            let mut sessions = self.sessions.write().await;
+            let mut discovery_sessions = self.discovery_sessions.write().await;
+            if discovery_sessions.contains_key(&discovery.id) {
+                return Err(ApiError::conflict(
+                    "A session is already running for this discovery",
+                ));
+            }
+            sessions.insert(session_id, session_payload.clone());
+            discovery_sessions.insert(discovery.id, session_id);
+        }
 
         // Add session to queue
         self.daemon_sessions
@@ -789,41 +793,34 @@ impl DiscoveryService {
             // session has not yet been dispatched to the daemon, so cleanup
             // is just a queue removal.
             DiscoveryPhase::Queued | DiscoveryPhase::Pending | DiscoveryPhase::AwaitingSnapshot => {
-                let mut sessions = self.sessions.write().await;
-                let mut daemon_sessions = self.daemon_sessions.write().await;
-
-                let was_pending = phase == DiscoveryPhase::Pending;
-
-                // Remove from sessions map
-                sessions.remove(&session_id);
-
-                // Remove from daemon queue
-                if let Some(queue) = daemon_sessions.get_mut(&daemon_id) {
-                    queue.retain(|id| *id != session_id);
-
-                    // If we removed the Pending session, promote next Queued → Pending
-                    if was_pending
-                        && let Some(next_session) =
-                            queue.first().and_then(|next_id| sessions.get_mut(next_id))
-                    {
-                        next_session.phase = DiscoveryPhase::Pending;
-                        self.session_last_updated
-                            .write()
-                            .await
-                            .insert(next_session.session_id, Utc::now());
-                    }
+                let promoted = {
+                    // The lock order documented on `DiscoveryService`.
+                    let mut sessions = self.sessions.write().await;
+                    let mut last_updated = self.session_last_updated.write().await;
+                    let mut daemon_sessions = self.daemon_sessions.write().await;
+                    let mut pull_cancellations = self.daemon_pull_cancellations.write().await;
+                    let mut discovery_sessions = self.discovery_sessions.write().await;
+                    state::cancel_undispatched(
+                        &mut SessionMaps {
+                            sessions: &mut sessions,
+                            last_updated: &mut last_updated,
+                            daemon_sessions: &mut daemon_sessions,
+                            discovery_sessions: &mut discovery_sessions,
+                            pull_cancellations: &mut pull_cancellations,
+                        },
+                        session_id,
+                        Utc::now(),
+                    )
+                };
+                if let Some(promoted) = promoted {
+                    self.publish_promoted(daemon_id, network_id, promoted).await;
                 }
 
-                // Remove from discovery_sessions map
-                self.discovery_sessions
-                    .write()
-                    .await
-                    .retain(|_, sid| *sid != session_id);
-
-                drop(sessions);
-                drop(daemon_sessions);
-
                 // Broadcast cancellation update so frontend knows
+                crate::server::metrics::subscriber::record_discovery_terminal(
+                    DiscoveryPhase::Cancelled,
+                    DiscoveryTerminalReason::UserCancelled,
+                );
                 let _ = self.update_tx.send(cancelled_update);
 
                 tracing::info!("Cancelled {} session {} from queue", phase, session_id);
@@ -855,8 +852,15 @@ impl DiscoveryService {
             // 1. Publish DiscoveryCancelled event - DaemonService subscriber handles ServerPoll mode
             // 2. Set cancellation flag - DaemonPoll mode checks on next poll via request_work
             DiscoveryPhase::Started | DiscoveryPhase::Scanning => {
+                // A request, not the ending: the session ends when the daemon reports it, and
+                // that event carries the reason. Without one here, the terminal metric counts the
+                // cancel once.
+                let request = DiscoveryUpdatePayload {
+                    reason: None,
+                    ..cancelled_update
+                };
                 self.event_bus()
-                    .publish(cancelled_update.into_discovery_event_with_auth(authentication))
+                    .publish(request.into_discovery_event_with_auth(authentication))
                     .await?;
 
                 // Set cancellation flag for DaemonPoll mode (checked on next poll)
