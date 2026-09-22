@@ -24,7 +24,6 @@ use crate::{
     },
     server::{
         metrics::service::MetricsService,
-        shared::types::metadata::HasId,
         shared::events::{
             registry::SubscriberRegistration,
             traits::{EntityEventFilter, Event, EventFilter, Subscriber},
@@ -33,6 +32,7 @@ use crate::{
                 OnboardingOperation,
             },
         },
+        shared::types::metadata::HasId,
     },
 };
 

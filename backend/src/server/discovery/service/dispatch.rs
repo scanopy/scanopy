@@ -894,7 +894,11 @@ pub(super) fn record_session_duration(session: &DiscoveryUpdatePayload) {
     let (Some(started), Some(finished)) = (session.started_at, session.finished_at) else {
         return;
     };
-    let seconds = finished.signed_duration_since(started).num_milliseconds().max(0) as f64 / 1000.0;
+    let seconds = finished
+        .signed_duration_since(started)
+        .num_milliseconds()
+        .max(0) as f64
+        / 1000.0;
     metrics::histogram!(
         "scanopy_discovery_session_duration_seconds",
         "reason" => session.reason.map(|r| r.id()).unwrap_or("none"),
