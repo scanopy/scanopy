@@ -785,7 +785,10 @@ class DiscoverySSEManager extends BaseSSEManager<DiscoveryUpdatePayload> {
 				const sessions = queryClient.getQueryData<DiscoveryUpdatePayload[]>(
 					queryKeys.discovery.sessions()
 				);
-				observeSessions((sessions ?? []).map((s) => s.session_id), Date.now());
+				observeSessions(
+					(sessions ?? []).map((s) => s.session_id),
+					Date.now()
+				);
 				discoveryStreamConnected.set(true);
 			}
 		};

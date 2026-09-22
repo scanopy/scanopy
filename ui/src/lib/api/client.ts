@@ -240,9 +240,9 @@ async function rateLimitedFetch(input: RequestInfo | URL, init?: RequestInit): P
 
 	// Armed only now that the request holds a slot: during rate-limit recovery the queue releases
 	// one request every half second, and a budget started at call time would be spent waiting.
-	const settings: RequestSettings = input instanceof Request ? (input as Request & RequestSettings) : {};
-	const timeoutMs =
-		settings.timeoutMs === undefined ? DEFAULT_TIMEOUT_MS : settings.timeoutMs;
+	const settings: RequestSettings =
+		input instanceof Request ? (input as Request & RequestSettings) : {};
+	const timeoutMs = settings.timeoutMs === undefined ? DEFAULT_TIMEOUT_MS : settings.timeoutMs;
 	const method = input instanceof Request ? input.method : (init?.method ?? 'GET');
 	const controller = new AbortController();
 	// A caller's own abort still wins.

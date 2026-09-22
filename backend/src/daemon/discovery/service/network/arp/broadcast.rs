@@ -105,6 +105,8 @@ pub fn is_available() -> bool {
 /// * `rate_pps` - Maximum packets per second (rate limiting for switch compatibility)
 /// * `packets_sent` - Shared counter incremented per ARP request sent, so callers can
 ///   drive work-based progress/ETA off real send throughput rather than a rate estimate.
+/// * `cancel` - Stops the send rounds; the sender still marks sending done and joins.
+#[allow(clippy::too_many_arguments)]
 pub fn scan_subnet(
     interface: &NetworkInterface,
     source_ip: Ipv4Addr,
