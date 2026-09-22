@@ -65,6 +65,7 @@ impl Subscriber<BillingOperation> for EmailService {
             BillingOperationDiscriminants::PaymentRecovered,
             BillingOperationDiscriminants::PaymentSucceeded,
             BillingOperationDiscriminants::InvoiceIssued,
+            BillingOperationDiscriminants::InvoiceOverdue,
             BillingOperationDiscriminants::PaymentMethodAdded,
             BillingOperationDiscriminants::PaymentMethodRemoved,
             BillingOperationDiscriminants::CancellationInitiated,
@@ -311,6 +312,25 @@ impl Subscriber<BillingOperation> for EmailService {
                                 .await?;
                         }
                     }
+                }
+                BillingOperation::InvoiceOverdue { invoice } => {
+                    // Nobody attempted a charge, so the card-decline copy
+                    // would be wrong. This one tells the buyer their finance
+                    // team still holds the bill and when the key stops.
+                    let plan_name = self
+                        .organization_service
+                        .get_by_id(&event.scope.organization_id)
+                        .await?
+                        .and_then(|org| org.base.plan)
+                        .map(|plan| plan.name())
+                        .unwrap_or("Scanopy");
+                    self.send_invoice_overdue_email(
+                        org_owner,
+                        plan_name,
+                        &invoice,
+                        invoice.po_number.clone(),
+                    )
+                    .await?;
                 }
                 BillingOperation::PaymentSucceeded {
                     invoice,

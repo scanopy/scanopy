@@ -21,6 +21,7 @@ mod install_command;
 mod invite;
 mod invoice_credited;
 mod invoice_issued;
+mod invoice_overdue;
 pub mod links;
 mod oidc_linked;
 mod oidc_unlinked;
@@ -66,6 +67,7 @@ pub use install_command::InstallCommand;
 pub use invite::Invite;
 pub use invoice_credited::InvoiceCredited;
 pub use invoice_issued::InvoiceIssued;
+pub use invoice_overdue::InvoiceOverdue;
 pub use oidc_linked::OidcLinked;
 pub use oidc_unlinked::OidcUnlinked;
 pub use organization_deleted::OrganizationDeleted;
@@ -574,6 +576,28 @@ mod tests {
             &InvoiceCredited {
                 plan_name: "Self-Hosted Standard",
                 credit: "$1,999.98",
+            },
+        );
+        f(
+            "invoice_overdue_with_po",
+            &InvoiceOverdue {
+                plan_name: "Self-Hosted Standard",
+                amount: "$4,000.00",
+                due_date: "October 18, 2026",
+                key_expires: "November 17, 2026",
+                po_number: Some("PO-4471"),
+                cta_href: "https://billing.example.test/invoice/abc",
+            },
+        );
+        f(
+            "invoice_overdue",
+            &InvoiceOverdue {
+                plan_name: "Self-Hosted Standard",
+                amount: "$4,000.00",
+                due_date: "October 18, 2026",
+                key_expires: "November 17, 2026",
+                po_number: None,
+                cta_href: "https://billing.example.test/invoice/abc",
             },
         );
         f(

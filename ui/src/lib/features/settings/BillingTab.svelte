@@ -13,9 +13,13 @@
 		useResumeSubscriptionMutation,
 		useReactivateSubscriptionMutation,
 		useExtendTrialMutation,
-		useInvoiceBillingStatusQuery
+		useInvoiceBillingStatusQuery,
+		useAcceptQuoteMutation,
+		useCancelQuoteMutation,
+		downloadQuotePdf
 	} from '$lib/features/billing/queries';
 	import CancelSubscriptionModal from '$lib/features/billing/CancelSubscriptionModal.svelte';
+	import ConfirmationDialog from '$lib/shared/components/feedback/ConfirmationDialog.svelte';
 	import InvoiceBillingCard from '$lib/features/billing/InvoiceBillingCard.svelte';
 	import { renewalLabel } from '$lib/features/billing/renewal';
 	import { discountedPrice, saveOfferDiscount } from '$lib/features/billing/pricing';
@@ -59,7 +63,16 @@
 		settings_billing_license_addPaymentMethodSubtitle,
 		settings_billing_trialCountdown,
 		settings_billing_trialEndsOn,
+		settings_billing_pastDueInvoice,
+		settings_billing_payInvoice,
 		billing_addPaymentMethod,
+		billing_invoice_acceptCta,
+		billing_invoice_accepted,
+		billing_invoice_cancelQuote,
+		billing_invoice_cancelQuoteConfirm,
+		billing_invoice_downloadQuote,
+		billing_invoice_quoteCancelled,
+		common_processing,
 		billing_noPaymentMethodBannerBody,
 		billing_requestAccepted,
 		billing_subscriptionReactivated,
@@ -99,6 +112,50 @@
 	// Stripe round trip on every visit to this tab.
 	const invoiceBillingQuery = useInvoiceBillingStatusQuery(() => isLicensedPlan);
 	let invoiceBilling = $derived(invoiceBillingQuery.data ?? null);
+	let pendingQuote = $derived(invoiceBilling?.pending_quote ?? null);
+	let openInvoiceUrl = $derived(invoiceBilling?.open_invoice?.hosted_invoice_url ?? null);
+
+	const acceptQuoteMutation = useAcceptQuoteMutation();
+	const cancelQuoteMutation = useCancelQuoteMutation();
+	let showCancelQuoteConfirm = $state(false);
+	// Stripe renders the PDF on demand and it proxies through the backend, so
+	// the wait is long enough to need saying.
+	let downloadingQuote = $state(false);
+
+	// The PO row in InvoiceBillingCard owns the number, and the quote text
+	// above names the one the invoice will carry, so accepting asks nothing
+	// further.
+	async function handleAcceptQuote() {
+		try {
+			await acceptQuoteMutation.mutateAsync();
+			pushSuccess(billing_invoice_accepted());
+		} catch {
+			// The API client toasts the failure.
+		}
+	}
+
+	async function handleDownloadQuote() {
+		downloadingQuote = true;
+		try {
+			await downloadQuotePdf(pendingQuote?.number ?? null);
+		} finally {
+			downloadingQuote = false;
+		}
+	}
+
+	async function handleCancelQuote() {
+		showCancelQuoteConfirm = false;
+		try {
+			await cancelQuoteMutation.mutateAsync();
+			pushSuccess(billing_invoice_quoteCancelled());
+		} catch {
+			// The API client toasts the failure.
+		}
+	}
+
+	function handlePayInvoice() {
+		if (openInvoiceUrl) window.open(openInvoiceUrl, '_blank', 'noopener,noreferrer');
+	}
 
 	// Customer portal mutation
 	const customerPortalMutation = useCustomerPortalMutation();
@@ -182,8 +239,21 @@
 
 	// The single primary action for the current state.
 	let primaryAction = $derived.by(() => {
+		// A quote in flight is the action the org is mid-way through, and
+		// accepting it is how this org pays at all, so it outranks the card
+		// prompt below.
+		if (pendingQuote)
+			return {
+				label: billing_invoice_acceptCta(),
+				onclick: handleAcceptQuote,
+				disabled: acceptQuoteMutation.isPending
+			};
 		if (missingCard)
 			return { label: billing_addPaymentMethod(), onclick: handleSetupPayment, icon: CreditCard };
+		// The portal cannot pay a sent invoice, so an invoice buyer goes
+		// straight to the Stripe invoice instead.
+		if (isPastDue && openInvoiceUrl)
+			return { label: settings_billing_payInvoice(), onclick: handlePayInvoice };
 		if (isPastDue)
 			return { label: settings_billing_updatePaymentMethod(), onclick: handleManageSubscription };
 		if (isPaused)
@@ -213,15 +283,21 @@
 
 	// Extend trial gets its own prominent secondary CTA under the primary
 	// (rather than being buried in the menu) when it's available.
-	let secondaryAction = $derived(
-		canExtendTrial
+	let secondaryAction = $derived.by(() => {
+		if (pendingQuote)
+			return {
+				label: downloadingQuote ? common_processing() : billing_invoice_downloadQuote(),
+				onclick: handleDownloadQuote,
+				disabled: downloadingQuote
+			};
+		return canExtendTrial
 			? {
 					label: settings_billing_extendTrial_link(),
 					onclick: handleExtendTrial,
 					disabled: extendTrialMutation.isPending
 				}
-			: undefined
-	);
+			: undefined;
+	});
 
 	// Ancillary actions tucked behind the "More Actions" menu.
 	let menuItems = $derived.by(() => {
@@ -232,6 +308,15 @@
 			items.push({
 				label: settings_billing_paymentAndInvoices(),
 				onclick: handleManageSubscription
+			});
+		// Withdrawing a quote is destructive but reversible (a new one can be
+		// requested), so it sits above cancelling the subscription.
+		if (pendingQuote)
+			items.push({
+				label: billing_invoice_cancelQuote(),
+				onclick: () => (showCancelQuoteConfirm = true),
+				disabled: cancelQuoteMutation.isPending,
+				tone: 'danger'
 			});
 		// Cancel is the destructive action — always last in the list.
 		if (showCancelItem)
@@ -266,6 +351,10 @@
 				}`
 			};
 		}
+		// Nobody attempted a charge on a sent invoice, so telling an invoice
+		// buyer to update a payment method names something they never had.
+		if (isPastDue && openInvoiceUrl)
+			return { kind: 'danger' as const, message: settings_billing_pastDueInvoice() };
 		if (isPastDue) return { kind: 'danger' as const, message: settings_billing_pastDue() };
 		if (missingCard)
 			return { kind: 'warning' as const, message: billing_noPaymentMethodBannerBody() };
@@ -662,4 +751,15 @@
 	planRate={org?.plan?.rate ?? null}
 	nextRenewalAt={org?.next_renewal_at ?? null}
 	onSubscriptionChanged={() => organizationQuery.refetch()}
+/>
+
+<ConfirmationDialog
+	isOpen={showCancelQuoteConfirm}
+	title={billing_invoice_cancelQuote()}
+	message={billing_invoice_cancelQuoteConfirm({ number: pendingQuote?.number ?? '' })}
+	confirmLabel={billing_invoice_cancelQuote()}
+	variant="danger"
+	onConfirm={handleCancelQuote}
+	onCancel={() => (showCancelQuoteConfirm = false)}
+	onClose={() => (showCancelQuoteConfirm = false)}
 />

@@ -12,7 +12,7 @@ use super::messages::{
     AirgapExpiring, AirgapRenewal, CancellationInitiated, CheckoutCompleted, DaemonStandby,
     DaemonSunset, DaemonUnreachable, DiscoveryDigest, DiscoveryGuide, Email, EmailAttachment,
     EmailChangedOld, EmailPreference, InstallCommand, Invite, InvoiceCredited, InvoiceIssued,
-    OidcLinked, OidcUnlinked, OrganizationDeleted, PasswordChanged, PasswordReset,
+    InvoiceOverdue, OidcLinked, OidcUnlinked, OrganizationDeleted, PasswordChanged, PasswordReset,
     PaymentActionRequired, PaymentFailed, PaymentMethodAdded, PaymentMethodRemoved,
     PaymentRecovered, PlanChanged, PlanLimitApproaching, PlanLimitReached, SelfHostedLicenseEnded,
     SelfHostedPaymentFailed, SelfHostedPlanChanged, SelfHostedTrialEnding, SelfHostedWelcome,
@@ -603,6 +603,41 @@ impl EmailService {
                 plan_name,
                 amount: &amount,
                 due_date: &due_date,
+                po_number: po_number.as_deref(),
+                cta_href: &cta_href,
+            },
+        )
+        .await
+    }
+
+    /// A sent invoice passed its due date. The licence still has its grace
+    /// period, so this names the date the key stops rather than the due date.
+    pub async fn send_invoice_overdue_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        invoice: &BillingInvoice,
+        po_number: Option<String>,
+    ) -> Result<()> {
+        let amount = format_cents(invoice.amount_due_cents, &invoice.currency);
+        let due_date = invoice.due_date.map(format_timestamp).unwrap_or_default();
+        let key_expires = invoice
+            .provisional_paid_through()
+            .map(|paid_through| {
+                format_timestamp(paid_through + chrono::Duration::days(PAID_THROUGH_BUFFER_DAYS))
+            })
+            .unwrap_or_default();
+        let cta_href = invoice
+            .hosted_invoice_url
+            .clone()
+            .unwrap_or_else(|| links::SETTINGS_BILLING.to_string());
+        self.dispatch(
+            to,
+            &InvoiceOverdue {
+                plan_name,
+                amount: &amount,
+                due_date: &due_date,
+                key_expires: &key_expires,
                 po_number: po_number.as_deref(),
                 cta_href: &cta_href,
             },

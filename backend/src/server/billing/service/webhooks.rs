@@ -92,6 +92,11 @@ impl BillingService {
                     self.handle_invoice_created(invoice).await?;
                 }
             }
+            EventType::InvoiceOverdue => {
+                if let EventObject::InvoiceOverdue(invoice) = event.data.object {
+                    self.handle_invoice_overdue(invoice).await?;
+                }
+            }
             EventType::InvoiceFinalized => {
                 if let EventObject::InvoiceFinalized(invoice) = event.data.object {
                     self.handle_invoice_finalized(invoice).await?;

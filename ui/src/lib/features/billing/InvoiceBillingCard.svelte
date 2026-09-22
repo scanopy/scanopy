@@ -1,27 +1,17 @@
 <script lang="ts">
-	import { Download } from 'lucide-svelte';
 	import { createForm } from '@tanstack/svelte-form';
 	import { submitForm } from '$lib/shared/components/forms/form-context';
 	import { max } from '$lib/shared/components/forms/validators';
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
-	import {
-		downloadQuotePdf,
-		useAcceptQuoteMutation,
-		useCancelQuoteMutation,
-		useUpdatePoNumberMutation
-	} from './queries';
+	import { useUpdatePoNumberMutation } from './queries';
 	import { pushSuccess } from '$lib/shared/stores/feedback';
 	import type { components } from '$lib/api/schema';
 	import {
-		billing_invoice_acceptCta,
-		billing_invoice_accepted,
-		billing_invoice_downloadQuote,
 		billing_invoice_poNumber,
 		billing_invoice_poNumberHelp,
 		billing_invoice_poNumberUpdated,
 		billing_invoice_quoteBodyNoPo,
 		billing_invoice_quoteBodyWithPo,
-		billing_invoice_quoteCancelled,
 		billing_invoice_quoteTitle,
 		common_cancel,
 		common_edit,
@@ -31,10 +21,11 @@
 
 	type InvoiceBillingStatus = components['schemas']['InvoiceBillingStatus'];
 
+	// Accepting, downloading and cancelling a quote are the tab's primary,
+	// secondary and overflow actions, so they live with the other CTAs in
+	// BillingTab's ButtonMenu rather than as a button row inside this card.
 	let { status }: { status: InvoiceBillingStatus } = $props();
 
-	const acceptMutation = useAcceptQuoteMutation();
-	const cancelMutation = useCancelQuoteMutation();
 	const poMutation = useUpdatePoNumberMutation();
 
 	function formatMoney(cents: number, currency: string): string {
@@ -73,39 +64,6 @@
 	function startEditingPo() {
 		poForm.reset({ po_number: status.po_number ?? '' });
 		editingPo = true;
-	}
-
-	// The PO row above owns the number; accepting a quote just confirms what it
-	// already says, rather than asking a second time and inviting two answers.
-	async function handleAccept() {
-		try {
-			await acceptMutation.mutateAsync();
-			pushSuccess(billing_invoice_accepted());
-		} catch {
-			// The API client toasts the failure.
-		}
-	}
-
-	// Stripe renders the PDF on demand and it proxies through the backend, so
-	// the wait is long enough to need saying.
-	let downloading = $state(false);
-
-	async function handleDownload() {
-		downloading = true;
-		try {
-			await downloadQuotePdf(quote?.number ?? null);
-		} finally {
-			downloading = false;
-		}
-	}
-
-	async function handleCancelQuote() {
-		try {
-			await cancelMutation.mutateAsync();
-			pushSuccess(billing_invoice_quoteCancelled());
-		} catch {
-			// The API client toasts the failure.
-		}
 	}
 </script>
 
@@ -170,32 +128,5 @@
 						date: formatDate(quote.expires_at)
 					})}
 		</p>
-		<div class="flex flex-wrap gap-2">
-			<button
-				type="button"
-				class="btn-secondary flex items-center gap-2"
-				disabled={downloading}
-				onclick={handleDownload}
-			>
-				<Download class="h-4 w-4" />
-				{downloading ? common_processing() : billing_invoice_downloadQuote()}
-			</button>
-			<button
-				type="button"
-				class="btn-primary"
-				disabled={acceptMutation.isPending}
-				onclick={handleAccept}
-			>
-				{acceptMutation.isPending ? common_processing() : billing_invoice_acceptCta()}
-			</button>
-			<button
-				type="button"
-				class="btn-secondary"
-				disabled={cancelMutation.isPending}
-				onclick={handleCancelQuote}
-			>
-				{common_cancel()}
-			</button>
-		</div>
 	</div>
 {/if}

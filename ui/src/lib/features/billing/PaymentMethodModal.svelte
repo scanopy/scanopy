@@ -115,6 +115,11 @@
 	}
 
 	function handleInvoiceDone(mode: InvoiceBillingMode) {
+		// The quote lands on the Billing tab, where it is downloaded, accepted
+		// or withdrawn, so send the user there rather than back where they
+		// started. Opened from the Billing tab the stored tab is already null,
+		// which would otherwise close to nothing.
+		if (mode === 'quote') reopenSettingsTabAfterPayment.set('billing');
 		closeAndReturn();
 		pushSuccess(mode === 'quote' ? billing_invoice_quoteCreated() : billing_invoice_sent());
 	}

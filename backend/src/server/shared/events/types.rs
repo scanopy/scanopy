@@ -255,6 +255,13 @@ pub enum BillingOperation {
     InvoiceVoided {
         invoice: BillingInvoice,
     },
+    /// A sent invoice passed its due date unpaid (`invoice.overdue`). Stripe
+    /// makes no charge attempt on one, so `PaymentFailed` never fires and this
+    /// is the only signal that an invoice buyer has stopped paying. The
+    /// license keeps its grace period; the status is what changes.
+    InvoiceOverdue {
+        invoice: BillingInvoice,
+    },
     PaymentFailed {
         invoice_id: String,
         amount_cents: i64,
@@ -424,9 +431,9 @@ impl BillingOperation {
                 converted: true, ..
             } => Some(PlanStatus::Active),
 
-            Self::PaymentFailed { .. } | Self::PaymentActionRequired { .. } => {
-                Some(PlanStatus::PastDue)
-            }
+            Self::PaymentFailed { .. }
+            | Self::PaymentActionRequired { .. }
+            | Self::InvoiceOverdue { .. } => Some(PlanStatus::PastDue),
 
             Self::Paused { .. } => Some(PlanStatus::Paused),
 
