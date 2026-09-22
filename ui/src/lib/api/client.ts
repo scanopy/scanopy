@@ -122,7 +122,7 @@ function timeoutFor(method: string, schemaPath: string): number | null {
 }
 
 /** Per-request settings carried on the `Request` into `rateLimitedFetch`. */
-type RequestSettings = { timeoutMs?: number | null; silenceErrors?: boolean };
+type RequestSettings = { timeoutMs?: number | null };
 
 /** Stamps each request with its budget. The timer itself starts in `rateLimitedFetch`. */
 const timeoutMiddleware: Middleware = {
@@ -285,12 +285,10 @@ async function rateLimitedFetch(input: RequestInfo | URL, init?: RequestInit): P
 	} catch (error) {
 		if (timedOut && timeoutMs !== null) {
 			// The toast is raised here rather than in `errorMiddleware.onError`, which skips this
-			// error: only this layer knows whether the caller silenced errors and which method timed
-			// out. For anything but a read, the server may well have done the work and only the
-			// answer was lost, and the message says so rather than calling it a failure.
-			if (!settings.silenceErrors) {
-				pushError(method === 'GET' ? common_requestTimedOut() : common_requestUnconfirmed());
-			}
+			// error: only this layer knows which method timed out. For anything but a read, the
+			// server may well have done the work and only the answer was lost, and the message says
+			// so rather than calling it a failure.
+			pushError(method === 'GET' ? common_requestTimedOut() : common_requestUnconfirmed());
 			throw new RequestTimeoutError(timeoutMs, method);
 		}
 		throw error;
