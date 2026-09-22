@@ -1,10 +1,8 @@
 <script lang="ts">
-	import ProgressTrack from '$lib/shared/components/data/ProgressTrack.svelte';
-	import AnimatedProgressBar from '$lib/features/discovery/components/cards/AnimatedProgressBar.svelte';
+	import SessionProgress from '$lib/features/discovery/components/cards/SessionProgress.svelte';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
 	import type { DiscoveryUpdatePayload } from '$lib/features/discovery/types/api';
 	import DiscoveryEstimation from '$lib/features/discovery/components/DiscoveryEstimation.svelte';
-	import { sessionStallMinutes } from '$lib/features/discovery/utils/staleness';
 	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
 	import { entities } from '$lib/shared/stores/metadata';
 
@@ -54,20 +52,15 @@
 					</div>
 					<DiscoveryEstimation
 						phase={session.phase}
-						session_id={session.session_id}
 						hosts_discovered={session.hosts_discovered}
 						estimated_remaining_secs={session.estimated_remaining_secs}
 						class="mb-1"
 					/>
-					<div class="flex items-center gap-2">
-						<ProgressTrack class="flex-1">
-							<AnimatedProgressBar
-								progress={session.progress}
-								stalled={$sessionStallMinutes(session.session_id, session.phase) !== null}
-							/>
-						</ProgressTrack>
-						<span class="text-secondary text-xs">{session.progress}%</span>
-					</div>
+					<SessionProgress
+						session_id={session.session_id}
+						phase={session.phase}
+						progress={session.progress}
+					/>
 				</div>
 			{/each}
 		</div>

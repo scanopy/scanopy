@@ -12,6 +12,7 @@
 	import DaemonTroubleshootingModal from '$lib/shared/components/layout/DaemonTroubleshootingModal.svelte';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import DiscoveryEstimation from '$lib/features/discovery/components/DiscoveryEstimation.svelte';
+	import StallTag from '$lib/features/discovery/components/StallTag.svelte';
 	import {
 		CHECKLIST_STEPS,
 		isStepComplete as checkStepComplete,
@@ -347,13 +348,17 @@
 							{#if !complete && enabled && !isAccountStep && !isActiveDiscoveryStep}
 								<p class="text-tertiary text-xs">{step.description()}</p>
 							{:else if isActiveDiscoveryStep && activeNetworkSession}
-								<DiscoveryEstimation
-									phase={activeNetworkSession.phase}
-									session_id={activeNetworkSession.session_id}
-									hosts_discovered={activeNetworkSession.hosts_discovered}
-									estimated_remaining_secs={activeNetworkSession.estimated_remaining_secs}
-									class="mt-0.5"
-								/>
+								<div class="mt-0.5 flex items-center gap-2">
+									<DiscoveryEstimation
+										phase={activeNetworkSession.phase}
+										hosts_discovered={activeNetworkSession.hosts_discovered}
+										estimated_remaining_secs={activeNetworkSession.estimated_remaining_secs}
+									/>
+									<StallTag
+										session_id={activeNetworkSession.session_id}
+										phase={activeNetworkSession.phase}
+									/>
+								</div>
 							{/if}
 						{/snippet}
 						{#snippet detail()}

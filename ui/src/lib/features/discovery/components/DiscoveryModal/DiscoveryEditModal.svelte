@@ -59,7 +59,7 @@
 		common_deleting,
 		common_details,
 		common_failedToCopy,
-		common_warnings,
+		common_issues,
 		common_next,
 		common_saving,
 		common_schedule,
@@ -139,6 +139,10 @@
 	let isHistoricalRun = $derived(discovery?.run_type.type === 'Historical');
 	let historicalResults = $derived(
 		discovery?.run_type.type === 'Historical' ? discovery.run_type.results : null
+	);
+	/** A run that failed or was cancelled: the Issues tab has its reason to show. */
+	let endedBadly = $derived(
+		historicalResults?.phase === 'Failed' || historicalResults?.phase === 'Cancelled'
 	);
 	let historicalWarnings = $derived(
 		discovery?.run_type.type === 'Historical' ? (discovery.run_type.results.warnings ?? []) : []
@@ -329,19 +333,21 @@
 	let hasScheduleTab = $derived(formData.run_type.type === 'Scheduled');
 
 	/**
-	 * A completed run has warnings and it has details, and they are read for different reasons —
-	 * "did this need me" before "what did it do". Two tabs rather than the warnings stapled to the
-	 * top of the details, which is what made a run with fourteen of them unreadable.
+	 * A run has issues and it has details, and they are read for different reasons — "did this
+	 * need me" before "what did it do". Two tabs rather than the warnings stapled to the top of
+	 * the details, which is what made a run with fourteen of them unreadable.
 	 *
-	 * The tab carries no status dot. Landing on Warnings already says the run has some, and the
-	 * count that says how many belongs on the row in scan history, where runs are compared.
+	 * Issues holds everything that went wrong: the warnings, and for a run that failed or was
+	 * cancelled, why it ended. The tab carries no status dot. Landing on it already says the run
+	 * has something, and the count that says how many belongs on the row in scan history, where
+	 * runs are compared.
 	 */
 	let tabs: ModalTab[] = $derived(
 		isHistoricalRun
 			? [
 					{
-						id: 'warnings',
-						label: common_warnings(),
+						id: 'issues',
+						label: common_issues(),
 						icon: TriangleAlert
 					},
 					{ id: 'details', label: common_details(), icon: Info }
@@ -598,9 +604,10 @@
 	}));
 
 	function handleOpen() {
-		// A run with warnings opens on them; a clean one opens on its details. The Warnings tab
-		// still exists either way, so the modal does not change shape between runs.
-		activeTab = historicalWarnings.length > 0 ? 'warnings' : 'details';
+		// A run with something wrong opens on it: its warnings, or the reason it did not finish.
+		// A clean one opens on its details. The Issues tab exists either way, so the modal does
+		// not change shape between runs.
+		activeTab = historicalWarnings.length > 0 || endedBadly ? 'issues' : 'details';
 		appliedJunctionFingerprint = '';
 		furthestReached = discovery ? Infinity : 0;
 		formData = getDefaultFormData();
@@ -761,7 +768,7 @@
 		>
 			{#if isHistoricalRun && discovery?.run_type.type === 'Historical'}
 				<div class="space-y-8 p-6">
-					{#if activeTab === 'warnings'}
+					{#if activeTab === 'issues'}
 						<WarningReport payload={discovery.run_type.results} />
 					{:else}
 						<DiscoveryHistoricalSummary payload={discovery.run_type.results} />
@@ -855,7 +862,7 @@
 				<div class="flex items-center gap-3">
 					<!-- Beside Close rather than above the report: it acts on the whole run, not on
 					     any one row, and the footer is where a modal's whole-record actions live. -->
-					{#if activeTab === 'warnings' && historicalWarnings.length > 0}
+					{#if activeTab === 'issues' && historicalWarnings.length > 0}
 						<button
 							type="button"
 							class="btn-secondary flex items-center gap-1"
@@ -865,7 +872,7 @@
 							<span>{discovery_copyWarningData()}</span>
 						</button>
 					{/if}
-					{#if historicalResults?.phase === 'Failed' || historicalResults?.phase === 'Cancelled'}
+					{#if activeTab === 'issues' && endedBadly}
 						<button
 							type="button"
 							class="btn-secondary flex items-center gap-1"
