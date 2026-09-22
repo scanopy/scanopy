@@ -1,4 +1,4 @@
-use super::{Body, Content, Email, EmailAttachment, EmailCategory, EmailPreference};
+use super::{Body, Content, Email, EmailAttachment, EmailCategory, EmailPreference, links};
 
 /// Monthly billing summary. The authoritative amount lives in the Stripe
 /// invoice itself (attached as a PDF, or linked via its hosted URL when the
@@ -59,10 +59,7 @@ r#"                            <p style="margin: 0; font-size: 14px; line-height
         // hosted invoice page; otherwise send the reader to the Billing tab.
         let (cta_href, cta_label) = match self.hosted_invoice_url {
             Some(url) if self.attachment.is_none() => (url.to_string(), "View Invoice"),
-            _ => (
-                "{base_url}/?modal=settings&tab=billing&{utm}".to_string(),
-                "View Billing",
-            ),
+            _ => (links::SETTINGS_BILLING.to_string(), "View Billing"),
         };
 
         Body::new()

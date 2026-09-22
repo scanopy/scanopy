@@ -1,4 +1,4 @@
-use super::{Body, Content, Email, EmailCategory, EmailPreference};
+use super::{Body, Content, Email, EmailCategory, EmailPreference, links};
 
 /// Sent when a subscription is cancelled and access has ended: account moved to
 /// Free, with a resubscribe CTA.
@@ -35,7 +35,7 @@ impl Email for SubscriptionCancelled<'_> {
                     ))
                     .paragraph("You can continue using Scanopy with up to 25 hosts and manual discovery. Resubscribe anytime from your Settings page."),
             )
-            .cta("{base_url}/?modal=billing-plan&{utm}", "Resubscribe")
+            .cta(links::PLAN_PICKER, "Resubscribe")
             .render()
     }
 }

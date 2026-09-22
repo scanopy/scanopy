@@ -12645,19 +12645,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-22T12:49:53.066703Z",
+              "created_at": "2026-09-22T13:00:56.355435Z",
               "first_discovery_id": null,
-              "id": "74141343-9949-4d9a-a992-409be29e2b56",
+              "id": "5604f835-2bf2-412c-921f-e5cc55d8deb1",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-22T12:49:53.066703Z",
+              "last_seen_at": "2026-09-22T13:00:56.355435Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-22T12:49:53.066703Z",
-              "valid_from": "2026-09-22T12:49:53.066703Z",
+              "updated_at": "2026-09-22T13:00:56.355435Z",
+              "valid_from": "2026-09-22T13:00:56.355435Z",
               "valid_to": null
             }
           },
@@ -14203,19 +14203,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-22T12:49:53.045064Z",
+                      "created_at": "2026-09-22T13:00:56.333969Z",
                       "first_discovery_id": null,
-                      "id": "ccc0ffa5-2081-454b-9c3c-6274e20b4e95",
+                      "id": "4d2f6872-9287-4e32-a342-98fc68bb56c2",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-22T12:49:53.045064Z",
+                      "last_seen_at": "2026-09-22T13:00:56.333969Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-22T12:49:53.045064Z",
-                      "valid_from": "2026-09-22T12:49:53.045064Z",
+                      "updated_at": "2026-09-22T13:00:56.333969Z",
+                      "valid_from": "2026-09-22T13:00:56.333969Z",
                       "valid_to": null
                     }
                   ],
@@ -14229,7 +14229,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "WGDashboard",
+                  "service_definition": "NCPA Agent",
                   "source": {
                     "type": "Manual"
                   },
@@ -15608,19 +15608,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-22T12:49:53.061762Z",
+                  "created_at": "2026-09-22T13:00:56.349857Z",
                   "first_discovery_id": null,
-                  "id": "eb3f565f-5323-4d59-8f7f-3b6224cf8e48",
+                  "id": "cfcc4080-4c25-4225-8906-dc6dd0fbc74d",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-22T12:49:53.061762Z",
+                  "last_seen_at": "2026-09-22T13:00:56.349857Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-22T12:49:53.061762Z",
-                  "valid_from": "2026-09-22T12:49:53.061762Z",
+                  "updated_at": "2026-09-22T13:00:56.349857Z",
+                  "valid_from": "2026-09-22T13:00:56.349857Z",
                   "valid_to": null
                 }
               ],
@@ -15634,7 +15634,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "WGDashboard",
+              "service_definition": "NCPA Agent",
               "source": {
                 "type": "Manual"
               },
@@ -17911,19 +17911,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-22T12:49:53.045572Z",
+          "created_at": "2026-09-22T13:00:56.334409Z",
           "first_discovery_id": null,
-          "id": "a6bee325-6b62-47e1-9f34-1725d869b575",
+          "id": "0626c8f2-1498-4675-8793-3a308abf30d1",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-22T12:49:53.045572Z",
+          "last_seen_at": "2026-09-22T13:00:56.334409Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-22T12:49:53.045572Z",
-          "valid_from": "2026-09-22T12:49:53.045572Z",
+          "updated_at": "2026-09-22T13:00:56.334409Z",
+          "valid_from": "2026-09-22T13:00:56.334409Z",
           "valid_to": null
         }
       },
@@ -18631,7 +18631,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "WGDashboard",
+              "service_definition": "NCPA Agent",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -24015,19 +24015,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-22T12:49:53.044501Z",
+                  "created_at": "2026-09-22T13:00:56.333463Z",
                   "first_discovery_id": null,
-                  "id": "6de663b0-5d07-4e43-be66-73b739a4b54e",
+                  "id": "032a324b-6f93-4086-9622-e712f28e0c52",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-22T12:49:53.044501Z",
+                  "last_seen_at": "2026-09-22T13:00:56.333463Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-22T12:49:53.044501Z",
-                  "valid_from": "2026-09-22T12:49:53.044501Z",
+                  "updated_at": "2026-09-22T13:00:56.333463Z",
+                  "valid_from": "2026-09-22T13:00:56.333463Z",
                   "valid_to": null
                 }
               ],
@@ -24041,7 +24041,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "WGDashboard",
+              "service_definition": "NCPA Agent",
               "source": {
                 "type": "Manual"
               },
@@ -27707,19 +27707,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-22T12:49:53.034265Z",
+                        "created_at": "2026-09-22T13:00:56.322964Z",
                         "first_discovery_id": null,
-                        "id": "e5526d7f-1a85-4859-a8a4-faa7d50bf524",
+                        "id": "152c4e04-e2d3-44c2-ba61-a7fcb573ef39",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-22T12:49:53.034265Z",
+                        "last_seen_at": "2026-09-22T13:00:56.322964Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-22T12:49:53.034265Z",
-                        "valid_from": "2026-09-22T12:49:53.034265Z",
+                        "updated_at": "2026-09-22T13:00:56.322964Z",
+                        "valid_from": "2026-09-22T13:00:56.322964Z",
                         "valid_to": null
                       }
                     ],
@@ -27733,7 +27733,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "WGDashboard",
+                    "service_definition": "NCPA Agent",
                     "source": {
                       "type": "Manual"
                     },
@@ -27876,19 +27876,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-22T12:49:53.060903Z",
+                    "created_at": "2026-09-22T13:00:56.348878Z",
                     "first_discovery_id": null,
-                    "id": "33980a02-3b26-41b6-a750-705f9c668b5c",
+                    "id": "87e2baf5-e5c0-42ad-b9e3-f03ca85bb0a3",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-22T12:49:53.060903Z",
+                    "last_seen_at": "2026-09-22T13:00:56.348878Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-22T12:49:53.060903Z",
-                    "valid_from": "2026-09-22T12:49:53.060903Z",
+                    "updated_at": "2026-09-22T13:00:56.348878Z",
+                    "valid_from": "2026-09-22T13:00:56.348878Z",
                     "valid_to": null
                   }
                 ],
@@ -27902,7 +27902,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "WGDashboard",
+                "service_definition": "NCPA Agent",
                 "source": {
                   "type": "Manual"
                 },
@@ -30027,19 +30027,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-22T12:49:53.045416Z",
+              "created_at": "2026-09-22T13:00:56.334265Z",
               "first_discovery_id": null,
-              "id": "99d667dd-0155-4ea4-b7c7-d7fd4e0c6add",
+              "id": "d584fedc-ef1e-4bb3-8fa5-3c31871aa61e",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-22T12:49:53.045416Z",
+              "last_seen_at": "2026-09-22T13:00:56.334265Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-22T12:49:53.045416Z",
-              "valid_from": "2026-09-22T12:49:53.045416Z",
+              "updated_at": "2026-09-22T13:00:56.334265Z",
+              "valid_from": "2026-09-22T13:00:56.334265Z",
               "valid_to": null
             }
           ],
@@ -30053,7 +30053,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "WGDashboard",
+          "service_definition": "NCPA Agent",
           "source": {
             "type": "Manual"
           },
@@ -31374,7 +31374,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "1ff4e688-87c7-4b84-aa21-fe7d9af6689c",
+                  "id": "1ce9eeef-7035-4632-b563-bb99fa8b33ea",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -31384,23 +31384,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "1b106221-496c-401f-b0b3-82d647d94b1f",
+                  "id": "b8da4990-53d2-4f5c-9ad2-2aa2291ba8d3",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "0f89793c-896a-428f-981d-7c957cac864f",
+                  "id": "855ee2fa-389d-459c-a58d-208927250fa7",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "63a99804-d57d-4de4-94ab-709e0a5a345c",
+                  "id": "34a24837-7b89-49d8-ba27-756f526dbc4d",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "1b106221-496c-401f-b0b3-82d647d94b1f",
+                  "id": "b8da4990-53d2-4f5c-9ad2-2aa2291ba8d3",
                   "rule": "ByHost"
                 }
               ]
@@ -31430,19 +31430,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "5dcee0c7-91b3-4160-ad5c-fe42d0f216db",
+                "id": "e0c9f124-bb67-40c4-b8a9-b5c74de61586",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "12c98bdf-f852-4919-985a-a31ac0312f98",
+                "id": "5177adb1-9c67-48db-ad0a-ce12fa50ca5a",
                 "rule": "ByVLAN"
               },
               {
-                "id": "ecfcb07c-2ae4-48c9-bbc5-7585057634a3",
+                "id": "96be4e9c-d68b-4cdb-8020-211fc49b830a",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "32623f1e-f5e3-48bc-b839-466206fccf31",
+                "id": "907dc9f3-d52f-4842-b252-a118f0e7c863",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -31460,7 +31460,7 @@
                 }
               },
               {
-                "id": "03e686fb-35de-412c-9b2e-dba6cdd8127e",
+                "id": "1fdc1569-2e77-4169-b0b7-d2c6b5dda44b",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -31469,15 +31469,15 @@
                 }
               },
               {
-                "id": "83907b4b-cfcb-4b90-bc8e-2242d6a62f51",
+                "id": "b77f189f-3c8a-4c11-a627-7ff81cf5d437",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "dd452b3c-c117-4333-a38c-44be475d74d8",
+                "id": "a52b43b9-af2d-4bcd-b364-366572c1321f",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "90446746-3b6f-4877-bd4e-dc373c619016",
+                "id": "9af6e02a-9015-41a4-8303-9e2d221db428",
                 "rule": "ByStack"
               }
             ]

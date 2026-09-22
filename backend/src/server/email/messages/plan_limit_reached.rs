@@ -1,4 +1,4 @@
-use super::{Body, Content, Email, EmailCategory, EmailPreference, PausableCategory};
+use super::{Body, Content, Email, EmailCategory, EmailPreference, PausableCategory, links};
 
 /// Sent when an organization hits a plan limit (hosts/networks/seats).
 pub struct PlanLimitReached<'a> {
@@ -28,13 +28,13 @@ impl Email for PlanLimitReached<'_> {
     }
 
     fn body_html(&self) -> String {
-        let (limit_message, cta_modal, cta_label) = if self.has_overage {
+        let (limit_message, cta_href, cta_label) = if self.has_overage {
             (
                 format!(
                     "Additional {} beyond your included amount are being billed automatically.",
                     self.limit_type
                 ),
-                "settings&tab=billing",
+                links::SETTINGS_BILLING,
                 "View Billing",
             )
         } else {
@@ -43,7 +43,7 @@ impl Email for PlanLimitReached<'_> {
                     "You won't be able to add new {} until you upgrade.",
                     self.limit_type
                 ),
-                "billing-plan",
+                links::PLAN_PICKER,
                 "Upgrade Plan",
             )
         };
@@ -58,7 +58,7 @@ impl Email for PlanLimitReached<'_> {
                     ))
                     .paragraph(&limit_message),
             )
-            .cta(&format!("{{base_url}}/?modal={cta_modal}&{{utm}}"), cta_label)
+            .cta(cta_href, cta_label)
             .render()
     }
 }

@@ -357,6 +357,42 @@ impl BrevoService {
             }
         }
 
+        // A user joining an org on a licensed self-hosted plan gets
+        // SCANOPY_LICENSED_PLAN in a second upsert. It is separate so an
+        // attribute Brevo doesn't have yet can't block contact creation or
+        // the DOI flow. A fresh cloud signup has no plan and writes nothing.
+        if contact_id.is_some()
+            && let Some(org_id) = event.scope.organization_id
+        {
+            match self.organization_service.get_by_id(&org_id).await {
+                Ok(org) => {
+                    let licensed = org
+                        .is_some_and(|o| o.base.plan.is_some_and(|p| p.license_plan().is_some()));
+                    if licensed {
+                        let licensed_attrs = ContactAttributes::new()
+                            .with_email(email.to_string())
+                            .with_licensed_plan(true);
+                        if let Err(e) = self
+                            .client
+                            .upsert_contact(email.as_ref(), licensed_attrs)
+                            .await
+                        {
+                            tracing::warn!(
+                                error = %e,
+                                organization_id = %org_id,
+                                "Failed to set Brevo licensed-plan attribute at register"
+                            );
+                        }
+                    }
+                }
+                Err(e) => tracing::warn!(
+                    error = %e,
+                    organization_id = %org_id,
+                    "Failed to load organization for Brevo licensed-plan attribute at register"
+                ),
+            }
+        }
+
         // Add to "Product Updates" and "Onboarding" lists (all signups)
         if let Err(e) = self
             .client
@@ -528,6 +564,30 @@ impl BrevoService {
         }
     }
 
+    /// Write `SCANOPY_LICENSED_PLAN` on the Brevo contact of every user in
+    /// the org. A failed contact is logged and the rest still sync.
+    async fn sync_contacts_licensed_plan(&self, org_id: Uuid, licensed: bool) -> Result<()> {
+        let users = self
+            .user_service
+            .get_all(StorableFilter::<User>::new_from_org_id(&org_id))
+            .await?;
+
+        for user in users {
+            let email = &user.base.email;
+            let attrs = ContactAttributes::new()
+                .with_email(email.to_string())
+                .with_licensed_plan(licensed);
+            if let Err(e) = self.client.upsert_contact(email.as_ref(), attrs).await {
+                tracing::warn!(
+                    error = %e,
+                    organization_id = %org_id,
+                    "Failed to sync Brevo licensed-plan attribute for contact"
+                );
+            }
+        }
+        Ok(())
+    }
+
     async fn handle_checkout_started(&self, event: &Event<BillingOperation>) -> Result<()> {
         let BillingOperation::CheckoutStarted { plan, .. } = &event.operation else {
             return Ok(());
@@ -571,6 +631,12 @@ impl BrevoService {
 
         self.update_company_by_org(event.scope.organization_id, company_attrs)
             .await?;
+
+        self.sync_contacts_licensed_plan(
+            event.scope.organization_id,
+            plan.license_plan().is_some(),
+        )
+        .await?;
 
         let network_limit = included_networks.map(|n| n as i64);
         let seat_limit = included_seats.map(|n| n as i64);
@@ -745,6 +811,17 @@ impl BrevoService {
             .with_plan_status(PlanStatus::Active);
         self.update_company_by_org(event.scope.organization_id, company_attrs)
             .await?;
+
+        // A move to Free is a lapse, not a move to cloud. Skip the write so a
+        // lapsed license buyer stays out of the daemon-install sends until the
+        // org buys a cloud plan.
+        if !to.is_free() {
+            self.sync_contacts_licensed_plan(
+                event.scope.organization_id,
+                to.license_plan().is_some(),
+            )
+            .await?;
+        }
 
         if let Some(email) = self.get_owner_email(event.scope.organization_id).await
             && let Err(e) = self

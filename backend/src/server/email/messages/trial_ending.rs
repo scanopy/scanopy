@@ -1,5 +1,6 @@
 use super::{
-    BILLING_DETAILS_TAGLINE, Body, Content, Email, EmailCategory, EmailPreference, PausableCategory,
+    BILLING_DETAILS_TAGLINE, Body, Content, Email, EmailCategory, EmailPreference,
+    PausableCategory, links,
 };
 
 /// Sent 3 days before a trial ends: recaps trial value and prompts the user to
@@ -94,7 +95,7 @@ impl Email for TrialEnding<'_> {
                     .subheading("Here's what Scanopy found during your trial")
                     .raw(&recap_table),
             )
-            .cta("{base_url}/?modal=settings&tab=billing&{utm}", cta_label)
+            .cta(links::SETTINGS_BILLING, cta_label)
             .render()
     }
 }

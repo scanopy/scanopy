@@ -25,6 +25,7 @@
 	} from '$lib/features/organizations/queries';
 	import { hasLicensedPlan, isBillingPlanActive } from '$lib/features/organizations/types';
 	import { billingPlans } from '$lib/shared/stores/metadata';
+	import { licenseTabVisible } from '$lib/features/settings/license-tab';
 	import { reopenSettingsAfterBilling } from '$lib/features/billing/stores';
 	import {
 		modalState,
@@ -124,15 +125,26 @@
 	// where SettingsModal explains that an owner has to resolve billing. An owner on
 	// a licensed self-hosted plan is held on License instead — the key is what that
 	// org came for, and Billing has nothing it must act on.
-	// A licensed org on a server that lost its signing key has no License tab, and
-	// this modal can't be dismissed, so send it to Billing rather than a tab that
-	// isn't there.
+	// This modal can't be dismissed, so the forced tab has to be one SettingsModal
+	// shows. Both read licenseTabVisible with the same inputs: an owner whose License
+	// tab is hidden (a server that lost its signing key, a demo org) goes to Billing.
+	// A true result already implies isSelfHostedPlanLocked and isOwner.
+	let isDemoOrg = $derived(
+		billingPlans.getMetadata(organization?.plan?.type ?? null).is_demo === true
+	);
 	let billingBlockingTab = $derived(
-		isOwner
-			? isSelfHostedPlanLocked && licenseSigningAvailable
-				? 'license'
-				: 'billing'
-			: 'account'
+		licenseTabVisible({
+			isOwner,
+			isDemoOrg,
+			billingEnabled,
+			signingAvailable: licenseSigningAvailable,
+			hasLicensedPlan: organization != null && hasLicensedPlan(organization),
+			licensedPlanPending: licensedPlanJustPicked
+		})
+			? 'license'
+			: isOwner
+				? 'billing'
+				: 'account'
 	);
 	let allTabs = $state<
 		Array<{

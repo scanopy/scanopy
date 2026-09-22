@@ -1,4 +1,4 @@
-use super::{Body, Content, Email, EmailCategory, EmailPreference};
+use super::{Body, Content, Email, EmailCategory, EmailPreference, links};
 
 /// Sent instead of the cloud payment-failed email when the organization is on
 /// a self-hosted plan. What breaks for these customers is their own server,
@@ -53,10 +53,7 @@ impl Email for SelfHostedPaymentFailed<'_> {
 
         Body::new()
             .content(content)
-            .cta(
-                "{base_url}/?modal=settings&tab=billing&{utm}",
-                "Update payment method",
-            )
+            .cta(links::SETTINGS_BILLING, "Update payment method")
             .render()
     }
 }

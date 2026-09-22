@@ -3460,19 +3460,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-22T12:49:53.066913Z",
+             *       "created_at": "2026-09-22T13:00:56.355544Z",
              *       "first_discovery_id": null,
-             *       "id": "68de28a3-2b39-41ba-946e-c76d2b614159",
+             *       "id": "42b427f8-3bee-48d8-982b-e52023387ab0",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-22T12:49:53.066913Z",
+             *       "last_seen_at": "2026-09-22T13:00:56.355544Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-22T12:49:53.066913Z",
-             *       "valid_from": "2026-09-22T12:49:53.066913Z",
+             *       "updated_at": "2026-09-22T13:00:56.355544Z",
+             *       "valid_from": "2026-09-22T13:00:56.355544Z",
              *       "valid_to": null
              *     }
              */
@@ -4387,19 +4387,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-22T12:49:53.045044Z",
+             *               "created_at": "2026-09-22T13:00:56.333442Z",
              *               "first_discovery_id": null,
-             *               "id": "73afaea8-cd00-44d9-989d-4aa583820a6a",
+             *               "id": "866f3183-d734-4255-9d86-830f69004a5e",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-22T12:49:53.045044Z",
+             *               "last_seen_at": "2026-09-22T13:00:56.333442Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-22T12:49:53.045044Z",
-             *               "valid_from": "2026-09-22T12:49:53.045044Z",
+             *               "updated_at": "2026-09-22T13:00:56.333442Z",
+             *               "valid_from": "2026-09-22T13:00:56.333442Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4413,7 +4413,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "WGDashboard",
+             *           "service_definition": "NCPA Agent",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5414,19 +5414,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-22T12:49:53.062404Z",
+             *           "created_at": "2026-09-22T13:00:56.349799Z",
              *           "first_discovery_id": null,
-             *           "id": "d00e2a77-542a-4fc7-832e-6695ec80b2bd",
+             *           "id": "9869c939-0e4e-4546-b3bd-7cdedf686e7d",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-22T12:49:53.062404Z",
+             *           "last_seen_at": "2026-09-22T13:00:56.349799Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-22T12:49:53.062404Z",
-             *           "valid_from": "2026-09-22T12:49:53.062404Z",
+             *           "updated_at": "2026-09-22T13:00:56.349799Z",
+             *           "valid_from": "2026-09-22T13:00:56.349799Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5440,7 +5440,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "WGDashboard",
+             *       "service_definition": "NCPA Agent",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6595,19 +6595,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-22T12:49:53.045531Z",
+         *       "created_at": "2026-09-22T13:00:56.333912Z",
          *       "first_discovery_id": null,
-         *       "id": "7a9e079d-d055-45bf-b7ee-9747288d6543",
+         *       "id": "0ca1b906-a485-4354-b2ef-5a0356639913",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-22T12:49:53.045531Z",
+         *       "last_seen_at": "2026-09-22T13:00:56.333912Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-22T12:49:53.045531Z",
-         *       "valid_from": "2026-09-22T12:49:53.045531Z",
+         *       "updated_at": "2026-09-22T13:00:56.333912Z",
+         *       "valid_from": "2026-09-22T13:00:56.333912Z",
          *       "valid_to": null
          *     }
          */
@@ -6933,7 +6933,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "WGDashboard",
+         *           "service_definition": "NCPA Agent",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -9105,19 +9105,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-22T12:49:53.044496Z",
+         *               "created_at": "2026-09-22T13:00:56.332905Z",
          *               "first_discovery_id": null,
-         *               "id": "9e1723ec-edbf-4bb6-bb5f-c3345d2725a5",
+         *               "id": "fd751cb7-981d-4fde-a291-f157801a2808",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-22T12:49:53.044496Z",
+         *               "last_seen_at": "2026-09-22T13:00:56.332905Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-22T12:49:53.044496Z",
-         *               "valid_from": "2026-09-22T12:49:53.044496Z",
+         *               "updated_at": "2026-09-22T13:00:56.332905Z",
+         *               "valid_from": "2026-09-22T13:00:56.332905Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9131,7 +9131,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "WGDashboard",
+         *           "service_definition": "NCPA Agent",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -12097,19 +12097,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-22T12:49:53.045387Z",
+         *           "created_at": "2026-09-22T13:00:56.333769Z",
          *           "first_discovery_id": null,
-         *           "id": "132d21ff-396f-422a-8f25-62defac549ac",
+         *           "id": "77859f9b-9d44-44fc-a244-a48212e0f048",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-22T12:49:53.045387Z",
+         *           "last_seen_at": "2026-09-22T13:00:56.333769Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-22T12:49:53.045387Z",
-         *           "valid_from": "2026-09-22T12:49:53.045387Z",
+         *           "updated_at": "2026-09-22T13:00:56.333769Z",
+         *           "valid_from": "2026-09-22T13:00:56.333769Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12123,7 +12123,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "WGDashboard",
+         *       "service_definition": "NCPA Agent",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12825,7 +12825,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "772b3a2c-580f-4d43-80d8-4dd8767bb702",
+             *           "id": "81016e6c-b3c9-4ac2-88a2-791bdff45b19",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -12835,23 +12835,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "ab8abdd8-2b5f-4d17-b248-8467750f0839",
+             *           "id": "8e2ba3d1-8dad-4b47-965f-f8f0b2ec96ca",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "6b840028-068a-45f4-9405-24d4a671ee77",
+             *           "id": "3a92ff36-0cc6-40f0-8fa5-62e5c6c26a3f",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "e038ce93-82cc-4601-9a01-4d6700cd92d9",
+             *           "id": "2e97b762-59d4-4448-818a-9652ace79bb4",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "ab8abdd8-2b5f-4d17-b248-8467750f0839",
+             *           "id": "8e2ba3d1-8dad-4b47-965f-f8f0b2ec96ca",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -12864,19 +12864,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "7b6696cd-6ae5-4c77-a3cc-fdc759900e3f",
+             *         "id": "a63d3182-f56e-43e7-8c10-9ed1426f49d5",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "74241c81-4aa0-4bd9-b100-ff18427970aa",
+             *         "id": "6377718d-8235-4bb0-8653-af3594a0896c",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "9a80ebbd-3575-4d4b-8c77-a9bd79fea7d0",
+             *         "id": "3ffe4b54-f1dc-4f71-9421-0c3c899b664f",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "9f98dc0f-88e5-4e0b-b0c9-e666f38a9e16",
+             *         "id": "31e8b446-0690-48d6-8ae7-ba389cb4e16f",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -12894,7 +12894,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "b7787078-3a94-40aa-abf5-65f3fc982934",
+             *         "id": "a88748ad-d1d9-4786-bdc3-07f1c4e3a494",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -12903,15 +12903,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "c6fe1c2d-2c74-4c53-a015-637f17eceb30",
+             *         "id": "644c3375-03c4-4a85-a68a-0ef5d81a79ad",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "b87c5b05-f23c-4afd-b1a6-ccc0ac5ee478",
+             *         "id": "d1eb5878-ffd7-4212-ad5b-3a69893c698c",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "dd480e0a-9736-4828-9806-89b01a98c2ea",
+             *         "id": "a0f4dce3-546e-4900-902f-e2fa3a26a890",
              *         "rule": "ByStack"
              *       }
              *     ]

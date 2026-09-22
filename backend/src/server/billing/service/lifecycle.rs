@@ -46,6 +46,22 @@ impl BillingService {
             .into());
         }
 
+        // The cancel modal offers pause to no self-hosted plan. This holds a
+        // direct API call to the same rule: the paused and resumed emails
+        // describe the cloud app locking and unlocking, which says nothing
+        // true about a license. The air-gapped refusal above stays separate
+        // because an org that moved back to a cloud plan keeps its key type.
+        if organization
+            .base
+            .plan
+            .is_some_and(|plan| plan.license_plan().is_some())
+        {
+            return Err(crate::server::shared::types::api::ValidationError::new(
+                "Pausing is not available on self-hosted plans.",
+            )
+            .into());
+        }
+
         if organization.base.plan_status != Some(PlanStatus::Active) {
             return Err(anyhow!(
                 "Subscription must be active to pause; current status: {}",

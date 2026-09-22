@@ -1,4 +1,4 @@
-use super::{Body, Content, Email, EmailCategory, EmailPreference};
+use super::{Body, Content, Email, EmailCategory, EmailPreference, links};
 
 const INSTALL_DOCS_URL: &str = "https://scanopy.net/docs/self-hosted-server/server-installation/";
 const BOOK_DEMO_URL: &str = "https://cal.com/mferrandiz/scanopy-demo";
@@ -62,10 +62,7 @@ impl Email for SelfHostedWelcome<'_> {
 
         Body::new()
             .content(content)
-            .cta(
-                "{base_url}/?modal=settings&tab=license&{utm}",
-                "Get your license key",
-            )
+            .cta(links::SETTINGS_LICENSE, "Get your license key")
             .render()
     }
 }

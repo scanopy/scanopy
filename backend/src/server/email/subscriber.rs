@@ -102,6 +102,15 @@ impl Subscriber<BillingOperation> for EmailService {
                             plan.billing_period(),
                         )
                         .await?;
+                    } else if plan.license_plan().is_some() {
+                        // Air-gapped keys are not issued during a trial.
+                        self.send_self_hosted_license_ended_email(
+                            org_owner,
+                            plan.name(),
+                            true,
+                            false,
+                        )
+                        .await?;
                     } else {
                         self.send_trial_expired_email(
                             org_owner,
@@ -111,39 +120,95 @@ impl Subscriber<BillingOperation> for EmailService {
                         .await?;
                     }
                 }
-                BillingOperation::PlanChanged { from, to, .. } => {
-                    // Moving from a cloud plan onto a self-hosted one is the
-                    // third way an org ends up needing a license key, and the
-                    // only one that raises no checkout.
-                    if to.license_plan().is_some() && from.license_plan().is_none() {
-                        self.send_self_hosted_welcome_email(
-                            org_owner,
-                            to.name(),
-                            None,
-                            to.features().deployment_assistance,
-                        )
-                        .await?;
-                    } else {
-                        self.send_plan_changed_email(org_owner, to.name()).await?;
+                BillingOperation::PlanChanged {
+                    from,
+                    to,
+                    license_key_type,
+                    ..
+                } => {
+                    match (from.license_plan().is_some(), to.license_plan().is_some()) {
+                        // Moving from a cloud plan onto a self-hosted one is
+                        // the third way an org ends up needing a license key,
+                        // and the only one that raises no checkout.
+                        (false, true) => {
+                            self.send_self_hosted_welcome_email(
+                                org_owner,
+                                to.name(),
+                                None,
+                                to.features().deployment_assistance,
+                            )
+                            .await?;
+                        }
+                        // Between two self-hosted plans the org stays locked
+                        // out of the cloud app, so the cloud email's "Open
+                        // Scanopy" button leads nowhere.
+                        (true, true) => {
+                            self.send_self_hosted_plan_changed_email(
+                                org_owner,
+                                to.name(),
+                                license_key_type == Some(LicenseKeyType::Offline),
+                            )
+                            .await?;
+                        }
+                        // Leaving a self-hosted plan ends the license, which
+                        // the cloud email has to say.
+                        (from_licensed, false) => {
+                            self.send_plan_changed_email(org_owner, to.name(), from_licensed)
+                                .await?;
+                        }
                     }
                 }
                 BillingOperation::TrialWillEnd {
                     plan,
                     has_payment_method,
                 } => {
-                    self.send_trial_ending_email(
-                        org_owner,
-                        event.scope.organization_id,
-                        plan.name(),
-                        has_payment_method,
-                        plan.billing_period(),
-                    )
-                    .await?;
-                }
-                BillingOperation::SubscriptionCancelled { period_end, .. } => {
-                    let period_end_str = period_end.format("%B %-d, %Y").to_string();
-                    self.send_subscription_cancelled_email(org_owner, &period_end_str)
+                    // The cloud email recaps hosts, networks, daemons and
+                    // services found during the trial. A self-hosted trial's
+                    // are on the customer's own server, so the recap would be
+                    // four zeros.
+                    if plan.license_plan().is_some() {
+                        self.send_self_hosted_trial_ending_email(
+                            org_owner,
+                            plan.name(),
+                            has_payment_method,
+                            plan.billing_period(),
+                        )
                         .await?;
+                    } else {
+                        self.send_trial_ending_email(
+                            org_owner,
+                            event.scope.organization_id,
+                            plan.name(),
+                            has_payment_method,
+                            plan.billing_period(),
+                        )
+                        .await?;
+                    }
+                }
+                BillingOperation::SubscriptionCancelled {
+                    plan,
+                    period_end,
+                    was_trialing,
+                    license_key_type,
+                    ..
+                } => {
+                    // Decided on the plan the event carries: the organization
+                    // subscriber moves the org row to Free off this same
+                    // event, and dispatch order is unspecified. An unconverted
+                    // trial arrives here too, as `was_trialing`.
+                    if plan.license_plan().is_some() {
+                        self.send_self_hosted_license_ended_email(
+                            org_owner,
+                            plan.name(),
+                            was_trialing,
+                            license_key_type == Some(LicenseKeyType::Offline),
+                        )
+                        .await?;
+                    } else {
+                        let period_end_str = period_end.format("%B %-d, %Y").to_string();
+                        self.send_subscription_cancelled_email(org_owner, &period_end_str)
+                            .await?;
+                    }
                 }
                 BillingOperation::PaymentFailed {
                     plan,
@@ -284,11 +349,17 @@ impl Subscriber<BillingOperation> for EmailService {
                         .await?;
                 }
                 BillingOperation::CancellationInitiated {
-                    planned_period_end, ..
+                    plan,
+                    planned_period_end,
+                    ..
                 } => {
                     let period_end_str = planned_period_end.format("%B %-d, %Y").to_string();
-                    self.send_cancellation_initiated_email(org_owner, &period_end_str)
-                        .await?;
+                    self.send_cancellation_initiated_email(
+                        org_owner,
+                        &period_end_str,
+                        plan.is_some_and(|plan| plan.license_plan().is_some()),
+                    )
+                    .await?;
                 }
                 BillingOperation::CheckoutCompleted {
                     plan, is_trialing, ..
@@ -519,6 +590,15 @@ impl Subscriber<DiscoveryDigestOperation> for EmailService {
         for event in events {
             let DiscoveryDigestOperation::Computed { payload } = event.operation;
             if !payload.has_changes() {
+                continue;
+            }
+            // A scan on a cloud org that has moved to a self-hosted plan comes
+            // from a daemon left behind, and every link in the digest leads
+            // into an app the org is locked out of.
+            if self
+                .organization_self_hosted_plan_locked(&event.scope.organization_id)
+                .await?
+            {
                 continue;
             }
             for recipient in &payload.recipients {

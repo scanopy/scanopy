@@ -1,4 +1,4 @@
-use super::{Body, Content, Email, EmailCategory, EmailPreference};
+use super::{Body, Content, Email, EmailCategory, EmailPreference, links};
 
 /// Sent before a self-hosted licence renews, to an organization holding an
 /// air-gapped key. Their server never contacts Scanopy, so without this the
@@ -63,10 +63,7 @@ impl Email for AirgapExpiring<'_> {
 
         Body::new()
             .content(content)
-            .cta(
-                "{base_url}/?modal=settings&tab=license&{utm}",
-                "Open your license settings",
-            )
+            .cta(links::SETTINGS_LICENSE, "Open your license settings")
             .render()
     }
 }
