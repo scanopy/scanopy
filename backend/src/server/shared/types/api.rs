@@ -640,8 +640,12 @@ impl ApiError {
     }
 
     /// Forbidden (403) - incorrect share password
+    /// Unauthorized (401), like a failed login: the viewer supplied a
+    /// credential and it was wrong. The client shows this inline on the
+    /// password gate, and 401 is the one status the app's error middleware
+    /// stays quiet about, so a typo never raises a toast.
     pub fn share_password_incorrect() -> Self {
-        Self::coded(StatusCode::FORBIDDEN, ErrorCode::SharePasswordIncorrect)
+        Self::coded(StatusCode::UNAUTHORIZED, ErrorCode::SharePasswordIncorrect)
     }
 
     /// Unauthorized (401) - share access token invalid or expired
