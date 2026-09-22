@@ -263,6 +263,16 @@ impl Organization {
         self.base.has_payment_method || self.base.bills_by_invoice
     }
 
+    /// Whether the org's subscription has ended without a paid plan being
+    /// chosen since. The org keeps the plan it lapsed from; the billing
+    /// middleware, the discovery scheduler and daemon work handout all read
+    /// this so a lapsed org is read-only in one consistent way.
+    pub fn is_lapsed(&self) -> bool {
+        self.base.plan.is_some_and(|plan| plan.is_stripe_managed())
+            && self.base.plan_status
+                == Some(crate::server::billing::types::base::PlanStatus::Cancelled)
+    }
+
     /// The date an air-gapped key stays current until, when the org holds one.
     ///
     /// An air-gapped key validates offline and carries its own expiry, so
@@ -299,6 +309,30 @@ mod tests {
         org.base.license_key_type = key_type;
         org.base.license_paid_through = paid_through;
         org
+    }
+
+    /// The middleware, the discovery scheduler and daemon work handout all
+    /// read this. A plan with no Stripe lifecycle (Free, Community, Demo)
+    /// never lapses whatever its status column says, and a live subscription
+    /// in any other state is not lapsed.
+    #[test]
+    fn only_a_stripe_managed_plan_with_an_ended_subscription_is_lapsed() {
+        use crate::server::billing::plans::{get_free_plan, get_self_hosted_standard_plan};
+        use crate::server::billing::types::base::PlanStatus;
+
+        let with = |plan: BillingPlan, status: Option<PlanStatus>| {
+            let mut org = Organization::default();
+            org.base.plan = Some(plan);
+            org.base.plan_status = status;
+            org
+        };
+
+        assert!(with(get_self_hosted_standard_plan(), Some(PlanStatus::Cancelled)).is_lapsed());
+        assert!(!with(get_self_hosted_standard_plan(), Some(PlanStatus::Active)).is_lapsed());
+        assert!(!with(get_self_hosted_standard_plan(), Some(PlanStatus::PastDue)).is_lapsed());
+        assert!(!with(get_self_hosted_standard_plan(), None).is_lapsed());
+        assert!(!with(get_free_plan(), Some(PlanStatus::Cancelled)).is_lapsed());
+        assert!(!Organization::default().is_lapsed());
     }
 
     /// Two refusals read this: switching back to an online key, and changing

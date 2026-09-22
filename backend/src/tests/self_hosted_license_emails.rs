@@ -150,14 +150,61 @@ async fn a_cloud_trial_ending_still_gets_the_usage_recap() {
     assert!(!sent.contains(&campaign("self_hosted_")), "{sent}");
 }
 
+/// Stripe ends a card-less cloud trial by deleting the subscription, so the
+/// cancelled event carries `was_trialing`; that is what picks the
+/// trial-expired email over the cancelled one.
 #[tokio::test]
-async fn a_cancelled_license_is_recognised_after_the_org_row_has_moved_to_free() {
+async fn a_cloud_trial_that_runs_out_gets_the_trial_expired_email() {
     let dir = tempfile::tempdir().unwrap();
     let (state, _container) = test_state_with_email_dir(Some(dir.path().to_path_buf())).await;
-    // The organization subscriber rewrites the row to Free off this same
-    // event, and dispatch order is unspecified. Start from the row as it
-    // stands once that subscriber has already run.
-    let org = create_org(&state, crate::server::billing::plans::get_free_plan(), None).await;
+    let pro = crate::server::billing::plans::get_purchasable_plans()
+        .into_iter()
+        .find(|plan| matches!(plan, BillingPlan::Pro(_)))
+        .unwrap();
+    let org = create_org(&state, pro, None).await;
+    create_owner(&state, org.id).await;
+
+    let cancelled = |was_trialing: bool| BillingOperation::SubscriptionCancelled {
+        plan: pro,
+        reason_code: None,
+        stripe_feedback: None,
+        stripe_reason: None,
+        internal_reason: None,
+        comment: None,
+        period_end: Utc::now(),
+        was_trialing,
+        mrr_amount_cents: 0,
+        tenure_days: 14,
+        license_key_type: None,
+    };
+
+    handle_billing(&state, org.id, cancelled(true)).await;
+    let sent_after_trial = sent(dir.path());
+    assert!(
+        sent_after_trial.contains(&campaign("trial_expired")),
+        "{sent_after_trial}"
+    );
+    assert!(
+        !sent_after_trial.contains(&campaign("subscription_cancelled")),
+        "{sent_after_trial}"
+    );
+
+    handle_billing(&state, org.id, cancelled(false)).await;
+    let sent_after_cancel = sent(dir.path());
+    assert!(
+        sent_after_cancel.contains(&campaign("subscription_cancelled")),
+        "{sent_after_cancel}"
+    );
+}
+
+#[tokio::test]
+async fn a_cancelled_license_sends_the_license_ended_email_not_the_cloud_one() {
+    let dir = tempfile::tempdir().unwrap();
+    let (state, _container) = test_state_with_email_dir(Some(dir.path().to_path_buf())).await;
+    // Decided on the plan the event carries, not the org row: the org keeps
+    // its plan when it lapses, but dispatch order between subscribers is
+    // unspecified either way.
+    let org = create_org(&state, get_self_hosted_standard_plan(), None).await;
     create_owner(&state, org.id).await;
 
     handle_billing(

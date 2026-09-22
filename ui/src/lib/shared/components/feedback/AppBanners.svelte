@@ -13,6 +13,7 @@
 	import TrialEndingBanner from './TrialEndingBanner.svelte';
 	import NoPaymentMethodBanner from './NoPaymentMethodBanner.svelte';
 	import PostStripeWelcomeBanner from './PostStripeWelcomeBanner.svelte';
+	import PlanLapsedBanner from './PlanLapsedBanner.svelte';
 	import DemoBanner from './DemoBanner.svelte';
 	import LicenseLockedBanner from './LicenseLockedBanner.svelte';
 	import LicensePendingBanner from './LicensePendingBanner.svelte';
@@ -32,10 +33,12 @@
 {#if currentUserQuery.data && !currentUserQuery.data.email_verified}
 	<EmailVerificationBanner email={currentUserQuery.data.email} />
 {/if}
-<!-- These three gate themselves on org and trial state. -->
+<!-- These four gate themselves on org and trial state. The lapsed banner
+     cannot overlap the first two: they need a trialing or active plan. -->
 <TrialEndingBanner />
 <NoPaymentMethodBanner />
 <PostStripeWelcomeBanner />
+<PlanLapsedBanner />
 {#if organization?.plan?.type === 'Demo'}
 	<DemoBanner />
 {/if}

@@ -102,7 +102,6 @@ impl Feature {
         let feature_id = self.id();
         let cloud_tiers = [
             BillingPlanDiscriminants::Free,
-            BillingPlanDiscriminants::Starter,
             BillingPlanDiscriminants::Pro,
             BillingPlanDiscriminants::Business,
             BillingPlanDiscriminants::Enterprise,

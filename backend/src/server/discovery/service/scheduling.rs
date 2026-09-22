@@ -103,8 +103,10 @@ impl DiscoveryService {
                         }
                     };
 
-                    // Skip scheduled runs for Free plan orgs — preserves schedule
-                    // config so upgrading to a paid plan resumes runs automatically
+                    // Skip scheduled runs for Free plan orgs and for lapsed orgs
+                    // (subscription ended, no paid plan chosen since) — preserves
+                    // schedule config so choosing a paid plan resumes runs
+                    // automatically
                     if let Ok(Some(network)) = service
                         .network_service
                         .get_by_id(&fresh.base.network_id)
@@ -115,13 +117,12 @@ impl DiscoveryService {
                             .await
                             .ok()
                             .flatten()
-                            .and_then(|o| o.base.plan)
-                            .map(|p| p.is_free())
+                            .map(|o| o.is_lapsed() || o.base.plan.is_none_or(|p| p.is_free()))
                             .unwrap_or(true)
                     {
                         tracing::debug!(
                             discovery_id = %discovery_id,
-                            "Skipping scheduled discovery — org is on Free plan"
+                            "Skipping scheduled discovery — org is on Free plan or lapsed"
                         );
                         return;
                     }

@@ -322,6 +322,7 @@ impl EmailService {
         plan_name: &str,
         was_trial: bool,
         air_gapped: bool,
+        key_expires: &str,
     ) -> Result<()> {
         self.dispatch(
             to,
@@ -329,6 +330,7 @@ impl EmailService {
                 plan_name,
                 was_trial,
                 air_gapped,
+                key_expires,
             },
         )
         .await

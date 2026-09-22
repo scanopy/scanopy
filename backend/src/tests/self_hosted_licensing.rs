@@ -10,7 +10,7 @@ use axum::body::Body;
 use axum::extract::State;
 use axum::http::{Request, StatusCode};
 use axum::middleware::{self, Next};
-use axum::routing::get;
+use axum::routing::{get, put};
 use axum::{Json, Router};
 use chrono::{DateTime, Duration, Utc};
 use email_address::EmailAddress;
@@ -291,6 +291,141 @@ async fn entitlement_endpoint_accepts_current_keys_and_rejects_the_rest() {
 async fn get_status(addr: SocketAddr, path: &str) -> (u16, String) {
     let response = reqwest::get(format!("http://{addr}{path}")).await.unwrap();
     (response.status().as_u16(), response.text().await.unwrap())
+}
+
+async fn send_status(addr: SocketAddr, method: reqwest::Method, path: &str) -> (u16, String) {
+    let response = reqwest::Client::new()
+        .request(method, format!("http://{addr}{path}"))
+        .send()
+        .await
+        .unwrap();
+    (response.status().as_u16(), response.text().await.unwrap())
+}
+
+async fn set_plan_status(state: &AppState, organization_id: Uuid, status: Option<PlanStatus>) {
+    let service = &state.services.organization_service;
+    let mut org = service.get_by_id(&organization_id).await.unwrap().unwrap();
+    org.base.plan_status = status;
+    service
+        .update(&mut org, AuthenticatedEntity::System)
+        .await
+        .unwrap();
+}
+
+fn pro_plan() -> BillingPlan {
+    crate::server::billing::plans::get_purchasable_plans()
+        .into_iter()
+        .find(|plan| matches!(plan, BillingPlan::Pro(_)))
+        .unwrap()
+}
+
+/// A cloud org whose subscription ends stays on its plan, lapsed, rather
+/// than moving to Free; the subscription mirrors are cleared.
+#[tokio::test]
+async fn a_cloud_org_lapses_on_its_plan_when_the_subscription_ends() {
+    let (state, _container) = test_state().await;
+    let service = &state.services.organization_service;
+    let org = create_org(&state, pro_plan(), None).await;
+    let mut row = service.get_by_id(&org.id).await.unwrap().unwrap();
+    row.base.next_renewal_at = Some(whole_seconds_from_now(1));
+    row.base.discount_save_offer_percent_off = Some(20);
+    row.base.discount_save_offer_active_until = Some(whole_seconds_from_now(30));
+    service
+        .update(&mut row, AuthenticatedEntity::System)
+        .await
+        .unwrap();
+
+    service
+        .handle(vec![Event::new(
+            OrgScope {
+                organization_id: org.id,
+            },
+            BillingOperation::SubscriptionCancelled {
+                plan: pro_plan(),
+                reason_code: None,
+                stripe_feedback: None,
+                stripe_reason: None,
+                internal_reason: None,
+                comment: None,
+                period_end: Utc::now(),
+                was_trialing: true,
+                mrr_amount_cents: 0,
+                tenure_days: 14,
+                license_key_type: None,
+            },
+            AuthenticatedEntity::System,
+        )])
+        .await
+        .unwrap();
+
+    let lapsed = reload(&state, org.id).await;
+    assert_eq!(lapsed.base.plan, Some(pro_plan()));
+    assert_eq!(lapsed.base.plan_status, Some(PlanStatus::Cancelled));
+    assert!(lapsed.is_lapsed());
+    assert!(lapsed.base.last_downgrade_from_plan.is_none());
+    assert!(lapsed.base.next_renewal_at.is_none());
+    assert!(lapsed.base.discount_save_offer_percent_off.is_none());
+    assert!(lapsed.base.discount_save_offer_active_until.is_none());
+}
+
+/// A lapsed cloud org reads everything, edits nothing, and keeps the
+/// Settings routes it needs to choose a plan again.
+#[tokio::test]
+async fn billing_middleware_makes_a_lapsed_cloud_org_read_only() {
+    let (state, _container) = test_state().await;
+    let org = create_org(&state, pro_plan(), None).await;
+    set_plan_status(&state, org.id, Some(PlanStatus::Cancelled)).await;
+    let owner = AuthenticatedEntity::User {
+        user_id: Uuid::new_v4(),
+        organization_id: org.id,
+        permissions: UserOrgPermissions::Owner,
+        network_ids: vec![],
+        email: EmailAddress::new_unchecked("owner@example.com"),
+        email_verified: true,
+    };
+    let org_path = format!("/api/v1/organizations/{}", org.id);
+
+    let app = Router::new()
+        .route(
+            "/api/v1/hosts",
+            get(|| async { "ok" }).post(|| async { "ok" }),
+        )
+        .route("/api/v1/organizations/{id}", put(|| async { "ok" }))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            require_billing_for_users,
+        ))
+        .layer(middleware::from_fn(
+            move |mut request: Request<Body>, next: Next| {
+                let owner = owner.clone();
+                async move {
+                    request.extensions_mut().insert(owner);
+                    next.run(request).await
+                }
+            },
+        ))
+        .with_state(state.clone());
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+
+    assert_eq!(get_status(addr, "/api/v1/hosts").await.0, 200);
+    let (status, body) = send_status(addr, reqwest::Method::POST, "/api/v1/hosts").await;
+    assert_eq!(status, 402);
+    assert!(body.contains("billing_plan_lapsed"), "{body}");
+    assert_eq!(
+        send_status(addr, reqwest::Method::PUT, &org_path).await.0,
+        200
+    );
+
+    // Choosing a plan again lifts the lock.
+    set_plan_status(&state, org.id, Some(PlanStatus::Active)).await;
+    assert_eq!(
+        send_status(addr, reqwest::Method::POST, "/api/v1/hosts")
+            .await
+            .0,
+        200
+    );
 }
 
 #[tokio::test]
@@ -801,6 +936,12 @@ async fn sent_invoices_license_until_due_and_give_back_on_void() {
     let cancelled = reload(&state, org.id).await;
     assert!(!cancelled.base.bills_by_invoice);
     assert!(!cancelled.can_pay());
+    // The org lapses on its plan rather than moving to Free, and the period
+    // it was licensed for is left alone so the key runs out on schedule.
+    assert_eq!(cancelled.base.plan, Some(get_self_hosted_standard_plan()));
+    assert_eq!(cancelled.base.plan_status, Some(PlanStatus::Cancelled));
+    assert!(cancelled.is_lapsed());
+    assert_eq!(cancelled.base.license_paid_through, term_end);
 }
 
 /// The air-gapped expiry sweep: who it warns, and that it says so once per

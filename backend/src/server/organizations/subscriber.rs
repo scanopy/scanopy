@@ -274,24 +274,18 @@ impl Subscriber<BillingOperation> for OrganizationService {
                         changed = true;
                     }
                 }
-                BillingOperation::SubscriptionCancelled { plan, .. }
+                BillingOperation::SubscriptionCancelled { .. }
                 | BillingOperation::TrialEnded {
-                    converted: false,
-                    plan,
-                    ..
+                    converted: false, ..
                 } => {
-                    // A full cancellation / unconverted trial always downgrades
-                    // the org to Free. The cancel-side-effects path used to chain
-                    // a separate PlanChanged event for this; we now do the write
-                    // here so the downgrade is owned by the source event. The
-                    // implied_status mirror below sets plan_status = Active (Free
-                    // is an active plan) in the same write — one owner, one write.
-                    let free_plan = crate::server::billing::plans::get_free_plan();
-                    organization.base.last_downgrade_at = Some(event.timestamp);
-                    organization.base.last_downgrade_from_plan = Some(*plan);
-                    if organization.base.plan.as_ref() != Some(&free_plan) {
-                        organization.base.plan = Some(free_plan);
-                    }
+                    // A full cancellation / unconverted trial leaves the org on
+                    // the plan it holds. The implied_status mirror below sets
+                    // plan_status = Cancelled in the same write, which is what
+                    // makes the org read-only until it chooses a paid plan; a
+                    // self-hosted org's `license_paid_through` is left alone so
+                    // its key runs out on the schedule it was issued with. Only
+                    // the subscription mirrors are cleared here.
+                    //
                     // The subscription that billed by invoice is gone, so the
                     // org has no standing way to pay by invoice either. Unlike
                     // a saved card (below), invoice billing is a property of
@@ -304,8 +298,8 @@ impl Subscriber<BillingOperation> for OrganizationService {
                     // the flag's sole authoritative writers are
                     // `PaymentMethodAdded` / `PaymentMethodRemoved` (driven by
                     // the Stripe `payment_method.attached`/`detached` webhooks).
-                    // Resetting it on cancel/downgrade left it stale-false after
-                    // downgrade-to-Free or resubscribe-without-trial.
+                    // Resetting it on cancel left it stale-false after a
+                    // resubscribe-without-trial.
                     // Subscription is gone; clear the renewal mirror.
                     if organization.base.next_renewal_at.is_some() {
                         organization.base.next_renewal_at = None;

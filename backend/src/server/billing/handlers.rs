@@ -177,10 +177,19 @@ async fn create_checkout_session(
         }
 
         let plan_status = org.base.plan_status;
+        // A lapsed org has no live subscription to modify or schedule against:
+        // its way back is a new paid subscription, never Free.
+        let is_lapsed = org.is_lapsed();
 
         if plan_status.is_some() && org.base.stripe_customer_id.is_some() {
             if request.plan.is_free() {
-                // Downgrade to Free — schedule cancellation at end of billing cycle
+                if is_lapsed {
+                    return Err(ApiError::bad_request(
+                        "A lapsed organization needs a paid plan",
+                    ));
+                }
+                // Cancel at the end of the billing cycle; the org then lapses
+                // on its plan.
                 let result = billing_service
                     .schedule_downgrade(organization_id, auth.into_entity())
                     .await?;
@@ -226,19 +235,20 @@ async fn create_checkout_session(
                         )
                         .await?;
                     Ok(Json(ApiResponse::success(result)))
-                } else if has_non_free_plan && has_payment_method {
+                } else if has_non_free_plan && has_payment_method && !is_lapsed {
                     // Live paid subscription + card on file — modify it in place.
                     let result = billing_service
                         .change_plan(organization_id, request.plan, auth.into_entity())
                         .await?;
                     Ok(Json(ApiResponse::success(result)))
                 } else if has_payment_method {
-                    // No live subscription to modify (e.g. currently on Free
-                    // after a downgrade), but a way to pay is on file — create
-                    // the subscription here instead of handing the customer to
-                    // Stripe Checkout. Routing a Free org to change_plan would
-                    // fail with "No active subscription found to modify"; it
-                    // only updates an existing paid sub.
+                    // No live subscription to modify (currently on Free, or
+                    // lapsed after a subscription ended), but a way to pay is
+                    // on file — create the subscription here instead of
+                    // handing the customer to Stripe Checkout. Routing such an
+                    // org to change_plan would fail with "No active
+                    // subscription found to modify"; it only updates an
+                    // existing paid sub.
                     let result = billing_service
                         .create_paid_subscription(organization_id, request.plan, auth.into_entity())
                         .await?;

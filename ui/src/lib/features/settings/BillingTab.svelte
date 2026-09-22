@@ -33,7 +33,7 @@
 		common_tryAgainLater,
 		common_usage,
 		settings_billing_billingQuestions,
-		settings_billing_canceled,
+		settings_billing_lapsed,
 		settings_billing_contactUs,
 		settings_billing_currentPlan,
 		settings_billing_discount_active,
@@ -270,7 +270,12 @@
 		if (missingCard)
 			return { kind: 'warning' as const, message: billing_noPaymentMethodBannerBody() };
 		if (org.plan_status === 'cancelled')
-			return { kind: 'warning' as const, message: settings_billing_canceled() };
+			return {
+				kind: 'warning' as const,
+				message: settings_billing_lapsed({
+					plan: billingPlans.getName(org.plan?.type ?? null)
+				})
+			};
 		if (isPendingCancellation)
 			return { kind: 'warning' as const, message: settings_billing_downgrade_pending() };
 		return null;

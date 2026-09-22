@@ -435,7 +435,7 @@ impl DaemonService {
 
         // Check for pending work and initiate if daemon reports ready
         if status.ready_for_work
-            && let Some(work) = self.get_pending_work(daemon.id).await
+            && let Some(work) = self.get_pending_work(daemon).await
         {
             let integration_targets = self
                 .discovery_service

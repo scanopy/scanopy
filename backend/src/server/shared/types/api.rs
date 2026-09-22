@@ -489,6 +489,13 @@ impl ApiError {
         )
     }
 
+    /// Payment required (402) - the org's subscription ended and it has not
+    /// chosen a paid plan since, so mutating requests are refused while
+    /// reads keep working.
+    pub fn billing_plan_lapsed() -> Self {
+        Self::coded(StatusCode::PAYMENT_REQUIRED, ErrorCode::BillingPlanLapsed)
+    }
+
     /// Conflict (409) - cannot leave an air-gapped key while it is still valid.
     /// The request is well formed and the caller is entitled to make it; the
     /// organization is in a state that forbids the transition.

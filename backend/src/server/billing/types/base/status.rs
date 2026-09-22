@@ -35,6 +35,11 @@ pub enum PlanStatus {
     PastDue,
     Paused,
     PendingCancellation,
+    /// The subscription has ended (an unpaid trial ran out, or a scheduled
+    /// cancellation reached its period end) and the org has not chosen a
+    /// paid plan since. The org keeps its plan; the billing middleware makes
+    /// the app read-only until it does.
+    ///
     /// `canceled` (American) is the legacy spelling Stripe's
     /// `SubscriptionStatus` serializes with, and pre-Phase-5 writers
     /// echoed that value straight into `organizations.plan_status`. We
@@ -80,15 +85,16 @@ impl EntityMetadataProvider for PlanStatus {
 
 impl TypeMetadataProvider for PlanStatus {
     fn name(&self) -> &'static str {
-        // `PendingCancellation` reads as "Downgrading" to match the prior
-        // `formatPlanStatus` label the badge rendered.
+        // `Cancelled` reads as "Lapsed": it covers a trial that ran out as
+        // well as a cancellation that reached its period end, and the org
+        // keeps its plan either way.
         match self {
             Self::Active => "Active",
             Self::Trialing => "Trialing",
             Self::PastDue => "Past due",
             Self::Paused => "Paused",
-            Self::PendingCancellation => "Downgrading",
-            Self::Cancelled => "Cancelled",
+            Self::PendingCancellation => "Cancelling",
+            Self::Cancelled => "Lapsed",
         }
     }
 }

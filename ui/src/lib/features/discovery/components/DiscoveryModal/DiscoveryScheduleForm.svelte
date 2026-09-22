@@ -26,6 +26,7 @@
 		discovery_scheduleFreeDiscoveryPaused,
 		discovery_scheduleFreePlanWarning,
 		discovery_scheduleHelp,
+		discovery_scheduleLapsedWarning,
 		discovery_scheduleResetToDayPicker,
 		discovery_scheduleTimezoneHelp
 	} from '$lib/paraglide/messages';
@@ -38,6 +39,8 @@
 		readOnly?: boolean;
 		rawCronMode?: boolean;
 		schedulePaused?: boolean;
+		/** The pause is because the org lapsed, not because its plan lacks schedules. */
+		scheduleLapsed?: boolean;
 	}
 
 	let {
@@ -45,7 +48,8 @@
 		formData = $bindable(),
 		readOnly = false,
 		rawCronMode = $bindable(false),
-		schedulePaused = false
+		schedulePaused = false,
+		scheduleLapsed = false
 	}: Props = $props();
 
 	const dayLabels = [
@@ -158,7 +162,9 @@
 		{#if schedulePaused}
 			<InlineWarning
 				title={discovery_scheduleFreeDiscoveryPaused()}
-				body={discovery_scheduleFreePlanWarning()}
+				body={scheduleLapsed
+					? discovery_scheduleLapsedWarning()
+					: discovery_scheduleFreePlanWarning()}
 			/>
 		{/if}
 		<p class="text-tertiary text-sm">

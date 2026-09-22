@@ -46,7 +46,7 @@ impl Email for CancellationInitiated<'_> {
             (
                 content
                     .paragraph(&format!(
-                        "Your Scanopy subscription is scheduled to cancel on <strong>{}</strong>. You'll keep full access until then; after that you'll move to the Free plan.",
+                        "Your Scanopy subscription is scheduled to cancel on <strong>{}</strong>. You'll keep full access until then; after that your account is read-only until you choose a paid plan.",
                         self.period_end
                     ))
                     .paragraph("Changed your mind? You can resubscribe or switch plans any time from your billing settings."),

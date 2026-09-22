@@ -254,10 +254,11 @@ impl LicenseIssuer {
 /// An air-gapped key validates without ever contacting Scanopy, so once it is
 /// minted nothing can take it back. That is why it needs a way to pay (a card
 /// on file, or invoice billing) and a paid subscription, not just the plan
-/// feature. `plan_status == Active` alone would not do: an unconverted trial
-/// and a cancellation both land on Active, on the Free plan. Paid-through
-/// moving past the trial end is what proves an invoice was paid; the caller
-/// passes it with any unpaid invoice's period already taken off.
+/// feature. `plan_status` alone would not do: an unconverted trial lands on
+/// `Cancelled` with the plan retained, and a paid org that later lapses is
+/// still entitled to the period it paid for. Paid-through moving past the
+/// trial end is what proves an invoice was paid; the caller passes it with
+/// any unpaid invoice's period already taken off.
 fn has_paid_subscription(org: &Organization, paid_through: Option<DateTime<Utc>>) -> bool {
     if !org.can_pay() || org.base.plan_status == Some(PlanStatus::Trialing) {
         return false;

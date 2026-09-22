@@ -24,6 +24,7 @@
 	"errors_billing_feature_not_available": "Your current plan does not include {feature}. Upgrade your plan to access this feature.",
 	"errors_billing_host_limit_reached": "You've reached the limit of {limit} hosts on your current plan. Upgrade for unlimited hosts.",
 	"errors_billing_payment_required": "Payment is required to continue",
+	"errors_billing_plan_lapsed": "Your plan has lapsed. Choose a paid plan in Settings to make changes again.",
 	"errors_billing_plan_limit_reached": "You've reached the limit of {limit} {resource} on your current plan",
 	"errors_billing_self_hosted_plan_locked": "This organization is on a self-hosted plan. Manage its license in Settings, or switch to a cloud plan to use the app.",
 	"errors_billing_setup_incomplete": "Billing setup is incomplete",

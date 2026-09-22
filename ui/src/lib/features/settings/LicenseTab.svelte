@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Copy, RefreshCw } from 'lucide-svelte';
 	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
+	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 	import ConfirmationDialog from '$lib/shared/components/feedback/ConfirmationDialog.svelte';
 	import SegmentedControl from '$lib/shared/components/forms/SegmentedControl.svelte';
 	import {
@@ -13,7 +14,7 @@
 	import { priceToCharge } from '$lib/features/billing/pricing';
 	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { hasLicensedPlan } from '$lib/features/organizations/types';
+	import { hasLicensedPlan, isPlanLapsed } from '$lib/features/organizations/types';
 	import type { Organization } from '$lib/features/organizations/types';
 	import { billingPlans } from '$lib/shared/stores/metadata';
 	import {
@@ -51,6 +52,7 @@
 		settings_billing_license_airGappedOpenInvoice,
 		settings_billing_license_airGappedPastDue,
 		settings_billing_license_keyLabel,
+		settings_billing_license_lapsed,
 		settings_billing_license_keyTypeChanged,
 		settings_billing_license_keyTypeLabel,
 		settings_billing_license_lastCheckIn,
@@ -104,6 +106,16 @@
 	let hasCard = $derived(canPay(org));
 	let isTrialing = $derived(org?.plan_status === 'trialing');
 	let isPastDue = $derived(org?.plan_status === 'past_due');
+	// A lapsed self-hosted org keeps its plan and its entitlement until the
+	// key it was issued runs out: paid-through plus the server's buffer, the
+	// same date an air-gapped key carries. The org came here for the key, so
+	// this tab says when it stops and that renewing keeps it working.
+	let isLapsed = $derived(org != null && isPlanLapsed(org));
+	let lapsedKeyStops = $derived(
+		isLapsed && org?.license_paid_through && configQuery.data
+			? formatDate(licenseKeyExpiry(configQuery.data, org.license_paid_through))
+			: null
+	);
 	// The server also refuses an air-gapped mint until the subscription is out of
 	// trial, but choosing the option during a trial is what ends the trial. A card
 	// on file is the one thing the user has to do first.
@@ -304,6 +316,14 @@
 			<div class="space-y-6">
 				<InfoCard title={common_license()}>
 					<div class="space-y-4">
+						{#if isLapsed && lapsedKeyStops}
+							<InlineWarning
+								title={settings_billing_license_lapsed({
+									plan: billingPlans.getName(planType),
+									date: lapsedKeyStops
+								})}
+							/>
+						{/if}
 						<dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-sm">
 							<dt class="text-secondary">{common_tier()}</dt>
 							<dd class="text-primary font-medium">{billingPlans.getName(planType)}</dd>

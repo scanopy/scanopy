@@ -908,7 +908,7 @@ async fn receive_work_request(
         state
             .services
             .daemon_service
-            .get_pending_work(daemon_id)
+            .get_pending_work(&daemon)
             .await
     } else {
         None
