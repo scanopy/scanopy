@@ -2,6 +2,7 @@
 	import { CreditCard } from 'lucide-svelte';
 	import AppBanner from './AppBanner.svelte';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { useHasPendingQuote } from '$lib/features/billing/queries';
 	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
 	import {
 		getTrialDaysLeft,
@@ -26,8 +27,12 @@
 	// requires a card but has none) used by every payment-method nag so they
 	// stay in sync. The final clause defers to TrialEndingBanner in its window
 	// (trialing + no card + <= 3 days) so the two never render together.
+	// An org with a quote out is already arranging payment, and accepting it is
+	// the Billing tab's primary action, so this would talk it out of that.
+	const hasPendingQuote = useHasPendingQuote();
 	let shouldShow = $derived(
 		isMissingPaymentMethod(org, billingEnabled) &&
+			!hasPendingQuote.current &&
 			!(
 				isTrialingWithoutPayment(org, billingEnabled) &&
 				trialDaysLeft !== null &&

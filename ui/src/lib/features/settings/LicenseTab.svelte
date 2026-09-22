@@ -49,6 +49,7 @@
 		settings_billing_license_airGappedCurrentUntil,
 		settings_billing_license_airGappedNeedsCard,
 		settings_billing_license_airGappedOpenInvoice,
+		settings_billing_license_airGappedOpenInvoiceLink,
 		settings_billing_license_airGappedPastDue,
 		settings_billing_license_keyLabel,
 		settings_billing_license_keyTypeChanged,
@@ -119,6 +120,7 @@
 		() => billingEnabled && org != null && hasLicensedPlan(org)
 	);
 	let hasOpenInvoice = $derived(invoiceBillingQuery.data?.open_invoice != null);
+	let openInvoiceUrl = $derived(invoiceBillingQuery.data?.open_invoice?.hosted_invoice_url ?? null);
 	let airGappedAvailable = $derived(airGappedIncluded && hasCard && !isPastDue && !hasOpenInvoice);
 	// The date an air-gapped key stays current until, which is also the date both
 	// locks lift: the plan change and the switch back to an online key. Read from
@@ -365,6 +367,18 @@
 							{:else if hasOpenInvoice}
 								<p class="text-secondary text-sm">
 									{settings_billing_license_airGappedOpenInvoice()}
+									{#if openInvoiceUrl}
+										<!-- eslint-disable svelte/no-navigation-without-resolve -->
+										<a
+											href={openInvoiceUrl}
+											target="_blank"
+											rel="external noopener noreferrer"
+											class="text-link hover:underline"
+										>
+											{settings_billing_license_airGappedOpenInvoiceLink()}
+										</a>
+										<!-- eslint-enable svelte/no-navigation-without-resolve -->
+									{/if}
 								</p>
 							{/if}
 

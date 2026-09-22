@@ -2,6 +2,7 @@
 	import { AlertTriangle, CreditCard } from 'lucide-svelte';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { useHasPendingQuote } from '$lib/features/billing/queries';
 	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
 	import { getTrialDaysLeft, isTrialingWithoutPayment } from '$lib/shared/utils/trial';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
@@ -32,8 +33,13 @@
 		return wasDismissedToday(DISMISS_KEY);
 	});
 
+	// An org waiting on its own procurement to accept a quote should not be
+	// stopped by a modal asking for a card it has chosen not to use.
+	const hasPendingQuote = useHasPendingQuote();
+
 	let isOpen = $derived(
 		isTrialingWithoutPayment(org, billingEnabled) &&
+			!hasPendingQuote.current &&
 			trialDaysLeft !== null &&
 			trialDaysLeft <= 1 &&
 			!dismissedTodayState

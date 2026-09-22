@@ -9,6 +9,8 @@ import type { BillingPlan, BillingRate } from './types';
 import type { components } from '$lib/api/schema';
 import { pushSuccess } from '$lib/shared/stores/feedback';
 import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
+import { useOrganizationQuery } from '$lib/features/organizations/queries';
+import { hasLicensedPlan } from '$lib/features/organizations/types';
 
 type PauseDuration = components['schemas']['PauseDuration'];
 type CancelSubscriptionRequest = components['schemas']['CancelSubscriptionRequest'];
@@ -313,6 +315,27 @@ export function useInvoiceBillingStatusQuery(enabled: () => boolean = () => true
 			return unwrapData(await apiClient.GET('/api/billing/invoice-billing', {}));
 		}
 	}));
+}
+
+/**
+ * Whether this org has a quote out that it has not yet accepted.
+ *
+ * The card prompts (banner, trial modal) ask an org to add a payment method
+ * it is already in the middle of arranging another way, so they read this and
+ * stand down. Gated on a licensed plan because the endpoint refuses others,
+ * and shares its cache entry with the Billing tab's own copy, so a licensed
+ * org pays for one request however many callers read it.
+ */
+export function useHasPendingQuote(): { current: boolean } {
+	const organizationQuery = useOrganizationQuery();
+	const query = useInvoiceBillingStatusQuery(
+		() => organizationQuery.data != null && hasLicensedPlan(organizationQuery.data)
+	);
+	return {
+		get current() {
+			return query.data?.pending_quote != null;
+		}
+	};
 }
 
 function invalidateInvoiceBilling() {
