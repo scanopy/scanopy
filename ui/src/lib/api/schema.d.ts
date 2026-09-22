@@ -3466,19 +3466,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-22T21:38:17.137054Z",
+             *       "created_at": "2026-09-22T23:02:49.916724Z",
              *       "first_discovery_id": null,
-             *       "id": "8e153497-606a-4125-a1ff-b826babafbf2",
+             *       "id": "b670eb29-4e76-4159-ba71-b9ce44eb9460",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-22T21:38:17.137054Z",
+             *       "last_seen_at": "2026-09-22T23:02:49.916724Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-22T21:38:17.137054Z",
-             *       "valid_from": "2026-09-22T21:38:17.137054Z",
+             *       "updated_at": "2026-09-22T23:02:49.916724Z",
+             *       "valid_from": "2026-09-22T23:02:49.916724Z",
              *       "valid_to": null
              *     }
              */
@@ -4296,19 +4296,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-22T21:38:17.113981Z",
+             *               "created_at": "2026-09-22T23:02:49.894074Z",
              *               "first_discovery_id": null,
-             *               "id": "fc5dc0ca-4281-4c41-bef5-b2e59294b0a8",
+             *               "id": "27507a8d-5d22-42ad-af2d-bd744ac09fcd",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-22T21:38:17.113981Z",
+             *               "last_seen_at": "2026-09-22T23:02:49.894074Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-22T21:38:17.113981Z",
-             *               "valid_from": "2026-09-22T21:38:17.113981Z",
+             *               "updated_at": "2026-09-22T23:02:49.894074Z",
+             *               "valid_from": "2026-09-22T23:02:49.894074Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4322,7 +4322,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "BookLore",
+             *           "service_definition": "OpenVPN",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5227,19 +5227,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-22T21:38:17.131932Z",
+             *           "created_at": "2026-09-22T23:02:49.912029Z",
              *           "first_discovery_id": null,
-             *           "id": "07725867-2567-4b80-9803-67b7e5487ad5",
+             *           "id": "b46859b5-b1d2-4dc3-9a1d-e9f57237c0b2",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-22T21:38:17.131932Z",
+             *           "last_seen_at": "2026-09-22T23:02:49.912029Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-22T21:38:17.131932Z",
-             *           "valid_from": "2026-09-22T21:38:17.131932Z",
+             *           "updated_at": "2026-09-22T23:02:49.912029Z",
+             *           "valid_from": "2026-09-22T23:02:49.912029Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5253,7 +5253,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "BookLore",
+             *       "service_definition": "OpenVPN",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6319,19 +6319,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-22T21:38:17.114593Z",
+         *       "created_at": "2026-09-22T23:02:49.894764Z",
          *       "first_discovery_id": null,
-         *       "id": "afb7c5b3-e830-4171-9a9d-461b566124fd",
+         *       "id": "5f3c6cbd-9e44-40b4-88b8-6d6b20d96bd8",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-22T21:38:17.114593Z",
+         *       "last_seen_at": "2026-09-22T23:02:49.894764Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-22T21:38:17.114593Z",
-         *       "valid_from": "2026-09-22T21:38:17.114593Z",
+         *       "updated_at": "2026-09-22T23:02:49.894764Z",
+         *       "valid_from": "2026-09-22T23:02:49.894764Z",
          *       "valid_to": null
          *     }
          */
@@ -6657,7 +6657,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "BookLore",
+         *           "service_definition": "OpenVPN",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8893,19 +8893,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-22T21:38:17.113311Z",
+         *               "created_at": "2026-09-22T23:02:49.893318Z",
          *               "first_discovery_id": null,
-         *               "id": "30e11e53-8dc9-4222-a555-5e12336308cd",
+         *               "id": "6e21fca7-541d-4b83-b9cf-f769c018eb60",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-22T21:38:17.113311Z",
+         *               "last_seen_at": "2026-09-22T23:02:49.893318Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-22T21:38:17.113311Z",
-         *               "valid_from": "2026-09-22T21:38:17.113311Z",
+         *               "updated_at": "2026-09-22T23:02:49.893318Z",
+         *               "valid_from": "2026-09-22T23:02:49.893318Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8919,7 +8919,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "BookLore",
+         *           "service_definition": "OpenVPN",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -11885,19 +11885,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-22T21:38:17.114402Z",
+         *           "created_at": "2026-09-22T23:02:49.894547Z",
          *           "first_discovery_id": null,
-         *           "id": "11181c32-5eb7-4769-afc8-dfb7b9de5d20",
+         *           "id": "791c0ce7-dc37-438d-b4b1-001e464c14a3",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-22T21:38:17.114402Z",
+         *           "last_seen_at": "2026-09-22T23:02:49.894547Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-22T21:38:17.114402Z",
-         *           "valid_from": "2026-09-22T21:38:17.114402Z",
+         *           "updated_at": "2026-09-22T23:02:49.894547Z",
+         *           "valid_from": "2026-09-22T23:02:49.894547Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -11911,7 +11911,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "BookLore",
+         *       "service_definition": "OpenVPN",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12637,7 +12637,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "b2ccfb37-46d6-4bfa-b0f0-55e899e09882",
+             *           "id": "228d8d6d-a190-4c34-86bd-2b1d348ea686",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -12647,23 +12647,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "a6927054-f2c8-4f20-b956-4c0085653aee",
+             *           "id": "007a3b82-99fb-4541-b222-cf3786328580",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "9270d631-5e21-4429-ba24-b3a3c8ab354f",
+             *           "id": "77b93d10-8ece-45e9-b8fa-b4d4d447f0c4",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "01e3db62-c064-41d6-a9c8-3b8b6f7e8891",
+             *           "id": "3a368bff-8701-45f7-9356-773dbb2192ac",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "a6927054-f2c8-4f20-b956-4c0085653aee",
+             *           "id": "007a3b82-99fb-4541-b222-cf3786328580",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -12676,19 +12676,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "7cfa7be6-5ba8-4b34-b86b-1fd89fbc1bee",
+             *         "id": "ece56a96-33b8-429d-9437-5b1b668bc398",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "964acbbe-7163-4074-9f68-2a55dda2d2a1",
+             *         "id": "4bfe4907-3d6a-4d38-8571-9622ef37e296",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "69cf85c1-e936-4f47-8c5a-d5fafc6c5dd9",
+             *         "id": "cdea5119-9403-4ac6-afa9-ac8cc6458627",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "59241bae-5b91-44bb-bbb2-0218122deaa5",
+             *         "id": "c086203b-d34f-4d5a-94f9-c06b865392db",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -12706,7 +12706,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "bfcd4bdb-8c56-49a9-9f84-d0a1da52cfe5",
+             *         "id": "4ae0d790-0fb7-4a2d-90c7-5e8db656b22d",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -12715,15 +12715,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "5233a57d-d5b5-4f8e-bedd-718714f3f958",
+             *         "id": "fee69a61-4c40-462e-942b-9a5e7451e054",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "7c6e80e7-5f5b-480f-be7d-b620a5834241",
+             *         "id": "786594a3-0a01-4f8b-ad05-e930097e7364",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "a5e59a5d-e258-4cf0-a433-32b8a3fba988",
+             *         "id": "2be55272-fb0a-4d19-9130-84ee170366af",
              *         "rule": "ByStack"
              *       }
              *     ]

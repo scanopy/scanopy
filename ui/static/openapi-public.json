@@ -12655,19 +12655,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-22T21:38:17.198555Z",
+              "created_at": "2026-09-22T23:02:49.977893Z",
               "first_discovery_id": null,
-              "id": "6881ebc3-4101-48f6-bb12-f92ee12b0fc1",
+              "id": "50d6e84b-8c0c-423d-a38a-924ce05cc1b2",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-22T21:38:17.198555Z",
+              "last_seen_at": "2026-09-22T23:02:49.977893Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-22T21:38:17.198555Z",
-              "valid_from": "2026-09-22T21:38:17.198555Z",
+              "updated_at": "2026-09-22T23:02:49.977893Z",
+              "valid_from": "2026-09-22T23:02:49.977893Z",
               "valid_to": null
             }
           },
@@ -14239,19 +14239,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-22T21:38:17.182468Z",
+                      "created_at": "2026-09-22T23:02:49.961718Z",
                       "first_discovery_id": null,
-                      "id": "a53ca9b5-8108-4521-a4b9-f6d5e9feb8ff",
+                      "id": "6f8b6eb1-4b44-4dc2-8a31-8d3c8264f83c",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-22T21:38:17.182468Z",
+                      "last_seen_at": "2026-09-22T23:02:49.961718Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-22T21:38:17.182468Z",
-                      "valid_from": "2026-09-22T21:38:17.182468Z",
+                      "updated_at": "2026-09-22T23:02:49.961718Z",
+                      "valid_from": "2026-09-22T23:02:49.961718Z",
                       "valid_to": null
                     }
                   ],
@@ -14265,7 +14265,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "BookLore",
+                  "service_definition": "OpenVPN",
                   "source": {
                     "type": "Manual"
                   },
@@ -15644,19 +15644,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-22T21:38:17.194672Z",
+                  "created_at": "2026-09-22T23:02:49.973969Z",
                   "first_discovery_id": null,
-                  "id": "426c15cd-e115-4ba5-8a44-b0080ea5a591",
+                  "id": "c17c82f5-bbf2-450a-8291-fc53dbfdfb70",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-22T21:38:17.194672Z",
+                  "last_seen_at": "2026-09-22T23:02:49.973969Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-22T21:38:17.194672Z",
-                  "valid_from": "2026-09-22T21:38:17.194672Z",
+                  "updated_at": "2026-09-22T23:02:49.973969Z",
+                  "valid_from": "2026-09-22T23:02:49.973969Z",
                   "valid_to": null
                 }
               ],
@@ -15670,7 +15670,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "BookLore",
+              "service_definition": "OpenVPN",
               "source": {
                 "type": "Manual"
               },
@@ -18026,19 +18026,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-22T21:38:17.182868Z",
+          "created_at": "2026-09-22T23:02:49.962121Z",
           "first_discovery_id": null,
-          "id": "0cc13838-636c-4c9c-8ecb-7502a8952cd3",
+          "id": "c095d5d2-9924-489d-920f-1ab7d5648f46",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-22T21:38:17.182868Z",
+          "last_seen_at": "2026-09-22T23:02:49.962121Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-22T21:38:17.182868Z",
-          "valid_from": "2026-09-22T21:38:17.182868Z",
+          "updated_at": "2026-09-22T23:02:49.962121Z",
+          "valid_from": "2026-09-22T23:02:49.962121Z",
           "valid_to": null
         }
       },
@@ -18746,7 +18746,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "BookLore",
+              "service_definition": "OpenVPN",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -24282,19 +24282,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-22T21:38:17.182036Z",
+                  "created_at": "2026-09-22T23:02:49.961273Z",
                   "first_discovery_id": null,
-                  "id": "3cd95949-1e3e-4627-94c5-f8e97d484292",
+                  "id": "1d0b57b8-38bc-420d-b3b9-7a455bab2131",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-22T21:38:17.182036Z",
+                  "last_seen_at": "2026-09-22T23:02:49.961273Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-22T21:38:17.182036Z",
-                  "valid_from": "2026-09-22T21:38:17.182036Z",
+                  "updated_at": "2026-09-22T23:02:49.961273Z",
+                  "valid_from": "2026-09-22T23:02:49.961273Z",
                   "valid_to": null
                 }
               ],
@@ -24308,7 +24308,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "BookLore",
+              "service_definition": "OpenVPN",
               "source": {
                 "type": "Manual"
               },
@@ -27974,19 +27974,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-22T21:38:17.175710Z",
+                        "created_at": "2026-09-22T23:02:49.954794Z",
                         "first_discovery_id": null,
-                        "id": "0ee9191c-8593-47c8-b93c-e407b8b2beb9",
+                        "id": "5d071043-e9f7-4cbb-b862-8abaebd87b83",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-22T21:38:17.175710Z",
+                        "last_seen_at": "2026-09-22T23:02:49.954794Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-22T21:38:17.175710Z",
-                        "valid_from": "2026-09-22T21:38:17.175710Z",
+                        "updated_at": "2026-09-22T23:02:49.954794Z",
+                        "valid_from": "2026-09-22T23:02:49.954794Z",
                         "valid_to": null
                       }
                     ],
@@ -28000,7 +28000,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "BookLore",
+                    "service_definition": "OpenVPN",
                     "source": {
                       "type": "Manual"
                     },
@@ -28143,19 +28143,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-22T21:38:17.193825Z",
+                    "created_at": "2026-09-22T23:02:49.973193Z",
                     "first_discovery_id": null,
-                    "id": "1f2e85d5-6964-4a2a-a0e3-66e102f86b07",
+                    "id": "d2082043-1ffa-4998-be96-e5912ab85490",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-22T21:38:17.193825Z",
+                    "last_seen_at": "2026-09-22T23:02:49.973193Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-22T21:38:17.193825Z",
-                    "valid_from": "2026-09-22T21:38:17.193825Z",
+                    "updated_at": "2026-09-22T23:02:49.973193Z",
+                    "valid_from": "2026-09-22T23:02:49.973193Z",
                     "valid_to": null
                   }
                 ],
@@ -28169,7 +28169,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "BookLore",
+                "service_definition": "OpenVPN",
                 "source": {
                   "type": "Manual"
                 },
@@ -30294,19 +30294,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-22T21:38:17.182743Z",
+              "created_at": "2026-09-22T23:02:49.961994Z",
               "first_discovery_id": null,
-              "id": "c46512bd-e158-4b9c-be35-eedcc1999c8f",
+              "id": "01f15fb7-4bf8-4811-8619-3770f2853e3b",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-22T21:38:17.182743Z",
+              "last_seen_at": "2026-09-22T23:02:49.961994Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-22T21:38:17.182743Z",
-              "valid_from": "2026-09-22T21:38:17.182743Z",
+              "updated_at": "2026-09-22T23:02:49.961994Z",
+              "valid_from": "2026-09-22T23:02:49.961994Z",
               "valid_to": null
             }
           ],
@@ -30320,7 +30320,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "BookLore",
+          "service_definition": "OpenVPN",
           "source": {
             "type": "Manual"
           },
@@ -31688,7 +31688,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "edc1b557-addb-40c6-9715-627b72dfc8e4",
+                  "id": "02bbfd7b-2ef3-4e19-aa0a-03b6777aae9d",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -31698,23 +31698,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "19498aca-fea1-4aef-bac0-5abce114b11f",
+                  "id": "4c69ceea-7cd7-4fa6-a4dd-ead4fe7d37df",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "acbbe96a-50a7-4272-8291-0b26ae669195",
+                  "id": "4116681c-05ed-46ca-9431-f4262086580c",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "8498e86c-63ca-4d9e-a732-f0a50e223e07",
+                  "id": "fa9d3c1b-de27-4664-b5a4-957f22f0bbc8",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "19498aca-fea1-4aef-bac0-5abce114b11f",
+                  "id": "4c69ceea-7cd7-4fa6-a4dd-ead4fe7d37df",
                   "rule": "ByHost"
                 }
               ]
@@ -31744,19 +31744,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "c4fb3389-bf37-4090-9b2d-39e16362688f",
+                "id": "e22a3da8-17eb-4f5c-9bcc-f95d0771b411",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "56801313-a089-4236-a48e-9348f12a4850",
+                "id": "dd8373e2-255a-4568-8ae2-e0a4c09f534b",
                 "rule": "ByVLAN"
               },
               {
-                "id": "b40f5f56-92f1-4f30-86e2-279c42981b88",
+                "id": "aee7453f-33c4-4e3f-a0f7-2a4cd01c738b",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "778e4eb2-3a4b-4a42-82aa-246195074ed2",
+                "id": "727bbde4-ecec-41d8-9fdc-ad42ff1a7ef6",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -31774,7 +31774,7 @@
                 }
               },
               {
-                "id": "283347a2-df26-4e07-927f-62b3af989e4c",
+                "id": "8908372b-a386-4fac-9371-bb755c1f940c",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -31783,15 +31783,15 @@
                 }
               },
               {
-                "id": "02c063e2-1e4a-47a3-844b-c35f7dcb609b",
+                "id": "97a6e744-f53e-4645-9a81-dac85fe5c929",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "e52113ba-d879-41f9-96ae-9478354d30c7",
+                "id": "f500ad6e-3cf0-4470-9a95-0862e91514b3",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "e229d56f-cc88-4e3a-a425-7aca9ebcd64b",
+                "id": "85157b50-85eb-4798-b576-8acea35fd4da",
                 "rule": "ByStack"
               }
             ]
