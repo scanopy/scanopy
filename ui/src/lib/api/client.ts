@@ -13,6 +13,7 @@ import type { ErrorCode } from '$lib/generated/error-codes';
 import {
 	common_httpError,
 	common_requestTimedOut,
+	common_requestUnreachable,
 	common_requestUnconfirmed
 } from '$lib/paraglide/messages';
 import { env } from '$env/dynamic/public';
@@ -453,11 +454,10 @@ const errorMiddleware: Middleware = {
 	onError({ error }) {
 		// Already reported where the timeout was detected, with wording that depends on the method.
 		if (error instanceof RequestTimeoutError) return;
-		pushError(
-			error instanceof Error && error.message
-				? error.message
-				: common_httpError({ status: 0, statusText: 'Network error' })
-		);
+		// Everything still here is a rejected fetch — no connection, DNS, CORS — where the browser's
+		// own message ("Failed to fetch") is neither translated nor useful. The cause is the same
+		// whichever it is: the request never reached the server.
+		pushError(common_requestUnreachable());
 	}
 };
 
