@@ -172,12 +172,38 @@ impl DaemonDiscoverySessionManager {
     /// Stop the session if it is still running once it has outlived `cap`.
     fn watch(self: &Arc<Self>, session_id: Uuid, cap: Duration) {
         let manager = Arc::downgrade(self);
+        let installed_at = Instant::now();
         tokio::spawn(async move {
-            tokio::time::sleep(cap).await;
-            if let Some(manager) = manager.upgrade() {
+            let mut deadline = installed_at + cap;
+            loop {
+                tokio::time::sleep_until(deadline.into()).await;
+                let Some(manager) = manager.upgrade() else {
+                    return;
+                };
+                // The network phase's own time limit counts from its start, not the session's,
+                // so a long first phase would otherwise put a scan that ends at its limit past
+                // the cap. A session stuck before the network phase keeps the install clock.
+                let latest = match manager.network_phase_started(session_id).await {
+                    Some(started) => deadline.max(started + cap),
+                    None => deadline,
+                };
+                if Instant::now() < latest {
+                    deadline = latest;
+                    continue;
+                }
                 manager.expire(session_id, cap).await;
+                return;
             }
         });
+    }
+
+    /// When the running session's network phase began, if it is `session_id` and has begun.
+    async fn network_phase_started(&self, session_id: Uuid) -> Option<Instant> {
+        let current = self.discovery_service.current_session.read().await;
+        current
+            .as_ref()
+            .filter(|session| session.info.session_id == session_id)
+            .and_then(|session| session.network_phase_started.get().copied())
     }
 
     /// End a session that outlived its cap. Aborting the task skips everything it would have
@@ -189,6 +215,9 @@ impl DaemonDiscoverySessionManager {
             return;
         };
         let elapsed = session.started_at.elapsed();
+        // Cancel first: workers the session spawned (sender threads, drains, SNMP walks) watch the
+        // token and outlive an abort of the task that spawned them.
+        session.token.cancel();
         session.handle.abort();
 
         tracing::error!(

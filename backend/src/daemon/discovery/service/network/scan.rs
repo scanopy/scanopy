@@ -148,6 +148,8 @@ impl NetworkScan {
                 + arp::POST_SCAN_RECEIVE.as_secs(),
         );
         let pipeline_start = Instant::now();
+        // The session watchdog counts the scan's time limit from here, as the loop below does.
+        let _ = session.network_phase_started.set(pipeline_start);
 
         tracing::info!(
             total_ips,
@@ -2092,6 +2094,14 @@ impl IcmpSweep {
     /// rate. A budget below either would cut short sweeps that complete today.
     fn budget(targets: usize, rounds: u64, rate_pps: u32) -> Duration {
         let expected_send_secs = targets as u64 * rounds / u64::from(rate_pps.max(1));
+        // The Windows sweep sends in chunks and each chunk waits out its echo timeout before the
+        // next, on top of the rate pacing.
+        #[cfg(target_family = "windows")]
+        let expected_send_secs = expected_send_secs
+            + rounds
+                * (targets as u64).div_ceil(icmp::iphlpapi::ECHO_CONCURRENCY as u64)
+                * u64::from(icmp::iphlpapi::ECHO_TIMEOUT_MS)
+                / 1000;
         Duration::from_secs((expected_send_secs * 2 + 60).max(330))
     }
 

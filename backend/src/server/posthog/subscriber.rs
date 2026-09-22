@@ -511,6 +511,10 @@ impl Subscriber<DiscoveryPhase> for PosthogService {
             if let Some(error_reason) = &event.scope.error_reason {
                 props["error_reason"] = json!(error_reason);
             }
+            // Splits stalls from failures the daemon reported, which share `discovery_failed`.
+            if let Some(reason) = event.scope.reason {
+                props["reason"] = json!(reason);
+            }
 
             if let Some(org_id) = self.get_org_id_from_network(&event.scope.network_id).await {
                 props["organization_id"] = json!(org_id.to_string());

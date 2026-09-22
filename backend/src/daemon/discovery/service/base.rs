@@ -128,6 +128,9 @@ pub struct DiscoverySession {
     /// Session updates in a row the server did not accept. The server reaps a session it hears
     /// nothing from for 5 minutes, so a count that keeps climbing in the log predicts that reap.
     pub consecutive_report_failures: Arc<AtomicU32>,
+    /// When the network phase began. Its `max_discovery_duration` counts from here, so the
+    /// session watchdog does too once it is set.
+    pub network_phase_started: Arc<std::sync::OnceLock<std::time::Instant>>,
     /// Non-fatal warnings accumulated during the run (e.g. the discovery hit its
     /// time limit and left hosts un-scanned). Surfaced in the terminal session
     /// update so the user sees them without the run being marked as failed.
@@ -188,6 +191,7 @@ impl DiscoverySession {
             progress_range_start: Arc::new(AtomicU8::new(0)),
             progress_range_end: Arc::new(AtomicU8::new(100)),
             consecutive_report_failures: Arc::new(AtomicU32::new(0)),
+            network_phase_started: Arc::new(std::sync::OnceLock::new()),
             warnings: Arc::new(std::sync::Mutex::new(Vec::new())),
             incomplete_snmp_walks: Arc::new(std::sync::Mutex::new(Vec::new())),
             contradicted_claims: Arc::new(std::sync::Mutex::new(Vec::new())),

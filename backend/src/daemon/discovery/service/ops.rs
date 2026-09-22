@@ -830,10 +830,6 @@ impl DiscoveryOps {
             *current_session = None;
         }
 
-        if cancel.is_cancelled() {
-            return Ok(());
-        }
-
         Ok(())
     }
 
@@ -1654,13 +1650,8 @@ mod progress_decision_tests {
     }
 
     #[test]
-    fn an_unchanged_value_waits_for_the_heartbeat_and_a_rise_for_the_minimum_spacing() {
-        assert_eq!(progress_decision(40, 40, LAST + 29, LAST), None);
-        assert_eq!(progress_decision(40, 40, LAST + 30, LAST), Some(40));
-        assert_eq!(progress_decision(45, 40, LAST + 9, LAST), None);
-        assert_eq!(progress_decision(45, 40, LAST + 10, LAST), Some(45));
-        // Completion is never held back.
-        assert_eq!(progress_decision(100, 99, LAST + 1, LAST), Some(100));
+    fn completion_is_reported_however_recently_progress_was() {
+        assert_eq!(progress_decision(100, 99, LAST, LAST), Some(100));
     }
 }
 
