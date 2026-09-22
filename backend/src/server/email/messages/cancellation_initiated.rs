@@ -8,6 +8,10 @@ pub struct CancellationInitiated<'a> {
     /// ends is the license key, and the billing-plan deep link is overridden
     /// by the license lock, so the button goes to Settings instead.
     pub licensed: bool,
+    /// Formatted date the license key stops working once the subscription
+    /// ends: the period end plus the buffer every key is minted with. Used
+    /// only when `licensed`.
+    pub key_expires: &'a str,
 }
 
 impl Email for CancellationInitiated<'_> {
@@ -36,8 +40,8 @@ impl Email for CancellationInitiated<'_> {
             (
                 content
                     .paragraph(&format!(
-                        "Your Scanopy license subscription is scheduled to cancel on <strong>{}</strong>. Your license key keeps working until then. After that your server stops accepting it and goes read-only.",
-                        self.period_end
+                        "Your Scanopy license subscription is scheduled to cancel on <strong>{}</strong>. Your license key keeps working until {}, after which your server stops accepting it and goes read-only.",
+                        self.period_end, self.key_expires
                     ))
                     .paragraph("Changed your mind? You can keep the subscription any time before then from your billing settings."),
                 links::SETTINGS_LICENSE,

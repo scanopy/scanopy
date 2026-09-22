@@ -43,20 +43,9 @@ export function isPlanLapsed(organization: Organization): boolean {
  * On a billing-enabled server these orgs get license keys, not the main app.
  */
 export function hasLicensedPlan(organization: Organization): boolean {
-	return isLicensedPlan(organization.plan);
-}
-
-/**
- * The org's last paid plan was a licensed self-hosted one, so it came for a
- * license, not for cloud.
- */
-export function hadLicensedPlan(organization: Organization): boolean {
-	return isLicensedPlan(organization.last_downgrade_from_plan);
-}
-
-function isLicensedPlan(plan: Organization['last_downgrade_from_plan']): boolean {
-	if (plan == null) return false;
-	return billingPlans.getMetadata(plan.type).license_plan != null;
+	const type = organization.plan?.type;
+	if (type == null) return false;
+	return billingPlans.getMetadata(type).license_plan != null;
 }
 
 /**

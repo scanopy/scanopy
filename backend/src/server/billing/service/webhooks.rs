@@ -728,15 +728,15 @@ impl BillingService {
             tracing::info!(
                 organization_id = %org_id,
                 subscription_id = %sub.id,
-                "Subscription is paused, not deleted — skipping auto-Free"
+                "Subscription is paused, not deleted — not a lapse"
             );
             return Ok(());
         }
 
         // --- Snapshot prior subscription state, then publish the cancellation
-        // event. The org's plan/status/has_payment_method downgrade to Free is
-        // owned by the `SubscriptionCancelled` arm of the org billing subscriber
-        // (single writer); this handler does not touch the org row. ---
+        // event. The lapse (plan kept, plan_status = Cancelled) is owned by the
+        // `SubscriptionCancelled` arm of the org billing subscriber (single
+        // writer); this handler does not touch the org row. ---
 
         let Some(organization) = self.organization_service.get_by_id(&org_id).await? else {
             tracing::warn!(
@@ -868,7 +868,7 @@ impl BillingService {
             }
         }
 
-        // The downgrade to Free is now committed (Guard 2 passed). If a
+        // The lapse is now committed (Guard 2 passed). If a
         // save-offer discount was applied, remove it from the Stripe customer
         // so it can't carry over to a future subscription. The org's discount
         // mirror fields are cleared by the `SubscriptionCancelled` subscriber

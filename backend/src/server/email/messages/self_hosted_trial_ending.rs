@@ -9,6 +9,10 @@ pub struct SelfHostedTrialEnding<'a> {
     pub plan_name: &'a str,
     pub billing_period: &'a str,
     pub has_payment: bool,
+    /// Formatted date the key stops working if the trial lapses: the trial
+    /// end plus the buffer every key is minted with. Used only when there is
+    /// no payment method.
+    pub key_expires: &'a str,
 }
 
 impl Email for SelfHostedTrialEnding<'_> {
@@ -58,9 +62,10 @@ impl Email for SelfHostedTrialEnding<'_> {
                         "Your {} {} trial ends in 3 days, and there is no payment method on file.",
                         self.plan_name, self.billing_period
                     ))
-                    .paragraph(
-                        "When the trial ends your license key stops working: your server stops accepting it and goes read-only. Add a payment method in Settings before then to keep the same key working.",
-                    ),
+                    .paragraph(&format!(
+                        "When the trial ends your license lapses. Your key keeps working until {}, then your server stops accepting it and goes read-only. Add a payment method in Settings before then to keep the same key working.",
+                        self.key_expires
+                    )),
                 "Add payment method",
             )
         };

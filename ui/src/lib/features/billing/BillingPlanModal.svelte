@@ -13,11 +13,7 @@
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { trackEvent } from '$lib/shared/utils/analytics';
 	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
-	import {
-		hadLicensedPlan,
-		hasLicensedPlan,
-		isBillingPlanActive
-	} from '$lib/features/organizations/types';
+	import { hasLicensedPlan, isBillingPlanActive } from '$lib/features/organizations/types';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
 	import { upgradeContext } from '$lib/features/billing/stores';
 	import { isLicenseSigningAvailable, useConfigQuery } from '$lib/shared/stores/config-query';
@@ -121,16 +117,15 @@
 	// Determine initial filter based on use case from onboarding
 	let useCase = $derived($onboardingStore.useCase);
 
-	// Open on Self-Hosted for orgs already on a licensed plan, else the tab requested at
-	// signup (`?hosting=self_hosted`), else Self-Hosted for an org whose license lapsed
-	// (its last paid plan was a licensed one), else Cloud.
+	// Open on Self-Hosted for orgs on a licensed plan (a lapsed one keeps its plan,
+	// so it lands here too), else the tab requested at signup
+	// (`?hosting=self_hosted`), else Cloud.
 	let initialHosting = $derived<PlanPickerHosting>(
 		!signingAvailable
 			? 'cloud'
 			: organization && hasLicensedPlan(organization)
 				? 'self_hosted'
-				: ($onboardingStore.hosting ??
-					(organization && hadLicensedPlan(organization) ? 'self_hosted' : 'cloud'))
+				: ($onboardingStore.hosting ?? 'cloud')
 	);
 
 	// Recommended plan based on use case

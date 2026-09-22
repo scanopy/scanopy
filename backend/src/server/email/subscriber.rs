@@ -191,11 +191,15 @@ impl Subscriber<BillingOperation> for EmailService {
                     // are on the customer's own server, so the recap would be
                     // four zeros.
                     if plan.license_plan().is_some() {
+                        let key_expires = self
+                            .license_key_expires(event.scope.organization_id)
+                            .await?;
                         self.send_self_hosted_trial_ending_email(
                             org_owner,
                             plan.name(),
                             has_payment_method,
                             plan.billing_period(),
+                            &key_expires,
                         )
                         .await?;
                     } else {
@@ -408,10 +412,18 @@ impl Subscriber<BillingOperation> for EmailService {
                     ..
                 } => {
                     let period_end_str = planned_period_end.format("%B %-d, %Y").to_string();
+                    // A paid licence is paid through the period end, and the
+                    // key carries the usual buffer past that. Computed from
+                    // the event, so no org read.
+                    let key_expires = (planned_period_end
+                        + chrono::Duration::days(PAID_THROUGH_BUFFER_DAYS))
+                    .format("%B %-d, %Y")
+                    .to_string();
                     self.send_cancellation_initiated_email(
                         org_owner,
                         &period_end_str,
                         plan.is_some_and(|plan| plan.license_plan().is_some()),
+                        &key_expires,
                     )
                     .await?;
                 }

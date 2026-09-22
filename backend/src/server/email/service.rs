@@ -304,6 +304,7 @@ impl EmailService {
         plan_name: &str,
         has_payment: bool,
         billing_period: &str,
+        key_expires: &str,
     ) -> Result<()> {
         self.dispatch(
             to,
@@ -311,6 +312,7 @@ impl EmailService {
                 plan_name,
                 billing_period,
                 has_payment,
+                key_expires,
             },
         )
         .await
@@ -430,12 +432,14 @@ impl EmailService {
         to: EmailAddress,
         period_end: &str,
         licensed: bool,
+        key_expires: &str,
     ) -> Result<()> {
         self.dispatch(
             to,
             &CancellationInitiated {
                 period_end,
                 licensed,
+                key_expires,
             },
         )
         .await
