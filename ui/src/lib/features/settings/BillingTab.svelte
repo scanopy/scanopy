@@ -3,7 +3,7 @@
 	import ProgressTrack from '$lib/shared/components/data/ProgressTrack.svelte';
 	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { hasLicensedPlan } from '$lib/features/organizations/types';
+	import { hasLicensedPlan, isPlanLapsed } from '$lib/features/organizations/types';
 	import { billingPlans, planStatuses } from '$lib/shared/stores/metadata';
 	import { canPay, isMissingPaymentMethod } from '$lib/shared/utils/trial';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
@@ -16,6 +16,7 @@
 		useInvoiceBillingStatusQuery,
 		useAcceptQuoteMutation,
 		useCancelQuoteMutation,
+		useCheckoutMutation,
 		downloadQuotePdf
 	} from '$lib/features/billing/queries';
 	import CancelSubscriptionModal from '$lib/features/billing/CancelSubscriptionModal.svelte';
@@ -38,6 +39,7 @@
 		common_usage,
 		settings_billing_billingQuestions,
 		settings_billing_lapsed,
+		billing_continueOnPlan,
 		settings_billing_contactUs,
 		settings_billing_currentPlan,
 		settings_billing_discount_active,
@@ -98,6 +100,10 @@
 	// TanStack Query for organization
 	const organizationQuery = useOrganizationQuery();
 	let org = $derived(organizationQuery.data);
+	// A lapsed org (subscription ended, no paid plan chosen since) keeps its
+	// plan; the way back is a new subscription to it, or to another paid plan.
+	let isLapsed = $derived(org != null && isPlanLapsed(org));
+	const checkoutMutation = useCheckoutMutation();
 	// Licensed self-hosted plans get license keys here instead of usage: the
 	// dashboard route is locked for them server-side.
 	let isLicensedPlan = $derived(org != null && hasLicensedPlan(org));
@@ -228,8 +234,10 @@
 	// refuses the change; hiding the CTAs means nobody clicks into that refusal.
 	// Cancelling stays available, and is the only way out until the date passes.
 	let airGappedPlanLocked = $derived(org?.air_gapped_key_current_until != null);
+	// A lapsed org's primary is "continue on your plan", so changing plan moves
+	// to the menu for it.
 	let showChangePlanItem = $derived(
-		missingCard && (isActive || isTrialing) && !airGappedPlanLocked
+		(missingCard && (isActive || isTrialing) && !airGappedPlanLocked) || isLapsed
 	);
 	// Cancel is available while on a live, manageable active/trial subscription.
 	let showCancelItem = $derived(hasManageableSubscription && (isActive || isTrialing));
@@ -247,6 +255,14 @@
 				label: billing_invoice_acceptCta(),
 				onclick: handleAcceptQuote,
 				disabled: acceptQuoteMutation.isPending
+			};
+		// The plan it lapsed from is the plan it most likely wants back; the
+		// menu's Change plan covers the rest.
+		if (isLapsed)
+			return {
+				label: billing_continueOnPlan({ plan: billingPlans.getName(org?.plan?.type ?? null) }),
+				onclick: handleContinueOnPlan,
+				disabled: checkoutMutation.isPending
 			};
 		if (missingCard)
 			return { label: billing_addPaymentMethod(), onclick: handleSetupPayment, icon: CreditCard };
@@ -510,6 +526,28 @@
 
 	function handleSetupPayment() {
 		startSetupPayment({ org, source: 'billing_tab', trialDaysLeft });
+	}
+
+	// Re-subscribe to the plan the org lapsed from. With a card on file the
+	// backend creates the subscription in place; without one the payment
+	// dialog collects the card and buys the plan on success.
+	async function handleContinueOnPlan() {
+		const plan = org?.plan;
+		if (!org || !plan) return;
+		if (!canPay(org)) {
+			startSetupPayment({ org, plan, source: 'billing_tab', trialDaysLeft });
+			return;
+		}
+		try {
+			const result = await checkoutMutation.mutateAsync(plan);
+			if (result.startsWith('http')) {
+				window.location.href = result;
+				return;
+			}
+			await waitForOrgUpdate((o) => o.plan_status === 'active');
+		} catch {
+			// The mutation toasts the failure.
+		}
 	}
 </script>
 

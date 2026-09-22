@@ -33,7 +33,7 @@
 </script>
 
 {#if shouldShow}
-	<AppBanner variant="warning" icon={Lock} {body}>
+	<AppBanner variant="danger" icon={Lock} {body}>
 		{#snippet actions()}
 			{#if isOwner}
 				<button

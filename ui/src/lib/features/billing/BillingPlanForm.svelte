@@ -42,6 +42,7 @@
 		common_custom,
 		common_feature,
 		common_getStarted,
+		billing_continueOnPlan,
 		common_hide,
 		common_hosts,
 		common_monthly,
@@ -98,6 +99,12 @@
 		isCurrentlyTrialing?: boolean;
 		/** The org's current plan type — shown as non-selectable "Your current plan". */
 		currentPlanType?: string | null;
+		/**
+		 * The org lapsed on `currentPlanType` (subscription ended, no paid plan
+		 * chosen since), so that plan is selectable again: continuing on it is a
+		 * new subscription, not a no-op.
+		 */
+		currentPlanLapsed?: boolean;
 	}
 
 	// eslint-disable-next-line svelte/no-unused-props
@@ -113,7 +120,8 @@
 		recommendedPlan = null,
 		isReturningCustomer = false,
 		isCurrentlyTrialing = false,
-		currentPlanType = null
+		currentPlanType = null,
+		currentPlanLapsed = false
 	}: Props = $props();
 
 	let loadingPlanType = $state<string | null>(null);
@@ -563,7 +571,7 @@
 						<div class="py-4" style="border-color: var(--color-border)">
 							{#if metadata?.purchase_flow === 'stripe' || metadata?.is_free}
 								<!-- Free has purchase_flow 'none' but activates in-app like a Stripe plan -->
-								{#if plan.type === currentPlanType}
+								{#if plan.type === currentPlanType && !currentPlanLapsed}
 									<InlineInfo title="" body={billing_yourCurrentPlan()} />
 								{:else}
 									<button
@@ -574,6 +582,8 @@
 									>
 										{#if loadingPlanType === plan.type}
 											<Loader2 class="mx-auto h-4 w-4 animate-spin" />
+										{:else if plan.type === currentPlanType}
+											{billing_continueOnPlan({ plan: billingPlanHelpers.getName(plan.type) })}
 										{:else if isCurrentlyTrialing}
 											{billing_switchPlan()}
 										{:else}

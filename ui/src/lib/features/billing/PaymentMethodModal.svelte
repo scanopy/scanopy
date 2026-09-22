@@ -52,7 +52,7 @@
 			orgPlanLicensed
 	);
 	// Nothing names the plan to invoice for: the form asks. Covers a reload
-	// mid-flow, which drops the plan carried in modal state.
+	// mid-flow, which rebuilds modal state from the URL without the plan.
 	let needsPlanChoice = $derived(pendingPlan == null && !orgPlanLicensed);
 
 	// Card and bank are Stripe's own tabs inside the Payment Element, which is up
@@ -90,13 +90,15 @@
 	}
 
 	async function handleCardSuccess(setupIntentId: string) {
+		// Read before the await: the registry can move on while the card is
+		// finalizing, and the plan this dialog was opened for must not go with it.
+		const plan = pendingPlan;
 		await finalizeMutation.mutateAsync(setupIntentId);
 
 		// Buying a plan: the card is now on file, so the backend creates the
 		// subscription in place. It only returns a URL when Stripe still needs
 		// the customer (3D Secure), and then we follow it.
-		if (pendingPlan) {
-			const plan = pendingPlan;
+		if (plan) {
 			closeAndReturn();
 			try {
 				const result = await checkoutMutation.mutateAsync(plan);
