@@ -8,6 +8,7 @@
 import { createQuery } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { unwrapData } from '$lib/api/query-helpers';
 
 /**
  * VLANs list. Called with no arguments this is the shared full-list cache, so
@@ -20,13 +21,11 @@ export function useVlansQuery(atGetter?: () => string | undefined) {
 		return {
 			queryKey: at ? [...queryKeys.vlans.all, 'asOf', at] : queryKeys.vlans.all,
 			queryFn: async () => {
-				const { data } = await apiClient.GET('/api/v1/vlans', {
-					params: { query: { limit: 0, at } }
-				});
-				if (!data?.success || !data.data) {
-					throw new Error(data?.error || 'Failed to fetch VLANs');
-				}
-				return data.data;
+				return unwrapData(
+					await apiClient.GET('/api/v1/vlans', {
+						params: { query: { limit: 0, at } }
+					})
+				);
 			}
 		};
 	});

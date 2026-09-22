@@ -10,6 +10,7 @@ import {
 } from '@tanstack/svelte-query';
 import { queryClient, queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { requireSuccess, unwrapData, unwrapEnvelope } from '$lib/api/query-helpers';
 import type { Discovery } from './types/base';
 import type { components } from '$lib/api/schema';
 import type { DiscoveryUpdatePayload } from './types/api';
@@ -33,13 +34,11 @@ export function useDiscoveriesQuery(enabled?: () => boolean) {
 	return createQuery(() => ({
 		queryKey: queryKeys.discovery.all,
 		queryFn: async () => {
-			const { data } = await apiClient.GET('/api/v1/discovery', {
-				params: { query: { limit: 0 } }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to fetch discoveries');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.GET('/api/v1/discovery', {
+					params: { query: { limit: 0 } }
+				})
+			);
 		},
 		...(enabled ? { enabled } : {})
 	}));
@@ -115,28 +114,27 @@ export function useDiscoveryHistoryQuery(
 			],
 			enabled: enabled(),
 			queryFn: async (): Promise<{ items: Discovery[]; pagination: PaginationMeta | null }> => {
-				const { data } = await apiClient.GET('/api/v1/discovery', {
-					params: {
-						query: {
-							limit,
-							offset,
-							group_by,
-							order_by,
-							order_direction,
-							search,
-							network_ids,
-							daemon_ids,
-							discovery_types,
-							historical: true
+				const envelope = unwrapEnvelope(
+					await apiClient.GET('/api/v1/discovery', {
+						params: {
+							query: {
+								limit,
+								offset,
+								group_by,
+								order_by,
+								order_direction,
+								search,
+								network_ids,
+								daemon_ids,
+								discovery_types,
+								historical: true
+							}
 						}
-					}
-				});
-				if (!data?.success || !data.data) {
-					throw new Error(data?.error || 'Failed to fetch discovery history');
-				}
+					})
+				);
 				return {
-					items: data.data,
-					pagination: data.meta?.pagination ?? null
+					items: envelope.data,
+					pagination: envelope.meta?.pagination ?? null
 				};
 			},
 			placeholderData: keepPreviousData
@@ -152,11 +150,7 @@ export function useCreateDiscoveryMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (discovery: Discovery) => {
-			const { data } = await apiClient.POST('/api/v1/discovery', { body: discovery });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to create discovery');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/v1/discovery', { body: discovery }));
 		},
 		onSuccess: (newDiscovery: Discovery) => {
 			queryClient.setQueryData<Discovery[]>(queryKeys.discovery.all, (old) =>
@@ -177,14 +171,12 @@ export function useUpdateDiscoveryMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (discovery: Discovery) => {
-			const { data } = await apiClient.PUT('/api/v1/discovery/{id}', {
-				params: { path: { id: discovery.id } },
-				body: discovery
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to update discovery');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.PUT('/api/v1/discovery/{id}', {
+					params: { path: { id: discovery.id } },
+					body: discovery
+				})
+			);
 		},
 		onSuccess: (updatedDiscovery: Discovery) => {
 			queryClient.setQueryData<Discovery[]>(
@@ -204,12 +196,11 @@ export function useDeleteDiscoveryMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (id: string) => {
-			const { data } = await apiClient.DELETE('/api/v1/discovery/{id}', {
-				params: { path: { id } }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete discovery');
-			}
+			requireSuccess(
+				await apiClient.DELETE('/api/v1/discovery/{id}', {
+					params: { path: { id } }
+				})
+			);
 			return id;
 		},
 		onSuccess: (id: string) => {
@@ -230,10 +221,7 @@ export function useBulkDeleteDiscoveriesMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (ids: string[]) => {
-			const { data } = await apiClient.POST('/api/v1/discovery/bulk-delete', { body: ids });
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete discoveries');
-			}
+			requireSuccess(await apiClient.POST('/api/v1/discovery/bulk-delete', { body: ids }));
 			return ids;
 		},
 		onSuccess: (ids: string[]) => {
@@ -493,11 +481,9 @@ export function useActiveSessionsQuery(getEnabled: () => boolean = () => true) {
 	return createQuery(() => ({
 		queryKey: queryKeys.discovery.sessions(),
 		queryFn: async () => {
-			const { data } = await apiClient.GET('/api/v1/discovery/active-sessions', {});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to fetch active sessions');
-			}
-			return data.data as DiscoveryUpdatePayload[];
+			return unwrapData(
+				await apiClient.GET('/api/v1/discovery/active-sessions', {})
+			) as DiscoveryUpdatePayload[];
 		},
 		// Sessions change frequently, keep fresh
 		staleTime: 5 * 1000,
@@ -513,13 +499,11 @@ export function useInitiateDiscoveryMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (discoveryId: string) => {
-			const { data: result } = await apiClient.POST('/api/v1/discovery/start-session', {
-				body: discoveryId
-			});
-			if (!result?.success || !result.data) {
-				throw new Error(result?.error || 'Failed to initiate discovery');
-			}
-			return result.data as DiscoveryUpdatePayload;
+			return unwrapData(
+				await apiClient.POST('/api/v1/discovery/start-session', {
+					body: discoveryId
+				})
+			) as DiscoveryUpdatePayload;
 		},
 		onSuccess: (session: DiscoveryUpdatePayload) => {
 			// Add session to cache
@@ -555,19 +539,19 @@ export function useCancelDiscoveryMutation() {
 				return m;
 			});
 
-			const { data: result } = await apiClient.POST('/api/v1/discovery/{session_id}/cancel', {
+			const result = await apiClient.POST('/api/v1/discovery/{session_id}/cancel', {
 				params: { path: { session_id: sessionId } }
 			});
 
-			if (!result?.success) {
-				// Clear cancelling state on failure
+			if (!result.response.ok) {
+				// Clear cancelling state on failure, before the throw below
 				cancellingSessions.update((c) => {
 					const m = new Map(c);
 					m.delete(sessionId);
 					return m;
 				});
-				throw new Error(result?.error || 'Failed to cancel discovery');
 			}
+			requireSuccess(result);
 
 			return sessionId;
 		}

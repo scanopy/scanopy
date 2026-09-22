@@ -12,6 +12,7 @@ import {
 } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { requireSuccess, unwrapData, unwrapEnvelope } from '$lib/api/query-helpers';
 import type { Service } from './types/base';
 import { utcTimeZoneSentinel } from '$lib/shared/utils/formatting';
 import { v4 as uuidv4 } from 'uuid';
@@ -122,33 +123,32 @@ export function useServicesQuery(
 				}
 			],
 			queryFn: async (): Promise<PaginatedResult<Service>> => {
-				const { data } = await apiClient.GET('/api/v1/services', {
-					params: {
-						query: {
-							limit,
-							offset,
-							network_ids,
-							host_ids,
-							service_definitions,
-							virtualization_service_ids,
-							include_uncontainerized,
-							group_by,
-							order_by,
-							order_direction,
-							tag_ids,
-							stale,
-							search,
-							ports,
-							exclude_categories
+				const envelope = unwrapEnvelope(
+					await apiClient.GET('/api/v1/services', {
+						params: {
+							query: {
+								limit,
+								offset,
+								network_ids,
+								host_ids,
+								service_definitions,
+								virtualization_service_ids,
+								include_uncontainerized,
+								group_by,
+								order_by,
+								order_direction,
+								tag_ids,
+								stale,
+								search,
+								ports,
+								exclude_categories
+							}
 						}
-					}
-				});
-				if (!data?.success || !data.data) {
-					throw new Error(data?.error || 'Failed to fetch services');
-				}
+					})
+				);
 				return {
-					items: data.data,
-					pagination: data.meta?.pagination ?? null
+					items: envelope.data,
+					pagination: envelope.meta?.pagination ?? null
 				};
 			},
 			// Keep showing previous page data while fetching next page
@@ -190,19 +190,16 @@ export function useServicesByIds(idsGetter: () => string[]) {
 			queryFn: async (): Promise<Service[]> => {
 				if (ids.length === 0) return [];
 
-				const { data } = await apiClient.GET('/api/v1/services', {
-					params: {
-						query: {
-							ids: ids,
-							limit: 0 // No pagination when fetching by IDs
+				return unwrapData(
+					await apiClient.GET('/api/v1/services', {
+						params: {
+							query: {
+								ids: ids,
+								limit: 0 // No pagination when fetching by IDs
+							}
 						}
-					}
-				});
-				if (!data?.success || !data.data) {
-					throw new Error(data?.error || 'Failed to fetch services');
-				}
-
-				return data.data;
+					})
+				);
 			},
 			enabled: ids.length > 0
 		};
@@ -217,11 +214,7 @@ export function useCreateServiceMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (service: Service) => {
-			const { data } = await apiClient.POST('/api/v1/services', { body: service });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to create service');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/v1/services', { body: service }));
 		},
 		onSuccess: (newService: Service) => {
 			queryClient.setQueryData<Service[]>(queryKeys.services.all, (old) =>
@@ -239,14 +232,12 @@ export function useUpdateServiceMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (service: Service) => {
-			const { data } = await apiClient.PUT('/api/v1/services/{id}', {
-				params: { path: { id: service.id } },
-				body: service
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to update service');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.PUT('/api/v1/services/{id}', {
+					params: { path: { id: service.id } },
+					body: service
+				})
+			);
 		},
 		onSuccess: (updatedService: Service) => {
 			queryClient.setQueryData<Service[]>(
@@ -267,12 +258,11 @@ export function useDeleteServiceMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (id: string) => {
-			const { data } = await apiClient.DELETE('/api/v1/services/{id}', {
-				params: { path: { id } }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete service');
-			}
+			requireSuccess(
+				await apiClient.DELETE('/api/v1/services/{id}', {
+					params: { path: { id } }
+				})
+			);
 			return id;
 		},
 		onSuccess: () => {
@@ -289,10 +279,7 @@ export function useBulkDeleteServicesMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (ids: string[]) => {
-			const { data } = await apiClient.POST('/api/v1/services/bulk-delete', { body: ids });
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete services');
-			}
+			requireSuccess(await apiClient.POST('/api/v1/services/bulk-delete', { body: ids }));
 			return ids;
 		},
 		onSuccess: () => {

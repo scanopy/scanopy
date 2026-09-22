@@ -5,6 +5,7 @@
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
 import { pushSuccess } from '$lib/shared/stores/feedback';
 import {
 	auth_emailVerified,
@@ -57,11 +58,7 @@ export function useLoginMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (request: LoginRequest) => {
-			const { data } = await apiClient.POST('/api/auth/login', { body: request });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Login failed. Please check your credentials.');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/auth/login', { body: request }));
 		},
 		onSuccess: (user: User) => {
 			queryClient.setQueryData(queryKeys.auth.currentUser(), user);
@@ -80,11 +77,7 @@ export function useLoginMutation() {
 export function useCheckEmailMutation() {
 	return createMutation(() => ({
 		mutationFn: async (request: { email: string }) => {
-			const { data } = await apiClient.POST('/api/auth/check-email', { body: request });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Email check failed');
-			}
-			return data.data.available;
+			return unwrapData(await apiClient.POST('/api/auth/check-email', { body: request })).available;
 		}
 	}));
 }
@@ -97,21 +90,7 @@ export function useRegisterMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (request: RegisterRequest) => {
-			const { data, error: apiError } = await apiClient.POST('/api/auth/register', {
-				body: request
-			});
-			if (!data?.success || !data.data) {
-				const err = new Error(
-					(apiError as Record<string, string> | undefined)?.error ||
-						data?.error ||
-						'Registration failed. Please try again.'
-				);
-				(err as Error & { code?: string }).code = (
-					apiError as Record<string, string> | undefined
-				)?.code;
-				throw err;
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/auth/register', { body: request }));
 		},
 		onSuccess: (user: User) => {
 			queryClient.setQueryData(queryKeys.auth.currentUser(), user);
@@ -132,10 +111,7 @@ export function useLogoutMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async () => {
-			const { data } = await apiClient.POST('/api/auth/logout', {});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Logout failed');
-			}
+			requireSuccess(await apiClient.POST('/api/auth/logout', {}));
 			return true;
 		},
 		onSuccess: () => {
@@ -154,10 +130,7 @@ export function useLogoutMutation() {
 export function useForgotPasswordMutation() {
 	return createMutation(() => ({
 		mutationFn: async (request: ForgotPasswordRequest) => {
-			const { data } = await apiClient.POST('/api/auth/forgot-password', { body: request });
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to send password reset link');
-			}
+			requireSuccess(await apiClient.POST('/api/auth/forgot-password', { body: request }));
 			return true;
 		},
 		onSuccess: () => {
@@ -174,11 +147,7 @@ export function useResetPasswordMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (request: ResetPasswordRequest) => {
-			const { data } = await apiClient.POST('/api/auth/reset-password', { body: request });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to reset password');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/auth/reset-password', { body: request }));
 		},
 		onSuccess: (user: User) => {
 			queryClient.setQueryData(queryKeys.auth.currentUser(), user);
@@ -198,11 +167,9 @@ export function useResetPasswordMutation() {
 export function useSetupMutation() {
 	return createMutation(() => ({
 		mutationFn: async (request: SetupRequest) => {
-			const { data } = await apiClient.POST('/api/auth/setup', { body: request });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to save setup data');
-			}
-			return data.data as SetupResponse;
+			return unwrapData(
+				await apiClient.POST('/api/auth/setup', { body: request })
+			) as SetupResponse;
 		}
 	}));
 }
@@ -215,11 +182,7 @@ export function useVerifyEmailMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (request: VerifyEmailRequest) => {
-			const { data } = await apiClient.POST('/api/auth/verify-email', { body: request });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Email verification failed');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/auth/verify-email', { body: request }));
 		},
 		onSuccess: (user: User) => {
 			queryClient.setQueryData(queryKeys.auth.currentUser(), user);
@@ -238,10 +201,7 @@ export function useVerifyEmailMutation() {
 export function useResendVerificationMutation() {
 	return createMutation(() => ({
 		mutationFn: async (request: ResendVerificationRequest) => {
-			const { data } = await apiClient.POST('/api/auth/resend-verification', { body: request });
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to resend verification email');
-			}
+			requireSuccess(await apiClient.POST('/api/auth/resend-verification', { body: request }));
 			return true;
 		},
 		onSuccess: () => {
@@ -258,12 +218,11 @@ export function useProfileUpdateMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (request: { job_title?: string; company_size?: string }) => {
-			const { data } = await apiClient.POST('/api/v1/organizations/profile', {
-				body: request
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to update profile');
-			}
+			requireSuccess(
+				await apiClient.POST('/api/v1/organizations/profile', {
+					body: request
+				})
+			);
 			return true;
 		},
 		onSuccess: () => {
@@ -290,17 +249,16 @@ export function useOnboardingStepMutation() {
 			referral_source?: string;
 			referral_source_other?: string;
 		}) => {
-			const { data } = await apiClient.POST('/api/auth/onboarding-step', {
-				body: {
-					step: params.step,
-					use_case: params.use_case,
-					referral_source: params.referral_source,
-					referral_source_other: params.referral_source_other
-				}
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to save onboarding step');
-			}
+			requireSuccess(
+				await apiClient.POST('/api/auth/onboarding-step', {
+					body: {
+						step: params.step,
+						use_case: params.use_case,
+						referral_source: params.referral_source,
+						referral_source_other: params.referral_source_other
+					}
+				})
+			);
 			return true;
 		}
 	}));

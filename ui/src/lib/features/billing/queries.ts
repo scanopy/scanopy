@@ -8,33 +8,7 @@ import { apiClient } from '$lib/api/client';
 import type { BillingPlan, BillingRate } from './types';
 import type { components } from '$lib/api/schema';
 import { pushSuccess } from '$lib/shared/stores/feedback';
-import { translateError } from '$lib/i18n/errors';
-
-/**
- * Translate a failed response body into a message.
- *
- * The generated schema types `code`, `error` and `params` as nullable, while
- * `ApiErrorResponse` declares them merely optional, so the two are not
- * assignable. Convert rather than assert: the runtime value really can carry
- * `null`, and a cast would only hide that.
- *
- * `fallback` covers a failure with no parsed body at all, such as a dropped
- * connection.
- */
-function apiErrorMessage(
-	error: components['schemas']['ApiErrorResponse'] | undefined,
-	serverMessage: string | null | undefined,
-	fallback: string
-): string {
-	if (error) {
-		return translateError({
-			code: error.code ?? undefined,
-			error: error.error ?? undefined,
-			params: error.params ?? undefined
-		});
-	}
-	return serverMessage ?? fallback;
-}
+import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
 
 type PauseDuration = components['schemas']['PauseDuration'];
 type CancelSubscriptionRequest = components['schemas']['CancelSubscriptionRequest'];
@@ -49,11 +23,7 @@ export function useBillingPlansQuery() {
 	return createQuery(() => ({
 		queryKey: queryKeys.billing.plans(),
 		queryFn: async () => {
-			const { data } = await apiClient.GET('/api/billing/plans');
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to fetch billing plans');
-			}
-			return data.data;
+			return unwrapData(await apiClient.GET('/api/billing/plans'));
 		}
 	}));
 }
@@ -64,13 +34,11 @@ export function useBillingPlansQuery() {
 export function useCheckoutMutation() {
 	return createMutation(() => ({
 		mutationFn: async (plan: BillingPlan) => {
-			const { data, error } = await apiClient.POST('/api/billing/checkout', {
-				body: { plan, url: window.location.origin }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(apiErrorMessage(error, data?.error, 'Failed to get checkout URL'));
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.POST('/api/billing/checkout', {
+					body: { plan, url: window.location.origin }
+				})
+			);
 		},
 		onSuccess: (data: string) => {
 			// Non-URL response means plan was changed directly (existing subscriber)
@@ -87,13 +55,11 @@ export function useCheckoutMutation() {
 export function useCustomerPortalMutation() {
 	return createMutation(() => ({
 		mutationFn: async () => {
-			const { data } = await apiClient.POST('/api/billing/portal', {
-				body: window.location.origin
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to get billing portal URL');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.POST('/api/billing/portal', {
+					body: window.location.origin
+				})
+			);
 		}
 	}));
 }
@@ -105,11 +71,10 @@ export function useCustomerPortalMutation() {
 export function useCreateSetupIntentMutation() {
 	return createMutation(() => ({
 		mutationFn: async () => {
-			const { data } = await apiClient.POST('/api/billing/payment-method-setup-intent', {});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to start card setup');
-			}
-			return data.data.client_secret;
+			const setupIntent = unwrapData(
+				await apiClient.POST('/api/billing/payment-method-setup-intent', {})
+			);
+			return setupIntent.client_secret;
 		}
 	}));
 }
@@ -121,12 +86,11 @@ export function useCreateSetupIntentMutation() {
 export function useFinalizePaymentMethodMutation() {
 	return createMutation(() => ({
 		mutationFn: async (setupIntentId: string) => {
-			const { data } = await apiClient.POST('/api/billing/finalize-payment-method', {
-				body: { setup_intent_id: setupIntentId }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to save payment method');
-			}
+			requireSuccess(
+				await apiClient.POST('/api/billing/finalize-payment-method', {
+					body: { setup_intent_id: setupIntentId }
+				})
+			);
 			return true;
 		}
 	}));
@@ -138,13 +102,11 @@ export function useFinalizePaymentMethodMutation() {
 export function useChangePlanMutation() {
 	return createMutation(() => ({
 		mutationFn: async ({ plan, rate }: { plan: BillingPlan; rate: BillingRate }) => {
-			const { data, error } = await apiClient.POST('/api/billing/change-plan', {
-				body: { plan, rate }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(apiErrorMessage(error, data?.error, 'Failed to change plan'));
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.POST('/api/billing/change-plan', {
+					body: { plan, rate }
+				})
+			);
 		},
 		onSuccess: (data: string) => {
 			pushSuccess(data);
@@ -158,13 +120,11 @@ export function useChangePlanMutation() {
 export function usePauseSubscriptionMutation() {
 	return createMutation(() => ({
 		mutationFn: async (duration_days: PauseDuration) => {
-			const { data } = await apiClient.POST('/api/billing/pause', {
-				body: { duration_days }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to pause subscription');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.POST('/api/billing/pause', {
+					body: { duration_days }
+				})
+			);
 		}
 		// No onSuccess toast — the call site fires it AFTER waitForOrgUpdate
 		// confirms the org actually flipped to paused. The API 200 only means
@@ -178,11 +138,7 @@ export function usePauseSubscriptionMutation() {
 export function useResumeSubscriptionMutation() {
 	return createMutation(() => ({
 		mutationFn: async () => {
-			const { data } = await apiClient.POST('/api/billing/resume', {});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to resume subscription');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/billing/resume', {}));
 		}
 		// No onSuccess toast — call site fires it after waitForOrgUpdate.
 	}));
@@ -194,11 +150,7 @@ export function useResumeSubscriptionMutation() {
 export function useReactivateSubscriptionMutation() {
 	return createMutation(() => ({
 		mutationFn: async () => {
-			const { data } = await apiClient.POST('/api/billing/reactivate', {});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to reactivate subscription');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/billing/reactivate', {}));
 		}
 		// No onSuccess toast — call site fires it after waitForOrgUpdate.
 	}));
@@ -210,11 +162,7 @@ export function useReactivateSubscriptionMutation() {
 export function useExtendTrialMutation() {
 	return createMutation(() => ({
 		mutationFn: async () => {
-			const { data } = await apiClient.POST('/api/billing/extend-trial', {});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to extend trial');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/billing/extend-trial', {}));
 		}
 		// No onSuccess toast — call site fires it after waitForOrgUpdate.
 	}));
@@ -227,11 +175,7 @@ export function useExtendTrialMutation() {
 export function useCancelSubscriptionMutation() {
 	return createMutation(() => ({
 		mutationFn: async (request: CancelSubscriptionRequest): Promise<CancelSubscriptionResponse> => {
-			const { data } = await apiClient.POST('/api/billing/cancel', { body: request });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to cancel subscription');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/billing/cancel', { body: request }));
 		}
 	}));
 }
@@ -246,11 +190,9 @@ export function useSaveOfferCouponQuery(enabled: () => boolean = () => true) {
 		queryKey: queryKeys.billing.saveOfferCoupon(),
 		enabled: enabled(),
 		queryFn: async () => {
-			const { data } = await apiClient.GET('/api/billing/save-offer-coupon', {});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to read save-offer coupon');
-			}
-			return data.data ?? null;
+			const result = await apiClient.GET('/api/billing/save-offer-coupon', {});
+			requireSuccess(result);
+			return result.data?.data ?? null;
 		}
 	}));
 }
@@ -263,11 +205,7 @@ export function useSaveOfferCouponQuery(enabled: () => boolean = () => true) {
 export function useApplyDiscountSaveOfferMutation() {
 	return createMutation(() => ({
 		mutationFn: async () => {
-			const { data } = await apiClient.POST('/api/billing/cancel/apply-discount', {});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to apply discount');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/billing/cancel/apply-discount', {}));
 		}
 		// No onSuccess toast — call site fires it after waitForOrgUpdate confirms
 		// `org.last_discount_at` is populated, so success is tied to the actual
@@ -285,11 +223,7 @@ export function useCurrentLicenseKeyQuery(enabled: () => boolean = () => true) {
 		queryKey: queryKeys.licenses.currentKey(),
 		enabled: enabled(),
 		queryFn: async (): Promise<LicenseKeyResponse> => {
-			const { data } = await apiClient.GET('/api/v1/licenses/keys/current', {});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to read license key');
-			}
-			return data.data;
+			return unwrapData(await apiClient.GET('/api/v1/licenses/keys/current', {}));
 		}
 	}));
 }
@@ -302,13 +236,11 @@ export function useCurrentLicenseKeyQuery(enabled: () => boolean = () => true) {
 export function useCreateLicenseKeyMutation() {
 	return createMutation(() => ({
 		mutationFn: async (key_type: LicenseKeyType): Promise<LicenseKeyResponse> => {
-			const { data } = await apiClient.POST('/api/v1/licenses/keys', {
-				body: { key_type }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to create license key');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.POST('/api/v1/licenses/keys', {
+					body: { key_type }
+				})
+			);
 		},
 		// The response is the org's current key, so the tab shows the new key
 		// without a second round trip.
@@ -325,11 +257,7 @@ export function useCreateLicenseKeyMutation() {
 export function useEndTrialMutation() {
 	return createMutation(() => ({
 		mutationFn: async () => {
-			const { data } = await apiClient.POST('/api/billing/end-trial', {});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to end trial');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/billing/end-trial', {}));
 		}
 	}));
 }
@@ -341,10 +269,7 @@ export function useEndTrialMutation() {
 export function useRotateLicenseKeyMutation() {
 	return createMutation(() => ({
 		mutationFn: async () => {
-			const { data } = await apiClient.POST('/api/v1/licenses/keys/rotate', {});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to rotate license key');
-			}
+			requireSuccess(await apiClient.POST('/api/v1/licenses/keys/rotate', {}));
 			return true;
 		},
 		onSuccess: () => {
@@ -363,13 +288,11 @@ export function useChangePlanPreviewQuery(plan: () => BillingPlan | null) {
 		queryFn: async () => {
 			const planValue = plan();
 			if (!planValue) return null;
-			const { data } = await apiClient.GET('/api/billing/change-plan/preview', {
-				params: { query: { plan: JSON.stringify(planValue) } }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to get plan preview');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.GET('/api/billing/change-plan/preview', {
+					params: { query: { plan: JSON.stringify(planValue) } }
+				})
+			);
 		},
 		enabled: !!plan()
 	}));
@@ -387,11 +310,7 @@ export function useInvoiceBillingStatusQuery(enabled: () => boolean = () => true
 		queryKey: queryKeys.billing.invoiceBilling(),
 		enabled: enabled(),
 		queryFn: async (): Promise<InvoiceBillingStatus> => {
-			const { data } = await apiClient.GET('/api/billing/invoice-billing', {});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to read invoice billing');
-			}
-			return data.data;
+			return unwrapData(await apiClient.GET('/api/billing/invoice-billing', {}));
 		}
 	}));
 }
@@ -408,11 +327,7 @@ function invalidateInvoiceBilling() {
 export function useSetUpInvoiceBillingMutation() {
 	return createMutation(() => ({
 		mutationFn: async (request: InvoiceBillingRequest): Promise<string> => {
-			const { data } = await apiClient.POST('/api/billing/invoice-billing', { body: request });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to set up invoice billing');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/billing/invoice-billing', { body: request }));
 		},
 		onSuccess: invalidateInvoiceBilling
 	}));
@@ -426,11 +341,7 @@ export function useSetUpInvoiceBillingMutation() {
 export function useAcceptQuoteMutation() {
 	return createMutation(() => ({
 		mutationFn: async (): Promise<string> => {
-			const { data } = await apiClient.POST('/api/billing/quote/accept', {});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to accept quote');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/billing/quote/accept', {}));
 		},
 		onSuccess: invalidateInvoiceBilling
 	}));
@@ -440,10 +351,7 @@ export function useAcceptQuoteMutation() {
 export function useCancelQuoteMutation() {
 	return createMutation(() => ({
 		mutationFn: async () => {
-			const { data } = await apiClient.DELETE('/api/billing/quote', {});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to cancel quote');
-			}
+			requireSuccess(await apiClient.DELETE('/api/billing/quote', {}));
 		},
 		onSuccess: invalidateInvoiceBilling
 	}));
@@ -453,12 +361,11 @@ export function useCancelQuoteMutation() {
 export function useUpdatePoNumberMutation() {
 	return createMutation(() => ({
 		mutationFn: async (poNumber: string | null) => {
-			const { data } = await apiClient.PUT('/api/billing/po-number', {
-				body: { po_number: poNumber }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to update PO number');
-			}
+			requireSuccess(
+				await apiClient.PUT('/api/billing/po-number', {
+					body: { po_number: poNumber }
+				})
+			);
 		},
 		onSuccess: invalidateInvoiceBilling
 	}));

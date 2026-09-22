@@ -157,23 +157,30 @@ impl PaginatedApiMeta {
     }
 }
 
-/// The success envelope.
-///
-/// Fields are private so the only way to build one is [`ApiResponse::success`].
-/// A handler that fails returns an [`ApiError`], which sends a real error status
-/// with an [`ApiErrorResponse`] body. That keeps "200 with `success: false`" out
-/// of the API by construction rather than by convention: a client can trust the
-/// status code, and the frontend's error middleware sees every failure.
+// Doc comments on this type become public OpenAPI descriptions (utoipa reads
+// `///`), so they describe the wire contract. Implementation notes stay in
+// plain comments like this one.
+//
+// Fields are private so the only way to build one is `ApiResponse::success`.
+// A handler that fails returns an `ApiError`, which sends a real error status
+// with an `ApiErrorResponse` body. That keeps "200 with `success: false`" out of
+// the API by construction: a client can trust the status code, and the
+// frontend's error middleware sees every failure.
+//
+// `success: false` and `error` do still appear in a value of this type on the
+// receiving side, when the daemon or the server's daemon client parses an error
+// body into this envelope. `is_success()` and `error()` exist for that.
+/// Envelope for a successful response. Failures are sent with a non-2xx status
+/// and an `ApiErrorResponse` body instead.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ApiResponse<T> {
-    /// `true` for every response a handler sends. `false` only when a client
-    /// parses an error body into this envelope, as the daemon and the server's
-    /// daemon client do; that is what [`ApiResponse::is_success`] is for.
+    /// Always `true` on a successful response.
     success: bool,
-    /// The result payload. Omitted when an error body was parsed.
+    /// The result payload.
     #[serde(skip_serializing_if = "Option::is_none")]
     data: Option<T>,
-    /// Human-readable failure message, present only when an error body was parsed.
+    /// Not sent on a successful response. Failure messages arrive in an
+    /// `ApiErrorResponse`.
     #[serde(skip_serializing_if = "Option::is_none")]
     error: Option<String>,
     /// API and server version metadata.

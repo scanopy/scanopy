@@ -12,6 +12,7 @@ import {
 } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
 import type { Credential } from './types/base';
 
 /**
@@ -31,13 +32,11 @@ export function useCredentialsQuery() {
 	return createQuery(() => ({
 		queryKey: queryKeys.credentials.all,
 		queryFn: async () => {
-			const { data } = await apiClient.GET('/api/v1/credentials', {
-				params: { query: { limit: 0 } }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to fetch credentials');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.GET('/api/v1/credentials', {
+					params: { query: { limit: 0 } }
+				})
+			);
 		}
 	}));
 }
@@ -49,13 +48,11 @@ export function useCredentialQuery(id: string) {
 	return createQuery(() => ({
 		queryKey: queryKeys.credentials.detail(id),
 		queryFn: async () => {
-			const { data } = await apiClient.GET('/api/v1/credentials/{id}', {
-				params: { path: { id } }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to fetch credential');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.GET('/api/v1/credentials/{id}', {
+					params: { path: { id } }
+				})
+			);
 		},
 		enabled: !!id
 	}));
@@ -69,11 +66,7 @@ export function useCreateCredentialMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (credential: Credential) => {
-			const { data } = await apiClient.POST('/api/v1/credentials', { body: credential });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to create credential');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/v1/credentials', { body: credential }));
 		},
 		onSuccess: (newCredential: Credential) => {
 			queryClient.setQueryData<Credential[]>(queryKeys.credentials.all, (old) =>
@@ -93,14 +86,12 @@ export function useUpdateCredentialMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (credential: Credential) => {
-			const { data } = await apiClient.PUT('/api/v1/credentials/{id}', {
-				params: { path: { id: credential.id } },
-				body: credential
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to update credential');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.PUT('/api/v1/credentials/{id}', {
+					params: { path: { id: credential.id } },
+					body: credential
+				})
+			);
 		},
 		onSuccess: (updatedCredential: Credential) => {
 			queryClient.setQueryData<Credential[]>(
@@ -124,12 +115,11 @@ export function useDeleteCredentialMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (id: string) => {
-			const { data } = await apiClient.DELETE('/api/v1/credentials/{id}', {
-				params: { path: { id } }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete credential');
-			}
+			requireSuccess(
+				await apiClient.DELETE('/api/v1/credentials/{id}', {
+					params: { path: { id } }
+				})
+			);
 			return id;
 		},
 		onSuccess: (id: string) => {
@@ -151,17 +141,7 @@ export function useBulkCreateCredentialsMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (credentials: Credential[]) => {
-			const res = await fetch('/api/v1/credentials/bulk', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(credentials),
-				credentials: 'include'
-			});
-			const data = await res.json();
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to bulk create credentials');
-			}
-			return data.data as Credential[];
+			return unwrapData(await apiClient.POST('/api/v1/credentials/bulk', { body: credentials }));
 		},
 		onSuccess: (newCredentials: Credential[]) => {
 			queryClient.setQueryData<Credential[]>(queryKeys.credentials.all, (old) =>
@@ -180,10 +160,7 @@ export function useBulkDeleteCredentialsMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (ids: string[]) => {
-			const { data } = await apiClient.POST('/api/v1/credentials/bulk-delete', { body: ids });
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to bulk delete credentials');
-			}
+			requireSuccess(await apiClient.POST('/api/v1/credentials/bulk-delete', { body: ids }));
 			return ids;
 		},
 		onSuccess: (ids: string[]) => {

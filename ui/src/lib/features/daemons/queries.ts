@@ -5,6 +5,7 @@
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
 import type { components, paths } from '$lib/api/schema';
 import type { Daemon } from './types/base';
 import type { DiscoveryUpdatePayload } from '../discovery/types/api';
@@ -17,13 +18,11 @@ export function useDaemonsQuery(options?: { enabled?: () => boolean }) {
 	return createQuery(() => ({
 		queryKey: queryKeys.daemons.all,
 		queryFn: async () => {
-			const { data } = await apiClient.GET('/api/v1/daemons', {
-				params: { query: { limit: 0 } }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to fetch daemons');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.GET('/api/v1/daemons', {
+					params: { query: { limit: 0 } }
+				})
+			);
 		},
 		enabled: options?.enabled?.() ?? true
 	}));
@@ -38,13 +37,11 @@ export function useDaemonQuery(id: () => string | null, options?: { enabled?: ()
 		queryFn: async () => {
 			const daemonId = id();
 			if (!daemonId) throw new Error('No daemon ID');
-			const { data } = await apiClient.GET('/api/v1/daemons/{id}', {
-				params: { path: { id: daemonId } }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to fetch daemon');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.GET('/api/v1/daemons/{id}', {
+					params: { path: { id: daemonId } }
+				})
+			);
 		},
 		enabled: (options?.enabled?.() ?? true) && !!id()
 	}));
@@ -71,13 +68,11 @@ export function useDaemonInstallCommandQuery(
 			queryFn: async () => {
 				const daemonId = id();
 				if (!daemonId) throw new Error('No daemon ID');
-				const { data } = await apiClient.GET('/api/v1/daemons/{id}/install-command', {
-					params: { path: { id: daemonId }, query }
-				});
-				if (!data?.success || !data.data) {
-					throw new Error(data?.error || 'Failed to fetch install command');
-				}
-				return data.data;
+				return unwrapData(
+					await apiClient.GET('/api/v1/daemons/{id}/install-command', {
+						params: { path: { id: daemonId }, query }
+					})
+				);
 			},
 			enabled: (options?.enabled?.() ?? true) && !!id()
 		};
@@ -93,14 +88,12 @@ export function useUpdateDaemonMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (daemon: Daemon) => {
-			const { data } = await apiClient.PUT('/api/v1/daemons/{id}', {
-				params: { path: { id: daemon.id } },
-				body: daemon
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to update daemon');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.PUT('/api/v1/daemons/{id}', {
+					params: { path: { id: daemon.id } },
+					body: daemon
+				})
+			);
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: queryKeys.daemons.all });
@@ -116,12 +109,11 @@ export function useDeleteDaemonMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (id: string) => {
-			const { data } = await apiClient.DELETE('/api/v1/daemons/{id}', {
-				params: { path: { id } }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete daemon');
-			}
+			requireSuccess(
+				await apiClient.DELETE('/api/v1/daemons/{id}', {
+					params: { path: { id } }
+				})
+			);
 			return id;
 		},
 		onSuccess: (id: string) => {
@@ -141,10 +133,7 @@ export function useBulkDeleteDaemonsMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (ids: string[]) => {
-			const { data } = await apiClient.POST('/api/v1/daemons/bulk-delete', { body: ids });
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete daemons');
-			}
+			requireSuccess(await apiClient.POST('/api/v1/daemons/bulk-delete', { body: ids }));
 			return ids;
 		},
 		onSuccess: (ids: string[]) => {
@@ -165,13 +154,11 @@ export function useProvisionDaemonMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (request: ProvisionDaemonRequest): Promise<ProvisionDaemonResponse> => {
-			const { data } = await apiClient.POST('/api/v1/daemons/provision', {
-				body: request
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to provision daemon');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.POST('/api/v1/daemons/provision', {
+					body: request
+				})
+			);
 		},
 		onSuccess: (response: ProvisionDaemonResponse) => {
 			// Re-provisioning returns an existing daemon, so replace it in place rather than
@@ -194,12 +181,11 @@ export function useRetryDaemonConnectionMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (id: string) => {
-			const { data } = await apiClient.POST('/api/v1/daemons/{id}/retry-connection', {
-				params: { path: { id } }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to retry daemon connection');
-			}
+			requireSuccess(
+				await apiClient.POST('/api/v1/daemons/{id}/retry-connection', {
+					params: { path: { id } }
+				})
+			);
 			return id;
 		},
 		onSuccess: (id: string) => {
@@ -218,13 +204,11 @@ export function useRetryDaemonConnectionMutation() {
 export function useTestReachabilityMutation() {
 	return createMutation(() => ({
 		mutationFn: async (request: { url: string; check_health: boolean }) => {
-			const { data } = await apiClient.POST('/api/v1/daemons/test-reachability', {
-				body: request
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to test reachability');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.POST('/api/v1/daemons/test-reachability', {
+					body: request
+				})
+			);
 		}
 	}));
 }
@@ -241,12 +225,11 @@ export function useEmailInstallCommandMutation() {
 			installCommand: string;
 			os: components['schemas']['DaemonOs'];
 		}) => {
-			const { data } = await apiClient.POST('/api/v1/daemons/email-install-command', {
-				body: { install_command: installCommand, os }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to send email');
-			}
+			requireSuccess(
+				await apiClient.POST('/api/v1/daemons/email-install-command', {
+					body: { install_command: installCommand, os }
+				})
+			);
 		}
 	}));
 }

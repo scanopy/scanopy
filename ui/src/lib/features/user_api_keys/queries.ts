@@ -6,6 +6,7 @@
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
 import type { components } from '$lib/api/schema';
 import { utcTimeZoneSentinel, uuidv4Sentinel } from '$lib/shared/utils/formatting';
 
@@ -20,13 +21,11 @@ export function useUserApiKeysQuery(options?: { enabled?: () => boolean }) {
 	return createQuery(() => ({
 		queryKey: queryKeys.userApiKeys.all,
 		queryFn: async () => {
-			const { data } = await apiClient.GET('/api/v1/auth/keys', {
-				params: { query: { limit: 0 } }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to fetch user API keys');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.GET('/api/v1/auth/keys', {
+					params: { query: { limit: 0 } }
+				})
+			);
 		},
 		enabled: options?.enabled?.() ?? true
 	}));
@@ -49,11 +48,9 @@ export function useCreateUserApiKeyMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (apiKey: UserApiKey) => {
-			const { data } = await apiClient.POST('/api/v1/auth/keys', { body: apiKey });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to create user API key');
-			}
-			const response = data.data as CreateUserApiKeyResponse;
+			const response = unwrapData(
+				await apiClient.POST('/api/v1/auth/keys', { body: apiKey })
+			) as CreateUserApiKeyResponse;
 			return { keyString: response.key, apiKey: response.api_key };
 		},
 		onSuccess: ({ apiKey }) => {
@@ -72,14 +69,12 @@ export function useUpdateUserApiKeyMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (apiKey: UserApiKey) => {
-			const { data } = await apiClient.PUT('/api/v1/auth/keys/{id}', {
-				params: { path: { id: apiKey.id } },
-				body: apiKey
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to update user API key');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.PUT('/api/v1/auth/keys/{id}', {
+					params: { path: { id: apiKey.id } },
+					body: apiKey
+				})
+			);
 		},
 		onSuccess: (updatedKey: UserApiKey) => {
 			queryClient.setQueryData<UserApiKey[]>(
@@ -98,12 +93,11 @@ export function useDeleteUserApiKeyMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (id: string) => {
-			const { data } = await apiClient.DELETE('/api/v1/auth/keys/{id}', {
-				params: { path: { id } }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete user API key');
-			}
+			requireSuccess(
+				await apiClient.DELETE('/api/v1/auth/keys/{id}', {
+					params: { path: { id } }
+				})
+			);
 			return id;
 		},
 		onSuccess: (id: string) => {
@@ -123,10 +117,7 @@ export function useBulkDeleteUserApiKeysMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (ids: string[]) => {
-			const { data } = await apiClient.POST('/api/v1/auth/keys/bulk-delete', { body: ids });
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete user API keys');
-			}
+			requireSuccess(await apiClient.POST('/api/v1/auth/keys/bulk-delete', { body: ids }));
 			return ids;
 		},
 		onSuccess: (ids: string[]) => {
@@ -144,13 +135,11 @@ export function useBulkDeleteUserApiKeysMutation() {
 export function useRotateUserApiKeyMutation() {
 	return createMutation(() => ({
 		mutationFn: async (keyId: string) => {
-			const { data } = await apiClient.POST('/api/v1/auth/keys/{id}/rotate', {
-				params: { path: { id: keyId } }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to rotate user API key');
-			}
-			return data.data as string;
+			return unwrapData(
+				await apiClient.POST('/api/v1/auth/keys/{id}/rotate', {
+					params: { path: { id: keyId } }
+				})
+			) as string;
 		}
 	}));
 }

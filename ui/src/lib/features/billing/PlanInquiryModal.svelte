@@ -43,6 +43,7 @@
 		common_submit
 	} from '$lib/paraglide/messages';
 	import { apiClient } from '$lib/api/client';
+	import { requireSuccess } from '$lib/api/query-helpers';
 
 	interface Props {
 		isOpen?: boolean;
@@ -115,25 +116,23 @@
 			submitError = '';
 
 			try {
-				const response = await apiClient.POST('/api/billing/inquiry', {
-					body: {
-						email: userEmail,
-						name: value.name.trim(),
-						company: orgName,
-						team_size: teamSize,
-						message: value.message.trim(),
-						urgency: value.urgency || undefined,
-						network_count: value.networkCount ?? undefined,
-						plan_type: planType || undefined
-					}
-				});
+				requireSuccess(
+					await apiClient.POST('/api/billing/inquiry', {
+						body: {
+							email: userEmail,
+							name: value.name.trim(),
+							company: orgName,
+							team_size: teamSize,
+							message: value.message.trim(),
+							urgency: value.urgency || undefined,
+							network_count: value.networkCount ?? undefined,
+							plan_type: planType || undefined
+						}
+					})
+				);
 
-				if (response.data?.success) {
-					status = 'success';
-					trackEvent('plan_inquiry_submitted', { planType, success: true });
-				} else {
-					throw new Error(response.data?.error || 'Failed to submit');
-				}
+				status = 'success';
+				trackEvent('plan_inquiry_submitted', { planType, success: true });
 			} catch (err) {
 				console.error('Plan inquiry form error:', err);
 				submitError = common_somethingWentWrong();
