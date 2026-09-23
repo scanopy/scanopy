@@ -255,6 +255,15 @@ pub enum BillingOperation {
     InvoiceVoided {
         invoice: BillingInvoice,
     },
+    /// Stripe could not finalize a draft licence invoice
+    /// (`invoice.finalization_failed`), so it was never issued or emailed and
+    /// no licence period was granted. Carries Stripe's reason, usually a
+    /// rejected tax ID, for the email that asks the owner to check the
+    /// billing details. Implies no status: the org keeps whatever it had.
+    InvoiceFinalizationFailed {
+        invoice: BillingInvoice,
+        reason: String,
+    },
     /// A sent invoice passed its due date unpaid (`invoice.overdue`). Stripe
     /// makes no charge attempt on one, so `PaymentFailed` never fires and this
     /// is the only signal that an invoice buyer has stopped paying. The
@@ -474,6 +483,7 @@ impl BillingOperation {
             | Self::PaymentSucceeded { .. }
             | Self::InvoiceIssued { .. }
             | Self::InvoiceVoided { .. }
+            | Self::InvoiceFinalizationFailed { .. }
             | Self::DiscountApplied { .. }
             | Self::CancellationFeedbackProvided { .. }
             | Self::StripeCustomerCreated { .. }

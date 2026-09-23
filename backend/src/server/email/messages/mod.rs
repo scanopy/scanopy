@@ -20,6 +20,7 @@ mod email_changed_old;
 mod install_command;
 mod invite;
 mod invoice_credited;
+mod invoice_finalization_failed;
 mod invoice_issued;
 mod invoice_overdue;
 pub mod links;
@@ -66,6 +67,7 @@ pub use email_changed_old::EmailChangedOld;
 pub use install_command::InstallCommand;
 pub use invite::Invite;
 pub use invoice_credited::InvoiceCredited;
+pub use invoice_finalization_failed::InvoiceFinalizationFailed;
 pub use invoice_issued::InvoiceIssued;
 pub use invoice_overdue::InvoiceOverdue;
 pub use oidc_linked::OidcLinked;
@@ -569,6 +571,13 @@ mod tests {
                 due_date: "October 18, 2026",
                 po_number: None,
                 cta_href: "https://billing.example.test/invoice/abc",
+            },
+        );
+        f(
+            "invoice_finalization_failed",
+            &InvoiceFinalizationFailed {
+                plan_name: "Self-Hosted Standard",
+                reason: "The tax ID DE999999999 could not be validated.",
             },
         );
         f(

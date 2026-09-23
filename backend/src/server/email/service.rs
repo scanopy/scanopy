@@ -11,13 +11,14 @@ use uuid::Uuid;
 use super::messages::{
     AirgapExpiring, AirgapRenewal, CancellationInitiated, CheckoutCompleted, DaemonStandby,
     DaemonSunset, DaemonUnreachable, DiscoveryDigest, DiscoveryGuide, Email, EmailAttachment,
-    EmailChangedOld, EmailPreference, InstallCommand, Invite, InvoiceCredited, InvoiceIssued,
-    InvoiceOverdue, OidcLinked, OidcUnlinked, OrganizationDeleted, PasswordChanged, PasswordReset,
-    PaymentActionRequired, PaymentFailed, PaymentMethodAdded, PaymentMethodRemoved,
-    PaymentRecovered, PlanChanged, PlanLimitApproaching, PlanLimitReached, SelfHostedLicenseEnded,
-    SelfHostedPaymentFailed, SelfHostedPlanChanged, SelfHostedTrialEnding, SelfHostedWelcome,
-    SubscriptionCancelled, SubscriptionPaused, SubscriptionReactivated, SubscriptionResumed,
-    TrialConverted, TrialEnding, TrialExpired, TrialStarted, UsageSummary, Verification, links,
+    EmailChangedOld, EmailPreference, InstallCommand, Invite, InvoiceCredited,
+    InvoiceFinalizationFailed, InvoiceIssued, InvoiceOverdue, OidcLinked, OidcUnlinked,
+    OrganizationDeleted, PasswordChanged, PasswordReset, PaymentActionRequired, PaymentFailed,
+    PaymentMethodAdded, PaymentMethodRemoved, PaymentRecovered, PlanChanged, PlanLimitApproaching,
+    PlanLimitReached, SelfHostedLicenseEnded, SelfHostedPaymentFailed, SelfHostedPlanChanged,
+    SelfHostedTrialEnding, SelfHostedWelcome, SubscriptionCancelled, SubscriptionPaused,
+    SubscriptionReactivated, SubscriptionResumed, TrialConverted, TrialEnding, TrialExpired,
+    TrialStarted, UsageSummary, Verification, links,
 };
 use super::transport::EmailTransport;
 use crate::server::{
@@ -612,6 +613,17 @@ impl EmailService {
             },
         )
         .await
+    }
+
+    /// Stripe refused to finalize a licence invoice, so it was never issued.
+    pub async fn send_invoice_finalization_failed_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        reason: &str,
+    ) -> Result<()> {
+        self.dispatch(to, &InvoiceFinalizationFailed { plan_name, reason })
+            .await
     }
 
     /// A sent invoice passed its due date. The licence still has its grace
