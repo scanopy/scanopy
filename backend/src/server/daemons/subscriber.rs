@@ -147,23 +147,29 @@ impl Subscriber<DiscoveryPhase> for DaemonService {
                         // Nothing will ever end this session from the daemon's side, so the
                         // server does. Otherwise it sits until the stall sweep, and the next scan
                         // of the same discovery is refused as already running.
-                        CancelDelivery::Undeliverable(why) => {
-                            self.discovery_service
-                                .fail_session(
-                                    session_id,
-                                    DiscoveryTerminalReason::DaemonUnreachable,
-                                    format!("Cancellation could not reach the daemon: {why}"),
-                                )
-                                .await;
-                        }
-                        CancelDelivery::Failed(_) => {
+                        //
+                        // A request that failed at the transport counts: a server that cannot
+                        // reach the daemon to cancel cannot poll it either, so no outcome was
+                        // coming. Should the daemon turn out to be alive and report one later,
+                        // the session's tombstone ignores it.
+                        CancelDelivery::Undeliverable(_) | CancelDelivery::Failed(_) => {
                             tracing::warn!(
                                 daemon_id = %daemon_id,
                                 session_id = %session_id,
                                 delivery = delivery.outcome(),
                                 detail = delivery.detail(),
-                                "Cancellation could not be passed to the daemon"
+                                "Cancellation could not be passed to the daemon; failing the session"
                             );
+                            self.discovery_service
+                                .fail_session(
+                                    session_id,
+                                    DiscoveryTerminalReason::DaemonUnreachable,
+                                    format!(
+                                        "Cancellation could not reach the daemon: {}",
+                                        delivery.detail().unwrap_or_default()
+                                    ),
+                                )
+                                .await;
                         }
                     }
                 }

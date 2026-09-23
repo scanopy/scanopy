@@ -54,7 +54,7 @@
 	} from '$lib/paraglide/messages';
 	import type { EntityDiscriminants } from '$lib/api/entities';
 	import type { DiscoveryUpdatePayload } from '../../types/api';
-	import { runOutcomeTag } from '../../utils/outcome';
+	import { runOutcomeReason } from '../../utils/outcome';
 	import {
 		buildWarningReport,
 		credentialIdsOf,
@@ -79,11 +79,12 @@
 	 */
 	let outcome = $derived.by(() => {
 		if (payload.phase !== 'Failed' && payload.phase !== 'Cancelled') return null;
-		const tag = runOutcomeTag(payload);
-		if (!tag) return null;
+		const reason = runOutcomeReason(payload);
 		return {
-			label: tag.label,
-			body: [payload.error, tag.title].filter(Boolean).join(' ') || null
+			// The reason leads here, where the status is already known from the row that was
+			// opened. A run from before reasons existed has only its phase to show.
+			label: reason?.name ?? payload.phase,
+			body: [payload.error, reason?.description].filter(Boolean).join(' ') || null
 		};
 	});
 
