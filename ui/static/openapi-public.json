@@ -12655,19 +12655,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-23T04:32:05.184643Z",
+              "created_at": "2026-09-23T12:12:15.710716Z",
               "first_discovery_id": null,
-              "id": "6ef9a942-e0d3-4314-934b-d6fb8ea04fe4",
+              "id": "e60e4ca3-0c0e-42b8-95ae-aca97a74c902",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-23T04:32:05.184643Z",
+              "last_seen_at": "2026-09-23T12:12:15.710716Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-23T04:32:05.184643Z",
-              "valid_from": "2026-09-23T04:32:05.184643Z",
+              "updated_at": "2026-09-23T12:12:15.710716Z",
+              "valid_from": "2026-09-23T12:12:15.710716Z",
               "valid_to": null
             }
           },
@@ -14239,19 +14239,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-23T04:32:05.168883Z",
+                      "created_at": "2026-09-23T12:12:15.694733Z",
                       "first_discovery_id": null,
-                      "id": "c49772d7-58fc-45c8-bdf7-64093ebf18b1",
+                      "id": "3ba016fc-51b3-43f1-8629-431461f71514",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-23T04:32:05.168883Z",
+                      "last_seen_at": "2026-09-23T12:12:15.694733Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-23T04:32:05.168883Z",
-                      "valid_from": "2026-09-23T04:32:05.168883Z",
+                      "updated_at": "2026-09-23T12:12:15.694733Z",
+                      "valid_from": "2026-09-23T12:12:15.694733Z",
                       "valid_to": null
                     }
                   ],
@@ -14265,7 +14265,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "AirPrint Printer",
+                  "service_definition": "UptimeKuma",
                   "source": {
                     "type": "Manual"
                   },
@@ -15644,19 +15644,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-23T04:32:05.180751Z",
+                  "created_at": "2026-09-23T12:12:15.706870Z",
                   "first_discovery_id": null,
-                  "id": "630c2e14-0e18-43ed-bd0a-d2c0aa343590",
+                  "id": "90403efc-84a5-4e50-b1cd-5c7ca81795e9",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-23T04:32:05.180751Z",
+                  "last_seen_at": "2026-09-23T12:12:15.706870Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-23T04:32:05.180751Z",
-                  "valid_from": "2026-09-23T04:32:05.180751Z",
+                  "updated_at": "2026-09-23T12:12:15.706870Z",
+                  "valid_from": "2026-09-23T12:12:15.706870Z",
                   "valid_to": null
                 }
               ],
@@ -15670,7 +15670,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "AirPrint Printer",
+              "service_definition": "UptimeKuma",
               "source": {
                 "type": "Manual"
               },
@@ -18026,19 +18026,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-23T04:32:05.169280Z",
+          "created_at": "2026-09-23T12:12:15.695149Z",
           "first_discovery_id": null,
-          "id": "f5d49e79-b7b0-4a95-94b0-90f3e4830820",
+          "id": "81b2e7e0-7c46-4496-a783-223dae09a838",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-23T04:32:05.169280Z",
+          "last_seen_at": "2026-09-23T12:12:15.695149Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-23T04:32:05.169280Z",
-          "valid_from": "2026-09-23T04:32:05.169280Z",
+          "updated_at": "2026-09-23T12:12:15.695149Z",
+          "valid_from": "2026-09-23T12:12:15.695149Z",
           "valid_to": null
         }
       },
@@ -18746,7 +18746,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "AirPrint Printer",
+              "service_definition": "UptimeKuma",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -24282,19 +24282,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-23T04:32:05.168431Z",
+                  "created_at": "2026-09-23T12:12:15.694289Z",
                   "first_discovery_id": null,
-                  "id": "3c60a3c0-8f93-4042-bd1b-de2814c20ca6",
+                  "id": "fce12bb1-bca3-48cc-af7d-fa1a5d2ee00d",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-23T04:32:05.168431Z",
+                  "last_seen_at": "2026-09-23T12:12:15.694289Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-23T04:32:05.168431Z",
-                  "valid_from": "2026-09-23T04:32:05.168431Z",
+                  "updated_at": "2026-09-23T12:12:15.694289Z",
+                  "valid_from": "2026-09-23T12:12:15.694289Z",
                   "valid_to": null
                 }
               ],
@@ -24308,7 +24308,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "AirPrint Printer",
+              "service_definition": "UptimeKuma",
               "source": {
                 "type": "Manual"
               },
@@ -27974,19 +27974,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-23T04:32:05.162034Z",
+                        "created_at": "2026-09-23T12:12:15.687989Z",
                         "first_discovery_id": null,
-                        "id": "c5d80994-839d-46d0-a854-09962e2c5349",
+                        "id": "14f77a1b-0299-48c7-8576-d9941642cab8",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-23T04:32:05.162034Z",
+                        "last_seen_at": "2026-09-23T12:12:15.687989Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-23T04:32:05.162034Z",
-                        "valid_from": "2026-09-23T04:32:05.162034Z",
+                        "updated_at": "2026-09-23T12:12:15.687989Z",
+                        "valid_from": "2026-09-23T12:12:15.687989Z",
                         "valid_to": null
                       }
                     ],
@@ -28000,7 +28000,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "AirPrint Printer",
+                    "service_definition": "UptimeKuma",
                     "source": {
                       "type": "Manual"
                     },
@@ -28143,19 +28143,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-23T04:32:05.179990Z",
+                    "created_at": "2026-09-23T12:12:15.706125Z",
                     "first_discovery_id": null,
-                    "id": "e68c1bd2-f2e1-4ddf-af69-e1ae4b0d4937",
+                    "id": "79ee4f42-2b87-443d-a48d-c05be73a5560",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-23T04:32:05.179990Z",
+                    "last_seen_at": "2026-09-23T12:12:15.706125Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-23T04:32:05.179990Z",
-                    "valid_from": "2026-09-23T04:32:05.179990Z",
+                    "updated_at": "2026-09-23T12:12:15.706125Z",
+                    "valid_from": "2026-09-23T12:12:15.706125Z",
                     "valid_to": null
                   }
                 ],
@@ -28169,7 +28169,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "AirPrint Printer",
+                "service_definition": "UptimeKuma",
                 "source": {
                   "type": "Manual"
                 },
@@ -30294,19 +30294,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-23T04:32:05.169154Z",
+              "created_at": "2026-09-23T12:12:15.695013Z",
               "first_discovery_id": null,
-              "id": "4c98532a-8863-4f7d-a8a4-d9f4e96b512a",
+              "id": "a5e638b4-d904-476b-bfd8-09c063c4e493",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-23T04:32:05.169154Z",
+              "last_seen_at": "2026-09-23T12:12:15.695013Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-23T04:32:05.169154Z",
-              "valid_from": "2026-09-23T04:32:05.169154Z",
+              "updated_at": "2026-09-23T12:12:15.695013Z",
+              "valid_from": "2026-09-23T12:12:15.695013Z",
               "valid_to": null
             }
           ],
@@ -30320,7 +30320,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "AirPrint Printer",
+          "service_definition": "UptimeKuma",
           "source": {
             "type": "Manual"
           },
@@ -31688,7 +31688,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "a20dbc4c-79a0-4904-bb9a-c15fd8a35860",
+                  "id": "a84d8272-9258-4257-b945-c9ed111005fa",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -31698,23 +31698,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "4a194ff8-0120-434f-8bd1-7af630e6e7dd",
+                  "id": "b9713dbb-8f4e-46e2-a8ee-2c28ee23f284",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "c6218d1d-644f-4794-a45e-e88c61225018",
+                  "id": "8d349be8-fe40-48da-abcf-11e1437ca502",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "3ec14798-824c-4e61-bb12-5eae67baf8df",
+                  "id": "f23fd025-58a9-4005-bcb1-bb5e8a5a354f",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "4a194ff8-0120-434f-8bd1-7af630e6e7dd",
+                  "id": "b9713dbb-8f4e-46e2-a8ee-2c28ee23f284",
                   "rule": "ByHost"
                 }
               ]
@@ -31744,19 +31744,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "7f06765b-27ae-4e0c-af82-2ae7ca123e0c",
+                "id": "83b0ecd7-9f56-4f45-99a1-88d9665fbf3c",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "8544ab8c-789a-42b8-8d01-3ea6ffd9e8b1",
+                "id": "c344d4d4-bddf-487b-a816-e345864a713e",
                 "rule": "ByVLAN"
               },
               {
-                "id": "ebedb340-7033-431f-b2f7-086ac574442a",
+                "id": "2233fe69-3e38-460f-9471-24dd94d318d8",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "c85872a6-6a1e-4a52-bf68-215ee75a6be6",
+                "id": "525d48ef-28e5-4bea-813f-99d0953459d0",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -31774,7 +31774,7 @@
                 }
               },
               {
-                "id": "40983d46-d082-48ff-bda4-3bfabcc3554a",
+                "id": "9b191656-e1a8-48a6-925c-6b31d6aaee83",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -31783,15 +31783,15 @@
                 }
               },
               {
-                "id": "5c1f68d8-272b-4fc0-bd12-7d2fa2cfb1a0",
+                "id": "5be42e7d-8897-4eca-a23e-6e338e7f0e3c",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "59ac362e-a8f7-459f-b5fb-eff269bee21e",
+                "id": "001cc29f-b30d-4aac-a478-7b71b375597d",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "5f97d398-f338-46eb-b795-80c4d922c58d",
+                "id": "14190198-d970-45ec-8d12-7580d5fd9013",
                 "rule": "ByStack"
               }
             ]
