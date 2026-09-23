@@ -93,6 +93,11 @@ impl BillingService {
                     self.handle_invoice_created(invoice).await?;
                 }
             }
+            EventType::InvoiceFinalizationFailed => {
+                if let EventObject::InvoiceFinalizationFailed(invoice) = event.data.object {
+                    self.handle_invoice_finalization_failed(invoice).await?;
+                }
+            }
             EventType::InvoiceOverdue => {
                 if let EventObject::InvoiceOverdue(invoice) = event.data.object {
                     self.handle_invoice_overdue(invoice).await?;
@@ -308,10 +313,13 @@ impl BillingService {
             // Free, or a lapsed org choosing a paid plan again. The last case
             // needs this arm even when the plan name is unchanged, because
             // nothing else implies Active for it.
-            if prior_status.is_none()
-                || prior_was_free
-                || prior_status == Some(PlanStatus::Cancelled)
-            {
+            //
+            // The status check is what makes this mean "a live subscription
+            // exists now" rather than "a webhook arrived". Without it, any
+            // update for a lapsed org moves it to Active, including its
+            // subscription going past due, which would undo the refusal in
+            // `report_invoice_overdue` to let a lapsed org back in.
+            if resubscribed(prior_status, prior_was_free, sub.status) {
                 let plan_config = plan.config();
                 self.event_bus
                     .publish(Event::new(
@@ -926,6 +934,24 @@ impl BillingService {
     }
 }
 
+/// Whether this subscription update is an organization arriving on a paid
+/// plan: its first subscription, an upgrade from Free, or a lapsed org
+/// subscribing again. Requires a live subscription, so that an update
+/// carrying some other status cannot stand in for one.
+fn resubscribed(
+    prior_status: Option<PlanStatus>,
+    prior_was_free: bool,
+    status: SubscriptionStatus,
+) -> bool {
+    let arriving =
+        prior_status.is_none() || prior_was_free || prior_status == Some(PlanStatus::Cancelled);
+    arriving
+        && matches!(
+            status,
+            SubscriptionStatus::Active | SubscriptionStatus::Trialing
+        )
+}
+
 /// Whether this subscription update is the moment a sent invoice's buyer fell
 /// behind: past due now, not before, on a subscription Stripe bills by
 /// invoice rather than charging.
@@ -942,6 +968,42 @@ fn sent_invoice_went_past_due(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A lapsed org comes back on the subscription existing, not on a webhook
+    /// arriving. Both rules read `prior_status == Cancelled`, so without the
+    /// status check the same past-due update would move the org to Active
+    /// here and be refused as a lapsed org there.
+    #[test]
+    fn a_lapsed_org_returns_only_on_a_live_subscription() {
+        assert!(resubscribed(
+            Some(PlanStatus::Cancelled),
+            false,
+            SubscriptionStatus::Active
+        ));
+        assert!(resubscribed(None, false, SubscriptionStatus::Trialing));
+        assert!(resubscribed(
+            Some(PlanStatus::Active),
+            true,
+            SubscriptionStatus::Active
+        ));
+        // The update that moves a lapsed org's subscription to past due.
+        assert!(!resubscribed(
+            Some(PlanStatus::Cancelled),
+            false,
+            SubscriptionStatus::PastDue
+        ));
+        assert!(!resubscribed(
+            Some(PlanStatus::Cancelled),
+            false,
+            SubscriptionStatus::Canceled
+        ));
+        // An org already on a paid plan is not arriving on one.
+        assert!(!resubscribed(
+            Some(PlanStatus::Active),
+            false,
+            SubscriptionStatus::Active
+        ));
+    }
 
     /// Stripe attempts no charge on a sent invoice, so this transition is the
     /// only notice that one went unpaid. A card subscription reaches past due

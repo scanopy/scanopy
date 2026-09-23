@@ -237,7 +237,9 @@
 	// A lapsed org's primary is "continue on your plan", so changing plan moves
 	// to the menu for it.
 	let showChangePlanItem = $derived(
-		(missingCard && (isActive || isTrialing) && !airGappedPlanLocked) || isLapsed
+		(missingCard && (isActive || isTrialing) && !airGappedPlanLocked) ||
+			isLapsed ||
+			(openInvoiceUrl != null && !airGappedPlanLocked)
 	);
 	// Cancel is available while on a live, manageable active/trial subscription.
 	let showCancelItem = $derived(hasManageableSubscription && (isActive || isTrialing));
@@ -266,10 +268,11 @@
 			};
 		if (missingCard)
 			return { label: billing_addPaymentMethod(), onclick: handleSetupPayment, icon: CreditCard };
-		// The portal cannot pay a sent invoice, so an invoice buyer goes
-		// straight to the Stripe invoice instead.
-		if (isPastDue && openInvoiceUrl)
-			return { label: settings_billing_payInvoice(), onclick: handlePayInvoice };
+		// An unpaid invoice is the outstanding thing to do, whether or not it
+		// has run past its due date yet, and the portal cannot pay a sent
+		// invoice, so this goes straight to the Stripe invoice. Change plan
+		// moves to the menu while it stands.
+		if (openInvoiceUrl) return { label: settings_billing_payInvoice(), onclick: handlePayInvoice };
 		if (isPastDue)
 			return { label: settings_billing_updatePaymentMethod(), onclick: handleManageSubscription };
 		if (isPaused)

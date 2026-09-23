@@ -58,7 +58,7 @@ impl BillingService {
         )?;
 
         let customer_id = self
-            .get_or_create_customer(organization_id, authentication)
+            .get_or_create_customer(organization_id, authentication.clone())
             .await?;
         self.apply_invoice_billing_details(&customer_id, &details)
             .await?;
@@ -110,6 +110,32 @@ impl BillingService {
 
                 self.finalize_latest_invoice(subscription.id.as_str())
                     .await?;
+
+                // A lapsed org is read-only until something says otherwise,
+                // and only `CheckoutCompleted` implies Active: `InvoiceIssued`
+                // cannot, because it fires on renewals too. The subscription
+                // webhook publishes the same event, but waiting for it leaves
+                // the buyer looking at a locked app with their invoice already
+                // sent, so say it here as well. Publishing after finalizing
+                // means an invoice that could not be issued never grants
+                // anything, and the subscriber writes only on a difference, so
+                // the webhook arriving later changes nothing.
+                if organization.is_lapsed() {
+                    self.event_bus
+                        .publish(Event::new(
+                            OrgScope { organization_id },
+                            BillingOperation::CheckoutCompleted {
+                                plan,
+                                included_networks: plan.config().included_networks,
+                                included_seats: plan.config().included_seats,
+                                mrr_amount_cents: mrr_from_subscription(&subscription),
+                                is_trialing: false,
+                                next_renewal_at: next_renewal_from_subscription(&subscription),
+                            },
+                            authentication,
+                        ))
+                        .await?;
+                }
 
                 tracing::info!(
                     organization_id = %organization_id,
@@ -346,6 +372,59 @@ impl BillingService {
             return Ok(());
         };
         self.finalize_invoice(id).await
+    }
+
+    /// Webhook: Stripe could not finalize a draft invoice.
+    ///
+    /// Finalizing is what issues and emails a sent invoice, so a failure here
+    /// is silent in every direction: no invoice reaches the buyer, no licence
+    /// period is granted, and the app has already said the invoice went. A
+    /// rejected tax ID is the usual cause, which is why the details are worth
+    /// naming to the owner rather than only logging.
+    pub(crate) async fn handle_invoice_finalization_failed(
+        &self,
+        invoice: stripe_billing::Invoice,
+    ) -> Result<(), Error> {
+        let snapshot = BillingInvoice::from(&invoice);
+        if snapshot.collection != InvoiceCollection::SendInvoice
+            || snapshot.license_unpaid_from().is_none()
+        {
+            return Ok(());
+        }
+        let reason = invoice
+            .last_finalization_error
+            .as_ref()
+            .and_then(|error| error.message.clone())
+            .unwrap_or_else(|| "Stripe gave no reason".to_string());
+
+        let Some(organization) = self.get_org_from_invoice(&invoice).await? else {
+            tracing::error!(
+                invoice_id = %snapshot.stripe_invoice_id,
+                reason = %reason,
+                "A licence invoice could not be finalized, and no org matches it"
+            );
+            return Ok(());
+        };
+
+        tracing::error!(
+            organization_id = %organization.id,
+            invoice_id = %snapshot.stripe_invoice_id,
+            reason = %reason,
+            "A licence invoice could not be finalized, so nothing was sent"
+        );
+        self.event_bus
+            .publish(Event::new(
+                OrgScope {
+                    organization_id: organization.id,
+                },
+                BillingOperation::InvoiceFinalizationFailed {
+                    invoice: snapshot,
+                    reason,
+                },
+                AuthenticatedEntity::System,
+            ))
+            .await?;
+        Ok(())
     }
 
     /// Webhook: a sent invoice passed its due date unpaid.

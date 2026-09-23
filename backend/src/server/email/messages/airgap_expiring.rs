@@ -51,7 +51,7 @@ impl Email for AirgapExpiring<'_> {
 
         if self.can_move_down {
             content = content.paragraph(&format!(
-                "Want a smaller plan, or one without air-gapped keys? That change is available from {} too, once the current key's period ends. To stop the renewal altogether, cancel before {}.",
+                "A smaller plan, or one without air-gapped keys, is available from {} too, once the current key's period ends. To stop the renewal altogether, cancel before {}.",
                 self.renews_at, self.renews_at
             ));
         } else {

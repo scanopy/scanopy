@@ -49,19 +49,15 @@ impl Email for InvoiceOverdue<'_> {
 
         if let Some(po_number) = self.po_number {
             content = content.paragraph(&format!(
-                "It was raised against your purchase order number, {}, if that helps your finance team find it.",
+                "It was raised against purchase order number {}.",
                 po_number
             ));
         }
 
-        content = content
-            .paragraph(&format!(
-                "Your license key still works until <strong>{}</strong>. After that your servers stop accepting it and go read-only.",
-                self.key_expires
-            ))
-            .paragraph(
-                "If the invoice is already with your finance team and simply awaiting a payment run, no action is needed beyond making sure it lands before that date.",
-            );
+        content = content.paragraph(&format!(
+            "Your license key still works until <strong>{}</strong>. After that your servers stop accepting it and go read-only.",
+            self.key_expires
+        ));
 
         Body::new()
             .content(content)
