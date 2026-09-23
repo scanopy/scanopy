@@ -3466,19 +3466,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-23T03:49:37.520248Z",
+             *       "created_at": "2026-09-23T04:32:05.117039Z",
              *       "first_discovery_id": null,
-             *       "id": "788f2cde-f2c7-4c3b-a835-183e0407325f",
+             *       "id": "e3d123d8-a222-4b3e-9f53-4ad3619d8ddb",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-23T03:49:37.520248Z",
+             *       "last_seen_at": "2026-09-23T04:32:05.117039Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-23T03:49:37.520248Z",
-             *       "valid_from": "2026-09-23T03:49:37.520248Z",
+             *       "updated_at": "2026-09-23T04:32:05.117039Z",
+             *       "valid_from": "2026-09-23T04:32:05.117039Z",
              *       "valid_to": null
              *     }
              */
@@ -4296,19 +4296,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-23T03:49:37.499950Z",
+             *               "created_at": "2026-09-23T04:32:05.087920Z",
              *               "first_discovery_id": null,
-             *               "id": "38d3826d-6fdd-475e-b3ac-406362e330b9",
+             *               "id": "529e17f7-605e-4d4e-8fc8-72178a63df11",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-23T03:49:37.499950Z",
+             *               "last_seen_at": "2026-09-23T04:32:05.087920Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-23T03:49:37.499950Z",
-             *               "valid_from": "2026-09-23T03:49:37.499950Z",
+             *               "updated_at": "2026-09-23T04:32:05.087920Z",
+             *               "valid_from": "2026-09-23T04:32:05.087920Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4322,7 +4322,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "PeaNUT",
+             *           "service_definition": "AirPrint Printer",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5227,19 +5227,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-23T03:49:37.515790Z",
+             *           "created_at": "2026-09-23T04:32:05.110709Z",
              *           "first_discovery_id": null,
-             *           "id": "6cc08ef5-dc51-4091-bb55-64da837b71fe",
+             *           "id": "4cad77f4-4d1b-41ca-b8c5-b934b02d0cab",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-23T03:49:37.515790Z",
+             *           "last_seen_at": "2026-09-23T04:32:05.110709Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-23T03:49:37.515790Z",
-             *           "valid_from": "2026-09-23T03:49:37.515790Z",
+             *           "updated_at": "2026-09-23T04:32:05.110709Z",
+             *           "valid_from": "2026-09-23T04:32:05.110709Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5253,7 +5253,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "PeaNUT",
+             *       "service_definition": "AirPrint Printer",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6319,19 +6319,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-23T03:49:37.500503Z",
+         *       "created_at": "2026-09-23T04:32:05.088405Z",
          *       "first_discovery_id": null,
-         *       "id": "f5baf63e-d506-4597-b05c-e0ac23acf1b7",
+         *       "id": "d133d6ee-6ac1-4232-a502-92157cee6583",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-23T03:49:37.500503Z",
+         *       "last_seen_at": "2026-09-23T04:32:05.088405Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-23T03:49:37.500503Z",
-         *       "valid_from": "2026-09-23T03:49:37.500503Z",
+         *       "updated_at": "2026-09-23T04:32:05.088405Z",
+         *       "valid_from": "2026-09-23T04:32:05.088405Z",
          *       "valid_to": null
          *     }
          */
@@ -6657,7 +6657,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "PeaNUT",
+         *           "service_definition": "AirPrint Printer",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8893,19 +8893,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-23T03:49:37.499340Z",
+         *               "created_at": "2026-09-23T04:32:05.087391Z",
          *               "first_discovery_id": null,
-         *               "id": "dfb5d4c7-7ed4-483b-b4d4-a1bfad1758c6",
+         *               "id": "49752ab5-2a89-4fd4-93fd-de47b31e18a4",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-23T03:49:37.499340Z",
+         *               "last_seen_at": "2026-09-23T04:32:05.087391Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-23T03:49:37.499340Z",
-         *               "valid_from": "2026-09-23T03:49:37.499340Z",
+         *               "updated_at": "2026-09-23T04:32:05.087391Z",
+         *               "valid_from": "2026-09-23T04:32:05.087391Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8919,7 +8919,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "PeaNUT",
+         *           "service_definition": "AirPrint Printer",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -11885,19 +11885,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-23T03:49:37.500329Z",
+         *           "created_at": "2026-09-23T04:32:05.088248Z",
          *           "first_discovery_id": null,
-         *           "id": "ec5c535d-adf9-4fac-9938-761f1d80c162",
+         *           "id": "4d6fe4f0-d871-445c-a0c9-8adcb4e9cb39",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-23T03:49:37.500329Z",
+         *           "last_seen_at": "2026-09-23T04:32:05.088248Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-23T03:49:37.500329Z",
-         *           "valid_from": "2026-09-23T03:49:37.500329Z",
+         *           "updated_at": "2026-09-23T04:32:05.088248Z",
+         *           "valid_from": "2026-09-23T04:32:05.088248Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -11911,7 +11911,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "PeaNUT",
+         *       "service_definition": "AirPrint Printer",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12637,7 +12637,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "c4f8417d-281e-4104-8a29-776a10f9ded3",
+             *           "id": "e440b300-b557-4450-9b89-f85b1ec802a6",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -12647,23 +12647,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "ca28632a-e804-4a07-8c87-7cb92ba71a7d",
+             *           "id": "bf6320d9-3ff6-4087-896f-4173d5fc536e",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "092e43ee-406a-464e-9761-badc8aac208a",
+             *           "id": "827ad00e-d156-4d83-988a-72ad38b24b9c",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "8e7391a9-94e2-4acd-a306-6daa6445365d",
+             *           "id": "c1b9fd8a-7f71-46cc-a2f6-a327626c4404",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "ca28632a-e804-4a07-8c87-7cb92ba71a7d",
+             *           "id": "bf6320d9-3ff6-4087-896f-4173d5fc536e",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -12676,19 +12676,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "15f8b699-12f2-4550-90d5-ba30a797b6b7",
+             *         "id": "0b13ed45-a551-4492-81cd-aafed64f457c",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "e02237be-4c73-4b20-a3a5-d9f963183993",
+             *         "id": "0a31f29b-2a8a-4558-bd42-e118919a27aa",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "ff4c8467-2e2b-46bb-aab1-ba8cf994534e",
+             *         "id": "7ea2b998-dcf3-4e9e-8cd0-a22a284ac0ce",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "899568e8-8922-4f8c-b7d8-62d98a6a6997",
+             *         "id": "2c4bce2b-a014-4181-9458-9fc9ba97738a",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -12706,7 +12706,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "59eb529a-8c86-422a-9d8f-1d83ccf0be31",
+             *         "id": "7dd09674-8acc-4dc0-87ab-5e152f8125fa",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -12715,15 +12715,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "d7796064-c6ab-41bd-955e-cd9a42f812ff",
+             *         "id": "59fe24c8-0ea4-40c0-9f22-869474b05fbe",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "c7b1abae-05c6-43b7-be9e-acc4a3771451",
+             *         "id": "472eca9d-0732-4096-b011-5498f19cdeee",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "0963c48f-7340-4199-93ce-f11a69bc0527",
+             *         "id": "7bb1ebd1-5524-48e1-b0e3-0751827392a5",
              *         "rule": "ByStack"
              *       }
              *     ]
