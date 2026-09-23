@@ -38,7 +38,6 @@
 		common_tryAgainLater,
 		common_usage,
 		settings_billing_billingQuestions,
-		settings_billing_lapsed,
 		billing_continueOnPlan,
 		settings_billing_contactUs,
 		settings_billing_currentPlan,
@@ -378,13 +377,8 @@
 		if (isPastDue) return { kind: 'danger' as const, message: settings_billing_pastDue() };
 		if (missingCard)
 			return { kind: 'warning' as const, message: billing_noPaymentMethodBannerBody() };
-		if (org.plan_status === 'cancelled')
-			return {
-				kind: 'warning' as const,
-				message: settings_billing_lapsed({
-					plan: billingPlans.getName(org.plan?.type ?? null)
-				})
-			};
+		// No lapsed branch: PlanLapsedBanner renders in this same modal frame
+		// and says it already, so a second copy sat directly above it.
 		if (isPendingCancellation)
 			return { kind: 'warning' as const, message: settings_billing_downgrade_pending() };
 		return null;

@@ -53,7 +53,6 @@
 		settings_billing_license_airGappedCurrentUntil,
 		settings_billing_license_airGappedNeedsCard,
 		settings_billing_license_airGappedOpenInvoice,
-		settings_billing_license_airGappedOpenInvoiceLink,
 		settings_billing_license_airGappedPastDue,
 		settings_billing_license_keyLabel,
 		settings_billing_license_lapsed,
@@ -71,7 +70,8 @@
 		settings_billing_license_switchConfirm,
 		settings_billing_license_switchOnlineConfirm,
 		settings_billing_license_switchTitle,
-		settings_billing_license_trialPaymentBody
+		settings_billing_license_trialPaymentBody,
+		settings_billing_payInvoice
 	} from '$lib/paraglide/messages';
 
 	type LicenseKeyType = components['schemas']['LicenseKeyType'];
@@ -418,7 +418,7 @@
 											rel="external noopener noreferrer"
 											class="text-link hover:underline"
 										>
-											{settings_billing_license_airGappedOpenInvoiceLink()}
+											{settings_billing_payInvoice()}
 										</a>
 										<!-- eslint-enable svelte/no-navigation-without-resolve -->
 									{/if}

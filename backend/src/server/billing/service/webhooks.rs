@@ -566,6 +566,21 @@ impl BillingService {
             self.report_invoice_overdue(&organization, invoice).await?;
         }
 
+        // Stripe stops collecting on a subscription it marks `unpaid`, which
+        // is one of the two endings its dunning settings offer after an
+        // invoice sits past due. The other, cancellation, arrives as
+        // `customer.subscription.deleted` and lapses the org there. Handling
+        // this one the same way means the org lapses whichever ending the
+        // account is configured for, rather than only one of them.
+        if sub.status == SubscriptionStatus::Unpaid && !organization.is_lapsed() {
+            tracing::info!(
+                organization_id = %organization.id,
+                subscription_id = %sub.id,
+                "Stripe marked the subscription unpaid — lapsing the org"
+            );
+            return self.handle_subscription_deleted(sub).await;
+        }
+
         tracing::info!(
             "Updated organization {} subscription status to {}",
             org_id,
