@@ -10,6 +10,7 @@
 	} from '$lib/shared/components/forms/selection/display/SimpleOptionDisplay';
 	import type { Discovery } from '../../types/base';
 	import type { Daemon } from '$lib/features/daemons/types/base';
+	import { isPreUnifiedDaemon } from '$lib/features/daemons/utils';
 	import type { Host } from '$lib/features/hosts/types/base';
 	import type { Subnet } from '$lib/features/subnets/types/base';
 	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
@@ -165,7 +166,7 @@
 		<p class="text-tertiary text-xs">{discovery_daemonHelp()}</p>
 	</div>
 
-	{#if daemon && daemon.version_status?.supports_unified_discovery === false}
+	{#if daemon && isPreUnifiedDaemon(daemon)}
 		<InlineWarning
 			title={discovery_upgradeRequiredTitle()}
 			body={discovery_upgradeRequiredBody()}
