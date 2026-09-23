@@ -31,7 +31,7 @@ use crate::server::config::{AppState, ServerConfig};
 use crate::server::license::handlers::{get_current_license_key, get_entitlement};
 use crate::server::license::key::LicenseKey;
 use crate::server::license::mint::tests::{test_decoding_key, test_issuer};
-use crate::server::license::mint::{GRACE_PERIOD_DAYS, MintError, PAID_THROUGH_BUFFER_DAYS};
+use crate::server::license::mint::{MintError, PAID_THROUGH_BUFFER_DAYS};
 use crate::server::license::online::{ENTITLEMENT_PATH, EntitlementRequest};
 use crate::server::license::types::{LicenseKeyType, LicenseStatus};
 use crate::server::organizations::r#impl::base::Organization;
@@ -789,26 +789,26 @@ async fn the_airgap_renewal_email_dates_the_key_already_installed() {
         .await
         .unwrap();
 
-    let buffer_and_grace = Duration::days(PAID_THROUGH_BUFFER_DAYS + GRACE_PERIOD_DAYS);
     let sent = std::fs::read_dir(dir.path())
         .unwrap()
         .map(|entry| std::fs::read_to_string(entry.unwrap().path()).unwrap())
         .collect::<Vec<_>>()
         .join("\n");
 
-    let installed_key_expiry = (paid_through_before + buffer_and_grace)
-        .format("%B %-d, %Y")
-        .to_string();
+    // The email names both dates, the renewed period and the installed key's
+    // end, so presence alone proves nothing: assert the sentence that carries
+    // the installed key's date.
+    let installed_key_expiry = paid_through_before.format("%B %-d, %Y").to_string();
     assert!(
-        sent.contains(&installed_key_expiry),
+        sent.contains(&format!(
+            "still ends on <strong>{installed_key_expiry}</strong>"
+        )),
         "the installed key should be dated from the previous paid-through ({installed_key_expiry}): {sent}"
     );
-    let renewed_expiry = (renewed_through + buffer_and_grace)
-        .format("%B %-d, %Y")
-        .to_string();
+    let renewed = renewed_through.format("%B %-d, %Y").to_string();
     assert!(
-        !sent.contains(&renewed_expiry),
-        "the installed key's expiry must not be computed from the renewed period ({renewed_expiry}): {sent}"
+        !sent.contains(&format!("still ends on <strong>{renewed}</strong>")),
+        "the installed key's expiry must not come from the renewed period ({renewed}): {sent}"
     );
 }
 
@@ -858,6 +858,7 @@ async fn sent_invoices_license_until_due_and_give_back_on_void() {
     let provisional = issued.provisional_paid_through().unwrap();
     publish(BillingOperation::InvoiceIssued {
         invoice: issued.clone(),
+        grants_licence: true,
     })
     .await
     .unwrap();
@@ -871,6 +872,7 @@ async fn sent_invoices_license_until_due_and_give_back_on_void() {
     // An invoice due earlier never shortens the period already granted.
     publish(BillingOperation::InvoiceIssued {
         invoice: sent(trial_end, whole_seconds_from_now(5)),
+        grants_licence: true,
     })
     .await
     .unwrap();
@@ -894,6 +896,7 @@ async fn sent_invoices_license_until_due_and_give_back_on_void() {
     // same invoice leaves the paid term alone.
     publish(BillingOperation::InvoiceIssued {
         invoice: issued.clone(),
+        grants_licence: true,
     })
     .await
     .unwrap();

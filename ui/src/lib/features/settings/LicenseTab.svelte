@@ -17,11 +17,7 @@
 	import { hasLicensedPlan, isPlanLapsed } from '$lib/features/organizations/types';
 	import type { Organization } from '$lib/features/organizations/types';
 	import { billingPlans } from '$lib/shared/stores/metadata';
-	import {
-		licenseKeyExpiry,
-		licenseKeySwitchBackWindowDays,
-		useConfigQuery
-	} from '$lib/shared/stores/config-query';
+	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import { canPay, getTrialDaysLeft, isMissingPaymentMethod } from '$lib/shared/utils/trial';
 	import { pushError, pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
 	import { trackEvent } from '$lib/shared/utils/analytics';
@@ -39,7 +35,6 @@
 		common_continue,
 		common_copied,
 		common_copy,
-		common_expires,
 		common_failedToCopy,
 		common_license,
 		common_never,
@@ -106,14 +101,15 @@
 	let isTrialing = $derived(org?.plan_status === 'trialing');
 	let isPastDue = $derived(org?.plan_status === 'past_due');
 	// A lapsed self-hosted org keeps its plan and its entitlement until the
-	// key it was issued runs out: paid-through plus the server's buffer, the
-	// same date an air-gapped key carries. The org came here for the key, so
-	// this tab says when it stops and that renewing keeps it working.
+	// period it paid for ends. The org came here for the key, so this tab says
+	// when it stops and that renewing keeps it working.
+	//
+	// The same date as "Valid through", deliberately: keys are minted with a
+	// buffer and a silent grace on top, and naming those left one card showing
+	// two dates for one licence. Understating is the safe direction.
 	let isLapsed = $derived(org != null && isPlanLapsed(org));
 	let lapsedKeyStops = $derived(
-		isLapsed && org?.license_paid_through && configQuery.data
-			? formatDate(licenseKeyExpiry(configQuery.data, org.license_paid_through))
-			: null
+		isLapsed && org?.license_paid_through ? formatDate(org.license_paid_through) : null
 	);
 	// The server also refuses an air-gapped mint until the subscription is out of
 	// trial, but choosing the option during a trial is what ends the trial. A card
@@ -174,16 +170,6 @@
 	let validThrough = $derived(
 		org?.license_paid_through ? formatDate(org.license_paid_through) : null
 	);
-	// An air-gapped key outlives the paid-through date by the server's buffer, so
-	// the date on the key is not the date in the billing row.
-	let keyExpiresOn = $derived(
-		keyType === 'Offline' && org?.license_paid_through && configQuery.data
-			? formatDate(licenseKeyExpiry(configQuery.data, org.license_paid_through))
-			: null
-	);
-	let switchBackWindowDays = $derived(
-		configQuery.data ? licenseKeySwitchBackWindowDays(configQuery.data) : null
-	);
 	let lastCheckIn = $derived(
 		org?.license_checkin_at ? formatTimestamp(org.license_checkin_at) : common_never()
 	);
@@ -194,14 +180,10 @@
 
 	let switchConfirmMessage = $derived.by(() => {
 		if (pendingType === 'Online') return settings_billing_license_switchOnlineConfirm();
-		const days = switchBackWindowDays;
-		// Every air-gapped message names the switch-back window, which only the
-		// server knows. Until the config lands there is nothing accurate to show.
-		if (days == null) return '';
 		if (isTrialing && chargeAmount != null) {
-			return settings_billing_license_switchConfirm({ amount: chargeAmount, days });
+			return settings_billing_license_switchConfirm({ amount: chargeAmount });
 		}
-		return settings_billing_license_switchAirGappedConfirm({ days });
+		return settings_billing_license_switchAirGappedConfirm();
 	});
 
 	async function copyKey(key: string, type: LicenseKeyType) {
@@ -347,10 +329,6 @@
 										</button>
 									{/if}
 								</dd>
-							{/if}
-							{#if keyExpiresOn}
-								<dt class="text-secondary">{common_expires()}</dt>
-								<dd class="text-primary">{keyExpiresOn}</dd>
 							{/if}
 							<dt class="text-secondary">{settings_billing_license_lastCheckIn()}</dt>
 							<dd class="text-primary">{lastCheckIn}</dd>

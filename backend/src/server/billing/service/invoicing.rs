@@ -341,16 +341,62 @@ impl BillingService {
             return Ok(());
         };
 
+        // Issuing an invoice is what licenses a buyer before the money
+        // arrives, so an organization that already owes us for an overdue one
+        // does not get a second term by issuing itself another.
+        let owes = self
+            .overdue_license_invoice(&organization, &snapshot.stripe_invoice_id)
+            .await?;
+        if let Some(owed) = &owes {
+            tracing::info!(
+                organization_id = %organization.id,
+                invoice_id = %snapshot.stripe_invoice_id,
+                unpaid_invoice_id = %owed,
+                "Issuing a licence invoice without extending the licence: an earlier one is overdue"
+            );
+        }
+
         self.event_bus
             .publish(Event::new(
                 OrgScope {
                     organization_id: organization.id,
                 },
-                BillingOperation::InvoiceIssued { invoice: snapshot },
+                BillingOperation::InvoiceIssued {
+                    invoice: snapshot,
+                    grants_licence: owes.is_none(),
+                },
                 AuthenticatedEntity::System,
             ))
             .await?;
         Ok(())
+    }
+
+    /// The id of another licence invoice this organization has left unpaid
+    /// past its due date, if any.
+    ///
+    /// Merely open is not enough: a plan change leaves two invoices open for a
+    /// moment, and a renewal is issued before the previous period ends. Only a
+    /// due date that has passed is evidence of a default.
+    async fn overdue_license_invoice(
+        &self,
+        organization: &Organization,
+        excluding: &str,
+    ) -> Result<Option<String>, Error> {
+        let Some(customer_id) = organization
+            .base
+            .stripe_customer_id
+            .clone()
+            .map(CustomerId::from)
+        else {
+            return Ok(None);
+        };
+        let open: Vec<BillingInvoice> = self
+            .open_license_invoices(&customer_id)
+            .await?
+            .iter()
+            .map(BillingInvoice::from)
+            .collect();
+        Ok(overdue_other_invoice(&open, excluding, Utc::now()))
     }
 
     /// Webhook: a draft invoice exists. A sent invoice for a self-hosted
@@ -813,6 +859,23 @@ impl BillingService {
 
 const SELF_HOSTED_ONLY: &str = "Invoice billing is available on self-hosted plans only";
 
+/// The id of a licence invoice, other than `excluding`, that has passed its
+/// due date unpaid.
+///
+/// Merely open is not evidence of a default: a plan change leaves two invoices
+/// open for a moment, and a renewal is issued before the previous period ends.
+/// Only a due date that has passed says the customer stopped paying.
+fn overdue_other_invoice(
+    open: &[BillingInvoice],
+    excluding: &str,
+    now: DateTime<Utc>,
+) -> Option<String> {
+    open.iter()
+        .filter(|invoice| invoice.stripe_invoice_id != excluding)
+        .find(|invoice| invoice.due_date.is_some_and(|due| due < now))
+        .map(|invoice| invoice.stripe_invoice_id.clone())
+}
+
 /// Whether this invoice is one we sent a self-hosted licence buyer, rather
 /// than one Stripe collects automatically or a cloud invoice. The licence
 /// emails speak about keys and servers, so a cloud customer must never
@@ -956,6 +1019,45 @@ mod tests {
             InvoiceCollection::SendInvoice,
             false
         )));
+    }
+
+    /// Issuing an invoice is what licenses a buyer before the money arrives,
+    /// so an org that left an earlier one overdue must not buy itself another
+    /// term by issuing a second. The not-yet-due case is the one that must
+    /// keep working: a renewal is issued before the previous period ends.
+    #[test]
+    fn only_an_overdue_earlier_invoice_withholds_the_licence() {
+        let now = Utc::now();
+        let with = |id: &str, due: DateTime<Utc>| BillingInvoice {
+            stripe_invoice_id: id.to_string(),
+            due_date: Some(due),
+            ..licensed_invoice(InvoiceCollection::SendInvoice, true)
+        };
+
+        let overdue = with("in_old", now - chrono::Duration::days(1));
+        let upcoming = with("in_next", now + chrono::Duration::days(30));
+        let being_issued = with("in_new", now + chrono::Duration::days(30));
+
+        assert_eq!(
+            overdue_other_invoice(&[overdue.clone(), being_issued.clone()], "in_new", now),
+            Some("in_old".to_string())
+        );
+        // A renewal alongside the one being issued is not a default.
+        assert_eq!(
+            overdue_other_invoice(&[upcoming, being_issued.clone()], "in_new", now),
+            None
+        );
+        // The invoice being issued is never evidence against itself, however
+        // its own due date falls.
+        assert_eq!(
+            overdue_other_invoice(
+                &[with("in_new", now - chrono::Duration::days(1))],
+                "in_new",
+                now
+            ),
+            None
+        );
+        assert_eq!(overdue_other_invoice(&[], "in_new", now), None);
     }
 
     fn purchasable() -> Vec<BillingPlan> {
