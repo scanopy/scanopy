@@ -220,22 +220,12 @@ impl BillingService {
         _authentication: AuthenticatedEntity,
     ) -> Result<String, Error> {
         let organization = self.get_organization(organization_id).await?;
-        let customer_id = organization
-            .base
-            .stripe_customer_id
-            .ok_or_else(|| anyhow!("No Stripe customer ID"))?;
 
-        let subs = ListSubscription::new()
-            .customer(CustomerId::from(customer_id))
-            .send(&self.stripe)
-            .await?;
-
-        if let Some(sub) = subs.data.iter().find(|s| {
-            matches!(
-                s.status,
-                SubscriptionStatus::Active | SubscriptionStatus::Trialing
-            )
-        }) {
+        // Same lookup as every other lifecycle action, so an org that is past
+        // due can still schedule its downgrade rather than being told it has
+        // no subscription. `find_current_subscription` reports the missing
+        // customer id itself.
+        if let Ok(sub) = self.find_current_subscription(&organization).await {
             let is_trialing = sub.status == SubscriptionStatus::Trialing;
 
             UpdateSubscription::new(&sub.id)
@@ -316,12 +306,6 @@ impl BillingService {
             .await?
             .ok_or_else(|| anyhow!("Organization not found"))?;
 
-        let customer_id = organization
-            .base
-            .stripe_customer_id
-            .clone()
-            .ok_or_else(|| anyhow!("No Stripe customer ID"))?;
-
         // An air-gapped key already minted runs to its own expiry whatever the
         // cloud says, so dropping a tier under it would sell Standard while
         // Plus caps keep working. The key cannot be surrendered early either:
@@ -347,17 +331,12 @@ impl BillingService {
             .await?
             .ok_or_else(|| anyhow!("Could not find price for target plan"))?;
 
-        let org_subscriptions = ListSubscription::new()
-            .customer(CustomerId::from(customer_id))
-            .send(&self.stripe)
-            .await?;
-
-        if let Some(sub) = org_subscriptions.data.iter().find(|s| {
-            matches!(
-                s.status,
-                SubscriptionStatus::Active | SubscriptionStatus::Trialing
-            )
-        }) {
+        // `find_current_subscription` is the one definition of "the org's live
+        // subscription", and it includes past due. A narrower filter here meant
+        // an invoice buyer whose invoice went unpaid passed every eligibility
+        // gate and then failed on this lookup alone.
+        if let Ok(sub) = self.find_current_subscription(&organization).await {
+            let sub = &sub;
             // Find the base price item to replace
             let base_item = sub
                 .items

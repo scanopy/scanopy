@@ -678,11 +678,13 @@ impl BillingService {
         // this also covers Stripe auto-advancing it out from under us.
         match RetrieveInvoice::new(id.clone()).send(&self.stripe).await {
             Ok(invoice) if invoice.status != Some(InvoiceStatus::Draft) => {
+                // Deliberately without the Stripe error: this is the success
+                // path, the invoice is out, and dumping a rejection here read
+                // as a failure to anyone watching the log.
                 tracing::debug!(
                     invoice_id = %id,
                     status = ?invoice.status,
-                    error = %finalize_error,
-                    "Invoice was already finalized elsewhere"
+                    "Invoice was already finalized; treating as sent"
                 );
                 Ok(())
             }
