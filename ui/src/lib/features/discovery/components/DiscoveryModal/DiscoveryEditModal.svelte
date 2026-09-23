@@ -28,6 +28,7 @@
 	import { copyText } from '$lib/shared/utils/clipboard';
 	import { formatDiagnostics } from '../../utils/diagnostics';
 	import type { Daemon } from '$lib/features/daemons/types/base';
+	import { isPreUnifiedDaemon } from '$lib/features/daemons/utils';
 	import type { Host } from '$lib/features/hosts/types/base';
 	import { useSubnetsQuery } from '$lib/features/subnets/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
@@ -322,9 +323,7 @@
 	let hasPerformanceTab = $derived(
 		formData.discovery_type.type === 'Network' || formData.discovery_type.type === 'Unified'
 	);
-	let daemonSupportsUnified = $derived(
-		!daemon || daemon.version_status?.supports_unified_discovery !== false
-	);
+	let daemonSupportsUnified = $derived(!daemon || !isPreUnifiedDaemon(daemon));
 	let hasCredentialsTab = $derived(formData.discovery_type.type === 'Unified');
 	let hasScheduleTab = $derived(formData.run_type.type === 'Scheduled');
 

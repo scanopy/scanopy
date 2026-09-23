@@ -28,6 +28,7 @@
 	import type { DiscoveryUpdatePayload } from '../../types/api';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
+	import { isPreUnifiedDaemon } from '$lib/features/daemons/utils';
 	import { useNetworksQuery } from '$lib/features/networks/queries';
 	import { useHostsByIds } from '$lib/features/hosts/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
@@ -137,9 +138,7 @@
 	function getActiveSession(discovery: Discovery): DiscoveryUpdatePayload | null {
 		return sessionByDiscoveryId.get(discovery.id) ?? null;
 	}
-	let hasLegacyDaemons = $derived(
-		daemonsData.some((d) => d.version_status?.supports_unified_discovery === false)
-	);
+	let hasLegacyDaemons = $derived(daemonsData.some(isPreUnifiedDaemon));
 
 	let showDiscoveryModal = $state(false);
 	let editingDiscovery: Discovery | null = $state(null);
