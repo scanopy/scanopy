@@ -425,43 +425,22 @@ impl BillingService {
         Ok(())
     }
 
-    /// Webhook: a sent invoice passed its due date unpaid.
-    ///
-    /// Stripe never attempts a charge on a `send_invoice` invoice, so
-    /// `invoice.payment_failed` does not fire for one and this is the only
-    /// signal that an invoice buyer has stopped paying. Cloud orgs reach
-    /// past-due through the charge-attempt events as before, so only sent
-    /// licence invoices are read here.
-    pub(crate) async fn handle_invoice_overdue(
-        &self,
-        invoice: stripe_billing::Invoice,
-    ) -> Result<(), Error> {
-        let snapshot = BillingInvoice::from(&invoice);
-        if snapshot.provisional_paid_through().is_none() {
-            return Ok(());
-        }
-        let Some(organization) = self.get_org_from_invoice(&invoice).await? else {
-            tracing::debug!("No org found for overdue invoice — ignoring");
-            return Ok(());
-        };
-        self.report_invoice_overdue(&organization, snapshot).await
-    }
-
     /// Move an organization to past due for an unpaid sent invoice, once.
     ///
-    /// Shared by the two things that can notice: the subscription going
-    /// `past_due`, which is what Stripe does by itself at the due date, and
-    /// the `invoice.overdue` webhook, which only arrives if an Automation is
-    /// configured to send it.
+    /// Called when the subscription goes `past_due`, which Stripe does by
+    /// itself at the due date on `send_invoice` collection. No charge is
+    /// attempted on such an invoice, so `invoice.payment_failed` never fires
+    /// for one and this is the only notice that a licence buyer stopped
+    /// paying.
     pub(crate) async fn report_invoice_overdue(
         &self,
         organization: &Organization,
         invoice: BillingInvoice,
     ) -> Result<(), Error> {
-        // Going past due is a transition, not a repeatable fact. How often
-        // this arrives is Stripe's to decide: an Automation can be set to
-        // repeat, deliveries are retried, and there are now two triggers for
-        // the one transition. Without this guard each sends another email.
+        // Going past due is a transition, not a repeatable fact, and how often
+        // the subscription update arrives is Stripe's to decide: deliveries
+        // are retried, and later updates carry the same status. Without this
+        // guard each one sends the customer another overdue email.
         if organization.base.plan_status == Some(PlanStatus::PastDue) {
             return Ok(());
         }

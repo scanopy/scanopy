@@ -98,11 +98,11 @@ impl BillingService {
                     self.handle_invoice_finalization_failed(invoice).await?;
                 }
             }
-            EventType::InvoiceOverdue => {
-                if let EventObject::InvoiceOverdue(invoice) = event.data.object {
-                    self.handle_invoice_overdue(invoice).await?;
-                }
-            }
+            // `invoice.overdue` intentionally unhandled. Stripe only sends it
+            // when a Billing Automation is configured to, and an account with
+            // Automations cannot use test clocks on an existing customer, so
+            // configuring one costs more than it gives. A sent invoice going
+            // unpaid is read from the subscription instead, below.
             EventType::InvoiceFinalized => {
                 if let EventObject::InvoiceFinalized(invoice) = event.data.object {
                     self.handle_invoice_finalized(invoice).await?;
@@ -555,11 +555,11 @@ impl BillingService {
         }
 
         // An unpaid sent invoice is the one way a licence buyer stops paying,
-        // and Stripe reports it here: "if the subscription's collection_method
-        // is set to send_invoice, it becomes past_due when its invoice remains
-        // unpaid by the due date". No charge is attempted on one, so
-        // `invoice.payment_failed` never fires, and `invoice.overdue` only
-        // arrives when a Billing Automation is configured to send it.
+        // and this is the only event that reports it without any dashboard
+        // configuration: "if the subscription's collection_method is set to
+        // send_invoice, it becomes past_due when its invoice remains unpaid by
+        // the due date". No charge is attempted on one, so
+        // `invoice.payment_failed` never fires for it either.
         if sent_invoice_went_past_due(prior_status, sub.status, sub.collection_method)
             && let Some(invoice) = self.open_license_invoice(&organization).await?
         {
