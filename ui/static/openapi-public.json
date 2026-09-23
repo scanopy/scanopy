@@ -12655,19 +12655,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-23T12:12:15.710716Z",
+              "created_at": "2026-09-23T14:13:51.436965Z",
               "first_discovery_id": null,
-              "id": "e60e4ca3-0c0e-42b8-95ae-aca97a74c902",
+              "id": "fb968bd1-8ed7-4880-9112-b54b5b91e131",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-23T12:12:15.710716Z",
+              "last_seen_at": "2026-09-23T14:13:51.436965Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-23T12:12:15.710716Z",
-              "valid_from": "2026-09-23T12:12:15.710716Z",
+              "updated_at": "2026-09-23T14:13:51.436965Z",
+              "valid_from": "2026-09-23T14:13:51.436965Z",
               "valid_to": null
             }
           },
@@ -14239,19 +14239,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-23T12:12:15.694733Z",
+                      "created_at": "2026-09-23T14:13:51.420392Z",
                       "first_discovery_id": null,
-                      "id": "3ba016fc-51b3-43f1-8629-431461f71514",
+                      "id": "44116ccf-f3d8-47ea-bb98-aa5ba8a72c4e",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-23T12:12:15.694733Z",
+                      "last_seen_at": "2026-09-23T14:13:51.420392Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-23T12:12:15.694733Z",
-                      "valid_from": "2026-09-23T12:12:15.694733Z",
+                      "updated_at": "2026-09-23T14:13:51.420392Z",
+                      "valid_from": "2026-09-23T14:13:51.420392Z",
                       "valid_to": null
                     }
                   ],
@@ -14265,7 +14265,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "UptimeKuma",
+                  "service_definition": "Amazon Echo",
                   "source": {
                     "type": "Manual"
                   },
@@ -15644,19 +15644,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-23T12:12:15.706870Z",
+                  "created_at": "2026-09-23T14:13:51.433018Z",
                   "first_discovery_id": null,
-                  "id": "90403efc-84a5-4e50-b1cd-5c7ca81795e9",
+                  "id": "5489d8c6-6f3c-4121-a922-58d6d6556907",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-23T12:12:15.706870Z",
+                  "last_seen_at": "2026-09-23T14:13:51.433018Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-23T12:12:15.706870Z",
-                  "valid_from": "2026-09-23T12:12:15.706870Z",
+                  "updated_at": "2026-09-23T14:13:51.433018Z",
+                  "valid_from": "2026-09-23T14:13:51.433018Z",
                   "valid_to": null
                 }
               ],
@@ -15670,7 +15670,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "UptimeKuma",
+              "service_definition": "Amazon Echo",
               "source": {
                 "type": "Manual"
               },
@@ -18026,19 +18026,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-23T12:12:15.695149Z",
+          "created_at": "2026-09-23T14:13:51.420804Z",
           "first_discovery_id": null,
-          "id": "81b2e7e0-7c46-4496-a783-223dae09a838",
+          "id": "250926ae-8c12-40a7-9897-aabef28d365b",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-23T12:12:15.695149Z",
+          "last_seen_at": "2026-09-23T14:13:51.420804Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-23T12:12:15.695149Z",
-          "valid_from": "2026-09-23T12:12:15.695149Z",
+          "updated_at": "2026-09-23T14:13:51.420804Z",
+          "valid_from": "2026-09-23T14:13:51.420804Z",
           "valid_to": null
         }
       },
@@ -18746,7 +18746,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "UptimeKuma",
+              "service_definition": "Amazon Echo",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -24282,19 +24282,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-23T12:12:15.694289Z",
+                  "created_at": "2026-09-23T14:13:51.419942Z",
                   "first_discovery_id": null,
-                  "id": "fce12bb1-bca3-48cc-af7d-fa1a5d2ee00d",
+                  "id": "b7517be6-e642-4c90-bdd6-9bc1c5caebf7",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-23T12:12:15.694289Z",
+                  "last_seen_at": "2026-09-23T14:13:51.419942Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-23T12:12:15.694289Z",
-                  "valid_from": "2026-09-23T12:12:15.694289Z",
+                  "updated_at": "2026-09-23T14:13:51.419942Z",
+                  "valid_from": "2026-09-23T14:13:51.419942Z",
                   "valid_to": null
                 }
               ],
@@ -24308,7 +24308,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "UptimeKuma",
+              "service_definition": "Amazon Echo",
               "source": {
                 "type": "Manual"
               },
@@ -27974,19 +27974,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-23T12:12:15.687989Z",
+                        "created_at": "2026-09-23T14:13:51.412710Z",
                         "first_discovery_id": null,
-                        "id": "14f77a1b-0299-48c7-8576-d9941642cab8",
+                        "id": "98fbd3cf-73be-4ffc-8ffa-078885316f6f",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-23T12:12:15.687989Z",
+                        "last_seen_at": "2026-09-23T14:13:51.412710Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-23T12:12:15.687989Z",
-                        "valid_from": "2026-09-23T12:12:15.687989Z",
+                        "updated_at": "2026-09-23T14:13:51.412710Z",
+                        "valid_from": "2026-09-23T14:13:51.412710Z",
                         "valid_to": null
                       }
                     ],
@@ -28000,7 +28000,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "UptimeKuma",
+                    "service_definition": "Amazon Echo",
                     "source": {
                       "type": "Manual"
                     },
@@ -28143,19 +28143,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-23T12:12:15.706125Z",
+                    "created_at": "2026-09-23T14:13:51.432250Z",
                     "first_discovery_id": null,
-                    "id": "79ee4f42-2b87-443d-a48d-c05be73a5560",
+                    "id": "744cef66-bb45-432a-b0b4-dad6102c16c3",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-23T12:12:15.706125Z",
+                    "last_seen_at": "2026-09-23T14:13:51.432250Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-23T12:12:15.706125Z",
-                    "valid_from": "2026-09-23T12:12:15.706125Z",
+                    "updated_at": "2026-09-23T14:13:51.432250Z",
+                    "valid_from": "2026-09-23T14:13:51.432250Z",
                     "valid_to": null
                   }
                 ],
@@ -28169,7 +28169,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "UptimeKuma",
+                "service_definition": "Amazon Echo",
                 "source": {
                   "type": "Manual"
                 },
@@ -30294,19 +30294,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-23T12:12:15.695013Z",
+              "created_at": "2026-09-23T14:13:51.420676Z",
               "first_discovery_id": null,
-              "id": "a5e638b4-d904-476b-bfd8-09c063c4e493",
+              "id": "ae7d6c4e-9f0f-42e7-8113-4f2e4217c2ae",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-23T12:12:15.695013Z",
+              "last_seen_at": "2026-09-23T14:13:51.420676Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-23T12:12:15.695013Z",
-              "valid_from": "2026-09-23T12:12:15.695013Z",
+              "updated_at": "2026-09-23T14:13:51.420676Z",
+              "valid_from": "2026-09-23T14:13:51.420676Z",
               "valid_to": null
             }
           ],
@@ -30320,7 +30320,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "UptimeKuma",
+          "service_definition": "Amazon Echo",
           "source": {
             "type": "Manual"
           },
@@ -31688,7 +31688,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "a84d8272-9258-4257-b945-c9ed111005fa",
+                  "id": "40a0bc09-f53d-4217-bc97-a983b2f13c6a",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -31698,23 +31698,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "b9713dbb-8f4e-46e2-a8ee-2c28ee23f284",
+                  "id": "724c91b5-996b-4a54-9d5d-504a02920c84",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "8d349be8-fe40-48da-abcf-11e1437ca502",
+                  "id": "a27d9d81-3e11-4936-98e7-1abe3278007a",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "f23fd025-58a9-4005-bcb1-bb5e8a5a354f",
+                  "id": "b501f9ae-4ae6-42e1-952c-2d0cea208022",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "b9713dbb-8f4e-46e2-a8ee-2c28ee23f284",
+                  "id": "724c91b5-996b-4a54-9d5d-504a02920c84",
                   "rule": "ByHost"
                 }
               ]
@@ -31744,19 +31744,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "83b0ecd7-9f56-4f45-99a1-88d9665fbf3c",
+                "id": "4b0f7998-cd89-4dde-902a-2b03e49a4ccb",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "c344d4d4-bddf-487b-a816-e345864a713e",
+                "id": "fa53dc59-a423-4dd0-b9be-eeb813def178",
                 "rule": "ByVLAN"
               },
               {
-                "id": "2233fe69-3e38-460f-9471-24dd94d318d8",
+                "id": "8ba3b59d-78af-4f61-ac51-cb783134f253",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "525d48ef-28e5-4bea-813f-99d0953459d0",
+                "id": "a58337af-0ef9-40b9-a2fc-86d2fb39aacb",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -31774,7 +31774,7 @@
                 }
               },
               {
-                "id": "9b191656-e1a8-48a6-925c-6b31d6aaee83",
+                "id": "0854fe45-9de4-4560-9068-0471b316842b",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -31783,15 +31783,15 @@
                 }
               },
               {
-                "id": "5be42e7d-8897-4eca-a23e-6e338e7f0e3c",
+                "id": "7737ccac-d459-4883-b02c-aac03bfbb43b",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "001cc29f-b30d-4aac-a478-7b71b375597d",
+                "id": "3dd14520-56b0-4042-8fb6-17c338903873",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "14190198-d970-45ec-8d12-7580d5fd9013",
+                "id": "7380779f-dcec-49a0-92b5-5a16f276f77c",
                 "rule": "ByStack"
               }
             ]
