@@ -86,7 +86,6 @@
 	import { pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
 	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
 	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
-	import { continueOnLapsedPlan } from '$lib/shared/billing/continue-on-plan';
 
 	let {
 		isOpen = false,
@@ -529,13 +528,27 @@
 		startSetupPayment({ org, source: 'billing_tab', trialDaysLeft });
 	}
 
-	function handleContinueOnPlan() {
-		void continueOnLapsedPlan({
-			org,
-			source: 'billing_tab',
-			trialDaysLeft,
-			checkout: (plan) => checkoutMutation.mutateAsync(plan)
-		});
+	// Re-subscribe to the plan the org lapsed from. With a card on file the
+	// backend creates the subscription in place and the org is polled until the
+	// webhook lands it; without one the payment dialog collects the card and
+	// buys the plan on success.
+	async function handleContinueOnPlan() {
+		const plan = org?.plan;
+		if (!org || !plan) return;
+		if (!canPay(org)) {
+			startSetupPayment({ org, plan, source: 'billing_tab', trialDaysLeft });
+			return;
+		}
+		try {
+			const result = await checkoutMutation.mutateAsync(plan);
+			if (result.startsWith('http')) {
+				window.location.href = result;
+				return;
+			}
+			await waitForOrgUpdate((o) => o.plan_status === 'active', { intervalMs: 500 });
+		} catch {
+			// The mutation toasts the failure.
+		}
 	}
 </script>
 
