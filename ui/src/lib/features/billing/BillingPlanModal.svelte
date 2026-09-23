@@ -121,7 +121,7 @@
 	// hosting. A lapsed org keeps its plan, so a licensed one lands on
 	// Self-Hosted from that alone. Otherwise the tab requested at signup
 	// (`?hosting=self_hosted`), else Cloud.
-	let planHosting = $derived.by(() => {
+	let planHosting = $derived.by((): PlanPickerHosting | null => {
 		const meta = billingPlanHelpers.getMetadata(organization?.plan?.type ?? null);
 		if (meta?.is_stripe_managed !== true) return null;
 		return meta.hosting === 'SelfHosted'

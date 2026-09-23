@@ -15554,19 +15554,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-22T23:02:49.916724Z",
+              "created_at": "2026-09-23T03:49:37.520248Z",
               "first_discovery_id": null,
-              "id": "b670eb29-4e76-4159-ba71-b9ce44eb9460",
+              "id": "788f2cde-f2c7-4c3b-a835-183e0407325f",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-22T23:02:49.916724Z",
+              "last_seen_at": "2026-09-23T03:49:37.520248Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-22T23:02:49.916724Z",
-              "valid_from": "2026-09-22T23:02:49.916724Z",
+              "updated_at": "2026-09-23T03:49:37.520248Z",
+              "valid_from": "2026-09-23T03:49:37.520248Z",
               "valid_to": null
             }
           },
@@ -17138,19 +17138,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-22T23:02:49.894074Z",
+                      "created_at": "2026-09-23T03:49:37.499950Z",
                       "first_discovery_id": null,
-                      "id": "27507a8d-5d22-42ad-af2d-bd744ac09fcd",
+                      "id": "38d3826d-6fdd-475e-b3ac-406362e330b9",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-22T23:02:49.894074Z",
+                      "last_seen_at": "2026-09-23T03:49:37.499950Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-22T23:02:49.894074Z",
-                      "valid_from": "2026-09-22T23:02:49.894074Z",
+                      "updated_at": "2026-09-23T03:49:37.499950Z",
+                      "valid_from": "2026-09-23T03:49:37.499950Z",
                       "valid_to": null
                     }
                   ],
@@ -17164,7 +17164,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "OpenVPN",
+                  "service_definition": "PeaNUT",
                   "source": {
                     "type": "Manual"
                   },
@@ -18543,19 +18543,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-22T23:02:49.912029Z",
+                  "created_at": "2026-09-23T03:49:37.515790Z",
                   "first_discovery_id": null,
-                  "id": "b46859b5-b1d2-4dc3-9a1d-e9f57237c0b2",
+                  "id": "6cc08ef5-dc51-4091-bb55-64da837b71fe",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-22T23:02:49.912029Z",
+                  "last_seen_at": "2026-09-23T03:49:37.515790Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-22T23:02:49.912029Z",
-                  "valid_from": "2026-09-22T23:02:49.912029Z",
+                  "updated_at": "2026-09-23T03:49:37.515790Z",
+                  "valid_from": "2026-09-23T03:49:37.515790Z",
                   "valid_to": null
                 }
               ],
@@ -18569,7 +18569,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "OpenVPN",
+              "service_definition": "PeaNUT",
               "source": {
                 "type": "Manual"
               },
@@ -20925,19 +20925,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-22T23:02:49.894764Z",
+          "created_at": "2026-09-23T03:49:37.500503Z",
           "first_discovery_id": null,
-          "id": "5f3c6cbd-9e44-40b4-88b8-6d6b20d96bd8",
+          "id": "f5baf63e-d506-4597-b05c-e0ac23acf1b7",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-22T23:02:49.894764Z",
+          "last_seen_at": "2026-09-23T03:49:37.500503Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-22T23:02:49.894764Z",
-          "valid_from": "2026-09-22T23:02:49.894764Z",
+          "updated_at": "2026-09-23T03:49:37.500503Z",
+          "valid_from": "2026-09-23T03:49:37.500503Z",
           "valid_to": null
         }
       },
@@ -21645,7 +21645,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "OpenVPN",
+              "service_definition": "PeaNUT",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -27181,19 +27181,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-22T23:02:49.893318Z",
+                  "created_at": "2026-09-23T03:49:37.499340Z",
                   "first_discovery_id": null,
-                  "id": "6e21fca7-541d-4b83-b9cf-f769c018eb60",
+                  "id": "dfb5d4c7-7ed4-483b-b4d4-a1bfad1758c6",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-22T23:02:49.893318Z",
+                  "last_seen_at": "2026-09-23T03:49:37.499340Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-22T23:02:49.893318Z",
-                  "valid_from": "2026-09-22T23:02:49.893318Z",
+                  "updated_at": "2026-09-23T03:49:37.499340Z",
+                  "valid_from": "2026-09-23T03:49:37.499340Z",
                   "valid_to": null
                 }
               ],
@@ -27207,7 +27207,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "OpenVPN",
+              "service_definition": "PeaNUT",
               "source": {
                 "type": "Manual"
               },
@@ -30873,19 +30873,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-22T23:02:49.880413Z",
+                        "created_at": "2026-09-23T03:49:37.483287Z",
                         "first_discovery_id": null,
-                        "id": "204e261b-4b9e-462a-bf34-3a2b957dcfb2",
+                        "id": "94cea0ec-fc31-4355-82f0-f3fbd2ef225d",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-22T23:02:49.880413Z",
+                        "last_seen_at": "2026-09-23T03:49:37.483287Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-22T23:02:49.880413Z",
-                        "valid_from": "2026-09-22T23:02:49.880413Z",
+                        "updated_at": "2026-09-23T03:49:37.483287Z",
+                        "valid_from": "2026-09-23T03:49:37.483287Z",
                         "valid_to": null
                       }
                     ],
@@ -30899,7 +30899,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "OpenVPN",
+                    "service_definition": "PeaNUT",
                     "source": {
                       "type": "Manual"
                     },
@@ -31042,19 +31042,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-22T23:02:49.911144Z",
+                    "created_at": "2026-09-23T03:49:37.515001Z",
                     "first_discovery_id": null,
-                    "id": "72b5658a-c2c5-4810-b46c-fcef0d4a90a2",
+                    "id": "f8a0ee10-b918-44f7-8bb7-e9545f1f3397",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-22T23:02:49.911144Z",
+                    "last_seen_at": "2026-09-23T03:49:37.515001Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-22T23:02:49.911144Z",
-                    "valid_from": "2026-09-22T23:02:49.911144Z",
+                    "updated_at": "2026-09-23T03:49:37.515001Z",
+                    "valid_from": "2026-09-23T03:49:37.515001Z",
                     "valid_to": null
                   }
                 ],
@@ -31068,7 +31068,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "OpenVPN",
+                "service_definition": "PeaNUT",
                 "source": {
                   "type": "Manual"
                 },
@@ -33193,19 +33193,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-22T23:02:49.894547Z",
+              "created_at": "2026-09-23T03:49:37.500329Z",
               "first_discovery_id": null,
-              "id": "791c0ce7-dc37-438d-b4b1-001e464c14a3",
+              "id": "ec5c535d-adf9-4fac-9938-761f1d80c162",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-22T23:02:49.894547Z",
+              "last_seen_at": "2026-09-23T03:49:37.500329Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-22T23:02:49.894547Z",
-              "valid_from": "2026-09-22T23:02:49.894547Z",
+              "updated_at": "2026-09-23T03:49:37.500329Z",
+              "valid_from": "2026-09-23T03:49:37.500329Z",
               "valid_to": null
             }
           ],
@@ -33219,7 +33219,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "OpenVPN",
+          "service_definition": "PeaNUT",
           "source": {
             "type": "Manual"
           },
@@ -34587,7 +34587,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "228d8d6d-a190-4c34-86bd-2b1d348ea686",
+                  "id": "c4f8417d-281e-4104-8a29-776a10f9ded3",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -34597,23 +34597,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "007a3b82-99fb-4541-b222-cf3786328580",
+                  "id": "ca28632a-e804-4a07-8c87-7cb92ba71a7d",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "77b93d10-8ece-45e9-b8fa-b4d4d447f0c4",
+                  "id": "092e43ee-406a-464e-9761-badc8aac208a",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "3a368bff-8701-45f7-9356-773dbb2192ac",
+                  "id": "8e7391a9-94e2-4acd-a306-6daa6445365d",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "007a3b82-99fb-4541-b222-cf3786328580",
+                  "id": "ca28632a-e804-4a07-8c87-7cb92ba71a7d",
                   "rule": "ByHost"
                 }
               ]
@@ -34643,19 +34643,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "ece56a96-33b8-429d-9437-5b1b668bc398",
+                "id": "15f8b699-12f2-4550-90d5-ba30a797b6b7",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "4bfe4907-3d6a-4d38-8571-9622ef37e296",
+                "id": "e02237be-4c73-4b20-a3a5-d9f963183993",
                 "rule": "ByVLAN"
               },
               {
-                "id": "cdea5119-9403-4ac6-afa9-ac8cc6458627",
+                "id": "ff4c8467-2e2b-46bb-aab1-ba8cf994534e",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "c086203b-d34f-4d5a-94f9-c06b865392db",
+                "id": "899568e8-8922-4f8c-b7d8-62d98a6a6997",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -34673,7 +34673,7 @@
                 }
               },
               {
-                "id": "4ae0d790-0fb7-4a2d-90c7-5e8db656b22d",
+                "id": "59eb529a-8c86-422a-9d8f-1d83ccf0be31",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -34682,15 +34682,15 @@
                 }
               },
               {
-                "id": "fee69a61-4c40-462e-942b-9a5e7451e054",
+                "id": "d7796064-c6ab-41bd-955e-cd9a42f812ff",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "786594a3-0a01-4f8b-ad05-e930097e7364",
+                "id": "c7b1abae-05c6-43b7-be9e-acc4a3771451",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "2be55272-fb0a-4d19-9130-84ee170366af",
+                "id": "0963c48f-7340-4199-93ce-f11a69bc0527",
                 "rule": "ByStack"
               }
             ]
