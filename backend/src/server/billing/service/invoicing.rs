@@ -386,9 +386,7 @@ impl BillingService {
         invoice: stripe_billing::Invoice,
     ) -> Result<(), Error> {
         let snapshot = BillingInvoice::from(&invoice);
-        if snapshot.collection != InvoiceCollection::SendInvoice
-            || snapshot.license_unpaid_from().is_none()
-        {
+        if !is_sent_licence_invoice(&snapshot) {
             return Ok(());
         }
         let reason = invoice
@@ -834,6 +832,14 @@ impl BillingService {
 
 const SELF_HOSTED_ONLY: &str = "Invoice billing is available on self-hosted plans only";
 
+/// Whether this invoice is one we sent a self-hosted licence buyer, rather
+/// than one Stripe collects automatically or a cloud invoice. The licence
+/// emails speak about keys and servers, so a cloud customer must never
+/// receive one.
+fn is_sent_licence_invoice(invoice: &BillingInvoice) -> bool {
+    invoice.collection == InvoiceCollection::SendInvoice && invoice.license_unpaid_from().is_some()
+}
+
 /// Whether a freshly created invoice should be finalized straight away: a
 /// draft, sent to the customer rather than charged, for a self-hosted licence.
 /// Anything else is left to Stripe, including invoices already finalized by
@@ -950,6 +956,25 @@ mod tests {
             true,
             &licensed_invoice(InvoiceCollection::SendInvoice, false)
         ));
+    }
+
+    /// A failed finalize tells the owner their licence invoice never went out.
+    /// Sending that to a cloud customer, or about an invoice Stripe charges
+    /// automatically, would describe a licence they do not have.
+    #[test]
+    fn only_a_sent_licence_invoice_reports_a_failed_finalize() {
+        assert!(is_sent_licence_invoice(&licensed_invoice(
+            InvoiceCollection::SendInvoice,
+            true
+        )));
+        assert!(!is_sent_licence_invoice(&licensed_invoice(
+            InvoiceCollection::ChargeAutomatically,
+            true
+        )));
+        assert!(!is_sent_licence_invoice(&licensed_invoice(
+            InvoiceCollection::SendInvoice,
+            false
+        )));
     }
 
     fn purchasable() -> Vec<BillingPlan> {

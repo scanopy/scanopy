@@ -577,7 +577,7 @@ mod tests {
             "invoice_finalization_failed",
             &InvoiceFinalizationFailed {
                 plan_name: "Self-Hosted Standard",
-                reason: "The tax ID DE999999999 could not be validated.",
+                reason: "We could not determine the customer's tax location.",
             },
         );
         f(
