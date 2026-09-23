@@ -212,10 +212,17 @@ impl Subscriber<BillingOperation> for OrganizationService {
                         changed = true;
                     }
                 }
-                BillingOperation::InvoiceIssued { invoice } => {
+                BillingOperation::InvoiceIssued {
+                    invoice,
+                    grants_licence,
+                } => {
                     // A buyer paying by invoice deploys as soon as it is issued.
-                    // Never shortens a period already paid for or granted.
-                    if let Some(provisional) = invoice.provisional_paid_through()
+                    // Never shortens a period already paid for or granted, and
+                    // never extends one for an org that left an earlier invoice
+                    // overdue: the publish site decides that, since only it can
+                    // ask Stripe what else is owed.
+                    if *grants_licence
+                        && let Some(provisional) = invoice.provisional_paid_through()
                         && organization
                             .base
                             .license_paid_through

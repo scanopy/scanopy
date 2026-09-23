@@ -158,6 +158,12 @@ pub enum EntityOperation {
     Deleted,
 }
 
+/// Serde default for boolean fields added to an event after rows existed,
+/// where the absent value means the behaviour that was unconditional before.
+pub(crate) fn default_true() -> bool {
+    true
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, strum::Display, EnumDiscriminants)]
 #[serde(tag = "type")]
 #[strum(serialize_all = "snake_case")]
@@ -249,6 +255,16 @@ pub enum BillingOperation {
     /// buyer paying by invoice can deploy before the money arrives.
     InvoiceIssued {
         invoice: BillingInvoice,
+        /// Whether this invoice extends the licence, decided at the publish
+        /// site because only it can ask Stripe what else the customer owes.
+        ///
+        /// False when another licence invoice is already past its due date
+        /// unpaid. Issuing an invoice is what grants time before payment, so
+        /// without this an organization could lapse for non-payment and buy
+        /// itself another term by issuing a second invoice, indefinitely.
+        /// Defaults true for events written before the field existed.
+        #[serde(default = "crate::server::shared::events::types::default_true")]
+        grants_licence: bool,
     },
     /// A sent invoice will never be paid: voided, or marked uncollectible.
     /// The org subscriber takes back the license period it granted.

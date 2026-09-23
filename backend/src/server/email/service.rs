@@ -28,7 +28,6 @@ use crate::server::{
     daemons::{r#impl::base::Daemon, service::DaemonService},
     digest::payload::DiscoveryDigestPayload,
     hosts::service::HostService,
-    license::mint::PAID_THROUGH_BUFFER_DAYS,
     networks::{r#impl::Network, service::NetworkService},
     organizations::{
         r#impl::base::{LimitNotificationLevel, Organization},
@@ -433,14 +432,12 @@ impl EmailService {
         to: EmailAddress,
         period_end: &str,
         licensed: bool,
-        key_expires: &str,
     ) -> Result<()> {
         self.dispatch(
             to,
             &CancellationInitiated {
                 period_end,
                 licensed,
-                key_expires,
             },
         )
         .await
@@ -639,9 +636,7 @@ impl EmailService {
         let due_date = invoice.due_date.map(format_timestamp).unwrap_or_default();
         let key_expires = invoice
             .provisional_paid_through()
-            .map(|paid_through| {
-                format_timestamp(paid_through + chrono::Duration::days(PAID_THROUGH_BUFFER_DAYS))
-            })
+            .map(format_timestamp)
             .unwrap_or_default();
         let cta_href = invoice
             .hosted_invoice_url
@@ -1087,7 +1082,7 @@ impl EmailService {
         self.send_airgap_expiring_email(
             owner,
             plan.name(),
-            &format_timestamp(paid_through + chrono::Duration::days(PAID_THROUGH_BUFFER_DAYS)),
+            &format_timestamp(paid_through),
             &format_timestamp(paid_through),
             &format_cents(plan.config().base_cents, "usd"),
             plan.previous_tier().is_some(),

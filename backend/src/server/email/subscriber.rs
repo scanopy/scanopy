@@ -14,7 +14,6 @@ use crate::server::{
     billing::types::base::BillingReason,
     digest::payload::{DiscoveryDigestOperation, DiscoveryDigestOperationDiscriminants},
     email::service::{EmailService, format_cents},
-    license::mint::{GRACE_PERIOD_DAYS, PAID_THROUGH_BUFFER_DAYS},
     license::types::LicenseKeyType,
     shared::{
         entities::{Entity, EntityDiscriminants},
@@ -33,20 +32,22 @@ use crate::server::{
 };
 
 impl EmailService {
-    /// Formatted date a lapsed org's online key stops working: the period it
-    /// paid or trialled for, plus the buffer every key is minted with. The
-    /// org keeps its plan, so the cloud serves its entitlement until then.
+    /// Formatted date a lapsed org's licence runs to: the period it paid or
+    /// trialled for. The org keeps its plan, so the cloud serves its
+    /// entitlement until then.
+    ///
+    /// Deliberately the paid-through date and not the key's own expiry. Keys
+    /// are minted with a buffer and a further silent grace on top, so this is
+    /// up to a fortnight early; naming the later date instead left one card
+    /// showing two dates for the same licence. Understating is the safe
+    /// direction, and both windows stay invisible.
     async fn license_key_expires(&self, organization_id: uuid::Uuid) -> Result<String, Error> {
         Ok(self
             .organization_service
             .get_by_id(&organization_id)
             .await?
             .and_then(|org| org.base.license_paid_through)
-            .map(|at| {
-                (at + chrono::Duration::days(PAID_THROUGH_BUFFER_DAYS))
-                    .format("%B %-d, %Y")
-                    .to_string()
-            })
+            .map(|at| at.format("%B %-d, %Y").to_string())
             .unwrap_or_else(|| "the end of the period you paid for".to_string()))
     }
 }
@@ -289,7 +290,7 @@ impl Subscriber<BillingOperation> for EmailService {
                     self.send_payment_action_required_email(org_owner, hosted_invoice_url)
                         .await?;
                 }
-                BillingOperation::InvoiceIssued { invoice } => {
+                BillingOperation::InvoiceIssued { invoice, .. } => {
                     // Stripe mails the invoice itself; this one says what it
                     // covers and that the licence keeps working meanwhile.
                     // Guarded on a due date so only a sent invoice qualifies.
@@ -384,13 +385,7 @@ impl Subscriber<BillingOperation> for EmailService {
                                     // org row has already moved on by the
                                     // time this runs.
                                     let current_key_expires = previous_license_paid_through
-                                        .map(|at| {
-                                            (at + chrono::Duration::days(
-                                                PAID_THROUGH_BUFFER_DAYS + GRACE_PERIOD_DAYS,
-                                            ))
-                                            .format("%B %-d, %Y")
-                                            .to_string()
-                                        })
+                                        .map(|at| at.format("%B %-d, %Y").to_string())
                                         .unwrap_or_else(|| "its current expiry".to_string());
                                     let plan_name = organization
                                         .base
@@ -425,19 +420,15 @@ impl Subscriber<BillingOperation> for EmailService {
                     planned_period_end,
                     ..
                 } => {
+                    // The licence runs to the period end, which is also the
+                    // cancellation date, so the email names one date rather
+                    // than two a week apart. Computed from the event, so no
+                    // org read.
                     let period_end_str = planned_period_end.format("%B %-d, %Y").to_string();
-                    // A paid licence is paid through the period end, and the
-                    // key carries the usual buffer past that. Computed from
-                    // the event, so no org read.
-                    let key_expires = (planned_period_end
-                        + chrono::Duration::days(PAID_THROUGH_BUFFER_DAYS))
-                    .format("%B %-d, %Y")
-                    .to_string();
                     self.send_cancellation_initiated_email(
                         org_owner,
                         &period_end_str,
                         plan.is_some_and(|plan| plan.license_plan().is_some()),
-                        &key_expires,
                     )
                     .await?;
                 }
