@@ -109,7 +109,32 @@ impl DaemonService {
             );
         }
 
+        self.fail_sessions_on_unreachable(daemon_id).await;
+
         Ok(())
+    }
+
+    /// End the sessions a daemon was running when the server gave up on it.
+    ///
+    /// The poll loop is how a ServerPoll session reaches its outcome, so a daemon it can no longer
+    /// reach has none coming. Left alone the session sits until the stall sweep, and says it
+    /// stalled when what happened is that its daemon went away.
+    async fn fail_sessions_on_unreachable(&self, daemon_id: Uuid) {
+        let sessions = self
+            .discovery_service
+            .get_sessions_for_daemon(&daemon_id)
+            .await;
+
+        for session_id in dispatched_sessions(&sessions) {
+            self.discovery_service
+                .fail_session(
+                    session_id,
+                    DiscoveryTerminalReason::DaemonUnreachable,
+                    "The server stopped being able to reach the daemon running this scan"
+                        .to_string(),
+                )
+                .await;
+        }
     }
 
     /// Poll a single daemon for status and discovery data.
@@ -537,6 +562,15 @@ fn restarted_sessions(
     if !(ready_for_work && reports_ready && poll_ok) {
         return Vec::new();
     }
+    dispatched_sessions(sessions)
+}
+
+/// The sessions a daemon is holding: the ones it was told to run and has not finished.
+///
+/// `Started` and `Scanning` count: a `Starting` session is mid-dispatch, and `Queued`, `Pending`
+/// and `AwaitingSnapshot` were never sent to the daemon. What happened to the daemon decides what
+/// these become; which sessions are its own does not change with it.
+fn dispatched_sessions(sessions: &[DiscoveryUpdatePayload]) -> Vec<Uuid> {
     sessions
         .iter()
         .filter(|s| matches!(s.phase, DiscoveryPhase::Started | DiscoveryPhase::Scanning))
@@ -597,5 +631,27 @@ mod tests {
         ];
 
         assert!(restarted_sessions(true, true, true, &sessions).is_empty());
+    }
+
+    /// The same rule decides what a restart lost and what an unreachable daemon is holding, so a
+    /// phase admitted to one is admitted to the other.
+    #[test]
+    fn a_daemon_holds_exactly_the_sessions_it_was_told_to_run() {
+        let scanning = session(DiscoveryPhase::Scanning);
+        let started = session(DiscoveryPhase::Started);
+        let sessions = [
+            scanning.clone(),
+            started.clone(),
+            session(DiscoveryPhase::Starting),
+            session(DiscoveryPhase::Queued),
+            session(DiscoveryPhase::Pending),
+            session(DiscoveryPhase::AwaitingSnapshot),
+            session(DiscoveryPhase::Complete),
+        ];
+
+        assert_eq!(
+            dispatched_sessions(&sessions),
+            vec![scanning.session_id, started.session_id]
+        );
     }
 }
