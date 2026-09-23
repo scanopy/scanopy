@@ -21,6 +21,7 @@ use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::generic::GenericPostgresStorage;
 use crate::server::shared::storage::traits::{Entity, Storable, Storage};
 use crate::server::shared::types::api::ApiError;
+use crate::server::subnets::r#impl::base::Subnet;
 use crate::server::tags::entity_tags::EntityTagService;
 use anyhow::anyhow;
 use anyhow::{Error, Result};

@@ -7,6 +7,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::daemon::discovery::service::ops::DiscoveryOps;
 use crate::daemon::utils::base::{DaemonUtils, PlatformDaemonUtils};
+use crate::server::daemons::r#impl::base::DaemonMode;
 use crate::server::subnets::r#impl::base::Subnet;
 
 use super::NetworkScan;
@@ -36,6 +37,29 @@ pub struct ResolvedScanTargets {
 impl NetworkScan {
     /// Network-phase target resolution: either the subnets to sweep, or the
     /// specific addresses a rescan is verifying.
+    /// The network's subnets, as sent with the run, or asked for when the server was too old to
+    /// send them.
+    ///
+    /// Only a scan that names subnets by id needs these: a sweep reads the daemon's own
+    /// interfaces, and creates what it finds. Asking is a DaemonPoll-only fallback, since a
+    /// ServerPoll daemon has no server URL to ask with; there, an empty list is as far as this
+    /// run gets, and the error says so rather than reporting a connection it never tried.
+    async fn network_subnets(&self, ops: &DiscoveryOps) -> Result<Vec<Subnet>, Error> {
+        if !self.known_subnets.is_empty() {
+            return Ok(self.known_subnets.clone());
+        }
+        if ops.config_store.get_mode().await? == DaemonMode::ServerPoll {
+            return Err(anyhow::anyhow!(
+                "The server sent no subnets with this scan, and a ServerPoll daemon cannot ask \
+                 for them. Upgrade the server, or scan the daemon's own subnets instead of \
+                 naming them."
+            ));
+        }
+        ops.api_client
+            .get("/api/v1/subnets", "Failed to get subnets")
+            .await
+    }
+
     pub async fn resolve_scan_subnets(
         &self,
         ops: &DiscoveryOps,
@@ -55,10 +79,20 @@ impl NetworkScan {
                 .await;
         }
 
-        let network_subnets: Vec<Subnet> = ops
-            .api_client
-            .get("/api/v1/subnets", "Failed to get subnets")
-            .await?;
+        // A scan that names subnets cannot run without them. A sweep only uses them to place
+        // what integrations report, so it carries on with what it has.
+        let network_subnets = match self.network_subnets(ops).await {
+            Ok(subnets) => subnets,
+            Err(e) if self.subnet_ids.is_some() => return Err(e),
+            Err(e) => {
+                tracing::warn!(
+                    error = %e,
+                    "Scanning without the network's subnet list; integrations will place what \
+                     they find by the subnets this scan creates"
+                );
+                Vec::new()
+            }
+        };
 
         // Target specific subnets if provided in discovery type
         let subnets = if let Some(subnet_ids) = &self.subnet_ids {
@@ -120,10 +154,7 @@ impl NetworkScan {
             .get_own_interfaces(network_id, &interface_filter)
             .await?;
 
-        let all_subnets: Vec<Subnet> = ops
-            .api_client
-            .get("/api/v1/subnets", "Failed to get subnets")
-            .await?;
+        let all_subnets = self.network_subnets(ops).await?;
 
         let resolution = resolve_rescan_subnets(target_ips, &subnet_cidr_to_mac, &all_subnets);
 

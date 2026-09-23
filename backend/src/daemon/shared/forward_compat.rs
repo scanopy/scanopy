@@ -324,6 +324,7 @@ impl DaemonResponse for DaemonDiscoveryRequest {
             discovery_type: DiscoveryType::default(),
             credential_mappings: Vec::new(),
             discovery_id: Uuid::nil(),
+            subnets: Vec::new(),
         };
         // Compile guard.
         let DaemonDiscoveryRequest {
@@ -331,6 +332,7 @@ impl DaemonResponse for DaemonDiscoveryRequest {
             discovery_type: _,
             credential_mappings: _,
             discovery_id: _,
+            subnets: _,
         } = &instance;
         // `discovery_type` is intentionally NOT skewed: an unknown discovery
         // kind is not actionable by the daemon and should be rejected, not
