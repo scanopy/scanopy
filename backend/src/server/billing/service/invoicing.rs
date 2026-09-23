@@ -345,7 +345,7 @@ impl BillingService {
         // arrives, so an organization that already owes us for an overdue one
         // does not get a second term by issuing itself another.
         let owes = self
-            .overdue_license_invoice(&organization, &snapshot.stripe_invoice_id)
+            .overdue_license_invoice(&organization, &snapshot)
             .await?;
         if let Some(owed) = &owes {
             tracing::info!(
@@ -371,16 +371,20 @@ impl BillingService {
         Ok(())
     }
 
-    /// The id of another licence invoice this organization has left unpaid
-    /// past its due date, if any.
+    /// The id of another licence invoice that was already past its due date
+    /// when `issued` was raised, if any.
     ///
     /// Merely open is not enough: a plan change leaves two invoices open for a
     /// moment, and a renewal is issued before the previous period ends. Only a
     /// due date that has passed is evidence of a default.
+    ///
+    /// Both timestamps come from Stripe. Comparing a Stripe due date against
+    /// our own clock would be wrong even without the skew a test clock makes
+    /// obvious, where Stripe's dates run months ahead of the server's.
     async fn overdue_license_invoice(
         &self,
         organization: &Organization,
-        excluding: &str,
+        issued: &BillingInvoice,
     ) -> Result<Option<String>, Error> {
         let Some(customer_id) = organization
             .base
@@ -396,7 +400,11 @@ impl BillingService {
             .iter()
             .map(BillingInvoice::from)
             .collect();
-        Ok(overdue_other_invoice(&open, excluding, Utc::now()))
+        Ok(overdue_other_invoice(
+            &open,
+            &issued.stripe_invoice_id,
+            issued.created_at,
+        ))
     }
 
     /// Webhook: a draft invoice exists. A sent invoice for a self-hosted
@@ -859,20 +867,23 @@ impl BillingService {
 
 const SELF_HOSTED_ONLY: &str = "Invoice billing is available on self-hosted plans only";
 
-/// The id of a licence invoice, other than `excluding`, that has passed its
-/// due date unpaid.
+/// The id of a licence invoice, other than `excluding`, whose due date had
+/// already passed at `as_of`.
 ///
 /// Merely open is not evidence of a default: a plan change leaves two invoices
 /// open for a moment, and a renewal is issued before the previous period ends.
 /// Only a due date that has passed says the customer stopped paying.
+///
+/// `as_of` is the issuing invoice's own creation time rather than the current
+/// time, so every timestamp compared here comes from Stripe.
 fn overdue_other_invoice(
     open: &[BillingInvoice],
     excluding: &str,
-    now: DateTime<Utc>,
+    as_of: DateTime<Utc>,
 ) -> Option<String> {
     open.iter()
         .filter(|invoice| invoice.stripe_invoice_id != excluding)
-        .find(|invoice| invoice.due_date.is_some_and(|due| due < now))
+        .find(|invoice| invoice.due_date.is_some_and(|due| due < as_of))
         .map(|invoice| invoice.stripe_invoice_id.clone())
 }
 
@@ -1027,37 +1038,53 @@ mod tests {
     /// keep working: a renewal is issued before the previous period ends.
     #[test]
     fn only_an_overdue_earlier_invoice_withholds_the_licence() {
-        let now = Utc::now();
+        // Stands for the issuing invoice's creation time, which is what the
+        // caller passes: every timestamp here is one Stripe reported.
+        let issued_at = Utc::now();
         let with = |id: &str, due: DateTime<Utc>| BillingInvoice {
             stripe_invoice_id: id.to_string(),
             due_date: Some(due),
             ..licensed_invoice(InvoiceCollection::SendInvoice, true)
         };
 
-        let overdue = with("in_old", now - chrono::Duration::days(1));
-        let upcoming = with("in_next", now + chrono::Duration::days(30));
-        let being_issued = with("in_new", now + chrono::Duration::days(30));
+        let overdue = with("in_old", issued_at - chrono::Duration::days(1));
+        let upcoming = with("in_next", issued_at + chrono::Duration::days(30));
+        let being_issued = with("in_new", issued_at + chrono::Duration::days(30));
 
         assert_eq!(
-            overdue_other_invoice(&[overdue.clone(), being_issued.clone()], "in_new", now),
+            overdue_other_invoice(&[overdue.clone(), being_issued.clone()], "in_new", issued_at),
             Some("in_old".to_string())
         );
         // A renewal alongside the one being issued is not a default.
         assert_eq!(
-            overdue_other_invoice(&[upcoming, being_issued.clone()], "in_new", now),
+            overdue_other_invoice(&[upcoming, being_issued.clone()], "in_new", issued_at),
             None
         );
         // The invoice being issued is never evidence against itself, however
         // its own due date falls.
         assert_eq!(
             overdue_other_invoice(
-                &[with("in_new", now - chrono::Duration::days(1))],
+                &[with("in_new", issued_at - chrono::Duration::days(1))],
                 "in_new",
-                now
+                issued_at
             ),
             None
         );
-        assert_eq!(overdue_other_invoice(&[], "in_new", now), None);
+        assert_eq!(overdue_other_invoice(&[], "in_new", issued_at), None);
+
+        // The defect this replaced: a Stripe due date compared against our own
+        // clock. Under a test clock Stripe's dates run months ahead, so an
+        // invoice long overdue in Stripe's frame looked not yet due in ours
+        // and the licence was granted anyway.
+        let stripe_frame = issued_at + chrono::Duration::days(60);
+        assert_eq!(
+            overdue_other_invoice(
+                &[with("in_old", stripe_frame - chrono::Duration::days(1))],
+                "in_new",
+                stripe_frame
+            ),
+            Some("in_old".to_string())
+        );
     }
 
     fn purchasable() -> Vec<BillingPlan> {
