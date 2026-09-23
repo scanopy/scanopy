@@ -16,6 +16,7 @@
 		useInvoiceBillingStatusQuery,
 		useAcceptQuoteMutation,
 		useCancelQuoteMutation,
+		invalidateInvoiceBilling,
 		useCheckoutMutation,
 		downloadQuotePdf
 	} from '$lib/features/billing/queries';
@@ -116,7 +117,10 @@
 	// only: the endpoint refuses other plans, and a cloud org would pay for a
 	// Stripe round trip on every visit to this tab.
 	const invoiceBillingQuery = useInvoiceBillingStatusQuery(() => isLicensedPlan);
-	let invoiceBilling = $derived(invoiceBillingQuery.data ?? null);
+	// Gated on the plan as well as the query: disabling a TanStack query keeps
+	// its last value rather than clearing it, so a move to a cloud plan would
+	// otherwise keep offering the licensed plan's invoice.
+	let invoiceBilling = $derived(isLicensedPlan ? (invoiceBillingQuery.data ?? null) : null);
 	let pendingQuote = $derived(invoiceBilling?.pending_quote ?? null);
 	let openInvoiceUrl = $derived(invoiceBilling?.open_invoice?.hosted_invoice_url ?? null);
 
@@ -159,7 +163,17 @@
 	}
 
 	function handlePayInvoice() {
-		if (openInvoiceUrl) window.open(openInvoiceUrl, '_blank', 'noopener,noreferrer');
+		if (!openInvoiceUrl) return;
+		window.open(openInvoiceUrl, '_blank', 'noopener,noreferrer');
+		// Paying happens on Stripe's page, so there is no mutation to hang a
+		// refresh on. `license_paid_through` is the column the PaymentSucceeded
+		// subscriber advances, so wait for that to move and then refresh the
+		// invoice once, rather than polling this endpoint: each call costs
+		// three Stripe round trips.
+		const before = org?.license_paid_through;
+		void waitForOrgUpdate((o) => o.license_paid_through !== before).then((paid) => {
+			if (paid) invalidateInvoiceBilling();
+		});
 	}
 
 	// Customer portal mutation

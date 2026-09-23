@@ -43,6 +43,11 @@ export function useCheckoutMutation() {
 			);
 		},
 		onSuccess: (data: string) => {
+			// A plan change on an invoice-billed org voids the old invoice
+			// server-side, so the cached open invoice now points at something
+			// that cannot be paid. The void is synchronous inside /checkout,
+			// so this races no webhook.
+			invalidateInvoiceBilling();
 			// Non-URL response means plan was changed directly (existing subscriber)
 			if (!data.startsWith('http')) {
 				pushSuccess(data);
@@ -338,7 +343,12 @@ export function useHasPendingQuote(): { current: boolean } {
 	};
 }
 
-function invalidateInvoiceBilling() {
+/**
+ * Refresh the invoice-billing state and the org together. Exported for the
+ * paths that change an invoice without a mutation of their own: paying on
+ * Stripe's hosted page, and a plan change that voids the old invoice.
+ */
+export function invalidateInvoiceBilling() {
 	queryClient.invalidateQueries({ queryKey: queryKeys.billing.invoiceBilling() });
 	queryClient.invalidateQueries({ queryKey: queryKeys.organizations.current() });
 }

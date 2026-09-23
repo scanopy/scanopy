@@ -46,7 +46,6 @@
 		common_online,
 		common_tier,
 		settings_billing_changePlan,
-		settings_billing_license_addPaymentMethodSubtitle,
 		settings_billing_license_airGappedCurrentUntil,
 		settings_billing_license_airGappedNeedsCard,
 		settings_billing_license_airGappedOpenInvoice,
@@ -58,7 +57,7 @@
 		settings_billing_license_lastCheckIn,
 		settings_billing_license_offlineKeyUpsell,
 		settings_billing_license_onlineLockedUntil,
-		settings_billing_license_paidThrough,
+		settings_billing_license_validThrough,
 		settings_billing_license_paymentDeclined,
 		settings_billing_license_rotateConfirm,
 		settings_billing_license_rotateTitle,
@@ -67,7 +66,6 @@
 		settings_billing_license_switchConfirm,
 		settings_billing_license_switchOnlineConfirm,
 		settings_billing_license_switchTitle,
-		settings_billing_license_trialPaymentBody,
 		settings_billing_payInvoice
 	} from '$lib/paraglide/messages';
 
@@ -173,7 +171,7 @@
 		{ value: 'Offline', label: common_airGapped(), disabled: !airGappedAvailable }
 	]);
 
-	let paidThrough = $derived(
+	let validThrough = $derived(
 		org?.license_paid_through ? formatDate(org.license_paid_through) : null
 	);
 	// An air-gapped key outlives the paid-through date by the server's buffer, so
@@ -188,13 +186,6 @@
 	);
 	let lastCheckIn = $derived(
 		org?.license_checkin_at ? formatTimestamp(org.license_checkin_at) : common_never()
-	);
-
-	let trialEndsOn = $derived(org?.trial_end_date ? formatDate(org.trial_end_date) : null);
-	let cardDescription = $derived(
-		trialEndsOn
-			? settings_billing_license_trialPaymentBody({ date: trialEndsOn })
-			: settings_billing_license_addPaymentMethodSubtitle()
 	);
 
 	let showRotateConfirm = $state(false);
@@ -329,9 +320,33 @@
 						<dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-sm">
 							<dt class="text-secondary">{common_tier()}</dt>
 							<dd class="text-primary font-medium">{billingPlans.getName(planType)}</dd>
-							{#if paidThrough}
-								<dt class="text-secondary">{settings_billing_license_paidThrough()}</dt>
-								<dd class="text-primary">{paidThrough}</dd>
+							{#if validThrough}
+								<dt class="text-secondary">{settings_billing_license_validThrough()}</dt>
+								<dd class="text-primary flex flex-wrap items-center gap-3">
+									<span>{validThrough}</span>
+									<!-- Whatever is required to keep that date moving, beside the
+									     date itself rather than in a card further down. -->
+									{#if openInvoiceUrl}
+										<!-- eslint-disable svelte/no-navigation-without-resolve -->
+										<a
+											href={openInvoiceUrl}
+											target="_blank"
+											rel="external noopener noreferrer"
+											class="text-link hover:underline"
+										>
+											{settings_billing_payInvoice()}
+										</a>
+										<!-- eslint-enable svelte/no-navigation-without-resolve -->
+									{:else if missingCard}
+										<button
+											type="button"
+											class="text-link hover:underline"
+											onclick={handleAddPaymentMethod}
+										>
+											{billing_addPaymentMethod()}
+										</button>
+									{/if}
+								</dd>
 							{/if}
 							{#if keyExpiresOn}
 								<dt class="text-secondary">{common_expires()}</dt>
@@ -436,16 +451,6 @@
 						</div>
 					</div>
 				</InfoCard>
-
-				{#if missingCard}
-					<div class="card card-static space-y-3 p-6">
-						<h3 class="text-primary text-sm font-semibold">{billing_addPaymentMethod()}</h3>
-						<p class="text-secondary text-sm">{cardDescription}</p>
-						<button type="button" class="btn-primary" onclick={handleAddPaymentMethod}>
-							{billing_addPaymentMethod()}
-						</button>
-					</div>
-				{/if}
 			</div>
 		{/if}
 	</div>
