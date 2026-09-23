@@ -12,6 +12,7 @@
 	import type { components } from '$lib/api/schema';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { isPaidSubscriptionActive } from '$lib/features/organizations/types';
 	import { modalState, closeModal, openModal } from '$lib/shared/stores/modal-registry';
 	import { reopenSettingsTabAfterPayment } from '$lib/features/billing/stores';
 	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
@@ -102,7 +103,16 @@
 			closeAndReturn();
 			try {
 				const result = await checkoutMutation.mutateAsync(plan);
-				if (result.startsWith('http')) window.location.href = result;
+				if (result.startsWith('http')) {
+					window.location.href = result;
+					return;
+				}
+				// The subscription lands on the org when the webhook does; poll for
+				// the picked plan so the banner and Billing tab converge without a
+				// reload.
+				await waitForOrgUpdate((o) => isPaidSubscriptionActive(o) && o.plan?.type === plan.type, {
+					intervalMs: 500
+				});
 			} catch {
 				// The mutation toasts the failure.
 			}
