@@ -69,12 +69,15 @@ impl DiscoveryService {
 
     /// Build a DaemonDiscoveryRequest with all credential mappings resolved.
     /// Called by both DaemonPoll and ServerPoll dispatch points.
+    /// `subnets` are the network's subnets as the server holds them, which a ServerPoll daemon
+    /// cannot fetch for itself. See `DaemonDiscoveryRequest::subnets`.
     pub async fn build_daemon_request(
         &self,
         session: &DiscoveryUpdatePayload,
         network_id: Uuid,
         integration_targets: &[IntegrationTarget],
         daemon_version: Option<&semver::Version>,
+        subnets: Vec<Subnet>,
     ) -> Result<DaemonDiscoveryRequest, anyhow::Error> {
         let credential_mappings = if session.discovery_type.runs_network_scan() {
             self.credential_service
@@ -90,6 +93,7 @@ impl DiscoveryService {
             discovery_id: session.discovery_id.unwrap_or_default(),
             discovery_type: session.discovery_type.clone(),
             credential_mappings,
+            subnets,
         })
     }
 

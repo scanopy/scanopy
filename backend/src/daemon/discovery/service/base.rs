@@ -21,6 +21,7 @@ use crate::daemon::{
 use crate::server::credentials::r#impl::mapping::{CredentialMapping, CredentialQueryPayload};
 use crate::server::discovery::r#impl::scan_settings::ScanSettings;
 use crate::server::discovery::r#impl::types::{DiscoveryType, HostNamingFallback};
+use crate::server::subnets::r#impl::base::Subnet;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
@@ -43,6 +44,9 @@ pub struct DiscoveryRunner {
     pub host_naming_fallback: HostNamingFallback,
     pub scan_settings: ScanSettings,
     pub credential_mappings: Vec<CredentialMapping<CredentialQueryPayload>>,
+    /// The network's subnets as the server sent them with this run. Empty from a server too old
+    /// to send them, which only a DaemonPoll daemon can be talking to: it falls back to asking.
+    pub known_subnets: Vec<Subnet>,
 }
 
 impl DiscoveryRunner {
@@ -55,6 +59,7 @@ impl DiscoveryRunner {
         manager: Arc<DaemonDiscoverySessionManager>,
         discovery_type: DiscoveryType,
         credential_mappings: Vec<CredentialMapping<CredentialQueryPayload>>,
+        known_subnets: Vec<Subnet>,
     ) -> Option<Self> {
         let (host_id, subnet_ids, target_ips, extra_ports, host_naming_fallback, scan_settings) =
             match &discovery_type {
@@ -105,6 +110,7 @@ impl DiscoveryRunner {
             host_naming_fallback,
             scan_settings,
             credential_mappings,
+            known_subnets,
         })
     }
 }

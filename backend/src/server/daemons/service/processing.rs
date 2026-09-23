@@ -83,6 +83,27 @@ impl DaemonService {
         Ok(())
     }
 
+    /// The network's live subnets, sent with a dispatch so the daemon can resolve a scan that
+    /// names subnets by id. A ServerPoll daemon has no way to ask for them itself.
+    ///
+    /// A failure here is not worth refusing the dispatch over: the scan either names no subnets,
+    /// in which case the daemon reads its own interfaces, or it names some and fails with a
+    /// message about them.
+    pub(crate) async fn network_subnets(&self, network_id: Uuid) -> Vec<Subnet> {
+        let filter = StorableFilter::<Subnet>::new_from_network_ids(&[network_id]).live();
+        match self.subnet_service.get_all(filter).await {
+            Ok(subnets) => subnets,
+            Err(e) => {
+                tracing::warn!(
+                    network_id = %network_id,
+                    error = %e,
+                    "Could not read the network's subnets for a discovery dispatch"
+                );
+                Vec::new()
+            }
+        }
+    }
+
     /// Keep only the subnet ids that currently exist as live `subnets` rows, so a
     /// legacy daemon's stale/dangling id can't violate the junction FK. Goes through
     /// `SubnetService` (not storage) to respect entity boundaries.

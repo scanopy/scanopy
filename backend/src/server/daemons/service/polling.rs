@@ -448,6 +448,7 @@ impl DaemonService {
                     work.network_id,
                     &integration_targets,
                     daemon.base.version.as_ref(),
+                    self.network_subnets(work.network_id).await,
                 )
                 .await
                 .unwrap_or_else(|e| {
@@ -457,6 +458,7 @@ impl DaemonService {
                         discovery_id: work.discovery_id.unwrap_or_default(),
                         discovery_type: work.discovery_type,
                         credential_mappings: vec![],
+                        subnets: vec![],
                     }
                 });
             let session_id = request.session_id;
