@@ -9,7 +9,8 @@
 		useCurrentLicenseKeyQuery,
 		useEndTrialMutation,
 		useInvoiceBillingStatusQuery,
-		useRotateLicenseKeyMutation
+		useRotateLicenseKeyMutation,
+		useCheckoutMutation
 	} from '$lib/features/billing/queries';
 	import { priceToCharge } from '$lib/features/billing/pricing';
 	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
@@ -28,11 +29,13 @@
 	import { copyText } from '$lib/shared/utils/clipboard';
 	import { formatTimestamp } from '$lib/shared/utils/formatting';
 	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
+	import { continueOnLapsedPlan } from '$lib/shared/billing/continue-on-plan';
 	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
 	import type { components } from '$lib/api/schema';
 	import {
 		apiKeys_rotateKey,
 		billing_addPaymentMethod,
+		billing_continueOnPlan,
 		billing_requestAccepted,
 		common_airGapped,
 		common_close,
@@ -89,6 +92,7 @@
 	const createKeyMutation = useCreateLicenseKeyMutation();
 	const rotateMutation = useRotateLicenseKeyMutation();
 	const endTrialMutation = useEndTrialMutation();
+	const checkoutMutation = useCheckoutMutation();
 
 	// Wait for the real org to carry the plan: minting before the checkout webhook
 	// lands returns 403 NotLicensed. The tab opens on a provisional signal from the
@@ -302,6 +306,17 @@
 		startSetupPayment({ org, source: 'license_tab', trialDaysLeft: getTrialDaysLeft(org) });
 	}
 
+	// The org came here for its key; renewing the plan it lapsed from is what
+	// keeps that key working, so the action sits under the warning that says so.
+	function handleContinueOnPlan() {
+		void continueOnLapsedPlan({
+			org,
+			source: 'license_tab',
+			trialDaysLeft: getTrialDaysLeft(org),
+			checkout: (plan) => checkoutMutation.mutateAsync(plan)
+		});
+	}
+
 	function openPlanPicker() {
 		triggerUpgrade({
 			source: 'settings_license',
@@ -325,6 +340,14 @@
 									date: lapsedKeyStops
 								})}
 							/>
+							<button
+								type="button"
+								onclick={handleContinueOnPlan}
+								disabled={checkoutMutation.isPending}
+								class="btn-primary text-sm"
+							>
+								{billing_continueOnPlan({ plan: billingPlans.getName(planType) })}
+							</button>
 						{/if}
 						<dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-sm">
 							<dt class="text-secondary">{common_tier()}</dt>

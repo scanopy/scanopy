@@ -2100,7 +2100,7 @@
 	"settings_billing_license_keyLabel": "License key",
 	"settings_billing_license_keyTypeChanged": "License key type changed. Copy the new key to your servers.",
 	"settings_billing_license_keyTypeLabel": "Key type",
-	"settings_billing_license_lapsed": "Your {plan} subscription has ended. Your license key stops working on {date}. Renew below to keep it working.",
+	"settings_billing_license_lapsed": "Your {plan} subscription has ended. Your license key stops working on {date}.",
 	"settings_billing_license_lastCheckIn": "Last check-in",
 	"settings_billing_license_offlineKeyUpsell": "Air-gapped (offline) keys come with the Plus plan.",
 	"settings_billing_license_onlineLockedUntil": "You can switch back to an Online key from {date}, when the current Air-Gapped license period ends.",

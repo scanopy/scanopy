@@ -13,11 +13,7 @@
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { trackEvent } from '$lib/shared/utils/analytics';
 	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
-	import {
-		hasLicensedPlan,
-		isPlanLapsed,
-		isBillingPlanActive
-	} from '$lib/features/organizations/types';
+	import { isPlanLapsed, isBillingPlanActive } from '$lib/features/organizations/types';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
 	import { upgradeContext } from '$lib/features/billing/stores';
 	import { isLicenseSigningAvailable, useConfigQuery } from '$lib/shared/stores/config-query';
@@ -121,15 +117,21 @@
 	// Determine initial filter based on use case from onboarding
 	let useCase = $derived($onboardingStore.useCase);
 
-	// Open on Self-Hosted for orgs on a licensed plan (a lapsed one keeps its plan,
-	// so it lands here too), else the tab requested at signup
+	// An org on a Stripe-managed plan (live or lapsed) opens on that plan's
+	// hosting. A lapsed org keeps its plan, so a licensed one lands on
+	// Self-Hosted from that alone. Otherwise the tab requested at signup
 	// (`?hosting=self_hosted`), else Cloud.
+	let planHosting = $derived.by(() => {
+		const meta = billingPlanHelpers.getMetadata(organization?.plan?.type ?? null);
+		if (meta?.is_stripe_managed !== true) return null;
+		return meta.hosting === 'SelfHosted'
+			? 'self_hosted'
+			: meta.hosting === 'Cloud'
+				? 'cloud'
+				: null;
+	});
 	let initialHosting = $derived<PlanPickerHosting>(
-		!signingAvailable
-			? 'cloud'
-			: organization && hasLicensedPlan(organization)
-				? 'self_hosted'
-				: ($onboardingStore.hosting ?? 'cloud')
+		!signingAvailable ? 'cloud' : (planHosting ?? $onboardingStore.hosting ?? 'cloud')
 	);
 
 	// Recommended plan based on use case
