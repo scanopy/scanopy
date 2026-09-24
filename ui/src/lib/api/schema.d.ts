@@ -3466,19 +3466,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-23T14:13:51.370865Z",
+             *       "created_at": "2026-09-24T02:18:22.369814Z",
              *       "first_discovery_id": null,
-             *       "id": "14966814-1cdc-4b54-87fd-aa36ecd58c11",
+             *       "id": "cab96e58-ce87-4a2e-98dd-6a1b9f988099",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-23T14:13:51.370865Z",
+             *       "last_seen_at": "2026-09-24T02:18:22.369814Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-23T14:13:51.370865Z",
-             *       "valid_from": "2026-09-23T14:13:51.370865Z",
+             *       "updated_at": "2026-09-24T02:18:22.369814Z",
+             *       "valid_from": "2026-09-24T02:18:22.369814Z",
              *       "valid_to": null
              *     }
              */
@@ -4296,19 +4296,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-23T14:13:51.350910Z",
+             *               "created_at": "2026-09-24T02:18:22.343232Z",
              *               "first_discovery_id": null,
-             *               "id": "e2db1e62-c046-40f2-9c78-b86f913aac9f",
+             *               "id": "4a711297-8dbc-40dc-b021-fb81bd9dd690",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-23T14:13:51.350910Z",
+             *               "last_seen_at": "2026-09-24T02:18:22.343232Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-23T14:13:51.350910Z",
-             *               "valid_from": "2026-09-23T14:13:51.350910Z",
+             *               "updated_at": "2026-09-24T02:18:22.343232Z",
+             *               "valid_from": "2026-09-24T02:18:22.343232Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4322,7 +4322,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Amazon Echo",
+             *           "service_definition": "Promtail",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4727,10 +4727,11 @@ export interface components {
             data?: {
                 /** @description The subscription is billed by sent invoice. */
                 bills_by_invoice: boolean;
-                open_invoice?: null | components["schemas"]["OpenInvoice"];
+                open_invoice?: null | components["schemas"]["InvoiceSummary"];
                 pending_quote?: null | components["schemas"]["PendingQuote"];
                 /** @description Purchase order number printed on invoices. */
                 po_number?: string | null;
+                written_off_invoice?: null | components["schemas"]["InvoiceSummary"];
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -5227,19 +5228,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-23T14:13:51.366244Z",
+             *           "created_at": "2026-09-24T02:18:22.364250Z",
              *           "first_discovery_id": null,
-             *           "id": "bbaaabd9-d01e-4fa9-b401-d26a18b3e718",
+             *           "id": "3ca3843b-932e-4f58-a312-05e0673eb757",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-23T14:13:51.366244Z",
+             *           "last_seen_at": "2026-09-24T02:18:22.364250Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-23T14:13:51.366244Z",
-             *           "valid_from": "2026-09-23T14:13:51.366244Z",
+             *           "updated_at": "2026-09-24T02:18:22.364250Z",
+             *           "valid_from": "2026-09-24T02:18:22.364250Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5253,7 +5254,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Amazon Echo",
+             *       "service_definition": "Promtail",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6319,19 +6320,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-23T14:13:51.351383Z",
+         *       "created_at": "2026-09-24T02:18:22.344015Z",
          *       "first_discovery_id": null,
-         *       "id": "8735b567-bbb2-4945-be66-3b4fa3355649",
+         *       "id": "4c72ba03-edf0-4c15-9b9a-caf90f3840c4",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-23T14:13:51.351383Z",
+         *       "last_seen_at": "2026-09-24T02:18:22.344015Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-23T14:13:51.351383Z",
-         *       "valid_from": "2026-09-23T14:13:51.351383Z",
+         *       "updated_at": "2026-09-24T02:18:22.344015Z",
+         *       "valid_from": "2026-09-24T02:18:22.344015Z",
          *       "valid_to": null
          *     }
          */
@@ -6657,7 +6658,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Amazon Echo",
+         *           "service_definition": "Promtail",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8893,19 +8894,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-23T14:13:51.350427Z",
+         *               "created_at": "2026-09-24T02:18:22.342375Z",
          *               "first_discovery_id": null,
-         *               "id": "a52cf280-97c9-4f10-8fee-4eb3ad1ae528",
+         *               "id": "e71a2ed9-10f3-43e5-9752-37b45535704c",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-23T14:13:51.350427Z",
+         *               "last_seen_at": "2026-09-24T02:18:22.342375Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-23T14:13:51.350427Z",
-         *               "valid_from": "2026-09-23T14:13:51.350427Z",
+         *               "updated_at": "2026-09-24T02:18:22.342375Z",
+         *               "valid_from": "2026-09-24T02:18:22.342375Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8919,7 +8920,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Amazon Echo",
+         *           "service_definition": "Promtail",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -9836,16 +9837,28 @@ export interface components {
         InvoiceBillingStatus: {
             /** @description The subscription is billed by sent invoice. */
             bills_by_invoice: boolean;
-            open_invoice?: null | components["schemas"]["OpenInvoice"];
+            open_invoice?: null | components["schemas"]["InvoiceSummary"];
             pending_quote?: null | components["schemas"]["PendingQuote"];
             /** @description Purchase order number printed on invoices. */
             po_number?: string | null;
+            written_off_invoice?: null | components["schemas"]["InvoiceSummary"];
         };
         /** @description Tax ID of the billing entity, as Stripe's Tax ID Element returns it. */
         InvoiceBillingTaxId: {
             /** @description Stripe tax ID type, e.g. `eu_vat` or `us_ein`. */
             tax_id_type: string;
             value: string;
+        };
+        /** @description An issued invoice that has not been paid. */
+        InvoiceSummary: {
+            /** Format: int64 */
+            amount_due_cents: number;
+            currency: string;
+            /** Format: date-time */
+            due_date?: string | null;
+            /** @description Stripe-hosted page where the invoice can be viewed and paid. */
+            hosted_invoice_url?: string | null;
+            number?: string | null;
         };
         Ixy: {
             /** @description Horizontal position, which may be negative. */
@@ -10292,17 +10305,6 @@ export interface components {
             /** @description Identifier of the onboarding step the user has reached. */
             step: string;
             use_case?: null | components["schemas"]["UseCase"];
-        };
-        /** @description An issued invoice that has not been paid yet. */
-        OpenInvoice: {
-            /** Format: int64 */
-            amount_due_cents: number;
-            currency: string;
-            /** Format: date-time */
-            due_date?: string | null;
-            /** @description Stripe-hosted page where the invoice can be viewed and paid. */
-            hosted_invoice_url?: string | null;
-            number?: string | null;
         };
         /**
          * @description Direction for ORDER BY clauses.
@@ -11885,19 +11887,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-23T14:13:51.351239Z",
+         *           "created_at": "2026-09-24T02:18:22.343766Z",
          *           "first_discovery_id": null,
-         *           "id": "cfe1cd0d-52d8-486f-b0ef-89af666aa86d",
+         *           "id": "84d3b7d3-cfff-47a0-91e2-2d80909ef597",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-23T14:13:51.351239Z",
+         *           "last_seen_at": "2026-09-24T02:18:22.343766Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-23T14:13:51.351239Z",
-         *           "valid_from": "2026-09-23T14:13:51.351239Z",
+         *           "updated_at": "2026-09-24T02:18:22.343766Z",
+         *           "valid_from": "2026-09-24T02:18:22.343766Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -11911,7 +11913,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Amazon Echo",
+         *       "service_definition": "Promtail",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12637,7 +12639,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "c75f0a81-c6a8-47e1-ac32-d31f1d76f887",
+             *           "id": "fa8e31ad-8dea-4503-9f9f-a868d9cef837",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -12647,23 +12649,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "329b34f3-5d3f-4897-ace9-be8d160399e2",
+             *           "id": "89879842-3e23-40ee-b68c-62fced33a3eb",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "3ea64345-f2af-41e8-b90e-6946ada5bd17",
+             *           "id": "c4a1e846-726b-405f-af4a-3d14d1116cb7",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "ce255206-b2a8-4e42-af14-00d46ed28b79",
+             *           "id": "bbd7b29e-4948-46f0-a05f-39b905349d48",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "329b34f3-5d3f-4897-ace9-be8d160399e2",
+             *           "id": "89879842-3e23-40ee-b68c-62fced33a3eb",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -12676,19 +12678,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "3b9601b2-5171-4a84-8a49-52ef62a9aa24",
+             *         "id": "aabd84d9-73e9-4eaf-8b7e-5cdd09b69f9d",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "416bfcb1-28a9-47b8-9b30-e20b826d466b",
+             *         "id": "810958d5-64cf-4574-b5e8-488c0ebed564",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "1d9bf30f-bcab-4688-940a-285687831dd2",
+             *         "id": "52f2be96-3c62-45b2-af7a-edcc63eb4583",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "83e5aea1-0b54-4832-bc35-78458c1113ee",
+             *         "id": "71975760-98f1-4462-94c8-35e5819d92ba",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -12706,7 +12708,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "f5d2c178-39c5-4910-a3c1-44d2b8207647",
+             *         "id": "049a5cc2-6562-4f74-bbc3-de06bca0d6fb",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -12715,15 +12717,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "46e0911e-1c13-4c5d-879c-7fe7f5f9c0b3",
+             *         "id": "00184adc-5376-41cc-866a-4872e5e6f1dc",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "bf448ae0-d86d-492d-b7a4-51c0f347dce2",
+             *         "id": "57b87a01-a80b-419c-a2dd-28195baca5c1",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "8f855382-ba6e-4811-a06c-d5d04ca3af07",
+             *         "id": "b2f61d5c-088a-4952-a9b1-effe9770d09f",
              *         "rule": "ByStack"
              *       }
              *     ]
