@@ -116,7 +116,7 @@ enum Answer {
     TooBig,
     /// Nothing came back: a timeout, or a datagram lost on the way. Nothing beneath the walk
     /// retransmits, so this is one lost packet as the walk sees it.
-    NoAnswer,
+    Lost,
 }
 
 /// Serves scripted answers and records the page size each getbulk asked for.
@@ -154,7 +154,7 @@ impl FlakyTransport {
             .pop_front()
             .unwrap_or_else(|| match &self.tail {
                 Some(Answer::TooBig) => Answer::TooBig,
-                Some(Answer::NoAnswer) => Answer::NoAnswer,
+                Some(Answer::Lost) => Answer::Lost,
                 Some(Answer::Page(p)) => Answer::Page(p.clone()),
                 // Out of the subtree and above everything served: the natural end of a column.
                 None => Answer::Page(page(&["1.3.6.1.2.1.2.2.1.2.1"])),
@@ -238,7 +238,7 @@ async fn a_refused_page_size_is_asked_for_again_smaller() {
 async fn one_lost_datagram_does_not_end_a_column() {
     let mut session = FlakyTransport::new(vec![
         Answer::Page(page(&["1.3.6.1.2.1.2.2.1.1.1"])),
-        Answer::NoAnswer,
+        Answer::Lost,
         Answer::Page(page(&["1.3.6.1.2.1.2.2.1.1.2"])),
     ]);
 
@@ -288,7 +288,7 @@ async fn an_answer_with_no_varbinds_is_asked_again() {
 #[tokio::test]
 async fn a_device_that_stays_silent_is_still_reported_short() {
     let mut session = FlakyTransport::new(vec![Answer::Page(page(&["1.3.6.1.2.1.2.2.1.1.1"]))])
-        .then_always(Answer::NoAnswer);
+        .then_always(Answer::Lost);
 
     let mut seen = 0usize;
     let stop = walk_subtree(&mut session, ip(), BASE, |_suffix, _v| seen += 1)

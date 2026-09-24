@@ -477,15 +477,16 @@ mod tests {
     use mac_address::MacAddress;
 
     fn make_interface(if_index: i32, if_name: Option<&str>, mac: Option<&str>) -> Interface {
-        let mut base = InterfaceBase::default();
-        base.host_id = Uuid::new_v4();
-        base.network_id = Uuid::new_v4();
-        base.if_index = Some(if_index);
-        base.if_name = if_name.map(String::from);
-        base.mac_address = mac
-            .map(|s| s.parse::<MacAddress>().unwrap())
-            .map(|m| MacEvidence::new(MacEvidenceValue(m), SNMP_MAC));
-        Interface::new(base)
+        Interface::new(InterfaceBase {
+            host_id: Uuid::new_v4(),
+            network_id: Uuid::new_v4(),
+            if_index: Some(if_index),
+            if_name: if_name.map(String::from),
+            mac_address: mac
+                .map(|s| s.parse::<MacAddress>().unwrap())
+                .map(|m| MacEvidence::new(MacEvidenceValue(m), SNMP_MAC)),
+            ..Default::default()
+        })
     }
 
     #[test]
@@ -547,10 +548,11 @@ mod tests {
         existing.base.oper_status = Some(IfOperStatus::Up);
         existing.base.if_descr = Some("GigabitEthernet0/1".to_string());
 
-        let mut incoming = InterfaceBase::default();
-        incoming.host_id = existing.base.host_id;
-        incoming.network_id = existing.base.network_id;
-        let mut incoming = Interface::new(incoming);
+        let mut incoming = Interface::new(InterfaceBase {
+            host_id: existing.base.host_id,
+            network_id: existing.base.network_id,
+            ..Default::default()
+        });
 
         incoming.preserve_immutable_fields(&existing);
 
@@ -605,9 +607,10 @@ mod preserve_uncollected_tests {
     };
 
     fn with_fdb(mac: Option<&str>) -> Interface {
-        let mut base = InterfaceBase::default();
-        base.fdb_macs = mac.map(|m| vec![m.to_string()]);
-        Interface::new(base)
+        Interface::new(InterfaceBase {
+            fdb_macs: mac.map(|m| vec![m.to_string()]),
+            ..Default::default()
+        })
     }
 
     /// The reported failure, at the group that stayed on `Interface`: a truncated FDB walk

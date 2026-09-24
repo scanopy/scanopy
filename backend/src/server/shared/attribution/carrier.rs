@@ -318,6 +318,24 @@ impl<T: AttributeValue> PartialSchema for Attributed<T> {
     }
 }
 
+impl<T: AttributeValue> ToSchema for Attributed<T> {
+    fn name() -> Cow<'static, str> {
+        Cow::Borrowed(T::SCHEMA_NAME)
+    }
+
+    /// Register the enum the `$ref` above points at.
+    ///
+    /// `HostName`'s hand-written `ToSchema` omitted this and its ref resolved only because
+    /// `HostResponse.name_source` happened to be a derived field of that type. That accident does
+    /// not survive the generalisation — most of these carriers have no such twin.
+    fn schemas(schemas: &mut Vec<(String, RefOr<Schema>)>) {
+        schemas.push((
+            <AttributeSource as ToSchema>::name().into_owned(),
+            <AttributeSource as PartialSchema>::schema(),
+        ));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -409,23 +427,5 @@ mod tests {
             !changed,
             "an attributed non-refreshable value must still resist an equal-rung re-read"
         );
-    }
-}
-
-impl<T: AttributeValue> ToSchema for Attributed<T> {
-    fn name() -> Cow<'static, str> {
-        Cow::Borrowed(T::SCHEMA_NAME)
-    }
-
-    /// Register the enum the `$ref` above points at.
-    ///
-    /// `HostName`'s hand-written `ToSchema` omitted this and its ref resolved only because
-    /// `HostResponse.name_source` happened to be a derived field of that type. That accident does
-    /// not survive the generalisation — most of these carriers have no such twin.
-    fn schemas(schemas: &mut Vec<(String, RefOr<Schema>)>) {
-        schemas.push((
-            <AttributeSource as ToSchema>::name().into_owned(),
-            <AttributeSource as PartialSchema>::schema(),
-        ));
     }
 }

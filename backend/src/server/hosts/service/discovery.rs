@@ -429,14 +429,15 @@ mod tests {
     use crate::server::ip_addresses::r#impl::base::IPAddressBase;
 
     fn iface(if_index: i32, mac: &str) -> Interface {
-        let mut base = InterfaceBase::default();
-        base.if_index = Some(if_index);
-        base.if_descr = Some(format!("Slot0/{if_index}"));
-        base.mac_address = Some(MacEvidence::new(
-            MacEvidenceValue(mac.parse::<MacAddress>().unwrap()),
-            SNMP_MAC,
-        ));
-        Interface::new(base)
+        Interface::new(InterfaceBase {
+            if_index: Some(if_index),
+            if_descr: Some(format!("Slot0/{if_index}")),
+            mac_address: Some(MacEvidence::new(
+                MacEvidenceValue(mac.parse::<MacAddress>().unwrap()),
+                SNMP_MAC,
+            )),
+            ..Default::default()
+        })
     }
 
     fn management_ip(ip: &str, mac: &str) -> IPAddress {

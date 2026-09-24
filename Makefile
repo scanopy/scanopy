@@ -11,6 +11,18 @@ PLAN ?= standard
 # With no references in .env, no .env, or no op CLI, the command runs unchanged.
 OP_RUN := $(shell [ -f .env ] && grep -qE '^[A-Za-z_][A-Za-z0-9_]*=op://' .env && command -v op >/dev/null 2>&1 && echo 'op run --env-file=$(CURDIR)/.env --')
 
+# Opt-in shared compilation cache across worktrees: `SCCACHE=1 make <target>`, with sccache
+# installed (`brew install sccache`).
+#
+# Off by default on purpose. sccache cannot cache incremental builds, so it has to turn
+# incremental off, and that makes a repeat build in one worktree slower. It pays for itself when
+# a *different* worktree compiles the same crates for the first time, and not otherwise — so turn
+# it on when opening a new worktree, not for everyday work in one.
+ifeq ($(SCCACHE),1)
+export RUSTC_WRAPPER := sccache
+export CARGO_INCREMENTAL := 0
+endif
+
 help:
 	@echo "Scanopy Development Commands"
 	@echo ""
@@ -353,14 +365,15 @@ format:
 	@echo "All code formatted!"
 
 lint:
-	@echo "Linting Server..."
-	cd backend && cargo fmt -- --check && cargo clippy --bin server -- -D warnings
-	@echo "Linting Daemon..."
-	cd backend && cargo clippy --bin daemon -- -D warnings
+	@echo "Linting Rust..."
+	@# One clippy pass over both bins, the lib and every test target: the two --bin passes
+	@# missed test code, which is how a broken tests/integration reached dev.
+	cd backend && cargo fmt -- --check && cargo clippy --workspace --all-targets -- -D warnings
 	@echo "Generating paraglide i18n..."
 	cd ui && npx paraglide-js compile --outdir ./src/lib/paraglide --silent
 	@echo "Linting UI..."
-	cd ui && npm run lint && npm run format -- --check && npm run check
+	@# `npm run lint` is `prettier --check . && eslint .`, so prettier already ran here.
+	cd ui && npm run lint && npm run check
 	@echo "Linting migrations..."
 	@$(MAKE) lint-migrations
 

@@ -65,10 +65,10 @@ fn test_all_service_definitions_register() {
     for module in &declared_modules {
         let file_path = definitions_dir.join(format!("{}.rs", module));
 
-        if let Ok(content) = fs::read_to_string(&file_path) {
-            if let Some(service_name) = extract_service_name(&content) {
-                declared_services.insert(module.clone(), service_name);
-            }
+        if let Ok(content) = fs::read_to_string(&file_path)
+            && let Some(service_name) = extract_service_name(&content)
+        {
+            declared_services.insert(module.clone(), service_name);
         }
     }
 
@@ -360,13 +360,13 @@ fn check_port_usage(
 ) {
     match pattern {
         Pattern::Port(port_base) | Pattern::Endpoint(port_base, .., None) => {
-            if let PortType::Custom(_) = port_base {
-                if let Some(named_constant) = well_known_ports.get(&port_base) {
-                    panic!(
-                        "Service '{}' uses custom port {} but should use {} instead",
-                        service_name, port_base, named_constant
-                    );
-                }
+            if let PortType::Custom(_) = port_base
+                && let Some(named_constant) = well_known_ports.get(port_base)
+            {
+                panic!(
+                    "Service '{}' uses custom port {} but should use {} instead",
+                    service_name, port_base, named_constant
+                );
             }
         }
         Pattern::AnyOf(patterns) | Pattern::AllOf(patterns) => {
@@ -416,14 +416,8 @@ async fn test_service_patterns_are_specific_enough() {
 
     // Get all non-custom PortBase variants by iterating
     let common_ports: Vec<PortType> = PortType::iter()
-        .filter_map(|port_base| {
-            // Skip Custom variants
-            if matches!(port_base, PortType::Custom(_)) {
-                None
-            } else {
-                Some(port_base)
-            }
-        })
+        // Skip Custom variants
+        .filter(|port_base| !matches!(port_base, PortType::Custom(_)))
         .collect();
 
     for service in registry {
@@ -448,7 +442,7 @@ fn check_pattern_specificity(
     match pattern {
         // Port-only patterns on common ports without other criteria = fail
         Pattern::Port(port_base) => {
-            if common_ports.contains(&port_base) {
+            if common_ports.contains(port_base) {
                 panic!(
                     "Service '{}' uses port-only pattern on common port {} without additional criteria. \
                         This could cause false positives. Consider using:\n\
@@ -465,7 +459,7 @@ fn check_pattern_specificity(
         Pattern::AnyOf(patterns) => {
             let all_are_common_port_patterns = patterns.iter().all(|p| {
                 if let Pattern::Port(port_base) = p {
-                    common_ports.contains(&port_base)
+                    common_ports.contains(port_base)
                 } else {
                     false
                 }
@@ -491,7 +485,7 @@ fn check_pattern_specificity(
             let is_short_match_string = match_string_lower.len() < 5;
 
             // Another service is likely to be listening on this port on other hosts, so need to be more stringent
-            let port_is_common = common_ports.contains(&port_base);
+            let port_is_common = common_ports.contains(port_base);
 
             // Path is unique/specific enough, even if match string alone is likely to cause false positives
             let path_contains_service_name = path.contains(service_name);
@@ -579,11 +573,11 @@ fn test_service_definition_serialization() {
         // Test first 5 to save time
         // Serialize to JSON
         let json = serde_json::to_string(&service)
-            .expect(&format!("Failed to serialize {}", service.name()));
+            .unwrap_or_else(|_| panic!("Failed to serialize {}", service.name()));
 
         // Deserialize back
         let deserialized: Box<dyn ServiceDefinition> = serde_json::from_str(&json)
-            .expect(&format!("Failed to deserialize {}", service.name()));
+            .unwrap_or_else(|_| panic!("Failed to deserialize {}", service.name()));
 
         // Verify key fields match
         assert_eq!(
@@ -930,7 +924,7 @@ fn test_service_definition_ids_are_stable() {
         })
         .map(|line| {
             line.split('/')
-                .last()
+                .next_back()
                 .unwrap()
                 .trim_end_matches(".rs")
                 .to_string()
@@ -952,7 +946,7 @@ fn test_service_definition_ids_are_stable() {
             .args(["show", &format!("origin/main:{}", file_path)])
             .current_dir(manifest_dir.parent().expect("No parent directory"))
             .output()
-            .expect(&format!("Failed to read {} from origin/main", file_path));
+            .unwrap_or_else(|_| panic!("Failed to read {} from origin/main", file_path));
 
         if !file_content.status.success() {
             continue;
@@ -987,19 +981,18 @@ fn test_service_definition_ids_are_stable() {
                 let current_file_content =
                     std::fs::read_to_string(definitions_dir.join(format!("{}.rs", filename))).ok();
 
-                if let Some(content) = current_file_content {
-                    if let Some(new_id) = extract_service_name(&content) {
-                        if new_id != *committed_id {
-                            // Check if this is an allowed migration
-                            let is_allowed = allowed_migrations
-                                .contains(&(committed_id.as_str(), new_id.as_str()));
-                            if !is_allowed {
-                                changed_ids.push(format!(
-                                    "  - File '{}.rs': ID changed from '{}' to '{}'",
-                                    filename, committed_id, new_id
-                                ));
-                            }
-                        }
+                if let Some(content) = current_file_content
+                    && let Some(new_id) = extract_service_name(&content)
+                    && new_id != *committed_id
+                {
+                    // Check if this is an allowed migration
+                    let is_allowed =
+                        allowed_migrations.contains(&(committed_id.as_str(), new_id.as_str()));
+                    if !is_allowed {
+                        changed_ids.push(format!(
+                            "  - File '{}.rs': ID changed from '{}' to '{}'",
+                            filename, committed_id, new_id
+                        ));
                     }
                 }
             } else {
