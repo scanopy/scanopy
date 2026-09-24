@@ -88,6 +88,7 @@
 		settingsInitialTab = 'account',
 		settingsDismissible = true,
 		mainAppLocked = false,
+		mainAppAvailable = false,
 		licensedPlanPending = false
 	}: {
 		activeTab?: string;
@@ -105,9 +106,14 @@
 		settingsInitialTab?: string;
 		settingsDismissible?: boolean;
 		/** Org is locked out of the main app (licensed self-hosted plan on a
-		 * billing-enabled server): hide main navigation and skip main-app queries,
-		 * which the backend rejects. Settings and Support stay available. */
+		 * billing-enabled server): hide main navigation. Settings and Support
+		 * stay available. */
 		mainAppLocked?: boolean;
+		/** Config and org have loaded and the org is not locked. Main-app queries
+		 * wait for this rather than for `!mainAppLocked`, which is also true
+		 * before the lock state is known, and the backend rejects them with 403
+		 * for a locked org. */
+		mainAppAvailable?: boolean;
 		/** Passed through to the Settings modal, which shows the License tab on it
 		 * while the just-picked licensed plan is still in flight. */
 		licensedPlanPending?: boolean;
@@ -175,17 +181,17 @@
 	});
 
 	// Active discovery sessions — used for notification dot on sidebar and sub-tabs
-	const activeSessionsQuery = useActiveSessionsQuery(() => !mainAppLocked);
+	const activeSessionsQuery = useActiveSessionsQuery(() => mainAppAvailable);
 	let hasActiveSessions = $derived((activeSessionsQuery.data?.length ?? 0) > 0);
 
 	// Daemons needing a version update (Deprecated/Unsupported) — drives the
 	// Daemons nav dot, same mechanism as the Scans active-sessions dot.
-	const daemonsQuery = useDaemonsQuery({ enabled: () => !mainAppLocked });
+	const daemonsQuery = useDaemonsQuery({ enabled: () => mainAppAvailable });
 	let hasDaemonUpdatesNeeded = $derived((daemonsQuery.data ?? []).some(hasSunsetWarning));
 
 	// Legacy (unbound) daemon API keys. When none exist, the Daemon API Keys sub-tab is
 	// hidden and the Daemons group collapses to a single-entity page (no tab strip).
-	const daemonApiKeysQuery = useApiKeysQuery({ enabled: () => !mainAppLocked });
+	const daemonApiKeysQuery = useApiKeysQuery({ enabled: () => mainAppAvailable });
 	let hasLegacyDaemonKeys = $derived(
 		(daemonApiKeysQuery.data ?? []).some((k) => k.daemon_id == null)
 	);
