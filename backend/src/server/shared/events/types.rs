@@ -255,6 +255,18 @@ pub enum BillingOperation {
     InvoiceVoided {
         invoice: BillingInvoice,
     },
+    /// An organization that lapsed for non-payment settled the invoice we had
+    /// written off, and is back on its plan with a replacement subscription.
+    ///
+    /// Carries the resumed date rather than leaving it to `PaymentSucceeded`,
+    /// which fires first on the same organization and restores the invoice's
+    /// own term end. That is the wrong date for anyone settling late: the
+    /// service they are owed starts when they pay, not when the invoice said.
+    LicenseResumed {
+        plan: BillingPlan,
+        resumed_through: DateTime<Utc>,
+        next_renewal_at: Option<DateTime<Utc>>,
+    },
     /// Stripe could not finalize a draft licence invoice
     /// (`invoice.finalization_failed`), so it was never issued or emailed and
     /// no licence period was granted. Carries Stripe's reason, usually a
@@ -419,6 +431,7 @@ impl BillingOperation {
             Self::CheckoutCompleted { .. }
             | Self::PaymentRecovered { .. }
             | Self::Resumed { .. }
+            | Self::LicenseResumed { .. }
             | Self::Reactivated {
                 trialing: false, ..
             } => Some(PlanStatus::Active),

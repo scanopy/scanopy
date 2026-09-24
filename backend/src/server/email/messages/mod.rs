@@ -38,6 +38,7 @@ mod plan_changed;
 mod plan_limit_approaching;
 mod plan_limit_reached;
 mod self_hosted_license_ended;
+mod self_hosted_license_resumed;
 mod self_hosted_payment_failed;
 mod self_hosted_plan_changed;
 mod self_hosted_trial_ending;
@@ -84,6 +85,7 @@ pub use plan_changed::PlanChanged;
 pub use plan_limit_approaching::PlanLimitApproaching;
 pub use plan_limit_reached::PlanLimitReached;
 pub use self_hosted_license_ended::SelfHostedLicenseEnded;
+pub use self_hosted_license_resumed::SelfHostedLicenseResumed;
 pub use self_hosted_payment_failed::SelfHostedPaymentFailed;
 pub use self_hosted_plan_changed::SelfHostedPlanChanged;
 pub use self_hosted_trial_ending::SelfHostedTrialEnding;
@@ -736,6 +738,22 @@ mod tests {
                 was_trial: false,
                 air_gapped: true,
                 key_expires: "March 22, 2026",
+            },
+        );
+        f(
+            "self_hosted_license_resumed_online",
+            &SelfHostedLicenseResumed {
+                plan_name: "Self-Hosted Standard",
+                resumes_through: "March 22, 2027",
+                air_gapped: false,
+            },
+        );
+        f(
+            "self_hosted_license_resumed_airgapped",
+            &SelfHostedLicenseResumed {
+                plan_name: "Self-Hosted Plus",
+                resumes_through: "March 22, 2027",
+                air_gapped: true,
             },
         );
         f(

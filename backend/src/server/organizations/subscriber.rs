@@ -246,6 +246,38 @@ impl Subscriber<BillingOperation> for OrganizationService {
                         changed = true;
                     }
                 }
+                BillingOperation::LicenseResumed {
+                    plan,
+                    resumed_through,
+                    next_renewal_at,
+                } => {
+                    // Settling the written-off invoice puts the org back on
+                    // its plan with the service it was still owed. Set the
+                    // date rather than only extending it: `PaymentSucceeded`
+                    // has already run on this organization and restored the
+                    // invoice's own term end, which is the past for anyone
+                    // settling after it expired.
+                    if organization.base.plan.as_ref() != Some(plan) {
+                        organization.base.plan = Some(*plan);
+                        changed = true;
+                    }
+                    if organization.base.license_paid_through != Some(*resumed_through) {
+                        organization.base.license_paid_through = Some(*resumed_through);
+                        changed = true;
+                    }
+                    if next_renewal_at.is_some()
+                        && organization.base.next_renewal_at != *next_renewal_at
+                    {
+                        organization.base.next_renewal_at = *next_renewal_at;
+                        changed = true;
+                    }
+                    // The replacement subscription bills by sent invoice, so
+                    // nothing should ask this org for a card.
+                    if !organization.base.bills_by_invoice {
+                        organization.base.bills_by_invoice = true;
+                        changed = true;
+                    }
+                }
                 BillingOperation::LicenseReconciled { to, .. } => {
                     // Move the org's stored plan to the license-resolved tier,
                     // in either direction. Idempotent: the reconcile pass only

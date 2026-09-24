@@ -152,7 +152,7 @@ impl BillingInvoice {
 
 // Stripe ships unix-epoch i64 timestamps; fall back to `Utc::now()` on a
 // malformed value rather than failing the event publish.
-fn ts_to_chrono(ts: i64) -> DateTime<Utc> {
+pub(crate) fn ts_to_chrono(ts: i64) -> DateTime<Utc> {
     DateTime::<Utc>::from_timestamp(ts, 0).unwrap_or_else(Utc::now)
 }
 

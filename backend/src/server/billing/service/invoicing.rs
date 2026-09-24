@@ -15,7 +15,8 @@ use stripe_billing::quote::{
     CreateQuoteSubscriptionData, FinalizeQuoteQuote, ListQuote,
 };
 use stripe_billing::subscription::{
-    UpdateSubscriptionTrialSettings, UpdateSubscriptionTrialSettingsEndBehavior,
+    CreateSubscriptionProrationBehavior, UpdateSubscriptionTrialSettings,
+    UpdateSubscriptionTrialSettingsEndBehavior,
     UpdateSubscriptionTrialSettingsEndBehaviorMissingPaymentMethod,
 };
 use stripe_billing::tax_id::{CreateCustomerTaxId, CreateCustomerTaxIdType, ListCustomerTaxId};
@@ -151,6 +152,47 @@ impl BillingService {
                 )
             }
         }
+    }
+
+    /// Put an organization that settled a written-off invoice back on its plan,
+    /// with the service it is still owed running to `term_end`.
+    ///
+    /// Stripe cannot revive a cancelled subscription, so this creates one
+    /// anchored at `term_end`. `proration_behavior: none` leaves the stub
+    /// period between now and then free and raises no invoice for it, so the
+    /// customer is billed once, at `term_end`, for the year after that. They
+    /// keep the payment terms they just proved good.
+    pub(crate) async fn resume_license_subscription(
+        &self,
+        organization: &Organization,
+        plan: BillingPlan,
+        term_end: DateTime<Utc>,
+    ) -> Result<stripe_billing::Subscription, Error> {
+        let customer_id = organization
+            .base
+            .stripe_customer_id
+            .clone()
+            .map(CustomerId::from)
+            .ok_or_else(|| anyhow!("Organization has no billing account"))?;
+
+        let base_price = self
+            .get_price_from_lookup_key(plan.stripe_base_price_lookup_key())
+            .await?
+            .ok_or_else(|| anyhow!("Could not find base price for {}", plan.name()))?;
+
+        Ok(CreateSubscription::new(customer_id)
+            .items(vec![CreateSubscriptionItems {
+                price: Some(base_price.id.to_string()),
+                quantity: Some(1),
+                ..Default::default()
+            }])
+            .collection_method(SubscriptionCollectionMethod::SendInvoice)
+            .days_until_due(INVOICE_DAYS_UNTIL_DUE)
+            .billing_cycle_anchor(term_end.timestamp())
+            .proration_behavior(CreateSubscriptionProrationBehavior::None)
+            .metadata(subscription_metadata(organization.id, plan)?)
+            .send(&self.stripe)
+            .await?)
     }
 
     /// Invoice billing state for the License tab: collection method, PO
@@ -909,6 +951,30 @@ pub(crate) async fn write_off_unpaid_license_invoices(
 const INVOICE_TERMS_REFUSED: &str = "Payment terms are not available while an earlier invoice is unpaid. \
      Settle it, or pay by card, or contact support.";
 
+/// When the term resumes for a customer who settles an invoice we had written
+/// off, or `None` when they used it all and there is nothing left to resume.
+///
+/// A licence term owes a year of working product, and the key dies at the
+/// write-off, so the days between the write-off and the original term end are
+/// what the customer is still owed. Paying moves that remainder to start now.
+///
+/// Settle the day it was written off and this lands on the original term end.
+/// Settle a year later and it lands a year later, still carrying the same
+/// remainder: the only thing a late payer keeps is the ~60 days that ran
+/// between the invoice being issued and the key dying. Resuming on the
+/// original end date instead would give the prompt payer less service than the
+/// late one, for the same money.
+///
+/// Every timestamp comes from the invoice Stripe just told us was paid.
+pub(super) fn resumed_term_end(
+    original_term_end: DateTime<Utc>,
+    written_off_at: DateTime<Utc>,
+    paid_at: DateTime<Utc>,
+) -> Option<DateTime<Utc>> {
+    let remaining = original_term_end - written_off_at;
+    (remaining > chrono::TimeDelta::zero()).then(|| paid_at + remaining)
+}
+
 /// The ids of the license invoices this customer defaulted on, out of the ones
 /// still open at `as_of`.
 ///
@@ -1109,6 +1175,43 @@ mod tests {
                 stripe_frame
             ),
             vec!["in_old".to_string()]
+        );
+    }
+
+    /// How much service a customer gets for settling an invoice we wrote off.
+    /// A year is a year of working product, so the days the key was dead are
+    /// still owed whenever they pay.
+    #[test]
+    fn settling_moves_the_unused_term_to_the_payment_date() {
+        let term_start = Utc::now();
+        let term_end = term_start + chrono::Duration::days(365);
+        // The licence runs 30 days to the due date plus 30 days of grace, and
+        // Stripe cancels at the same point, so the key dies around day 60.
+        let written_off = term_start + chrono::Duration::days(60);
+
+        // Settling the day it was written off resumes the original term: the
+        // remaining 305 days start now, and now is where they left off.
+        assert_eq!(
+            resumed_term_end(term_end, written_off, written_off),
+            Some(term_end)
+        );
+
+        // Settling a year later still carries those 305 days, so the late
+        // payer gets the same service, just later. Anchoring to the original
+        // end instead would give them nothing while the prompt payer above
+        // gets ten months.
+        let a_year_late = written_off + chrono::Duration::days(365);
+        assert_eq!(
+            resumed_term_end(term_end, written_off, a_year_late),
+            Some(a_year_late + chrono::Duration::days(305))
+        );
+
+        // A customer whose key outlived the term used all of it. Their payment
+        // settles the debt and buys nothing forward.
+        assert_eq!(resumed_term_end(term_end, term_end, Utc::now()), None);
+        assert_eq!(
+            resumed_term_end(term_end, term_end + chrono::Duration::days(1), Utc::now()),
+            None
         );
     }
 

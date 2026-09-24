@@ -1,5 +1,7 @@
 //! Pause/resume, trial extension, cancellation/reactivation, save offers, and invoice-paid handling.
 use super::*;
+use crate::server::billing::service::invoicing::resumed_term_end;
+use crate::server::billing::types::base::ts_to_chrono;
 
 impl BillingService {
     /// Pause subscription billing for the requested duration. Eligibility:
@@ -745,6 +747,90 @@ impl BillingService {
             ))
             .await?;
 
+        self.resume_lapsed_license(&organization, &invoice).await?;
+
+        Ok(())
+    }
+
+    /// Bring back an organization that lapsed for non-payment and has now
+    /// settled the invoice we wrote off.
+    ///
+    /// Publishing `PaymentSucceeded` above restored the licence date the
+    /// invoice itself carried, which is enough for a customer who was only
+    /// past due. A lapsed one also needs its plan back and a subscription to
+    /// renew on, and the date is wrong for anyone who settled after the term
+    /// had run out. Silent no-op for every other kind of payment.
+    async fn resume_lapsed_license(
+        &self,
+        organization: &Organization,
+        invoice: &stripe_billing::Invoice,
+    ) -> Result<(), Error> {
+        let snapshot = BillingInvoice::from(invoice);
+        let (Some(original_term_end), Some(plan)) =
+            (snapshot.license_paid_through(), organization.base.plan)
+        else {
+            return Ok(());
+        };
+        if !organization.is_lapsed() {
+            return Ok(());
+        }
+        // Only an invoice we gave up on reopens a lapsed organization. Both
+        // timestamps are Stripe's, on the invoice it just told us was paid.
+        let (Some(written_off_at), Some(paid_at)) = (
+            invoice.status_transitions.marked_uncollectible_at,
+            invoice.status_transitions.paid_at,
+        ) else {
+            return Ok(());
+        };
+        // `invoice.paid` is redelivered, and nothing upstream dedupes it. The
+        // subscriber writes only on a difference, so a repeat is harmless
+        // there, but a second subscription would not be.
+        if self.find_current_subscription(organization).await.is_ok() {
+            tracing::debug!(
+                organization_id = %organization.id,
+                "Licence payment arrived for an org that already has a subscription — nothing to resume"
+            );
+            return Ok(());
+        }
+
+        let Some(resumed_through) = resumed_term_end(
+            original_term_end,
+            ts_to_chrono(written_off_at),
+            ts_to_chrono(paid_at),
+        ) else {
+            tracing::info!(
+                organization_id = %organization.id,
+                invoice_id = %snapshot.stripe_invoice_id,
+                "Settled a written-off invoice whose term had already run out; debt cleared, licence not resumed"
+            );
+            return Ok(());
+        };
+
+        let subscription = self
+            .resume_license_subscription(organization, plan, resumed_through)
+            .await?;
+
+        tracing::info!(
+            organization_id = %organization.id,
+            invoice_id = %snapshot.stripe_invoice_id,
+            subscription_id = %subscription.id,
+            resumed_through = %resumed_through,
+            "Resumed a lapsed licence: the written-off invoice was settled"
+        );
+
+        self.event_bus
+            .publish(Event::new(
+                OrgScope {
+                    organization_id: organization.id,
+                },
+                BillingOperation::LicenseResumed {
+                    plan,
+                    resumed_through,
+                    next_renewal_at: next_renewal_from_subscription(&subscription),
+                },
+                AuthenticatedEntity::System,
+            ))
+            .await?;
         Ok(())
     }
 }

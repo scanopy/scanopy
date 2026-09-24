@@ -15,10 +15,10 @@ use super::messages::{
     InvoiceFinalizationFailed, InvoiceIssued, InvoiceOverdue, OidcLinked, OidcUnlinked,
     OrganizationDeleted, PasswordChanged, PasswordReset, PaymentActionRequired, PaymentFailed,
     PaymentMethodAdded, PaymentMethodRemoved, PaymentRecovered, PlanChanged, PlanLimitApproaching,
-    PlanLimitReached, SelfHostedLicenseEnded, SelfHostedPaymentFailed, SelfHostedPlanChanged,
-    SelfHostedTrialEnding, SelfHostedWelcome, SubscriptionCancelled, SubscriptionPaused,
-    SubscriptionReactivated, SubscriptionResumed, TrialConverted, TrialEnding, TrialExpired,
-    TrialStarted, UsageSummary, Verification, links,
+    PlanLimitReached, SelfHostedLicenseEnded, SelfHostedLicenseResumed, SelfHostedPaymentFailed,
+    SelfHostedPlanChanged, SelfHostedTrialEnding, SelfHostedWelcome, SubscriptionCancelled,
+    SubscriptionPaused, SubscriptionReactivated, SubscriptionResumed, TrialConverted, TrialEnding,
+    TrialExpired, TrialStarted, UsageSummary, Verification, links,
 };
 use super::transport::EmailTransport;
 use crate::server::{
@@ -333,6 +333,26 @@ impl EmailService {
                 was_trial,
                 air_gapped,
                 key_expires,
+            },
+        )
+        .await
+    }
+
+    /// A lapsed self-hosted org settled the invoice we wrote off, so its plan
+    /// and licence are back with the service it was still owed.
+    pub async fn send_self_hosted_license_resumed_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        resumes_through: &str,
+        air_gapped: bool,
+    ) -> Result<()> {
+        self.dispatch(
+            to,
+            &SelfHostedLicenseResumed {
+                plan_name,
+                resumes_through,
+                air_gapped,
             },
         )
         .await
