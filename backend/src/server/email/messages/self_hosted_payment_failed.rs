@@ -43,7 +43,7 @@ impl Email for SelfHostedPaymentFailed<'_> {
 
         content = if self.air_gapped {
             content.paragraph(
-                "You are using an air-gapped key. Once the payment succeeds, copy the new key from Settings and set it on your server: air-gapped keys carry their expiry inside them and cannot update themselves.",
+                "You are using an air-gapped key. Once the payment succeeds, copy the new key from Settings and set it on your server.",
             )
         } else {
             content.paragraph(

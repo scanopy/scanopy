@@ -662,23 +662,12 @@ mod tests {
             },
         );
         f(
-            "airgap_expiring_can_move_down",
-            &AirgapExpiring {
-                plan_name: "Self-Hosted Plus",
-                key_expires: "October 15, 2026",
-                renews_at: "October 1, 2026",
-                amount: "$6,000.00",
-                can_move_down: true,
-            },
-        );
-        f(
             "airgap_expiring",
             &AirgapExpiring {
                 plan_name: "Self-Hosted Standard",
                 key_expires: "October 15, 2026",
                 renews_at: "October 1, 2026",
                 amount: "$4,000.00",
-                can_move_down: false,
             },
         );
         f(

@@ -96,7 +96,7 @@ impl Email for SelfHostedLicenseEnded<'_> {
 
         content = if self.defaulted {
             content.paragraph(&format!(
-                "Settle the invoice and your {} plan, your license and your payment terms all come back, with the time your servers were locked added on to the end of the term. Pay it from Settings, or contact billing@scanopy.net if this is wrong.",
+                "Pay the invoice from Settings to start your {} plan and license again, or contact billing@scanopy.net if this is wrong.",
                 self.plan_name
             ))
         } else {

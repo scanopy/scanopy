@@ -67,6 +67,14 @@
 			orgPlanLicensed
 	);
 	let invoiceEligible = $derived(planAllowsInvoice && writtenOffInvoice.current == null);
+	// Settling is the one route back for a lapsed org, so it takes the centred
+	// slot under the element where "Pay by invoice" sits for everyone else.
+	// Never both: an org with a written-off invoice cannot take terms.
+	let payOutstandingUrl = $derived(
+		orgIsLapsed && planAllowsInvoice
+			? (writtenOffInvoice.current?.hosted_invoice_url ?? null)
+			: null
+	);
 	// Nothing names the plan to invoice for: the form asks. Covers a reload
 	// mid-flow, which rebuilds modal state from the URL without the plan.
 	let needsPlanChoice = $derived(pendingPlan == null && !orgPlanLicensed);
@@ -183,18 +191,6 @@
 							})
 						: billing_invoice_termsUnavailableSettled()}
 				/>
-				{#if orgIsLapsed && writtenOffInvoice.current.hosted_invoice_url}
-					<!-- eslint-disable svelte/no-navigation-without-resolve -->
-					<a
-						href={writtenOffInvoice.current.hosted_invoice_url}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="text-info mt-2 inline-block text-sm hover:underline"
-					>
-						{billing_invoice_payOutstanding()}
-					</a>
-					<!-- eslint-enable svelte/no-navigation-without-resolve -->
-				{/if}
 			</div>
 		{/if}
 		<StripeCardForm
@@ -203,9 +199,14 @@
 			submitLabel={common_save()}
 			onSuccess={handleCardSuccess}
 			onCancel={closeAndReturn}
-			altAction={invoiceEligible
-				? { label: billing_payByInvoice(), onclick: () => (method = 'invoice') }
-				: null}
+			altAction={payOutstandingUrl
+				? {
+						label: billing_invoice_payOutstanding(),
+						onclick: () => window.open(payOutstandingUrl, '_blank', 'noopener,noreferrer')
+					}
+				: invoiceEligible
+					? { label: billing_payByInvoice(), onclick: () => (method = 'invoice') }
+					: null}
 		/>
 	{:else}
 		<div class="flex min-h-[12rem] items-center justify-center p-6">

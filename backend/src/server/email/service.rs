@@ -539,7 +539,6 @@ impl EmailService {
         key_expires: &str,
         renews_at: &str,
         amount: &str,
-        can_move_down: bool,
     ) -> Result<()> {
         self.dispatch(
             to,
@@ -548,7 +547,6 @@ impl EmailService {
                 key_expires,
                 renews_at,
                 amount,
-                can_move_down,
             },
         )
         .await
@@ -1107,7 +1105,6 @@ impl EmailService {
             &format_timestamp(paid_through),
             &format_timestamp(paid_through),
             &format_cents(plan.config().base_cents, "usd"),
-            plan.previous_tier().is_some(),
         )
         .await?;
 

@@ -28,7 +28,7 @@ impl BillingService {
             }
             EventType::CustomerSubscriptionTrialWillEnd => {
                 if let EventObject::CustomerSubscriptionTrialWillEnd(sub) = event.data.object {
-                    self.handle_trial_will_end(sub).await?;
+                    self.handle_trial_will_end(sub, event.created).await?;
                 }
             }
             EventType::CustomerSubscriptionPaused | EventType::CustomerSubscriptionDeleted => {
@@ -590,8 +590,16 @@ impl BillingService {
         Ok(())
     }
 
-    /// Handle trial_will_end webhook (3 days before trial expiry)
-    async fn handle_trial_will_end(&self, sub: Subscription) -> Result<(), Error> {
+    /// Handle trial_will_end webhook (3 days before trial expiry).
+    ///
+    /// `event_created` is Stripe's timestamp for this notice, which is the only
+    /// clock the trial's own dates can be compared against: under a test clock
+    /// the customer's calendar is not the server's.
+    async fn handle_trial_will_end(
+        &self,
+        sub: Subscription,
+        event_created: i64,
+    ) -> Result<(), Error> {
         // Skip email if subscription is already marked for cancellation (e.g., user switched to Free)
         if sub.cancel_at.is_some() {
             tracing::info!(
@@ -604,13 +612,17 @@ impl BillingService {
         // early with `trial_end=now`, which is how an invoice buyer converts.
         // Warning that a trial ends in three days, beside the mail saying the
         // subscription just started, describes a countdown that already ran
-        // out. The status is the clock-free way to tell the two apart: a
-        // genuine advance warning still finds the subscription trialing.
-        if sub.status != SubscriptionStatus::Trialing {
+        // out.
+        //
+        // The trial's own end date is what separates them. Status does not: this
+        // is a pre-transition notice, so the subscription still reads `trialing`
+        // either way, and the `active` snapshot arrives on the
+        // `customer.subscription.updated` that follows.
+        if sub.trial_end.is_some_and(|end| end <= event_created) {
             tracing::info!(
                 subscription_id = %sub.id,
-                subscription_status = ?sub.status,
-                "Trial already ended rather than ending soon, skipping the warning email"
+                trial_end = ?sub.trial_end,
+                "Trial ended now rather than ending soon, skipping the warning email"
             );
             return Ok(());
         }
@@ -657,7 +669,14 @@ impl BillingService {
                         plan,
                         // Either way to pay keeps the subscription alive, so a
                         // buyer paying by invoice is not asked for a card.
-                        has_payment_method: organization.can_pay(),
+                        //
+                        // The subscription, not just the org row: switching to
+                        // invoice billing sets `collection_method` in the same
+                        // call that ends the trial, while `bills_by_invoice`
+                        // waits on the invoice finalizing and round-tripping
+                        // back, two webhooks later.
+                        has_payment_method: organization.can_pay()
+                            || sub.collection_method == SubscriptionCollectionMethod::SendInvoice,
                     },
                     owner.clone().into(),
                 ))

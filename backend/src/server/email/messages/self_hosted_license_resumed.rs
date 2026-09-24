@@ -34,7 +34,7 @@ impl Email for SelfHostedLicenseResumed<'_> {
             .heading("Your license is back")
             .paragraph("Hi there,")
             .paragraph(&format!(
-                "Thank you for settling your invoice. Your {} plan is active again, and your license runs through {}. The time your servers were locked has been added on, so you get the full year you paid for.",
+                "Thank you for settling your invoice. Your {} plan is active again, and your license runs through {}.",
                 self.plan_name, self.resumes_through
             ));
 

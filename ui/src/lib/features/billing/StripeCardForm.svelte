@@ -116,9 +116,12 @@
 			});
 			paymentElement.on('ready', () => (ready = true));
 			// Nothing to save until a method is chosen, so the submit button
-			// waits for one.
+			// waits for one. `collapsed` is the only field that says whether
+			// one has been: `value.type` is a plain string that is always set,
+			// and `empty`/`complete` describe the inputs, which a method
+			// collecting none would never fill.
 			paymentElement.on('change', (event) => {
-				methodSelected = !event.empty || event.value?.type != null;
+				methodSelected = !event.collapsed;
 			});
 			paymentElement.mount(node);
 		})();
