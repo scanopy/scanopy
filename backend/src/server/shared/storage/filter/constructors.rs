@@ -149,6 +149,18 @@ impl<T: Storable> StorableFilter<T> {
         Self::new().expires_before(timestamp)
     }
 
+    /// Organizations holding an air-gapped key whose licence period ends in
+    /// the given window. Their servers never call home, so a renewal only
+    /// reaches them by email.
+    pub fn new_with_airgap_key_expiring_between(
+        after: DateTime<Utc>,
+        before: DateTime<Utc>,
+    ) -> Self {
+        Self::new()
+            .license_key_type(LicenseKeyType::Offline)
+            .license_paid_through_between(after, before)
+    }
+
     pub fn new_for_daemon_poller_system_job() -> Self {
         Self::new()
             .daemon_mode(DaemonMode::ServerPoll)

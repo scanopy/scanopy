@@ -13,7 +13,7 @@ use strum::IntoDiscriminant;
 use tokio::sync::{RwLock, broadcast};
 use uuid::Uuid;
 
-use crate::daemon::discovery::types::base::DiscoveryPhase;
+use crate::daemon::discovery::types::base::{DiscoveryPhase, DiscoveryTerminalReason};
 use crate::server::{
     auth::middleware::auth::AuthenticatedEntity,
     discovery::r#impl::types::DiscoveryType,
@@ -196,7 +196,9 @@ impl EntityScope {
 
 /// Identity scope for discovery session events. Carries the session/daemon/
 /// discovery-type identifiers, plus an `error_reason` populated for `Failed`
-/// / `Cancelled` phases.
+/// / `Cancelled` phases. `reason` says why a terminal phase was reached, so
+/// subscribers that only see the event (metrics, analytics) can tell a reaped stall from a
+/// user cancel.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct DiscoveryScope {
     pub network_id: Uuid,
@@ -205,6 +207,8 @@ pub struct DiscoveryScope {
     pub discovery_type: DiscoveryType,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error_reason: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<DiscoveryTerminalReason>,
 }
 
 // ===========================================================================

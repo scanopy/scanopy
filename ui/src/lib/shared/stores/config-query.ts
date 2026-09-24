@@ -5,6 +5,7 @@
 import { createQuery } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { unwrapData } from '$lib/api/query-helpers';
 import type { components } from '$lib/api/schema';
 
 export type OidcProviderMetadata = components['schemas']['OidcProviderMetadata'];
@@ -12,7 +13,9 @@ export type DeploymentType = components['schemas']['DeploymentType'];
 export type PublicServerConfig = components['schemas']['PublicConfigResponse'];
 
 export const isLicenseLocked = (cfg: PublicServerConfig) =>
-	cfg.license_status === 'expired' || cfg.license_status === 'invalid';
+	cfg.license_status === 'expired' ||
+	cfg.license_status === 'invalid' ||
+	cfg.license_status === 'pending';
 
 /**
  * Soft-warning threshold: show an "approaching expiry" banner when the
@@ -47,17 +50,19 @@ export const isSelfHosted = (cfg: PublicServerConfig) =>
 	cfg.deployment_type === 'commercial' || cfg.deployment_type === 'community';
 
 /**
+ * True when this server holds a license signing key. Without one the mint
+ * endpoints fail, so the License tab and the self-hosted plans are hidden.
+ */
+export const isLicenseSigningAvailable = (cfg: PublicServerConfig) => cfg.license_signing_available;
+
+/**
  * Query hook for fetching server configuration
  */
 export function useConfigQuery() {
 	return createQuery(() => ({
 		queryKey: queryKeys.config.all,
 		queryFn: async () => {
-			const { data } = await apiClient.GET('/api/config', {});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to fetch config');
-			}
-			return data.data as PublicServerConfig;
+			return unwrapData(await apiClient.GET('/api/config', {})) as PublicServerConfig;
 		},
 		staleTime: Infinity, // Config rarely changes
 		gcTime: Infinity

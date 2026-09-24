@@ -14,6 +14,7 @@ use crate::server::{
     billing::types::base::BillingReason,
     digest::payload::{DiscoveryDigestOperation, DiscoveryDigestOperationDiscriminants},
     email::service::{EmailService, format_cents},
+    license::types::LicenseKeyType,
     shared::{
         entities::{Entity, EntityDiscriminants},
         events::{
@@ -30,6 +31,27 @@ use crate::server::{
     },
 };
 
+impl EmailService {
+    /// Formatted date a lapsed org's licence runs to: the period it paid or
+    /// trialled for. The org keeps its plan, so the cloud serves its
+    /// entitlement until then.
+    ///
+    /// Deliberately the paid-through date and not the key's own expiry. Keys
+    /// are minted with a buffer and a further silent grace on top, so this is
+    /// up to a fortnight early; naming the later date instead left one card
+    /// showing two dates for the same licence. Understating is the safe
+    /// direction, and both windows stay invisible.
+    async fn license_key_expires(&self, organization_id: uuid::Uuid) -> Result<String, Error> {
+        Ok(self
+            .organization_service
+            .get_by_id(&organization_id)
+            .await?
+            .and_then(|org| org.base.license_paid_through)
+            .map(|at| at.format("%B %-d, %Y").to_string())
+            .unwrap_or_else(|| "the end of the period you paid for".to_string()))
+    }
+}
+
 #[async_trait]
 impl Subscriber<BillingOperation> for EmailService {
     fn filter(&self) -> EventFilter<BillingOperation> {
@@ -43,6 +65,9 @@ impl Subscriber<BillingOperation> for EmailService {
             BillingOperationDiscriminants::PaymentActionRequired,
             BillingOperationDiscriminants::PaymentRecovered,
             BillingOperationDiscriminants::PaymentSucceeded,
+            BillingOperationDiscriminants::InvoiceIssued,
+            BillingOperationDiscriminants::InvoiceOverdue,
+            BillingOperationDiscriminants::InvoiceFinalizationFailed,
             BillingOperationDiscriminants::PaymentMethodAdded,
             BillingOperationDiscriminants::PaymentMethodRemoved,
             BillingOperationDiscriminants::CancellationInitiated,
@@ -50,6 +75,7 @@ impl Subscriber<BillingOperation> for EmailService {
             BillingOperationDiscriminants::Reactivated,
             BillingOperationDiscriminants::Paused,
             BillingOperationDiscriminants::Resumed,
+            BillingOperationDiscriminants::LicenseResumed,
         ])
     }
 
@@ -73,13 +99,19 @@ impl Subscriber<BillingOperation> for EmailService {
                 BillingOperation::TrialStarted {
                     plan, trial_days, ..
                 } => {
-                    self.send_trial_started_email(
-                        org_owner,
-                        plan.name(),
-                        trial_days,
-                        plan.billing_period(),
-                    )
-                    .await?;
+                    // A self-hosted trial fires CheckoutCompleted alongside
+                    // this, and that arm sends the self-hosted welcome. The
+                    // cloud trial email would be a second, wrong-footed
+                    // message about scanning your network.
+                    if plan.license_plan().is_none() {
+                        self.send_trial_started_email(
+                            org_owner,
+                            plan.name(),
+                            trial_days,
+                            plan.billing_period(),
+                        )
+                        .await?;
+                    }
                 }
                 BillingOperation::TrialEnded {
                     plan,
@@ -93,6 +125,22 @@ impl Subscriber<BillingOperation> for EmailService {
                             plan.billing_period(),
                         )
                         .await?;
+                    } else if plan.license_plan().is_some() {
+                        // Air-gapped keys are not issued during a trial.
+                        let key_expires = self
+                            .license_key_expires(event.scope.organization_id)
+                            .await?;
+                        // A trial that ran out was never invoiced, so there is
+                        // nothing to have defaulted on.
+                        self.send_self_hosted_license_ended_email(
+                            org_owner,
+                            plan.name(),
+                            true,
+                            false,
+                            &key_expires,
+                            false,
+                        )
+                        .await?;
                     } else {
                         self.send_trial_expired_email(
                             org_owner,
@@ -102,29 +150,145 @@ impl Subscriber<BillingOperation> for EmailService {
                         .await?;
                     }
                 }
-                BillingOperation::PlanChanged { to, .. } => {
-                    self.send_plan_changed_email(org_owner, to.name()).await?;
+                BillingOperation::PlanChanged {
+                    from,
+                    to,
+                    license_key_type,
+                    ..
+                } => {
+                    match (from.license_plan().is_some(), to.license_plan().is_some()) {
+                        // Moving from a cloud plan onto a self-hosted one is
+                        // the third way an org ends up needing a license key,
+                        // and the only one that raises no checkout.
+                        (false, true) => {
+                            self.send_self_hosted_welcome_email(
+                                org_owner,
+                                to.name(),
+                                None,
+                                to.features().deployment_assistance,
+                            )
+                            .await?;
+                        }
+                        // Between two self-hosted plans the org stays locked
+                        // out of the cloud app, so the cloud email's "Open
+                        // Scanopy" button leads nowhere.
+                        (true, true) => {
+                            self.send_self_hosted_plan_changed_email(
+                                org_owner,
+                                to.name(),
+                                license_key_type == Some(LicenseKeyType::Offline),
+                            )
+                            .await?;
+                        }
+                        // Leaving a self-hosted plan ends the license, which
+                        // the cloud email has to say.
+                        (from_licensed, false) => {
+                            self.send_plan_changed_email(org_owner, to.name(), from_licensed)
+                                .await?;
+                        }
+                    }
                 }
                 BillingOperation::TrialWillEnd {
                     plan,
                     has_payment_method,
                 } => {
-                    self.send_trial_ending_email(
-                        org_owner,
-                        event.scope.organization_id,
-                        plan.name(),
-                        has_payment_method,
-                        plan.billing_period(),
-                    )
-                    .await?;
-                }
-                BillingOperation::SubscriptionCancelled { period_end, .. } => {
-                    let period_end_str = period_end.format("%B %-d, %Y").to_string();
-                    self.send_subscription_cancelled_email(org_owner, &period_end_str)
+                    // The cloud email recaps hosts, networks, daemons and
+                    // services found during the trial. A self-hosted trial's
+                    // are on the customer's own server, so the recap would be
+                    // four zeros.
+                    if plan.license_plan().is_some() {
+                        let key_expires = self
+                            .license_key_expires(event.scope.organization_id)
+                            .await?;
+                        self.send_self_hosted_trial_ending_email(
+                            org_owner,
+                            plan.name(),
+                            has_payment_method,
+                            plan.billing_period(),
+                            &key_expires,
+                        )
                         .await?;
+                    } else {
+                        self.send_trial_ending_email(
+                            org_owner,
+                            event.scope.organization_id,
+                            plan.name(),
+                            has_payment_method,
+                            plan.billing_period(),
+                        )
+                        .await?;
+                    }
                 }
-                BillingOperation::PaymentFailed { .. } => {
-                    self.send_payment_failed_email(org_owner).await?;
+                BillingOperation::SubscriptionCancelled {
+                    plan,
+                    period_end,
+                    was_trialing,
+                    license_key_type,
+                    defaulted,
+                    ..
+                } => {
+                    // Decided on the plan the event carries. An unconverted
+                    // trial arrives here too, as `was_trialing`: Stripe ends a
+                    // card-less trial by deleting the subscription, so the
+                    // trial-expired email is sent from this arm.
+                    if plan.license_plan().is_some() {
+                        let key_expires = self
+                            .license_key_expires(event.scope.organization_id)
+                            .await?;
+                        self.send_self_hosted_license_ended_email(
+                            org_owner,
+                            plan.name(),
+                            was_trialing,
+                            license_key_type == Some(LicenseKeyType::Offline),
+                            &key_expires,
+                            defaulted,
+                        )
+                        .await?;
+                    } else if was_trialing {
+                        self.send_trial_expired_email(
+                            org_owner,
+                            plan.name(),
+                            plan.billing_period(),
+                        )
+                        .await?;
+                    } else {
+                        let period_end_str = period_end.format("%B %-d, %Y").to_string();
+                        self.send_subscription_cancelled_email(org_owner, &period_end_str)
+                            .await?;
+                    }
+                }
+                BillingOperation::PaymentFailed {
+                    plan,
+                    attempt_count,
+                    ..
+                } => {
+                    // Stripe retries a failed invoice several times over about
+                    // three weeks and raises this each time; one email is
+                    // enough, and the past-due banner carries the rest.
+                    if plan.license_plan().is_some() {
+                        if attempt_count <= 1 {
+                            let organization = self
+                                .organization_service
+                                .get_by_id(&event.scope.organization_id)
+                                .await?;
+                            let key_expires = organization
+                                .as_ref()
+                                .and_then(|org| org.base.license_paid_through)
+                                .map(|at| at.format("%B %-d, %Y").to_string())
+                                .unwrap_or_else(|| "your renewal date".to_string());
+                            let air_gapped = organization.is_some_and(|org| {
+                                org.base.license_key_type == Some(LicenseKeyType::Offline)
+                            });
+                            self.send_self_hosted_payment_failed_email(
+                                org_owner,
+                                &key_expires,
+                                air_gapped,
+                            )
+                            .await?;
+                        }
+                    } else {
+                        self.send_payment_failed_email(org_owner).await?;
+                    }
                 }
                 BillingOperation::PaymentActionRequired {
                     hosted_invoice_url, ..
@@ -132,11 +296,118 @@ impl Subscriber<BillingOperation> for EmailService {
                     self.send_payment_action_required_email(org_owner, hosted_invoice_url)
                         .await?;
                 }
-                BillingOperation::PaymentSucceeded { invoice } => {
+                BillingOperation::InvoiceIssued { invoice, .. } => {
+                    // Stripe mails the invoice itself; this one says what it
+                    // covers and that the licence keeps working meanwhile.
+                    // Guarded on a due date so only a sent invoice qualifies.
+                    if invoice.due_date.is_some() {
+                        let plan_name = self
+                            .organization_service
+                            .get_by_id(&event.scope.organization_id)
+                            .await?
+                            .and_then(|org| org.base.plan)
+                            .map(|plan| plan.name())
+                            .unwrap_or("Scanopy");
+                        // A downgrade credits more than it charges, so nothing
+                        // is payable and the invoice total is negative. That is
+                        // money owed to the customer, not a bill.
+                        if invoice.amount_due_cents > 0 {
+                            self.send_invoice_issued_email(
+                                org_owner,
+                                plan_name,
+                                &invoice,
+                                invoice.po_number.clone(),
+                            )
+                            .await?;
+                        } else if invoice.total_cents < 0 {
+                            self.send_invoice_credited_email(org_owner, plan_name, &invoice)
+                                .await?;
+                        }
+                    }
+                }
+                BillingOperation::InvoiceFinalizationFailed { reason, .. } => {
+                    // Nothing was issued, so there is no amount or due date to
+                    // quote: the owner needs the reason and the way to fix it.
+                    let plan_name = self
+                        .organization_service
+                        .get_by_id(&event.scope.organization_id)
+                        .await?
+                        .and_then(|org| org.base.plan)
+                        .map(|plan| plan.name())
+                        .unwrap_or("Scanopy");
+                    self.send_invoice_finalization_failed_email(org_owner, plan_name, &reason)
+                        .await?;
+                }
+                BillingOperation::InvoiceOverdue { invoice } => {
+                    // Nobody attempted a charge, so the card-decline copy
+                    // would be wrong. This one tells the buyer their finance
+                    // team still holds the bill and when the key stops.
+                    let plan_name = self
+                        .organization_service
+                        .get_by_id(&event.scope.organization_id)
+                        .await?
+                        .and_then(|org| org.base.plan)
+                        .map(|plan| plan.name())
+                        .unwrap_or("Scanopy");
+                    self.send_invoice_overdue_email(
+                        org_owner,
+                        plan_name,
+                        &invoice,
+                        invoice.po_number.clone(),
+                    )
+                    .await?;
+                }
+                BillingOperation::PaymentSucceeded {
+                    invoice,
+                    previous_license_paid_through,
+                } => {
                     // Send usage summary for recurring billing cycles only
-                    // (skip the initial subscription invoice and one-off charges).
+                    // (skip the initial subscription invoice and one-off
+                    // charges). Self-hosted license renewals have no cloud
+                    // usage to summarize.
                     if invoice.billing_reason == BillingReason::SubscriptionCycle {
-                        self.send_usage_summary_email(org_owner, &invoice).await?;
+                        match invoice.license_paid_through() {
+                            None => self.send_usage_summary_email(org_owner, &invoice).await?,
+                            // A renewed self-hosted licence. An online key
+                            // picks this up at its next check-in; an
+                            // air-gapped key carries its expiry inside it, so
+                            // its owner has to copy the new key by hand.
+                            Some(renewed_through) => {
+                                let Some(organization) = self
+                                    .organization_service
+                                    .get_by_id(&event.scope.organization_id)
+                                    .await?
+                                else {
+                                    continue;
+                                };
+                                if organization.base.license_key_type
+                                    == Some(LicenseKeyType::Offline)
+                                {
+                                    // The key on their server predates this
+                                    // renewal, so it still runs to the
+                                    // paid-through as it stood before this
+                                    // payment, plus the buffer and grace. The
+                                    // event carries that value because the
+                                    // org row has already moved on by the
+                                    // time this runs.
+                                    let current_key_expires = previous_license_paid_through
+                                        .map(|at| at.format("%B %-d, %Y").to_string())
+                                        .unwrap_or_else(|| "its current expiry".to_string());
+                                    let plan_name = organization
+                                        .base
+                                        .plan
+                                        .map(|plan| plan.name())
+                                        .unwrap_or("Self-Hosted");
+                                    self.send_airgap_renewal_email(
+                                        org_owner,
+                                        plan_name,
+                                        &current_key_expires,
+                                        &renewed_through.format("%B %-d, %Y").to_string(),
+                                    )
+                                    .await?;
+                                }
+                            }
+                        }
                     }
                 }
                 BillingOperation::PaymentMethodAdded => {
@@ -150,16 +421,60 @@ impl Subscriber<BillingOperation> for EmailService {
                     self.send_payment_recovered_email(org_owner, &amount)
                         .await?;
                 }
-                BillingOperation::CancellationInitiated {
-                    planned_period_end, ..
+                BillingOperation::LicenseResumed {
+                    plan,
+                    resumed_through,
+                    ..
                 } => {
-                    let period_end_str = planned_period_end.format("%B %-d, %Y").to_string();
-                    self.send_cancellation_initiated_email(org_owner, &period_end_str)
-                        .await?;
+                    let Some(organization) = self
+                        .organization_service
+                        .get_by_id(&event.scope.organization_id)
+                        .await?
+                    else {
+                        continue;
+                    };
+                    self.send_self_hosted_license_resumed_email(
+                        org_owner,
+                        plan.name(),
+                        &resumed_through.format("%B %-d, %Y").to_string(),
+                        organization.base.license_key_type == Some(LicenseKeyType::Offline),
+                    )
+                    .await?;
                 }
-                BillingOperation::CheckoutCompleted { plan, .. } => {
-                    self.send_checkout_completed_email(org_owner, plan.name())
+                BillingOperation::CancellationInitiated {
+                    plan,
+                    planned_period_end,
+                    ..
+                } => {
+                    // The licence runs to the period end, which is also the
+                    // cancellation date, so the email names one date rather
+                    // than two a week apart. Computed from the event, so no
+                    // org read.
+                    let period_end_str = planned_period_end.format("%B %-d, %Y").to_string();
+                    self.send_cancellation_initiated_email(
+                        org_owner,
+                        &period_end_str,
+                        plan.is_some_and(|plan| plan.license_plan().is_some()),
+                    )
+                    .await?;
+                }
+                BillingOperation::CheckoutCompleted {
+                    plan, is_trialing, ..
+                } => {
+                    // Covers both self-hosted signup paths: a trial start and
+                    // an outright purchase.
+                    if plan.license_plan().is_some() {
+                        self.send_self_hosted_welcome_email(
+                            org_owner,
+                            plan.name(),
+                            is_trialing.then(|| plan.config().trial_days),
+                            plan.features().deployment_assistance,
+                        )
                         .await?;
+                    } else {
+                        self.send_checkout_completed_email(org_owner, plan.name())
+                            .await?;
+                    }
                 }
                 BillingOperation::Reactivated { .. } => {
                     self.send_subscription_reactivated_email(org_owner).await?;
@@ -372,6 +687,15 @@ impl Subscriber<DiscoveryDigestOperation> for EmailService {
         for event in events {
             let DiscoveryDigestOperation::Computed { payload } = event.operation;
             if !payload.has_changes() {
+                continue;
+            }
+            // A scan on a cloud org that has moved to a self-hosted plan comes
+            // from a daemon left behind, and every link in the digest leads
+            // into an app the org is locked out of.
+            if self
+                .organization_self_hosted_plan_locked(&event.scope.organization_id)
+                .await?
+            {
                 continue;
             }
             for recipient in &payload.recipients {

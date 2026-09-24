@@ -148,6 +148,12 @@ pub trait SnmpWalkTransport: Send {
     /// Record that getbulk did not work on this device.
     fn note_getbulk_unusable(&mut self) {}
 
+    /// Whether the discovery this session serves has been cancelled. `walk_subtree` checks it
+    /// before every request. Defaulted for the fakes, which serve one column and never cancel.
+    fn cancelled(&self) -> bool {
+        false
+    }
+
     /// Read one scalar instance, e.g. `sysName.0`.
     ///
     /// `Ok(None)` is "the agent has nothing at that OID" — a `noSuchObject`, a `noSuchInstance`,
@@ -194,6 +200,10 @@ impl SnmpWalkTransport for super::session::SnmpSession {
 
     fn note_getbulk_unusable(&mut self) {
         Self::note_getbulk_unusable(self);
+    }
+
+    fn cancelled(&self) -> bool {
+        self.is_cancelled()
     }
 
     async fn walk_getbulk<'a>(
@@ -443,6 +453,10 @@ enum WalkStop {
     StaleResponse,
     /// Agent kept answering getnext with an error status. The detail names the status.
     ErrorStatus,
+    /// The discovery was cancelled partway through the walk. Rows already read stay in the
+    /// collector, and the column counts as cut short, so a truncated table is never taken as the
+    /// whole of it (the GH #649 prune).
+    Cancelled,
 }
 
 impl From<WalkStop> for Option<ShortfallReason> {
@@ -462,6 +476,8 @@ impl From<WalkStop> for Option<ShortfallReason> {
             WalkStop::Transport | WalkStop::EmptyResponse | WalkStop::ErrorStatus => {
                 Some(ShortfallReason::NoAnswer)
             }
+            // Nothing about the device to report: the run itself was stopped.
+            WalkStop::Cancelled => None,
         }
     }
 }

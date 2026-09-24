@@ -3,7 +3,8 @@
 	import { tweened } from 'svelte/motion';
 	import { cubicOut } from 'svelte/easing';
 
-	let { progress }: { progress: number } = $props();
+	/** `stalled` stops the shimmer and dims the bar, so it stops presenting a silent scan as busy. */
+	let { progress, stalled = false }: { progress: number; stalled?: boolean } = $props();
 
 	const animatedProgress = tweened(
 		untrack(() => progress),
@@ -20,9 +21,12 @@
 
 <div
 	class="progress-bar relative h-full overflow-hidden rounded-full bg-blue-500"
+	class:opacity-40={stalled}
 	style="width: {$animatedProgress}%"
 >
-	<div class="progress-shimmer absolute inset-0"></div>
+	{#if !stalled}
+		<div class="progress-shimmer absolute inset-0"></div>
+	{/if}
 </div>
 
 <style>

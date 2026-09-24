@@ -19,8 +19,6 @@
 		common_delete,
 		common_deleting,
 		common_editName,
-		common_failedGenerateApiKey,
-		common_failedRotateApiKey,
 		common_save,
 		common_saving,
 		daemonApiKeys_createApiKey,
@@ -112,7 +110,7 @@
 			const result = await createApiKeyMutation.mutateAsync(formData);
 			generatedKey = result.keyString;
 		} catch {
-			pushError(common_failedGenerateApiKey());
+			// The API client reports the failure.
 		} finally {
 			loading = false;
 		}
@@ -125,7 +123,7 @@
 			const newKey = await rotateApiKeyMutation.mutateAsync(formData.id);
 			generatedKey = newKey;
 		} catch {
-			pushError(common_failedRotateApiKey());
+			// The API client reports the failure.
 		} finally {
 			loading = false;
 		}

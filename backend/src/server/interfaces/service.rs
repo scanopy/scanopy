@@ -343,14 +343,15 @@ mod tests {
     /// A port with no ifIndex — the shape a neighbour advertisement produces, where the far end
     /// names its port and nothing has read that device's ifTable.
     fn make_indexless_iface(if_name: Option<&str>, mac: Option<&str>) -> Interface {
-        let mut base = InterfaceBase::default();
-        base.host_id = Uuid::nil();
-        base.if_descr = if_name.map(str::to_string);
-        base.if_name = if_name.map(String::from);
-        base.mac_address = mac
-            .map(|s| s.parse::<MacAddress>().unwrap())
-            .map(|m| MacEvidence::new(MacEvidenceValue(m), SNMP_MAC));
-        Interface::new(base)
+        Interface::new(InterfaceBase {
+            host_id: Uuid::nil(),
+            if_descr: if_name.map(str::to_string),
+            if_name: if_name.map(String::from),
+            mac_address: mac
+                .map(|s| s.parse::<MacAddress>().unwrap())
+                .map(|m| MacEvidence::new(MacEvidenceValue(m), SNMP_MAC)),
+            ..Default::default()
+        })
     }
 
     /// Replay a discovery batch through the real tiered matcher, mirroring

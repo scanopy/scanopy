@@ -21,6 +21,7 @@ use crate::daemon::{
 use crate::server::credentials::r#impl::mapping::{CredentialMapping, CredentialQueryPayload};
 use crate::server::discovery::r#impl::scan_settings::ScanSettings;
 use crate::server::discovery::r#impl::types::{DiscoveryType, HostNamingFallback};
+use crate::server::subnets::r#impl::base::Subnet;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
@@ -43,6 +44,9 @@ pub struct DiscoveryRunner {
     pub host_naming_fallback: HostNamingFallback,
     pub scan_settings: ScanSettings,
     pub credential_mappings: Vec<CredentialMapping<CredentialQueryPayload>>,
+    /// The network's subnets as the server sent them with this run. Empty from a server too old
+    /// to send them, which only a DaemonPoll daemon can be talking to: it falls back to asking.
+    pub known_subnets: Vec<Subnet>,
 }
 
 impl DiscoveryRunner {
@@ -55,6 +59,7 @@ impl DiscoveryRunner {
         manager: Arc<DaemonDiscoverySessionManager>,
         discovery_type: DiscoveryType,
         credential_mappings: Vec<CredentialMapping<CredentialQueryPayload>>,
+        known_subnets: Vec<Subnet>,
     ) -> Option<Self> {
         let (host_id, subnet_ids, target_ips, extra_ports, host_naming_fallback, scan_settings) =
             match &discovery_type {
@@ -105,6 +110,7 @@ impl DiscoveryRunner {
             host_naming_fallback,
             scan_settings,
             credential_mappings,
+            known_subnets,
         })
     }
 }
@@ -125,6 +131,12 @@ pub struct DiscoverySession {
     pub estimated_remaining_secs: Arc<AtomicU32>,
     pub progress_range_start: Arc<AtomicU8>,
     pub progress_range_end: Arc<AtomicU8>,
+    /// Session updates in a row the server did not accept. The server reaps a session it hears
+    /// nothing from for 5 minutes, so a count that keeps climbing in the log predicts that reap.
+    pub consecutive_report_failures: Arc<AtomicU32>,
+    /// When the network phase began. Its `max_discovery_duration` counts from here, so the
+    /// session watchdog does too once it is set.
+    pub network_phase_started: Arc<std::sync::OnceLock<std::time::Instant>>,
     /// Non-fatal warnings accumulated during the run (e.g. the discovery hit its
     /// time limit and left hosts un-scanned). Surfaced in the terminal session
     /// update so the user sees them without the run being marked as failed.
@@ -184,6 +196,8 @@ impl DiscoverySession {
             estimated_remaining_secs: Arc::new(AtomicU32::new(u32::MAX)),
             progress_range_start: Arc::new(AtomicU8::new(0)),
             progress_range_end: Arc::new(AtomicU8::new(100)),
+            consecutive_report_failures: Arc::new(AtomicU32::new(0)),
+            network_phase_started: Arc::new(std::sync::OnceLock::new()),
             warnings: Arc::new(std::sync::Mutex::new(Vec::new())),
             incomplete_snmp_walks: Arc::new(std::sync::Mutex::new(Vec::new())),
             contradicted_claims: Arc::new(std::sync::Mutex::new(Vec::new())),

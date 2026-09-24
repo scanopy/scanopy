@@ -18,7 +18,6 @@
 	import { UserDisplay } from '$lib/shared/components/forms/selection/display/UserDisplay.svelte';
 	import TagPicker from '$lib/features/tags/components/TagPicker.svelte';
 	import { entities } from '$lib/shared/stores/metadata';
-	import { pushError } from '$lib/shared/stores/feedback';
 	import { Info, KeyRound } from 'lucide-svelte';
 	import type { Daemon } from '$lib/features/daemons/types/base';
 	import type { ApiKey } from '$lib/features/daemon_api_keys/types/base';
@@ -45,7 +44,6 @@
 		common_close,
 		common_details,
 		common_editName,
-		common_failedRotateApiKey,
 		common_name,
 		common_port,
 		common_save,
@@ -207,7 +205,7 @@
 		try {
 			generatedKey = await rotateApiKeyMutation.mutateAsync(daemonKey.id);
 		} catch {
-			pushError(common_failedRotateApiKey());
+			// The API client reports the failure.
 		} finally {
 			loading = false;
 		}

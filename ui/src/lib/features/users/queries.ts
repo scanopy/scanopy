@@ -5,6 +5,7 @@
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
 import type { User } from './types';
 
 /**
@@ -18,13 +19,11 @@ export function useUsersQuery(options?: { enabled?: boolean | (() => boolean) })
 		return {
 			queryKey: queryKeys.users.all,
 			queryFn: async () => {
-				const { data } = await apiClient.GET('/api/v1/users', {
-					params: { query: { limit: 0 } }
-				});
-				if (!data?.success || !data.data) {
-					throw new Error(data?.error || 'Failed to fetch users');
-				}
-				return data.data;
+				return unwrapData(
+					await apiClient.GET('/api/v1/users', {
+						params: { query: { limit: 0 } }
+					})
+				);
 			},
 			enabled
 		};
@@ -42,14 +41,12 @@ export function useUpdateSelfMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (user: User) => {
-			const { data } = await apiClient.PUT('/api/v1/users/{id}', {
-				params: { path: { id: user.id } },
-				body: user
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to update user');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.PUT('/api/v1/users/{id}', {
+					params: { path: { id: user.id } },
+					body: user
+				})
+			);
 		},
 		onSuccess: (updatedUser: User) => {
 			queryClient.setQueryData(queryKeys.auth.currentUser(), updatedUser);
@@ -65,14 +62,12 @@ export function useUpdateUserAsAdminMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (user: User) => {
-			const { data } = await apiClient.PUT('/api/v1/users/{id}/admin', {
-				params: { path: { id: user.id } },
-				body: user
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to update user');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.PUT('/api/v1/users/{id}/admin', {
+					params: { path: { id: user.id } },
+					body: user
+				})
+			);
 		},
 		onSuccess: (updatedUser: User) => {
 			queryClient.setQueryData<User[]>(
@@ -91,12 +86,11 @@ export function useDeleteUserMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (id: string) => {
-			const { data } = await apiClient.DELETE('/api/v1/users/{id}', {
-				params: { path: { id } }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete user');
-			}
+			requireSuccess(
+				await apiClient.DELETE('/api/v1/users/{id}', {
+					params: { path: { id } }
+				})
+			);
 			return id;
 		},
 		onSuccess: (id: string) => {
@@ -116,10 +110,7 @@ export function useBulkDeleteUsersMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (ids: string[]) => {
-			const { data } = await apiClient.POST('/api/v1/users/bulk-delete', { body: ids });
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete users');
-			}
+			requireSuccess(await apiClient.POST('/api/v1/users/bulk-delete', { body: ids }));
 			return ids;
 		},
 		onSuccess: (ids: string[]) => {

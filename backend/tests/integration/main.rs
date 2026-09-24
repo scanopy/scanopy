@@ -18,7 +18,6 @@ mod discovery;
 #[cfg(feature = "generate-fixtures")]
 mod fixtures;
 mod infra;
-mod openapi_gen;
 mod openapi_lint;
 mod permissions;
 mod validations;

@@ -6,6 +6,8 @@
 //! to edit. The producers ([`super::brevo`] / [`super::smtp`]) dispatch on
 //! `&dyn Email` and never need to know which concrete email they're sending.
 
+mod airgap_expiring;
+mod airgap_renewal;
 mod cancellation_initiated;
 mod checkout_completed;
 mod compose;
@@ -17,6 +19,11 @@ mod discovery_guide;
 mod email_changed_old;
 mod install_command;
 mod invite;
+mod invoice_credited;
+mod invoice_finalization_failed;
+mod invoice_issued;
+mod invoice_overdue;
+pub mod links;
 mod oidc_linked;
 mod oidc_unlinked;
 mod organization_deleted;
@@ -30,6 +37,12 @@ mod payment_recovered;
 mod plan_changed;
 mod plan_limit_approaching;
 mod plan_limit_reached;
+mod self_hosted_license_ended;
+mod self_hosted_license_resumed;
+mod self_hosted_payment_failed;
+mod self_hosted_plan_changed;
+mod self_hosted_trial_ending;
+mod self_hosted_welcome;
 mod subscription_cancelled;
 mod subscription_paused;
 mod subscription_reactivated;
@@ -41,6 +54,8 @@ mod trial_started;
 mod usage_summary;
 mod verification;
 
+pub use airgap_expiring::AirgapExpiring;
+pub use airgap_renewal::AirgapRenewal;
 pub use cancellation_initiated::CancellationInitiated;
 pub use checkout_completed::CheckoutCompleted;
 pub use compose::{BILLING_DETAILS_TAGLINE, Body, Content};
@@ -52,6 +67,10 @@ pub use discovery_guide::DiscoveryGuide;
 pub use email_changed_old::EmailChangedOld;
 pub use install_command::InstallCommand;
 pub use invite::Invite;
+pub use invoice_credited::InvoiceCredited;
+pub use invoice_finalization_failed::InvoiceFinalizationFailed;
+pub use invoice_issued::InvoiceIssued;
+pub use invoice_overdue::InvoiceOverdue;
 pub use oidc_linked::OidcLinked;
 pub use oidc_unlinked::OidcUnlinked;
 pub use organization_deleted::OrganizationDeleted;
@@ -65,6 +84,12 @@ pub use payment_recovered::PaymentRecovered;
 pub use plan_changed::PlanChanged;
 pub use plan_limit_approaching::PlanLimitApproaching;
 pub use plan_limit_reached::PlanLimitReached;
+pub use self_hosted_license_ended::SelfHostedLicenseEnded;
+pub use self_hosted_license_resumed::SelfHostedLicenseResumed;
+pub use self_hosted_payment_failed::SelfHostedPaymentFailed;
+pub use self_hosted_plan_changed::SelfHostedPlanChanged;
+pub use self_hosted_trial_ending::SelfHostedTrialEnding;
+pub use self_hosted_welcome::SelfHostedWelcome;
 pub use subscription_cancelled::SubscriptionCancelled;
 pub use subscription_paused::SubscriptionPaused;
 pub use subscription_reactivated::SubscriptionReactivated;
@@ -227,6 +252,8 @@ pub trait Email: Send + Sync {
         };
         format!("{}{}{}", EMAIL_HEADER, self.body_html(), EMAIL_FOOTER)
             .replace("{footer_legal}", footer_legal)
+            // Before the two tokens below, which the link itself contains.
+            .replace("{preferences_url}", links::SETTINGS_EMAIL)
             .replace("{current_year}", &year)
             .replace("{base_url}", base_url)
             .replace("{utm}", &self.utm_qs())
@@ -290,7 +317,7 @@ pub const EMAIL_FOOTER: &str = r#"                    <!-- Footer -->
                                 </tr>
                             </table>
 
-                            <p style="margin: 0 0 12px 0; font-size: 12px; line-height: 18px; color: #9ca3af;"><a href="{base_url}/?modal=settings&tab=email&{utm}" style="color: #6b7280; text-decoration: underline;">Manage email preferences</a></p>
+                            <p style="margin: 0 0 12px 0; font-size: 12px; line-height: 18px; color: #9ca3af;"><a href="{preferences_url}" style="color: #6b7280; text-decoration: underline;">Manage email preferences</a></p>
 {footer_legal}
                         </td>
                     </tr>
@@ -363,164 +390,7 @@ mod tests {
 
     #[test]
     fn every_email_fully_renders() {
-        // Auth
-        assert_fully_rendered(&PasswordReset {
-            url: "https://app.example.test",
-            token: "reset-token",
-        });
-        assert_fully_rendered(&Verification {
-            url: "https://app.example.test",
-            token: "verify-token",
-        });
-        assert_fully_rendered(&PasswordChanged {
-            timestamp: "2026-01-01 00:00 UTC",
-        });
-        assert_fully_rendered(&OidcLinked {
-            provider_name: "Google",
-        });
-        assert_fully_rendered(&OidcUnlinked {
-            provider_name: "Google",
-        });
-        assert_fully_rendered(&EmailChangedOld {
-            new_email: "new@example.test",
-        });
-
-        // Onboarding
-        assert_fully_rendered(&Invite {
-            url: "https://app.example.test/invite/abc",
-            inviter: "owner@example.test",
-        });
-
-        assert_fully_rendered(&DiscoveryGuide {
-            daemon_name: "daemon-1",
-            network_name: "Home",
-        });
-
-        // Daemon
-        assert_fully_rendered(&InstallCommand {
-            install_command: "curl … | sh",
-            os: "linux",
-        });
-        assert_fully_rendered(&DaemonStandby {
-            daemon_name: "daemon-1",
-            network_name: "Home",
-        });
-        assert_fully_rendered(&DaemonUnreachable {
-            daemon_name: "daemon-1",
-            network_name: "Home",
-        });
-        assert_fully_rendered(&DaemonSunset {
-            daemon_names: &["daemon-1", "daemon-2"],
-            sunset_date: "November 1, 2026",
-        });
-
-        // Account
-        assert_fully_rendered(&OrganizationDeleted);
-
-        // Billing
-        assert_fully_rendered(&TrialStarted {
-            plan_name: "Pro",
-            trial_days: 14,
-            billing_period: "Monthly",
-        });
-        for has_payment in [true, false] {
-            assert_fully_rendered(&TrialEnding {
-                has_payment,
-                plan_name: "Pro",
-                billing_period: "Monthly",
-                hosts_count: 12,
-                networks_count: 3,
-                daemons_count: 2,
-                services_count: 20,
-                days_into_trial: 11,
-            });
-        }
-        assert_fully_rendered(&TrialExpired {
-            plan_name: "Pro",
-            billing_period: "Monthly",
-        });
-        assert_fully_rendered(&TrialConverted {
-            plan_name: "Pro",
-            billing_period: "Monthly",
-        });
-        assert_fully_rendered(&PlanChanged { plan_name: "Pro" });
-        assert_fully_rendered(&SubscriptionCancelled {
-            period_end_date: "January 1, 2026",
-        });
-        assert_fully_rendered(&PaymentMethodAdded);
-        assert_fully_rendered(&PaymentMethodRemoved);
-        assert_fully_rendered(&PaymentRecovered { amount: "$14.99" });
-        assert_fully_rendered(&PaymentFailed);
-        assert_fully_rendered(&PaymentActionRequired {
-            cta_href: "https://billing.example.test/invoice/abc",
-        });
-        assert_fully_rendered(&CancellationInitiated {
-            period_end: "January 1, 2026",
-        });
-        assert_fully_rendered(&SubscriptionReactivated);
-        assert_fully_rendered(&SubscriptionPaused {
-            resumes_at: "July 1, 2026",
-        });
-        assert_fully_rendered(&SubscriptionResumed);
-        assert_fully_rendered(&CheckoutCompleted { plan_name: "Pro" });
-        assert_fully_rendered(&UsageSummary {
-            period: "Dec 1, 2025 – Jan 1, 2026",
-            invoice_date: "January 1, 2026",
-            total: "$14.99",
-            attachment: None,
-            hosted_invoice_url: Some("https://billing.example.test/invoice/abc"),
-        });
-        // Attached variant: PDF present, no hosted-URL fallback needed.
-        assert_fully_rendered(&UsageSummary {
-            period: "Dec 1, 2025 – Jan 1, 2026",
-            invoice_date: "January 1, 2026",
-            total: "$14.99",
-            attachment: Some(EmailAttachment {
-                filename: "scanopy-invoice-in_123.pdf".to_string(),
-                content_type: "application/pdf".to_string(),
-                bytes: vec![0x25, 0x50, 0x44, 0x46],
-            }),
-            hosted_invoice_url: None,
-        });
-        for has_overage in [true, false] {
-            assert_fully_rendered(&PlanLimitApproaching {
-                first_name: None,
-                limit_type: "hosts",
-                current_count: 8,
-                limit: 10,
-                plan_name: "Pro",
-                has_overage,
-            });
-            assert_fully_rendered(&PlanLimitReached {
-                first_name: Some("Ada"),
-                limit_type: "hosts",
-                current_count: 10,
-                limit: 10,
-                plan_name: "Pro",
-                has_overage,
-            });
-        }
-
-        // Digest
-        let payload = DiscoveryDigestPayload {
-            session_id: Uuid::nil(),
-            network_id: Uuid::nil(),
-            network_name: "Home".to_string(),
-            started_at: chrono::Utc::now(),
-            finished_at: chrono::Utc::now(),
-            stale_after_hours: DEFAULT_STALE_AFTER_HOURS,
-            subnets_scanned: vec![],
-            hosts_added: vec![],
-            hosts_stale: vec![],
-            hosts_changed: vec![],
-            vlans_added: vec![],
-            vlans_stale: vec![],
-            recipients: vec![],
-        };
-        assert_fully_rendered(&DiscoveryDigest {
-            payload: &payload,
-            base_url: "https://app.example.test",
-        });
+        for_each_email(|_, email| assert_fully_rendered(email));
     }
 
     /// Visit every email (every distinct variant) once, paired with a stable
@@ -655,7 +525,20 @@ mod tests {
                 billing_period: "Monthly",
             },
         );
-        f("plan_changed", &PlanChanged { plan_name: "Pro" });
+        f(
+            "plan_changed",
+            &PlanChanged {
+                plan_name: "Pro",
+                license_key_stops: false,
+            },
+        );
+        f(
+            "plan_changed_from_self_hosted",
+            &PlanChanged {
+                plan_name: "Pro",
+                license_key_stops: true,
+            },
+        );
         f(
             "subscription_cancelled",
             &SubscriptionCancelled {
@@ -673,9 +556,73 @@ mod tests {
             },
         );
         f(
+            "invoice_issued_with_po",
+            &InvoiceIssued {
+                plan_name: "Self-Hosted Standard",
+                amount: "$4,000.00",
+                due_date: "October 18, 2026",
+                po_number: Some("PO-4471"),
+                cta_href: "https://billing.example.test/invoice/abc",
+            },
+        );
+        f(
+            "invoice_issued",
+            &InvoiceIssued {
+                plan_name: "Self-Hosted Standard",
+                amount: "$4,000.00",
+                due_date: "October 18, 2026",
+                po_number: None,
+                cta_href: "https://billing.example.test/invoice/abc",
+            },
+        );
+        f(
+            "invoice_finalization_failed",
+            &InvoiceFinalizationFailed {
+                plan_name: "Self-Hosted Standard",
+                reason: "We could not determine the customer's tax location.",
+            },
+        );
+        f(
+            "invoice_credited",
+            &InvoiceCredited {
+                plan_name: "Self-Hosted Standard",
+                credit: "$1,999.98",
+            },
+        );
+        f(
+            "invoice_overdue_with_po",
+            &InvoiceOverdue {
+                plan_name: "Self-Hosted Standard",
+                amount: "$4,000.00",
+                due_date: "October 18, 2026",
+                key_expires: "November 17, 2026",
+                po_number: Some("PO-4471"),
+                cta_href: "https://billing.example.test/invoice/abc",
+            },
+        );
+        f(
+            "invoice_overdue",
+            &InvoiceOverdue {
+                plan_name: "Self-Hosted Standard",
+                amount: "$4,000.00",
+                due_date: "October 18, 2026",
+                key_expires: "November 17, 2026",
+                po_number: None,
+                cta_href: "https://billing.example.test/invoice/abc",
+            },
+        );
+        f(
             "cancellation_initiated",
             &CancellationInitiated {
                 period_end: "January 1, 2026",
+                licensed: false,
+            },
+        );
+        f(
+            "cancellation_initiated_self_hosted",
+            &CancellationInitiated {
+                period_end: "January 1, 2026",
+                licensed: true,
             },
         );
         f("subscription_reactivated", &SubscriptionReactivated);
@@ -689,6 +636,141 @@ mod tests {
         f(
             "checkout_completed",
             &CheckoutCompleted { plan_name: "Pro" },
+        );
+        f(
+            "self_hosted_welcome_trial",
+            &SelfHostedWelcome {
+                plan_name: "Self-Hosted Standard",
+                trial_days: Some(14),
+                deployment_assistance: false,
+            },
+        );
+        f(
+            "self_hosted_welcome_deployment_assistance",
+            &SelfHostedWelcome {
+                plan_name: "Self-Hosted Plus",
+                trial_days: None,
+                deployment_assistance: true,
+            },
+        );
+        f(
+            "airgap_renewal",
+            &AirgapRenewal {
+                plan_name: "Self-Hosted Plus",
+                current_key_expires: "October 15, 2026",
+                renewed_through: "October 1, 2027",
+            },
+        );
+        f(
+            "airgap_expiring",
+            &AirgapExpiring {
+                plan_name: "Self-Hosted Standard",
+                key_expires: "October 15, 2026",
+                renews_at: "October 1, 2026",
+                amount: "$4,000.00",
+            },
+        );
+        f(
+            "self_hosted_payment_failed_airgapped",
+            &SelfHostedPaymentFailed {
+                key_expires: "October 1, 2026",
+                air_gapped: true,
+            },
+        );
+        f(
+            "self_hosted_payment_failed_online",
+            &SelfHostedPaymentFailed {
+                key_expires: "October 1, 2026",
+                air_gapped: false,
+            },
+        );
+        f(
+            "self_hosted_trial_ending_has_payment",
+            &SelfHostedTrialEnding {
+                plan_name: "Self-Hosted Standard",
+                billing_period: "Yearly",
+                has_payment: true,
+                key_expires: "October 8, 2026",
+            },
+        );
+        f(
+            "self_hosted_trial_ending_no_payment",
+            &SelfHostedTrialEnding {
+                plan_name: "Self-Hosted Standard",
+                billing_period: "Yearly",
+                has_payment: false,
+                key_expires: "October 8, 2026",
+            },
+        );
+        f(
+            "self_hosted_license_ended_trial",
+            &SelfHostedLicenseEnded {
+                plan_name: "Self-Hosted Standard",
+                was_trial: true,
+                air_gapped: false,
+                key_expires: "March 22, 2026",
+                defaulted: false,
+            },
+        );
+        f(
+            "self_hosted_license_ended_cancelled_online",
+            &SelfHostedLicenseEnded {
+                plan_name: "Self-Hosted Plus",
+                was_trial: false,
+                air_gapped: false,
+                key_expires: "March 22, 2026",
+                defaulted: false,
+            },
+        );
+        f(
+            "self_hosted_license_ended_cancelled_airgapped",
+            &SelfHostedLicenseEnded {
+                plan_name: "Self-Hosted Plus",
+                was_trial: false,
+                air_gapped: true,
+                key_expires: "March 22, 2026",
+                defaulted: false,
+            },
+        );
+        f(
+            "self_hosted_license_ended_defaulted",
+            &SelfHostedLicenseEnded {
+                plan_name: "Self-Hosted Standard",
+                was_trial: false,
+                air_gapped: false,
+                key_expires: "March 22, 2026",
+                defaulted: true,
+            },
+        );
+        f(
+            "self_hosted_license_resumed_online",
+            &SelfHostedLicenseResumed {
+                plan_name: "Self-Hosted Standard",
+                resumes_through: "March 22, 2027",
+                air_gapped: false,
+            },
+        );
+        f(
+            "self_hosted_license_resumed_airgapped",
+            &SelfHostedLicenseResumed {
+                plan_name: "Self-Hosted Plus",
+                resumes_through: "March 22, 2027",
+                air_gapped: true,
+            },
+        );
+        f(
+            "self_hosted_plan_changed_online",
+            &SelfHostedPlanChanged {
+                plan_name: "Self-Hosted Plus",
+                air_gapped: false,
+            },
+        );
+        f(
+            "self_hosted_plan_changed_airgapped",
+            &SelfHostedPlanChanged {
+                plan_name: "Self-Hosted Plus",
+                air_gapped: true,
+            },
         );
         f(
             "usage_summary_attached",

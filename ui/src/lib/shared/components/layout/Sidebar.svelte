@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { isBillingPlanActive } from '$lib/features/organizations/types';
+	import { isBillingPlanActive, isPlanLapsed } from '$lib/features/organizations/types';
 	import SettingsModal from '$lib/features/settings/SettingsModal.svelte';
 	import SupportModal from '$lib/features/support/SupportModal.svelte';
 	import { billingPlans, entities } from '$lib/shared/stores/metadata';
@@ -42,6 +42,7 @@
 		isTrialingWithoutPayment,
 		isMissingPaymentMethod
 	} from '$lib/shared/utils/trial';
+	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import { daemonSetupState } from '$lib/features/daemons/stores/daemon-setup';
 	import { isAllComplete } from '$lib/shared/onboarding/checklist';
 	import SidebarChecklist from './SidebarChecklist.svelte';
@@ -85,7 +86,9 @@
 		>([]),
 		showSettings = $bindable(false),
 		settingsInitialTab = 'account',
-		settingsDismissible = true
+		settingsDismissible = true,
+		mainAppLocked = false,
+		licensedPlanPending = false
 	}: {
 		activeTab?: string;
 		collapsed?: boolean;
@@ -101,6 +104,13 @@
 		showSettings?: boolean;
 		settingsInitialTab?: string;
 		settingsDismissible?: boolean;
+		/** Org is locked out of the main app (licensed self-hosted plan on a
+		 * billing-enabled server): hide main navigation and skip main-app queries,
+		 * which the backend rejects. Settings and Support stay available. */
+		mainAppLocked?: boolean;
+		/** Passed through to the Settings modal, which shows the License tab on it
+		 * while the just-picked licensed plan is still in flight. */
+		licensedPlanPending?: boolean;
 	} = $props();
 
 	// TanStack Query for current user and organization
@@ -109,6 +119,11 @@
 
 	const organizationQuery = useOrganizationQuery();
 	let organization = $derived(organizationQuery.data);
+
+	const configQuery = useConfigQuery();
+	// Whether this deployment bills at all (Stripe configured). Distinct from
+	// `isBillingEnabled` below, which asks whether the org's own plan is active.
+	let billingConfigured = $derived(configQuery.data?.billing_enabled ?? false);
 
 	// Derived values from queries
 	let userPermissions = $derived(currentUser?.permissions);
@@ -121,7 +136,7 @@
 	let showTrialPill = $derived(
 		isOwner &&
 			isBillingEnabled &&
-			isTrialingWithoutPayment(organization) &&
+			isTrialingWithoutPayment(organization, billingConfigured) &&
 			trialDaysLeft !== null &&
 			trialDaysLeft <= 7
 	);
@@ -132,7 +147,12 @@
 		if (trialDaysLeft === 1) return billing_trialPillOneDay();
 		return billing_trialPill({ days: trialDaysLeft });
 	});
-	let isReadOnly = $derived(userPermissions === 'Viewer');
+	// A lapsed org (subscription ended, no paid plan chosen since) is read-only
+	// for everyone: the backend refuses its writes, so the tabs drop their edit
+	// affordances the same way they do for a Viewer.
+	let isReadOnly = $derived(
+		userPermissions === 'Viewer' || (organization != null && isPlanLapsed(organization))
+	);
 
 	let showSupport = $state(false);
 
@@ -145,21 +165,27 @@
 		// past_due stays its own clause: dunning needs attention even with a card
 		// on file. isMissingPaymentMethod is the shared no-card predicate, so this
 		// dot, the banner, and the BillingTab card all key off the same rule.
-		return organization.plan_status === 'past_due' || isMissingPaymentMethod(organization);
+		// Both clauses read org rows that only Stripe webhooks write, so they go
+		// stale where billing is switched off.
+		if (!billingConfigured) return false;
+		return (
+			organization.plan_status === 'past_due' ||
+			isMissingPaymentMethod(organization, billingConfigured)
+		);
 	});
 
 	// Active discovery sessions — used for notification dot on sidebar and sub-tabs
-	const activeSessionsQuery = useActiveSessionsQuery(() => true);
+	const activeSessionsQuery = useActiveSessionsQuery(() => !mainAppLocked);
 	let hasActiveSessions = $derived((activeSessionsQuery.data?.length ?? 0) > 0);
 
 	// Daemons needing a version update (Deprecated/Unsupported) — drives the
 	// Daemons nav dot, same mechanism as the Scans active-sessions dot.
-	const daemonsQuery = useDaemonsQuery();
+	const daemonsQuery = useDaemonsQuery({ enabled: () => !mainAppLocked });
 	let hasDaemonUpdatesNeeded = $derived((daemonsQuery.data ?? []).some(hasSunsetWarning));
 
 	// Legacy (unbound) daemon API keys. When none exist, the Daemon API Keys sub-tab is
 	// hidden and the Daemons group collapses to a single-entity page (no tab strip).
-	const daemonApiKeysQuery = useApiKeysQuery();
+	const daemonApiKeysQuery = useApiKeysQuery({ enabled: () => !mainAppLocked });
 	let hasLegacyDaemonKeys = $derived(
 		(daemonApiKeysQuery.data ?? []).some((k) => k.daemon_id == null)
 	);
@@ -561,7 +587,7 @@
 		});
 	}
 
-	let mainNavItems = $derived(filterByPosition(navConfig, 'main'));
+	let mainNavItems = $derived(mainAppLocked ? [] : filterByPosition(navConfig, 'main'));
 	let bottomNavItems = $derived(filterByPosition(navConfig, 'bottom'));
 
 	onMount(() => {
@@ -703,7 +729,7 @@
 		</div>
 
 		<!-- Sidebar Checklist -->
-		{#if showSidebarChecklist}
+		{#if showSidebarChecklist && !mainAppLocked}
 			<SidebarChecklist
 				{onboarding}
 				{collapsed}
@@ -900,5 +926,6 @@
 	onClose={() => (showSettings = false)}
 	initialTab={settingsInitialTab}
 	dismissible={settingsDismissible}
+	{licensedPlanPending}
 />
 <SupportModal isOpen={showSupport} name="support" onClose={() => (showSupport = false)} />

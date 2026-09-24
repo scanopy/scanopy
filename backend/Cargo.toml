@@ -1,6 +1,6 @@
 [package]
 name = "scanopy-server"
-version = "0.17.16"
+version = "0.17.17"
 edition = "2024"
 description = "Scanopy HTTP API server"
 
@@ -15,6 +15,10 @@ path = "src/bin/server.rs"
 [[bin]]
 name = "generate-error-codes"
 path = "src/bin/generate-error-codes.rs"
+
+[[bin]]
+name = "generate-openapi"
+path = "src/bin/generate-openapi.rs"
 
 [[bin]]
 name = "generate-fixtures"
@@ -44,9 +48,23 @@ strip = true        # Remove debug symbols
 # Development profile for faster builds
 [profile.dev]
 opt-level = 0       # No optimization for faster builds
-debug = true        # Keep debug symbols for debugging
+# Line tables give file/line in backtraces and panics, which is what debugging a test failure
+# actually needs. Full `debug = true` also emits variable and type info for a stepping debugger,
+# which is where most of the object size and link time goes.
+debug = "line-tables-only"
+# macOS default is to run dsymutil and pack debuginfo into a .dSYM on every link. Leaving it in
+# the object files skips that step.
+split-debuginfo = "unpacked"
 lto = false         # No LTO for faster builds
 incremental = true  # Enable incremental compilation
+
+# Dependencies are not what anyone debugs, and they are the bulk of the tree.
+[profile.dev.package."*"]
+debug = false
+
+# Same for the test profile, which inherits from dev.
+[profile.test.package."*"]
+debug = false
 
 # Dependencies grouped by purpose for better maintainability
 [dependencies]
@@ -265,7 +283,7 @@ async-stripe-client-core = { version = "1.0.0-alpha.2", default-features = false
 async-stripe-shared = { version = "1.0.0-alpha.2", default-features = false }
 async-stripe-core = { version = "1.0.0-alpha.2", default-features = false,features = ["customer", "customer_balance_transaction", "setup_intent"] }
 async-stripe-product = { version = "1.0.0-alpha.2", default-features = false,features = ["product", "price", "coupon"] }
-async-stripe-billing = { version = "1.0.0-alpha.2", default-features = false,features = ["plan", "subscription", "deserialize", "serialize", "billing_portal_session"] }
+async-stripe-billing = { version = "1.0.0-alpha.2", default-features = false,features = ["plan", "subscription", "invoice", "quote", "tax_id", "deserialize", "serialize", "billing_portal_session"] }
 async-stripe-checkout = { version = "1.0.0-alpha.2", default-features = false,features = ["checkout_session"] }
 async-stripe-types = { version = "1.0.0-alpha.2", default-features = false }
 async-stripe-webhook = { version = "1.0.0-alpha.2", default-features = false }

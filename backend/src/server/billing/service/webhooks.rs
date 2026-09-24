@@ -1,5 +1,7 @@
 //! Stripe webhook ingestion and subscription/payment-method event handlers.
 use super::*;
+use crate::server::billing::service::invoicing::write_off_unpaid_license_invoices;
+use stripe_shared::SubscriptionCollectionMethod;
 
 impl BillingService {
     /// Handle webhook events
@@ -26,7 +28,7 @@ impl BillingService {
             }
             EventType::CustomerSubscriptionTrialWillEnd => {
                 if let EventObject::CustomerSubscriptionTrialWillEnd(sub) = event.data.object {
-                    self.handle_trial_will_end(sub).await?;
+                    self.handle_trial_will_end(sub, event.created).await?;
                 }
             }
             EventType::CustomerSubscriptionPaused | EventType::CustomerSubscriptionDeleted => {
@@ -85,6 +87,36 @@ impl BillingService {
             EventType::InvoicePaid => {
                 if let EventObject::InvoicePaid(invoice) = event.data.object {
                     self.handle_invoice_paid(invoice).await?;
+                }
+            }
+            EventType::InvoiceCreated => {
+                if let EventObject::InvoiceCreated(invoice) = event.data.object {
+                    self.handle_invoice_created(invoice).await?;
+                }
+            }
+            EventType::InvoiceFinalizationFailed => {
+                if let EventObject::InvoiceFinalizationFailed(invoice) = event.data.object {
+                    self.handle_invoice_finalization_failed(invoice).await?;
+                }
+            }
+            // `invoice.overdue` intentionally unhandled. Stripe only sends it
+            // when a Billing Automation is configured to, and an account with
+            // Automations cannot use test clocks on an existing customer, so
+            // configuring one costs more than it gives. A sent invoice going
+            // unpaid is read from the subscription instead, below.
+            EventType::InvoiceFinalized => {
+                if let EventObject::InvoiceFinalized(invoice) = event.data.object {
+                    self.handle_invoice_finalized(invoice).await?;
+                }
+            }
+            EventType::InvoiceVoided | EventType::InvoiceMarkedUncollectible => {
+                let invoice = match event.data.object {
+                    EventObject::InvoiceVoided(invoice) => Some(invoice),
+                    EventObject::InvoiceMarkedUncollectible(invoice) => Some(invoice),
+                    _ => None,
+                };
+                if let Some(invoice) = invoice {
+                    self.handle_invoice_voided(invoice).await?;
                 }
             }
             _ => {
@@ -197,6 +229,7 @@ impl BillingService {
                                 organization_id: organization.id,
                             },
                             BillingOperation::CancellationInitiated {
+                                plan: organization.base.plan,
                                 reason_code: meta.scanopy_cancel_reason,
                                 stripe_feedback,
                                 stripe_reason,
@@ -277,8 +310,17 @@ impl BillingService {
             let authentication: AuthenticatedEntity = owner.clone().into();
             let is_trialing = sub.status == SubscriptionStatus::Trialing;
 
-            // Checkout completed (first subscription creation, or upgrade from Free)
-            if prior_status.is_none() || prior_was_free {
+            // Checkout completed: first subscription creation, upgrade from
+            // Free, or a lapsed org choosing a paid plan again. The last case
+            // needs this arm even when the plan name is unchanged, because
+            // nothing else implies Active for it.
+            //
+            // The status check is what makes this mean "a live subscription
+            // exists now" rather than "a webhook arrived". Without it, any
+            // update for a lapsed org moves it to Active, including its
+            // subscription going past due, which would undo the refusal in
+            // `report_invoice_overdue` to let a lapsed org back in.
+            if resubscribed(prior_status, prior_was_free, sub.status) {
                 let plan_config = plan.config();
                 self.event_bus
                     .publish(Event::new(
@@ -390,6 +432,7 @@ impl BillingService {
                         to: plan,
                         is_downgrade: plan.is_free(),
                         next_renewal_at: next_renewal_from_subscription(&sub),
+                        license_key_type: organization.base.license_key_type,
                     },
                     owner.clone().into(),
                 ))
@@ -512,6 +555,33 @@ impl BillingService {
                 .await?;
         }
 
+        // An unpaid sent invoice is the one way a licence buyer stops paying,
+        // and this is the only event that reports it without any dashboard
+        // configuration: "if the subscription's collection_method is set to
+        // send_invoice, it becomes past_due when its invoice remains unpaid by
+        // the due date". No charge is attempted on one, so
+        // `invoice.payment_failed` never fires for it either.
+        if sent_invoice_went_past_due(prior_status, sub.status, sub.collection_method)
+            && let Some(invoice) = self.open_license_invoice(&organization).await?
+        {
+            self.report_invoice_overdue(&organization, invoice).await?;
+        }
+
+        // Stripe stops collecting on a subscription it marks `unpaid`, which
+        // is one of the two endings its dunning settings offer after an
+        // invoice sits past due. The other, cancellation, arrives as
+        // `customer.subscription.deleted` and lapses the org there. Handling
+        // this one the same way means the org lapses whichever ending the
+        // account is configured for, rather than only one of them.
+        if sub.status == SubscriptionStatus::Unpaid && !organization.is_lapsed() {
+            tracing::info!(
+                organization_id = %organization.id,
+                subscription_id = %sub.id,
+                "Stripe marked the subscription unpaid — lapsing the org"
+            );
+            return self.handle_subscription_deleted(sub).await;
+        }
+
         tracing::info!(
             "Updated organization {} subscription status to {}",
             org_id,
@@ -520,12 +590,45 @@ impl BillingService {
         Ok(())
     }
 
-    /// Handle trial_will_end webhook (3 days before trial expiry)
-    async fn handle_trial_will_end(&self, sub: Subscription) -> Result<(), Error> {
+    /// Handle trial_will_end webhook (3 days before trial expiry).
+    ///
+    /// `event_created` is Stripe's timestamp for this notice, which is the only
+    /// clock the trial's own dates can be compared against: under a test clock
+    /// the customer's calendar is not the server's.
+    async fn handle_trial_will_end(
+        &self,
+        sub: Subscription,
+        event_created: i64,
+    ) -> Result<(), Error> {
         // Skip email if subscription is already marked for cancellation (e.g., user switched to Free)
         if sub.cancel_at.is_some() {
             tracing::info!(
                 "Trial ending soon but subscription is pending cancellation, skipping email"
+            );
+            return Ok(());
+        }
+
+        // Stripe sends this three days ahead, *or* the moment a trial is ended
+        // early with `trial_end=now`, which is how an invoice buyer converts.
+        // Warning that a trial ends in three days, beside the mail saying the
+        // subscription just started, describes a countdown that already ran
+        // out.
+        //
+        // Read the subscription rather than this notice. The payload carries it
+        // as it stood *before* the update: on a converting trial its
+        // `trial_end` is still the original date, its `collection_method` is
+        // still `charge_automatically` and its status is still `trialing`, so
+        // nothing in the event separates the two cases. Our own update returned
+        // before Stripe queued this, so a fresh read already has the new values.
+        let current = RetrieveSubscription::new(&sub.id)
+            .send(&self.stripe)
+            .await?;
+
+        if current.trial_end.is_some_and(|end| end <= event_created) {
+            tracing::info!(
+                subscription_id = %sub.id,
+                trial_end = ?current.trial_end,
+                "Trial ended now rather than ending soon, skipping the warning email"
             );
             return Ok(());
         }
@@ -570,7 +673,18 @@ impl BillingService {
                     },
                     BillingOperation::TrialWillEnd {
                         plan,
-                        has_payment_method: organization.base.has_payment_method,
+                        // Either way to pay keeps the subscription alive, so a
+                        // buyer paying by invoice is not asked for a card.
+                        //
+                        // The subscription as Stripe holds it now, not the org
+                        // row: switching to invoice billing sets
+                        // `collection_method` in the same call that ends the
+                        // trial, while `bills_by_invoice` waits on the invoice
+                        // finalizing and round-tripping back, two webhooks
+                        // later.
+                        has_payment_method: organization.can_pay()
+                            || current.collection_method
+                                == SubscriptionCollectionMethod::SendInvoice,
                     },
                     owner.clone().into(),
                 ))
@@ -680,15 +794,15 @@ impl BillingService {
             tracing::info!(
                 organization_id = %org_id,
                 subscription_id = %sub.id,
-                "Subscription is paused, not deleted — skipping auto-Free"
+                "Subscription is paused, not deleted — not a lapse"
             );
             return Ok(());
         }
 
         // --- Snapshot prior subscription state, then publish the cancellation
-        // event. The org's plan/status/has_payment_method downgrade to Free is
-        // owned by the `SubscriptionCancelled` arm of the org billing subscriber
-        // (single writer); this handler does not touch the org row. ---
+        // event. The lapse (plan kept, plan_status = Cancelled) is owned by the
+        // `SubscriptionCancelled` arm of the org billing subscriber (single
+        // writer); this handler does not touch the org row. ---
 
         let Some(organization) = self.organization_service.get_by_id(&org_id).await? else {
             tracing::warn!(
@@ -720,6 +834,7 @@ impl BillingService {
         let internal_reason: Option<String> = None;
         let mrr_amount_cents = mrr_from_subscription(&sub);
         let tenure_days = (Utc::now() - organization.created_at).num_days().max(0) as u32;
+        let license_key_type = organization.base.license_key_type;
 
         let free_plan = get_free_plan();
 
@@ -749,6 +864,7 @@ impl BillingService {
                     .unwrap_or_else(|| Utc::now().timestamp()),
                 mrr_amount_cents,
                 tenure_days,
+                license_key_type,
                 user_service,
                 event_bus,
                 stripe,
@@ -786,6 +902,7 @@ impl BillingService {
         period_end_ts: i64,
         mrr_amount_cents: i64,
         tenure_days: u32,
+        license_key_type: Option<LicenseKeyType>,
         user_service: Arc<UserService>,
         event_bus: Arc<EventBus>,
         stripe: stripe::Client,
@@ -817,7 +934,7 @@ impl BillingService {
             }
         }
 
-        // The downgrade to Free is now committed (Guard 2 passed). If a
+        // The lapse is now committed (Guard 2 passed). If a
         // save-offer discount was applied, remove it from the Stripe customer
         // so it can't carry over to a future subscription. The org's discount
         // mirror fields are cleared by the `SubscriptionCancelled` subscriber
@@ -838,6 +955,37 @@ impl BillingService {
             );
         }
 
+        let period_end =
+            chrono::DateTime::<Utc>::from_timestamp(period_end_ts, 0).unwrap_or_else(Utc::now);
+
+        // Write off whatever this customer was billed for and never paid. The
+        // resulting `invoice.marked_uncollectible` webhook takes back the
+        // license period the invoice granted, and the written-off invoice is
+        // what refuses this customer payment terms until they settle it.
+        // `period_end` rather than our own clock: due dates are in Stripe's
+        // frame. Best-effort, like the discount removal above — a customer
+        // keeping terms they should have lost is not worth failing the
+        // webhook and losing the cancellation itself.
+        let mut defaulted = false;
+        if let Some(customer_id) = &customer_id {
+            match write_off_unpaid_license_invoices(
+                &stripe,
+                org_id,
+                &CustomerId::from(customer_id.clone()),
+                period_end,
+            )
+            .await
+            {
+                Ok(written_off) => defaulted = written_off > 0,
+                Err(e) => tracing::warn!(
+                    organization_id = %org_id,
+                    customer_id = %customer_id,
+                    error = ?e,
+                    "Failed to write off the unpaid license invoices for a cancelled subscription"
+                ),
+            }
+        }
+
         // Publish events and send emails. Invites get revoked downstream
         // by `InviteService::Subscriber<BillingOperation>` reacting to the
         // `SubscriptionCancelled` event we publish below.
@@ -846,8 +994,6 @@ impl BillingService {
         if let Some(owner) = owners.first() {
             let authentication: AuthenticatedEntity = owner.clone().into();
 
-            let period_end =
-                chrono::DateTime::<Utc>::from_timestamp(period_end_ts, 0).unwrap_or_else(Utc::now);
             event_bus
                 .publish(Event::new(
                     OrgScope {
@@ -864,6 +1010,8 @@ impl BillingService {
                         was_trialing,
                         mrr_amount_cents,
                         tenure_days,
+                        license_key_type,
+                        defaulted,
                     },
                     authentication.clone(),
                 ))
@@ -871,5 +1019,107 @@ impl BillingService {
         }
 
         Ok(())
+    }
+}
+
+/// Whether this subscription update is an organization arriving on a paid
+/// plan: its first subscription, an upgrade from Free, or a lapsed org
+/// subscribing again. Requires a live subscription, so that an update
+/// carrying some other status cannot stand in for one.
+fn resubscribed(
+    prior_status: Option<PlanStatus>,
+    prior_was_free: bool,
+    status: SubscriptionStatus,
+) -> bool {
+    let arriving =
+        prior_status.is_none() || prior_was_free || prior_status == Some(PlanStatus::Cancelled);
+    arriving
+        && matches!(
+            status,
+            SubscriptionStatus::Active | SubscriptionStatus::Trialing
+        )
+}
+
+/// Whether this subscription update is the moment a sent invoice's buyer fell
+/// behind: past due now, not before, on a subscription Stripe bills by
+/// invoice rather than charging.
+fn sent_invoice_went_past_due(
+    prior_status: Option<PlanStatus>,
+    status: SubscriptionStatus,
+    collection_method: SubscriptionCollectionMethod,
+) -> bool {
+    status == SubscriptionStatus::PastDue
+        && prior_status != Some(PlanStatus::PastDue)
+        && collection_method == SubscriptionCollectionMethod::SendInvoice
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A lapsed org comes back on the subscription existing, not on a webhook
+    /// arriving. Both rules read `prior_status == Cancelled`, so without the
+    /// status check the same past-due update would move the org to Active
+    /// here and be refused as a lapsed org there.
+    #[test]
+    fn a_lapsed_org_returns_only_on_a_live_subscription() {
+        assert!(resubscribed(
+            Some(PlanStatus::Cancelled),
+            false,
+            SubscriptionStatus::Active
+        ));
+        assert!(resubscribed(None, false, SubscriptionStatus::Trialing));
+        assert!(resubscribed(
+            Some(PlanStatus::Active),
+            true,
+            SubscriptionStatus::Active
+        ));
+        // The update that moves a lapsed org's subscription to past due.
+        assert!(!resubscribed(
+            Some(PlanStatus::Cancelled),
+            false,
+            SubscriptionStatus::PastDue
+        ));
+        assert!(!resubscribed(
+            Some(PlanStatus::Cancelled),
+            false,
+            SubscriptionStatus::Canceled
+        ));
+        // An org already on a paid plan is not arriving on one.
+        assert!(!resubscribed(
+            Some(PlanStatus::Active),
+            false,
+            SubscriptionStatus::Active
+        ));
+    }
+
+    /// Stripe attempts no charge on a sent invoice, so this transition is the
+    /// only notice that one went unpaid. A card subscription reaches past due
+    /// through the charge-attempt events instead, and must not double up.
+    #[test]
+    fn only_a_sent_invoice_newly_past_due_is_reported() {
+        assert!(sent_invoice_went_past_due(
+            Some(PlanStatus::Active),
+            SubscriptionStatus::PastDue,
+            SubscriptionCollectionMethod::SendInvoice
+        ));
+        // Already reported: the org is sitting in past due.
+        assert!(!sent_invoice_went_past_due(
+            Some(PlanStatus::PastDue),
+            SubscriptionStatus::PastDue,
+            SubscriptionCollectionMethod::SendInvoice
+        ));
+        // A card subscription: invoice.payment_failed owns this.
+        assert!(!sent_invoice_went_past_due(
+            Some(PlanStatus::Active),
+            SubscriptionStatus::PastDue,
+            SubscriptionCollectionMethod::ChargeAutomatically
+        ));
+        // Any other status change on an invoice-billed subscription.
+        assert!(!sent_invoice_went_past_due(
+            Some(PlanStatus::Trialing),
+            SubscriptionStatus::Active,
+            SubscriptionCollectionMethod::SendInvoice
+        ));
     }
 }

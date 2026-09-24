@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use super::{Email, EmailCategory, EmailPreference, PausableCategory};
+use super::{Email, EmailCategory, EmailPreference, PausableCategory, links};
 use crate::server::{
     digest::payload::{
         AffectedHostCard, DiscoveryDigestPayload, EntityFreshness, InterfaceSummary,
@@ -49,7 +49,9 @@ impl Email for DiscoveryDigest<'_> {
             .format("%b %-d, %Y %H:%M UTC")
             .to_string();
         let base = self.base_url.trim_end_matches('/');
-        let settings_url = self.with_utm(&format!("{base}/?modal=settings&tab=email"));
+        // Carries `{base_url}` / `{utm}`, which `render_html` expands. The
+        // entity links below are built per id, so they resolve `base` here.
+        let settings_url = links::SETTINGS_EMAIL;
 
         let summary_section = render_summary_banner(payload);
         let legend_section = render_legend(payload.stale_after_hours);
@@ -66,7 +68,7 @@ impl Email for DiscoveryDigest<'_> {
         BODY.replace("{network_name}", &html_escape(&payload.network_name))
             .replace("{started_at}", &started)
             .replace("{finished_at}", &finished)
-            .replace("{settings_url}", &settings_url)
+            .replace("{settings_url}", settings_url)
             .replace("{summary_section}", &summary_section)
             .replace("{legend_section}", &legend_section)
             .replace("{subnets_section}", &subnets_section)

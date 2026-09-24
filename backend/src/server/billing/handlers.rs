@@ -95,10 +95,12 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
         .routes(routes!(pause_subscription))
         .routes(routes!(resume_subscription))
         .routes(routes!(extend_trial))
+        .routes(routes!(end_trial))
         .routes(routes!(cancel_subscription))
         .routes(routes!(reactivate_subscription))
         .routes(routes!(apply_discount_save_offer))
         .routes(routes!(get_save_offer_coupon))
+        .merge(super::invoicing_handlers::create_router())
 }
 
 /// Get available billing plans
@@ -161,11 +163,33 @@ async fn create_checkout_session(
 
         // Check if org already has a plan — route based on target plan and payment state
         let org = billing_service.get_organization(organization_id).await?;
+
+        // An air-gapped key carries the plan it was issued for and validates
+        // offline, so a plan change would leave a key on the customer's server
+        // naming a plan they no longer hold, with no way to retire it. Refused
+        // until the period they paid for ends; cancelling is a separate
+        // endpoint and stays open. Checked before the routing below, because
+        // the downgrade-to-Free and Checkout branches are plan changes too.
+        if let Some(current_until) = org.air_gapped_key_current_until() {
+            return Err(ApiError::air_gapped_plan_change_blocked(
+                current_until.format("%B %-d, %Y").to_string(),
+            ));
+        }
+
         let plan_status = org.base.plan_status;
+        // A lapsed org has no live subscription to modify or schedule against:
+        // its way back is a new paid subscription, never Free.
+        let is_lapsed = org.is_lapsed();
 
         if plan_status.is_some() && org.base.stripe_customer_id.is_some() {
             if request.plan.is_free() {
-                // Downgrade to Free — schedule cancellation at end of billing cycle
+                if is_lapsed {
+                    return Err(ApiError::bad_request(
+                        "A lapsed organization needs a paid plan",
+                    ));
+                }
+                // Cancel at the end of the billing cycle; the org then lapses
+                // on its plan.
                 let result = billing_service
                     .schedule_downgrade(organization_id, auth.into_entity())
                     .await?;
@@ -191,12 +215,14 @@ async fn create_checkout_session(
                 // `has_payment_method` mirror, which lags the in-app SetupIntent
                 // flow by an event-bus tick). Only queried when we might route to
                 // a direct charge — trial-eligible orgs skip it.
+                // A subscription billed by invoice needs no card to change plan.
                 let has_payment_method = if is_trial_eligible {
                     false
                 } else {
-                    billing_service
-                        .customer_has_payment_method(organization_id)
-                        .await?
+                    org.base.bills_by_invoice
+                        || billing_service
+                            .customer_has_payment_method(organization_id)
+                            .await?
                 };
 
                 if is_trial_eligible {
@@ -209,19 +235,28 @@ async fn create_checkout_session(
                         )
                         .await?;
                     Ok(Json(ApiResponse::success(result)))
-                } else if has_non_free_plan && has_payment_method {
+                } else if has_non_free_plan && has_payment_method && !is_lapsed {
                     // Live paid subscription + card on file — modify it in place.
                     let result = billing_service
                         .change_plan(organization_id, request.plan, auth.into_entity())
                         .await?;
                     Ok(Json(ApiResponse::success(result)))
+                } else if has_payment_method {
+                    // No live subscription to modify (currently on Free, or
+                    // lapsed after a subscription ended), but a way to pay is
+                    // on file — create the subscription here instead of
+                    // handing the customer to Stripe Checkout. Routing such an
+                    // org to change_plan would fail with "No active
+                    // subscription found to modify"; it only updates an
+                    // existing paid sub.
+                    let result = billing_service
+                        .create_paid_subscription(organization_id, request.plan, auth.into_entity())
+                        .await?;
+                    Ok(Json(ApiResponse::success(result)))
                 } else {
-                    // No live subscription to modify (e.g. currently on Free
-                    // after a downgrade) or no card on file — (re)subscribe via
-                    // Checkout, which creates a fresh subscription and reuses the
-                    // existing customer/card. Routing a Free org to change_plan
-                    // would fail with "No active subscription found to modify" —
-                    // it only updates an existing paid sub.
+                    // Nothing to pay with. Checkout collects a card and creates
+                    // the subscription in one hosted step; the in-app dialog
+                    // routes here only when it could not collect one itself.
                     let cancel_url = request.url.clone();
                     let session = billing_service
                         .create_checkout_session(
@@ -355,6 +390,15 @@ async fn change_plan(
         .ok_or_else(ApiError::organization_required)?;
 
     if let Some(billing_service) = state.services.billing_service.clone() {
+        // Same rule as `create_checkout_session`: an air-gapped key commits the
+        // org to its plan until the period it paid for ends.
+        let org = billing_service.get_organization(organization_id).await?;
+        if let Some(current_until) = org.air_gapped_key_current_until() {
+            return Err(ApiError::air_gapped_plan_change_blocked(
+                current_until.format("%B %-d, %Y").to_string(),
+            ));
+        }
+
         let result = billing_service
             .change_plan(organization_id, request.plan, auth.into_entity())
             .await?;
@@ -696,6 +740,38 @@ async fn extend_trial(
     if let Some(billing_service) = state.services.billing_service.clone() {
         let result = billing_service
             .extend_trial(organization_id, auth.into_entity())
+            .await?;
+        Ok(Json(ApiResponse::success(result)))
+    } else {
+        Err(ApiError::billing_setup_incomplete())
+    }
+}
+
+/// End the trial now and charge the card on file
+///
+/// Offered to customers who want an air-gapped license key, which needs a paid
+/// subscription because it validates offline and cannot be revoked.
+#[utoipa::path(
+    post,
+    path = "/end-trial",
+    tags = [api_tags::BILLING, api_tags::INTERNAL],
+    responses(
+        (status = 200, description = "Trial ended and subscription charged", body = ApiResponse<String>),
+        (status = 400, description = "Not trialing, no payment method, or billing not enabled", body = ApiErrorResponse),
+    ),
+    security(("user_api_key" = []), ("session" = []))
+)]
+async fn end_trial(
+    State(state): State<Arc<AppState>>,
+    auth: Authorized<Owner>,
+) -> ApiResult<Json<ApiResponse<String>>> {
+    let organization_id = auth
+        .organization_id()
+        .ok_or_else(ApiError::organization_required)?;
+
+    if let Some(billing_service) = state.services.billing_service.clone() {
+        let result = billing_service
+            .end_trial(organization_id, auth.into_entity())
             .await?;
         Ok(Json(ApiResponse::success(result)))
     } else {

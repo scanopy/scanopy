@@ -1,4 +1,4 @@
-use super::{Body, Content, Email, EmailCategory, EmailPreference};
+use super::{Body, Content, Email, EmailCategory, EmailPreference, links};
 
 /// Delivers a ready-to-run daemon install command for the recipient's OS.
 pub struct InstallCommand<'a> {
@@ -43,7 +43,7 @@ impl Email for InstallCommand<'_> {
                     ))
                     .raw(&code_block),
             )
-            .cta("{base_url}/?{utm}", "Open Scanopy")
+            .cta(links::APP_HOME, "Open Scanopy")
             .render()
     }
 }

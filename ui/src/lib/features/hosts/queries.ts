@@ -12,6 +12,7 @@ import {
 } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { requireSuccess, unwrapData, unwrapEnvelope } from '$lib/api/query-helpers';
 import { pushSuccess } from '$lib/shared/stores/feedback';
 import { hostDisplayName } from './host-display-name';
 import { hosts_consolidatedToast, hosts_rescanStartedToast } from '$lib/paraglide/messages';
@@ -222,32 +223,31 @@ export function useHostsQuery(optionsOrGetter: HostQueryOptions | (() => HostQue
 		return {
 			queryKey: queryKeys.hosts.list(options as Record<string, unknown>),
 			queryFn: async (): Promise<PaginatedResult<Host>> => {
-				const { data } = await apiClient.GET('/api/v1/hosts', {
-					params: {
-						query: {
-							limit: options.limit,
-							offset: options.offset,
-							network_ids: options.network_ids,
-							group_by: options.group_by,
-							order_by: options.order_by,
-							order_direction: options.order_direction,
-							tag_ids: options.tag_ids,
-							stale: options.stale,
-							search: options.search,
-							at: options.at,
-							hidden: options.hidden,
-							virtualization_service_ids: options.virtualization_service_ids,
-							include_unvirtualized: options.include_unvirtualized,
-							service_names: options.service_names,
-							sources: options.sources
+				const envelope = unwrapEnvelope(
+					await apiClient.GET('/api/v1/hosts', {
+						params: {
+							query: {
+								limit: options.limit,
+								offset: options.offset,
+								network_ids: options.network_ids,
+								group_by: options.group_by,
+								order_by: options.order_by,
+								order_direction: options.order_direction,
+								tag_ids: options.tag_ids,
+								stale: options.stale,
+								search: options.search,
+								at: options.at,
+								hidden: options.hidden,
+								virtualization_service_ids: options.virtualization_service_ids,
+								include_unvirtualized: options.include_unvirtualized,
+								service_names: options.service_names,
+								sources: options.sources
+							}
 						}
-					}
-				});
-				if (!data?.success || !data.data) {
-					throw new Error(data?.error || 'Failed to fetch hosts');
-				}
+					})
+				);
 
-				const responses = data.data;
+				const responses = envelope.data;
 
 				// Extract child data from current response
 				const allIPAddresses = responses.flatMap((r) => r.ip_addresses);
@@ -286,7 +286,7 @@ export function useHostsQuery(optionsOrGetter: HostQueryOptions | (() => HostQue
 				// Return host primitives with pagination metadata
 				return {
 					items: responses.map(toHostPrimitive),
-					pagination: data.meta?.pagination ?? null
+					pagination: envelope.meta?.pagination ?? null
 				};
 			},
 			// Keep showing previous page data while fetching next page
@@ -356,27 +356,26 @@ export function useHostSummariesQuery(
 		return {
 			queryKey: [...queryKeys.hosts.all, 'summary', options],
 			queryFn: async (): Promise<PaginatedResult<Host>> => {
-				const { data } = await apiClient.GET('/api/v1/hosts', {
-					params: {
-						query: {
-							// One network stays the ergonomic shape for a picker; the
-							// wire param takes a list.
-							network_ids: options.network_id ? [options.network_id] : undefined,
-							ids: options.ids,
-							tag_ids: options.tag_ids,
-							limit: options.limit ?? 0,
-							at: options.at,
-							include_children: false
+				const envelope = unwrapEnvelope(
+					await apiClient.GET('/api/v1/hosts', {
+						params: {
+							query: {
+								// One network stays the ergonomic shape for a picker; the
+								// wire param takes a list.
+								network_ids: options.network_id ? [options.network_id] : undefined,
+								ids: options.ids,
+								tag_ids: options.tag_ids,
+								limit: options.limit ?? 0,
+								at: options.at,
+								include_children: false
+							}
 						}
-					}
-				});
-				if (!data?.success || !data.data) {
-					throw new Error(data?.error || 'Failed to fetch hosts');
-				}
+					})
+				);
 
 				return {
-					items: data.data.map(toHostPrimitive),
-					pagination: data.meta?.pagination ?? null
+					items: envelope.data.map(toHostPrimitive),
+					pagination: envelope.meta?.pagination ?? null
 				};
 			},
 			enabled: enabled && !hasEmptyIdFilter,
@@ -400,23 +399,22 @@ export function useHostsByIds(idsGetter: () => string[]) {
 			queryFn: async (): Promise<Host[]> => {
 				if (ids.length === 0) return [];
 
-				const { data } = await apiClient.GET('/api/v1/hosts', {
-					params: {
-						query: {
-							ids: ids,
-							limit: 0, // No pagination when fetching by IDs
-							// This hook returns primitives (`toHostPrimitive` drops the
-							// children) and populates no child cache, so the nested
-							// entities were downloaded and thrown away.
-							include_children: false
+				const hostResponses = unwrapData(
+					await apiClient.GET('/api/v1/hosts', {
+						params: {
+							query: {
+								ids: ids,
+								limit: 0, // No pagination when fetching by IDs
+								// This hook returns primitives (`toHostPrimitive` drops the
+								// children) and populates no child cache, so the nested
+								// entities were downloaded and thrown away.
+								include_children: false
+							}
 						}
-					}
-				});
-				if (!data?.success || !data.data) {
-					throw new Error(data?.error || 'Failed to fetch hosts');
-				}
+					})
+				);
 
-				return data.data.map(toHostPrimitive);
+				return hostResponses.map(toHostPrimitive);
 			},
 			enabled: ids.length > 0
 		};
@@ -432,11 +430,7 @@ export function useCreateHostMutation() {
 	return createMutation(() => ({
 		mutationFn: async (data: CreateHostWithServicesRequest) => {
 			const request = toCreateHostRequest(data.host);
-			const { data: result } = await apiClient.POST('/api/v1/hosts', { body: request });
-			if (!result?.success || !result.data) {
-				throw new Error(result?.error || 'Failed to create host');
-			}
-			return result.data;
+			return unwrapData(await apiClient.POST('/api/v1/hosts', { body: request }));
 		},
 		onSuccess: (response: HostResponse) => {
 			// Invalidate all host list queries to refetch with updated data
@@ -520,15 +514,14 @@ export function useUpdateHostMutation() {
 					: undefined
 			};
 
-			const { data: result } = await apiClient.PUT('/api/v1/hosts/{id}', {
-				params: { path: { id: data.host.id } },
-				body: request
-			});
-			if (!result?.success || !result.data) {
-				throw new Error(result?.error || 'Failed to update host');
-			}
+			const response = unwrapData(
+				await apiClient.PUT('/api/v1/hosts/{id}', {
+					params: { path: { id: data.host.id } },
+					body: request
+				})
+			);
 
-			return { response: result.data };
+			return { response };
 		},
 		onSuccess: ({ response }) => {
 			const hostId = response.id;
@@ -574,24 +567,22 @@ export function useUpdateHostDescriptionMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (data: { host: Host; description: string | null }) => {
-			const { data: result } = await apiClient.PUT('/api/v1/hosts/{id}', {
-				params: { path: { id: data.host.id } },
-				body: {
-					id: data.host.id,
-					name: data.host.name,
-					hostname: data.host.hostname ?? null,
-					description: data.description,
-					virtualization_metadata: data.host.virtualization_metadata,
-					virtualization_service_id: data.host.virtualization_service_id,
-					hidden: data.host.hidden,
-					expected_updated_at: data.host.updated_at,
-					tags: data.host.tags ?? []
-				}
-			});
-			if (!result?.success || !result.data) {
-				throw new Error(result?.error || 'Failed to update host');
-			}
-			return result.data;
+			return unwrapData(
+				await apiClient.PUT('/api/v1/hosts/{id}', {
+					params: { path: { id: data.host.id } },
+					body: {
+						id: data.host.id,
+						name: data.host.name,
+						hostname: data.host.hostname ?? null,
+						description: data.description,
+						virtualization_metadata: data.host.virtualization_metadata,
+						virtualization_service_id: data.host.virtualization_service_id,
+						hidden: data.host.hidden,
+						expected_updated_at: data.host.updated_at,
+						tags: data.host.tags ?? []
+					}
+				})
+			);
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: queryKeys.hosts.lists() });
@@ -607,12 +598,11 @@ export function useDeleteHostMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (id: string) => {
-			const { data } = await apiClient.DELETE('/api/v1/hosts/{id}', {
-				params: { path: { id } }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete host');
-			}
+			requireSuccess(
+				await apiClient.DELETE('/api/v1/hosts/{id}', {
+					params: { path: { id } }
+				})
+			);
 			return id;
 		},
 		onSuccess: (id: string) => {
@@ -648,10 +638,7 @@ export function useBulkDeleteHostsMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (ids: string[]) => {
-			const { data } = await apiClient.POST('/api/v1/hosts/bulk-delete', { body: ids });
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete hosts');
-			}
+			requireSuccess(await apiClient.POST('/api/v1/hosts/bulk-delete', { body: ids }));
 			return ids;
 		},
 		onSuccess: (ids: string[]) => {
@@ -697,16 +684,12 @@ export function useConsolidateHostsMutation() {
 			otherHostId: string;
 			otherHostName?: string;
 		}) => {
-			const { data } = await apiClient.PUT(
-				'/api/v1/hosts/{destination_host}/consolidate/{other_host}',
-				{
+			const response = unwrapData(
+				await apiClient.PUT('/api/v1/hosts/{destination_host}/consolidate/{other_host}', {
 					params: { path: { destination_host: destinationHostId, other_host: otherHostId } }
-				}
+				})
 			);
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to consolidate hosts');
-			}
-			return { response: data.data, otherHostId, otherHostName };
+			return { response, otherHostId, otherHostName };
 		},
 		onSuccess: ({ response, otherHostId, otherHostName }) => {
 			// Invalidate all host list queries to refetch with updated data
@@ -760,13 +743,11 @@ export function useRescanHostMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async ({ id }: { id: string; name?: string }) => {
-			const { data } = await apiClient.POST('/api/v1/hosts/{id}/rescan', {
-				params: { path: { id } }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to start rescan');
-			}
-			return data.data as DiscoveryUpdatePayload;
+			return unwrapData(
+				await apiClient.POST('/api/v1/hosts/{id}/rescan', {
+					params: { path: { id } }
+				})
+			) as DiscoveryUpdatePayload;
 		},
 		onSuccess: (session: DiscoveryUpdatePayload, { name }) => {
 			queryClient.setQueryData<DiscoveryUpdatePayload[]>(queryKeys.discovery.sessions(), (old) => {

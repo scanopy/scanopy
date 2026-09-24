@@ -1,7 +1,8 @@
-use super::{Body, Content, Email, EmailCategory, EmailPreference};
+use super::{Body, Content, Email, EmailCategory, EmailPreference, links};
 
-/// Sent when a subscription is cancelled and access has ended: account moved to
-/// Free, with a resubscribe CTA.
+/// Sent when a cancelled subscription reaches its period end: the org keeps
+/// its plan and is read-only until it chooses a paid plan, with a resubscribe
+/// CTA.
 pub struct SubscriptionCancelled<'a> {
     pub period_end_date: &'a str,
 }
@@ -30,12 +31,12 @@ impl Email for SubscriptionCancelled<'_> {
                     .heading("Subscription Cancelled")
                     .paragraph("Hi there,")
                     .paragraph(&format!(
-                        "Your Scanopy subscription was cancelled and your access ended on {}. Your account has been moved to the Free plan.",
+                        "Your Scanopy subscription ended on {}. Your account is now read-only: you can still see everything Scanopy found, but scans, edits and daemon work are paused.",
                         self.period_end_date
                     ))
-                    .paragraph("You can continue using Scanopy with up to 25 hosts and manual discovery. Resubscribe anytime from your Settings page."),
+                    .paragraph("Choose a paid plan from Settings to resume. Your networks, hosts and schedules are all still there."),
             )
-            .cta("{base_url}/?modal=billing-plan&{utm}", "Resubscribe")
+            .cta(links::PLAN_PICKER, "Resubscribe")
             .render()
     }
 }

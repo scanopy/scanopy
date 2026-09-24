@@ -6,24 +6,24 @@
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
 import type { ApiKey } from './types/base';
 import { utcTimeZoneSentinel, uuidv4Sentinel } from '$lib/shared/utils/formatting';
 
 /**
  * Query hook for fetching all daemon API keys
  */
-export function useApiKeysQuery() {
+export function useApiKeysQuery(options?: { enabled?: () => boolean }) {
 	return createQuery(() => ({
 		queryKey: queryKeys.apiKeys.all,
 		queryFn: async () => {
-			const { data } = await apiClient.GET('/api/v1/auth/daemon', {
-				params: { query: { limit: 0 } }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to fetch API keys');
-			}
-			return data.data;
-		}
+			return unwrapData(
+				await apiClient.GET('/api/v1/auth/daemon', {
+					params: { query: { limit: 0 } }
+				})
+			);
+		},
+		enabled: options?.enabled?.() ?? true
 	}));
 }
 
@@ -44,12 +44,10 @@ export function useCreateApiKeyMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (apiKey: ApiKey) => {
-			const { data } = await apiClient.POST('/api/v1/auth/daemon', { body: apiKey });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to create API key');
-			}
 			// Response contains both the key string and the created api_key object
-			const response = data.data as CreateApiKeyResponse;
+			const response = unwrapData(
+				await apiClient.POST('/api/v1/auth/daemon', { body: apiKey })
+			) as CreateApiKeyResponse;
 			return { keyString: response.key, apiKey: response.api_key };
 		},
 		onSuccess: ({ apiKey }) => {
@@ -68,14 +66,12 @@ export function useUpdateApiKeyMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (apiKey: ApiKey) => {
-			const { data } = await apiClient.PUT('/api/v1/auth/daemon/{id}', {
-				params: { path: { id: apiKey.id } },
-				body: apiKey
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to update API key');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.PUT('/api/v1/auth/daemon/{id}', {
+					params: { path: { id: apiKey.id } },
+					body: apiKey
+				})
+			);
 		},
 		onSuccess: (updatedKey: ApiKey) => {
 			queryClient.setQueryData<ApiKey[]>(
@@ -94,12 +90,11 @@ export function useDeleteApiKeyMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (id: string) => {
-			const { data } = await apiClient.DELETE('/api/v1/auth/daemon/{id}', {
-				params: { path: { id } }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete API key');
-			}
+			requireSuccess(
+				await apiClient.DELETE('/api/v1/auth/daemon/{id}', {
+					params: { path: { id } }
+				})
+			);
 			return id;
 		},
 		onSuccess: (id: string) => {
@@ -119,10 +114,7 @@ export function useBulkDeleteApiKeysMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (ids: string[]) => {
-			const { data } = await apiClient.POST('/api/v1/auth/daemon/bulk-delete', { body: ids });
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete API keys');
-			}
+			requireSuccess(await apiClient.POST('/api/v1/auth/daemon/bulk-delete', { body: ids }));
 			return ids;
 		},
 		onSuccess: (ids: string[]) => {
@@ -140,14 +132,12 @@ export function useBulkDeleteApiKeysMutation() {
 export function useRotateApiKeyMutation() {
 	return createMutation(() => ({
 		mutationFn: async (keyId: string) => {
-			const { data } = await apiClient.POST('/api/v1/auth/daemon/{id}/rotate', {
-				params: { path: { id: keyId } }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to rotate API key');
-			}
 			// Returns the new key string
-			return data.data as string;
+			return unwrapData(
+				await apiClient.POST('/api/v1/auth/daemon/{id}/rotate', {
+					params: { path: { id: keyId } }
+				})
+			) as string;
 		}
 	}));
 }

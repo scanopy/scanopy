@@ -1,3 +1,4 @@
+use crate::daemon::discovery::manager::{CancelTarget, InitiateOutcome};
 use crate::daemon::runtime::types::DaemonAppState;
 use crate::server::{
     daemons::r#impl::api::{DaemonDiscoveryRequest, DaemonDiscoveryResponse},
@@ -26,13 +27,14 @@ pub async fn handle_discovery_request(
 
     let manager = &state.services.discovery_manager;
 
-    if !manager.try_initiate_session(request).await {
-        return Err(ApiError::conflict("Discovery session already in progress"));
+    match manager.try_initiate_session(request).await {
+        InitiateOutcome::Started => Ok(Json(ApiResponse::success(DaemonDiscoveryResponse {
+            session_id,
+        }))),
+        InitiateOutcome::Busy { .. } => {
+            Err(ApiError::conflict("Discovery session already in progress"))
+        }
     }
-
-    Ok(Json(ApiResponse::success(DaemonDiscoveryResponse {
-        session_id,
-    })))
 }
 
 pub async fn handle_cancel_request(
@@ -46,12 +48,10 @@ pub async fn handle_cancel_request(
 
     let manager = state.services.discovery_manager.clone();
 
-    // Ask the manager once. Checking liveness here and again inside
-    // `cancel_current_session` is a TOCTOU: a session that ends between the two
-    // reads reported an internal error for what is really "nothing to cancel".
-    // Just signal cancellation, don't wait — the spawned task handles cleanup.
-    if manager.cancel_current_session().await {
-        // Don't clear the task - let the spawned task do it
+    // Ask the manager once, for this session only. A cancel for a session that has since ended
+    // is "nothing to cancel", not a cancel for whatever started next. Just signal cancellation,
+    // don't wait: the spawned task winds down and clears its own slot.
+    if manager.cancel(CancelTarget::Session(session_id)).await {
         Ok(Json(ApiResponse::success(session_id)))
     } else {
         Err(ApiError::conflict(

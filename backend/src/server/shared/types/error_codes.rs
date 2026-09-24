@@ -202,6 +202,18 @@ pub enum ErrorCode {
     BillingHostLimitReached { limit: u64 },
     /// Feature not available on current plan
     BillingFeatureNotAvailable { feature: String },
+    /// Organization is on a self-hosted plan, so the cloud app's main routes
+    /// are closed to it
+    BillingSelfHostedPlanLocked,
+    /// The org's subscription ended and it has not chosen a paid plan since,
+    /// so the app is read-only for it
+    BillingPlanLapsed,
+    /// Cannot leave an air-gapped key until the current licence period ends
+    BillingAirGappedKeyStillCurrent,
+    /// Cannot change plan while an air-gapped key is still current. The key
+    /// carries the plan it was issued for and validates offline, so the org is
+    /// committed until the period it paid for ends. Cancelling stays open.
+    BillingAirGappedPlanChangeBlocked { date: String },
 
     // === Rate Limiting ===
     /// Too many requests
@@ -262,9 +274,7 @@ impl ErrorCode {
                 "This daemon must be provisioned before it can register. Provision it in the Scanopy UI and re-run the install command."
             }
             Self::AuthDemoMode => "This action is disabled in demo mode",
-            Self::LicenseLocked => {
-                "Your license has expired or is invalid. The server is in read-only mode."
-            }
+            Self::LicenseLocked => "Your license is not active. The server is in read-only mode.",
             Self::AuthPasswordLoginDisabled => "Password login is disabled",
             Self::AuthRegistrationDisabled => "User registration is disabled",
             Self::AuthOrgLimitReached => {
@@ -358,6 +368,18 @@ impl ErrorCode {
             Self::BillingFeatureNotAvailable { .. } => {
                 "Your current plan does not include {feature}. Upgrade your plan to access this feature."
             }
+            Self::BillingSelfHostedPlanLocked => {
+                "This organization is on a self-hosted plan. Manage its license in Settings, or switch to a cloud plan to use the app."
+            }
+            Self::BillingPlanLapsed => {
+                "Your plan has lapsed. Choose a paid plan in Settings to make changes again."
+            }
+            Self::BillingAirGappedKeyStillCurrent => {
+                "Your air-gapped key is still valid. You can switch back to an online key once the current license period ends."
+            }
+            Self::BillingAirGappedPlanChangeBlocked { .. } => {
+                "Your air-gapped key covers the plan you have until {date}. You can cancel now, or change plan from that date."
+            }
 
             // Rate Limiting
             Self::RateLimitExceeded => "Too many requests, please try again later",
@@ -414,8 +436,14 @@ impl ErrorCode {
             | Self::BillingPaymentRequired
             | Self::BillingSubscriptionRequired
             | Self::BillingSetupIncomplete
+            | Self::BillingSelfHostedPlanLocked
+            | Self::BillingPlanLapsed
+            | Self::BillingAirGappedKeyStillCurrent
             | Self::RateLimitExceeded
             | Self::DatabaseError => None,
+
+            // Billing with params
+            Self::BillingAirGappedPlanChangeBlocked { date } => Some(json_map! { "date" => date }),
 
             // Validation with params
             Self::ValidationRequired { field }

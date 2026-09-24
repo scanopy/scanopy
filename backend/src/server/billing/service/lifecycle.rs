@@ -1,5 +1,7 @@
 //! Pause/resume, trial extension, cancellation/reactivation, save offers, and invoice-paid handling.
 use super::*;
+use crate::server::billing::service::invoicing::resumed_term_end;
+use crate::server::billing::types::base::ts_to_chrono;
 
 impl BillingService {
     /// Pause subscription billing for the requested duration. Eligibility:
@@ -35,6 +37,33 @@ impl BillingService {
         // 'trialing'`, so the UI never brings a trialing user here; this
         // server-side gate enforces the same for direct API hits. Paused /
         // past_due / pending_cancellation / cancelled are also rejected.
+        // An air-gapped key keeps validating on the customer's own server for
+        // as long as it has left to run, so a pause here would freeze the
+        // billing and none of the access. Nothing can call that key back.
+        if organization.base.license_key_type == Some(LicenseKeyType::Offline) {
+            return Err(crate::server::shared::types::api::ValidationError::new(
+                "Pausing is not available while you hold an air-gapped license key, because the \
+                 key on your server keeps working until it expires.",
+            )
+            .into());
+        }
+
+        // The cancel modal offers pause to no self-hosted plan. This holds a
+        // direct API call to the same rule: the paused and resumed emails
+        // describe the cloud app locking and unlocking, which says nothing
+        // true about a license. The air-gapped refusal above stays separate
+        // because an org that moved back to a cloud plan keeps its key type.
+        if organization
+            .base
+            .plan
+            .is_some_and(|plan| plan.license_plan().is_some())
+        {
+            return Err(crate::server::shared::types::api::ValidationError::new(
+                "Pausing is not available on self-hosted plans.",
+            )
+            .into());
+        }
+
         if organization.base.plan_status != Some(PlanStatus::Active) {
             return Err(anyhow!(
                 "Subscription must be active to pause; current status: {}",
@@ -258,6 +287,54 @@ impl BillingService {
         ))
     }
 
+    /// End the trial now and charge the card on file.
+    ///
+    /// Offered when the customer wants something a trial cannot give them (an
+    /// air-gapped license key, which outlives any revocation and so needs a
+    /// paid subscription). Stripe invoices the first cycle immediately and
+    /// charges the customer's default payment method.
+    ///
+    /// Pattern A, like every other lifecycle action: this calls Stripe and
+    /// returns. The resulting `customer.subscription.updated` (trialing →
+    /// active) emits `TrialEnded { converted: true }` and `invoice.paid` emits
+    /// `PaymentSucceeded`, which is what advances `license_paid_through` past
+    /// the trial end. No metadata marker is needed — unlike a trial extension,
+    /// the status transition is signal enough.
+    pub async fn end_trial(
+        &self,
+        organization_id: Uuid,
+        _authentication: AuthenticatedEntity,
+    ) -> Result<String, Error> {
+        let organization = self.get_organization(organization_id).await?;
+
+        if organization.base.plan_status != Some(PlanStatus::Trialing) {
+            return Err(anyhow!("This organization is not in a trial."));
+        }
+        // Read Stripe rather than the `has_payment_method` mirror: the card is
+        // usually added seconds earlier, and the mirror lags by a webhook. An
+        // org billed by invoice has no card and needs none.
+        if !organization.base.bills_by_invoice
+            && !self.customer_has_payment_method(organization_id).await?
+        {
+            return Err(anyhow!("Add a payment method before ending your trial."));
+        }
+
+        let sub = self.find_current_subscription(&organization).await?;
+
+        UpdateSubscription::new(&sub.id)
+            .trial_end(UpdateSubscriptionTrialEnd::Now)
+            .send(&self.stripe)
+            .await?;
+
+        tracing::info!(
+            organization_id = %organization_id,
+            subscription_id = %sub.id,
+            "Trial ended early at the customer's request"
+        );
+
+        Ok("Your trial has ended and your subscription is active.".to_string())
+    }
+
     /// In-app subscription cancellation. Sets Stripe `cancel_at` (via the
     /// `MaxPeriodEnd` sentinel — Stripe computes the period-end timestamp),
     /// stashes the canonical Scanopy reason + save-offer context in
@@ -427,6 +504,11 @@ impl BillingService {
             // CommercialSelfHosted).
             return Ok(None);
         }
+        if plan.license_plan().is_some() {
+            // Self-hosted licences are sold at their published annual price;
+            // discounting one to retain a customer is not an offer we make.
+            return Ok(None);
+        }
         let billing_rate = plan.config().rate;
         let sub = self.find_current_subscription(&organization).await?;
 
@@ -507,6 +589,19 @@ impl BillingService {
         // panel client-side, so this is defense in depth.
         if organization.base.last_discount_at.is_some() {
             return Err(anyhow!("You've already used your one-time discount."));
+        }
+
+        // Self-hosted licences are never discounted; `get_save_offer_coupon`
+        // returns nothing for them, so the panel is already hidden.
+        if organization
+            .base
+            .plan
+            .is_some_and(|plan| plan.license_plan().is_some())
+        {
+            return Err(crate::server::shared::types::api::ValidationError::new(
+                "The retention discount is not available on self-hosted plans.",
+            )
+            .into());
         }
 
         // Eligibility gates on our typed `plan_status` (the DB source of truth,
@@ -642,11 +737,100 @@ impl BillingService {
                 },
                 BillingOperation::PaymentSucceeded {
                     invoice: BillingInvoice::from(&invoice),
+                    // Captured here, before any subscriber runs. The
+                    // organization subscriber advances this column off this
+                    // same event, so a subscriber that read the row could not
+                    // tell the old value from the new one.
+                    previous_license_paid_through: organization.base.license_paid_through,
                 },
                 AuthenticatedEntity::System,
             ))
             .await?;
 
+        self.resume_lapsed_license(&organization, &invoice).await?;
+
+        Ok(())
+    }
+
+    /// Bring back an organization that lapsed for non-payment and has now
+    /// settled the invoice we wrote off.
+    ///
+    /// Publishing `PaymentSucceeded` above restored the licence date the
+    /// invoice itself carried, which is enough for a customer who was only
+    /// past due. A lapsed one also needs its plan back and a subscription to
+    /// renew on, and the date is wrong for anyone who settled after the term
+    /// had run out. Silent no-op for every other kind of payment.
+    async fn resume_lapsed_license(
+        &self,
+        organization: &Organization,
+        invoice: &stripe_billing::Invoice,
+    ) -> Result<(), Error> {
+        let snapshot = BillingInvoice::from(invoice);
+        let (Some(original_term_end), Some(plan)) =
+            (snapshot.license_paid_through(), organization.base.plan)
+        else {
+            return Ok(());
+        };
+        if !organization.is_lapsed() {
+            return Ok(());
+        }
+        // Only an invoice we gave up on reopens a lapsed organization. Both
+        // timestamps are Stripe's, on the invoice it just told us was paid.
+        let (Some(written_off_at), Some(paid_at)) = (
+            invoice.status_transitions.marked_uncollectible_at,
+            invoice.status_transitions.paid_at,
+        ) else {
+            return Ok(());
+        };
+        // `invoice.paid` is redelivered, and nothing upstream dedupes it. The
+        // subscriber writes only on a difference, so a repeat is harmless
+        // there, but a second subscription would not be.
+        if self.find_current_subscription(organization).await.is_ok() {
+            tracing::debug!(
+                organization_id = %organization.id,
+                "Licence payment arrived for an org that already has a subscription — nothing to resume"
+            );
+            return Ok(());
+        }
+
+        let Some(resumed_through) = resumed_term_end(
+            original_term_end,
+            ts_to_chrono(written_off_at),
+            ts_to_chrono(paid_at),
+        ) else {
+            tracing::info!(
+                organization_id = %organization.id,
+                invoice_id = %snapshot.stripe_invoice_id,
+                "Settled a written-off invoice whose term had already run out; debt cleared, licence not resumed"
+            );
+            return Ok(());
+        };
+
+        let subscription = self
+            .resume_license_subscription(organization, plan, resumed_through)
+            .await?;
+
+        tracing::info!(
+            organization_id = %organization.id,
+            invoice_id = %snapshot.stripe_invoice_id,
+            subscription_id = %subscription.id,
+            resumed_through = %resumed_through,
+            "Resumed a lapsed licence: the written-off invoice was settled"
+        );
+
+        self.event_bus
+            .publish(Event::new(
+                OrgScope {
+                    organization_id: organization.id,
+                },
+                BillingOperation::LicenseResumed {
+                    plan,
+                    resumed_through,
+                    next_renewal_at: next_renewal_from_subscription(&subscription),
+                },
+                AuthenticatedEntity::System,
+            ))
+            .await?;
         Ok(())
     }
 }

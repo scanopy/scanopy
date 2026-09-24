@@ -111,7 +111,8 @@ impl BrevoService {
             // off `implied_status()` so the mapping stays canonical.
             BillingOperation::PaymentFailed { .. }
             | BillingOperation::PaymentActionRequired { .. }
-            | BillingOperation::PaymentRecovered { .. } => {
+            | BillingOperation::PaymentRecovered { .. }
+            | BillingOperation::LicenseResumed { .. } => {
                 if let Some(status) = event.operation.implied_status() {
                     self.update_company_by_org(
                         event.scope.organization_id,
@@ -127,6 +128,10 @@ impl BrevoService {
             | BillingOperation::Reactivated { .. }
             | BillingOperation::DiscountApplied { .. }
             | BillingOperation::PaymentSucceeded { .. }
+            | BillingOperation::InvoiceIssued { .. }
+            | BillingOperation::InvoiceVoided { .. }
+            | BillingOperation::InvoiceOverdue { .. }
+            | BillingOperation::InvoiceFinalizationFailed { .. }
             | BillingOperation::TrialExtended { .. }
             | BillingOperation::CancellationInitiated { .. }
             | BillingOperation::CancellationFeedbackProvided { .. }
@@ -355,6 +360,42 @@ impl BrevoService {
             }
         }
 
+        // A user joining an org on a licensed self-hosted plan gets
+        // SCANOPY_LICENSED_PLAN in a second upsert. It is separate so an
+        // attribute Brevo doesn't have yet can't block contact creation or
+        // the DOI flow. A fresh cloud signup has no plan and writes nothing.
+        if contact_id.is_some()
+            && let Some(org_id) = event.scope.organization_id
+        {
+            match self.organization_service.get_by_id(&org_id).await {
+                Ok(org) => {
+                    let licensed = org
+                        .is_some_and(|o| o.base.plan.is_some_and(|p| p.license_plan().is_some()));
+                    if licensed {
+                        let licensed_attrs = ContactAttributes::new()
+                            .with_email(email.to_string())
+                            .with_licensed_plan(true);
+                        if let Err(e) = self
+                            .client
+                            .upsert_contact(email.as_ref(), licensed_attrs)
+                            .await
+                        {
+                            tracing::warn!(
+                                error = %e,
+                                organization_id = %org_id,
+                                "Failed to set Brevo licensed-plan attribute at register"
+                            );
+                        }
+                    }
+                }
+                Err(e) => tracing::warn!(
+                    error = %e,
+                    organization_id = %org_id,
+                    "Failed to load organization for Brevo licensed-plan attribute at register"
+                ),
+            }
+        }
+
         // Add to "Product Updates" and "Onboarding" lists (all signups)
         if let Err(e) = self
             .client
@@ -526,6 +567,30 @@ impl BrevoService {
         }
     }
 
+    /// Write `SCANOPY_LICENSED_PLAN` on the Brevo contact of every user in
+    /// the org. A failed contact is logged and the rest still sync.
+    async fn sync_contacts_licensed_plan(&self, org_id: Uuid, licensed: bool) -> Result<()> {
+        let users = self
+            .user_service
+            .get_all(StorableFilter::<User>::new_from_org_id(&org_id))
+            .await?;
+
+        for user in users {
+            let email = &user.base.email;
+            let attrs = ContactAttributes::new()
+                .with_email(email.to_string())
+                .with_licensed_plan(licensed);
+            if let Err(e) = self.client.upsert_contact(email.as_ref(), attrs).await {
+                tracing::warn!(
+                    error = %e,
+                    organization_id = %org_id,
+                    "Failed to sync Brevo licensed-plan attribute for contact"
+                );
+            }
+        }
+        Ok(())
+    }
+
     async fn handle_checkout_started(&self, event: &Event<BillingOperation>) -> Result<()> {
         let BillingOperation::CheckoutStarted { plan, .. } = &event.operation else {
             return Ok(());
@@ -569,6 +634,12 @@ impl BrevoService {
 
         self.update_company_by_org(event.scope.organization_id, company_attrs)
             .await?;
+
+        self.sync_contacts_licensed_plan(
+            event.scope.organization_id,
+            plan.license_plan().is_some(),
+        )
+        .await?;
 
         let network_limit = included_networks.map(|n| n as i64);
         let seat_limit = included_seats.map(|n| n as i64);
@@ -659,9 +730,8 @@ impl BrevoService {
     }
 
     async fn handle_subscription_cancelled(&self, event: &Event<BillingOperation>) -> Result<()> {
-        // Cancellation always downgrades to Free. Used to ride a chained
-        // PlanChanged{to: Free} for the plan_type write; now folded in here
-        // so the cancel-side-effects path emits exactly one event.
+        // The org keeps the plan it lapsed from, so plan_type carries it;
+        // plan_status is what says the subscription ended.
         let was_trialing = matches!(
             &event.operation,
             BillingOperation::SubscriptionCancelled {
@@ -669,9 +739,10 @@ impl BrevoService {
                 ..
             }
         );
-        let company_attrs = CompanyAttributes::new()
-            .with_plan_status(PlanStatus::Cancelled)
-            .with_plan_type("Free");
+        let mut company_attrs = CompanyAttributes::new().with_plan_status(PlanStatus::Cancelled);
+        if let Some(plan) = event.operation.resulting_plan_name() {
+            company_attrs = company_attrs.with_plan_type(plan);
+        }
         self.update_company_by_org(event.scope.organization_id, company_attrs)
             .await?;
 
@@ -742,6 +813,11 @@ impl BrevoService {
             .with_plan_type(new_plan)
             .with_plan_status(PlanStatus::Active);
         self.update_company_by_org(event.scope.organization_id, company_attrs)
+            .await?;
+
+        // A lapse keeps the org on its plan and raises no PlanChanged, so any
+        // plan this event carries is one the org chose: the flag follows it.
+        self.sync_contacts_licensed_plan(event.scope.organization_id, to.license_plan().is_some())
             .await?;
 
         if let Some(email) = self.get_owner_email(event.scope.organization_id).await

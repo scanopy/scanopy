@@ -24,7 +24,7 @@ export function required(value: FormValue): string | undefined {
 /** Email format validator */
 export function email(value: FormValue): string | undefined {
 	if (!value || typeof value !== 'string') return undefined;
-	return !validate(value) ? 'Please enter a valid email address' : undefined;
+	return !validate(value.trim()) ? 'Please enter a valid email address' : undefined;
 }
 
 /** Maximum length validator */

@@ -35,7 +35,7 @@ export const ERROR_CODES = {
 	auth_org_limit_reached:
 		'This server has reached its maximum number of organizations. Ask an admin to invite you to an existing organization.',
 	auth_email_verification_required: 'Please verify your email to access this feature',
-	license_locked: 'Your license has expired or is invalid. The server is in read-only mode.',
+	license_locked: 'Your license is not active. The server is in read-only mode.',
 	entity_not_found: "{entity} with ID '{id}' not found",
 	entity_already_exists: "{entity} '{name}' already exists",
 	entity_in_use: "Cannot delete {entity} '{name}' because it's used by {used_by}",
@@ -79,6 +79,14 @@ export const ERROR_CODES = {
 		"You've reached the limit of {limit} hosts on your current plan. Upgrade for unlimited hosts.",
 	billing_feature_not_available:
 		'Your current plan does not include {feature}. Upgrade your plan to access this feature.',
+	billing_self_hosted_plan_locked:
+		'This organization is on a self-hosted plan. Manage its license in Settings, or switch to a cloud plan to use the app.',
+	billing_plan_lapsed:
+		'Your plan has lapsed. Choose a paid plan in Settings to make changes again.',
+	billing_air_gapped_key_still_current:
+		'Your air-gapped key is still valid. You can switch back to an online key once the current license period ends.',
+	billing_air_gapped_plan_change_blocked:
+		'Your air-gapped key covers the plan you have until {date}. You can cancel now, or change plan from that date.',
 	rate_limit_exceeded: 'Too many requests, please try again later',
 	external_service_error: 'Error from {service}: {reason}',
 	database_error: 'A database error occurred',
@@ -154,6 +162,10 @@ export interface ErrorParams {
 	billing_setup_incomplete: Record<string, never>;
 	billing_host_limit_reached: { limit: string | number };
 	billing_feature_not_available: { feature: string | number };
+	billing_self_hosted_plan_locked: Record<string, never>;
+	billing_plan_lapsed: Record<string, never>;
+	billing_air_gapped_key_still_current: Record<string, never>;
+	billing_air_gapped_plan_change_blocked: { date: string | number };
 	rate_limit_exceeded: Record<string, never>;
 	external_service_error: { service: string | number; reason: string | number };
 	database_error: Record<string, never>;

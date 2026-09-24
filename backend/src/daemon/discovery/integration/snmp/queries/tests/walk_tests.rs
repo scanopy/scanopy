@@ -60,6 +60,50 @@ impl SnmpWalkTransport for MockTransport {
     }
 }
 
+/// Serves one page and is then cancelled, as a discovery cancelled mid-walk looks to the walk.
+struct CancelledAfterFirstPage {
+    inner: MockTransport,
+    served: usize,
+}
+
+#[async_trait::async_trait]
+impl SnmpWalkTransport for CancelledAfterFirstPage {
+    async fn walk_getbulk<'a>(&'a mut self, from: &[u64], max: u32) -> Result<WalkPage<'a>> {
+        self.served += 1;
+        self.inner.walk_getbulk(from, max).await
+    }
+
+    async fn walk_getnext<'a>(&'a mut self, from: &[u64]) -> Result<Varbinds<'a>> {
+        self.served += 1;
+        self.inner.walk_getnext(from).await
+    }
+
+    fn cancelled(&self) -> bool {
+        self.served >= 1
+    }
+}
+
+#[tokio::test]
+async fn a_cancelled_walk_keeps_its_rows_and_is_never_taken_as_the_whole_table() {
+    // A table read cut short and recorded as complete is what re-enables the GH #649 prune:
+    // the server would delete every row the walk did not reach.
+    let mut session = CancelledAfterFirstPage {
+        inner: MockTransport::stalling(page(&["1.3.6.1.2.1.2.2.1.1.1", "1.3.6.1.2.1.2.2.1.1.2"])),
+        served: 0,
+    };
+    let mut shortfall = Shortfall::default();
+    let mut seen = 0usize;
+
+    let stop = walk_column(&mut session, ip(), BASE, &mut shortfall, |_suffix, _v| {
+        seen += 1
+    })
+    .await;
+
+    assert!(matches!(stop, WalkStop::Cancelled));
+    assert_eq!(seen, 2, "rows read before the cancel stay collected");
+    assert!(!shortfall.complete);
+}
+
 /// One canned answer, so a test can put the shapes a live agent produces *between* good pages
 /// rather than only at the end of them. [`MockTransport`] can only ever answer, which is why
 /// the walk's behaviour after a bad answer went untested.
@@ -72,7 +116,7 @@ enum Answer {
     TooBig,
     /// Nothing came back: a timeout, or a datagram lost on the way. Nothing beneath the walk
     /// retransmits, so this is one lost packet as the walk sees it.
-    NoAnswer,
+    Lost,
 }
 
 /// Serves scripted answers and records the page size each getbulk asked for.
@@ -110,7 +154,7 @@ impl FlakyTransport {
             .pop_front()
             .unwrap_or_else(|| match &self.tail {
                 Some(Answer::TooBig) => Answer::TooBig,
-                Some(Answer::NoAnswer) => Answer::NoAnswer,
+                Some(Answer::Lost) => Answer::Lost,
                 Some(Answer::Page(p)) => Answer::Page(p.clone()),
                 // Out of the subtree and above everything served: the natural end of a column.
                 None => Answer::Page(page(&["1.3.6.1.2.1.2.2.1.2.1"])),
@@ -194,7 +238,7 @@ async fn a_refused_page_size_is_asked_for_again_smaller() {
 async fn one_lost_datagram_does_not_end_a_column() {
     let mut session = FlakyTransport::new(vec![
         Answer::Page(page(&["1.3.6.1.2.1.2.2.1.1.1"])),
-        Answer::NoAnswer,
+        Answer::Lost,
         Answer::Page(page(&["1.3.6.1.2.1.2.2.1.1.2"])),
     ]);
 
@@ -244,7 +288,7 @@ async fn an_answer_with_no_varbinds_is_asked_again() {
 #[tokio::test]
 async fn a_device_that_stays_silent_is_still_reported_short() {
     let mut session = FlakyTransport::new(vec![Answer::Page(page(&["1.3.6.1.2.1.2.2.1.1.1"]))])
-        .then_always(Answer::NoAnswer);
+        .then_always(Answer::Lost);
 
     let mut seen = 0usize;
     let stop = walk_subtree(&mut session, ip(), BASE, |_suffix, _v| seen += 1)

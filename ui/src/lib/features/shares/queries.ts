@@ -5,6 +5,8 @@
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
+import { publicApiClient, publicFailure } from '$lib/api/public-client';
 import type { Share, CreateUpdateShareRequest } from './types/base';
 
 /**
@@ -14,13 +16,11 @@ export function useSharesQuery() {
 	return createQuery(() => ({
 		queryKey: queryKeys.shares.all,
 		queryFn: async () => {
-			const { data } = await apiClient.GET('/api/v1/shares', {
-				params: { query: { limit: 0 } }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to fetch shares');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.GET('/api/v1/shares', {
+					params: { query: { limit: 0 } }
+				})
+			);
 		}
 	}));
 }
@@ -33,11 +33,7 @@ export function useCreateShareMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (request: CreateUpdateShareRequest) => {
-			const { data } = await apiClient.POST('/api/v1/shares', { body: request });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to create share');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/v1/shares', { body: request }));
 		},
 		onSuccess: (newShare: Share) => {
 			queryClient.setQueryData<Share[]>(queryKeys.shares.all, (old) =>
@@ -55,14 +51,12 @@ export function useUpdateShareMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async ({ id, request }: { id: string; request: CreateUpdateShareRequest }) => {
-			const { data } = await apiClient.PUT('/api/v1/shares/{id}', {
-				params: { path: { id } },
-				body: request
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to update share');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.PUT('/api/v1/shares/{id}', {
+					params: { path: { id } },
+					body: request
+				})
+			);
 		},
 		onSuccess: (updatedShare: Share) => {
 			queryClient.setQueryData<Share[]>(
@@ -81,12 +75,11 @@ export function useDeleteShareMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (id: string) => {
-			const { data } = await apiClient.DELETE('/api/v1/shares/{id}', {
-				params: { path: { id } }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete share');
-			}
+			requireSuccess(
+				await apiClient.DELETE('/api/v1/shares/{id}', {
+					params: { path: { id } }
+				})
+			);
 			return id;
 		},
 		onSuccess: (id: string) => {
@@ -106,10 +99,7 @@ export function useBulkDeleteSharesMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (ids: string[]) => {
-			const { data } = await apiClient.POST('/api/v1/shares/bulk-delete', { body: ids });
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete shares');
-			}
+			requireSuccess(await apiClient.POST('/api/v1/shares/bulk-delete', { body: ids }));
 			return ids;
 		},
 		onSuccess: (ids: string[]) => {
@@ -121,7 +111,7 @@ export function useBulkDeleteSharesMutation() {
 	}));
 }
 
-import type { PublicShareMetadata, ShareWithTopology } from './types/base';
+import type { PublicShareMetadata, ShareWithTopology, TopologyView } from './types/base';
 
 // ============================================================================
 // Public API Functions (no auth required)
@@ -134,21 +124,17 @@ export async function getPublicShareMetadata(
 	shareId: string
 ): Promise<{ success: boolean; data?: PublicShareMetadata; error?: string }> {
 	try {
-		const response = await fetch(`/api/v1/shares/public/${shareId}`, {
-			method: 'GET',
-			headers: {
-				'Content-Type': 'application/json'
-			}
+		const { data, error } = await publicApiClient.GET('/api/v1/shares/public/{id}', {
+			params: { path: { id: shareId } }
 		});
 
-		const result = await response.json();
-
-		if (!response.ok || result.error) {
-			return { success: false, error: result.error || 'Failed to fetch share' };
+		if (!data?.success || !data.data) {
+			return publicFailure(error, 'Failed to fetch share');
 		}
 
-		return { success: true, data: result.data };
+		return { success: true, data: data.data };
 	} catch {
+		// A rejected fetch: no connection, DNS, CORS.
 		return { success: false, error: 'Failed to fetch share' };
 	}
 }
@@ -170,24 +156,19 @@ export async function verifySharePassword(
 	error?: string;
 }> {
 	try {
-		const response = await fetch(`/api/v1/shares/public/${shareId}/verify`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify(password)
+		const { data, error } = await publicApiClient.POST('/api/v1/shares/public/{id}/verify', {
+			params: { path: { id: shareId } },
+			body: password
 		});
 
-		const result = await response.json();
-
-		if (!response.ok || result.error) {
-			return { success: false, error: result.error || 'Invalid password' };
+		if (!data?.success || !data.data) {
+			return publicFailure(error, 'Invalid password');
 		}
 
 		return {
 			success: true,
-			access_token: result.data?.access_token,
-			expires_at: result.data?.expires_at
+			access_token: data.data.access_token,
+			expires_at: data.data.expires_at
 		};
 	} catch {
 		return { success: false, error: 'Failed to verify password' };
@@ -202,7 +183,7 @@ export async function verifySharePassword(
  */
 export async function getPublicShareTopology(
 	shareId: string,
-	options: { embed?: boolean; access_token?: string; view: string }
+	options: { embed?: boolean; access_token?: string; view: TopologyView }
 ): Promise<{
 	success: boolean;
 	data?: ShareWithTopology;
@@ -210,28 +191,20 @@ export async function getPublicShareTopology(
 	code?: string;
 }> {
 	try {
-		const url = options.embed
-			? `/api/v1/shares/public/${shareId}/topology?embed=true`
-			: `/api/v1/shares/public/${shareId}/topology`;
-		const response = await fetch(url, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
+		const { data, error } = await publicApiClient.POST('/api/v1/shares/public/{id}/topology', {
+			params: {
+				path: { id: shareId },
+				// The server defaults `embed` to false, so it is only sent when asked for.
+				query: options.embed ? { embed: true } : undefined
 			},
-			body: JSON.stringify({ access_token: options.access_token, view: options.view })
+			body: { access_token: options.access_token, view: options.view }
 		});
 
-		const result = await response.json();
-
-		if (!response.ok || result.error) {
-			return {
-				success: false,
-				error: result.error || 'Failed to fetch topology',
-				code: result.code
-			};
+		if (!data?.success || !data.data) {
+			return publicFailure(error, 'Failed to fetch topology');
 		}
 
-		return { success: true, data: result.data };
+		return { success: true, data: data.data };
 	} catch {
 		return { success: false, error: 'Failed to fetch topology' };
 	}

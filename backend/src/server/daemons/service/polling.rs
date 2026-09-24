@@ -1,5 +1,6 @@
 //! ServerPoll polling loop and per-daemon poll state machine.
 use super::*;
+use crate::daemon::discovery::types::base::{DiscoveryPhase, DiscoveryTerminalReason};
 
 impl DaemonService {
     // ========================================================================
@@ -108,7 +109,32 @@ impl DaemonService {
             );
         }
 
+        self.fail_sessions_on_unreachable(daemon_id).await;
+
         Ok(())
+    }
+
+    /// End the sessions a daemon was running when the server gave up on it.
+    ///
+    /// The poll loop is how a ServerPoll session reaches its outcome, so a daemon it can no longer
+    /// reach has none coming. Left alone the session sits until the stall sweep, and says it
+    /// stalled when what happened is that its daemon went away.
+    async fn fail_sessions_on_unreachable(&self, daemon_id: Uuid) {
+        let sessions = self
+            .discovery_service
+            .get_sessions_for_daemon(&daemon_id)
+            .await;
+
+        for session_id in dispatched_sessions(&sessions) {
+            self.discovery_service
+                .fail_session(
+                    session_id,
+                    DiscoveryTerminalReason::DaemonUnreachable,
+                    "The server stopped being able to reach the daemon running this scan"
+                        .to_string(),
+                )
+                .await;
+        }
     }
 
     /// Poll a single daemon for status and discovery data.
@@ -352,7 +378,7 @@ impl DaemonService {
         }
 
         // Poll discovery data
-        match self.poll_discovery(daemon, &api_key).await {
+        let poll_ok = match self.poll_discovery(daemon, &api_key).await {
             Ok(poll_response) => {
                 let auth = AuthenticatedEntity::System;
 
@@ -400,6 +426,7 @@ impl DaemonService {
                         "Failed to process discovery progress"
                     );
                 }
+                true
             }
             Err(e) => {
                 tracing::debug!(
@@ -407,12 +434,33 @@ impl DaemonService {
                     "Failed to poll daemon discovery: {}",
                     e
                 );
+                false
             }
+        };
+
+        // A daemon that says it is ready for work while the server has it running a session has
+        // restarted and lost that session: it will never report on it again. After the progress
+        // drain above, so a session that finished moments ago has already been recorded as such;
+        // before dispatch below, so a session dispatched this cycle is not mistaken for a lost one.
+        let running = self.discovery_service.sessions_on_daemon(&daemon.id).await;
+        for session_id in restarted_sessions(
+            status.ready_for_work,
+            daemon.reports_ready_for_work(),
+            poll_ok,
+            &running,
+        ) {
+            self.discovery_service
+                .fail_session(
+                    session_id,
+                    DiscoveryTerminalReason::DaemonRestarted,
+                    "Daemon restarted during discovery; session state was lost".to_string(),
+                )
+                .await;
         }
 
         // Check for pending work and initiate if daemon reports ready
         if status.ready_for_work
-            && let Some(work) = self.get_pending_work(daemon.id).await
+            && let Some(work) = self.get_pending_work(daemon).await
         {
             let integration_targets = self
                 .discovery_service
@@ -425,6 +473,7 @@ impl DaemonService {
                     work.network_id,
                     &integration_targets,
                     daemon.base.version.as_ref(),
+                    self.network_subnets(work.network_id).await,
                 )
                 .await
                 .unwrap_or_else(|e| {
@@ -434,17 +483,39 @@ impl DaemonService {
                         discovery_id: work.discovery_id.unwrap_or_default(),
                         discovery_type: work.discovery_type,
                         credential_mappings: vec![],
+                        subnets: vec![],
                     }
                 });
-            if let Err(e) = self
+            let session_id = request.session_id;
+            match self
                 .send_discovery_request_to_daemon(daemon, Some(&api_key), request)
                 .await
             {
-                tracing::warn!(
-                    daemon_id = %daemon.id,
-                    "Failed to initiate discovery: {}",
-                    e
-                );
+                Ok(()) => {}
+                // The daemon refused because it is running another session. Nothing will ever
+                // start this one, so end it now rather than leave it in `Starting` until the
+                // stall sweep, refusing every retry of the same discovery meanwhile.
+                Err(e)
+                    if e.downcast_ref::<DaemonHttpError>()
+                        .is_some_and(|h| h.status == reqwest::StatusCode::CONFLICT) =>
+                {
+                    self.discovery_service
+                        .fail_session(
+                            session_id,
+                            DiscoveryTerminalReason::DaemonBusy,
+                            "The daemon was already running another session and refused this one"
+                                .to_string(),
+                        )
+                        .await;
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        daemon_id = %daemon.id,
+                        session_id = %session_id,
+                        error = %e,
+                        "Failed to initiate discovery"
+                    );
+                }
             }
         }
 
@@ -471,5 +542,116 @@ impl DaemonService {
             .as_ref()
             .map(|s| s.expose_secret().to_string())
             .ok_or_else(|| anyhow::anyhow!("API key {} has no stored plaintext", api_key_id))
+    }
+}
+
+/// Sessions a daemon has lost to a restart: the ones it is running as far as the server knows,
+/// when it reports itself ready for work.
+///
+/// Readiness is only evidence when the daemon's version really reports it (older daemons always
+/// read ready), and only once this cycle's poll has drained the daemon's progress, so that a
+/// session it finished just before the status check is recorded as finished rather than lost. Only
+/// `Started` and `Scanning` count: a `Starting` session is mid-dispatch, and `Queued`, `Pending`
+/// and `AwaitingSnapshot` were never sent to the daemon.
+fn restarted_sessions(
+    ready_for_work: bool,
+    reports_ready: bool,
+    poll_ok: bool,
+    sessions: &[DiscoveryUpdatePayload],
+) -> Vec<Uuid> {
+    if !(ready_for_work && reports_ready && poll_ok) {
+        return Vec::new();
+    }
+    dispatched_sessions(sessions)
+}
+
+/// The sessions a daemon is holding: the ones it was told to run and has not finished.
+///
+/// `Started` and `Scanning` count: a `Starting` session is mid-dispatch, and `Queued`, `Pending`
+/// and `AwaitingSnapshot` were never sent to the daemon. What happened to the daemon decides what
+/// these become; which sessions are its own does not change with it.
+fn dispatched_sessions(sessions: &[DiscoveryUpdatePayload]) -> Vec<Uuid> {
+    sessions
+        .iter()
+        .filter(|s| matches!(s.phase, DiscoveryPhase::Started | DiscoveryPhase::Scanning))
+        .map(|s| s.session_id)
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::server::discovery::r#impl::types::DiscoveryType;
+
+    fn session(phase: DiscoveryPhase) -> DiscoveryUpdatePayload {
+        let mut s = DiscoveryUpdatePayload::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            DiscoveryType::default(),
+            None,
+        );
+        s.phase = phase;
+        s
+    }
+
+    #[test]
+    fn a_ready_daemon_with_a_running_session_has_lost_it() {
+        let scanning = session(DiscoveryPhase::Scanning);
+
+        assert_eq!(
+            restarted_sessions(true, true, true, std::slice::from_ref(&scanning)),
+            vec![scanning.session_id]
+        );
+    }
+
+    #[test]
+    fn readiness_from_a_daemon_too_old_to_report_it_proves_nothing() {
+        let scanning = session(DiscoveryPhase::Scanning);
+
+        assert!(restarted_sessions(true, false, true, &[scanning]).is_empty());
+    }
+
+    #[test]
+    fn nothing_is_judged_lost_until_the_daemon_s_progress_has_been_drained() {
+        // The session may have finished just before the status check, with its outcome still
+        // waiting in the poll that failed.
+        let scanning = session(DiscoveryPhase::Scanning);
+
+        assert!(restarted_sessions(true, true, false, &[scanning]).is_empty());
+    }
+
+    #[test]
+    fn sessions_not_yet_running_on_the_daemon_are_never_judged_lost() {
+        let sessions = [
+            session(DiscoveryPhase::Starting),
+            session(DiscoveryPhase::Queued),
+            session(DiscoveryPhase::Pending),
+            session(DiscoveryPhase::AwaitingSnapshot),
+        ];
+
+        assert!(restarted_sessions(true, true, true, &sessions).is_empty());
+    }
+
+    /// The same rule decides what a restart lost and what an unreachable daemon is holding, so a
+    /// phase admitted to one is admitted to the other.
+    #[test]
+    fn a_daemon_holds_exactly_the_sessions_it_was_told_to_run() {
+        let scanning = session(DiscoveryPhase::Scanning);
+        let started = session(DiscoveryPhase::Started);
+        let sessions = [
+            scanning.clone(),
+            started.clone(),
+            session(DiscoveryPhase::Starting),
+            session(DiscoveryPhase::Queued),
+            session(DiscoveryPhase::Pending),
+            session(DiscoveryPhase::AwaitingSnapshot),
+            session(DiscoveryPhase::Complete),
+        ];
+
+        assert_eq!(
+            dispatched_sessions(&sessions),
+            vec![scanning.session_id, started.session_id]
+        );
     }
 }

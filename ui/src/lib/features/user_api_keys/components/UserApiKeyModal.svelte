@@ -33,8 +33,6 @@
 		common_enableApiKey,
 		common_expirationDateOptional,
 		common_expirationNeverHelp,
-		common_failedGenerateApiKey,
-		common_failedRotateApiKey,
 		common_keyDetails,
 		common_name,
 		common_nameRequired,
@@ -144,7 +142,7 @@
 			const result = await createMutation.mutateAsync(formData);
 			generatedKey = result.keyString;
 		} catch {
-			pushError(common_failedGenerateApiKey());
+			// The API client reports the failure.
 		} finally {
 			loading = false;
 		}
@@ -157,7 +155,7 @@
 			const newKey = await rotateMutation.mutateAsync(formData.id);
 			generatedKey = newKey;
 		} catch {
-			pushError(common_failedRotateApiKey());
+			// The API client reports the failure.
 		} finally {
 			loading = false;
 		}

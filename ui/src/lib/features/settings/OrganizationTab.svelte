@@ -15,6 +15,7 @@
 	import { queryClient } from '$lib/api/query-client';
 	import ConfirmationDialog from '$lib/shared/components/feedback/ConfirmationDialog.svelte';
 	import { billingPlans } from '$lib/shared/stores/metadata';
+	import { hasLicensedPlan } from '$lib/features/organizations/types';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { formatTimestamp } from '$lib/shared/utils/formatting';
@@ -31,6 +32,9 @@
 		common_loading,
 		common_entityName,
 		common_name,
+		common_never,
+		common_offline,
+		common_online,
 		common_organization,
 		common_plan,
 		common_populate,
@@ -47,6 +51,8 @@
 		settings_org_deleteTypeName,
 		settings_org_info,
 		settings_org_licenseExpiry,
+		settings_org_licenseKeyType,
+		settings_org_licenseLastChecked,
 		settings_org_namePlaceholder,
 		settings_org_populateConfirm,
 		settings_org_populateDemo,
@@ -56,10 +62,8 @@
 		settings_org_resetConfirm,
 		settings_org_resetData,
 		settings_org_resetDataHelp,
-		settings_org_resetFailed,
 		settings_org_resetSuccess,
 		settings_org_unableToLoad,
-		settings_org_updateFailed,
 		settings_org_updateName,
 		settings_org_updated
 	} from '$lib/paraglide/messages';
@@ -102,6 +106,8 @@
 	let org = $derived(organizationQuery.data);
 	let isOwner = $derived(currentUser?.permissions === 'Owner');
 	let isDemoOrg = $derived(billingPlans.getMetadata(org?.plan?.type ?? null).is_demo === true);
+	// Reset and populate-demo hit main-app routes, which stay locked on a licensed plan.
+	let isLicensedPlan = $derived(org != null && hasLicensedPlan(org));
 
 	// TanStack Form
 	const form = createForm(() => ({
@@ -129,7 +135,7 @@
 			pushSuccess(settings_org_updated());
 			subView = 'main';
 		} catch {
-			pushError(settings_org_updateFailed());
+			// The API client reports the failure.
 		}
 	}
 
@@ -155,7 +161,7 @@
 			await resetOrganizationDataMutation.mutateAsync(org.id);
 			pushSuccess(settings_org_resetSuccess());
 		} catch {
-			pushError(settings_org_resetFailed());
+			// The API client reports the failure.
 		}
 	}
 
@@ -206,7 +212,9 @@
 				pushError(settings_org_populateFailed());
 			}
 		} catch {
-			pushError(settings_org_populateFailed());
+			// The API client reports the failure. The `else` above stays: a poll that
+			// times out without a terminal state throws nothing, so nothing else
+			// would report it.
 		} finally {
 			demoPolling = false;
 		}
@@ -229,13 +237,27 @@
 						</InfoRow>
 						<InfoRow label={common_id()} mono={true}>{org.id}</InfoRow>
 						{#if org.plan}
-							<InfoRow label={common_plan()}>{org.plan.type}</InfoRow>
+							<InfoRow label={common_plan()}>{billingPlans.getName(org.plan.type)}</InfoRow>
 						{/if}
 						{#if configQuery.data?.license_intended_expiry ?? configQuery.data?.license_expiry}
 							<InfoRow label={settings_org_licenseExpiry()}
 								>{configQuery.data.license_intended_expiry ??
 									configQuery.data.license_expiry}</InfoRow
 							>
+						{/if}
+						{#if configQuery.data?.license_key_type}
+							<InfoRow label={settings_org_licenseKeyType()}>
+								{configQuery.data.license_key_type === 'Online'
+									? common_online()
+									: common_offline()}
+							</InfoRow>
+						{/if}
+						{#if configQuery.data?.license_key_type === 'Online'}
+							<InfoRow label={settings_org_licenseLastChecked()}>
+								{configQuery.data.license_entitlement_at
+									? formatTimestamp(configQuery.data.license_entitlement_at)
+									: common_never()}
+							</InfoRow>
 						{/if}
 					</InfoCard>
 
@@ -261,36 +283,38 @@
 					</InfoCard>
 
 					{#if isOwner}
-						<!-- Reset Organization Data (available to all org owners) -->
-						<InfoCard>
-							<div class="flex items-center justify-between">
-								<div>
-									<p class="text-primary text-sm font-medium">{settings_org_resetData()}</p>
-									<p class="text-secondary text-xs">
-										{settings_org_resetDataHelp()}
-									</p>
-								</div>
-								<button onclick={handleReset} disabled={resetting} class="btn-danger">
-									{resetting ? common_loading() : common_reset()}
-								</button>
-							</div>
-						</InfoCard>
-
-						{#if isDemoOrg}
-							<!-- Populate Demo Data (only for Demo orgs) -->
+						{#if !isLicensedPlan}
+							<!-- Reset Organization Data (available to all org owners) -->
 							<InfoCard>
 								<div class="flex items-center justify-between">
 									<div>
-										<p class="text-primary text-sm font-medium">{settings_org_populateDemo()}</p>
+										<p class="text-primary text-sm font-medium">{settings_org_resetData()}</p>
 										<p class="text-secondary text-xs">
-											{settings_org_populateDemoHelp()}
+											{settings_org_resetDataHelp()}
 										</p>
 									</div>
-									<button onclick={handlePopulateDemo} disabled={populating} class="btn-primary">
-										{populating ? common_populating() : common_populate()}
+									<button onclick={handleReset} disabled={resetting} class="btn-danger">
+										{resetting ? common_loading() : common_reset()}
 									</button>
 								</div>
 							</InfoCard>
+
+							{#if isDemoOrg}
+								<!-- Populate Demo Data (only for Demo orgs) -->
+								<InfoCard>
+									<div class="flex items-center justify-between">
+										<div>
+											<p class="text-primary text-sm font-medium">{settings_org_populateDemo()}</p>
+											<p class="text-secondary text-xs">
+												{settings_org_populateDemoHelp()}
+											</p>
+										</div>
+										<button onclick={handlePopulateDemo} disabled={populating} class="btn-primary">
+											{populating ? common_populating() : common_populate()}
+										</button>
+									</div>
+								</InfoCard>
+							{/if}
 						{/if}
 
 						<!-- Delete Organization -->

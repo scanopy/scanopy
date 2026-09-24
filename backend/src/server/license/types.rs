@@ -12,6 +12,34 @@ pub enum LicensePlan {
     Plus,
 }
 
+/// The two keys an org owner can copy for a self-hosted server. An
+/// organization has one of these issued at a time, stored on the org row.
+///
+/// Serde keeps the API spelling (`"Online"` / `"Offline"`); strum supplies the
+/// snake_case text the column is stored as, the way `PlanStatus` does.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    Hash,
+    Default,
+    strum_macros::Display,
+    strum_macros::EnumString,
+    utoipa::ToSchema,
+)]
+#[strum(serialize_all = "snake_case")]
+pub enum LicenseKeyType {
+    /// Permanent credential; the server fetches its entitlement from the cloud.
+    #[default]
+    Online,
+    /// Self-contained key with its expiry baked in, for air-gapped servers.
+    Offline,
+}
+
 /// JWT claims encoded in a Scanopy license key.
 ///
 /// The license key is an authorization gate that also names the licensed tier
@@ -56,14 +84,23 @@ pub enum LicenseStatus {
     Valid(LicenseClaims),
     /// Valid signature but past expiry date
     Expired(LicenseClaims),
-    /// Invalid key (bad signature, malformed, or missing when required)
+    /// Invalid key (bad signature, malformed, or missing when required), or an
+    /// online key the cloud rejected
     Invalid(String),
+    /// Online key with no entitlement yet (first boot, cloud unreachable).
+    /// Locks the server until the first successful check-in. The guard still
+    /// allows auth and reads, so a new instance can register a user, see the
+    /// banner, and recover once it reaches the cloud.
+    Pending,
 }
 
 impl LicenseStatus {
     /// Whether the server should be in read-only locked state.
     pub fn is_locked(&self) -> bool {
-        matches!(self, LicenseStatus::Expired(_) | LicenseStatus::Invalid(_))
+        matches!(
+            self,
+            LicenseStatus::Expired(_) | LicenseStatus::Invalid(_) | LicenseStatus::Pending
+        )
     }
 
     /// Status string for the public config API response.
@@ -72,6 +109,7 @@ impl LicenseStatus {
             LicenseStatus::Valid(_) => "valid",
             LicenseStatus::Expired(_) => "expired",
             LicenseStatus::Invalid(_) => "invalid",
+            LicenseStatus::Pending => "pending",
         }
     }
 

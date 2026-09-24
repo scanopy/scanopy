@@ -117,13 +117,14 @@
 </script>
 
 <div class="space-y-4">
-	<!-- Status Banner -->
-	<!-- Warnings are a tab of their own, and the tab is the place that says so. Repeating it here
-	     left the details reporting on a list it does not show. -->
+	<!-- Status Banner: the phase, and only the phase. Why a run ended the way it did, and the
+	     error that came with it, belong to the Issues tab, which is where a reader goes when
+	     something went wrong. -->
+
 	{#if payload.phase === 'Complete'}
 		<InlineSuccess title={payload.phase} />
 	{:else if payload.phase === 'Failed'}
-		<InlineDanger title={payload.phase} body={payload.error ?? null} />
+		<InlineDanger title={payload.phase} />
 	{:else if payload.phase === 'Cancelled'}
 		<InlineWarning title={payload.phase} />
 	{:else}

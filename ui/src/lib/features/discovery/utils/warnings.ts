@@ -324,6 +324,11 @@ const WARNING_PARAMS = {
 	}),
 	ScanTimeLimit: (w) => ({ hours: w[0].hours, hosts_not_scanned: w[0].hosts_not_scanned }),
 
+	// Once per session: each sweep runs once, and the lookup count is already summed daemon-side.
+	DcpSweepTimedOut: (w) => ({ seconds: w[0].seconds }),
+	IcmpSweepTimedOut: (w) => ({ seconds: w[0].seconds }),
+	ReverseDnsTimedOut: (w) => ({ count: w[0].count }),
+
 	LldpNeighbourNotFound: neighbourParams,
 	LldpNeighbourAmbiguous: neighbourParams,
 	LldpPortNoStrategy: portParams,

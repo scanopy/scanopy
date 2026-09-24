@@ -51,6 +51,11 @@ impl DiscoveryIntegration for DockerIntegration {
         CONTAINER_SCAN_TIMEOUT
     }
 
+    /// The container probe retries its connection internally, well past the default budget.
+    fn probe_timeout(&self) -> Duration {
+        CONTAINER_SCAN_TIMEOUT
+    }
+
     fn probe_gate_ports(&self, credential: &CredentialQueryPayload) -> Vec<PortType> {
         match credential {
             CredentialQueryPayload::DockerProxy(docker) => vec![PortType::new_tcp(docker.port)],
@@ -90,6 +95,11 @@ impl DiscoveryIntegration for DockerSocketIntegration {
     }
 
     fn timeout(&self) -> Duration {
+        CONTAINER_SCAN_TIMEOUT
+    }
+
+    /// The container probe retries its connection internally, well past the default budget.
+    fn probe_timeout(&self) -> Duration {
         CONTAINER_SCAN_TIMEOUT
     }
 

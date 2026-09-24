@@ -38,6 +38,7 @@ const ALLOWED_SINGLE_WORD_KEYS = new Set([
 	'billing_seatUnitPlural',
 	'billing_priceBase',
 	'billing_rateMonthly',
+	'billing_rateYearly',
 	'billing_selfHosted',
 	// Job-role option - proper noun
 	'home_profileRoleDevops'

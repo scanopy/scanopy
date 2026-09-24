@@ -76,6 +76,139 @@ pub struct FinalizePaymentMethodRequest {
     pub setup_intent_id: String,
 }
 
+/// Postal address of the billing entity, as Stripe's Address Element returns it.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct InvoiceBillingAddress {
+    /// Street address, including number.
+    pub line1: String,
+    /// Suite, unit or floor, when the address has one.
+    #[serde(default)]
+    pub line2: Option<String>,
+    /// City, town or locality.
+    pub city: String,
+    /// State, province or region. Absent where the country has no such level.
+    #[serde(default)]
+    pub state: Option<String>,
+    /// Postal or ZIP code.
+    pub postal_code: String,
+    /// Two-letter ISO country code.
+    pub country: String,
+}
+
+/// Tax ID of the billing entity, as Stripe's Tax ID Element returns it.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct InvoiceBillingTaxId {
+    /// Stripe tax ID type, e.g. `eu_vat` or `us_ein`.
+    pub tax_id_type: String,
+    /// The registration number itself, in the format its type expects.
+    pub value: String,
+}
+
+/// Who an invoice is addressed to and what the buyer's finance team matches
+/// it against.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct InvoiceBillingDetails {
+    /// Legal name of the organization being invoiced.
+    pub entity_name: String,
+    /// Where Stripe emails invoices.
+    #[schema(format = "email")]
+    pub billing_email: String,
+    pub address: InvoiceBillingAddress,
+    #[serde(default)]
+    pub tax_id: Option<InvoiceBillingTaxId>,
+    /// Purchase order number printed on every invoice.
+    #[serde(default)]
+    pub po_number: Option<String>,
+}
+
+/// What to do once the billing entity is recorded.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum InvoiceBillingMode {
+    /// Bill the subscription by invoice and issue the first invoice now.
+    SendInvoice,
+    /// Issue a quote the buyer's procurement raises a purchase order against.
+    Quote,
+}
+
+/// Switch the organization to paying by invoice.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct InvoiceBillingRequest {
+    pub details: InvoiceBillingDetails,
+    pub mode: InvoiceBillingMode,
+    /// Plan to invoice for. Required only when the organization has no live
+    /// subscription (a returning customer with no trial left); otherwise the
+    /// current plan is used and this is ignored.
+    #[serde(default)]
+    pub plan: Option<BillingPlan>,
+}
+
+/// An open quote waiting for the buyer's purchase order.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct PendingQuote {
+    /// Quote number printed on the PDF, which the purchase order references.
+    pub number: Option<String>,
+    /// Total per annual term, in cents.
+    pub amount_total_cents: i64,
+    /// Three-letter ISO currency code the quote is denominated in.
+    pub currency: String,
+    /// When the quote stops being valid, after which the buyer needs a new one.
+    pub expires_at: DateTime<Utc>,
+}
+
+/// An issued invoice that has not been paid.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct InvoiceSummary {
+    /// Invoice number printed on the PDF, which a remittance references. Absent
+    /// until Stripe finalizes the invoice.
+    pub number: Option<String>,
+    /// Outstanding balance, in cents.
+    pub amount_due_cents: i64,
+    /// Three-letter ISO currency code the invoice is denominated in.
+    pub currency: String,
+    /// When payment is due. Absent on an invoice Stripe collects automatically,
+    /// which is charged rather than sent.
+    pub due_date: Option<DateTime<Utc>>,
+    /// Stripe-hosted page where the invoice can be viewed and paid.
+    pub hosted_invoice_url: Option<String>,
+}
+
+impl From<&stripe_billing::Invoice> for InvoiceSummary {
+    fn from(invoice: &stripe_billing::Invoice) -> Self {
+        Self {
+            number: invoice.number.clone(),
+            amount_due_cents: invoice.amount_due,
+            currency: invoice.currency.to_string(),
+            due_date: invoice
+                .due_date
+                .and_then(|ts| DateTime::<Utc>::from_timestamp(ts, 0)),
+            hosted_invoice_url: invoice.hosted_invoice_url.clone(),
+        }
+    }
+}
+
+/// Invoice billing state shown on the License tab.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct InvoiceBillingStatus {
+    /// The subscription is billed by sent invoice.
+    pub bills_by_invoice: bool,
+    /// Purchase order number printed on invoices.
+    pub po_number: Option<String>,
+    pub open_invoice: Option<InvoiceSummary>,
+    /// An invoice this customer defaulted on and we wrote off. While one
+    /// stands, they cannot take payment terms again.
+    pub written_off_invoice: Option<InvoiceSummary>,
+    pub pending_quote: Option<PendingQuote>,
+}
+
+/// Replace the purchase order number printed on future invoices.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct UpdatePoNumberRequest {
+    /// New PO number; empty or absent removes it.
+    #[serde(default)]
+    pub po_number: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct ChangePlanRequest {
     /// Plan to move the subscription to.

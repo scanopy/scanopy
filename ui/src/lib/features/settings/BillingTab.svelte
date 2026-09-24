@@ -3,17 +3,28 @@
 	import ProgressTrack from '$lib/shared/components/data/ProgressTrack.svelte';
 	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { hasLicensedPlan, isPlanLapsed } from '$lib/features/organizations/types';
 	import { billingPlans, planStatuses } from '$lib/shared/stores/metadata';
-	import { isMissingPaymentMethod } from '$lib/shared/utils/trial';
+	import { canPay, isMissingPaymentMethod } from '$lib/shared/utils/trial';
+	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import { trackEvent, trackOncePerSession } from '$lib/shared/utils/analytics';
 	import {
 		useCustomerPortalMutation,
 		useResumeSubscriptionMutation,
 		useReactivateSubscriptionMutation,
-		useExtendTrialMutation
+		useExtendTrialMutation,
+		useInvoiceBillingStatusQuery,
+		useAcceptQuoteMutation,
+		useCancelQuoteMutation,
+		invalidateInvoiceBilling,
+		useCheckoutMutation,
+		downloadQuotePdf
 	} from '$lib/features/billing/queries';
 	import CancelSubscriptionModal from '$lib/features/billing/CancelSubscriptionModal.svelte';
+	import ConfirmationDialog from '$lib/shared/components/feedback/ConfirmationDialog.svelte';
+	import InvoiceBillingCard from '$lib/features/billing/InvoiceBillingCard.svelte';
 	import { renewalLabel } from '$lib/features/billing/renewal';
+	import { discountedPrice, saveOfferDiscount } from '$lib/features/billing/pricing';
 	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
 	import { useDashboardQuery } from '$lib/features/home/queries';
 	import {
@@ -28,7 +39,7 @@
 		common_tryAgainLater,
 		common_usage,
 		settings_billing_billingQuestions,
-		settings_billing_canceled,
+		billing_continueOnPlan,
 		settings_billing_contactUs,
 		settings_billing_currentPlan,
 		settings_billing_discount_active,
@@ -51,9 +62,20 @@
 		settings_billing_extendTrial_link,
 		settings_billing_extendTrial_confirmBody,
 		settings_billing_addPaymentMethodSubtitle,
+		settings_billing_license_addPaymentMethodSubtitle,
 		settings_billing_trialCountdown,
 		settings_billing_trialEndsOn,
+		settings_billing_pastDueInvoice,
+		settings_billing_payInvoice,
 		billing_addPaymentMethod,
+		billing_invoice_acceptCta,
+		billing_invoice_payOutstanding,
+		billing_invoice_accepted,
+		billing_invoice_cancelQuote,
+		billing_invoice_cancelQuoteConfirm,
+		billing_invoice_downloadQuote,
+		billing_invoice_quoteCancelled,
+		common_processing,
 		billing_noPaymentMethodBannerBody,
 		billing_requestAccepted,
 		billing_subscriptionReactivated,
@@ -76,14 +98,108 @@
 		dismissible?: boolean;
 	} = $props();
 
-	// Dashboard summary aggregates host/network/seat counts into one query —
-	// reuse it here instead of re-counting users/networks/hosts independently.
-	const dashboardQuery = useDashboardQuery();
-	let planUsage = $derived(dashboardQuery.data?.plan_usage);
-
 	// TanStack Query for organization
 	const organizationQuery = useOrganizationQuery();
 	let org = $derived(organizationQuery.data);
+	// A lapsed org (subscription ended, no paid plan chosen since) keeps its
+	// plan; the way back is a new subscription to it, or to another paid plan.
+	let isLapsed = $derived(org != null && isPlanLapsed(org));
+	const checkoutMutation = useCheckoutMutation();
+	// Licensed self-hosted plans get license keys here instead of usage: the
+	// dashboard route is locked for them server-side.
+	let isLicensedPlan = $derived(org != null && hasLicensedPlan(org));
+
+	// Dashboard summary aggregates host/network/seat counts into one query —
+	// reuse it here instead of re-counting users/networks/hosts independently.
+	const dashboardQuery = useDashboardQuery({ enabled: () => org != null && !isLicensedPlan });
+	let planUsage = $derived(dashboardQuery.data?.plan_usage);
+
+	// PO number, an open quote, and the link to an unpaid invoice. Self-hosted
+	// only: the endpoint refuses other plans, and a cloud org would pay for a
+	// Stripe round trip on every visit to this tab.
+	const invoiceBillingQuery = useInvoiceBillingStatusQuery(() => isLicensedPlan);
+	// Gated on the plan as well as the query: disabling a TanStack query keeps
+	// its last value rather than clearing it, so a move to a cloud plan would
+	// otherwise keep offering the licensed plan's invoice.
+	let invoiceBilling = $derived(isLicensedPlan ? (invoiceBillingQuery.data ?? null) : null);
+	let pendingQuote = $derived(invoiceBilling?.pending_quote ?? null);
+	let openInvoiceUrl = $derived(invoiceBilling?.open_invoice?.hosted_invoice_url ?? null);
+	// The invoice this org defaulted on, while it is still lapsed. Settling it
+	// is what brings the plan, the licence and payment terms back, so it
+	// outranks choosing a new plan.
+	//
+	// Only while lapsed. An org that came back on a card is paying again, and
+	// nothing it can do here credits the old invoice: the resume path declines
+	// once a subscription exists. Chasing it in this slot would pin a paying
+	// customer's primary button on a dead invoice indefinitely.
+	let writtenOffInvoiceUrl = $derived(
+		isLapsed ? (invoiceBilling?.written_off_invoice?.hosted_invoice_url ?? null) : null
+	);
+
+	const acceptQuoteMutation = useAcceptQuoteMutation();
+	const cancelQuoteMutation = useCancelQuoteMutation();
+	let showCancelQuoteConfirm = $state(false);
+	// Stripe renders the PDF on demand and it proxies through the backend, so
+	// the wait is long enough to need saying.
+	let downloadingQuote = $state(false);
+
+	// The PO row in InvoiceBillingCard owns the number, and the quote text
+	// above names the one the invoice will carry, so accepting asks nothing
+	// further.
+	async function handleAcceptQuote() {
+		try {
+			await acceptQuoteMutation.mutateAsync();
+			pushSuccess(billing_invoice_accepted());
+		} catch {
+			// The API client toasts the failure.
+		}
+	}
+
+	async function handleDownloadQuote() {
+		downloadingQuote = true;
+		try {
+			await downloadQuotePdf(pendingQuote?.number ?? null);
+		} finally {
+			downloadingQuote = false;
+		}
+	}
+
+	async function handleCancelQuote() {
+		showCancelQuoteConfirm = false;
+		try {
+			await cancelQuoteMutation.mutateAsync();
+			pushSuccess(billing_invoice_quoteCancelled());
+		} catch {
+			// The API client toasts the failure.
+		}
+	}
+
+	function handlePayInvoice() {
+		if (!openInvoiceUrl) return;
+		window.open(openInvoiceUrl, '_blank', 'noopener,noreferrer');
+		// Paying happens on Stripe's page, so there is no mutation to hang a
+		// refresh on. `license_paid_through` is the column the PaymentSucceeded
+		// subscriber advances, so wait for that to move and then refresh the
+		// invoice once, rather than polling this endpoint: each call costs
+		// three Stripe round trips.
+		const before = org?.license_paid_through;
+		void waitForOrgUpdate((o) => o.license_paid_through !== before).then((paid) => {
+			if (paid) invalidateInvoiceBilling();
+		});
+	}
+
+	function handlePayWrittenOffInvoice() {
+		if (!writtenOffInvoiceUrl) return;
+		window.open(writtenOffInvoiceUrl, '_blank', 'noopener,noreferrer');
+		// Settling this one also brings the org out of lapsed, which lands as a
+		// separate event from the licence date, so watch for either.
+		const before = org?.license_paid_through;
+		void waitForOrgUpdate(
+			(o) => o.plan_status === 'active' || o.license_paid_through !== before
+		).then((resumed) => {
+			if (resumed) invalidateInvoiceBilling();
+		});
+	}
 
 	// Customer portal mutation
 	const customerPortalMutation = useCustomerPortalMutation();
@@ -122,9 +238,13 @@
 		!isFree && (isActive || isTrialing || isPastDue || isPaused || isPendingCancellation)
 	);
 
-	let hasPaymentMethod = $derived(org?.has_payment_method ?? false);
+	// "Can this org pay?", so an invoice buyer sees no card warning.
+	let hasPaymentMethod = $derived(canPay(org));
 	// Stripe-managed plan that needs a card on file but has none.
-	let missingCard = $derived(isMissingPaymentMethod(org));
+	const configQuery = useConfigQuery();
+	let missingCard = $derived(
+		isMissingPaymentMethod(org, configQuery.data?.billing_enabled ?? false)
+	);
 	let trialEndDate = $derived(org?.trial_end_date ? new Date(org.trial_end_date) : null);
 
 	// Renewal / subscription-ends label for the current plan; null when not
@@ -147,7 +267,18 @@
 	// Change Plan moves into the overflow menu (rather than the primary) when the
 	// primary slot is taken by Add Payment Method, i.e. an active/trialing org
 	// missing a card.
-	let showChangePlanItem = $derived(missingCard && (isActive || isTrialing));
+	// An air-gapped key carries the plan it was issued for and validates offline,
+	// so the org is committed until the period it paid for ends. The server
+	// refuses the change; hiding the CTAs means nobody clicks into that refusal.
+	// Cancelling stays available, and is the only way out until the date passes.
+	let airGappedPlanLocked = $derived(org?.air_gapped_key_current_until != null);
+	// A lapsed org's primary is "continue on your plan", so changing plan moves
+	// to the menu for it.
+	let showChangePlanItem = $derived(
+		(missingCard && (isActive || isTrialing) && !airGappedPlanLocked) ||
+			isLapsed ||
+			(openInvoiceUrl != null && !airGappedPlanLocked)
+	);
 	// Cancel is available while on a live, manageable active/trial subscription.
 	let showCancelItem = $derived(hasManageableSubscription && (isActive || isTrialing));
 	// Stripe portal (invoices + card management) for any manageable sub except
@@ -156,8 +287,34 @@
 
 	// The single primary action for the current state.
 	let primaryAction = $derived.by(() => {
+		// A quote in flight is the action the org is mid-way through, and
+		// accepting it is how this org pays at all, so it outranks the card
+		// prompt below.
+		if (pendingQuote)
+			return {
+				label: billing_invoice_acceptCta(),
+				onclick: handleAcceptQuote,
+				disabled: acceptQuoteMutation.isPending
+			};
+		// Settling the written-off invoice restores the plan, the licence and
+		// payment terms in one go, and the server refuses a new invoice while
+		// it stands, so it comes before the lapsed org's plan CTA.
+		if (writtenOffInvoiceUrl)
+			return { label: billing_invoice_payOutstanding(), onclick: handlePayWrittenOffInvoice };
+		// The plan it lapsed from is the plan it most likely wants back; the
+		// menu's Change plan covers the rest.
+		if (isLapsed)
+			return {
+				label: billing_continueOnPlan({ plan: billingPlans.getName(org?.plan?.type ?? null) }),
+				onclick: handleContinueOnPlan,
+				disabled: checkoutMutation.isPending
+			};
 		if (missingCard)
 			return { label: billing_addPaymentMethod(), onclick: handleSetupPayment, icon: CreditCard };
+		// Past due on a sent invoice: paying it is the way out, and updating a
+		// card does nothing, so this outranks the card CTA below.
+		if (isPastDue && openInvoiceUrl)
+			return { label: settings_billing_payInvoice(), onclick: handlePayInvoice };
 		if (isPastDue)
 			return { label: settings_billing_updatePaymentMethod(), onclick: handleManageSubscription };
 		if (isPaused)
@@ -172,6 +329,18 @@
 				onclick: handleReactivate,
 				disabled: reactivateMutation.isPending
 			};
+		// An unpaid invoice is the outstanding thing to do, whether or not it
+		// has run past its due date yet, and the portal cannot pay a sent
+		// invoice, so this goes straight to the Stripe invoice. Below the
+		// states above, which each have their own banner naming the button
+		// they expect: a pending cancellation is told to click Reactivate
+		// Subscription, and it has to be there.
+		if (openInvoiceUrl) return { label: settings_billing_payInvoice(), onclick: handlePayInvoice };
+		// Nothing here can change the plan, so the primary slot goes to the one
+		// action an air-gapped org still has. Without this the slot would hold a
+		// Change plan button whose only outcome is a 409 toast.
+		if (airGappedPlanLocked)
+			return { label: settings_billing_cancelSubscription(), onclick: openCancelModal };
 		return {
 			label: hasManageableSubscription
 				? settings_billing_changePlan()
@@ -182,15 +351,21 @@
 
 	// Extend trial gets its own prominent secondary CTA under the primary
 	// (rather than being buried in the menu) when it's available.
-	let secondaryAction = $derived(
-		canExtendTrial
+	let secondaryAction = $derived.by(() => {
+		if (pendingQuote)
+			return {
+				label: downloadingQuote ? common_processing() : billing_invoice_downloadQuote(),
+				onclick: handleDownloadQuote,
+				disabled: downloadingQuote
+			};
+		return canExtendTrial
 			? {
 					label: settings_billing_extendTrial_link(),
 					onclick: handleExtendTrial,
 					disabled: extendTrialMutation.isPending
 				}
-			: undefined
-	);
+			: undefined;
+	});
 
 	// Ancillary actions tucked behind the "More Actions" menu.
 	let menuItems = $derived.by(() => {
@@ -201,6 +376,15 @@
 			items.push({
 				label: settings_billing_paymentAndInvoices(),
 				onclick: handleManageSubscription
+			});
+		// Withdrawing a quote is destructive but reversible (a new one can be
+		// requested), so it sits above cancelling the subscription.
+		if (pendingQuote)
+			items.push({
+				label: billing_invoice_cancelQuote(),
+				onclick: () => (showCancelQuoteConfirm = true),
+				disabled: cancelQuoteMutation.isPending,
+				tone: 'danger'
 			});
 		// Cancel is the destructive action — always last in the list.
 		if (showCancelItem)
@@ -224,50 +408,37 @@
 					day: 'numeric',
 					year: 'numeric'
 				}) ?? '';
+			// A licensed org's trial ends in a dead license key, not a downgraded cloud
+			// account, so it gets the license wording.
 			return {
 				kind: 'warning' as const,
-				message: `${settings_billing_trialCountdown({ days: trialDaysLeft ?? 0, date })} ${settings_billing_addPaymentMethodSubtitle()}`
+				message: `${settings_billing_trialCountdown({ days: trialDaysLeft ?? 0, date })} ${
+					isLicensedPlan
+						? settings_billing_license_addPaymentMethodSubtitle()
+						: settings_billing_addPaymentMethodSubtitle()
+				}`
 			};
 		}
+		// Nobody attempted a charge on a sent invoice, so telling an invoice
+		// buyer to update a payment method names something they never had.
+		if (isPastDue && openInvoiceUrl)
+			return { kind: 'danger' as const, message: settings_billing_pastDueInvoice() };
 		if (isPastDue) return { kind: 'danger' as const, message: settings_billing_pastDue() };
 		if (missingCard)
 			return { kind: 'warning' as const, message: billing_noPaymentMethodBannerBody() };
-		if (org.plan_status === 'cancelled')
-			return { kind: 'warning' as const, message: settings_billing_canceled() };
+		// No lapsed branch: PlanLapsedBanner renders in this same modal frame
+		// and says it already, so a second copy sat directly above it.
 		if (isPendingCancellation)
 			return { kind: 'warning' as const, message: settings_billing_downgrade_pending() };
 		return null;
 	});
 
-	// Render the active save-offer discount chip only while the discount
-	// window is still in the future, and only on Stripe-managed plans —
-	// a coupon needs a Stripe sub to attach to. The discount columns can
-	// still be populated on a non-Stripe plan (e.g. an org that applied a
-	// discount on Pro and then downgraded to Free), so this gate is needed.
-	let activeDiscount = $derived.by(() => {
-		if (!org) return null;
-		if (billingPlans.getMetadata(org.plan?.type ?? null).is_stripe_managed !== true) return null;
-		const until = org.discount_save_offer_active_until;
-		const percent = org.discount_save_offer_percent_off;
-		if (!until || percent == null) return null;
-		const expiresAt = new Date(until);
-		if (expiresAt.getTime() <= Date.now()) return null;
-		return {
-			percentOff: percent,
-			rate: org.plan?.rate ?? 'Month',
-			expiresAt: expiresAt.toLocaleDateString(undefined, {
-				month: 'long',
-				day: 'numeric',
-				year: 'numeric'
-			})
-		};
-	});
-
-	let discountedPriceLabel = $derived.by(() => {
-		if (!org?.plan || !activeDiscount) return null;
-		const discounted = (org.plan.base_cents * (100 - activeDiscount.percentOff)) / 100 / 100;
-		return discounted.toFixed(2);
-	});
+	// Render the active save-offer discount chip only while the discount window is
+	// still in the future, and only on Stripe-managed plans — a coupon needs a
+	// Stripe sub to attach to. The License tab quotes the same numbers when it
+	// charges a trial out, so the math lives in one place.
+	let activeDiscount = $derived(saveOfferDiscount(org));
+	let discountedPriceLabel = $derived(discountedPrice(org));
 
 	// Show the Usage card only when the plan defines at least one metered
 	// resource (Free plans may define none).
@@ -403,6 +574,29 @@
 	function handleSetupPayment() {
 		startSetupPayment({ org, source: 'billing_tab', trialDaysLeft });
 	}
+
+	// Re-subscribe to the plan the org lapsed from. With a card on file the
+	// backend creates the subscription in place and the org is polled until the
+	// webhook lands it; without one the payment dialog collects the card and
+	// buys the plan on success.
+	async function handleContinueOnPlan() {
+		const plan = org?.plan;
+		if (!org || !plan) return;
+		if (!canPay(org)) {
+			startSetupPayment({ org, plan, source: 'billing_tab', trialDaysLeft });
+			return;
+		}
+		try {
+			const result = await checkoutMutation.mutateAsync(plan);
+			if (result.startsWith('http')) {
+				window.location.href = result;
+				return;
+			}
+			await waitForOrgUpdate((o) => o.plan_status === 'active', { intervalMs: 500 });
+		} catch {
+			// The mutation toasts the failure.
+		}
+	}
 </script>
 
 {#snippet usageRow(label: string, used: number, included: number, overageCents: number | null)}
@@ -444,9 +638,15 @@
 				     only way to get more. -->
 				<div class="text-right">
 					<p class="text-secondary text-sm">{common_atLimit()}</p>
-					<button type="button" onclick={openPlanPicker} class="text-link text-xs hover:underline">
-						{settings_billing_usageUpgradeToAddMore()}
-					</button>
+					{#if !airGappedPlanLocked}
+						<button
+							type="button"
+							onclick={openPlanPicker}
+							class="text-link text-xs hover:underline"
+						>
+							{settings_billing_usageUpgradeToAddMore()}
+						</button>
+					{/if}
 				</div>
 			{:else}
 				<p class="text-tertiary text-sm">{common_included()}</p>
@@ -546,6 +746,10 @@
 								</div>
 							{/if}
 
+							{#if invoiceBilling}
+								<InvoiceBillingCard status={invoiceBilling} />
+							{/if}
+
 							<!-- CTA section: one primary action; every ancillary action
 							     collapses into the caret menu so the section stays a single
 							     control. Add Payment Method / Update Payment Method / Resume /
@@ -563,7 +767,7 @@
 				</InfoCard>
 
 				<!-- Usage -->
-				{#if hasAnyUsageRow && org.plan}
+				{#if hasAnyUsageRow && org.plan && !isLicensedPlan}
 					<InfoCard title={common_usage()}>
 						<div class="space-y-4">
 							{#if org.plan.included_seats !== null}
@@ -633,4 +837,15 @@
 	planRate={org?.plan?.rate ?? null}
 	nextRenewalAt={org?.next_renewal_at ?? null}
 	onSubscriptionChanged={() => organizationQuery.refetch()}
+/>
+
+<ConfirmationDialog
+	isOpen={showCancelQuoteConfirm}
+	title={billing_invoice_cancelQuote()}
+	message={billing_invoice_cancelQuoteConfirm({ number: pendingQuote?.number ?? '' })}
+	confirmLabel={billing_invoice_cancelQuote()}
+	variant="danger"
+	onConfirm={handleCancelQuote}
+	onCancel={() => (showCancelQuoteConfirm = false)}
+	onClose={() => (showCancelQuoteConfirm = false)}
 />

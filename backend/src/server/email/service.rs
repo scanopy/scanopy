@@ -9,13 +9,16 @@ use semver::Version;
 use uuid::Uuid;
 
 use super::messages::{
-    CancellationInitiated, CheckoutCompleted, DaemonStandby, DaemonSunset, DaemonUnreachable,
-    DiscoveryDigest, DiscoveryGuide, Email, EmailAttachment, EmailChangedOld, EmailPreference,
-    InstallCommand, Invite, OidcLinked, OidcUnlinked, OrganizationDeleted, PasswordChanged,
-    PasswordReset, PaymentActionRequired, PaymentFailed, PaymentMethodAdded, PaymentMethodRemoved,
-    PaymentRecovered, PlanChanged, PlanLimitApproaching, PlanLimitReached, SubscriptionCancelled,
+    AirgapExpiring, AirgapRenewal, CancellationInitiated, CheckoutCompleted, DaemonStandby,
+    DaemonSunset, DaemonUnreachable, DiscoveryDigest, DiscoveryGuide, Email, EmailAttachment,
+    EmailChangedOld, EmailPreference, InstallCommand, Invite, InvoiceCredited,
+    InvoiceFinalizationFailed, InvoiceIssued, InvoiceOverdue, OidcLinked, OidcUnlinked,
+    OrganizationDeleted, PasswordChanged, PasswordReset, PaymentActionRequired, PaymentFailed,
+    PaymentMethodAdded, PaymentMethodRemoved, PaymentRecovered, PlanChanged, PlanLimitApproaching,
+    PlanLimitReached, SelfHostedLicenseEnded, SelfHostedLicenseResumed, SelfHostedPaymentFailed,
+    SelfHostedPlanChanged, SelfHostedTrialEnding, SelfHostedWelcome, SubscriptionCancelled,
     SubscriptionPaused, SubscriptionReactivated, SubscriptionResumed, TrialConverted, TrialEnding,
-    TrialExpired, TrialStarted, UsageSummary, Verification,
+    TrialExpired, TrialStarted, UsageSummary, Verification, links,
 };
 use super::transport::EmailTransport;
 use crate::server::{
@@ -26,11 +29,22 @@ use crate::server::{
     digest::payload::DiscoveryDigestPayload,
     hosts::service::HostService,
     networks::{r#impl::Network, service::NetworkService},
-    organizations::{r#impl::base::LimitNotificationLevel, service::OrganizationService},
+    organizations::{
+        r#impl::base::{LimitNotificationLevel, Organization},
+        service::OrganizationService,
+    },
     services::service::ServiceService,
-    shared::{services::traits::CrudService, storage::filter::StorableFilter},
+    shared::{
+        services::traits::CrudService, storage::filter::StorableFilter,
+        types::metadata::TypeMetadataProvider,
+    },
     users::service::UserService,
 };
+
+/// How far ahead an air-gapped organization is warned that its licence period
+/// is ending. Long enough to cancel before the renewal bills, or to plan a
+/// move to another plan, which only becomes possible once the key expires.
+const AIRGAP_EXPIRY_WARNING_DAYS: i64 = 14;
 
 /// Counts of entities discovered/created during the trial, plus elapsed days
 /// since org creation. Populates the trial-ending email and the in-app trial
@@ -120,6 +134,28 @@ impl EmailService {
                 self.deployment_type.is_self_hosted(),
             )
             .await
+    }
+
+    /// True when an org on `plan` is locked out of this cloud app because it
+    /// bought a self-hosted license here and runs Scanopy on its own server.
+    /// The same two signals as the lock in `auth/middleware/billing.rs`.
+    ///
+    /// The deployment clause is what keeps this off the customer's own
+    /// server: there the org holds the very same plan (`plan_for_license`),
+    /// and its daemon, digest and limit emails are the ones that matter.
+    fn self_hosted_plan_locked(&self, plan: Option<BillingPlan>) -> bool {
+        !self.deployment_type.is_self_hosted()
+            && plan.is_some_and(|plan| plan.license_plan().is_some())
+    }
+
+    /// [`Self::self_hosted_plan_locked`] for callers that hold only the org id.
+    pub async fn organization_self_hosted_plan_locked(&self, org_id: &Uuid) -> Result<bool> {
+        let plan = self
+            .organization_service
+            .get_by_id(org_id)
+            .await?
+            .and_then(|organization| organization.base.plan);
+        Ok(self.self_hosted_plan_locked(plan))
     }
 
     // ========================================================================
@@ -259,6 +295,87 @@ impl EmailService {
         .await
     }
 
+    /// The self-hosted counterpart of [`Self::send_trial_ending_email`]. It
+    /// computes no recap: the hosts and scans a license customer cares about
+    /// are on their own server, so the cloud org's counts are all zero.
+    pub async fn send_self_hosted_trial_ending_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        has_payment: bool,
+        billing_period: &str,
+        key_expires: &str,
+    ) -> Result<()> {
+        self.dispatch(
+            to,
+            &SelfHostedTrialEnding {
+                plan_name,
+                billing_period,
+                has_payment,
+                key_expires,
+            },
+        )
+        .await
+    }
+
+    pub async fn send_self_hosted_license_ended_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        was_trial: bool,
+        air_gapped: bool,
+        key_expires: &str,
+        defaulted: bool,
+    ) -> Result<()> {
+        self.dispatch(
+            to,
+            &SelfHostedLicenseEnded {
+                plan_name,
+                was_trial,
+                air_gapped,
+                key_expires,
+                defaulted,
+            },
+        )
+        .await
+    }
+
+    /// A lapsed self-hosted org settled the invoice we wrote off, so its plan
+    /// and licence are back with the service it was still owed.
+    pub async fn send_self_hosted_license_resumed_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        resumes_through: &str,
+        air_gapped: bool,
+    ) -> Result<()> {
+        self.dispatch(
+            to,
+            &SelfHostedLicenseResumed {
+                plan_name,
+                resumes_through,
+                air_gapped,
+            },
+        )
+        .await
+    }
+
+    pub async fn send_self_hosted_plan_changed_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        air_gapped: bool,
+    ) -> Result<()> {
+        self.dispatch(
+            to,
+            &SelfHostedPlanChanged {
+                plan_name,
+                air_gapped,
+            },
+        )
+        .await
+    }
+
     pub async fn send_trial_expired_email(
         &self,
         to: EmailAddress,
@@ -291,8 +408,20 @@ impl EmailService {
         .await
     }
 
-    pub async fn send_plan_changed_email(&self, to: EmailAddress, plan_name: &str) -> Result<()> {
-        self.dispatch(to, &PlanChanged { plan_name }).await
+    pub async fn send_plan_changed_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        license_key_stops: bool,
+    ) -> Result<()> {
+        self.dispatch(
+            to,
+            &PlanChanged {
+                plan_name,
+                license_key_stops,
+            },
+        )
+        .await
     }
 
     pub async fn send_subscription_cancelled_email(
@@ -324,9 +453,16 @@ impl EmailService {
         &self,
         to: EmailAddress,
         period_end: &str,
+        licensed: bool,
     ) -> Result<()> {
-        self.dispatch(to, &CancellationInitiated { period_end })
-            .await
+        self.dispatch(
+            to,
+            &CancellationInitiated {
+                period_end,
+                licensed,
+            },
+        )
+        .await
     }
 
     pub async fn send_subscription_reactivated_email(&self, to: EmailAddress) -> Result<()> {
@@ -353,8 +489,83 @@ impl EmailService {
         self.dispatch(to, &CheckoutCompleted { plan_name }).await
     }
 
+    pub async fn send_self_hosted_welcome_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        trial_days: Option<u32>,
+        deployment_assistance: bool,
+    ) -> Result<()> {
+        self.dispatch(
+            to,
+            &SelfHostedWelcome {
+                plan_name,
+                trial_days,
+                deployment_assistance,
+            },
+        )
+        .await
+    }
+
     pub async fn send_payment_failed_email(&self, to: EmailAddress) -> Result<()> {
         self.dispatch(to, &PaymentFailed).await
+    }
+
+    pub async fn send_airgap_renewal_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        current_key_expires: &str,
+        renewed_through: &str,
+    ) -> Result<()> {
+        self.dispatch(
+            to,
+            &AirgapRenewal {
+                plan_name,
+                current_key_expires,
+                renewed_through,
+            },
+        )
+        .await
+    }
+
+    /// Warn an air-gapped organization before its renewal: the key on their
+    /// server is about to stop, and this is also when their plan becomes
+    /// changeable, since leaving an air-gapped key is refused until then.
+    pub async fn send_airgap_expiring_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        key_expires: &str,
+        renews_at: &str,
+        amount: &str,
+    ) -> Result<()> {
+        self.dispatch(
+            to,
+            &AirgapExpiring {
+                plan_name,
+                key_expires,
+                renews_at,
+                amount,
+            },
+        )
+        .await
+    }
+
+    pub async fn send_self_hosted_payment_failed_email(
+        &self,
+        to: EmailAddress,
+        key_expires: &str,
+        air_gapped: bool,
+    ) -> Result<()> {
+        self.dispatch(
+            to,
+            &SelfHostedPaymentFailed {
+                key_expires,
+                air_gapped,
+            },
+        )
+        .await
     }
 
     pub async fn send_payment_action_required_email(
@@ -362,11 +573,103 @@ impl EmailService {
         to: EmailAddress,
         hosted_invoice_url: Option<String>,
     ) -> Result<()> {
-        let cta_href = hosted_invoice_url
-            .unwrap_or_else(|| format!("{}/?modal=settings&tab=billing", self.public_url));
+        let cta_href = hosted_invoice_url.unwrap_or_else(|| links::SETTINGS_BILLING.to_string());
         self.dispatch(
             to,
             &PaymentActionRequired {
+                cta_href: &cta_href,
+            },
+        )
+        .await
+    }
+
+    /// A plan change that credits more than it charges. Nothing is payable, so
+    /// this says what the credit is and where it goes rather than presenting a
+    /// negative invoice.
+    pub async fn send_invoice_credited_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        invoice: &BillingInvoice,
+    ) -> Result<()> {
+        let credit = format_cents(invoice.total_cents.abs(), &invoice.currency);
+        self.dispatch(
+            to,
+            &InvoiceCredited {
+                plan_name,
+                credit: &credit,
+            },
+        )
+        .await
+    }
+
+    /// A sent invoice for a self-hosted licence was finalized. Stripe mails the
+    /// document; this says what it covers and that the licence keeps working
+    /// until it is paid.
+    pub async fn send_invoice_issued_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        invoice: &BillingInvoice,
+        po_number: Option<String>,
+    ) -> Result<()> {
+        let amount = format_cents(invoice.amount_due_cents, &invoice.currency);
+        let due_date = invoice.due_date.map(format_timestamp).unwrap_or_default();
+        let cta_href = invoice
+            .hosted_invoice_url
+            .clone()
+            .unwrap_or_else(|| links::SETTINGS_BILLING.to_string());
+        self.dispatch(
+            to,
+            &InvoiceIssued {
+                plan_name,
+                amount: &amount,
+                due_date: &due_date,
+                po_number: po_number.as_deref(),
+                cta_href: &cta_href,
+            },
+        )
+        .await
+    }
+
+    /// Stripe refused to finalize a licence invoice, so it was never issued.
+    pub async fn send_invoice_finalization_failed_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        reason: &str,
+    ) -> Result<()> {
+        self.dispatch(to, &InvoiceFinalizationFailed { plan_name, reason })
+            .await
+    }
+
+    /// A sent invoice passed its due date. The licence still has its grace
+    /// period, so this names the date the key stops rather than the due date.
+    pub async fn send_invoice_overdue_email(
+        &self,
+        to: EmailAddress,
+        plan_name: &str,
+        invoice: &BillingInvoice,
+        po_number: Option<String>,
+    ) -> Result<()> {
+        let amount = format_cents(invoice.amount_due_cents, &invoice.currency);
+        let due_date = invoice.due_date.map(format_timestamp).unwrap_or_default();
+        let key_expires = invoice
+            .provisional_paid_through()
+            .map(format_timestamp)
+            .unwrap_or_default();
+        let cta_href = invoice
+            .hosted_invoice_url
+            .clone()
+            .unwrap_or_else(|| links::SETTINGS_BILLING.to_string());
+        self.dispatch(
+            to,
+            &InvoiceOverdue {
+                plan_name,
+                amount: &amount,
+                due_date: &due_date,
+                key_expires: &key_expires,
+                po_number: po_number.as_deref(),
                 cta_href: &cta_href,
             },
         )
@@ -554,11 +857,18 @@ impl EmailService {
         daemon_name: &str,
         network_name: &str,
     ) -> Result<()> {
-        // Verify org exists
-        self.organization_service
+        let organization = self
+            .organization_service
             .get_by_id(&org_id)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Organization not found"))?;
+
+        // A guide to discovery and topology in an app the org is locked out of
+        // leads nowhere. Reachable when a daemon key made on a cloud plan is
+        // first used after the switch to a self-hosted one.
+        if self.self_hosted_plan_locked(organization.base.plan) {
+            return Ok(());
+        }
 
         let owner_email = self.get_owner_email(&org_id).await?;
 
@@ -581,6 +891,14 @@ impl EmailService {
             .base
             .plan
             .unwrap_or_else(crate::server::billing::plans::get_free_plan);
+        // On the cloud app a self-hosted plan's seat and network limits govern
+        // the customer's own server. The cloud org's rows are left over from
+        // before the switch (or an invite accepted after it), and an upgrade
+        // nudge about them is noise. Returns before the ratchet write, so an
+        // org that moves back to a cloud plan is still warned.
+        if self.self_hosted_plan_locked(org.base.plan) {
+            return Ok(());
+        }
         let plan_name = plan.to_string();
         let mut notifications = org.base.notifications.clone();
         let mut changed = false;
@@ -727,6 +1045,86 @@ impl EmailService {
     }
 
     // ========================================================================
+    // Air-gapped licence expiry sweep (daily)
+    // ========================================================================
+
+    /// Warn every organization holding an air-gapped key whose licence period
+    /// ends soon.
+    ///
+    /// Stripe's `invoice.upcoming` cannot do this job: it fires only for
+    /// subscriptions that are *automatically charged*, so invoice-billed
+    /// customers — the ones most likely to hold an air-gapped key — never
+    /// produce one. Their servers never call home either, so without this
+    /// sweep the first they hear of a renewal is the charge, and the one
+    /// moment their plan becomes changeable passes unannounced.
+    ///
+    /// Each organization is warned once per licence period, tracked by the
+    /// paid-through date on its notifications ratchet, so running daily is
+    /// safe and a renewal re-arms it.
+    pub async fn warn_expiring_airgap_keys(&self) -> Result<()> {
+        let now = Utc::now();
+        let filter = StorableFilter::<Organization>::new_with_airgap_key_expiring_between(
+            now,
+            now + chrono::Duration::days(AIRGAP_EXPIRY_WARNING_DAYS),
+        );
+        let expiring = self.organization_service.get_all(filter).await?;
+
+        for organization in expiring {
+            if let Err(e) = self.warn_expiring_airgap_key(organization).await {
+                tracing::warn!(error = %e, "Failed to warn an org about its expiring air-gapped key");
+            }
+        }
+        Ok(())
+    }
+
+    /// One organization's warning, plus the ratchet write that stops it
+    /// repeating for the same licence period.
+    async fn warn_expiring_airgap_key(&self, mut organization: Organization) -> Result<()> {
+        let (Some(plan), Some(paid_through)) = (
+            organization.base.plan,
+            organization.base.license_paid_through,
+        ) else {
+            return Ok(());
+        };
+        if plan.license_plan().is_none() {
+            return Ok(());
+        }
+        if organization
+            .base
+            .notifications
+            .airgap_expiry_notified_through
+            == Some(paid_through)
+        {
+            return Ok(());
+        }
+
+        let owner = self.get_owner_email(&organization.id).await?;
+        self.send_airgap_expiring_email(
+            owner,
+            plan.name(),
+            &format_timestamp(paid_through),
+            &format_timestamp(paid_through),
+            &format_cents(plan.config().base_cents, "usd"),
+        )
+        .await?;
+
+        organization
+            .base
+            .notifications
+            .airgap_expiry_notified_through = Some(paid_through);
+        self.organization_service
+            .update(&mut organization, AuthenticatedEntity::System)
+            .await?;
+
+        tracing::info!(
+            organization_id = %organization.id,
+            paid_through = %paid_through,
+            "Warned an air-gapped organization that its license key expires soon"
+        );
+        Ok(())
+    }
+
+    // ========================================================================
     // Daemon sunset sweep (boot-time)
     // ========================================================================
 
@@ -819,6 +1217,13 @@ impl EmailService {
             Some(o) => o,
             None => return Ok(()),
         };
+        // Daemons left on the cloud org after a move to a self-hosted plan are
+        // idle: the org is locked out of the cloud app and its scans run on
+        // its own server. Skipped without advancing the ratchet, so an org
+        // that returns to a cloud plan is told on the next boot.
+        if self.self_hosted_plan_locked(org.base.plan) {
+            return Ok(());
+        }
         // Ratchet: the stored value is the highest floor this org has been told
         // about, and floors are totally ordered, so anything at or below it has
         // already been communicated.

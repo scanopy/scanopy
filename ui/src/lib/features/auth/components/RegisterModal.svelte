@@ -146,16 +146,18 @@
 		checkingEmail = true;
 		emailError = null;
 		try {
-			await checkEmailMutation.mutateAsync({ email: currentEmail });
+			// A taken address comes back as `available: false`, not as a failure, so
+			// the inline field error is the only thing that reports it. The catch is
+			// for a genuine failure, which the API client has already toasted.
+			const available = await checkEmailMutation.mutateAsync({ email: currentEmail });
+			if (!available) {
+				emailError = 'email_in_use';
+				return;
+			}
 			emailValue = currentEmail;
 			subStep = 'password';
-		} catch (err: unknown) {
-			const error = err as Error & { code?: string };
-			if (error.code === 'user_email_in_use') {
-				emailError = 'email_in_use';
-			} else {
-				emailError = 'generic';
-			}
+		} catch {
+			emailError = 'generic';
 		} finally {
 			checkingEmail = false;
 		}
@@ -296,6 +298,7 @@
 								{field}
 								placeholder={auth_enterYourEmail()}
 								required
+								autofocus
 							/>
 						{/snippet}
 					</form.Field>
@@ -345,7 +348,7 @@
 								}}
 							>
 								{#snippet children(confirmPasswordField)}
-									<Password {passwordField} {confirmPasswordField} required={true} />
+									<Password {passwordField} {confirmPasswordField} required={true} autofocus />
 								{/snippet}
 							</form.Field>
 						{/snippet}

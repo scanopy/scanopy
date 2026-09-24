@@ -71,6 +71,12 @@ impl Subscriber<BillingOperation> for OrganizationService {
     async fn handle(&self, events: Vec<Event<BillingOperation>>) -> Result<(), Error> {
         for event in events {
             let org_id = event.scope.organization_id;
+            // This handler writes the whole row back, so hold the org lock
+            // across the read and the write: otherwise a license key
+            // regeneration landing in between would be reverted, reviving
+            // the retired key. Dropping the guard (the `continue` below)
+            // releases it.
+            let lock = self.lock_organization(org_id).await?;
             let Some(mut organization) = self.get_by_id(&org_id).await? else {
                 continue;
             };
@@ -116,6 +122,13 @@ impl Subscriber<BillingOperation> for OrganizationService {
                         organization.base.next_renewal_at = Some(*trial_end);
                         changed = true;
                     }
+                    // A self-hosted trial licenses its servers until trial end.
+                    if plan.license_plan().is_some()
+                        && organization.base.license_paid_through != Some(*trial_end)
+                    {
+                        organization.base.license_paid_through = Some(*trial_end);
+                        changed = true;
+                    }
                 }
                 BillingOperation::TrialExtended { new_trial_end, .. } => {
                     if !organization.base.trial_extended_used {
@@ -129,6 +142,15 @@ impl Subscriber<BillingOperation> for OrganizationService {
                     // Trial extension shifts the trialing sub's period_end too.
                     if organization.base.next_renewal_at != Some(*new_trial_end) {
                         organization.base.next_renewal_at = Some(*new_trial_end);
+                        changed = true;
+                    }
+                    if organization
+                        .base
+                        .plan
+                        .is_some_and(|plan| plan.license_plan().is_some())
+                        && organization.base.license_paid_through != Some(*new_trial_end)
+                    {
+                        organization.base.license_paid_through = Some(*new_trial_end);
                         changed = true;
                     }
                 }
@@ -151,6 +173,7 @@ impl Subscriber<BillingOperation> for OrganizationService {
                     to,
                     is_downgrade,
                     next_renewal_at,
+                    license_key_type: _,
                 } => {
                     if organization.base.plan.as_ref() != Some(to) {
                         organization.base.plan = Some(*to);
@@ -167,14 +190,100 @@ impl Subscriber<BillingOperation> for OrganizationService {
                         organization.base.next_renewal_at = *next_renewal_at;
                         changed = true;
                     }
+                    // Switching onto a self-hosted plan mid-trial keeps the
+                    // trial running and raises no invoice, so the trial end
+                    // is the only paid-through date there will be until the
+                    // first invoice is paid.
+                    if to.license_plan().is_some()
+                        && organization.base.plan_status
+                            == Some(crate::server::billing::types::base::PlanStatus::Trialing)
+                        && let Some(trial_end) = organization.base.trial_end_date
+                        && organization.base.license_paid_through != Some(trial_end)
+                    {
+                        organization.base.license_paid_through = Some(trial_end);
+                        changed = true;
+                    }
+                }
+                BillingOperation::PaymentSucceeded { invoice, .. } => {
+                    if let Some(paid_through) = invoice.license_paid_through()
+                        && organization.base.license_paid_through != Some(paid_through)
+                    {
+                        organization.base.license_paid_through = Some(paid_through);
+                        changed = true;
+                    }
+                }
+                BillingOperation::InvoiceIssued { invoice } => {
+                    // A buyer paying by invoice deploys as soon as it is issued.
+                    // Never shortens a period already paid for or granted. An
+                    // org that defaulted on an earlier invoice cannot reach
+                    // here: issuing one needs payment terms, and the write-off
+                    // at cancellation takes those away until the debt settles.
+                    if let Some(provisional) = invoice.provisional_paid_through()
+                        && organization
+                            .base
+                            .license_paid_through
+                            .is_none_or(|current| current < provisional)
+                    {
+                        organization.base.license_paid_through = Some(provisional);
+                        changed = true;
+                    }
+                    // Paying against a purchase order is how this org pays, so
+                    // nothing should ask it for a card.
+                    if !organization.base.bills_by_invoice {
+                        organization.base.bills_by_invoice = true;
+                        changed = true;
+                    }
+                }
+                BillingOperation::InvoiceVoided { invoice } => {
+                    // Take back only the grant this invoice made: a later
+                    // payment or a newer invoice has since moved the date.
+                    if let (Some(provisional), Some(unpaid_from)) = (
+                        invoice.provisional_paid_through(),
+                        invoice.license_unpaid_from(),
+                    ) && organization.base.license_paid_through == Some(provisional)
+                    {
+                        organization.base.license_paid_through = Some(unpaid_from);
+                        changed = true;
+                    }
+                }
+                BillingOperation::LicenseResumed {
+                    plan,
+                    resumed_through,
+                    next_renewal_at,
+                } => {
+                    // Settling the written-off invoice puts the org back on
+                    // its plan with the service it was still owed. Set the
+                    // date rather than only extending it: `PaymentSucceeded`
+                    // has already run on this organization and restored the
+                    // invoice's own term end, which is the past for anyone
+                    // settling after it expired.
+                    if organization.base.plan.as_ref() != Some(plan) {
+                        organization.base.plan = Some(*plan);
+                        changed = true;
+                    }
+                    if organization.base.license_paid_through != Some(*resumed_through) {
+                        organization.base.license_paid_through = Some(*resumed_through);
+                        changed = true;
+                    }
+                    if next_renewal_at.is_some()
+                        && organization.base.next_renewal_at != *next_renewal_at
+                    {
+                        organization.base.next_renewal_at = *next_renewal_at;
+                        changed = true;
+                    }
+                    // The replacement subscription bills by sent invoice, so
+                    // nothing should ask this org for a card.
+                    if !organization.base.bills_by_invoice {
+                        organization.base.bills_by_invoice = true;
+                        changed = true;
+                    }
                 }
                 BillingOperation::LicenseReconciled { to, .. } => {
-                    // Upgrade the org's stored plan to the license entitlement
-                    // (Community → CommercialSelfHosted). Idempotent: the
-                    // reconcile pass only emits this when the plans differ, and
-                    // the guard here makes a re-emission a no-op regardless. No
-                    // renewal/downgrade bookkeeping — self-hosted plans carry no
-                    // Stripe subscription and this is an upgrade.
+                    // Move the org's stored plan to the license-resolved tier,
+                    // in either direction. Idempotent: the reconcile pass only
+                    // emits this when the plans differ, and the guard here makes
+                    // a re-emission a no-op regardless. No renewal/downgrade
+                    // bookkeeping — self-hosted plans carry no Stripe subscription.
                     if organization.base.plan.as_ref() != Some(to) {
                         organization.base.plan = Some(*to);
                         changed = true;
@@ -200,31 +309,32 @@ impl Subscriber<BillingOperation> for OrganizationService {
                         changed = true;
                     }
                 }
-                BillingOperation::SubscriptionCancelled { plan, .. }
+                BillingOperation::SubscriptionCancelled { .. }
                 | BillingOperation::TrialEnded {
-                    converted: false,
-                    plan,
-                    ..
+                    converted: false, ..
                 } => {
-                    // A full cancellation / unconverted trial always downgrades
-                    // the org to Free. The cancel-side-effects path used to chain
-                    // a separate PlanChanged event for this; we now do the write
-                    // here so the downgrade is owned by the source event. The
-                    // implied_status mirror below sets plan_status = Active (Free
-                    // is an active plan) in the same write — one owner, one write.
-                    let free_plan = crate::server::billing::plans::get_free_plan();
-                    organization.base.last_downgrade_at = Some(event.timestamp);
-                    organization.base.last_downgrade_from_plan = Some(*plan);
-                    if organization.base.plan.as_ref() != Some(&free_plan) {
-                        organization.base.plan = Some(free_plan);
+                    // A full cancellation / unconverted trial leaves the org on
+                    // the plan it holds. The implied_status mirror below sets
+                    // plan_status = Cancelled in the same write, which is what
+                    // makes the org read-only until it chooses a paid plan; a
+                    // self-hosted org's `license_paid_through` is left alone so
+                    // its key runs out on the schedule it was issued with. Only
+                    // the subscription mirrors are cleared here.
+                    //
+                    // The subscription that billed by invoice is gone, so the
+                    // org has no standing way to pay by invoice either. Unlike
+                    // a saved card (below), invoice billing is a property of
+                    // the subscription, not of the customer.
+                    if organization.base.bills_by_invoice {
+                        organization.base.bills_by_invoice = false;
                     }
                     // NOTE: do NOT touch `has_payment_method` here. Cancelling a
                     // subscription does not detach the customer's saved cards;
                     // the flag's sole authoritative writers are
                     // `PaymentMethodAdded` / `PaymentMethodRemoved` (driven by
                     // the Stripe `payment_method.attached`/`detached` webhooks).
-                    // Resetting it on cancel/downgrade left it stale-false after
-                    // downgrade-to-Free or resubscribe-without-trial.
+                    // Resetting it on cancel left it stale-false after a
+                    // resubscribe-without-trial.
                     // Subscription is gone; clear the renewal mirror.
                     if organization.base.next_renewal_at.is_some() {
                         organization.base.next_renewal_at = None;
@@ -252,6 +362,13 @@ impl Subscriber<BillingOperation> for OrganizationService {
                 BillingOperation::PaymentMethodAdded => {
                     if !organization.base.has_payment_method {
                         organization.base.has_payment_method = true;
+                        changed = true;
+                    }
+                    // Saving a card puts the subscription back on automatic
+                    // charges (`finalize_payment_method`), so it no longer
+                    // bills by invoice.
+                    if organization.base.bills_by_invoice {
+                        organization.base.bills_by_invoice = false;
                         changed = true;
                     }
                 }
@@ -288,6 +405,7 @@ impl Subscriber<BillingOperation> for OrganizationService {
                 self.update(&mut organization, AuthenticatedEntity::System)
                     .await?;
             }
+            lock.release().await?;
         }
 
         Ok(())

@@ -34,7 +34,6 @@
 		users_expires,
 		users_generateInviteLink,
 		users_inviteCopied,
-		users_inviteFailed,
 		users_inviteGeneratedSuccess,
 		users_inviteInstructions,
 		users_inviteLink,
@@ -120,7 +119,7 @@
 		try {
 			// Read values directly from form state to ensure we get current values
 			const currentPermissions = form.state.values.permissions;
-			const currentEmail = form.state.values.email;
+			const currentEmail = form.state.values.email.trim();
 
 			const result = await createInviteMutation.mutateAsync({
 				permissions: currentPermissions,
@@ -129,9 +128,8 @@
 			});
 			invite = result;
 			pushSuccess(currentEmail ? users_inviteSentSuccess() : users_inviteGeneratedSuccess());
-		} catch (err) {
-			const action = form.state.values.email ? 'send' : 'generate';
-			pushError(users_inviteFailed({ action, error: String(err) }));
+		} catch {
+			// The API client reports the failure.
 		}
 	}
 

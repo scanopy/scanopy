@@ -4,6 +4,7 @@ use sqlx::Row;
 use sqlx::postgres::PgRow;
 use uuid::Uuid;
 
+use crate::server::license::types::LicenseKeyType;
 use crate::server::{
     billing::types::base::{BillingPlan, PlanStatus},
     organizations::r#impl::base::{Organization, OrganizationBase},
@@ -61,6 +62,7 @@ impl Storable for Organization {
                     plan_status,
                     onboarding,
                     has_payment_method,
+                    bills_by_invoice,
                     trial_end_date,
                     last_paused_at,
                     trial_extended_used,
@@ -71,8 +73,21 @@ impl Storable for Organization {
                     discount_save_offer_active_until,
                     next_renewal_at,
                     brevo_company_id,
+                    license_entitlement,
+                    license_entitlement_at,
                     notifications,
                     use_case,
+                    license_paid_through,
+                    license_checkin_at,
+                    license_key_version,
+                    license_key_issued_at,
+                    license_key_type,
+                    // Computed on read from the two fields above, so it has no
+                    // column and nothing to write. Named rather than swallowed
+                    // by a `..` rest pattern: this destructuring is what forces
+                    // a decision about every new field, and a rest pattern
+                    // would silently drop the next one.
+                    air_gapped_key_current_until: _,
                 },
         } = self.clone();
 
@@ -87,6 +102,7 @@ impl Storable for Organization {
                 "plan_status",
                 "onboarding",
                 "has_payment_method",
+                "bills_by_invoice",
                 "trial_end_date",
                 "last_paused_at",
                 "trial_extended_used",
@@ -97,8 +113,15 @@ impl Storable for Organization {
                 "discount_save_offer_active_until",
                 "next_renewal_at",
                 "brevo_company_id",
+                "license_entitlement",
+                "license_entitlement_at",
                 "notifications",
                 "use_case",
+                "license_paid_through",
+                "license_checkin_at",
+                "license_key_version",
+                "license_key_issued_at",
+                "license_key_type",
             ],
             vec![
                 SqlValue::Uuid(id),
@@ -110,6 +133,7 @@ impl Storable for Organization {
                 SqlValue::OptionalString(plan_status.map(|s| s.to_string())),
                 SqlValue::OnboardingOperation(onboarding),
                 SqlValue::Bool(has_payment_method),
+                SqlValue::Bool(bills_by_invoice),
                 SqlValue::OptionTimestamp(trial_end_date),
                 SqlValue::OptionTimestamp(last_paused_at),
                 SqlValue::Bool(trial_extended_used),
@@ -120,6 +144,8 @@ impl Storable for Organization {
                 SqlValue::OptionTimestamp(discount_save_offer_active_until),
                 SqlValue::OptionTimestamp(next_renewal_at),
                 SqlValue::OptionalString(brevo_company_id),
+                SqlValue::OptionalString(license_entitlement),
+                SqlValue::OptionTimestamp(license_entitlement_at),
                 SqlValue::OrgNotifications(notifications),
                 SqlValue::OptionalString(Some(
                     serde_json::to_value(use_case)
@@ -127,6 +153,11 @@ impl Storable for Organization {
                         .and_then(|v| v.as_str().map(String::from))
                         .unwrap_or_else(|| "other".to_string()),
                 )),
+                SqlValue::OptionTimestamp(license_paid_through),
+                SqlValue::OptionTimestamp(license_checkin_at),
+                SqlValue::I64(license_key_version),
+                SqlValue::OptionTimestamp(license_key_issued_at),
+                SqlValue::OptionalString(license_key_type.map(|t| t.to_string())),
             ],
         ))
     }
@@ -150,7 +181,7 @@ impl Storable for Organization {
             .unwrap_or(None)
             .and_then(|v| serde_json::from_value(v).ok());
 
-        Ok(Organization {
+        let mut organization = Organization {
             id: row.get("id"),
             created_at: row.get("created_at"),
             updated_at: row.get("updated_at"),
@@ -165,6 +196,7 @@ impl Storable for Organization {
                     .and_then(|s| s.parse().ok()),
                 onboarding,
                 has_payment_method: row.get("has_payment_method"),
+                bills_by_invoice: row.try_get("bills_by_invoice").unwrap_or(false),
                 trial_end_date: row.get("trial_end_date"),
                 last_paused_at: row.try_get("last_paused_at").unwrap_or(None),
                 trial_extended_used: row.try_get("trial_extended_used").unwrap_or(false),
@@ -179,6 +211,8 @@ impl Storable for Organization {
                     .unwrap_or(None),
                 next_renewal_at: row.try_get("next_renewal_at").unwrap_or(None),
                 brevo_company_id: row.get("brevo_company_id"),
+                license_entitlement: row.try_get("license_entitlement").unwrap_or(None),
+                license_entitlement_at: row.try_get("license_entitlement_at").unwrap_or(None),
                 notifications: row
                     .try_get::<serde_json::Value, _>("notifications")
                     .ok()
@@ -190,8 +224,24 @@ impl Storable for Organization {
                     .flatten()
                     .and_then(|s| serde_json::from_value(serde_json::json!(s)).ok())
                     .unwrap_or_default(),
+                license_paid_through: row.try_get("license_paid_through").unwrap_or(None),
+                license_checkin_at: row.try_get("license_checkin_at").unwrap_or(None),
+                license_key_version: row.try_get("license_key_version").unwrap_or(0),
+                license_key_issued_at: row.try_get("license_key_issued_at").unwrap_or(None),
+                license_key_type: row
+                    .try_get::<Option<String>, _>("license_key_type")
+                    .ok()
+                    .flatten()
+                    .and_then(|s| s.parse::<LicenseKeyType>().ok()),
+                // Derived from the two fields above, never read from a column:
+                // `to_params` does not write it. Filled in below, because the
+                // rule lives on `Organization` rather than being copied here.
+                air_gapped_key_current_until: None,
             },
-        })
+        };
+        organization.base.air_gapped_key_current_until =
+            organization.air_gapped_key_current_until();
+        Ok(organization)
     }
 }
 
@@ -262,5 +312,16 @@ impl Entity for Organization {
         self.base.onboarding = existing.base.onboarding.clone();
         // Brevo company ID is server-managed
         self.base.brevo_company_id = existing.base.brevo_company_id.clone();
+        // License state is server-managed. The key version is never
+        // serialized, so a PUT body always carries the default and would
+        // otherwise reset it (reviving retired online keys).
+        self.base.license_paid_through = existing.base.license_paid_through;
+        self.base.license_checkin_at = existing.base.license_checkin_at;
+        self.base.license_key_version = existing.base.license_key_version;
+        // The cached entitlement is written only by the license service
+        self.base.license_entitlement = existing.base.license_entitlement.clone();
+        self.base.license_entitlement_at = existing.base.license_entitlement_at;
+        self.base.license_key_issued_at = existing.base.license_key_issued_at;
+        self.base.license_key_type = existing.base.license_key_type;
     }
 }

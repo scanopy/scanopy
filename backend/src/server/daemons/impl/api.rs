@@ -1,6 +1,8 @@
 use crate::{
     daemon::discovery::types::{
-        base::{DiscoveryPhase, DiscoverySessionInfo, DiscoverySessionUpdate},
+        base::{
+            DiscoveryPhase, DiscoverySessionInfo, DiscoverySessionUpdate, DiscoveryTerminalReason,
+        },
         warnings::{DiscoveryWarning, deserialize_warnings},
     },
     server::{
@@ -14,6 +16,7 @@ use crate::{
         },
         discovery::r#impl::types::DiscoveryType,
         shared::events::traits::{DiscoveryScope, Event},
+        subnets::r#impl::base::Subnet,
     },
 };
 use chrono::{DateTime, Utc};
@@ -98,6 +101,14 @@ pub struct DaemonDiscoveryRequest {
     /// The discovery configuration this session belongs to. Old daemons ignore this field.
     #[serde(default)]
     pub discovery_id: Uuid,
+    /// The network's subnets as the server holds them.
+    ///
+    /// A scan that names specific subnets knows them by id, and the CIDR behind each id lives on
+    /// the server. A DaemonPoll daemon can ask for them; a ServerPoll daemon has no server URL to
+    /// ask with, so they ride along with the work. Old daemons ignore this field, and an old
+    /// server leaves it empty.
+    #[serde(default)]
+    pub subnets: Vec<Subnet>,
 }
 
 impl DaemonDiscoveryRequest {
@@ -117,6 +128,7 @@ impl DaemonDiscoveryRequest {
             "discovery_type": self.discovery_type,
             "credential_mappings": self.credential_mappings,
             "discovery_id": self.discovery_id,
+            "subnets": self.subnets,
         })
     }
 }
@@ -128,6 +140,7 @@ impl From<DiscoveryUpdatePayload> for DaemonDiscoveryRequest {
             discovery_type: payload.discovery_type,
             credential_mappings: vec![],
             discovery_id: payload.discovery_id.unwrap_or_default(),
+            subnets: vec![],
         }
     }
 }
@@ -240,6 +253,17 @@ pub struct DiscoveryUpdatePayload {
     /// not yet set.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scanned: Option<ScannedEntityIds>,
+    /// Why the run ended. Set on terminal payloads; absent on runs recorded before it existed.
+    /// A daemon may send one of the reasons only it can know; the server assigns every other.
+    #[serde(default)]
+    pub reason: Option<DiscoveryTerminalReason>,
+    /// When the server last heard about this run. Stamped by the server at terminal.
+    #[serde(default)]
+    pub last_update_at: Option<DateTime<Utc>>,
+    /// The daemon's version when the run ended. Stamped by the server at terminal, so it
+    /// survives the daemon being deleted or upgraded.
+    #[serde(default)]
+    pub daemon_version: Option<String>,
 }
 
 impl DiscoveryUpdatePayload {
@@ -259,6 +283,7 @@ impl DiscoveryUpdatePayload {
                 daemon_id: self.daemon_id,
                 discovery_type: self.discovery_type.clone(),
                 error_reason: self.error.clone(),
+                reason: self.reason,
             },
             self.phase,
             auth,
@@ -287,6 +312,9 @@ impl DiscoveryUpdatePayload {
             estimated_remaining_secs: None,
             discovery_id,
             scanned: None,
+            reason: None,
+            last_update_at: None,
+            daemon_version: None,
         }
     }
 
@@ -312,6 +340,9 @@ impl DiscoveryUpdatePayload {
             // Daemon-side reconstruction; the server re-applies the flag from the
             // session it owns (see `DiscoveryService::update_session`).
             scanned: None,
+            reason: update.reason,
+            last_update_at: None,
+            daemon_version: None,
         }
     }
 
@@ -528,6 +559,72 @@ mod scanned_payload_tests {
         );
         p.scanned = scanned;
         p
+    }
+
+    /// Daemons older than the terminal reason send none of its fields, and every historical row
+    /// written before it lacks them. Both must still read.
+    #[test]
+    fn payload_without_terminal_reason_fields_deserializes_to_none() {
+        let mut json = serde_json::to_value(payload_with_scanned(None)).unwrap();
+        let obj = json.as_object_mut().unwrap();
+        obj.remove("reason");
+        obj.remove("last_update_at");
+        obj.remove("daemon_version");
+
+        let parsed: DiscoveryUpdatePayload = serde_json::from_value(json).unwrap();
+
+        assert_eq!(parsed.reason, None);
+        assert_eq!(parsed.last_update_at, None);
+        assert_eq!(parsed.daemon_version, None);
+    }
+
+    /// A daemon newer than its server sends fields the server does not know. The payload must
+    /// not reject them, or a daemon upgrade ahead of the server breaks every update it sends.
+    #[test]
+    fn payload_with_an_unknown_field_still_deserializes() {
+        let mut json = serde_json::to_value(payload_with_scanned(None)).unwrap();
+        json.as_object_mut()
+            .unwrap()
+            .insert("field_from_a_newer_daemon".into(), serde_json::json!(true));
+
+        assert!(serde_json::from_value::<DiscoveryUpdatePayload>(json).is_ok());
+    }
+
+    /// An old server sends no subnets with the work. The daemon must still accept the request:
+    /// a sweep does not need them, and the resolver says so when a targeted scan does.
+    #[test]
+    fn a_request_without_subnets_deserializes_to_an_empty_list() {
+        let mut json = serde_json::json!(DaemonDiscoveryRequest {
+            session_id: Uuid::new_v4(),
+            discovery_type: DiscoveryType::default(),
+            credential_mappings: vec![],
+            discovery_id: Uuid::new_v4(),
+            subnets: vec![],
+        });
+        json.as_object_mut().unwrap().remove("subnets");
+
+        let parsed: DaemonDiscoveryRequest = serde_json::from_value(json).unwrap();
+
+        assert!(parsed.subnets.is_empty());
+    }
+
+    /// The daemon reads the dispatch the server actually sends, which is hand-built rather than
+    /// derived, so a field added to the struct and not to that JSON never arrives.
+    #[test]
+    fn the_dispatch_the_server_sends_carries_the_subnets() {
+        let request = DaemonDiscoveryRequest {
+            session_id: Uuid::new_v4(),
+            discovery_type: DiscoveryType::default(),
+            credential_mappings: vec![],
+            discovery_id: Uuid::new_v4(),
+            subnets: vec![],
+        };
+
+        let sent = request.with_exposed_credentials();
+
+        let parsed: DaemonDiscoveryRequest = serde_json::from_value(sent).unwrap();
+        assert_eq!(parsed.session_id, request.session_id);
+        assert_eq!(parsed.discovery_id, request.discovery_id);
     }
 
     #[test]

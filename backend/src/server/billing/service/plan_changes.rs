@@ -1,5 +1,7 @@
 //! Payment-method & portal sessions, subscription status, plan changes, and invoice-payment failure handling.
 use super::*;
+use crate::server::shared::types::api::ValidationError;
+use strum::IntoDiscriminant;
 
 impl BillingService {
     /// Create a SetupIntent for the org's Stripe customer, returning its
@@ -97,6 +99,23 @@ impl BillingService {
             .send(&self.stripe)
             .await?;
 
+        // Saving a card is how an org billed by invoice switches back to card
+        // payments: the next invoice charges it.
+        let organization = self.get_organization(organization_id).await?;
+        if let Ok(sub) = self.find_current_subscription(&organization).await
+            && sub.collection_method == stripe_shared::SubscriptionCollectionMethod::SendInvoice
+        {
+            UpdateSubscription::new(&sub.id)
+                .collection_method(stripe_shared::SubscriptionCollectionMethod::ChargeAutomatically)
+                .send(&self.stripe)
+                .await?;
+            tracing::info!(
+                organization_id = %organization_id,
+                subscription_id = %sub.id,
+                "Subscription switched from invoice billing to card"
+            );
+        }
+
         // No PaymentMethodAdded emission here — the `payment_method.attached`
         // webhook is the sole emitter (one event → one mirror flip, one email,
         // one analytics capture). Synchronous "card on file?" callers read
@@ -140,7 +159,7 @@ impl BillingService {
     /// that would leave Stripe charging an unreachable customer.
     ///
     /// Returns `false` for:
-    /// - Free / self-hosted (Community + CommercialSelfHosted) plans (no Stripe subscription)
+    /// - Free and other non-Stripe plans (no Stripe subscription)
     /// - Pending-cancellation, paused, or cancelled status
     /// - Orgs with no subscription history at all
     pub async fn has_active_paid_subscription(&self, organization_id: Uuid) -> Result<bool, Error> {
@@ -155,7 +174,7 @@ impl BillingService {
             .base
             .plan
             .unwrap_or_else(crate::server::billing::plans::get_free_plan);
-        if plan.is_free() || plan.is_self_hosted() {
+        if plan.is_free() || !plan.is_stripe_managed() {
             return Ok(false);
         }
         Ok(matches!(
@@ -201,22 +220,12 @@ impl BillingService {
         _authentication: AuthenticatedEntity,
     ) -> Result<String, Error> {
         let organization = self.get_organization(organization_id).await?;
-        let customer_id = organization
-            .base
-            .stripe_customer_id
-            .ok_or_else(|| anyhow!("No Stripe customer ID"))?;
 
-        let subs = ListSubscription::new()
-            .customer(CustomerId::from(customer_id))
-            .send(&self.stripe)
-            .await?;
-
-        if let Some(sub) = subs.data.iter().find(|s| {
-            matches!(
-                s.status,
-                SubscriptionStatus::Active | SubscriptionStatus::Trialing
-            )
-        }) {
+        // Same lookup as every other lifecycle action, so an org that is past
+        // due can still schedule its downgrade rather than being told it has
+        // no subscription. `find_current_subscription` reports the missing
+        // customer id itself.
+        if let Ok(sub) = self.find_current_subscription(&organization).await {
             let is_trialing = sub.status == SubscriptionStatus::Trialing;
 
             UpdateSubscription::new(&sub.id)
@@ -228,13 +237,13 @@ impl BillingService {
                 organization_id = %organization_id,
                 subscription_id = %sub.id,
                 is_trialing,
-                "Scheduled downgrade to Free at period end"
+                "Scheduled cancellation at period end"
             );
 
             if is_trialing {
-                Ok("Your plan will change to Free when your trial ends.".to_string())
+                Ok("Your subscription ends when your trial ends. After that your account is read-only until you choose a paid plan.".to_string())
             } else {
-                Ok("Your plan will change to Free at the end of your billing cycle.".to_string())
+                Ok("Your subscription ends at the end of your billing cycle. After that your account is read-only until you choose a paid plan.".to_string())
             }
         } else {
             Err(anyhow!("No active subscription found"))
@@ -297,28 +306,37 @@ impl BillingService {
             .await?
             .ok_or_else(|| anyhow!("Organization not found"))?;
 
-        let customer_id = organization
-            .base
-            .stripe_customer_id
-            .clone()
-            .ok_or_else(|| anyhow!("No Stripe customer ID"))?;
+        // An air-gapped key already minted runs to its own expiry whatever the
+        // cloud says, so dropping a tier under it would sell Standard while
+        // Plus caps keep working. The key cannot be surrendered early either:
+        // `switch_license_key_type` refuses to leave an air-gapped key before
+        // `license_paid_through`. So the tier waits for the same date.
+        if organization.base.license_key_type == Some(LicenseKeyType::Offline)
+            && is_tier_downgrade(organization.base.plan, target_plan)
+        {
+            let until = organization
+                .base
+                .license_paid_through
+                .map(|at| at.format("%B %-d, %Y").to_string())
+                .unwrap_or_else(|| "its expiry date".to_string());
+            return Err(ValidationError::new(format!(
+                "Your air-gapped license key runs until {until}. You can move to a lower plan \
+                 after that date. To avoid renewing at the current plan, cancel before then."
+            ))
+            .into());
+        }
 
         let base_price = self
             .get_price_from_lookup_key(target_plan.stripe_base_price_lookup_key())
             .await?
             .ok_or_else(|| anyhow!("Could not find price for target plan"))?;
 
-        let org_subscriptions = ListSubscription::new()
-            .customer(CustomerId::from(customer_id))
-            .send(&self.stripe)
-            .await?;
-
-        if let Some(sub) = org_subscriptions.data.iter().find(|s| {
-            matches!(
-                s.status,
-                SubscriptionStatus::Active | SubscriptionStatus::Trialing
-            )
-        }) {
+        // `find_current_subscription` is the one definition of "the org's live
+        // subscription", and it includes past due. A narrower filter here meant
+        // an invoice buyer whose invoice went unpaid passed every eligibility
+        // gate and then failed on this lookup alone.
+        if let Ok(sub) = self.find_current_subscription(&organization).await {
+            let sub = &sub;
             // Find the base price item to replace
             let base_item = sub
                 .items
@@ -326,19 +344,62 @@ impl BillingService {
                 .first()
                 .ok_or_else(|| anyhow!("No subscription items found"))?;
 
-            let proration = if sub.status == SubscriptionStatus::Trialing {
+            // A subscription billed by invoice with money still owed is a
+            // special case: the buyer's finance team holds one invoice for the
+            // old plan that nobody has paid. Void it and restart the term, so
+            // exactly one invoice exists at the new price. Stripe's proration
+            // cannot do this — it credits unused time whether or not the
+            // invoice was ever paid, which would hand back money that never
+            // arrived. Once the invoice is paid, proration is right: it credits
+            // the unused part and bills the difference.
+            let bills_by_invoice =
+                sub.collection_method == stripe_shared::SubscriptionCollectionMethod::SendInvoice;
+            let voided_unpaid = if bills_by_invoice {
+                self.void_open_license_invoices(&organization).await?
+            } else {
+                false
+            };
+
+            let proration = if sub.status == SubscriptionStatus::Trialing || voided_unpaid {
                 UpdateSubscriptionProrationBehavior::None
             } else {
                 UpdateSubscriptionProrationBehavior::AlwaysInvoice
             };
 
-            UpdateSubscription::new(&sub.id)
-                .items(vec![UpdateSubscriptionItems {
-                    id: Some(base_item.id.to_string()),
-                    price: Some(base_price.id.to_string()),
-                    quantity: Some(1),
-                    ..Default::default()
-                }])
+            let mut items = vec![UpdateSubscriptionItems {
+                id: Some(base_item.id.to_string()),
+                price: Some(base_price.id.to_string()),
+                quantity: Some(1),
+                ..Default::default()
+            }];
+            // A plan with no add-on prices (the self-hosted tiers, Starter)
+            // also drops any seat/network add-on items. They are priced for
+            // the old plan, and Stripe rejects a subscription whose items
+            // bill on different intervals, such as a monthly add-on beside a
+            // yearly self-hosted base.
+            let target_config = target_plan.config();
+            if target_config.seat_cents.is_none() && target_config.network_cents.is_none() {
+                items.extend(
+                    sub.items
+                        .data
+                        .iter()
+                        .skip(1)
+                        .map(|item| UpdateSubscriptionItems {
+                            id: Some(item.id.to_string()),
+                            deleted: Some(true),
+                            ..Default::default()
+                        }),
+                );
+            }
+
+            let mut update = UpdateSubscription::new(&sub.id);
+            if voided_unpaid {
+                // Nothing was paid for the old term, so the new plan starts a
+                // fresh one rather than inheriting its stub.
+                update = update.billing_cycle_anchor(UpdateSubscriptionBillingCycleAnchor::Now);
+            }
+            let updated = update
+                .items(items)
                 .metadata([
                     ("plan".to_string(), serde_json::to_string(&target_plan)?),
                     ("organization_id".to_string(), organization_id.to_string()),
@@ -355,6 +416,13 @@ impl BillingService {
                 .cancel_at_period_end(false)
                 .send(&self.stripe)
                 .await?;
+
+            // Sent invoices otherwise sit in Stripe's hour-long draft window;
+            // the buyer needs the document now, whether it is the replacement
+            // for the voided one or the prorated difference.
+            if bills_by_invoice {
+                self.finalize_latest_invoice(updated.id.as_str()).await?;
+            }
 
             let is_trialing = sub.status == SubscriptionStatus::Trialing;
 
@@ -408,9 +476,13 @@ impl BillingService {
             return Ok(());
         }
 
-        // Skip for orgs without a payment method — trial auto-cancel flow
-        if !organization.base.has_payment_method {
-            tracing::info!(organization_id = %organization.id, "Skipping payment_failed — no payment method (trial auto-cancel)");
+        // Skip only for an org with no way to pay at all, which is the trial
+        // auto-cancel flow this guard exists for. `has_payment_method` alone
+        // means "a card is attached in Stripe", so it is permanently false for
+        // an invoice-billed org and would drop every genuine failure for a
+        // customer paying against a purchase order.
+        if !organization.can_pay() {
+            tracing::info!(organization_id = %organization.id, "Skipping payment_failed — no way to pay (trial auto-cancel)");
             return Ok(());
         }
 
@@ -451,9 +523,10 @@ impl BillingService {
             return Ok(());
         }
 
-        // Skip for orgs without a payment method — trial auto-cancel flow
-        if !organization.base.has_payment_method {
-            tracing::info!(organization_id = %organization.id, "Skipping payment_action_required — no payment method (trial auto-cancel)");
+        // As in `handle_invoice_payment_failed`: an invoice-billed org has no
+        // card by design, so the bare mirror would silence it here too.
+        if !organization.can_pay() {
+            tracing::info!(organization_id = %organization.id, "Skipping payment_action_required — no way to pay (trial auto-cancel)");
             return Ok(());
         }
 
@@ -507,5 +580,53 @@ impl BillingService {
                 )
             })
             .ok_or_else(|| anyhow!("No active subscription found"))
+    }
+}
+
+/// Whether `target` sits below the org's current plan on its own ladder.
+///
+/// `PartialOrd for BillingPlanDiscriminants` keeps the self-hosted ladder
+/// (Community → Standard → Plus) separate from the cloud one and returns
+/// `None` across them, so a cloud switch is never a downgrade here.
+fn is_tier_downgrade(current: Option<BillingPlan>, target: BillingPlan) -> bool {
+    current.is_some_and(|current| target.discriminant() < current.discriminant())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::server::billing::plans::{
+        get_community_plan, get_free_plan, get_self_hosted_plus_plan, get_self_hosted_standard_plan,
+    };
+
+    #[test]
+    fn a_lower_self_hosted_tier_is_a_downgrade() {
+        assert!(is_tier_downgrade(
+            Some(get_self_hosted_plus_plan()),
+            get_self_hosted_standard_plan()
+        ));
+        assert!(is_tier_downgrade(
+            Some(get_self_hosted_standard_plan()),
+            get_community_plan()
+        ));
+    }
+
+    #[test]
+    fn upgrades_same_tier_and_other_ladders_are_not() {
+        assert!(!is_tier_downgrade(
+            Some(get_self_hosted_standard_plan()),
+            get_self_hosted_plus_plan()
+        ));
+        assert!(!is_tier_downgrade(
+            Some(get_self_hosted_plus_plan()),
+            get_self_hosted_plus_plan()
+        ));
+        // Cloud and self-hosted are incomparable, so moving between them is a
+        // switch rather than a downgrade.
+        assert!(!is_tier_downgrade(
+            Some(get_self_hosted_plus_plan()),
+            get_free_plan()
+        ));
+        assert!(!is_tier_downgrade(None, get_self_hosted_standard_plan()));
     }
 }

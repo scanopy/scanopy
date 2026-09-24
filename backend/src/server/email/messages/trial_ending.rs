@@ -1,5 +1,6 @@
 use super::{
-    BILLING_DETAILS_TAGLINE, Body, Content, Email, EmailCategory, EmailPreference, PausableCategory,
+    BILLING_DETAILS_TAGLINE, Body, Content, Email, EmailCategory, EmailPreference,
+    PausableCategory, links,
 };
 
 /// Sent 3 days before a trial ends: recaps trial value and prompts the user to
@@ -54,7 +55,7 @@ impl Email for TrialEnding<'_> {
                     "Your {} {} trial ends in 3 days. To keep all your features and data, add a payment method before the trial expires.",
                     self.plan_name, self.billing_period
                 ))
-                .paragraph("If no payment method is added, your account will be downgraded to the Free plan, which includes up to 25 hosts with manual discovery only.")
+                .paragraph("If no payment method is added, your account becomes read-only when the trial ends until you choose a paid plan.")
                 .paragraph(BILLING_DETAILS_TAGLINE)
         };
 
@@ -94,7 +95,7 @@ impl Email for TrialEnding<'_> {
                     .subheading("Here's what Scanopy found during your trial")
                     .raw(&recap_table),
             )
-            .cta("{base_url}/?modal=settings&tab=billing&{utm}", cta_label)
+            .cta(links::SETTINGS_BILLING, cta_label)
             .render()
     }
 }

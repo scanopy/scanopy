@@ -1,6 +1,8 @@
 use crate::server::auth::r#impl::oidc::OidcProviderMetadata;
 use crate::server::license::key::LicenseKey;
-use crate::server::license::service::LicenseService;
+use crate::server::license::mint::LicenseIssuer;
+use crate::server::license::service::{LicenseService, self_hosted_plan};
+use crate::server::license::types::LicenseKeyType;
 use crate::server::license::types::LicenseStatusDiscriminants;
 use crate::server::openapi::tags as api_tags;
 use crate::server::shared::types::api::ApiResponse;
@@ -12,6 +14,7 @@ use axum::Json;
 use axum::extract::State;
 use axum::http::header::CACHE_CONTROL;
 use axum::response::IntoResponse;
+use chrono::{DateTime, Utc};
 use clap::Parser;
 use email_address::EmailAddress;
 use figment::{
@@ -170,6 +173,17 @@ pub struct ServerConfig {
     // License key for commercial self-hosted deployments
     pub license_key: Option<String>,
 
+    /// Ed25519 PEM private key the cloud signs license keys and entitlements
+    /// with, from `SCANOPY_LICENSE_SIGNING_KEY`. Cloud only; never set on
+    /// customer servers.
+    pub license_signing_key: Option<String>,
+
+    /// Where an online license key fetches its entitlement, from
+    /// `SCANOPY_LICENSE_SERVER_URL`. Defaults to Scanopy Cloud
+    /// (`CLOUD_BASE_URL`); set it to a local server to test check-ins.
+    #[serde(default)]
+    pub license_server_url: Option<String>,
+
     /// Admin contact email shown to users who are blocked from creating a new
     /// organization on a self-hosted instance at its org cap. Populated from
     /// `SCANOPY_SERVER_ADMIN_CONTACT_EMAIL`; a malformed value fails config load.
@@ -241,6 +255,12 @@ pub struct PublicConfigResponse {
     /// Runtime state of the configured license key. `None` on deployments
     /// that don't require one (community and cloud).
     pub license_status: Option<LicenseStatusDiscriminants>,
+    /// Whether the configured key is an offline key or an online key that
+    /// fetches its entitlement from Scanopy Cloud. `None` when no key applies.
+    pub license_key_type: Option<LicenseKeyType>,
+    /// When Scanopy Cloud last answered this instance's license check-in.
+    /// Online keys only.
+    pub license_entitlement_at: Option<DateTime<Utc>>,
     /// Hard expiry — the drop-dead date after which the server rejects
     /// the key. Referenced by the grace-period banner.
     #[schema(format = "date")]
@@ -266,6 +286,18 @@ pub struct PublicConfigResponse {
     /// from `SCANOPY_SERVER_ADMIN_CONTACT_EMAIL`.
     #[schema(value_type = String, format = "email")]
     pub server_admin_contact_email: Option<EmailAddress>,
+    /// Whether this deployment can sign license keys. False on any server
+    /// without a signing key, where the Settings License tab and the
+    /// self-hosted plans would otherwise offer something the mint path
+    /// refuses. Reads the built issuer rather than the config value, since a
+    /// key can be present but unparseable.
+    pub license_signing_available: bool,
+    /// Days past an organization's paid-through date before a license key
+    /// reaches its user-visible expiry. Published so the UI shows the same
+    /// dates the mint path bakes into keys, instead of its own copy.
+    pub license_key_buffer_days: u32,
+    /// Further days past the user-visible expiry before a key stops working.
+    pub license_key_grace_days: u32,
 }
 
 impl Default for ServerConfig {
@@ -298,6 +330,8 @@ impl Default for ServerConfig {
             brevo_api_key: None,
             external_service_allowed_ips: HashMap::new(),
             license_key: None,
+            license_signing_key: None,
+            license_server_url: None,
             server_admin_contact_email: None,
             snapshot_retention_days_override: None,
         }
@@ -451,6 +485,9 @@ pub struct AppState {
     /// keyless deployment (community or cloud) has no license service —
     /// licensing is "not required".
     pub license_service: Option<Arc<LicenseService>>,
+    /// Present only when `license_signing_key` is configured (the cloud).
+    /// Mints license keys and entitlements for orgs on self-hosted plans.
+    pub license_issuer: Option<Arc<LicenseIssuer>>,
     pub pool: PgPool,
 }
 
@@ -460,20 +497,25 @@ impl AppState {
             StorageFactory::new(&config.database_url(), config.use_secure_session_cookies).await?;
         let services = ServiceFactory::new(&storage, config.clone()).await?;
 
-        // Commercial mode is driven by the presence of a license key at
-        // runtime — no separate build. No key => free community edition, and no
-        // license service at all. `effective_license_key` returns None on cloud,
-        // so a stray key can never validate, lock, or reconfigure a cloud
-        // deployment.
-        let license_service = config
-            .effective_license_key()
-            .map(|key| Arc::new(LicenseService::new(key)));
+        // Built by the service factory, which gives it the org service it
+        // persists entitlements and reconciles plans through.
+        let license_service = services.license_service.clone();
+
+        // A configured but unparseable signing key fails startup rather than
+        // silently serving 500s from every mint.
+        let license_issuer = config
+            .license_signing_key
+            .as_deref()
+            .map(LicenseIssuer::from_pem)
+            .transpose()?
+            .map(Arc::new);
 
         Ok(Arc::new(Self {
             config,
             services,
             session_store: storage.sessions,
             license_service,
+            license_issuer,
             pool: storage.pool,
         }))
     }
@@ -514,8 +556,14 @@ pub async fn get_public_config(State(state): State<Arc<AppState>>) -> impl IntoR
         .unwrap_or_default();
 
     let deployment_type = get_deployment_type(&state.config);
-    let current_license = match &state.license_service {
+    let license_service = state.license_service.as_deref();
+    let current_license = match license_service {
         Some(svc) => Some(svc.current_status().await),
+        None => None,
+    };
+    let license_key_type = license_service.map(|svc| svc.key_type());
+    let license_entitlement_at = match license_service {
+        Some(svc) => svc.entitlement_at().await,
         None => None,
     };
     let license_status = current_license.as_ref().map(|s| s.kind());
@@ -538,11 +586,8 @@ pub async fn get_public_config(State(state): State<Arc<AppState>>) -> impl IntoR
         use crate::server::shared::services::traits::CrudService;
         use crate::server::shared::storage::filter::StorableFilter;
 
-        let included_orgs = state
-            .config
-            .effective_license_key()
-            .map(|key| key.self_hosted_plan())
-            .unwrap_or_default()
+        let included_orgs = self_hosted_plan(license_service)
+            .await
             .config()
             .included_orgs;
         match included_orgs {
@@ -582,12 +627,20 @@ pub async fn get_public_config(State(state): State<Arc<AppState>>) -> impl IntoR
                 || state.config.brevo_api_key.is_some(),
             deployment_type,
             license_status,
+            license_key_type,
+            license_entitlement_at,
             license_expiry,
             license_intended_expiry,
             license_in_grace_period,
             snapshot_retention_days_override: state.config.snapshot_retention_days_override,
             org_limit_reached,
             server_admin_contact_email: state.config.server_admin_contact_email.clone(),
+            // The built issuer, not the config value: a signing key can be
+            // present and unparseable, and this is the same gate the mint
+            // path checks.
+            license_signing_available: state.license_issuer.is_some(),
+            license_key_buffer_days: crate::server::license::mint::PAID_THROUGH_BUFFER_DAYS as u32,
+            license_key_grace_days: crate::server::license::mint::GRACE_PERIOD_DAYS as u32,
         })),
     )
 }

@@ -160,9 +160,10 @@ impl DaemonApiClient {
             .await
             .map_err(|e| anyhow::anyhow!("{}: Failed to parse response: {}", context, e))?;
 
-        if !api_response.success {
+        if !api_response.is_success() {
             let error_msg = api_response
-                .error
+                .error()
+                .map(str::to_string)
                 .unwrap_or_else(|| format!("HTTP {}", status));
 
             bail!("{}: {}", context, error_msg);
@@ -232,7 +233,7 @@ impl DaemonApiClient {
         let api_response = self.check_response(response, context).await?;
 
         let data = api_response
-            .data
+            .into_data()
             .ok_or_else(|| anyhow::anyhow!("{}: No data in response", context))?;
 
         serde_json::from_value(data)
@@ -309,7 +310,7 @@ mod tests {
 
         // Mirror `execute`: parse the envelope, then hand the call site `.data`.
         let envelope: ApiResponse<serde_json::Value> = serde_json::from_value(body_json).unwrap();
-        let data = envelope.data.expect("server sends data");
+        let data = envelope.into_data().expect("server sends data");
 
         // Correct call-site type (the bare inner) deserializes cleanly.
         let ok: Result<VlanDiscoveryResponse, _> = serde_json::from_value(data.clone());
@@ -326,5 +327,29 @@ mod tests {
             err.to_string().contains("missing field `success`"),
             "expected the GH #649 error, got: {err}"
         );
+    }
+
+    /// A handler never builds a failed `ApiResponse`; it returns an `ApiError`,
+    /// which sends a real error status and an `ApiErrorResponse` body. The daemon
+    /// parses that body into the success envelope and relies on `is_success()`
+    /// and `error()` to surface the server's reason. Driven through the real
+    /// `into_response`, so a field-name drift between the two types fails here
+    /// instead of turning every server error into a generic "HTTP 400".
+    #[tokio::test]
+    async fn server_error_body_parses_into_the_envelope_with_its_message() {
+        use crate::server::shared::types::api::ApiError;
+        use axum::response::IntoResponse;
+
+        let response = ApiError::bad_request("network is not on this daemon").into_response();
+        assert!(response.status().is_client_error());
+
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let envelope: ApiResponse<serde_json::Value> = serde_json::from_slice(&body).unwrap();
+
+        assert!(!envelope.is_success());
+        assert_eq!(envelope.error(), Some("network is not on this daemon"));
+        assert!(envelope.into_data().is_none());
     }
 }

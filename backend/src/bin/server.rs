@@ -107,6 +107,9 @@ async fn main() -> anyhow::Result<()> {
     let deployment_type = get_deployment_type(&state.config);
 
     // Create discovery cleanup task
+    // Each tick of these loops runs on its own task. A panic inside one used to end the loop for
+    // the life of the process with nothing logged; for the stall sweep that meant no stalled
+    // session was ever reaped again. Now a panic costs one tick and is logged.
     let discovery_cleanup_state = state.clone();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(300));
@@ -116,21 +119,19 @@ async fn main() -> anyhow::Result<()> {
             // Check for timeouts (fail sessions running > 10 minutes)
             // discovery_cleanup_state.discovery_manager.check_timeouts(10).await;
 
-            // Clean up old sessions (remove completed sessions > 24 hours old)
-            discovery_cleanup_state
-                .services
-                .discovery_service
-                .cleanup_old_sessions(24)
-                .await;
+            let discovery_service = discovery_cleanup_state.services.discovery_service.clone();
+            let tick = tokio::spawn(async move {
+                // Clean up old sessions (remove completed sessions > 24 hours old)
+                discovery_service.cleanup_old_sessions(24).await;
 
-            // Sweep transient rescan rows whose session never reached a terminal
-            // phase (server restart mid-scan). 24h is comfortably past the 6h
-            // max_discovery_duration a queued rescan could wait on.
-            discovery_cleanup_state
-                .services
-                .discovery_service
-                .sweep_orphaned_rescans(24)
-                .await;
+                // Sweep transient rescan rows whose session never reached a terminal
+                // phase (server restart mid-scan). 24h is comfortably past the 6h
+                // max_discovery_duration a queued rescan could wait on.
+                discovery_service.sweep_orphaned_rescans(24).await;
+            });
+            if let Err(e) = tick.await {
+                tracing::error!(error = %e, "Discovery cleanup tick panicked; continuing");
+            }
         }
     });
 
@@ -140,7 +141,12 @@ async fn main() -> anyhow::Result<()> {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60)); // Every minute
         loop {
             interval.tick().await;
-            stalled_discovery_cleanup.cleanup_stalled_sessions().await;
+            let discovery_service = stalled_discovery_cleanup.clone();
+            let tick =
+                tokio::spawn(async move { discovery_service.cleanup_stalled_sessions().await });
+            if let Err(e) = tick.await {
+                tracing::error!(error = %e, "Stalled-session sweep panicked; continuing");
+            }
         }
     });
 
@@ -224,6 +230,23 @@ async fn main() -> anyhow::Result<()> {
         }
     });
 
+    // Air-gapped licence expiry warnings (daily). An air-gapped customer's
+    // server never calls home and Stripe's upcoming-invoice event does not
+    // fire for invoice-billed subscriptions, so this sweep is the only thing
+    // that reaches them before a renewal bills. Ratcheted per licence period,
+    // so a daily tick sends at most one email per organization per period.
+    if let Some(airgap_email) = state.services.email_service.clone() {
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(24 * 60 * 60));
+            loop {
+                interval.tick().await;
+                if let Err(e) = airgap_email.warn_expiring_airgap_keys().await {
+                    tracing::error!(error = %e, "Air-gapped licence expiry sweep failed");
+                }
+            }
+        });
+    }
+
     // License key periodic re-validation (every 5 minutes). Only runs when a
     // license key is configured — keyless deployments have no license service.
     if let Some(license_revalidate) = state.license_service.clone() {
@@ -234,6 +257,14 @@ async fn main() -> anyhow::Result<()> {
                 license_revalidate.revalidate().await;
             }
         });
+    }
+
+    // Online license keys fetch their entitlement from Scanopy Cloud at
+    // startup and every 6 hours after.
+    if let Some(license_check_in) = state.license_service.clone()
+        && license_check_in.is_online()
+    {
+        tokio::spawn(license_check_in.run_check_ins());
     }
 
     tracing::info!(target: LOG_TARGET, "  Background tasks started");
@@ -529,29 +560,16 @@ async fn main() -> anyhow::Result<()> {
         });
     }
 
-    // Reconcile self-hosted org plan(s) to the license entitlement. The license
+    // Reconcile self-hosted org plan(s) to the license entitlement. An offline
     // key is env-only, so a key added/changed after orgs were provisioned only
-    // takes effect on restart — this is that moment. Moves every org onto the
-    // license-resolved tier (any direction), idempotently. The `stripe_secret`
-    // gate confines this to self-hosted; on cloud `current_status()` is also
-    // never `Valid` (the key is dropped via `effective_license_key`), so
-    // reconciliation can never run against a cloud deployment.
-    if state.config.stripe_secret.is_none()
-        && let Some(license_service) = &state.license_service
-        && let scanopy::server::license::types::LicenseStatus::Valid(claims) =
-            license_service.current_status().await
-    {
-        let target = scanopy::server::billing::plans::plan_for_license(&claims);
-        let organization_service = state.services.organization_service.clone();
+    // takes effect on restart — this is that moment. An online key also
+    // reconciles on every entitlement swap. Moves every org onto the
+    // license-resolved tier (any direction), idempotently, and only while the
+    // license is `Valid`. Cloud has no license service (the key is dropped via
+    // `effective_license_key`), so reconciliation never runs there.
+    if let Some(license_service) = state.license_service.clone() {
         tracing::info!(target: LOG_TARGET, "  Spawning self-hosted license plan reconciliation task");
-        tokio::spawn(async move {
-            if let Err(e) = organization_service
-                .reconcile_self_hosted_license_plans(target)
-                .await
-            {
-                tracing::error!(target: LOG_TARGET, error = %e, "Failed to reconcile self-hosted org plans to license entitlement");
-            }
-        });
+        tokio::spawn(async move { license_service.reconcile_plans().await });
     }
 
     // Configuration summary
@@ -600,6 +618,13 @@ async fn main() -> anyhow::Result<()> {
                     }
                     scanopy::server::license::types::LicenseStatus::Invalid(reason) => {
                         tracing::error!(target: LOG_TARGET, "  License:         INVALID ({}) — server is in read-only mode", reason);
+                    }
+                    scanopy::server::license::types::LicenseStatus::Pending => {
+                        tracing::warn!(
+                            target: LOG_TARGET,
+                            "  License:         PENDING — server is in read-only mode until it reaches {} for its first entitlement",
+                            scanopy::server::license::service::CLOUD_BASE_URL,
+                        );
                     }
                 }
             }

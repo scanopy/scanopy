@@ -1,5 +1,6 @@
 //! Billing plans: tiers, config, rate, the feature matrix, and plan metadata.
 use super::*;
+use crate::server::license::types::LicensePlan;
 
 #[derive(
     Debug,
@@ -92,10 +93,10 @@ impl Hash for BillingPlan {
 
 impl Default for BillingPlan {
     /// The conservative fallback plan. Self-hosted org provisioning uses the
-    /// license-resolved plan (`AuthService::default_self_hosted_plan`), not this;
-    /// `default()` only backstops `Option<BillingPlan>::unwrap_or_default()` for
-    /// rows with no plan set, where Community (the least-privileged self-hosted
-    /// plan) is the safe choice.
+    /// license-resolved plan (`license::service::self_hosted_plan`), which falls
+    /// back to this whenever no valid license applies. `default()` also backstops
+    /// `Option<BillingPlan>::unwrap_or_default()` for rows with no plan set, where
+    /// Community (the least-privileged self-hosted plan) is the safe choice.
     fn default() -> Self {
         use crate::server::billing::plans::get_community_plan;
 
@@ -185,8 +186,7 @@ pub enum Hosting {
 }
 
 /// How a plan is acquired. Surfaced in plan metadata so the marketing site and
-/// app choose the right call to action. `Contact` flips to `Stripe` for the
-/// self-hosted paid tiers once the license-automation flow ships.
+/// app choose the right call to action.
 #[derive(Debug, Clone, Serialize, Deserialize, Display, Copy, PartialEq, Eq, Default, Hash)]
 #[serde(rename_all = "lowercase")]
 pub enum PurchaseFlow {
@@ -242,6 +242,16 @@ pub struct BillingPlanFeatures {
     pub embeds: bool,
     pub email_support: bool,
     pub priority_support: bool,
+    /// Pay by invoice against a purchase order.
+    pub invoice_billing: bool,
+    /// Annual license paid in quarterly installments.
+    pub quarterly_billing: bool,
+    /// W-9, NDAA 889 attestation, and DPA supplied for vendor onboarding.
+    pub procurement_documents: bool,
+    /// Hands-on help deploying a self-hosted server.
+    pub deployment_assistance: bool,
+    /// Signed service level agreement.
+    pub signed_sla: bool,
     // Core features
     pub network_mapping: bool,
     pub png_export: bool,
@@ -327,6 +337,18 @@ impl BillingPlan {
         )
     }
 
+    /// The tier named in license keys minted for this plan. `Some` exactly for
+    /// the self-hosted plans sold through the cloud app: orgs on them get
+    /// license keys and entitlements, and are locked out of the cloud app's
+    /// main routes. CommercialSelfHosted is hand-issued and returns `None`.
+    pub fn license_plan(&self) -> Option<LicensePlan> {
+        match self {
+            BillingPlan::SelfHostedStandard(_) => Some(LicensePlan::Standard),
+            BillingPlan::SelfHostedPlus(_) => Some(LicensePlan::Plus),
+            _ => None,
+        }
+    }
+
     /// Plans whose lifecycle is driven by a Stripe subscription. Drives the
     /// frontend hard-gate (no Stripe = no required modal), the post-Stripe
     /// poll predicate, the "needs a card" banner, and retention-offer
@@ -346,13 +368,13 @@ impl BillingPlan {
             | BillingPlan::Pro(_)
             | BillingPlan::Team(_)
             | BillingPlan::Business(_)
-            | BillingPlan::Enterprise(_) => true,
+            | BillingPlan::Enterprise(_)
+            | BillingPlan::SelfHostedStandard(_)
+            | BillingPlan::SelfHostedPlus(_) => true,
             BillingPlan::Free(_)
             | BillingPlan::Community(_)
             | BillingPlan::Demo(_)
-            | BillingPlan::CommercialSelfHosted(_)
-            | BillingPlan::SelfHostedStandard(_)
-            | BillingPlan::SelfHostedPlus(_) => false,
+            | BillingPlan::CommercialSelfHosted(_) => false,
         }
     }
 
@@ -414,11 +436,12 @@ impl BillingPlan {
             BillingPlan::Starter(_)
             | BillingPlan::Pro(_)
             | BillingPlan::Team(_)
-            | BillingPlan::Business(_) => PurchaseFlow::Stripe,
-            BillingPlan::Enterprise(_)
-            | BillingPlan::CommercialSelfHosted(_)
+            | BillingPlan::Business(_)
             | BillingPlan::SelfHostedStandard(_)
-            | BillingPlan::SelfHostedPlus(_) => PurchaseFlow::Contact,
+            | BillingPlan::SelfHostedPlus(_) => PurchaseFlow::Stripe,
+            BillingPlan::Enterprise(_) | BillingPlan::CommercialSelfHosted(_) => {
+                PurchaseFlow::Contact
+            }
             BillingPlan::Community(_) | BillingPlan::Free(_) | BillingPlan::Demo(_) => {
                 PurchaseFlow::None
             }
@@ -428,12 +451,12 @@ impl BillingPlan {
     /// Returns the next-lower-tier plan within this plan's ladder.
     /// Two independent ladders: the cloud tiers (Free → … → Enterprise) and
     /// the self-hosted commercial tiers (Community → Standard → Plus). Returns
-    /// None for the bottom of a ladder and for plans in no ladder (Team, Demo).
+    /// None for the bottom of a ladder and for plans in no ladder (Starter and
+    /// Team, which are no longer sold, and Demo).
     pub fn previous_tier(&self) -> Option<BillingPlanDiscriminants> {
         let ladders: [&[BillingPlanDiscriminants]; 2] = [
             &[
                 BillingPlanDiscriminants::Free,
-                BillingPlanDiscriminants::Starter,
                 BillingPlanDiscriminants::Pro,
                 BillingPlanDiscriminants::Business,
                 BillingPlanDiscriminants::Enterprise,
@@ -616,6 +639,11 @@ impl BillingPlan {
                 scheduled_discovery: true,
                 discovery_integrations: true,
                 csv_export: true,
+                invoice_billing: false,
+                quarterly_billing: false,
+                procurement_documents: false,
+                deployment_assistance: false,
+                signed_sla: false,
                 snapshot_retention_days: 90,
             },
             BillingPlan::Free { .. } => BillingPlanFeatures {
@@ -644,6 +672,11 @@ impl BillingPlan {
                 scheduled_discovery: false,
                 discovery_integrations: true,
                 csv_export: true,
+                invoice_billing: false,
+                quarterly_billing: false,
+                procurement_documents: false,
+                deployment_assistance: false,
+                signed_sla: false,
                 snapshot_retention_days: 0,
             },
             BillingPlan::Starter { .. } => BillingPlanFeatures {
@@ -672,6 +705,11 @@ impl BillingPlan {
                 scheduled_discovery: true,
                 discovery_integrations: true,
                 csv_export: true,
+                invoice_billing: false,
+                quarterly_billing: false,
+                procurement_documents: false,
+                deployment_assistance: false,
+                signed_sla: false,
                 snapshot_retention_days: 7,
             },
             BillingPlan::Pro { .. } => BillingPlanFeatures {
@@ -700,6 +738,11 @@ impl BillingPlan {
                 scheduled_discovery: true,
                 discovery_integrations: true,
                 csv_export: true,
+                invoice_billing: false,
+                quarterly_billing: false,
+                procurement_documents: false,
+                deployment_assistance: false,
+                signed_sla: false,
                 snapshot_retention_days: 30,
             },
             BillingPlan::Team { .. } => BillingPlanFeatures {
@@ -728,6 +771,11 @@ impl BillingPlan {
                 scheduled_discovery: true,
                 discovery_integrations: true,
                 csv_export: true,
+                invoice_billing: false,
+                quarterly_billing: false,
+                procurement_documents: false,
+                deployment_assistance: false,
+                signed_sla: false,
                 snapshot_retention_days: 90,
             },
             BillingPlan::Business { .. } => BillingPlanFeatures {
@@ -756,6 +804,11 @@ impl BillingPlan {
                 scheduled_discovery: true,
                 discovery_integrations: true,
                 csv_export: true,
+                invoice_billing: false,
+                quarterly_billing: false,
+                procurement_documents: false,
+                deployment_assistance: false,
+                signed_sla: false,
                 snapshot_retention_days: 90,
             },
             BillingPlan::Enterprise { .. } => BillingPlanFeatures {
@@ -784,6 +837,11 @@ impl BillingPlan {
                 scheduled_discovery: true,
                 discovery_integrations: true,
                 csv_export: true,
+                invoice_billing: true,
+                quarterly_billing: false,
+                procurement_documents: true,
+                deployment_assistance: true,
+                signed_sla: true,
                 snapshot_retention_days: 90,
             },
             BillingPlan::Demo { .. } => BillingPlanFeatures {
@@ -812,6 +870,11 @@ impl BillingPlan {
                 scheduled_discovery: true,
                 discovery_integrations: true,
                 csv_export: true,
+                invoice_billing: true,
+                quarterly_billing: true,
+                procurement_documents: true,
+                deployment_assistance: true,
+                signed_sla: true,
                 snapshot_retention_days: 90,
             },
             BillingPlan::CommercialSelfHosted { .. } => BillingPlanFeatures {
@@ -840,6 +903,11 @@ impl BillingPlan {
                 scheduled_discovery: true,
                 discovery_integrations: true,
                 csv_export: true,
+                invoice_billing: true,
+                quarterly_billing: true,
+                procurement_documents: true,
+                deployment_assistance: true,
+                signed_sla: false,
                 snapshot_retention_days: 90,
             },
             BillingPlan::SelfHostedStandard { .. } => BillingPlanFeatures {
@@ -868,6 +936,11 @@ impl BillingPlan {
                 scheduled_discovery: true,
                 discovery_integrations: true,
                 csv_export: true,
+                invoice_billing: true,
+                quarterly_billing: true,
+                procurement_documents: true,
+                deployment_assistance: false,
+                signed_sla: false,
                 snapshot_retention_days: 90,
             },
             BillingPlan::SelfHostedPlus { .. } => BillingPlanFeatures {
@@ -896,6 +969,11 @@ impl BillingPlan {
                 scheduled_discovery: true,
                 discovery_integrations: true,
                 csv_export: true,
+                invoice_billing: true,
+                quarterly_billing: true,
+                procurement_documents: true,
+                deployment_assistance: true,
+                signed_sla: false,
                 snapshot_retention_days: 90,
             },
         }
@@ -933,6 +1011,11 @@ impl Into<Vec<Feature>> for BillingPlanFeatures {
             scheduled_discovery,
             discovery_integrations,
             csv_export,
+            invoice_billing,
+            quarterly_billing,
+            procurement_documents,
+            deployment_assistance,
+            signed_sla,
             snapshot_retention_days,
         } = self;
 
@@ -982,6 +1065,26 @@ impl Into<Vec<Feature>> for BillingPlanFeatures {
 
         if onboarding_call {
             features.push(Feature::OnboardingCall)
+        }
+
+        if invoice_billing {
+            features.push(Feature::InvoiceBilling)
+        }
+
+        if quarterly_billing {
+            features.push(Feature::QuarterlyBilling)
+        }
+
+        if procurement_documents {
+            features.push(Feature::ProcurementDocuments)
+        }
+
+        if deployment_assistance {
+            features.push(Feature::DeploymentAssistance)
+        }
+
+        if signed_sla {
+            features.push(Feature::SignedSla)
         }
 
         if webhooks {
@@ -1156,6 +1259,7 @@ impl TypeMetadataProvider for BillingPlan {
             "hosting": self.hosting(),
             "custom_price": self.custom_price(),
             "purchase_flow": self.purchase_flow(),
+            "license_plan": self.license_plan(),
             // Tier relationship
             "incremental_features": self.incremental_features(),
             "previous_tier": previous_tier

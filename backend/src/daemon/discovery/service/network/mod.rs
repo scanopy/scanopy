@@ -76,6 +76,9 @@ pub struct NetworkScan {
     >,
     /// Specific addresses to scan (a rescan). `None` sweeps the subnets.
     target_ips: Option<HashSet<std::net::IpAddr>>,
+    /// The network's subnets as the server sent them with this run. See
+    /// `DiscoveryRunner::known_subnets`.
+    known_subnets: Vec<Subnet>,
     /// Precomputed TCP port set: discovery ports, credential-required ports, and
     /// for a rescan the ports already known on the target.
     light_scan_ports: HashSet<u16>,
@@ -85,6 +88,8 @@ pub struct NetworkScan {
     /// for one reason, and 254 copies of a sentence is not 254 findings. Emitted as one warning per
     /// subnet when the run finishes.
     declined: std::sync::Arc<std::sync::Mutex<HashMap<String, DeclinedAddresses>>>,
+    /// Bounds reverse DNS and counts the lookups that went unanswered.
+    reverse_dns: Arc<dns::ReverseDns>,
 }
 
 /// What one subnet's declined addresses had in common.
@@ -109,6 +114,7 @@ impl NetworkScan {
         >,
         target_ips: Option<HashSet<std::net::IpAddr>>,
         extra_ports: Vec<u16>,
+        known_subnets: Vec<Subnet>,
     ) -> Self {
         // Build light scan port set: discovery ports + credential-required ports
         let mut light_scan_ports: HashSet<u16> = Service::all_discovery_ports()
@@ -138,8 +144,10 @@ impl NetworkScan {
             scan_settings,
             credential_mappings,
             target_ips,
+            known_subnets,
             light_scan_ports,
             declined: std::sync::Arc::new(std::sync::Mutex::new(HashMap::new())),
+            reverse_dns: Arc::new(dns::ReverseDns::default()),
         }
     }
 

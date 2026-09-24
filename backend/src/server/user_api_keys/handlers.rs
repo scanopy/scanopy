@@ -325,8 +325,7 @@ pub async fn get_by_id(
         get_by_id_handler::<UserApiKey>(state, auth.into_permission::<Viewer>(), Path(id)).await?;
 
     if result
-        .data
-        .as_ref()
+        .data()
         .map(|k| k.base.user_id != user_id)
         .unwrap_or(true)
     {
@@ -406,7 +405,7 @@ pub async fn bulk_delete(
 
     // Combine counts
     Ok(Json(ApiResponse::success(BulkDeleteResponse {
-        deleted_count: result.data.as_ref().map(|r| r.deleted_count).unwrap_or(0),
+        deleted_count: result.data().map(|r| r.deleted_count).unwrap_or(0),
         requested_count: ids.len(),
     })))
 }

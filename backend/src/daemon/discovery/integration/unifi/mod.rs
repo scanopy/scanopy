@@ -426,7 +426,7 @@ mod tests {
         let a = subnet("10.0.0.0/24");
         let b = subnet("10.0.1.0/24");
 
-        let merged = merge_subnets(&[a.clone()], Some(&a), &[b.clone(), a.clone()]);
+        let merged = merge_subnets(std::slice::from_ref(&a), Some(&a), &[b.clone(), a.clone()]);
 
         let ids: Vec<Uuid> = merged.iter().map(|s| s.id).collect();
         assert_eq!(ids, vec![a.id, b.id]);

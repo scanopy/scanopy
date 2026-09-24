@@ -30,6 +30,8 @@
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
+	import InlineDanger from '$lib/shared/components/feedback/InlineDanger.svelte';
+	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 	import CollapsibleCard from '$lib/shared/components/data/CollapsibleCard.svelte';
 	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
@@ -45,12 +47,14 @@
 		common_warnings,
 		daemons_upgradeDaemon,
 		discovery_noWarnings,
+		discovery_noWarningsBeforeStop,
 		discovery_noWarningsSubtitle,
 		discovery_scanSettings,
 		subnets_resolveRange
 	} from '$lib/paraglide/messages';
 	import type { EntityDiscriminants } from '$lib/api/entities';
 	import type { DiscoveryUpdatePayload } from '../../types/api';
+	import { runOutcomeReason } from '../../utils/outcome';
 	import {
 		buildWarningReport,
 		credentialIdsOf,
@@ -65,6 +69,24 @@
 	let { payload }: Props = $props();
 
 	let warnings = $derived(payload.warnings ?? []);
+
+	/**
+	 * How the run ended, for a run that did not complete. This tab is where a reader looks for
+	 * something wrong, so the reason leads it; the details tab names only the phase.
+	 *
+	 * `runOutcomeTag` resolves the reason's name and description, and falls back to the phase for
+	 * a run recorded before reasons existed.
+	 */
+	let outcome = $derived.by(() => {
+		if (payload.phase !== 'Failed' && payload.phase !== 'Cancelled') return null;
+		const reason = runOutcomeReason(payload);
+		return {
+			// The reason leads here, where the status is already known from the row that was
+			// opened. A run from before reasons existed has only its phase to show.
+			label: reason?.name ?? payload.phase,
+			body: [payload.error, reason?.description].filter(Boolean).join(' ') || null
+		};
+	});
 
 	/**
 	 * The devices a warning names, fetched by id.
@@ -253,8 +275,19 @@
 	{/if}
 {/snippet}
 
+{#if outcome}
+	{#if payload.phase === 'Failed'}
+		<InlineDanger title={outcome.label} body={outcome.body} />
+	{:else}
+		<InlineWarning title={outcome.label} body={outcome.body} />
+	{/if}
+{/if}
+
 {#if sections.length === 0}
-	<EmptyState title={discovery_noWarnings()} subtitle={discovery_noWarningsSubtitle()} />
+	<EmptyState
+		title={discovery_noWarnings()}
+		subtitle={outcome ? discovery_noWarningsBeforeStop() : discovery_noWarningsSubtitle()}
+	/>
 {:else}
 	<div class="space-y-4" aria-label={common_warnings()}>
 		{#each sections as section (section.remedy)}

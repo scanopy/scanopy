@@ -908,7 +908,7 @@ async fn receive_work_request(
         state
             .services
             .daemon_service
-            .get_pending_work(daemon_id)
+            .get_pending_work(&daemon)
             .await
     } else {
         None
@@ -949,6 +949,11 @@ async fn receive_work_request(
                     daemon_network_id,
                     &integration_targets,
                     daemon.base.version.as_ref(),
+                    state
+                        .services
+                        .daemon_service
+                        .network_subnets(daemon_network_id)
+                        .await,
                 )
                 .await
                 .unwrap_or_else(|e| {
@@ -958,6 +963,7 @@ async fn receive_work_request(
                         discovery_id: payload.discovery_id.unwrap_or_default(),
                         discovery_type: payload.discovery_type,
                         credential_mappings: vec![],
+                        subnets: vec![],
                     }
                 });
             Some(request.with_exposed_credentials())

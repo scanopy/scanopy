@@ -5,6 +5,7 @@
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
 import type { Subnet } from './types/base';
 
 /**
@@ -27,13 +28,11 @@ export function useSubnetsQuery(
 		return {
 			queryKey: stale === undefined ? baseKey : [...baseKey, 'stale', stale],
 			queryFn: async () => {
-				const { data } = await apiClient.GET('/api/v1/subnets', {
-					params: { query: { limit: 0, at, stale } }
-				});
-				if (!data?.success || !data.data) {
-					throw new Error(data?.error || 'Failed to fetch subnets');
-				}
-				return data.data;
+				return unwrapData(
+					await apiClient.GET('/api/v1/subnets', {
+						params: { query: { limit: 0, at, stale } }
+					})
+				);
 			}
 		};
 	});
@@ -47,11 +46,7 @@ export function useCreateSubnetMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (subnet: Subnet) => {
-			const { data } = await apiClient.POST('/api/v1/subnets', { body: subnet });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to create subnet');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/v1/subnets', { body: subnet }));
 		},
 		onSuccess: (newSubnet: Subnet) => {
 			queryClient.setQueryData<Subnet[]>(queryKeys.subnets.all, (old) =>
@@ -76,14 +71,12 @@ export function useMergeSubnetMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async ({ id, into }: { id: string; into: string }) => {
-			const { data } = await apiClient.POST('/api/v1/subnets/{id}/merge', {
-				params: { path: { id } },
-				body: { into }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to merge subnet');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.POST('/api/v1/subnets/{id}/merge', {
+					params: { path: { id } },
+					body: { into }
+				})
+			);
 		},
 		// The merged row is gone and the target may have gained addresses, so nothing local is
 		// authoritative any more.
@@ -96,14 +89,12 @@ export function useUpdateSubnetMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (subnet: Subnet) => {
-			const { data } = await apiClient.PUT('/api/v1/subnets/{id}', {
-				params: { path: { id: subnet.id } },
-				body: subnet
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to update subnet');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.PUT('/api/v1/subnets/{id}', {
+					params: { path: { id: subnet.id } },
+					body: subnet
+				})
+			);
 		},
 		onSuccess: (updatedSubnet: Subnet) => {
 			queryClient.setQueryData<Subnet[]>(
@@ -122,12 +113,11 @@ export function useDeleteSubnetMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (id: string) => {
-			const { data } = await apiClient.DELETE('/api/v1/subnets/{id}', {
-				params: { path: { id } }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete subnet');
-			}
+			requireSuccess(
+				await apiClient.DELETE('/api/v1/subnets/{id}', {
+					params: { path: { id } }
+				})
+			);
 			return id;
 		},
 		onSuccess: (id: string) => {
@@ -147,10 +137,7 @@ export function useBulkDeleteSubnetsMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (ids: string[]) => {
-			const { data } = await apiClient.POST('/api/v1/subnets/bulk-delete', { body: ids });
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete subnets');
-			}
+			requireSuccess(await apiClient.POST('/api/v1/subnets/bulk-delete', { body: ids }));
 			return ids;
 		},
 		onSuccess: (ids: string[]) => {

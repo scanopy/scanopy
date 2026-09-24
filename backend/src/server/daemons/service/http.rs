@@ -27,13 +27,47 @@ pub(crate) fn should_retry_daemon_http_error(e: &anyhow::Error) -> bool {
         .is_none_or(|h| !h.status.is_client_error())
 }
 
+/// How long a daemon request keeps retrying before it gives up.
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum RetryPolicy {
+    /// Five retries backing off from 5s to 30s, about two and a half minutes in all: long enough
+    /// to ride out a daemon restart. For a polled daemon, giving up is also what marks it
+    /// unreachable, so this ladder sets that threshold.
+    Standard,
+    /// One retry after 2s, each attempt limited to 5s: about 12s in all. For requests someone is
+    /// waiting on, where the standard ladder would hold their request open for minutes.
+    Brief,
+}
+
+impl RetryPolicy {
+    fn backoff(self) -> ExponentialBuilder {
+        match self {
+            RetryPolicy::Standard => ExponentialBuilder::default()
+                .with_min_delay(Duration::from_secs(5))
+                .with_max_delay(Duration::from_secs(30))
+                .with_max_times(UNREACHABLE_THRESHOLD),
+            RetryPolicy::Brief => ExponentialBuilder::default()
+                .with_min_delay(Duration::from_secs(2))
+                .with_max_delay(Duration::from_secs(2))
+                .with_max_times(1),
+        }
+    }
+
+    /// A per-attempt limit tighter than the client's own, if this policy needs one.
+    fn attempt_timeout(self) -> Option<Duration> {
+        match self {
+            RetryPolicy::Standard => None,
+            RetryPolicy::Brief => Some(Duration::from_secs(5)),
+        }
+    }
+}
+
 impl DaemonService {
     // ========================================================================
     // Daemon HTTP helpers with built-in retry
     // ========================================================================
 
-    /// Send GET request to daemon with auth and retry.
-    /// Uses exponential backoff: 5 retries, 5-30s delays.
+    /// Send GET request to daemon with auth, retrying per [`RetryPolicy::Standard`].
     async fn get_from_daemon<T: serde::de::DeserializeOwned>(
         &self,
         daemon: &Daemon,
@@ -66,26 +100,19 @@ impl DaemonService {
 
             let api_response: ApiResponse<T> = response.json().await?;
 
-            if !api_response.success {
+            if !api_response.is_success() {
                 anyhow::bail!(
                     "GET {} failed: {}",
                     path,
-                    api_response
-                        .error
-                        .unwrap_or_else(|| "Unknown error".to_string())
+                    api_response.error().unwrap_or("Unknown error")
                 );
             }
 
             api_response
-                .data
+                .into_data()
                 .ok_or_else(|| anyhow::anyhow!("GET {} response missing data", path))
         })
-        .retry(
-            ExponentialBuilder::default()
-                .with_min_delay(Duration::from_secs(5))
-                .with_max_delay(Duration::from_secs(30))
-                .with_max_times(UNREACHABLE_THRESHOLD),
-        )
+        .retry(RetryPolicy::Standard.backoff())
         .when(should_retry_daemon_http_error)
         .notify(|e, dur| {
             tracing::warn!(
@@ -99,8 +126,7 @@ impl DaemonService {
         .await
     }
 
-    /// Send POST request to daemon with optional auth and retry.
-    /// Uses exponential backoff: 5 retries, 5-30s delays.
+    /// Send POST request to daemon with optional auth, retrying per `policy`.
     /// Returns `Option<T>` - `Some(data)` if response contains data, `None` otherwise.
     /// For endpoints that don't return data, use `::<serde_json::Value>` and ignore result.
     ///
@@ -112,6 +138,7 @@ impl DaemonService {
         api_key: Option<&str>,
         path: &str,
         body: &impl serde::Serialize,
+        policy: RetryPolicy,
     ) -> Result<Option<T>> {
         let url = format!("{}{}", daemon.base.url, path);
         let daemon_id = daemon.id;
@@ -131,6 +158,9 @@ impl DaemonService {
             if let Some(ref key) = api_key_owned {
                 request = request.header("Authorization", format!("Bearer {}", key));
             }
+            if let Some(timeout) = policy.attempt_timeout() {
+                request = request.timeout(timeout);
+            }
 
             let response = request.send().await?;
 
@@ -144,24 +174,17 @@ impl DaemonService {
 
             let api_response: ApiResponse<T> = response.json().await?;
 
-            if !api_response.success {
+            if !api_response.is_success() {
                 anyhow::bail!(
                     "POST {} failed: {}",
                     path,
-                    api_response
-                        .error
-                        .unwrap_or_else(|| "Unknown error".to_string())
+                    api_response.error().unwrap_or("Unknown error")
                 );
             }
 
-            Ok(api_response.data)
+            Ok(api_response.into_data())
         })
-        .retry(
-            ExponentialBuilder::default()
-                .with_min_delay(Duration::from_secs(5))
-                .with_max_delay(Duration::from_secs(30))
-                .with_max_times(UNREACHABLE_THRESHOLD),
-        )
+        .retry(policy.backoff())
         .when(should_retry_daemon_http_error)
         .notify(|e, dur| {
             tracing::warn!(
@@ -217,6 +240,7 @@ impl DaemonService {
                     Some(api_key),
                     "/api/discovery/entities-created",
                     &json,
+                    RetryPolicy::Standard,
                 )
                 .await?;
         } else {
@@ -226,6 +250,7 @@ impl DaemonService {
                     Some(api_key),
                     "/api/discovery/entities-created",
                     &created_entities,
+                    RetryPolicy::Standard,
                 )
                 .await?;
         }
@@ -266,7 +291,13 @@ impl DaemonService {
             request.with_exposed_snmp()
         };
         let _: Option<serde_json::Value> = self
-            .post_to_daemon(daemon, api_key, "/api/discovery/initiate", &payload)
+            .post_to_daemon(
+                daemon,
+                api_key,
+                "/api/discovery/initiate",
+                &payload,
+                RetryPolicy::Standard,
+            )
             .await?;
 
         tracing::info!(
@@ -280,6 +311,9 @@ impl DaemonService {
 
     /// Send discovery cancellation to daemon (HTTP only, no event publishing).
     ///
+    /// Retries briefly: a user's cancel request waits on this, as does the stall sweep once per
+    /// stalled session, and neither should sit through the standard ladder.
+    ///
     /// If `api_key` is `None`, the request is sent without authentication.
     /// This is used for legacy daemons (< v0.14.0) that don't require auth.
     pub async fn send_discovery_cancellation_to_daemon(
@@ -289,7 +323,13 @@ impl DaemonService {
         session_id: Uuid,
     ) -> Result<(), Error> {
         let _: Option<serde_json::Value> = self
-            .post_to_daemon(daemon, api_key, "/api/discovery/cancel", &session_id)
+            .post_to_daemon(
+                daemon,
+                api_key,
+                "/api/discovery/cancel",
+                &session_id,
+                RetryPolicy::Brief,
+            )
             .await?;
 
         tracing::info!(
@@ -326,9 +366,15 @@ impl DaemonService {
             server_capabilities,
         };
 
-        self.post_to_daemon(daemon, Some(api_key), "/api/first-contact", &request)
-            .await?
-            .ok_or_else(|| anyhow::anyhow!("First contact response missing daemon status"))
+        self.post_to_daemon(
+            daemon,
+            Some(api_key),
+            "/api/first-contact",
+            &request,
+            RetryPolicy::Standard,
+        )
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("First contact response missing daemon status"))
     }
 
     /// Initialize a local daemon (for integrated daemon setup)

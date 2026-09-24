@@ -12,8 +12,29 @@ export function getTrialDaysLeft(org: Organization | null | undefined): number |
 	return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 }
 
-export function isTrialingWithoutPayment(org: Organization | null | undefined): boolean {
-	return org?.plan_status === 'trialing' && !(org?.has_payment_method ?? false);
+/**
+ * True when the org is mid-trial with no card on file, on a deployment that
+ * actually bills. `billingEnabled` comes from `/api/config` and is required
+ * rather than optional: with Stripe unconfigured, `plan_status` and
+ * `has_payment_method` are frozen at whatever a previous Stripe-enabled run
+ * left behind (both are written only by Stripe webhooks), so acting on them
+ * nags about a subscription the deployment cannot have.
+ */
+export function isTrialingWithoutPayment(
+	org: Organization | null | undefined,
+	billingEnabled: boolean
+): boolean {
+	return billingEnabled && org?.plan_status === 'trialing' && !canPay(org);
+}
+
+/**
+ * Whether the org has a way to pay its next invoice: a card on file, or a
+ * subscription billed by sent invoice against a purchase order. Mirrors
+ * `Organization::can_pay` on the backend; every payment nag reads it so an
+ * invoice buyer is never asked for a card.
+ */
+export function canPay(org: Organization | null | undefined): boolean {
+	return (org?.has_payment_method ?? false) || (org?.bills_by_invoice ?? false);
 }
 
 /**
@@ -22,17 +43,21 @@ export function isTrialingWithoutPayment(org: Organization | null | undefined): 
  * sidebar pill, BillingTab card) so they show/hide together. `is_stripe_managed
  * === true` fails safe: missing/stale plan metadata hides the nag rather than
  * showing it. `has_payment_method` is authoritative — it only flips on Stripe
- * `payment_method.attached`/`detached` webhooks, not on plan changes.
+ * `payment_method.attached`/`detached` webhooks, not on plan changes — and an
+ * org billed by invoice has a way to pay without one.
  */
-export function isMissingPaymentMethod(org: Organization | null | undefined): boolean {
-	if (!org) return false;
+export function isMissingPaymentMethod(
+	org: Organization | null | undefined,
+	billingEnabled: boolean
+): boolean {
+	if (!org || !billingEnabled) return false;
 	const meta = billingPlans.getMetadata(org.plan?.type ?? null);
 	return (
 		meta.is_stripe_managed === true &&
 		(org.plan_status === 'trialing' ||
 			org.plan_status === 'active' ||
 			org.plan_status === 'past_due') &&
-		!(org.has_payment_method ?? false)
+		!canPay(org)
 	);
 }
 

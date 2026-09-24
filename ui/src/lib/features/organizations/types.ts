@@ -13,13 +13,39 @@ export function isBillingPlanActive(organization: Organization): boolean {
 	// Non-Stripe plans (Demo / Community / CommercialSelfHosted) have no
 	// Stripe lifecycle, so they're considered active by definition.
 	if (billingPlans.getMetadata(type).is_stripe_managed === false) return true;
+	// A lapsed org keeps its plan and browses read-only, so the hard-gate
+	// stays out of its way; PlanLapsedBanner carries the recovery CTA.
 	return (
 		organization.plan_status == 'active' ||
 		organization.plan_status == 'trialing' ||
 		organization.plan_status == 'pending_cancellation' ||
 		organization.plan_status == 'past_due' ||
-		organization.plan_status == 'paused'
+		organization.plan_status == 'paused' ||
+		organization.plan_status == 'cancelled'
 	);
+}
+
+/**
+ * The org's subscription ended (unpaid trial, or a cancellation that reached
+ * its period end) and it has not chosen a paid plan since. It keeps its plan;
+ * the backend refuses mutating requests until it does. Mirrors
+ * `Organization::is_lapsed` on the backend.
+ */
+export function isPlanLapsed(organization: Organization): boolean {
+	const type = organization.plan?.type;
+	if (type == null) return false;
+	if (billingPlans.getMetadata(type).is_stripe_managed !== true) return false;
+	return organization.plan_status == 'cancelled';
+}
+
+/**
+ * The org is on a licensed self-hosted plan (SelfHostedStandard / SelfHostedPlus).
+ * On a billing-enabled server these orgs get license keys, not the main app.
+ */
+export function hasLicensedPlan(organization: Organization): boolean {
+	const type = organization.plan?.type;
+	if (type == null) return false;
+	return billingPlans.getMetadata(type).license_plan != null;
 }
 
 /**

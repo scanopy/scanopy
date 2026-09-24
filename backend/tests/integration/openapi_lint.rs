@@ -2,15 +2,14 @@
 //!
 //! The spec is the only description of the API that reaches the docs site and the
 //! generated clients, so gaps in it are invisible here and obvious there. This runs
-//! against the same in-memory spec `openapi_gen` writes to disk, and fails on the
+//! against the same public spec `generate-openapi` writes to disk, and fails on the
 //! classes of defect that had accumulated silently: fields with no description,
 //! union variants with no label, response bodies with no schema, and free-form
 //! strings that have a real enum sitting next to them.
 //!
 //! Run with: `cargo test openapi_lint -- --nocapture`
 
-use scanopy::server::openapi::{build_openapi, filter_internal_paths};
-use scanopy::server::shared::handlers::factory::collect_all_openapi_routes;
+use scanopy::server::openapi::public_spec;
 use serde_json::Value;
 use std::collections::BTreeSet;
 
@@ -158,7 +157,7 @@ impl Lint {
 
 #[test]
 fn openapi_lint() {
-    let spec = filter_internal_paths(&build_openapi(collect_all_openapi_routes()));
+    let spec = public_spec();
     let spec: Value = serde_json::to_value(&spec).expect("spec should serialize");
 
     assert!(

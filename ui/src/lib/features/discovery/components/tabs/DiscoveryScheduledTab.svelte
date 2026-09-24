@@ -7,8 +7,7 @@
 	import type { Discovery } from '../../types/base';
 	import { discoveryFields, formatScheduleDisplay, cancellingSessions } from '../../queries';
 	import { formatTimestamp } from '$lib/shared/utils/formatting';
-	import ProgressTrack from '$lib/shared/components/data/ProgressTrack.svelte';
-	import AnimatedProgressBar from '../cards/AnimatedProgressBar.svelte';
+	import SessionProgress from '../cards/SessionProgress.svelte';
 	import DiscoveryEstimation from '../DiscoveryEstimation.svelte';
 	import DiscoveryEditModal from '../DiscoveryModal/DiscoveryEditModal.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
@@ -29,9 +28,11 @@
 	import type { DiscoveryUpdatePayload } from '../../types/api';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
+	import { isPreUnifiedDaemon } from '$lib/features/daemons/utils';
 	import { useNetworksQuery } from '$lib/features/networks/queries';
 	import { useHostsByIds } from '$lib/features/hosts/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { isPlanLapsed } from '$lib/features/organizations/types';
 	import { hasDaemon } from '$lib/shared/onboarding/checklist';
 	import type { components } from '$lib/api/schema';
 	import type { TabProps } from '$lib/shared/types';
@@ -55,6 +56,7 @@
 		common_schedule,
 		common_status,
 		discovery_schedulePausedFreePlan,
+		discovery_schedulePausedLapsed,
 		common_edit,
 		common_enable,
 		common_run,
@@ -138,9 +140,7 @@
 	function getActiveSession(discovery: Discovery): DiscoveryUpdatePayload | null {
 		return sessionByDiscoveryId.get(discovery.id) ?? null;
 	}
-	let hasLegacyDaemons = $derived(
-		daemonsData.some((d) => d.version_status?.supports_unified_discovery === false)
-	);
+	let hasLegacyDaemons = $derived(daemonsData.some(isPreUnifiedDaemon));
 
 	let showDiscoveryModal = $state(false);
 	let editingDiscovery: Discovery | null = $state(null);
@@ -290,11 +290,16 @@
 	}
 
 	/**
-	 * Whether the org's plan runs schedules at all. A free plan keeps the cron on
-	 * the record but never fires it, so the schedule reads as paused rather than
-	 * as a time that will not happen.
+	 * Whether the org's schedules fire at all. A free plan keeps the cron on the
+	 * record but never fires it, and a lapsed org (subscription ended, no paid
+	 * plan chosen since) is skipped by the scheduler the same way, so the
+	 * schedule reads as paused rather than as a time that will not happen.
 	 */
+	let scheduleLapsed = $derived(
+		organizationQuery.data != null && isPlanLapsed(organizationQuery.data)
+	);
 	let schedulePaused = $derived.by(() => {
+		if (scheduleLapsed) return true;
 		const planType = organizationQuery.data?.plan?.type;
 		if (!planType) return false;
 		return !billingPlans.getMetadata(planType).features.scheduled_discovery;
@@ -354,9 +359,11 @@
 			getValue: (item) =>
 				item.run_type.type !== 'Scheduled'
 					? common_manual()
-					: schedulePaused
-						? discovery_schedulePausedFreePlan()
-						: formatScheduleDisplay(item.run_type.cron_schedule, item.run_type.timezone),
+					: scheduleLapsed
+						? discovery_schedulePausedLapsed()
+						: schedulePaused
+							? discovery_schedulePausedFreePlan()
+							: formatScheduleDisplay(item.run_type.cron_schedule, item.run_type.timezone),
 			display: { hiddenByDefault: true }
 		},
 		{
@@ -415,12 +422,12 @@
 				estimated_remaining_secs={session.estimated_remaining_secs}
 			/>
 
-			<div class="flex items-center gap-2">
-				<ProgressTrack class="flex-1">
-					<AnimatedProgressBar progress={session.progress} />
-				</ProgressTrack>
-				<span class="text-secondary text-xs">{session.progress}%</span>
-			</div>
+			<SessionProgress
+				session_id={session.session_id}
+				phase={session.phase}
+				progress={session.progress}
+				cancelling={isCancelling}
+			/>
 		</div>
 	{:else}
 		<span class="text-muted" aria-hidden="true">—</span>

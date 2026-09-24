@@ -2,6 +2,7 @@
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import { useDashboardQuery } from '$lib/features/home/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { isPlanLapsed } from '$lib/features/organizations/types';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useActiveSessionsQuery } from '$lib/features/discovery/queries';
 	import GettingStartedChecklist from './GettingStartedChecklist.svelte';
@@ -157,8 +158,9 @@
 			/>
 		{/if}
 
-		<!-- Feature Nudges — shown after checklist is complete/dismissed -->
-		{#if showNudges}
+		<!-- Feature Nudges — shown after checklist is complete/dismissed. A lapsed
+		     org keeps its plan's feature flags but cannot act on any of them. -->
+		{#if showNudges && !isPlanLapsed(organization)}
 			<FeatureNudges {organization} {dashboard} onNavigate={navigateTo} />
 		{/if}
 

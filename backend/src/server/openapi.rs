@@ -546,13 +546,19 @@ pub fn filter_internal_paths(spec: &OpenApi) -> OpenApi {
     filtered
 }
 
-/// Export the OpenAPI spec to a file for client generation.
-/// This is used by the fixture generator to create the spec without running the server.
-pub fn export_openapi_spec_to_file(
-    openapi: OpenApi,
-    path: &std::path::Path,
-) -> std::io::Result<()> {
-    let full_openapi = build_openapi(openapi);
-    let json = serde_json::to_string_pretty(&full_openapi).map_err(std::io::Error::other)?;
+/// The full spec: every registered route, internal endpoints included. The
+/// TypeScript client is generated from this.
+pub fn full_spec() -> OpenApi {
+    build_openapi(crate::server::shared::handlers::factory::collect_all_openapi_routes())
+}
+
+/// The spec with internal endpoints removed, for the docs site and external clients.
+pub fn public_spec() -> OpenApi {
+    filter_internal_paths(&full_spec())
+}
+
+/// Write a spec to `path` as pretty-printed JSON.
+pub fn write_spec(spec: &OpenApi, path: &std::path::Path) -> std::io::Result<()> {
+    let json = serde_json::to_string_pretty(spec).map_err(std::io::Error::other)?;
     std::fs::write(path, json)
 }

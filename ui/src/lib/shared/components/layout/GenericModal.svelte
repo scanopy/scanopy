@@ -52,6 +52,7 @@
 		name = undefined,
 		entityId = undefined,
 		headerIcon,
+		banners,
 		children,
 		footer
 	}: {
@@ -83,9 +84,23 @@
 		name?: string;
 		entityId?: string;
 		headerIcon?: Snippet;
+		/**
+		 * Rendered inside the panel frame, above the title. Opt-in: this component
+		 * backs the login, register and share-password modals too, and app banners
+		 * have no business over those. Only a modal that gates the app behind it
+		 * passes this.
+		 */
+		banners?: Snippet;
 		children?: Snippet<[number]>;
 		footer?: Snippet;
 	} = $props();
+
+	// With banners in the frame above, the icon and title only compete with them,
+	// so the title row stands down. Guarded on `showCloseButton` because the close
+	// button lives in that row: a gated modal has none today, and this makes sure
+	// no future caller can lose its only way out. The heading itself survives as
+	// sr-only below, since `aria-labelledby` points at it.
+	let hideTitleRow = $derived(banners != null && !showCloseButton);
 
 	let showBackButton = $derived(
 		name != null && $modalState.name === name && $modalState.returnUrl != null
@@ -140,15 +155,20 @@
 			}
 
 			if (name) {
-				// Read subEntityId, returnUrl, returnTitle before openModal clears them
+				// Read subEntityId, returnUrl, returnTitle and entityData before openModal
+				// clears them. entityData is what the opener handed this modal (the plan a
+				// payment dialog is collecting a card for); re-registering without it
+				// dropped the plan the moment the dialog opened.
 				const subEntityId = state.name === name ? state.subEntityId : null;
 				const returnUrl = state.name === name ? (state.returnUrl ?? undefined) : undefined;
 				const savedReturnTitle = state.name === name ? (state.returnTitle ?? undefined) : undefined;
+				const entityData = state.name === name ? (state.entityData ?? undefined) : undefined;
 				openModal(name, {
 					id: entityId,
 					tab: activeTab || undefined,
 					returnUrl,
-					returnTitle: savedReturnTitle
+					returnTitle: savedReturnTitle,
+					entityData
 				});
 				if (subEntityId && onSubEntityNavigation) {
 					onSubEntityNavigation(subEntityId);
@@ -264,39 +284,53 @@
 					<X class="h-5 w-5" />
 				</button>
 			{/if}
+			{#if banners}
+				<!-- Clipped here rather than by putting overflow-hidden on the panel,
+				     which ~42 modals share: AppBanner is full-bleed with square corners
+				     and the panel is rounded. -->
+				<div class="shrink-0 overflow-hidden rounded-t-lg">
+					{@render banners()}
+				</div>
+			{/if}
+			{#if hideTitleRow}
+				<!-- Keeps the dialog's accessible name while the row is stood down. -->
+				<h2 id="modal-title" class="sr-only">{title}</h2>
+			{/if}
 			<!-- Header (hidden when no title, no close button, and no tabs) -->
 			{#if title || showCloseButton || tabs.length > 0}
 				<div class="modal-header flex-col gap-0 {tabs.length > 0 ? 'pb-0' : ''}">
 					<!-- Title row -->
-					<div class="flex w-full items-center justify-between">
-						{#if centerTitle}
-							{@render headerIcon?.()}
-							<h2
-								id="modal-title"
-								class="text-primary absolute left-1/2 max-w-[calc(100%-5rem)] -translate-x-1/2 text-center text-xl font-semibold"
-							>
-								{title}
-							</h2>
-						{:else}
-							<div class="flex items-center gap-3">
+					{#if !hideTitleRow}
+						<div class="flex w-full items-center justify-between">
+							{#if centerTitle}
 								{@render headerIcon?.()}
-								<h2 id="modal-title" class="text-primary text-xl font-semibold">
+								<h2
+									id="modal-title"
+									class="text-primary absolute left-1/2 max-w-[calc(100%-5rem)] -translate-x-1/2 text-center text-xl font-semibold"
+								>
 									{title}
 								</h2>
-							</div>
-						{/if}
+							{:else}
+								<div class="flex items-center gap-3">
+									{@render headerIcon?.()}
+									<h2 id="modal-title" class="text-primary text-xl font-semibold">
+										{title}
+									</h2>
+								</div>
+							{/if}
 
-						{#if showCloseButton}
-							<button
-								type="button"
-								onclick={handleClose}
-								class="btn-icon"
-								aria-label={common_closeModal()}
-							>
-								<X class="h-5 w-5" />
-							</button>
-						{/if}
-					</div>
+							{#if showCloseButton}
+								<button
+									type="button"
+									onclick={handleClose}
+									class="btn-icon"
+									aria-label={common_closeModal()}
+								>
+									<X class="h-5 w-5" />
+								</button>
+							{/if}
+						</div>
+					{/if}
 
 					<!-- Tab navigation (if tabs provided) -->
 					{#if tabs.length > 0 && tabStyle === 'stepper'}

@@ -4,6 +4,7 @@ use crate::server::{
         BillingInvoice, BillingPlan, CancelReason, LimitSource, LimitType, SaveOffer,
     },
     discovery::r#impl::types::DiscoveryType,
+    license::types::LicenseKeyType,
     organizations::r#impl::base::UseCase,
     shared::api_key_common::ApiKeyType,
 };
@@ -205,6 +206,12 @@ pub enum BillingOperation {
         is_downgrade: bool,
         /// `sub.items.data[0].current_period_end` after the change.
         next_renewal_at: Option<DateTime<Utc>>,
+        /// The license key type the org holds, captured at the publish site.
+        /// A change between self-hosted plans reaches an online key on its
+        /// own, and an air-gapped key has to be copied again, so the email
+        /// differs. `None` for an org that never issued a key, and on events
+        /// recorded before this field existed.
+        license_key_type: Option<LicenseKeyType>,
     },
     SubscriptionCancelled {
         plan: BillingPlan,
@@ -217,8 +224,75 @@ pub enum BillingOperation {
         was_trialing: bool,
         mrr_amount_cents: i64,
         tenure_days: u32,
+        /// The license key type the org holds, captured at the publish site.
+        /// An online key dies at the server's next check-in and an air-gapped
+        /// key runs to its embedded expiry, so the email differs. `None` for
+        /// an org that never issued a key, and on events recorded before this
+        /// field existed.
+        license_key_type: Option<LicenseKeyType>,
+        /// The subscription ended for non-payment and we wrote off the unpaid
+        /// invoice, so the licence stopped with it rather than running to the
+        /// end of a period the customer paid for.
+        ///
+        /// Carried rather than derived because the write-off's claw-back
+        /// reaches the org row through a Stripe round trip, arriving after
+        /// this event. A subscriber that read `license_paid_through` would see
+        /// the date as it stood before the write-off and promise the customer
+        /// time we had just taken away. False on rows written before the
+        /// write-off existed, all of which were ordinary endings.
+        #[serde(default)]
+        defaulted: bool,
     },
     PaymentSucceeded {
+        invoice: BillingInvoice,
+        /// The org's `license_paid_through` as it stood before this payment
+        /// advanced it, captured at the publish site.
+        ///
+        /// The air-gapped renewal email needs it to name the expiry baked
+        /// into the key already installed on the customer's server. Reading
+        /// the org row instead races the organization subscriber, which
+        /// advances that column off this same event, and subscriber dispatch
+        /// order is unspecified. `None` when the org had no paid-through.
+        previous_license_paid_through: Option<DateTime<Utc>>,
+    },
+    /// Stripe finalized an invoice sent to the customer for payment by its due
+    /// date (`invoice.finalized`, `send_invoice` only). The org subscriber
+    /// licenses the self-hosted servers until the due date plus grace, so a
+    /// buyer paying by invoice can deploy before the money arrives.
+    InvoiceIssued {
+        invoice: BillingInvoice,
+    },
+    /// A sent invoice will never be paid: voided, or marked uncollectible.
+    /// The org subscriber takes back the license period it granted.
+    InvoiceVoided {
+        invoice: BillingInvoice,
+    },
+    /// An organization that lapsed for non-payment settled the invoice we had
+    /// written off, and is back on its plan with a replacement subscription.
+    ///
+    /// Carries the resumed date rather than leaving it to `PaymentSucceeded`,
+    /// which fires first on the same organization and restores the invoice's
+    /// own term end. That is the wrong date for anyone settling late: the
+    /// service they are owed starts when they pay, not when the invoice said.
+    LicenseResumed {
+        plan: BillingPlan,
+        resumed_through: DateTime<Utc>,
+        next_renewal_at: Option<DateTime<Utc>>,
+    },
+    /// Stripe could not finalize a draft licence invoice
+    /// (`invoice.finalization_failed`), so it was never issued or emailed and
+    /// no licence period was granted. Carries Stripe's reason, usually a
+    /// rejected tax ID, for the email that asks the owner to check the
+    /// billing details. Implies no status: the org keeps whatever it had.
+    InvoiceFinalizationFailed {
+        invoice: BillingInvoice,
+        reason: String,
+    },
+    /// A sent invoice passed its due date unpaid (`invoice.overdue`). Stripe
+    /// makes no charge attempt on one, so `PaymentFailed` never fires and this
+    /// is the only signal that an invoice buyer has stopped paying. The
+    /// license keeps its grace period; the status is what changes.
+    InvoiceOverdue {
         invoice: BillingInvoice,
     },
     PaymentFailed {
@@ -263,6 +337,10 @@ pub enum BillingOperation {
         new_trial_end: DateTime<Utc>,
     },
     CancellationInitiated {
+        /// The plan being cancelled. Subscribers segment on it: a self-hosted
+        /// plan's cancellation is about a license key, not cloud access.
+        /// `None` on events recorded before this field existed.
+        plan: Option<BillingPlan>,
         reason_code: Option<CancelReason>,
         stripe_feedback: Option<CancellationDetailsFeedback>,
         stripe_reason: Option<CancellationDetailsReason>,
@@ -309,9 +387,9 @@ pub enum BillingOperation {
     StripeCustomerCreated {
         customer_id: String,
     },
-    /// A self-hosted org's plan was reconciled to the entitlement implied by a
-    /// now-present commercial license (Community → CommercialSelfHosted). Emitted
-    /// by the startup reconciliation pass, not by Stripe. The org subscriber
+    /// A self-hosted org's plan was reconciled to the tier its license entitles,
+    /// in either direction. Emitted at startup and each time an online key's
+    /// entitlement is swapped in, never by Stripe. The org subscriber
     /// writes the new plan; email is deliberately not sent (the email subscriber
     /// allowlists discriminants and excludes this one) so a silent instance-level
     /// upgrade doesn't spam org owners. Transient/event-only — never persisted to
@@ -340,27 +418,19 @@ impl BillingOperation {
             | Self::PaymentFailed { plan, .. }
             | Self::PaymentRecovered { plan, .. } => Some(plan),
             Self::PlanChanged { to, .. } | Self::LicenseReconciled { to, .. } => Some(to),
+            Self::CancellationInitiated { plan, .. } => plan.as_ref(),
             _ => None,
         }
     }
 
-    /// Plan the org *lands on* after this event. For the downgrade-to-Free
-    /// outcomes — `SubscriptionCancelled` and an unconverted `TrialEnded` —
-    /// `plan()` carries the outgoing paid plan, but the org is moved to Free
-    /// (the rewrite lives in the org subscriber's matching arm). Use this for
-    /// the PostHog person/group `plan_type` so a churned org isn't mislabelled
-    /// with its old paid plan; the literal event payload (the PostHog
-    /// `metadata` blob) still serializes the carried plan unchanged.
+    /// Plan the org *lands on* after this event, for the PostHog person/group
+    /// `plan_type`. A `SubscriptionCancelled` or unconverted `TrialEnded`
+    /// leaves the org on the plan it carries (lapsed, read-only), so this is
+    /// `plan()` for every variant; it stays a separate accessor so the
+    /// analytics call site names the intent.
     pub fn resulting_plan_name(&self) -> Option<&'static str> {
-        use crate::server::billing::plans::get_free_plan;
         use crate::server::shared::types::metadata::TypeMetadataProvider;
-        match self {
-            Self::SubscriptionCancelled { .. }
-            | Self::TrialEnded {
-                converted: false, ..
-            } => Some(get_free_plan().name()),
-            _ => self.plan().map(|p| p.name()),
-        }
+        self.plan().map(|p| p.name())
     }
 
     /// Canonical mapping from a billing event to the `PlanStatus` it implies
@@ -373,13 +443,20 @@ impl BillingOperation {
             Self::CheckoutCompleted { .. }
             | Self::PaymentRecovered { .. }
             | Self::Resumed { .. }
-            | Self::Reactivated { trialing: false, .. }
-            // A full cancellation / unconverted trial downgrades the org to the
-            // Free plan, which is an *active* plan. The plan rewrite to Free
-            // lives in the org subscriber's matching arm (status alone can't
-            // express it); the status these events imply is Active.
-            | Self::SubscriptionCancelled { .. }
-            | Self::TrialEnded { converted: false, .. } => Some(PlanStatus::Active),
+            | Self::LicenseResumed { .. }
+            | Self::Reactivated {
+                trialing: false, ..
+            } => Some(PlanStatus::Active),
+
+            // A full cancellation / unconverted trial leaves the org on the
+            // plan it carries, lapsed: read-only until it chooses a paid plan.
+            // The org subscriber's matching arm clears the subscription
+            // mirrors (renewal date, invoice billing, discount) off the same
+            // event; the status is what makes it read-only.
+            Self::SubscriptionCancelled { .. }
+            | Self::TrialEnded {
+                converted: false, ..
+            } => Some(PlanStatus::Cancelled),
 
             Self::Reactivated { trialing: true, .. }
             | Self::TrialStarted { .. }
@@ -388,9 +465,9 @@ impl BillingOperation {
                 converted: true, ..
             } => Some(PlanStatus::Active),
 
-            Self::PaymentFailed { .. } | Self::PaymentActionRequired { .. } => {
-                Some(PlanStatus::PastDue)
-            }
+            Self::PaymentFailed { .. }
+            | Self::PaymentActionRequired { .. }
+            | Self::InvoiceOverdue { .. } => Some(PlanStatus::PastDue),
 
             Self::Paused { .. } => Some(PlanStatus::Paused),
 
@@ -429,6 +506,9 @@ impl BillingOperation {
             | Self::TrialWillEnd { .. }
             | Self::FeatureLimitHit { .. }
             | Self::PaymentSucceeded { .. }
+            | Self::InvoiceIssued { .. }
+            | Self::InvoiceVoided { .. }
+            | Self::InvoiceFinalizationFailed { .. }
             | Self::DiscountApplied { .. }
             | Self::CancellationFeedbackProvided { .. }
             | Self::StripeCustomerCreated { .. }
@@ -582,6 +662,8 @@ mod tests {
             was_trialing: true,
             mrr_amount_cents: 9900,
             tenure_days: 42,
+            license_key_type: Some(LicenseKeyType::Offline),
+            defaulted: false,
         });
     }
 
@@ -598,6 +680,8 @@ mod tests {
             was_trialing: false,
             mrr_amount_cents: 0,
             tenure_days: 0,
+            license_key_type: None,
+            defaulted: false,
         });
     }
 
@@ -628,6 +712,7 @@ mod tests {
     #[test]
     fn cancellation_initiated_round_trip_with_stripe_details() {
         round_trip(BillingOperation::CancellationInitiated {
+            plan: Some(get_free_plan()),
             reason_code: None,
             stripe_feedback: Some(CancellationDetailsFeedback::TooExpensive),
             stripe_reason: Some(CancellationDetailsReason::CancellationRequested),
@@ -641,6 +726,7 @@ mod tests {
     #[test]
     fn cancellation_initiated_round_trip_all_none() {
         round_trip(BillingOperation::CancellationInitiated {
+            plan: None,
             reason_code: None,
             stripe_feedback: None,
             stripe_reason: None,
@@ -689,12 +775,13 @@ mod tests {
     }
 
     #[test]
-    fn resulting_plan_name_maps_downgrades_to_free() {
+    fn an_ended_subscription_lapses_on_the_plan_it_carries() {
         use crate::server::billing::plans::get_enterprise_plan;
-        use crate::server::shared::types::metadata::TypeMetadataProvider;
+        use crate::server::billing::types::base::PlanStatus;
 
-        // Cancelling a paid plan lands the org on Free, even though the event
-        // still carries the outgoing (paid) plan.
+        // Cancelling a paid plan leaves the org on that plan, lapsed: the
+        // analytics plan label stays, and the implied status is what makes
+        // the org read-only.
         let cancelled = BillingOperation::SubscriptionCancelled {
             plan: get_enterprise_plan(),
             reason_code: None,
@@ -706,25 +793,29 @@ mod tests {
             was_trialing: false,
             mrr_amount_cents: 0,
             tenure_days: 10,
+            license_key_type: None,
+            defaulted: false,
         };
-        assert_eq!(cancelled.plan().map(|p| p.name()), Some("Enterprise"));
-        assert_eq!(cancelled.resulting_plan_name(), Some("Free"));
+        assert_eq!(cancelled.resulting_plan_name(), Some("Enterprise"));
+        assert_eq!(cancelled.implied_status(), Some(PlanStatus::Cancelled));
 
-        // An unconverted trial also lands on Free.
+        // An unconverted trial lapses the same way.
         let trial_lost = BillingOperation::TrialEnded {
             plan: get_enterprise_plan(),
             converted: false,
             next_renewal_at: None,
         };
-        assert_eq!(trial_lost.resulting_plan_name(), Some("Free"));
+        assert_eq!(trial_lost.resulting_plan_name(), Some("Enterprise"));
+        assert_eq!(trial_lost.implied_status(), Some(PlanStatus::Cancelled));
 
-        // A converted trial keeps the paid plan it carries.
+        // A converted trial keeps the paid plan it carries, live.
         let trial_won = BillingOperation::TrialEnded {
             plan: get_enterprise_plan(),
             converted: true,
             next_renewal_at: DateTime::<Utc>::from_timestamp(1_800_000_000, 0),
         };
         assert_eq!(trial_won.resulting_plan_name(), Some("Enterprise"));
+        assert_eq!(trial_won.implied_status(), Some(PlanStatus::Active));
 
         // Non-downgrade events return the plan they carry.
         let checkout = BillingOperation::CheckoutCompleted {
@@ -759,7 +850,48 @@ mod tests {
             to: get_free_plan(),
             is_downgrade: false,
             next_renewal_at: DateTime::<Utc>::from_timestamp(1_800_000_000, 0),
+            license_key_type: Some(LicenseKeyType::Online),
         });
+    }
+
+    /// Ledger rows written before the segmentation fields existed carry no
+    /// such keys, and still have to read back.
+    #[test]
+    fn events_recorded_before_the_segmentation_fields_still_deserialize() {
+        for op in [
+            BillingOperation::PlanChanged {
+                from: get_free_plan(),
+                to: get_free_plan(),
+                is_downgrade: false,
+                next_renewal_at: None,
+                license_key_type: None,
+            },
+            BillingOperation::CancellationInitiated {
+                plan: None,
+                reason_code: None,
+                stripe_feedback: None,
+                stripe_reason: None,
+                comment: None,
+                save_offer_shown: vec![],
+                save_offer_redeemed: None,
+                planned_period_end: DateTime::<Utc>::from_timestamp(1_700_000_000, 0).unwrap(),
+            },
+        ] {
+            let mut json = serde_json::to_value(&op).expect("serialize");
+            strip_key(&mut json, "license_key_type");
+            strip_key(&mut json, "plan");
+            let back: BillingOperation = serde_json::from_value(json).expect("deserialize");
+            assert_eq!(op, back);
+        }
+    }
+
+    fn strip_key(value: &mut serde_json::Value, key: &str) {
+        if let serde_json::Value::Object(map) = value {
+            map.remove(key);
+            for child in map.values_mut() {
+                strip_key(child, key);
+            }
+        }
     }
 
     #[test]

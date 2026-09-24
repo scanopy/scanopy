@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Scanopy API",
-    "description": "\nNetwork topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.14\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.14\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.17.14)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **network(s)**:\n\n- You can only access entities within your organization\n- Network-level entities (hosts, services, etc.) are filtered to networks you have access to\n- Use `?network_id=<UUID>` to filter list endpoints to a specific network\n- API keys can be scoped to a subset of your accessible networks\n",
+    "description": "\nNetwork topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.16\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.16\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.17.16)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **network(s)**:\n\n- You can only access entities within your organization\n- Network-level entities (hosts, services, etc.) are filtered to networks you have access to\n- Use `?network_id=<UUID>` to filter list endpoints to a specific network\n- API keys can be scoped to a subset of your accessible networks\n",
     "license": {
       "name": "Dual (AGPL3.0, Commercial License Available)"
     },
@@ -9314,6 +9314,16 @@
               }
             }
           },
+          "403": {
+            "description": "Share is disabled or expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Share not found",
             "content": {
@@ -12508,16 +12518,17 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.17.14"
+            "example": "0.17.16"
           }
         },
         "example": {
           "api_version": 1,
-          "server_version": "0.17.14"
+          "server_version": "0.17.16"
         }
       },
       "ApiResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -12530,7 +12541,7 @@
               },
               {
                 "$ref": "#/components/schemas/TupleUnit",
-                "description": "The result payload. Omitted on failure."
+                "description": "The result payload."
               }
             ],
             "description": "The result payload. Omitted on failure."
@@ -12540,7 +12551,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -12548,12 +12559,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Binding": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -12643,19 +12655,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-15T04:26:40.604817Z",
+              "created_at": "2026-09-24T14:01:27.080102Z",
               "first_discovery_id": null,
-              "id": "d2701ef0-d280-4525-993a-01157a629803",
+              "id": "4f51704e-52bb-4df8-9469-ab1f3acbfb12",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-15T04:26:40.604817Z",
+              "last_seen_at": "2026-09-24T14:01:27.080102Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-15T04:26:40.604817Z",
-              "valid_from": "2026-09-15T04:26:40.604817Z",
+              "updated_at": "2026-09-24T14:01:27.080102Z",
+              "valid_from": "2026-09-24T14:01:27.080102Z",
               "valid_to": null
             }
           },
@@ -12664,7 +12676,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -12672,12 +12684,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_BulkDeleteResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -12708,7 +12721,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -12716,12 +12729,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_BulkTagResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -12746,7 +12760,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -12754,12 +12768,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_CancelSubscriptionResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -12784,7 +12799,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -12792,12 +12807,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_ChangePlanPreview": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -12837,7 +12853,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -12845,12 +12861,51 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
+      "ApiResponse_CheckEmailResponse": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Check email availability response.\n\nAn address that is already registered is an answer to this question, not a\nfailure of it: the caller asked whether the address is free and got a\ntruthful no. Returning an error for that case forced every client to either\ntreat a 409 as success or suppress the toast that came with it.",
+            "required": [
+              "available"
+            ],
+            "properties": {
+              "available": {
+                "type": "boolean",
+                "description": "Whether the address has no account yet, and so can be registered."
+              }
+            }
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Credential": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -12897,7 +12952,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -12905,12 +12960,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Daemon": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -12957,7 +13013,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -12965,12 +13021,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_DaemonApiKey": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -13017,7 +13074,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -13025,12 +13082,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_DaemonApiKeyResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -13061,7 +13119,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -13069,12 +13127,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_DaemonRegistrationResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -13115,7 +13174,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -13123,12 +13182,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_DaemonResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -13186,7 +13246,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -13194,12 +13254,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_DashboardSummary": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -13247,7 +13308,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -13255,12 +13316,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_DemoPopulateStatus": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -13344,7 +13406,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -13352,12 +13414,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Dependency": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -13450,7 +13513,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -13458,12 +13521,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Discovery": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -13529,7 +13593,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -13537,12 +13601,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_DiscoveryUpdatePayload": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -13564,6 +13629,13 @@
                 "type": "string",
                 "format": "uuid",
                 "description": "The daemon this entity refers to."
+              },
+              "daemon_version": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The daemon's version when the run ended. Stamped by the server at terminal, so it\nsurvives the daemon being deleted or upgraded."
               },
               "discovery_id": {
                 "type": [
@@ -13610,6 +13682,14 @@
                 "description": "Hosts found so far.",
                 "minimum": 0
               },
+              "last_update_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time",
+                "description": "When the server last heard about this run. Stamped by the server at terminal."
+              },
               "network_id": {
                 "type": "string",
                 "format": "uuid",
@@ -13624,6 +13704,17 @@
                 "format": "int32",
                 "description": "Completion of the current phase, from 0 to 1.",
                 "minimum": 0
+              },
+              "reason": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DiscoveryTerminalReason",
+                    "description": "Why the run ended. Set on terminal payloads; absent on runs recorded before it existed.\nA daemon may send one of the reasons only it can know; the server assigns every other."
+                  }
+                ]
               },
               "scanned": {
                 "oneOf": [
@@ -13663,7 +13754,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -13671,12 +13762,51 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
+      "ApiResponse_EntitlementResponse": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Data returned inside `ApiResponse` by [`ENTITLEMENT_PATH`].",
+            "required": [
+              "entitlement"
+            ],
+            "properties": {
+              "entitlement": {
+                "type": "string",
+                "description": "An offline-format license key (claims: [`super::types::LicenseClaims`])\nwith `org_id` and `plan` set from the organization's current state."
+              }
+            }
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_HostResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -14109,19 +14239,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-15T04:26:40.579917Z",
+                      "created_at": "2026-09-24T14:01:27.066652Z",
                       "first_discovery_id": null,
-                      "id": "9c128b4b-7a6b-48b3-8217-7f06e461ec5e",
+                      "id": "52604e73-a66a-4d3d-bc72-bd021cf26828",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-15T04:26:40.579917Z",
+                      "last_seen_at": "2026-09-24T14:01:27.066652Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-15T04:26:40.579917Z",
-                      "valid_from": "2026-09-15T04:26:40.579917Z",
+                      "updated_at": "2026-09-24T14:01:27.066652Z",
+                      "valid_from": "2026-09-24T14:01:27.066652Z",
                       "valid_to": null
                     }
                   ],
@@ -14135,7 +14265,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Immich",
+                  "service_definition": "Jellyseerr",
                   "source": {
                     "type": "Manual"
                   },
@@ -14168,7 +14298,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14176,12 +14306,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_IPAddress": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -14295,7 +14426,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14303,12 +14434,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_InstallArtifacts": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -14357,7 +14489,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14365,12 +14497,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Interface": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -14473,7 +14606,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14481,12 +14614,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Invite": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -14533,7 +14667,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14541,12 +14675,132 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
+      "ApiResponse_InvoiceBillingStatus": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Invoice billing state shown on the License tab.",
+            "required": [
+              "bills_by_invoice"
+            ],
+            "properties": {
+              "bills_by_invoice": {
+                "type": "boolean",
+                "description": "The subscription is billed by sent invoice."
+              },
+              "open_invoice": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/InvoiceSummary"
+                  }
+                ]
+              },
+              "pending_quote": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/PendingQuote"
+                  }
+                ]
+              },
+              "po_number": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Purchase order number printed on invoices."
+              },
+              "written_off_invoice": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/InvoiceSummary",
+                    "description": "An invoice this customer defaulted on and we wrote off. While one\nstands, they cannot take payment terms again."
+                  }
+                ]
+              }
+            }
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
+      "ApiResponse_LicenseKeyResponse": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "The result payload. Omitted on failure.",
+            "required": [
+              "key",
+              "key_type"
+            ],
+            "properties": {
+              "key": {
+                "type": "string",
+                "description": "Signed key to set as `SCANOPY_LICENSE_KEY` on a self-hosted server."
+              },
+              "key_type": {
+                "$ref": "#/components/schemas/LicenseKeyType",
+                "description": "Which key this is. An organization has one issued at a time."
+              }
+            }
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Network": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -14610,7 +14864,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14618,12 +14872,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_OnboardingStateResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -14684,7 +14939,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14692,12 +14947,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Option_SaveOfferCoupon": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -14747,7 +15003,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14755,12 +15011,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Organization": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -14807,7 +15064,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14815,12 +15072,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Port": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -14931,7 +15189,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14939,12 +15197,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_ProvisionDaemonResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -14975,7 +15234,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -14983,12 +15242,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_PublicConfigResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15012,7 +15272,10 @@
               "deployment_type",
               "license_in_grace_period",
               "org_limit_reached",
-              "server_admin_contact_email"
+              "server_admin_contact_email",
+              "license_signing_available",
+              "license_key_buffer_days",
+              "license_key_grace_days"
             ],
             "properties": {
               "billing_enabled": {
@@ -15047,6 +15310,14 @@
                 "type": "boolean",
                 "description": "Whether a daemon runs alongside the server, so no separate install is needed to start scanning."
               },
+              "license_entitlement_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time",
+                "description": "When Scanopy Cloud last answered this instance's license check-in.\nOnline keys only."
+              },
               "license_expiry": {
                 "type": [
                   "string",
@@ -15066,6 +15337,33 @@
                 ],
                 "format": "date",
                 "description": "User-visible expiry — the date displayed to end users under\nnormal operation. 7 days earlier than `license_expiry` for keys\nissued after grace-period support landed."
+              },
+              "license_key_buffer_days": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Days past an organization's paid-through date before a license key\nreaches its user-visible expiry. Published so the UI shows the same\ndates the mint path bakes into keys, instead of its own copy.",
+                "minimum": 0
+              },
+              "license_key_grace_days": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Further days past the user-visible expiry before a key stops working.",
+                "minimum": 0
+              },
+              "license_key_type": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/LicenseKeyType",
+                    "description": "Whether the configured key is an offline key or an online key that\nfetches its entitlement from Scanopy Cloud. `None` when no key applies."
+                  }
+                ]
+              },
+              "license_signing_available": {
+                "type": "boolean",
+                "description": "Whether this deployment can sign license keys. False on any server\nwithout a signing key, where the Settings License tab and the\nself-hosted plans would otherwise offer something the mint path\nrefuses. Reads the built issuer rather than the config value, since a\nkey can be present but unparseable."
               },
               "license_status": {
                 "oneOf": [
@@ -15139,7 +15437,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15147,12 +15445,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_PublicShareMetadata": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15200,7 +15499,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15208,12 +15507,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_ServerCapabilities": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15249,7 +15549,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15257,12 +15557,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Service": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15354,19 +15655,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-15T04:26:40.599235Z",
+                  "created_at": "2026-09-24T14:01:27.076846Z",
                   "first_discovery_id": null,
-                  "id": "2a8b32d7-696c-4f00-9d54-03a22c2b05aa",
+                  "id": "00bdd496-9be5-4721-85e5-aa9b2e2cb899",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-15T04:26:40.599235Z",
+                  "last_seen_at": "2026-09-24T14:01:27.076846Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-15T04:26:40.599235Z",
-                  "valid_from": "2026-09-15T04:26:40.599235Z",
+                  "updated_at": "2026-09-24T14:01:27.076846Z",
+                  "valid_from": "2026-09-24T14:01:27.076846Z",
                   "valid_to": null
                 }
               ],
@@ -15380,7 +15681,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Immich",
+              "service_definition": "Jellyseerr",
               "source": {
                 "type": "Manual"
               },
@@ -15397,7 +15698,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15405,12 +15706,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_SetupIntentResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15434,7 +15736,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15442,12 +15744,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_SetupResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15472,7 +15775,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15480,12 +15783,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Share": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15532,7 +15836,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15540,12 +15844,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_ShareAccessTokenResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15575,7 +15880,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15583,12 +15888,66 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
+      "ApiResponse_ShareWithTopology": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Share with topology data (returned after authentication/verification).\n\nReturns the slim topology row (`{ id, network_id, options }`) plus the\n`TopologyData` bundle (entities + the per-view graph built on request). The\nshare viewer composes these with the same `toRenderableTopology` the app\nuses — no server-side merge.",
+            "required": [
+              "share",
+              "topology",
+              "data",
+              "export_features"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/TopologyData",
+                "description": "Entities and graph for the requested view."
+              },
+              "export_features": {
+                "$ref": "#/components/schemas/ExportFeatures",
+                "description": "Which exports the share creator's plan allows."
+              },
+              "share": {
+                "$ref": "#/components/schemas/PublicShareMetadata",
+                "description": "Public metadata for the share itself."
+              },
+              "topology": {
+                "$ref": "#/components/schemas/Topology",
+                "description": "The shared topology record."
+              }
+            }
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Snapshot": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15635,7 +15994,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15643,12 +16002,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_String": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15663,7 +16023,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15671,12 +16031,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Subnet": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15793,7 +16154,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15801,12 +16162,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Tag": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15890,7 +16252,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15898,12 +16260,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_TestReachabilityResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -15941,7 +16304,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -15949,12 +16312,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Topology": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -16001,7 +16365,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16009,12 +16373,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_TopologyData": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -16223,7 +16588,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16231,12 +16596,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_User": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -16283,7 +16649,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16291,12 +16657,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_UserApiKey": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -16343,7 +16710,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16351,12 +16718,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_UserApiKeyResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -16387,7 +16755,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16395,12 +16763,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Vec_BillingPlan": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -16661,7 +17030,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16669,12 +17038,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Vec_Credential": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -16724,7 +17094,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16732,12 +17102,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Vec_DiscoveryUpdatePayload": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -16761,6 +17132,13 @@
                   "type": "string",
                   "format": "uuid",
                   "description": "The daemon this entity refers to."
+                },
+                "daemon_version": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "The daemon's version when the run ended. Stamped by the server at terminal, so it\nsurvives the daemon being deleted or upgraded."
                 },
                 "discovery_id": {
                   "type": [
@@ -16807,6 +17185,14 @@
                   "description": "Hosts found so far.",
                   "minimum": 0
                 },
+                "last_update_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time",
+                  "description": "When the server last heard about this run. Stamped by the server at terminal."
+                },
                 "network_id": {
                   "type": "string",
                   "format": "uuid",
@@ -16821,6 +17207,17 @@
                   "format": "int32",
                   "description": "Completion of the current phase, from 0 to 1.",
                   "minimum": 0
+                },
+                "reason": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/components/schemas/DiscoveryTerminalReason",
+                      "description": "Why the run ended. Set on terminal payloads; absent on runs recorded before it existed.\nA daemon may send one of the reasons only it can know; the server assigns every other."
+                    }
+                  ]
                 },
                 "scanned": {
                   "oneOf": [
@@ -16862,7 +17259,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16870,12 +17267,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Vec_Invite": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -16925,7 +17323,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16933,12 +17331,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_VersionInfo": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -16977,7 +17376,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -16985,12 +17384,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_Vlan": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -17085,7 +17485,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17093,12 +17493,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_VlanDiscoveryResponse": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -17125,7 +17526,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17133,12 +17534,13 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
       "ApiResponse_u32": {
         "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
         "required": [
           "success",
           "meta"
@@ -17155,7 +17557,7 @@
               "string",
               "null"
             ],
-            "description": "Human-readable failure message. Omitted on success."
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
           },
           "meta": {
             "$ref": "#/components/schemas/ApiMeta",
@@ -17163,7 +17565,7 @@
           },
           "success": {
             "type": "boolean",
-            "description": "`true` when the request succeeded. `false` responses carry `error` instead of `data`."
+            "description": "Always `true` on a successful response."
           }
         }
       },
@@ -17635,19 +18037,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-15T04:26:40.580653Z",
+          "created_at": "2026-09-24T14:01:27.066967Z",
           "first_discovery_id": null,
-          "id": "65476ef1-fc92-454f-aba0-61967f45d2a8",
+          "id": "91215bfb-5226-49ad-bc5f-1415bff3bc54",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-15T04:26:40.580653Z",
+          "last_seen_at": "2026-09-24T14:01:27.066967Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-15T04:26:40.580653Z",
-          "valid_from": "2026-09-15T04:26:40.580653Z",
+          "updated_at": "2026-09-24T14:01:27.066967Z",
+          "valid_from": "2026-09-24T14:01:27.066967Z",
           "valid_to": null
         }
       },
@@ -17987,6 +18389,19 @@
             "type": "string",
             "format": "email",
             "description": "Email address to check for an existing account."
+          }
+        }
+      },
+      "CheckEmailResponse": {
+        "type": "object",
+        "description": "Check email availability response.\n\nAn address that is already registered is an answer to this question, not a\nfailure of it: the caller asked whether the address is free and got a\ntruthful no. Returning an error for that case forced every client to either\ntreat a 409 as success or suppress the toast that came with it.",
+        "required": [
+          "available"
+        ],
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "description": "Whether the address has no account yet, and so can be registered."
           }
         }
       },
@@ -18342,7 +18757,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Immich",
+              "service_definition": "Jellyseerr",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -18386,6 +18801,18 @@
               "null"
             ],
             "description": "Address to email the invite to. Omit to create a link without sending."
+          }
+        }
+      },
+      "CreateLicenseKeyRequest": {
+        "type": "object",
+        "description": "The license key to mint.",
+        "required": [
+          "key_type"
+        ],
+        "properties": {
+          "key_type": {
+            "$ref": "#/components/schemas/LicenseKeyType"
           }
         }
       },
@@ -20219,6 +20646,20 @@
           "CDP"
         ]
       },
+      "DiscoveryTerminalReason": {
+        "type": "string",
+        "description": "Why a session reached its terminal phase.\n\n`phase` says *that* a run ended; this says *why*. A stall reaped by the server, a daemon that\nlost its state in a restart and a user pressing cancel all used to land as the same phase with\nno way to tell them apart afterwards, which is what made stall reports undiagnosable.\n\nThe server decides every reason except the two the daemon alone can know, see\n[`Self::daemon_assigned`]. Absent on runs recorded before this field existed.",
+        "enum": [
+          "Completed",
+          "UserCancelled",
+          "DaemonReportedFailure",
+          "StalledNoUpdates",
+          "DaemonRestarted",
+          "DaemonUnreachable",
+          "DaemonBusy",
+          "WatchdogTimeout"
+        ]
+      },
       "DiscoveryType": {
         "oneOf": [
           {
@@ -20411,6 +20852,13 @@
             "format": "uuid",
             "description": "The daemon this entity refers to."
           },
+          "daemon_version": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The daemon's version when the run ended. Stamped by the server at terminal, so it\nsurvives the daemon being deleted or upgraded."
+          },
           "discovery_id": {
             "type": [
               "string",
@@ -20456,6 +20904,14 @@
             "description": "Hosts found so far.",
             "minimum": 0
           },
+          "last_update_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the server last heard about this run. Stamped by the server at terminal."
+          },
           "network_id": {
             "type": "string",
             "format": "uuid",
@@ -20470,6 +20926,17 @@
             "format": "int32",
             "description": "Completion of the current phase, from 0 to 1.",
             "minimum": 0
+          },
+          "reason": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DiscoveryTerminalReason",
+                "description": "Why the run ended. Set on terminal payloads; absent on runs recorded before it existed.\nA daemon may send one of the reasons only it can know; the server assigns every other."
+              }
+            ]
           },
           "scanned": {
             "oneOf": [
@@ -21576,6 +22043,75 @@
             }
           },
           {
+            "type": "object",
+            "title": "DcpSweepTimedOut",
+            "description": "The PROFINET DCP sweep did not report back within its budget, so the run finished\nwithout the devices only it would have found.",
+            "required": [
+              "seconds",
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "DcpSweepTimedOut"
+                ]
+              },
+              "seconds": {
+                "type": "integer",
+                "format": "int32",
+                "description": "The budget the sweep had, in seconds.",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "IcmpSweepTimedOut",
+            "description": "The ICMP sweep did not report back within its budget, so hosts that answer only to ping\nwere not scanned.",
+            "required": [
+              "seconds",
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "IcmpSweepTimedOut"
+                ]
+              },
+              "seconds": {
+                "type": "integer",
+                "format": "int32",
+                "description": "The budget the sweep had, in seconds.",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "ReverseDnsTimedOut",
+            "description": "Reverse DNS lookups that got no answer in time, so those hosts have no DNS hostname.",
+            "required": [
+              "count",
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "ReverseDnsTimedOut"
+                ]
+              },
+              "count": {
+                "type": "integer",
+                "format": "int32",
+                "description": "How many lookups went unanswered.",
+                "minimum": 0
+              }
+            }
+          },
+          {
             "allOf": [
               {
                 "$ref": "#/components/schemas/UnmatchedNeighbour",
@@ -22517,6 +23053,32 @@
           }
         }
       },
+      "EntitlementRequest": {
+        "type": "object",
+        "description": "Body the instance POSTs to [`ENTITLEMENT_PATH`].",
+        "required": [
+          "key"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The online key configured via `SCANOPY_LICENSE_KEY`."
+          }
+        }
+      },
+      "EntitlementResponse": {
+        "type": "object",
+        "description": "Data returned inside `ApiResponse` by [`ENTITLEMENT_PATH`].",
+        "required": [
+          "entitlement"
+        ],
+        "properties": {
+          "entitlement": {
+            "type": "string",
+            "description": "An offline-format license key (claims: [`super::types::LicenseClaims`])\nwith `org_id` and `plan` set from the organization's current state."
+          }
+        }
+      },
       "EntityDiscriminants": {
         "type": "string",
         "enum": [
@@ -22680,6 +23242,49 @@
               "null"
             ],
             "description": "Guest name as configured on the ESXi host."
+          }
+        }
+      },
+      "ExportFeatures": {
+        "type": "object",
+        "description": "Export feature flags derived from the share creator's billing plan",
+        "required": [
+          "png_export",
+          "svg_export",
+          "mermaid_export",
+          "confluence_export",
+          "pdf_export",
+          "html_export",
+          "remove_created_with"
+        ],
+        "properties": {
+          "confluence_export": {
+            "type": "boolean",
+            "description": "Viewer may export the diagram for Confluence."
+          },
+          "html_export": {
+            "type": "boolean",
+            "description": "Viewer may export the diagram as standalone HTML."
+          },
+          "mermaid_export": {
+            "type": "boolean",
+            "description": "Viewer may export the diagram as Mermaid."
+          },
+          "pdf_export": {
+            "type": "boolean",
+            "description": "Viewer may export the diagram as PDF."
+          },
+          "png_export": {
+            "type": "boolean",
+            "description": "Viewer may export the diagram as PNG."
+          },
+          "remove_created_with": {
+            "type": "boolean",
+            "description": "Exports omit the Scanopy attribution line."
+          },
+          "svg_export": {
+            "type": "boolean",
+            "description": "Viewer may export the diagram as SVG."
           }
         }
       },
@@ -23688,19 +24293,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-15T04:26:40.579177Z",
+                  "created_at": "2026-09-24T14:01:27.066299Z",
                   "first_discovery_id": null,
-                  "id": "71bedb9c-7fa8-48cd-a2aa-60d34b4be51d",
+                  "id": "8875d59c-9854-43b0-a195-617960a11599",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-15T04:26:40.579177Z",
+                  "last_seen_at": "2026-09-24T14:01:27.066299Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-15T04:26:40.579177Z",
-                  "valid_from": "2026-09-15T04:26:40.579177Z",
+                  "updated_at": "2026-09-24T14:01:27.066299Z",
+                  "valid_from": "2026-09-24T14:01:27.066299Z",
                   "valid_to": null
                 }
               ],
@@ -23714,7 +24319,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Immich",
+              "service_definition": "Jellyseerr",
               "source": {
                 "type": "Manual"
               },
@@ -25083,6 +25688,233 @@
           }
         }
       },
+      "InvoiceBillingAddress": {
+        "type": "object",
+        "description": "Postal address of the billing entity, as Stripe's Address Element returns it.",
+        "required": [
+          "line1",
+          "city",
+          "postal_code",
+          "country"
+        ],
+        "properties": {
+          "city": {
+            "type": "string",
+            "description": "City, town or locality."
+          },
+          "country": {
+            "type": "string",
+            "description": "Two-letter ISO country code."
+          },
+          "line1": {
+            "type": "string",
+            "description": "Street address, including number."
+          },
+          "line2": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Suite, unit or floor, when the address has one."
+          },
+          "postal_code": {
+            "type": "string",
+            "description": "Postal or ZIP code."
+          },
+          "state": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "State, province or region. Absent where the country has no such level."
+          }
+        }
+      },
+      "InvoiceBillingDetails": {
+        "type": "object",
+        "description": "Who an invoice is addressed to and what the buyer's finance team matches\nit against.",
+        "required": [
+          "entity_name",
+          "billing_email",
+          "address"
+        ],
+        "properties": {
+          "address": {
+            "$ref": "#/components/schemas/InvoiceBillingAddress"
+          },
+          "billing_email": {
+            "type": "string",
+            "format": "email",
+            "description": "Where Stripe emails invoices."
+          },
+          "entity_name": {
+            "type": "string",
+            "description": "Legal name of the organization being invoiced."
+          },
+          "po_number": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Purchase order number printed on every invoice."
+          },
+          "tax_id": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/InvoiceBillingTaxId"
+              }
+            ]
+          }
+        }
+      },
+      "InvoiceBillingMode": {
+        "type": "string",
+        "description": "What to do once the billing entity is recorded.",
+        "enum": [
+          "send_invoice",
+          "quote"
+        ]
+      },
+      "InvoiceBillingRequest": {
+        "type": "object",
+        "description": "Switch the organization to paying by invoice.",
+        "required": [
+          "details",
+          "mode"
+        ],
+        "properties": {
+          "details": {
+            "$ref": "#/components/schemas/InvoiceBillingDetails"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/InvoiceBillingMode"
+          },
+          "plan": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BillingPlan",
+                "description": "Plan to invoice for. Required only when the organization has no live\nsubscription (a returning customer with no trial left); otherwise the\ncurrent plan is used and this is ignored."
+              }
+            ]
+          }
+        }
+      },
+      "InvoiceBillingStatus": {
+        "type": "object",
+        "description": "Invoice billing state shown on the License tab.",
+        "required": [
+          "bills_by_invoice"
+        ],
+        "properties": {
+          "bills_by_invoice": {
+            "type": "boolean",
+            "description": "The subscription is billed by sent invoice."
+          },
+          "open_invoice": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/InvoiceSummary"
+              }
+            ]
+          },
+          "pending_quote": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PendingQuote"
+              }
+            ]
+          },
+          "po_number": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Purchase order number printed on invoices."
+          },
+          "written_off_invoice": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/InvoiceSummary",
+                "description": "An invoice this customer defaulted on and we wrote off. While one\nstands, they cannot take payment terms again."
+              }
+            ]
+          }
+        }
+      },
+      "InvoiceBillingTaxId": {
+        "type": "object",
+        "description": "Tax ID of the billing entity, as Stripe's Tax ID Element returns it.",
+        "required": [
+          "tax_id_type",
+          "value"
+        ],
+        "properties": {
+          "tax_id_type": {
+            "type": "string",
+            "description": "Stripe tax ID type, e.g. `eu_vat` or `us_ein`."
+          },
+          "value": {
+            "type": "string",
+            "description": "The registration number itself, in the format its type expects."
+          }
+        }
+      },
+      "InvoiceSummary": {
+        "type": "object",
+        "description": "An issued invoice that has not been paid.",
+        "required": [
+          "amount_due_cents",
+          "currency"
+        ],
+        "properties": {
+          "amount_due_cents": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Outstanding balance, in cents."
+          },
+          "currency": {
+            "type": "string",
+            "description": "Three-letter ISO currency code the invoice is denominated in."
+          },
+          "due_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When payment is due. Absent on an invoice Stripe collects automatically,\nwhich is charged rather than sent."
+          },
+          "hosted_invoice_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Stripe-hosted page where the invoice can be viewed and paid."
+          },
+          "number": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Invoice number printed on the PDF, which a remittance references. Absent\nuntil Stripe finalizes the invoice."
+          }
+        }
+      },
       "Ixy": {
         "type": "object",
         "required": [
@@ -25117,13 +25949,39 @@
           }
         }
       },
+      "LicenseKeyResponse": {
+        "type": "object",
+        "required": [
+          "key",
+          "key_type"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Signed key to set as `SCANOPY_LICENSE_KEY` on a self-hosted server."
+          },
+          "key_type": {
+            "$ref": "#/components/schemas/LicenseKeyType",
+            "description": "Which key this is. An organization has one issued at a time."
+          }
+        }
+      },
+      "LicenseKeyType": {
+        "type": "string",
+        "description": "The two keys an org owner can copy for a self-hosted server. An\norganization has one of these issued at a time, stored on the org row.\n\nSerde keeps the API spelling (`\"Online\"` / `\"Offline\"`); strum supplies the\nsnake_case text the column is stored as, the way `PlanStatus` does.",
+        "enum": [
+          "Online",
+          "Offline"
+        ]
+      },
       "LicenseStatusDiscriminants": {
         "type": "string",
         "description": "Runtime license state as reported by the public config endpoint.",
         "enum": [
           "valid",
           "expired",
-          "invalid"
+          "invalid",
+          "pending"
         ]
       },
       "LldpChassisId": {
@@ -26182,6 +27040,20 @@
           "onboarding"
         ],
         "properties": {
+          "air_gapped_key_current_until": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "The date this org's air-gapped key stays current until, or `None` when\nit holds an online key or that date has passed.\n\nComputed on read from `license_key_type` and `license_paid_through`,\nnever stored. It carries the one fact the UI needs, that the org cannot\nchange plan yet, without exposing `license_key_type`, which stays\ninternal. See [`Organization::air_gapped_key_current_until`].",
+            "readOnly": true
+          },
+          "bills_by_invoice": {
+            "type": "boolean",
+            "description": "Whether the subscription is billed by sent invoice, against a purchase\norder. Such an org has no card, so this is the other half of \"can this\norg pay?\" — see [`Organization::can_pay`].",
+            "readOnly": true
+          },
           "discount_save_offer_active_until": {
             "type": [
               "string",
@@ -26241,6 +27113,24 @@
             ],
             "format": "date-time",
             "description": "Most recent `Paused` billing event's timestamp; powers the 6-month\nrolling pause cooldown.",
+            "readOnly": true
+          },
+          "license_checkin_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Last time a self-hosted server fetched an entitlement with this org's\nonline license key.",
+            "readOnly": true
+          },
+          "license_paid_through": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the org's self-hosted license is paid through: the trial end\nduring a self-hosted trial, then the end of the last paid invoice's\nservice period. While a sent invoice is unpaid, its due date plus a\ngrace window. License keys and entitlements expire 7 days later.",
             "readOnly": true
           },
           "name": {
@@ -26327,7 +27217,7 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.17.14"
+            "example": "0.17.16"
           }
         },
         "example": {
@@ -26338,7 +27228,7 @@
             "offset": 0,
             "total_count": 142
           },
-          "server_version": "0.17.14"
+          "server_version": "0.17.16"
         }
       },
       "PaginatedApiResponse_Credential": {
@@ -27116,19 +28006,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-15T04:26:40.564137Z",
+                        "created_at": "2026-09-24T14:01:27.060925Z",
                         "first_discovery_id": null,
-                        "id": "1b947f2e-f8eb-42cc-a84f-5f6d1ff85db7",
+                        "id": "738f9fa6-aa7e-4cdc-9796-9f13a03cb14d",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-15T04:26:40.564137Z",
+                        "last_seen_at": "2026-09-24T14:01:27.060925Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-15T04:26:40.564137Z",
-                        "valid_from": "2026-09-15T04:26:40.564137Z",
+                        "updated_at": "2026-09-24T14:01:27.060925Z",
+                        "valid_from": "2026-09-24T14:01:27.060925Z",
                         "valid_to": null
                       }
                     ],
@@ -27142,7 +28032,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Immich",
+                    "service_definition": "Jellyseerr",
                     "source": {
                       "type": "Manual"
                     },
@@ -27285,19 +28175,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-15T04:26:40.598273Z",
+                    "created_at": "2026-09-24T14:01:27.076214Z",
                     "first_discovery_id": null,
-                    "id": "a781bec8-ad7e-4215-8900-6fa9ceedc9a3",
+                    "id": "43dfe54a-3bcc-4855-8323-63cd676026ee",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-15T04:26:40.598273Z",
+                    "last_seen_at": "2026-09-24T14:01:27.076214Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-15T04:26:40.598273Z",
-                    "valid_from": "2026-09-15T04:26:40.598273Z",
+                    "updated_at": "2026-09-24T14:01:27.076214Z",
+                    "valid_from": "2026-09-24T14:01:27.076214Z",
                     "valid_to": null
                   }
                 ],
@@ -27311,7 +28201,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Immich",
+                "service_definition": "Jellyseerr",
                 "source": {
                   "type": "Manual"
                 },
@@ -27982,6 +28872,38 @@
           }
         }
       },
+      "PendingQuote": {
+        "type": "object",
+        "description": "An open quote waiting for the buyer's purchase order.",
+        "required": [
+          "amount_total_cents",
+          "currency",
+          "expires_at"
+        ],
+        "properties": {
+          "amount_total_cents": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total per annual term, in cents."
+          },
+          "currency": {
+            "type": "string",
+            "description": "Three-letter ISO currency code the quote is denominated in."
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the quote stops being valid, after which the buyer needs a new one."
+          },
+          "number": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Quote number printed on the PDF, which the purchase order references."
+          }
+        }
+      },
       "PlanConfig": {
         "type": "object",
         "required": [
@@ -28576,7 +29498,10 @@
           "deployment_type",
           "license_in_grace_period",
           "org_limit_reached",
-          "server_admin_contact_email"
+          "server_admin_contact_email",
+          "license_signing_available",
+          "license_key_buffer_days",
+          "license_key_grace_days"
         ],
         "properties": {
           "billing_enabled": {
@@ -28611,6 +29536,14 @@
             "type": "boolean",
             "description": "Whether a daemon runs alongside the server, so no separate install is needed to start scanning."
           },
+          "license_entitlement_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When Scanopy Cloud last answered this instance's license check-in.\nOnline keys only."
+          },
           "license_expiry": {
             "type": [
               "string",
@@ -28630,6 +29563,33 @@
             ],
             "format": "date",
             "description": "User-visible expiry — the date displayed to end users under\nnormal operation. 7 days earlier than `license_expiry` for keys\nissued after grace-period support landed."
+          },
+          "license_key_buffer_days": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Days past an organization's paid-through date before a license key\nreaches its user-visible expiry. Published so the UI shows the same\ndates the mint path bakes into keys, instead of its own copy.",
+            "minimum": 0
+          },
+          "license_key_grace_days": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Further days past the user-visible expiry before a key stops working.",
+            "minimum": 0
+          },
+          "license_key_type": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LicenseKeyType",
+                "description": "Whether the configured key is an offline key or an online key that\nfetches its entitlement from Scanopy Cloud. `None` when no key applies."
+              }
+            ]
+          },
+          "license_signing_available": {
+            "type": "boolean",
+            "description": "Whether this deployment can sign license keys. False on any server\nwithout a signing key, where the Settings License tab and the\nself-hosted plans would otherwise offer something the mint path\nrefuses. Reads the built issuer rather than the config value, since a\nkey can be present but unparseable."
           },
           "license_status": {
             "oneOf": [
@@ -29368,19 +30328,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-15T04:26:40.580448Z",
+              "created_at": "2026-09-24T14:01:27.066869Z",
               "first_discovery_id": null,
-              "id": "aecb2d5f-df30-4544-88c1-06cdd08c2135",
+              "id": "ee75f291-79fa-4a1f-a545-971304f86a0b",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-15T04:26:40.580448Z",
+              "last_seen_at": "2026-09-24T14:01:27.066869Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-15T04:26:40.580448Z",
-              "valid_from": "2026-09-15T04:26:40.580448Z",
+              "updated_at": "2026-09-24T14:01:27.066869Z",
+              "valid_from": "2026-09-24T14:01:27.066869Z",
               "valid_to": null
             }
           ],
@@ -29394,7 +30354,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Immich",
+          "service_definition": "Jellyseerr",
           "source": {
             "type": "Manual"
           },
@@ -29881,6 +30841,53 @@
           "show_zoom_controls": {
             "type": "boolean",
             "description": "Viewer sees the zoom controls."
+          }
+        }
+      },
+      "ShareTopologyRequest": {
+        "type": "object",
+        "required": [
+          "view"
+        ],
+        "properties": {
+          "access_token": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Server-issued access token obtained from `/verify`. Required when the share has a password."
+          },
+          "view": {
+            "$ref": "#/components/schemas/TopologyView",
+            "description": "Which topology view to return data for"
+          }
+        }
+      },
+      "ShareWithTopology": {
+        "type": "object",
+        "description": "Share with topology data (returned after authentication/verification).\n\nReturns the slim topology row (`{ id, network_id, options }`) plus the\n`TopologyData` bundle (entities + the per-view graph built on request). The\nshare viewer composes these with the same `toRenderableTopology` the app\nuses — no server-side merge.",
+        "required": [
+          "share",
+          "topology",
+          "data",
+          "export_features"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TopologyData",
+            "description": "Entities and graph for the requested view."
+          },
+          "export_features": {
+            "$ref": "#/components/schemas/ExportFeatures",
+            "description": "Which exports the share creator's plan allows."
+          },
+          "share": {
+            "$ref": "#/components/schemas/PublicShareMetadata",
+            "description": "Public metadata for the share itself."
+          },
+          "topology": {
+            "$ref": "#/components/schemas/Topology",
+            "description": "The shared topology record."
           }
         }
       },
@@ -30715,7 +31722,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "f2ccd7b0-ae8d-4ee4-ade1-001a5456ef27",
+                  "id": "7d5de60c-d634-4f96-a2c1-d6e9c9f024b1",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -30725,23 +31732,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "85568638-5553-49a3-973f-d088761060bd",
+                  "id": "f05b92e7-8af6-4761-9bb8-65b869e1a805",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "66cb8aef-ee56-4135-8f63-634d776166cd",
+                  "id": "c5241a61-e9d2-4954-9539-00e863691b56",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "cc6f2864-f4e9-4dcd-8a20-1a3216958b29",
+                  "id": "fe86531b-f511-42f5-8bfa-a14330df41b2",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "85568638-5553-49a3-973f-d088761060bd",
+                  "id": "f05b92e7-8af6-4761-9bb8-65b869e1a805",
                   "rule": "ByHost"
                 }
               ]
@@ -30771,19 +31778,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "5cf4c1b8-4ec8-4736-bc24-333d64c70ea0",
+                "id": "eb0d224d-12ec-4218-91f0-41595eba755c",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "2ad724c1-5387-490a-8483-f25dab201cef",
+                "id": "1884b494-2599-44e1-9d90-6495ac97f1a1",
                 "rule": "ByVLAN"
               },
               {
-                "id": "d7e18b51-c29a-472c-9dc2-821b6aa415fc",
+                "id": "280dd5c2-e72b-46ff-a70d-8cdac97f289b",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "2ffe6bfc-ece1-4eef-a24b-caf0030507c3",
+                "id": "a4802509-df75-4f8f-b82e-84b08e96e9c0",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -30801,7 +31808,7 @@
                 }
               },
               {
-                "id": "28cd7291-2157-4daf-a05e-2d3070e51485",
+                "id": "d3600ed3-6b8d-4d97-9aa7-ce10ef546cf1",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -30810,15 +31817,15 @@
                 }
               },
               {
-                "id": "bf9af5d6-ba3d-4867-94ed-662b8ea2057a",
+                "id": "c5ea3270-fda8-419c-a340-b89c45575742",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "4f042998-78e8-4d13-a040-65f315aa9771",
+                "id": "cc4027ea-43da-442e-9459-fb5954ce603f",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "20a4e905-cf1e-4944-babc-ac6da7bbe967",
+                "id": "c6609db6-b790-43c8-b4f7-75093fc0a912",
                 "rule": "ByStack"
               }
             ]
@@ -31221,6 +32228,19 @@
             "format": "password",
             "description": "New password to set",
             "writeOnly": true
+          }
+        }
+      },
+      "UpdatePoNumberRequest": {
+        "type": "object",
+        "description": "Replace the purchase order number printed on future invoices.",
+        "properties": {
+          "po_number": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "New PO number; empty or absent removes it."
           }
         }
       },

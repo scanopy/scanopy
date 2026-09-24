@@ -11,7 +11,6 @@
 	import { Check, X, ChevronDown, ChevronUp, Loader2, Minus, Plus } from 'lucide-svelte';
 	import {
 		billing_compareAllFeatures,
-		billing_contactUs,
 		billing_dayFreeTrial,
 		billing_daysCount,
 		billing_everythingInPlanPlus,
@@ -24,12 +23,12 @@
 		billing_perSeatMonthly,
 		billing_priceBase,
 		billing_rateMonthly,
+		billing_rateMonthlyEquivalent,
+		billing_rateYearly,
 		billing_rateYearlyBilled,
-		billing_requestInformation,
 		billing_seatUnit,
 		billing_seatUnitPlural,
 		billing_selfHosted,
-		billing_selfHostedOrCloud,
 		billing_showFeatures,
 		billing_hideFeatures,
 		billing_snapshotRetention,
@@ -38,10 +37,12 @@
 		billing_trialContinues,
 		billing_viewOnGithub,
 		billing_yourCurrentPlan,
+		common_cloud,
 		common_comingSoon,
 		common_custom,
 		common_feature,
 		common_getStarted,
+		billing_continueOnPlan,
 		common_hide,
 		common_hosts,
 		common_monthly,
@@ -54,9 +55,9 @@
 	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import ToggleGroup from './ToggleGroup.svelte';
-	import type { BillingPlan } from './types';
+	import type { BillingPlan, PlanPickerHosting } from './types';
 	import type { BillingPlanMetadata, FeatureMetadata } from '$lib/shared/stores/metadata';
-	import type { ColorStyle, Color } from '$lib/shared/utils/styling';
+	import type { ColorStyle } from '$lib/shared/utils/styling';
 	import type { IconComponent } from '$lib/shared/utils/types';
 	import { tooltip } from '$lib/shared/actions/tooltip';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
@@ -85,9 +86,11 @@
 		billingPlanHelpers: MetadataHelpers<BillingPlanMetadata>;
 		featureHelpers: MetadataHelpers<FeatureMetadata>;
 		onPlanSelect: (plan: BillingPlan) => void | Promise<void>;
-		onPlanInquiry?: (plan: BillingPlan) => void | Promise<void>;
 		showGithubStars?: boolean;
+		/** Show the Cloud / Self-Hosted toggle (and hosting tags on each card). */
 		showHosting?: boolean;
+		/** Tab the Cloud / Self-Hosted toggle opens on (only used with showHosting). */
+		initialHosting?: PlanPickerHosting;
 		class?: string;
 		recommendedPlan?: string | null;
 		/** If true, user is a returning customer and should not see trial offers */
@@ -96,6 +99,12 @@
 		isCurrentlyTrialing?: boolean;
 		/** The org's current plan type — shown as non-selectable "Your current plan". */
 		currentPlanType?: string | null;
+		/**
+		 * The org lapsed on `currentPlanType` (subscription ended, no paid plan
+		 * chosen since), so that plan is selectable again: continuing on it is a
+		 * new subscription, not a no-op.
+		 */
+		currentPlanLapsed?: boolean;
 	}
 
 	// eslint-disable-next-line svelte/no-unused-props
@@ -104,14 +113,15 @@
 		billingPlanHelpers,
 		featureHelpers,
 		onPlanSelect,
-		onPlanInquiry,
 		showGithubStars = true,
 		class: className = '',
 		showHosting = false,
+		initialHosting = 'cloud',
 		recommendedPlan = null,
 		isReturningCustomer = false,
 		isCurrentlyTrialing = false,
-		currentPlanType = null
+		currentPlanType = null,
+		currentPlanLapsed = false
 	}: Props = $props();
 
 	let loadingPlanType = $state<string | null>(null);
@@ -135,16 +145,37 @@
 		{ value: 'yearly', label: common_yearly(), badge: '-20%' }
 	];
 
+	// The modal content remounts on every open, so the initial tab is read once.
+	let hostingFilter = $state<PlanPickerHosting>(untrack(() => initialHosting));
+
+	const hostingOptions = [
+		{ value: 'cloud', label: common_cloud() },
+		{ value: 'self_hosted', label: billing_selfHosted() }
+	];
+
+	// Self-hosted is annual-only (the paid tiers ship yearly), so the Self-Hosted tab
+	// always renders yearly rows and locks the Monthly/Yearly toggle to Yearly (disabled).
+	let selfHostedActive = $derived(showHosting && hostingFilter === 'self_hosted');
+
 	let filteredPlans = $derived.by(() => {
 		let result = plans;
+		if (showHosting) {
+			result = result.filter((plan) => {
+				const hosting = getHosting(plan);
+				// Enterprise is hosting-agnostic ('Any') and tops both ladders.
+				if (hostingFilter === 'cloud') return hosting === 'Cloud' || hosting === 'Any';
+				return hosting === 'SelfHosted' || hosting === 'Any';
+			});
+		}
+		const period: BillingPeriod = selfHostedActive ? 'yearly' : billingPeriod;
 		result = result.filter((plan) => {
 			// Free plan is always monthly (no yearly variant)
 			if (billingPlanHelpers.getMetadata(plan.type)?.is_free) return true;
-			if (billingPeriod === 'monthly') return plan.rate === 'Month';
-			if (billingPeriod === 'yearly') return plan.rate === 'Year';
+			if (period === 'monthly') return plan.rate === 'Month';
+			if (period === 'yearly') return plan.rate === 'Year';
 			return true;
 		});
-		// Sort Free plan first
+		// Sort Free first; everything else keeps fixture order (stable sort).
 		result = [...result].sort((a, b) => {
 			if (billingPlanHelpers.getMetadata(a.type)?.is_free) return -1;
 			if (billingPlanHelpers.getMetadata(b.type)?.is_free) return 1;
@@ -280,9 +311,22 @@
 	// Helper functions
 	// ============================================================================
 
+	// Self-hosted commercial tiers publish a real annual price (custom_price is null,
+	// rate is Year). They're priced annual-first ("$4,000/yr") with a monthly whisper
+	// under it; cloud plans stay monthly-first.
+	function isSelfHostedAnnual(plan: BillingPlan): boolean {
+		const metadata = billingPlanHelpers.getMetadata(plan.type);
+		return metadata?.hosting === 'SelfHosted' && !metadata?.custom_price && plan.rate === 'Year';
+	}
+
+	function formatDollars(cents: number): string {
+		return `$${(cents / 100).toLocaleString('en-US')}`;
+	}
+
 	function formatBasePricing(plan: BillingPlan): string {
 		const metadata = billingPlanHelpers.getMetadata(plan.type);
 		if (metadata?.custom_price) return metadata.custom_price;
+		if (isSelfHostedAnnual(plan)) return formatDollars(plan.base_cents);
 		if (plan.rate === 'Year') return `$${plan.base_cents / 12 / 100}`;
 		return `$${plan.base_cents / 100}`;
 	}
@@ -290,6 +334,7 @@
 	function formatRate(plan: BillingPlan): string {
 		const metadata = billingPlanHelpers.getMetadata(plan.type);
 		if (metadata?.custom_price) return '';
+		if (isSelfHostedAnnual(plan)) return billing_rateYearly();
 		if (plan.rate === 'Year') return billing_rateYearlyBilled();
 		return billing_rateMonthly();
 	}
@@ -322,44 +367,12 @@
 		return billingPlanHelpers.getMetadata(plan.type)?.hosting ?? '';
 	}
 
-	function isCommercial(plan: BillingPlan): boolean {
-		return billingPlanHelpers.getMetadata(plan.type)?.is_commercial === true;
-	}
-
 	function hasTrial(plan: BillingPlan): boolean {
 		return !isReturningCustomer && plan.trial_days > 0;
 	}
 
 	function hasCustomPrice(plan: BillingPlan): boolean {
 		return billingPlanHelpers.getMetadata(plan.type)?.custom_price !== null;
-	}
-
-	function getHostingColor(hosting: string): Color {
-		switch (hosting) {
-			case 'Cloud':
-				return 'Cyan';
-			case 'Any':
-				return 'Purple';
-			case 'SelfHosted':
-				return 'Green';
-			default:
-				return 'Gray';
-		}
-	}
-
-	function getHostingLabel(hosting: string): string {
-		switch (hosting) {
-			case 'SelfHosted':
-				return billing_selfHosted();
-			case 'Any':
-				return billing_selfHostedOrCloud();
-			default:
-				return hosting;
-		}
-	}
-
-	function isEnterprise(plan: BillingPlan): boolean {
-		return billingPlanHelpers.getMetadata(plan.type)?.is_enterprise === true;
 	}
 
 	async function handlePlanSelect(plan: BillingPlan) {
@@ -376,7 +389,13 @@
 		return value == null ? common_unlimited() : String(value);
 	}
 
-	function formatSnapshotRetention(value: boolean | string | number | null): string {
+	function formatSnapshotRetention(plan: BillingPlan): string {
+		// Self-hosted deployments set their own retention window, so no fixed number is
+		// published for them — unless this deployment carries the universal override,
+		// which getFeatureValue already applies and which wins for every plan.
+		const override = configQuery.data?.snapshot_retention_days_override;
+		if (override == null && getHosting(plan) === 'SelfHosted') return common_custom();
+		const value = getFeatureValue(plan.type, 'snapshot_retention_days');
 		if (value === 0) return billing_notIncluded();
 		if (typeof value === 'number') return billing_daysCount({ count: value });
 		return '—';
@@ -414,15 +433,24 @@
 
 <div class="flex min-h-0 flex-1 flex-col {className}">
 	<!-- Header with Toggles (fixed, does not scroll) -->
-	<div class="flex shrink-0 flex-wrap items-center justify-center px-4 py-1 lg:px-6">
+	<div class="flex shrink-0 flex-wrap items-center justify-center gap-2 px-4 py-1 lg:px-6">
 		{#if showGithubStars}
 			<!-- <GithubStars /> -->
 		{/if}
 
+		{#if showHosting}
+			<ToggleGroup
+				options={hostingOptions}
+				selected={hostingFilter}
+				onchange={(value) => (hostingFilter = value as PlanPickerHosting)}
+			/>
+		{/if}
+
 		<ToggleGroup
 			options={billingPeriodOptions}
-			selected={billingPeriod}
+			selected={selfHostedActive ? 'yearly' : billingPeriod}
 			onchange={(value) => (billingPeriod = value as BillingPeriod)}
+			disabled={selfHostedActive}
 		/>
 	</div>
 
@@ -436,10 +464,7 @@
 					{@const colorHelper = billingPlanHelpers.getColorHelper(plan.type)}
 					{@const isRecommended = recommendedPlan === plan.type}
 					{@const description = billingPlanHelpers.getDescription(plan.type)}
-					{@const hosting = getHosting(plan)}
-					{@const commercial = isCommercial(plan)}
 					{@const trial = hasTrial(plan)}
-					{@const enterprise = isEnterprise(plan)}
 					{@const metadata = billingPlanHelpers.getMetadata(plan.type)}
 					{@const incrementalFeatures = metadata?.incremental_features ?? []}
 					{@const prevTier = metadata?.previous_tier}
@@ -476,10 +501,6 @@
 									{billingPlanHelpers.getName(plan.type)}
 								</span>
 							</div>
-
-							{#if showHosting && hosting}
-								<Tag label={getHostingLabel(hosting)} color={getHostingColor(hosting)} />
-							{/if}
 						</div>
 
 						<!-- Pricing -->
@@ -519,6 +540,17 @@
 									{/if}
 								</div>
 							{/if}
+							{#if selfHostedActive}
+								<!-- Annual price on the card, monthly equivalent under it. The
+								     invisible copy keeps card rows aligned for plans with no annual price. -->
+								<div
+									class={`text-tertiary text-center text-xs ${isSelfHostedAnnual(plan) && !hasExtras(plan) ? 'opacity-100' : 'opacity-0'}`}
+								>
+									{billing_rateMonthlyEquivalent({
+										amount: isSelfHostedAnnual(plan) ? formatCents(plan.base_cents / 12) : ''
+									})}
+								</div>
+							{/if}
 							<div
 								class={`text-xs font-medium text-success ${(hasTrial(plan) || (isCurrentlyTrialing && plan.trial_days > 0)) && !hasCustomPrice(plan) ? 'opacity-100' : 'opacity-0'}`}
 							>
@@ -537,17 +569,9 @@
 
 						<!-- CTA Button -->
 						<div class="py-4" style="border-color: var(--color-border)">
-							{#if enterprise && onPlanInquiry}
-								<button
-									type="button"
-									onclick={() => onPlanInquiry(plan)}
-									disabled={loadingPlanType !== null}
-									class="btn-primary w-full text-sm"
-								>
-									{billing_requestInformation()}
-								</button>
-							{:else if hosting === 'Cloud'}
-								{#if plan.type === currentPlanType}
+							{#if metadata?.purchase_flow === 'stripe' || metadata?.is_free}
+								<!-- Free has purchase_flow 'none' but activates in-app like a Stripe plan -->
+								{#if plan.type === currentPlanType && !currentPlanLapsed}
 									<InlineInfo title="" body={billing_yourCurrentPlan()} />
 								{:else}
 									<button
@@ -558,6 +582,8 @@
 									>
 										{#if loadingPlanType === plan.type}
 											<Loader2 class="mx-auto h-4 w-4 animate-spin" />
+										{:else if plan.type === currentPlanType}
+											{billing_continueOnPlan({ plan: billingPlanHelpers.getName(plan.type) })}
 										{:else if isCurrentlyTrialing}
 											{billing_switchPlan()}
 										{:else}
@@ -570,35 +596,15 @@
 										</div>
 									{/if}
 								{/if}
-							{:else if hosting === 'SelfHosted'}
-								{#if commercial && onPlanInquiry}
-									<button
-										type="button"
-										onclick={() => onPlanInquiry(plan)}
-										disabled={loadingPlanType !== null}
-										class="btn-primary w-full text-sm"
-									>
-										{billing_contactUs()}
-									</button>
-								{:else}
-									<a
-										href="https://github.com/scanopy/scanopy"
-										target="_blank"
-										rel="noopener noreferrer"
-										class="btn-secondary inline-block w-full text-center text-sm"
-									>
-										{billing_viewOnGithub()}
-									</a>
-								{/if}
-							{:else if commercial && onPlanInquiry}
-								<button
-									type="button"
-									onclick={() => onPlanInquiry(plan)}
-									disabled={loadingPlanType !== null}
-									class="btn-primary w-full text-sm"
+							{:else}
+								<a
+									href="https://github.com/scanopy/scanopy"
+									target="_blank"
+									rel="noopener noreferrer"
+									class="btn-secondary inline-block w-full text-center text-sm"
 								>
-									Contact Us
-								</button>
+									{billing_viewOnGithub()}
+								</a>
 							{/if}
 						</div>
 
@@ -693,7 +699,7 @@
 							<div class="flex items-center justify-between text-sm">
 								<span class="text-secondary">{billing_snapshotRetention()}</span>
 								<span class="text-primary font-medium">
-									{formatSnapshotRetention(getFeatureValue(plan.type, 'snapshot_retention_days'))}
+									{formatSnapshotRetention(plan)}
 								</span>
 							</div>
 						</div>

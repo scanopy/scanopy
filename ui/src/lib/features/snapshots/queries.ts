@@ -9,6 +9,7 @@
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
 import { pushSuccess } from '$lib/shared/stores/feedback';
 import { formatTimestamp } from '$lib/shared/utils/formatting';
 import { topology_snapshotCreated } from '$lib/paraglide/messages';
@@ -27,13 +28,12 @@ export function useSnapshotsQuery(networkId: () => string | undefined) {
 		queryFn: async () => {
 			const id = networkId();
 			if (!id) return [] as Snapshot[];
-			const { data } = await apiClient.GET('/api/v1/snapshots', {
-				params: { query: { network_id: id, limit: 0 } }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to fetch snapshots');
-			}
-			return [...data.data].sort(
+			const snapshots = unwrapData(
+				await apiClient.GET('/api/v1/snapshots', {
+					params: { query: { network_id: id, limit: 0 } }
+				})
+			);
+			return [...snapshots].sort(
 				(a, b) => new Date(b.taken_at).getTime() - new Date(a.taken_at).getTime()
 			);
 		},
@@ -56,13 +56,11 @@ export function useTakeSnapshotMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async ({ network_id }: { network_id: string }) => {
-			const { data } = await apiClient.POST('/api/v1/snapshots', {
-				body: { network_id }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to take snapshot');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.POST('/api/v1/snapshots', {
+					body: { network_id }
+				})
+			);
 		},
 		onSuccess: (snapshot: Snapshot) => {
 			queryClient.invalidateQueries({
@@ -83,12 +81,11 @@ export function useDeleteSnapshotMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async ({ snapshot_id }: { snapshot_id: string; network_id: string }) => {
-			const { data } = await apiClient.DELETE('/api/v1/snapshots/{id}', {
-				params: { path: { id: snapshot_id } }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete snapshot');
-			}
+			requireSuccess(
+				await apiClient.DELETE('/api/v1/snapshots/{id}', {
+					params: { path: { id: snapshot_id } }
+				})
+			);
 			return snapshot_id;
 		},
 		onSuccess: (_id, variables) => {

@@ -26,13 +26,15 @@ impl DiscoveryService {
     }
 
     pub async fn get_sessions_for_daemon(&self, daemon_id: &Uuid) -> Vec<DiscoveryUpdatePayload> {
-        let daemon_session_ids = self.daemon_sessions.read().await;
-        let session_ids = daemon_session_ids
+        // `sessions` before `daemon_sessions`: see the lock order on `DiscoveryService`.
+        let all_sessions = self.sessions.read().await;
+        let session_ids = self
+            .daemon_sessions
+            .read()
+            .await
             .get(daemon_id)
             .cloned()
             .unwrap_or_default();
-
-        let all_sessions = self.sessions.read().await;
 
         // Preserve order from daemon_sessions Vec (not HashMap iteration order)
         // Only return Pending sessions - once dispatched, they transition to Starting
@@ -43,12 +45,23 @@ impl DiscoveryService {
             .collect()
     }
 
+    /// Every session the server is tracking on a daemon, in any phase.
+    pub async fn sessions_on_daemon(&self, daemon_id: &Uuid) -> Vec<DiscoveryUpdatePayload> {
+        self.sessions
+            .read()
+            .await
+            .values()
+            .filter(|session| session.daemon_id == *daemon_id)
+            .cloned()
+            .collect()
+    }
+
     /// Clear all sessions for a daemon from in-memory state.
     /// Used by tests to ensure clean state between phases.
     pub async fn clear_sessions_for_daemon(&self, daemon_id: &Uuid) {
         let mut sessions = self.sessions.write().await;
-        let mut daemon_sessions = self.daemon_sessions.write().await;
         let mut session_last_updated = self.session_last_updated.write().await;
+        let mut daemon_sessions = self.daemon_sessions.write().await;
         let mut daemon_pull_cancellations = self.daemon_pull_cancellations.write().await;
         let mut discovery_sessions = self.discovery_sessions.write().await;
 
@@ -71,13 +84,15 @@ impl DiscoveryService {
     /// Check if daemon has an active (dispatched, non-terminal) discovery session.
     /// Both Queued and Pending are excluded — neither has been dispatched yet.
     pub async fn has_active_session_for_daemon(&self, daemon_id: &Uuid) -> bool {
-        let daemon_session_ids = self.daemon_sessions.read().await;
-        let session_ids = daemon_session_ids
+        // `sessions` before `daemon_sessions`: see the lock order on `DiscoveryService`.
+        let all_sessions = self.sessions.read().await;
+        let session_ids = self
+            .daemon_sessions
+            .read()
+            .await
             .get(daemon_id)
             .cloned()
             .unwrap_or_default();
-
-        let all_sessions = self.sessions.read().await;
 
         session_ids.iter().any(|session_id| {
             all_sessions
@@ -114,6 +129,25 @@ impl DiscoveryService {
                 "Transitioned session to Starting phase"
             );
         }
+    }
+
+    /// Reserve a network for snapshotting, returning a reservation that releases it.
+    ///
+    /// `None` when [`Self::try_acquire_network_for_snapshot`] would return `false`. Prefer this to
+    /// pairing acquire and release by hand: the reservation also releases the network when the
+    /// holder is dropped without releasing it, which is what a request handler's future does when
+    /// its client disconnects.
+    pub async fn try_reserve_network_for_snapshot(
+        self: &Arc<Self>,
+        network_id: Uuid,
+    ) -> Option<SnapshotReservation> {
+        self.try_acquire_network_for_snapshot(network_id)
+            .await
+            .then(|| SnapshotReservation {
+                service: self.clone(),
+                network_id,
+                released: false,
+            })
     }
 
     /// Atomically reserve a network for snapshotting.
@@ -173,7 +207,9 @@ impl DiscoveryService {
         // their next phase. Walk daemons in turn so the Queued/Pending
         // decision matches start_session's "promote only if daemon has no
         // other dispatched sessions" rule.
+        // The lock order documented on `DiscoveryService`.
         let mut sessions = self.sessions.write().await;
+        let mut last_updated = self.session_last_updated.write().await;
         let daemon_sessions = self.daemon_sessions.read().await;
 
         let mut to_publish: Vec<DiscoveryUpdatePayload> = Vec::new();
@@ -215,10 +251,7 @@ impl DiscoveryService {
                     session.phase = DiscoveryPhase::Queued;
                 } else {
                     session.phase = DiscoveryPhase::Pending;
-                    self.session_last_updated
-                        .write()
-                        .await
-                        .insert(session_id, Utc::now());
+                    last_updated.insert(session_id, Utc::now());
                     to_publish.push(session.clone());
                 }
                 let _ = self.update_tx.send(session.clone());
@@ -226,6 +259,7 @@ impl DiscoveryService {
         }
 
         drop(daemon_sessions);
+        drop(last_updated);
         drop(sessions);
 
         for payload in to_publish {
@@ -290,5 +324,50 @@ impl DiscoveryService {
         daemon_cancellation_ids
             .remove(daemon_id)
             .unwrap_or((false, Uuid::nil()))
+    }
+}
+
+/// A network reserved for a snapshot.
+///
+/// Release it with [`Self::release`] when the snapshot is done. If it is dropped unreleased (the
+/// request serving the snapshot was abandoned mid-way), it releases the network itself. Without
+/// that, the reservation outlived the request and every later scan on the network waited in
+/// `AwaitingSnapshot`, which the stall sweep never touches, until the server restarted.
+pub struct SnapshotReservation {
+    service: Arc<DiscoveryService>,
+    network_id: Uuid,
+    released: bool,
+}
+
+impl SnapshotReservation {
+    pub async fn release(mut self) {
+        self.service
+            .release_network_for_snapshot(self.network_id)
+            .await;
+        // Set only once the release has run: a release interrupted part-way is finished by `Drop`.
+        // Releasing twice is harmless.
+        self.released = true;
+    }
+}
+
+impl Drop for SnapshotReservation {
+    fn drop(&mut self) {
+        if self.released {
+            return;
+        }
+        // `Drop` cannot await the release, so it runs on its own task. With no runtime left (the
+        // server is shutting down) there is nothing to release: the reservation is in memory only.
+        let Ok(runtime) = tokio::runtime::Handle::try_current() else {
+            return;
+        };
+        tracing::warn!(
+            network_id = %self.network_id,
+            "Snapshot request ended without releasing its network; releasing it now"
+        );
+        let service = self.service.clone();
+        let network_id = self.network_id;
+        runtime.spawn(async move {
+            service.release_network_for_snapshot(network_id).await;
+        });
     }
 }

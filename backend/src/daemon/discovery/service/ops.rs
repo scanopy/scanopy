@@ -20,7 +20,7 @@ use crate::{
             service::warnings,
             types::base::{
                 DiscoveryCriticalError, DiscoveryPhase, DiscoverySessionInfo,
-                DiscoverySessionUpdate,
+                DiscoverySessionUpdate, DiscoveryTerminalReason,
             },
             types::warnings::DiscoveryWarning,
         },
@@ -692,6 +692,7 @@ impl DiscoveryOps {
             error: None,
             warnings: Vec::new(),
             finished_at: None,
+            reason: None,
         })
         .await?;
 
@@ -762,59 +763,37 @@ impl DiscoveryOps {
 
         truncate_warnings(&mut warnings);
 
-        // Build the terminal update based on result
-        let terminal_update = match &discovery_result {
-            Ok(_) => {
-                tracing::info!(
-                    session_id = %session_id,
-                    progress = 100,
-                    warnings = warnings.len(),
-                    "Discovery session completed successfully"
-                );
-                DiscoverySessionUpdate {
-                    phase: DiscoveryPhase::Complete,
-                    progress: 100,
-                    error: None,
-                    warnings,
-                    finished_at: Some(Utc::now()),
-                }
-            }
-            Err(_) if cancel.is_cancelled() => {
-                tracing::warn!(
-                    session_id = %session_id,
-                    progress = %final_progress,
-                    "Discovery session cancelled"
-                );
-                DiscoverySessionUpdate {
-                    phase: DiscoveryPhase::Cancelled,
-                    progress: final_progress,
-                    error: None,
-                    warnings,
-                    finished_at: Some(Utc::now()),
-                }
-            }
-            Err(e) => {
+        let warning_count = warnings.len();
+        let terminal_update = terminal_update(
+            &discovery_result,
+            cancel.is_cancelled(),
+            final_progress,
+            warnings,
+            Utc::now(),
+        );
+        match terminal_update.phase {
+            DiscoveryPhase::Complete => tracing::info!(
+                session_id = %session_id,
+                progress = 100,
+                warnings = warning_count,
+                "Discovery session completed successfully"
+            ),
+            DiscoveryPhase::Cancelled => tracing::warn!(
+                session_id = %session_id,
+                progress = %final_progress,
+                "Discovery session cancelled"
+            ),
+            _ => {
                 tracing::error!(
                     session_id = %session_id,
                     progress = %final_progress,
-                    error = %e,
+                    reason = ?terminal_update.reason,
+                    error = terminal_update.error.as_deref().unwrap_or_default(),
                     "Discovery session failed"
                 );
-
-                let error = DiscoveryCriticalError::from_error_string(e.to_string())
-                    .map(|e| e.to_string())
-                    .unwrap_or(format!("Critical error: {}", e));
-
                 cancel.cancel();
-                DiscoverySessionUpdate {
-                    phase: DiscoveryPhase::Failed,
-                    progress: final_progress,
-                    error: Some(error),
-                    warnings,
-                    finished_at: Some(Utc::now()),
-                }
             }
-        };
+        }
 
         // Snapshot canonical IDs of entities scanned this session BEFORE
         // clear_all wipes the buffer. Rides the terminal payload over the
@@ -849,10 +828,6 @@ impl DiscoveryOps {
             && session.info.session_id == session_id
         {
             *current_session = None;
-        }
-
-        if cancel.is_cancelled() {
-            return Ok(());
         }
 
         Ok(())
@@ -905,25 +880,8 @@ impl DiscoveryOps {
             payload.estimated_remaining_secs = Some(estimate);
         }
 
-        let path = format!("/api/v1/discovery/{}/update", session.info.session_id);
-
         // Progress updates are non-critical - log errors but don't fail discovery
-        if let Err(e) = self
-            .api_client
-            .post_no_data(&path, &payload, "Failed to report discovery update")
-            .await
-        {
-            tracing::warn!(
-                session_id = %session.info.session_id,
-                error = %e,
-                "Failed to report discovery update"
-            );
-        } else {
-            tracing::trace!(
-                "Discovery update reported for session {}",
-                session.info.session_id
-            );
-        }
+        self.post_session_update(&session, &payload).await;
 
         Ok(())
     }
@@ -1073,22 +1031,39 @@ impl DiscoveryOps {
         }
     }
 
-    /// Report scanning progress. Mode-aware: DaemonPoll POSTs to server,
-    /// ServerPoll updates session atomics only.
+    /// Report scanning progress, `percent` being progress within the current phase. Mode-aware:
+    /// DaemonPoll POSTs to server, ServerPoll updates session atomics only.
     pub async fn report_progress(&self, percent: u8) -> Result<(), Error> {
-        use crate::daemon::discovery::types::base::DiscoverySessionUpdate;
         use std::sync::atomic::Ordering;
 
         let session = self.get_session().await?;
         let start = session.progress_range_start.load(Ordering::Relaxed);
         let end = session.progress_range_end.load(Ordering::Relaxed);
-        let percent = map_progress(percent, start, end);
+        self.report_overall_progress(map_progress(percent, start, end))
+            .await
+    }
 
+    /// Resend the session's current progress unchanged, so the server can tell a long quiet
+    /// stretch of a live scan from a daemon that has gone away. Its stall sweep fails a session
+    /// after five minutes without an update.
+    pub async fn heartbeat(&self) -> Result<(), Error> {
+        use std::sync::atomic::Ordering;
+
+        let session = self.get_session().await?;
+        // Already overall progress: passing it through `report_progress` would map it into the
+        // phase's range a second time.
+        self.report_overall_progress(session.last_progress.load(Ordering::Relaxed))
+            .await
+    }
+
+    /// Report progress already mapped to the whole session.
+    async fn report_overall_progress(&self, percent: u8) -> Result<(), Error> {
+        use crate::daemon::discovery::types::base::DiscoverySessionUpdate;
+        use std::sync::atomic::Ordering;
+
+        let session = self.get_session().await?;
         let last_report_time = &session.last_progress_report_time;
         let last_progress = &session.last_progress;
-
-        let prev_percent = last_progress.load(Ordering::Relaxed);
-        let progress_changed = percent > prev_percent || percent == 100;
 
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -1096,16 +1071,14 @@ impl DiscoveryOps {
             .as_secs();
         let last_time = last_report_time.load(Ordering::Relaxed);
 
-        let heartbeat_interval_secs = 30;
-        let heartbeat_due = now >= last_time + heartbeat_interval_secs;
-
-        if !progress_changed && !heartbeat_due && percent < 100 {
+        let Some(percent) = progress_decision(
+            percent,
+            last_progress.load(Ordering::Relaxed),
+            now,
+            last_time,
+        ) else {
             return Ok(());
-        }
-
-        if percent < 100 && !heartbeat_due && now < last_time + 10 {
-            return Ok(());
-        }
+        };
 
         if last_report_time
             .compare_exchange(last_time, now, Ordering::SeqCst, Ordering::Relaxed)
@@ -1135,21 +1108,53 @@ impl DiscoveryOps {
                 payload.estimated_remaining_secs = Some(estimate);
             }
 
-            let path = format!("/api/v1/discovery/{}/update", session.info.session_id);
-            if let Err(e) = self
-                .api_client
-                .post_no_data(&path, &payload, "Failed to report discovery update")
-                .await
-            {
+            self.post_session_update(&session, &payload).await;
+        }
+
+        Ok(())
+    }
+
+    /// POST a session update, counting failures in a row so the log shows a daemon losing touch
+    /// with the server before the server gives up on the session.
+    async fn post_session_update(
+        &self,
+        session: &super::base::DiscoverySession,
+        payload: &DiscoveryUpdatePayload,
+    ) {
+        use std::sync::atomic::Ordering;
+
+        let path = format!("/api/v1/discovery/{}/update", session.info.session_id);
+        match self
+            .api_client
+            .post_no_data(&path, payload, "Failed to report discovery update")
+            .await
+        {
+            Err(e) => {
+                let failures = session
+                    .consecutive_report_failures
+                    .fetch_add(1, Ordering::Relaxed)
+                    + 1;
                 tracing::warn!(
                     session_id = %session.info.session_id,
+                    phase = %payload.phase,
+                    consecutive_failures = failures,
                     error = %e,
                     "Failed to report discovery update"
                 );
             }
+            Ok(()) => {
+                let failures = session
+                    .consecutive_report_failures
+                    .swap(0, Ordering::Relaxed);
+                if failures > 0 {
+                    tracing::info!(
+                        session_id = %session.info.session_id,
+                        failed_before = failures,
+                        "Discovery updates reaching the server again"
+                    );
+                }
+            }
         }
-
-        Ok(())
     }
 
     /// Create a host with its children.
@@ -1547,6 +1552,150 @@ fn map_progress(raw: u8, start: u8, end: u8) -> u8 {
         return raw;
     }
     start + (raw as f64 * (end - start) as f64 / 100.0) as u8
+}
+
+/// Whether to report progress now, and the value to report.
+///
+/// A rise, or 100, reports at once, spaced at least 10s apart below 100. An unchanged value
+/// reports only once 30s have passed since the last report, as a heartbeat. The reported value
+/// never falls below what was already reported.
+fn progress_decision(
+    percent: u8,
+    reported: u8,
+    now_secs: u64,
+    last_report_secs: u64,
+) -> Option<u8> {
+    let changed = percent > reported || percent == 100;
+    let heartbeat_due = now_secs >= last_report_secs + 30;
+
+    if !changed && !heartbeat_due {
+        return None;
+    }
+    if percent < 100 && !heartbeat_due && now_secs < last_report_secs + 10 {
+        return None;
+    }
+    Some(percent.max(reported))
+}
+
+/// A session the daemon ended itself rather than one that failed.
+#[derive(Debug, thiserror::Error)]
+pub enum DiscoveryAbort {
+    /// The session outlived its maximum duration: some part of it stopped responding and never
+    /// reached the checks that enforce the limit from inside the scan.
+    #[error(
+        "The scan ran for {elapsed_secs}s, past its {cap_secs}s maximum, and was stopped. \
+         Part of the scan stopped responding."
+    )]
+    Watchdog { elapsed_secs: u64, cap_secs: u64 },
+}
+
+/// The terminal update a run reports, from how it ended.
+///
+/// A watchdog abort is a failure with its own reason whatever the session's token says: the
+/// session may well have been cancelled first and never reacted, which is the kind of wedge the
+/// watchdog exists for.
+fn terminal_update(
+    result: &Result<(), Error>,
+    cancelled: bool,
+    progress: u8,
+    warnings: Vec<DiscoveryWarning>,
+    now: chrono::DateTime<Utc>,
+) -> DiscoverySessionUpdate {
+    let (phase, progress, error, reason) = match result {
+        Ok(()) => (DiscoveryPhase::Complete, 100, None, None),
+        Err(e) => match e.downcast_ref::<DiscoveryAbort>() {
+            Some(abort @ DiscoveryAbort::Watchdog { .. }) => (
+                DiscoveryPhase::Failed,
+                progress,
+                Some(abort.to_string()),
+                Some(DiscoveryTerminalReason::WatchdogTimeout),
+            ),
+            None if cancelled => (DiscoveryPhase::Cancelled, progress, None, None),
+            None => {
+                let error = DiscoveryCriticalError::from_error_string(e.to_string())
+                    .map(|e| e.to_string())
+                    .unwrap_or(format!("Critical error: {}", e));
+                (DiscoveryPhase::Failed, progress, Some(error), None)
+            }
+        },
+    };
+
+    DiscoverySessionUpdate {
+        phase,
+        progress,
+        error,
+        warnings,
+        finished_at: Some(now),
+        reason,
+    }
+}
+
+#[cfg(test)]
+mod progress_decision_tests {
+    use super::*;
+
+    const LAST: u64 = 1_000;
+
+    #[test]
+    fn a_heartbeat_never_lowers_the_progress_already_reported() {
+        // The integration heartbeat used to pass overall progress back through the phase mapping:
+        // 3% overall in phase 1's 0-5% range came back as 0%, and since a heartbeat is due
+        // regardless of change, 0% was stored and sent.
+        let double_mapped = map_progress(3, 0, 5);
+
+        assert_eq!(
+            progress_decision(double_mapped, 3, LAST + 31, LAST),
+            Some(3)
+        );
+    }
+
+    #[test]
+    fn completion_is_reported_however_recently_progress_was() {
+        assert_eq!(progress_decision(100, 99, LAST, LAST), Some(100));
+    }
+}
+
+#[cfg(test)]
+mod terminal_update_tests {
+    use super::*;
+
+    fn watchdog_abort() -> Result<(), Error> {
+        Err(DiscoveryAbort::Watchdog {
+            elapsed_secs: 22_800,
+            cap_secs: 22_200,
+        }
+        .into())
+    }
+
+    #[test]
+    fn a_watchdog_stop_is_a_failure_with_its_own_reason_even_after_a_cancel() {
+        // A session cancelled and then wedged is exactly what the watchdog ends. Reporting it
+        // as cancelled would say the cancel worked.
+        for cancelled in [false, true] {
+            let update = terminal_update(&watchdog_abort(), cancelled, 99, Vec::new(), Utc::now());
+
+            assert_eq!(update.phase, DiscoveryPhase::Failed);
+            assert_eq!(
+                update.reason,
+                Some(DiscoveryTerminalReason::WatchdogTimeout)
+            );
+        }
+    }
+
+    #[test]
+    fn a_failure_the_daemon_did_not_classify_carries_no_reason_of_its_own() {
+        // The server assigns the reason for an ordinary failure.
+        let update = terminal_update(
+            &Err(anyhow!("connection reset")),
+            false,
+            40,
+            Vec::new(),
+            Utc::now(),
+        );
+
+        assert_eq!(update.phase, DiscoveryPhase::Failed);
+        assert_eq!(update.reason, None);
+    }
 }
 
 #[cfg(test)]

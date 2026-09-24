@@ -1,15 +1,11 @@
 use chrono::{Duration, Utc};
 use clap::{Parser, Subcommand};
-use jsonwebtoken::{Algorithm, Header};
 use scanopy::server::license::{
     crypto::encoding_key_from_env,
-    key::LicenseKey,
-    types::{LicenseClaims, LicensePlan},
+    key::{ConfiguredKey, LicenseKey},
+    mint::{license_claims, sign_license},
+    types::LicensePlan,
 };
-
-/// Silent grace window added past the user-visible expiry. Hard-coded —
-/// per-tier grace is explicitly out of scope.
-const GRACE_PERIOD_DAYS: i64 = 7;
 
 #[derive(Parser)]
 #[command(name = "scanopy-license")]
@@ -47,21 +43,8 @@ fn main() -> anyhow::Result<()> {
             // `intended_exp` is the user-visible expiry. `exp` is the hard
             // enforcement boundary, 7 days later — a silent grace window.
             let intended_exp = now + Duration::days(days as i64);
-            let exp = intended_exp + Duration::days(GRACE_PERIOD_DAYS);
-
-            let claims = LicenseClaims {
-                sub: "scanopy-license".to_string(),
-                iss: "scanopy".to_string(),
-                iat: now.timestamp(),
-                exp: exp.timestamp(),
-                intended_exp: intended_exp.timestamp(),
-                org_id: None,
-                plan,
-            };
-
-            let header = Header::new(Algorithm::EdDSA);
-            let key = encoding_key_from_env()?;
-            let token = jsonwebtoken::encode(&header, &claims, &key)?;
+            let claims = license_claims(now, intended_exp, None, plan);
+            let token = sign_license(&claims, &encoding_key_from_env()?)?;
 
             println!("{}", token);
             eprintln!(
@@ -70,13 +53,30 @@ fn main() -> anyhow::Result<()> {
             );
             eprintln!(
                 "                Hard expiry (with grace): {}",
-                exp.format("%Y-%m-%d")
+                chrono::DateTime::from_timestamp(claims.exp, 0)
+                    .map(|d| d.format("%Y-%m-%d").to_string())
+                    .unwrap_or_default()
             );
 
             Ok(())
         }
         Commands::Verify { key } => {
-            let status = LicenseKey::new(key).validate();
+            let key = LicenseKey::new(key);
+
+            // An online key carries no plan or expiry; the cloud supplies them.
+            if let ConfiguredKey::Online(claims) = key.key_type() {
+                let iat = chrono::DateTime::from_timestamp(claims.iat, 0)
+                    .map(|d| d.format("%Y-%m-%d %H:%M:%S UTC").to_string())
+                    .unwrap_or_else(|| "unknown".to_string());
+
+                println!("Status:         VALID (online key)");
+                println!("Issued:         {}", iat);
+                println!("Org ID:         {}", claims.org_id);
+                println!("Key version:    {}", claims.key_version);
+                return Ok(());
+            }
+
+            let status = key.validate();
 
             match &status {
                 scanopy::server::license::types::LicenseStatus::Valid(claims) => {
@@ -113,6 +113,9 @@ fn main() -> anyhow::Result<()> {
                 scanopy::server::license::types::LicenseStatus::Invalid(reason) => {
                     println!("Status:  INVALID");
                     println!("Reason:  {}", reason);
+                }
+                scanopy::server::license::types::LicenseStatus::Pending => {
+                    println!("Status:  PENDING");
                 }
             }
 

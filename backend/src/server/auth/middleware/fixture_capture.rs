@@ -10,6 +10,20 @@
 
 use axum::{extract::Request, middleware::Next, response::Response};
 
+/// Marks a request the compat suite replays from an existing fixture. A replay is never a new
+/// recording: recording one would file the current version's traffic under the old version it
+/// replays, overwriting that version's genuine fixture.
+pub const FIXTURE_REPLAY_HEADER: &str = "X-Scanopy-Fixture-Replay";
+
+/// Whether this process should record `request` as a fixture. The test containers are always built
+/// with `generate-fixtures`, so recording also needs `CAPTURE_COMPAT_FIXTURES=true`, which the
+/// integration suite sets only when it runs with that feature itself (the release run).
+#[cfg(feature = "generate-fixtures")]
+pub fn should_capture(request: &Request) -> bool {
+    std::env::var("CAPTURE_COMPAT_FIXTURES").is_ok_and(|v| v == "true")
+        && !request.headers().contains_key(FIXTURE_REPLAY_HEADER)
+}
+
 /// Middleware that captures daemon requests and server responses as fixtures.
 /// Enabled by `--features generate-fixtures`.
 /// Daemon requests are identified by the presence of the X-Daemon-ID header.
@@ -119,7 +133,7 @@ pub async fn capture_fixtures_middleware(request: Request, next: Next) -> Respon
     }
 
     // Only capture requests from daemons (identified by X-Daemon-ID header)
-    if request.headers().get("X-Daemon-ID").is_none() {
+    if !should_capture(&request) || request.headers().get("X-Daemon-ID").is_none() {
         return next.run(request).await;
     }
 

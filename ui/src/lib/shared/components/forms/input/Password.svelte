@@ -19,6 +19,7 @@
 		label?: string;
 		confirmLabel?: string;
 		required?: boolean;
+		autofocus?: boolean;
 	}
 
 	let {
@@ -26,8 +27,13 @@
 		confirmPasswordField,
 		label,
 		confirmLabel,
-		required = true
+		required = true,
+		autofocus = false
 	}: Props = $props();
+
+	function focusOnMount(node: HTMLInputElement) {
+		if (autofocus) node.focus();
+	}
 
 	let passwordLabel = $derived(label ?? common_password());
 	let confirmPasswordLabel = $derived(confirmLabel ?? common_passwordConfirm());
@@ -59,6 +65,7 @@
 			{#if required}<span class="text-red-400">*</span>{/if}
 		</label>
 		<input
+			use:focusOnMount
 			id="password"
 			type="password"
 			value={passwordField.state.value}

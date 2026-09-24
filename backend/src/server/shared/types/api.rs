@@ -157,18 +157,34 @@ impl PaginatedApiMeta {
     }
 }
 
+// Doc comments on this type become public OpenAPI descriptions (utoipa reads
+// `///`), so they describe the wire contract. Implementation notes stay in
+// plain comments like this one.
+//
+// Fields are private so the only way to build one is `ApiResponse::success`.
+// A handler that fails returns an `ApiError`, which sends a real error status
+// with an `ApiErrorResponse` body. That keeps "200 with `success: false`" out of
+// the API by construction: a client can trust the status code, and the
+// frontend's error middleware sees every failure.
+//
+// `success: false` and `error` do still appear in a value of this type on the
+// receiving side, when the daemon or the server's daemon client parses an error
+// body into this envelope. `is_success()` and `error()` exist for that.
+/// Envelope for a successful response. Failures are sent with a non-2xx status
+/// and an `ApiErrorResponse` body instead.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ApiResponse<T> {
-    /// `true` when the request succeeded. `false` responses carry `error` instead of `data`.
-    pub success: bool,
-    /// The result payload. Omitted on failure.
+    /// Always `true` on a successful response.
+    success: bool,
+    /// The result payload.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub data: Option<T>,
-    /// Human-readable failure message. Omitted on success.
+    data: Option<T>,
+    /// Not sent on a successful response. Failure messages arrive in an
+    /// `ApiErrorResponse`.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub error: Option<String>,
+    error: Option<String>,
     /// API and server version metadata.
-    pub meta: ApiMeta,
+    meta: ApiMeta,
 }
 
 pub type EmptyApiResponse = ApiResponse<()>;
@@ -218,13 +234,29 @@ impl<T> ApiResponse<T> {
         }
     }
 
-    pub fn error(message: String) -> Self {
-        Self {
-            success: false,
-            data: None,
-            error: Some(message),
-            meta: ApiMeta::default(),
-        }
+    /// Whether the envelope carries a result. Only a client that parsed an error
+    /// body into this type will see `false`.
+    pub fn is_success(&self) -> bool {
+        self.success
+    }
+
+    pub fn data(&self) -> Option<&T> {
+        self.data.as_ref()
+    }
+
+    /// For handlers that wrap a generic one and fill in fields it does not know
+    /// about, such as a network's credential ids from their junction table.
+    pub fn data_mut(&mut self) -> Option<&mut T> {
+        self.data.as_mut()
+    }
+
+    pub fn into_data(self) -> Option<T> {
+        self.data
+    }
+
+    /// The failure message, when an error body was parsed into this envelope.
+    pub fn error(&self) -> Option<&str> {
+        self.error.as_deref()
     }
 }
 
@@ -448,6 +480,42 @@ impl ApiError {
         Self::coded(StatusCode::FORBIDDEN, ErrorCode::LicenseLocked)
     }
 
+    /// Forbidden (403) - org is on a self-hosted plan, so the cloud app's main
+    /// routes are closed to it
+    pub fn self_hosted_plan_locked() -> Self {
+        Self::coded(
+            StatusCode::FORBIDDEN,
+            ErrorCode::BillingSelfHostedPlanLocked,
+        )
+    }
+
+    /// Payment required (402) - the org's subscription ended and it has not
+    /// chosen a paid plan since, so mutating requests are refused while
+    /// reads keep working.
+    pub fn billing_plan_lapsed() -> Self {
+        Self::coded(StatusCode::PAYMENT_REQUIRED, ErrorCode::BillingPlanLapsed)
+    }
+
+    /// Conflict (409) - cannot leave an air-gapped key while it is still valid.
+    /// The request is well formed and the caller is entitled to make it; the
+    /// organization is in a state that forbids the transition.
+    pub fn air_gapped_key_still_current() -> Self {
+        Self::coded(
+            StatusCode::CONFLICT,
+            ErrorCode::BillingAirGappedKeyStillCurrent,
+        )
+    }
+
+    /// Conflict (409) - cannot change plan while an air-gapped key is current.
+    /// The key carries the plan it was issued for and validates offline, so
+    /// the organization is committed until the period it paid for ends.
+    pub fn air_gapped_plan_change_blocked(date: String) -> Self {
+        Self::coded(
+            StatusCode::CONFLICT,
+            ErrorCode::BillingAirGappedPlanChangeBlocked { date },
+        )
+    }
+
     // === Generic entity operations ===
 
     /// Forbidden (403) - access denied to entity
@@ -572,8 +640,12 @@ impl ApiError {
     }
 
     /// Forbidden (403) - incorrect share password
+    /// Unauthorized (401), like a failed login: the viewer supplied a
+    /// credential and it was wrong. The client shows this inline on the
+    /// password gate, and 401 is the one status the app's error middleware
+    /// stays quiet about, so a typo never raises a toast.
     pub fn share_password_incorrect() -> Self {
-        Self::coded(StatusCode::FORBIDDEN, ErrorCode::SharePasswordIncorrect)
+        Self::coded(StatusCode::UNAUTHORIZED, ErrorCode::SharePasswordIncorrect)
     }
 
     /// Unauthorized (401) - share access token invalid or expired

@@ -340,6 +340,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/billing/end-trial": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End the trial now and charge the card on file
+         * @description Offered to customers who want an air-gapped license key, which needs a paid
+         *     subscription because it validates offline and cannot be revoked.
+         */
+        post: operations["end_trial"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/billing/extend-trial": {
         parameters: {
             query?: never;
@@ -390,6 +411,33 @@ export interface paths {
          *     link the inquiry to an organization.
          */
         post: operations["submit_enterprise_inquiry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/invoice-billing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Invoice billing status
+         * @description Whether the organization pays by invoice, the PO number on its invoices,
+         *     the unpaid invoice, and any open quote.
+         */
+        get: operations["get_invoice_billing_status"];
+        put?: never;
+        /**
+         * Pay by invoice
+         * @description Records the billing entity on the organization's billing account, then
+         *     either issues the first invoice now or opens a quote for the buyer's
+         *     procurement to raise a purchase order against. Self-hosted plans only.
+         */
+        post: operations["set_up_invoice_billing"];
         delete?: never;
         options?: never;
         head?: never;
@@ -451,6 +499,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/billing/po-number": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update the PO number
+         * @description Replaces the purchase order number printed on this organization's future
+         *     invoices, for a renewal raised against a new PO.
+         */
+        put: operations["update_po_number"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/billing/portal": {
         parameters: {
             query?: never;
@@ -462,6 +531,62 @@ export interface paths {
         put?: never;
         /** Create a billing portal session */
         post: operations["create_portal_session"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Cancel the open quote */
+        delete: operations["cancel_quote"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/quote/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept the open quote
+         * @description Stripe creates the invoiced subscription from the quote and sends the
+         *     first invoice, carrying whatever purchase order number the billing account
+         *     holds (set through `PUT /po-number`).
+         */
+        post: operations["accept_quote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/billing/quote/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download the open quote as a PDF */
+        get: operations["download_quote_pdf"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2022,6 +2147,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/licenses/entitlement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Exchange an online license key for an entitlement
+         * @description Called by self-hosted Scanopy servers. The key is the credential, so the
+         *     endpoint takes no session or API key. Every success records the check-in
+         *     and returns an entitlement minted from the organization's current plan and
+         *     paid-through date.
+         */
+        post: operations["get_entitlement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mint a license key for this organization's self-hosted servers
+         * @description Online keys work on any plan with a self-hosted license. Offline keys need
+         *     a plan with air-gapped deployment.
+         */
+        post: operations["create_license_key"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/keys/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read this organization's current license key
+         * @description Returns whichever key type the organization has issued, minted from its
+         *     current state. Online keys are deterministic, so this returns the same
+         *     string every time until the key is regenerated or the type is switched.
+         */
+        get: operations["get_current_license_key"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/keys/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate this organization's license key
+         * @description Retires every key issued so far: a server still using an online key gets
+         *     403 from the entitlement endpoint and needs the new key.
+         */
+        post: operations["rotate_license_key"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/networks": {
         parameters: {
             query?: never;
@@ -2492,6 +2704,23 @@ export interface paths {
         get: operations["get_public_share_metadata"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shares/public/{id}/topology": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get topology data for a public share */
+        post: operations["get_share_topology"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3197,7 +3426,7 @@ export interface components {
          * @description API metadata included in all responses
          * @example {
          *       "api_version": 1,
-         *       "server_version": "0.17.14"
+         *       "server_version": "0.17.16"
          *     }
          */
         ApiMeta: {
@@ -3208,37 +3437,48 @@ export interface components {
             api_version: number;
             /**
              * @description Server version (semver)
-             * @example 0.17.14
+             * @example 0.17.16
              */
             server_version: string;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse: {
             /** @description The result payload. Omitted on failure. */
             data?: null | components["schemas"]["TupleUnit"];
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Binding: {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-15T04:26:40.604851Z",
+             *       "created_at": "2026-09-24T14:01:27.026596Z",
              *       "first_discovery_id": null,
-             *       "id": "60da91a1-4fb6-442a-ac84-842ed10a9d65",
+             *       "id": "153e1b6e-6e7c-40ba-ae70-06ea71df1728",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-15T04:26:40.604851Z",
+             *       "last_seen_at": "2026-09-24T14:01:27.026596Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-15T04:26:40.604851Z",
-             *       "valid_from": "2026-09-15T04:26:40.604851Z",
+             *       "updated_at": "2026-09-24T14:01:27.026596Z",
+             *       "valid_from": "2026-09-24T14:01:27.026596Z",
              *       "valid_to": null
              *     }
              */
@@ -3289,13 +3529,20 @@ export interface components {
                  */
                 readonly valid_to?: string | null;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_BulkDeleteResponse: {
             /** @description The result payload. Omitted on failure. */
             data?: {
@@ -3304,26 +3551,40 @@ export interface components {
                 /** @description How many IDs the request asked to delete. */
                 requested_count: number;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_BulkTagResponse: {
             /** @description Response for bulk tag operations */
             data?: {
                 /** @description Number of entities affected */
                 affected_count: number;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_CancelSubscriptionResponse: {
             /** @description The result payload. Omitted on failure. */
             data?: {
@@ -3333,13 +3594,20 @@ export interface components {
                  */
                 period_end: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_ChangePlanPreview: {
             /** @description The result payload. Omitted on failure. */
             data?: {
@@ -3359,13 +3627,47 @@ export interface components {
                  */
                 excess_seats: number;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_CheckEmailResponse: {
+            /**
+             * @description Check email availability response.
+             *
+             *     An address that is already registered is an answer to this question, not a
+             *     failure of it: the caller asked whether the address is free and got a
+             *     truthful no. Returning an error for that case forced every client to either
+             *     treat a 409 as success or suppress the toast that came with it.
+             */
+            data?: {
+                /** @description Whether the address has no account yet, and so can be registered. */
+                available: boolean;
+            };
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Credential: {
             /** @description The result payload. Omitted on failure. */
             data?: components["schemas"]["CredentialBase"] & {
@@ -3385,13 +3687,20 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Daemon: {
             /** @description The result payload. Omitted on failure. */
             data?: components["schemas"]["DaemonBase"] & {
@@ -3411,13 +3720,20 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_DaemonApiKey: {
             /** @description The result payload. Omitted on failure. */
             data?: components["schemas"]["DaemonApiKeyBase"] & {
@@ -3437,13 +3753,20 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_DaemonApiKeyResponse: {
             /** @description The result payload. Omitted on failure. */
             data?: {
@@ -3455,13 +3778,20 @@ export interface components {
                  */
                 readonly key: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_DaemonRegistrationResponse: {
             /** @description Daemon registration response from server to daemon */
             data?: {
@@ -3474,13 +3804,20 @@ export interface components {
                 host_id: string;
                 server_capabilities?: null | components["schemas"]["ServerCapabilities"];
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_DaemonResponse: {
             /** @description Daemon response for UI including computed version status */
             data?: components["schemas"]["DaemonBase"] & {
@@ -3508,13 +3845,20 @@ export interface components {
                 /** @description Computed version status including health and warnings */
                 version_status: components["schemas"]["DaemonVersionStatus"];
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_DashboardSummary: {
             /** @description Dashboard summary response */
             data?: {
@@ -3527,13 +3871,20 @@ export interface components {
                 /** @description The most recent discovery runs, newest first. */
                 recent_discoveries: components["schemas"]["Discovery"][];
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_DemoPopulateStatus: {
             /**
              * @description Lifecycle of a demo-populate task. `Running` is set synchronously in the
@@ -3567,13 +3918,20 @@ export interface components {
                 /** @enum {string} */
                 state: "failed";
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Dependency: {
             /**
              * @description The result payload. Omitted on failure.
@@ -3632,13 +3990,20 @@ export interface components {
                  */
                 readonly valid_to?: string | null;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Discovery: {
             /** @description The result payload. Omitted on failure. */
             data?: components["schemas"]["DiscoveryBase"] & {
@@ -3678,13 +4043,20 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_DiscoveryUpdatePayload: {
             /** @description Progress update from daemon to server during discovery */
             data?: {
@@ -3693,6 +4065,11 @@ export interface components {
                  * @description The daemon this entity refers to.
                  */
                 daemon_id: string;
+                /**
+                 * @description The daemon's version when the run ended. Stamped by the server at terminal, so it
+                 *     survives the daemon being deleted or upgraded.
+                 */
+                daemon_version?: string | null;
                 /**
                  * Format: uuid
                  * @description The discovery configuration this session belongs to.
@@ -3719,6 +4096,11 @@ export interface components {
                  */
                 hosts_discovered?: number | null;
                 /**
+                 * Format: date-time
+                 * @description When the server last heard about this run. Stamped by the server at terminal.
+                 */
+                last_update_at?: string | null;
+                /**
                  * Format: uuid
                  * @description The network this entity belongs to.
                  */
@@ -3730,6 +4112,7 @@ export interface components {
                  * @description Completion of the current phase, from 0 to 1.
                  */
                 progress: number;
+                reason?: null | components["schemas"]["DiscoveryTerminalReason"];
                 scanned?: null | components["schemas"]["ScannedEntityIds"];
                 /**
                  * Format: uuid
@@ -3752,13 +4135,43 @@ export interface components {
                  */
                 warnings?: components["schemas"]["DiscoveryWarning"][];
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_EntitlementResponse: {
+            /** @description Data returned inside `ApiResponse` by [`ENTITLEMENT_PATH`]. */
+            data?: {
+                /**
+                 * @description An offline-format license key (claims: [`super::types::LicenseClaims`])
+                 *     with `org_id` and `plan` set from the organization's current state.
+                 */
+                entitlement: string;
+            };
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_HostResponse: {
             /**
              * @description Response type for host endpoints.
@@ -3883,19 +4296,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-15T04:26:40.579904Z",
+             *               "created_at": "2026-09-24T14:01:27.003763Z",
              *               "first_discovery_id": null,
-             *               "id": "ea877464-d131-41cd-8dda-d27df443e170",
+             *               "id": "c4018eea-921d-465d-9ec9-20a20198fb01",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-15T04:26:40.579904Z",
+             *               "last_seen_at": "2026-09-24T14:01:27.003763Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-15T04:26:40.579904Z",
-             *               "valid_from": "2026-09-15T04:26:40.579904Z",
+             *               "updated_at": "2026-09-24T14:01:27.003763Z",
+             *               "valid_from": "2026-09-24T14:01:27.003763Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -3909,7 +4322,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Immich",
+             *           "service_definition": "Jellyseerr",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4069,13 +4482,20 @@ export interface components {
                  */
                 virtualization_service_id?: string | null;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_IPAddress: {
             /**
              * @description The result payload. Omitted on failure.
@@ -4146,13 +4566,20 @@ export interface components {
                  */
                 readonly valid_to?: string | null;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_InstallArtifacts: {
             /**
              * @description Everything the UI needs to install (or reconfigure) a daemon, one field per install method so
@@ -4174,13 +4601,20 @@ export interface components {
                 /** @description Download for Windows. */
                 windows: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Interface: {
             /** @description The result payload. Omitted on failure. */
             data?: components["schemas"]["InterfaceBase"] & {
@@ -4241,13 +4675,20 @@ export interface components {
                  */
                 readonly valid_to?: string | null;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Invite: {
             /** @description The result payload. Omitted on failure. */
             data?: components["schemas"]["InviteBase"] & {
@@ -4267,13 +4708,67 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_InvoiceBillingStatus: {
+            /** @description Invoice billing state shown on the License tab. */
+            data?: {
+                /** @description The subscription is billed by sent invoice. */
+                bills_by_invoice: boolean;
+                open_invoice?: null | components["schemas"]["InvoiceSummary"];
+                pending_quote?: null | components["schemas"]["PendingQuote"];
+                /** @description Purchase order number printed on invoices. */
+                po_number?: string | null;
+                written_off_invoice?: null | components["schemas"]["InvoiceSummary"];
+            };
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_LicenseKeyResponse: {
+            /** @description The result payload. Omitted on failure. */
+            data?: {
+                /** @description Signed key to set as `SCANOPY_LICENSE_KEY` on a self-hosted server. */
+                key: string;
+                /** @description Which key this is. An organization has one issued at a time. */
+                key_type: components["schemas"]["LicenseKeyType"];
+            };
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Network: {
             /**
              * @description The result payload. Omitted on failure.
@@ -4316,13 +4811,20 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_OnboardingStateResponse: {
             /** @description Response from onboarding state endpoint */
             data?: {
@@ -4338,13 +4840,20 @@ export interface components {
                 step?: string | null;
                 use_case?: null | components["schemas"]["UseCase"];
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Option_SaveOfferCoupon: {
             /** @description The result payload. Omitted on failure. */
             data?: null | {
@@ -4366,13 +4875,20 @@ export interface components {
                  */
                 percent_off: number;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Organization: {
             /** @description The result payload. Omitted on failure. */
             data?: components["schemas"]["OrganizationBase"] & {
@@ -4392,13 +4908,20 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Port: {
             /**
              * @description Port entity with custom serialization that flattens PortType fields.
@@ -4466,13 +4989,20 @@ export interface components {
                  */
                 readonly valid_to?: string | null;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_ProvisionDaemonResponse: {
             /**
              * @description Response from provisioning a daemon.
@@ -4492,13 +5022,20 @@ export interface components {
                  */
                 readonly daemon_api_key: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_PublicConfigResponse: {
             /** @description The result payload. Omitted on failure. */
             data?: {
@@ -4523,6 +5060,12 @@ export interface components {
                 /** @description Whether a daemon runs alongside the server, so no separate install is needed to start scanning. */
                 has_integrated_daemon: boolean;
                 /**
+                 * Format: date-time
+                 * @description When Scanopy Cloud last answered this instance's license check-in.
+                 *     Online keys only.
+                 */
+                license_entitlement_at?: string | null;
+                /**
                  * Format: date
                  * @description Hard expiry — the drop-dead date after which the server rejects
                  *     the key. Referenced by the grace-period banner.
@@ -4540,6 +5083,27 @@ export interface components {
                  *     issued after grace-period support landed.
                  */
                 license_intended_expiry?: string | null;
+                /**
+                 * Format: int32
+                 * @description Days past an organization's paid-through date before a license key
+                 *     reaches its user-visible expiry. Published so the UI shows the same
+                 *     dates the mint path bakes into keys, instead of its own copy.
+                 */
+                license_key_buffer_days: number;
+                /**
+                 * Format: int32
+                 * @description Further days past the user-visible expiry before a key stops working.
+                 */
+                license_key_grace_days: number;
+                license_key_type?: null | components["schemas"]["LicenseKeyType"];
+                /**
+                 * @description Whether this deployment can sign license keys. False on any server
+                 *     without a signing key, where the Settings License tab and the
+                 *     self-hosted plans would otherwise offer something the mint path
+                 *     refuses. Reads the built issuer rather than the config value, since a
+                 *     key can be present but unparseable.
+                 */
+                license_signing_available: boolean;
                 license_status?: null | components["schemas"]["LicenseStatusDiscriminants"];
                 /** @description Whether the client should show a cookie-consent prompt. */
                 needs_cookie_consent: boolean;
@@ -4585,13 +5149,20 @@ export interface components {
                  */
                 stripe_publishable_key?: string | null;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_PublicShareMetadata: {
             /** @description Public share metadata (returned without authentication) */
             data?: {
@@ -4613,13 +5184,20 @@ export interface components {
                 /** @description Whether a password must be supplied before the topology is returned. */
                 requires_password: boolean;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_ServerCapabilities: {
             /** @description Server capabilities returned on startup/registration */
             data?: {
@@ -4630,32 +5208,39 @@ export interface components {
                 /** @description Server software version */
                 server_version: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Service: {
             /**
              * @description The result payload. Omitted on failure.
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-15T04:26:40.599252Z",
+             *           "created_at": "2026-09-24T14:01:27.021450Z",
              *           "first_discovery_id": null,
-             *           "id": "1017ea44-d358-4685-b08a-fba19ced9cb7",
+             *           "id": "56237929-c7f3-4ca2-a89a-6c72abfe225f",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-15T04:26:40.599252Z",
+             *           "last_seen_at": "2026-09-24T14:01:27.021450Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-15T04:26:40.599252Z",
-             *           "valid_from": "2026-09-15T04:26:40.599252Z",
+             *           "updated_at": "2026-09-24T14:01:27.021450Z",
+             *           "valid_from": "2026-09-24T14:01:27.021450Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -4669,7 +5254,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Immich",
+             *       "service_definition": "Jellyseerr",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -4728,13 +5313,20 @@ export interface components {
                  */
                 readonly valid_to?: string | null;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_SetupIntentResponse: {
             /**
              * @description Response for creating a SetupIntent — the client secret the frontend
@@ -4744,13 +5336,20 @@ export interface components {
                 /** @description Stripe SetupIntent client secret, used to mount the Payment Element. */
                 client_secret: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_SetupResponse: {
             /** @description Response from setup endpoint */
             data?: {
@@ -4760,13 +5359,20 @@ export interface components {
                  */
                 network_id: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Share: {
             /** @description The result payload. Omitted on failure. */
             data?: components["schemas"]["ShareBase"] & {
@@ -4786,13 +5392,20 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_ShareAccessTokenResponse: {
             /**
              * @description Access token returned after successful password verification.
@@ -4809,13 +5422,53 @@ export interface components {
                  */
                 expires_at: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
+        ApiResponse_ShareWithTopology: {
+            /**
+             * @description Share with topology data (returned after authentication/verification).
+             *
+             *     Returns the slim topology row (`{ id, network_id, options }`) plus the
+             *     `TopologyData` bundle (entities + the per-view graph built on request). The
+             *     share viewer composes these with the same `toRenderableTopology` the app
+             *     uses — no server-side merge.
+             */
+            data?: {
+                /** @description Entities and graph for the requested view. */
+                data: components["schemas"]["TopologyData"];
+                /** @description Which exports the share creator's plan allows. */
+                export_features: components["schemas"]["ExportFeatures"];
+                /** @description Public metadata for the share itself. */
+                share: components["schemas"]["PublicShareMetadata"];
+                /** @description The shared topology record. */
+                topology: components["schemas"]["Topology"];
+            };
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Snapshot: {
             /** @description The result payload. Omitted on failure. */
             data?: components["schemas"]["SnapshotBase"] & {
@@ -4835,23 +5488,37 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_String: {
             /** @description The result payload. Omitted on failure. */
             data?: string;
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Subnet: {
             /**
              * @description The result payload. Omitted on failure.
@@ -4925,13 +5592,20 @@ export interface components {
                  */
                 readonly valid_to?: string | null;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Tag: {
             /**
              * @description The result payload. Omitted on failure.
@@ -4981,13 +5655,20 @@ export interface components {
                  */
                 readonly valid_to?: string | null;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_TestReachabilityResponse: {
             /** @description Response from a reachability test. */
             data?: {
@@ -4998,13 +5679,20 @@ export interface components {
                 /** @description Whether the TCP connection succeeded */
                 reachable: boolean;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Topology: {
             /** @description The result payload. Omitted on failure. */
             data?: components["schemas"]["TopologyBase"] & {
@@ -5024,13 +5712,20 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_TopologyData: {
             /**
              * @description Bundle of entities + the built graph that feed the topology render, export,
@@ -5115,13 +5810,20 @@ export interface components {
                 /** @description VLANs included in this topology. */
                 vlans: components["schemas"]["Vlan"][];
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_User: {
             /** @description The result payload. Omitted on failure. */
             data?: components["schemas"]["UserBase"] & {
@@ -5141,13 +5843,20 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_UserApiKey: {
             /** @description The result payload. Omitted on failure. */
             data?: components["schemas"]["UserApiKeyBase"] & {
@@ -5167,13 +5876,20 @@ export interface components {
                  */
                 readonly updated_at: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_UserApiKeyResponse: {
             /**
              * @description Response for user API key creation/rotation
@@ -5188,13 +5904,20 @@ export interface components {
                  */
                 readonly key: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Vec_BillingPlan: {
             /** @description The result payload. Omitted on failure. */
             data?: ((components["schemas"]["PlanConfig"] & {
@@ -5231,13 +5954,20 @@ export interface components {
                 /** @enum {string} */
                 type: "SelfHostedPlus";
             }))[];
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Vec_Credential: {
             /** @description The result payload. Omitted on failure. */
             data?: (components["schemas"]["CredentialBase"] & {
@@ -5257,13 +5987,20 @@ export interface components {
                  */
                 readonly updated_at: string;
             })[];
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Vec_DiscoveryUpdatePayload: {
             /** @description The result payload. Omitted on failure. */
             data?: {
@@ -5272,6 +6009,11 @@ export interface components {
                  * @description The daemon this entity refers to.
                  */
                 daemon_id: string;
+                /**
+                 * @description The daemon's version when the run ended. Stamped by the server at terminal, so it
+                 *     survives the daemon being deleted or upgraded.
+                 */
+                daemon_version?: string | null;
                 /**
                  * Format: uuid
                  * @description The discovery configuration this session belongs to.
@@ -5298,6 +6040,11 @@ export interface components {
                  */
                 hosts_discovered?: number | null;
                 /**
+                 * Format: date-time
+                 * @description When the server last heard about this run. Stamped by the server at terminal.
+                 */
+                last_update_at?: string | null;
+                /**
                  * Format: uuid
                  * @description The network this entity belongs to.
                  */
@@ -5309,6 +6056,7 @@ export interface components {
                  * @description Completion of the current phase, from 0 to 1.
                  */
                 progress: number;
+                reason?: null | components["schemas"]["DiscoveryTerminalReason"];
                 scanned?: null | components["schemas"]["ScannedEntityIds"];
                 /**
                  * Format: uuid
@@ -5331,13 +6079,20 @@ export interface components {
                  */
                 warnings?: components["schemas"]["DiscoveryWarning"][];
             }[];
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Vec_Invite: {
             /** @description The result payload. Omitted on failure. */
             data?: (components["schemas"]["InviteBase"] & {
@@ -5357,13 +6112,20 @@ export interface components {
                  */
                 readonly updated_at: string;
             })[];
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_VersionInfo: {
             /** @description Version information for API compatibility checking */
             data?: {
@@ -5380,13 +6142,20 @@ export interface components {
                  */
                 server_version: string;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Vlan: {
             /** @description The result payload. Omitted on failure. */
             data?: components["schemas"]["VlanBase"] & {
@@ -5436,37 +6205,54 @@ export interface components {
                  */
                 readonly valid_to?: string | null;
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_VlanDiscoveryResponse: {
             /** @description Response for discovery upsert */
             data?: {
                 /** @description Mapping of vlan_number → VLAN entity UUID */
                 vlans: components["schemas"]["VlanDiscoveryResponseItem"][];
             };
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_u32: {
             /**
              * Format: int32
              * @description The result payload. Omitted on failure.
              */
             data?: number;
-            /** @description Human-readable failure message. Omitted on success. */
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
             error?: string | null;
             /** @description API and server version metadata. */
             meta: components["schemas"]["ApiMeta"];
-            /** @description `true` when the request succeeded. `false` responses carry `error` instead of `data`. */
+            /** @description Always `true` on a successful response. */
             success: boolean;
         };
         /**
@@ -5534,19 +6320,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-15T04:26:40.580635Z",
+         *       "created_at": "2026-09-24T14:01:27.004400Z",
          *       "first_discovery_id": null,
-         *       "id": "a53c890f-19f5-4849-83b9-d820587a8504",
+         *       "id": "b8e6238e-8124-43a8-82ad-debb2994b869",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-15T04:26:40.580635Z",
+         *       "last_seen_at": "2026-09-24T14:01:27.004400Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-15T04:26:40.580635Z",
-         *       "valid_from": "2026-09-15T04:26:40.580635Z",
+         *       "updated_at": "2026-09-24T14:01:27.004400Z",
+         *       "valid_from": "2026-09-24T14:01:27.004400Z",
          *       "valid_to": null
          *     }
          */
@@ -5761,6 +6547,18 @@ export interface components {
             email: string;
         };
         /**
+         * @description Check email availability response.
+         *
+         *     An address that is already registered is an answer to this question, not a
+         *     failure of it: the caller asked whether the address is free and got a
+         *     truthful no. Returning an error for that case forced every client to either
+         *     treat a 409 as success or suppress the toast that came with it.
+         */
+        CheckEmailResponse: {
+            /** @description Whether the address has no account yet, and so can be registered. */
+            available: boolean;
+        };
+        /**
          * @description Where a device's claim about itself came from.
          *
          *     Named rather than folded into a sentence because the operator's next step depends on it: a
@@ -5860,7 +6658,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Immich",
+         *           "service_definition": "Jellyseerr",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -5928,6 +6726,10 @@ export interface components {
             permissions: components["schemas"]["UserOrgPermissions"];
             /** @description Address to email the invite to. Omit to create a link without sending. */
             send_to?: string | null;
+        };
+        /** @description The license key to mint. */
+        CreateLicenseKeyRequest: {
+            key_type: components["schemas"]["LicenseKeyType"];
         };
         /**
          * @description Request type for creating a service.
@@ -6798,6 +7600,18 @@ export interface components {
          * @enum {string}
          */
         DiscoveryProtocol: "LLDP" | "CDP";
+        /**
+         * @description Why a session reached its terminal phase.
+         *
+         *     `phase` says *that* a run ended; this says *why*. A stall reaped by the server, a daemon that
+         *     lost its state in a restart and a user pressing cancel all used to land as the same phase with
+         *     no way to tell them apart afterwards, which is what made stall reports undiagnosable.
+         *
+         *     The server decides every reason except the two the daemon alone can know, see
+         *     [`Self::daemon_assigned`]. Absent on runs recorded before this field existed.
+         * @enum {string}
+         */
+        DiscoveryTerminalReason: "Completed" | "UserCancelled" | "DaemonReportedFailure" | "StalledNoUpdates" | "DaemonRestarted" | "DaemonUnreachable" | "DaemonBusy" | "WatchdogTimeout";
         DiscoveryType: {
             /**
              * Format: uuid
@@ -6874,6 +7688,11 @@ export interface components {
              */
             daemon_id: string;
             /**
+             * @description The daemon's version when the run ended. Stamped by the server at terminal, so it
+             *     survives the daemon being deleted or upgraded.
+             */
+            daemon_version?: string | null;
+            /**
              * Format: uuid
              * @description The discovery configuration this session belongs to.
              *     Always enriched server-side; daemons do not send this field.
@@ -6899,6 +7718,11 @@ export interface components {
              */
             hosts_discovered?: number | null;
             /**
+             * Format: date-time
+             * @description When the server last heard about this run. Stamped by the server at terminal.
+             */
+            last_update_at?: string | null;
+            /**
              * Format: uuid
              * @description The network this entity belongs to.
              */
@@ -6910,6 +7734,7 @@ export interface components {
              * @description Completion of the current phase, from 0 to 1.
              */
             progress: number;
+            reason?: null | components["schemas"]["DiscoveryTerminalReason"];
             scanned?: null | components["schemas"]["ScannedEntityIds"];
             /**
              * Format: uuid
@@ -7232,6 +8057,30 @@ export interface components {
              * @description The limit the run hit, in hours.
              */
             hours: number;
+        } | {
+            /** @enum {string} */
+            code: "DcpSweepTimedOut";
+            /**
+             * Format: int32
+             * @description The budget the sweep had, in seconds.
+             */
+            seconds: number;
+        } | {
+            /** @enum {string} */
+            code: "IcmpSweepTimedOut";
+            /**
+             * Format: int32
+             * @description The budget the sweep had, in seconds.
+             */
+            seconds: number;
+        } | {
+            /** @enum {string} */
+            code: "ReverseDnsTimedOut";
+            /**
+             * Format: int32
+             * @description How many lookups went unanswered.
+             */
+            count: number;
         } | (components["schemas"]["UnmatchedNeighbour"] & {
             /** @enum {string} */
             code: "LldpNeighbourNotFound";
@@ -7591,6 +8440,19 @@ export interface components {
             team_size: components["schemas"]["TeamSize"];
             urgency?: null | components["schemas"]["InquiryTimeline"];
         };
+        /** @description Body the instance POSTs to [`ENTITLEMENT_PATH`]. */
+        EntitlementRequest: {
+            /** @description The online key configured via `SCANOPY_LICENSE_KEY`. */
+            key: string;
+        };
+        /** @description Data returned inside `ApiResponse` by [`ENTITLEMENT_PATH`]. */
+        EntitlementResponse: {
+            /**
+             * @description An offline-format license key (claims: [`super::types::LicenseClaims`])
+             *     with `org_id` and `plan` set from the organization's current state.
+             */
+            entitlement: string;
+        };
         /** @enum {string} */
         EntityDiscriminants: "Organization" | "Invite" | "Share" | "Network" | "DaemonApiKey" | "UserApiKey" | "User" | "Tag" | "Discovery" | "Daemon" | "Host" | "Service" | "Port" | "Binding" | "IPAddress" | "Interface" | "Credential" | "Subnet" | "Vlan" | "Dependency" | "Topology" | "Snapshot" | "Unknown";
         /**
@@ -7636,6 +8498,23 @@ export interface components {
             vm_id?: string | null;
             /** @description Guest name as configured on the ESXi host. */
             vm_name?: string | null;
+        };
+        /** @description Export feature flags derived from the share creator's billing plan */
+        ExportFeatures: {
+            /** @description Viewer may export the diagram for Confluence. */
+            confluence_export: boolean;
+            /** @description Viewer may export the diagram as standalone HTML. */
+            html_export: boolean;
+            /** @description Viewer may export the diagram as Mermaid. */
+            mermaid_export: boolean;
+            /** @description Viewer may export the diagram as PDF. */
+            pdf_export: boolean;
+            /** @description Viewer may export the diagram as PNG. */
+            png_export: boolean;
+            /** @description Exports omit the Scanopy attribution line. */
+            remove_created_with: boolean;
+            /** @description Viewer may export the diagram as SVG. */
+            svg_export: boolean;
         };
         /**
          * @description Definition of a form field for dynamic UI rendering.
@@ -8015,19 +8894,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-15T04:26:40.579188Z",
+         *               "created_at": "2026-09-24T14:01:27.003056Z",
          *               "first_discovery_id": null,
-         *               "id": "d9307169-026b-493e-a3be-125f86deb9e5",
+         *               "id": "09436288-6d50-441d-86c8-281b0038d647",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-15T04:26:40.579188Z",
+         *               "last_seen_at": "2026-09-24T14:01:27.003056Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-15T04:26:40.579188Z",
-         *               "valid_from": "2026-09-15T04:26:40.579188Z",
+         *               "updated_at": "2026-09-24T14:01:27.003056Z",
+         *               "valid_from": "2026-09-24T14:01:27.003056Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8041,7 +8920,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Immich",
+         *           "service_definition": "Jellyseerr",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -8916,6 +9795,89 @@ export interface components {
             /** @description Link the recipient follows to accept the invite. */
             url: string;
         };
+        /** @description Postal address of the billing entity, as Stripe's Address Element returns it. */
+        InvoiceBillingAddress: {
+            /** @description City, town or locality. */
+            city: string;
+            /** @description Two-letter ISO country code. */
+            country: string;
+            /** @description Street address, including number. */
+            line1: string;
+            /** @description Suite, unit or floor, when the address has one. */
+            line2?: string | null;
+            /** @description Postal or ZIP code. */
+            postal_code: string;
+            /** @description State, province or region. Absent where the country has no such level. */
+            state?: string | null;
+        };
+        /**
+         * @description Who an invoice is addressed to and what the buyer's finance team matches
+         *     it against.
+         */
+        InvoiceBillingDetails: {
+            address: components["schemas"]["InvoiceBillingAddress"];
+            /**
+             * Format: email
+             * @description Where Stripe emails invoices.
+             */
+            billing_email: string;
+            /** @description Legal name of the organization being invoiced. */
+            entity_name: string;
+            /** @description Purchase order number printed on every invoice. */
+            po_number?: string | null;
+            tax_id?: null | components["schemas"]["InvoiceBillingTaxId"];
+        };
+        /**
+         * @description What to do once the billing entity is recorded.
+         * @enum {string}
+         */
+        InvoiceBillingMode: "send_invoice" | "quote";
+        /** @description Switch the organization to paying by invoice. */
+        InvoiceBillingRequest: {
+            details: components["schemas"]["InvoiceBillingDetails"];
+            mode: components["schemas"]["InvoiceBillingMode"];
+            plan?: null | components["schemas"]["BillingPlan"];
+        };
+        /** @description Invoice billing state shown on the License tab. */
+        InvoiceBillingStatus: {
+            /** @description The subscription is billed by sent invoice. */
+            bills_by_invoice: boolean;
+            open_invoice?: null | components["schemas"]["InvoiceSummary"];
+            pending_quote?: null | components["schemas"]["PendingQuote"];
+            /** @description Purchase order number printed on invoices. */
+            po_number?: string | null;
+            written_off_invoice?: null | components["schemas"]["InvoiceSummary"];
+        };
+        /** @description Tax ID of the billing entity, as Stripe's Tax ID Element returns it. */
+        InvoiceBillingTaxId: {
+            /** @description Stripe tax ID type, e.g. `eu_vat` or `us_ein`. */
+            tax_id_type: string;
+            /** @description The registration number itself, in the format its type expects. */
+            value: string;
+        };
+        /** @description An issued invoice that has not been paid. */
+        InvoiceSummary: {
+            /**
+             * Format: int64
+             * @description Outstanding balance, in cents.
+             */
+            amount_due_cents: number;
+            /** @description Three-letter ISO currency code the invoice is denominated in. */
+            currency: string;
+            /**
+             * Format: date-time
+             * @description When payment is due. Absent on an invoice Stripe collects automatically,
+             *     which is charged rather than sent.
+             */
+            due_date?: string | null;
+            /** @description Stripe-hosted page where the invoice can be viewed and paid. */
+            hosted_invoice_url?: string | null;
+            /**
+             * @description Invoice number printed on the PDF, which a remittance references. Absent
+             *     until Stripe finalizes the invoice.
+             */
+            number?: string | null;
+        };
         Ixy: {
             /** @description Horizontal position, which may be negative. */
             x: number;
@@ -8937,11 +9899,26 @@ export interface components {
             /** @description Subnets the daemon has an interface on, as reported by older daemons. */
             interfaced_subnet_ids: string[];
         };
+        LicenseKeyResponse: {
+            /** @description Signed key to set as `SCANOPY_LICENSE_KEY` on a self-hosted server. */
+            key: string;
+            /** @description Which key this is. An organization has one issued at a time. */
+            key_type: components["schemas"]["LicenseKeyType"];
+        };
+        /**
+         * @description The two keys an org owner can copy for a self-hosted server. An
+         *     organization has one of these issued at a time, stored on the org row.
+         *
+         *     Serde keeps the API spelling (`"Online"` / `"Offline"`); strum supplies the
+         *     snake_case text the column is stored as, the way `PlanStatus` does.
+         * @enum {string}
+         */
+        LicenseKeyType: "Online" | "Offline";
         /**
          * @description Runtime license state as reported by the public config endpoint.
          * @enum {string}
          */
-        LicenseStatusDiscriminants: "valid" | "expired" | "invalid";
+        LicenseStatusDiscriminants: "valid" | "expired" | "invalid" | "pending";
         /**
          * @description LLDP Chassis ID subtypes per IEEE 802.1AB.
          *
@@ -9372,6 +10349,23 @@ export interface components {
         OrganizationBase: {
             /**
              * Format: date-time
+             * @description The date this org's air-gapped key stays current until, or `None` when
+             *     it holds an online key or that date has passed.
+             *
+             *     Computed on read from `license_key_type` and `license_paid_through`,
+             *     never stored. It carries the one fact the UI needs, that the org cannot
+             *     change plan yet, without exposing `license_key_type`, which stays
+             *     internal. See [`Organization::air_gapped_key_current_until`].
+             */
+            readonly air_gapped_key_current_until?: string | null;
+            /**
+             * @description Whether the subscription is billed by sent invoice, against a purchase
+             *     order. Such an org has no card, so this is the other half of "can this
+             *     org pay?" — see [`Organization::can_pay`].
+             */
+            readonly bills_by_invoice?: boolean;
+            /**
+             * Format: date-time
              * @description When the currently-active save-offer discount window expires. The
              *     BillingTab chip renders only while `> now()`; expiry needs no
              *     cleanup job.
@@ -9406,6 +10400,20 @@ export interface components {
              *     rolling pause cooldown.
              */
             readonly last_paused_at?: string | null;
+            /**
+             * Format: date-time
+             * @description Last time a self-hosted server fetched an entitlement with this org's
+             *     online license key.
+             */
+            readonly license_checkin_at?: string | null;
+            /**
+             * Format: date-time
+             * @description When the org's self-hosted license is paid through: the trial end
+             *     during a self-hosted trial, then the end of the last paid invoice's
+             *     service period. While a sent invoice is unpaid, its due date plus a
+             *     grace window. License keys and entitlements expire 7 days later.
+             */
+            readonly license_paid_through?: string | null;
             /** @description Human-facing name for this organization. */
             name: string;
             /**
@@ -9443,7 +10451,7 @@ export interface components {
          *         "offset": 0,
          *         "total_count": 142
          *       },
-         *       "server_version": "0.17.14"
+         *       "server_version": "0.17.16"
          *     }
          */
         PaginatedApiMeta: {
@@ -9456,7 +10464,7 @@ export interface components {
             pagination: components["schemas"]["PaginationMeta"];
             /**
              * @description Server version (semver)
-             * @example 0.17.14
+             * @example 0.17.16
              */
             server_version: string;
         };
@@ -10114,6 +11122,23 @@ export interface components {
             /** @description How long to pause billing for, in days. */
             duration_days: components["schemas"]["PauseDuration"];
         };
+        /** @description An open quote waiting for the buyer's purchase order. */
+        PendingQuote: {
+            /**
+             * Format: int64
+             * @description Total per annual term, in cents.
+             */
+            amount_total_cents: number;
+            /** @description Three-letter ISO currency code the quote is denominated in. */
+            currency: string;
+            /**
+             * Format: date-time
+             * @description When the quote stops being valid, after which the buyer needs a new one.
+             */
+            expires_at: string;
+            /** @description Quote number printed on the PDF, which the purchase order references. */
+            number?: string | null;
+        };
         PlanConfig: {
             /**
              * Format: int64
@@ -10464,6 +11489,12 @@ export interface components {
             /** @description Whether a daemon runs alongside the server, so no separate install is needed to start scanning. */
             has_integrated_daemon: boolean;
             /**
+             * Format: date-time
+             * @description When Scanopy Cloud last answered this instance's license check-in.
+             *     Online keys only.
+             */
+            license_entitlement_at?: string | null;
+            /**
              * Format: date
              * @description Hard expiry — the drop-dead date after which the server rejects
              *     the key. Referenced by the grace-period banner.
@@ -10481,6 +11512,27 @@ export interface components {
              *     issued after grace-period support landed.
              */
             license_intended_expiry?: string | null;
+            /**
+             * Format: int32
+             * @description Days past an organization's paid-through date before a license key
+             *     reaches its user-visible expiry. Published so the UI shows the same
+             *     dates the mint path bakes into keys, instead of its own copy.
+             */
+            license_key_buffer_days: number;
+            /**
+             * Format: int32
+             * @description Further days past the user-visible expiry before a key stops working.
+             */
+            license_key_grace_days: number;
+            license_key_type?: null | components["schemas"]["LicenseKeyType"];
+            /**
+             * @description Whether this deployment can sign license keys. False on any server
+             *     without a signing key, where the Settings License tab and the
+             *     self-hosted plans would otherwise offer something the mint path
+             *     refuses. Reads the built issuer rather than the config value, since a
+             *     key can be present but unparseable.
+             */
+            license_signing_available: boolean;
             license_status?: null | components["schemas"]["LicenseStatusDiscriminants"];
             /** @description Whether the client should show a cookie-consent prompt. */
             needs_cookie_consent: boolean;
@@ -10857,19 +11909,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-15T04:26:40.580437Z",
+         *           "created_at": "2026-09-24T14:01:27.004201Z",
          *           "first_discovery_id": null,
-         *           "id": "c883efb8-c99b-4bbe-8a99-f54e21a5b582",
+         *           "id": "3aff4935-b6a9-4856-ba4e-a62f44cb1b39",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-15T04:26:40.580437Z",
+         *           "last_seen_at": "2026-09-24T14:01:27.004201Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-15T04:26:40.580437Z",
-         *           "valid_from": "2026-09-15T04:26:40.580437Z",
+         *           "updated_at": "2026-09-24T14:01:27.004201Z",
+         *           "valid_from": "2026-09-24T14:01:27.004201Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -10883,7 +11935,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Immich",
+         *       "service_definition": "Jellyseerr",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -11148,6 +12200,30 @@ export interface components {
             show_minimap: boolean;
             /** @description Viewer sees the zoom controls. */
             show_zoom_controls: boolean;
+        };
+        ShareTopologyRequest: {
+            /** @description Server-issued access token obtained from `/verify`. Required when the share has a password. */
+            access_token?: string | null;
+            /** @description Which topology view to return data for */
+            view: components["schemas"]["TopologyView"];
+        };
+        /**
+         * @description Share with topology data (returned after authentication/verification).
+         *
+         *     Returns the slim topology row (`{ id, network_id, options }`) plus the
+         *     `TopologyData` bundle (entities + the per-view graph built on request). The
+         *     share viewer composes these with the same `toRenderableTopology` the app
+         *     uses — no server-side merge.
+         */
+        ShareWithTopology: {
+            /** @description Entities and graph for the requested view. */
+            data: components["schemas"]["TopologyData"];
+            /** @description Which exports the share creator's plan allows. */
+            export_features: components["schemas"]["ExportFeatures"];
+            /** @description Public metadata for the share itself. */
+            share: components["schemas"]["PublicShareMetadata"];
+            /** @description The shared topology record. */
+            topology: components["schemas"]["Topology"];
         };
         Snapshot: components["schemas"]["SnapshotBase"] & {
             /**
@@ -11585,7 +12661,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "02c0590b-be43-446d-9349-75c3b5542504",
+             *           "id": "76b15b32-ec00-4873-a9f3-b78a22420174",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -11595,23 +12671,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "5dab559f-ec54-4d54-960e-ecd1bc66317d",
+             *           "id": "1661da45-060b-4163-9c9d-a301411cb3d9",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "5452814a-cdce-47f7-8383-eef0f0fa3da9",
+             *           "id": "b50e8005-0a4f-443a-8729-1ff45fd721d2",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "660ad9b5-eb7a-486e-b539-7907e5d3844d",
+             *           "id": "733076fd-a90e-4131-bbf8-d4a6db42f8e6",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "5dab559f-ec54-4d54-960e-ecd1bc66317d",
+             *           "id": "1661da45-060b-4163-9c9d-a301411cb3d9",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -11624,19 +12700,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "b1074ed9-9b53-4d9f-9d1d-da039ac71232",
+             *         "id": "5d28dcbc-8d9e-492c-9204-eb371c42676f",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "614a6214-9559-4bd7-b3a7-24ca8529a197",
+             *         "id": "26ebc426-211a-4142-9165-fac7efb89b35",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "8c78d06c-f800-4a11-84f1-bb0c3b159df8",
+             *         "id": "91f8ea57-8d35-40a4-8469-e109f8e2aa51",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "799eec85-0535-4a98-ad82-6bf0ca6e3e1d",
+             *         "id": "18ecbf76-5cf9-480e-9ea6-fde1579b8a01",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -11654,7 +12730,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "2871e02b-2da2-467a-8bfa-8c373c2c4dbb",
+             *         "id": "fb5f8d26-3087-4b4d-a7ed-27bb13a34f8c",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -11663,15 +12739,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "15b8a129-24bf-4249-a1ad-dfaeb744510a",
+             *         "id": "08182e97-87c9-4bb7-8693-d319340698a4",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "2961f1a5-7b7a-414f-a5b4-4b6d964ce2e3",
+             *         "id": "63dede36-eb69-48c5-b235-fc2d3cd11b22",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "95593178-1b40-4c69-bda6-3858e0db384d",
+             *         "id": "8daac87c-7ebb-4222-a251-85b0c4719dd2",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -11882,6 +12958,11 @@ export interface components {
              * @description New password to set
              */
             new_password: string;
+        };
+        /** @description Replace the purchase order number printed on future invoices. */
+        UpdatePoNumberRequest: {
+            /** @description New PO number; empty or absent removes it. */
+            po_number?: string | null;
         };
         /**
          * @description Whether the vendor publishes and supports the API a credential type talks to.
@@ -12197,17 +13278,17 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Email is available */
+            /** @description Whether the address is available */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ApiResponse"];
+                    "application/json": components["schemas"]["ApiResponse_CheckEmailResponse"];
                 };
             };
-            /** @description Email already in use */
-            409: {
+            /** @description Password login is disabled */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12862,6 +13943,35 @@ export interface operations {
             };
         };
     };
+    end_trial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Trial ended and subscription charged */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_String"];
+                };
+            };
+            /** @description Not trialing, no payment method, or billing not enabled */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
     extend_trial: {
         parameters: {
             query?: never;
@@ -12966,6 +14076,68 @@ export interface operations {
             };
         };
     };
+    get_invoice_billing_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invoice billing status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_InvoiceBillingStatus"];
+                };
+            };
+            /** @description Billing not enabled */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    set_up_invoice_billing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvoiceBillingRequest"];
+            };
+        };
+        responses: {
+            /** @description Invoice sent or quote opened */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_String"];
+                };
+            };
+            /** @description Not a self-hosted plan, invalid details, or billing not enabled */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
     pause_subscription: {
         parameters: {
             query?: never;
@@ -13057,6 +14229,39 @@ export interface operations {
             };
         };
     };
+    update_po_number: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePoNumberRequest"];
+            };
+        };
+        responses: {
+            /** @description PO number updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Not a self-hosted plan or billing not enabled */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
     create_portal_session: {
         parameters: {
             query?: never;
@@ -13080,6 +14285,93 @@ export interface operations {
                 };
             };
             /** @description Billing not enabled */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    cancel_quote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Quote cancelled */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description No open quote or billing not enabled */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    accept_quote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Quote accepted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_String"];
+                };
+            };
+            /** @description No open quote or billing not enabled */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    download_quote_pdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Quote PDF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": number[];
+                };
+            };
+            /** @description No open quote or billing not enabled */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -16875,6 +18167,148 @@ export interface operations {
             };
         };
     };
+    get_entitlement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntitlementRequest"];
+            };
+        };
+        responses: {
+            /** @description Entitlement for the key's organization */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_EntitlementResponse"];
+                };
+            };
+            /** @description Malformed key, bad signature, or not an online key */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Key was regenerated, or the organization is not on a self-hosted plan */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Too many requests for this organization */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    create_license_key: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLicenseKeyRequest"];
+            };
+        };
+        responses: {
+            /** @description Signed license key */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_LicenseKeyResponse"];
+                };
+            };
+            /** @description Not an owner, or the plan does not include this key type */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_current_license_key: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The organization's current license key */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_LicenseKeyResponse"];
+                };
+            };
+            /** @description Not an owner, or the organization has no license */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    rotate_license_key: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Key rotated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse"];
+                };
+            };
+            /** @description Not an owner */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
     get_all_networks: {
         parameters: {
             query?: {
@@ -18143,8 +19577,101 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_PublicShareMetadata"];
                 };
             };
+            /** @description Share is disabled or expired */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
             /** @description Share not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    get_share_topology: {
+        parameters: {
+            query?: {
+                /** @description Return the share prepared for embedding in another page. */
+                embed?: boolean;
+            };
+            header?: never;
+            path: {
+                /** @description Share ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShareTopologyRequest"];
+            };
+        };
+        responses: {
+            /** @description Share metadata and topology data */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_ShareWithTopology"];
+                };
+            };
+            /** @description View is not enabled on this share */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Access token missing, expired or tampered with */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Embedding is not included in the share owner's plan */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Share is disabled or expired, or its password was not verified */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Share not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Too many requests for this share */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -18179,6 +19706,15 @@ export interface operations {
                     "application/json": components["schemas"]["ApiResponse_ShareAccessTokenResponse"];
                 };
             };
+            /** @description Share has no password to verify */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
             /** @description Invalid password */
             401: {
                 headers: {
@@ -18188,8 +19724,26 @@ export interface operations {
                     "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
+            /** @description Share is disabled or expired */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
             /** @description Share not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description Too many attempts for this share */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

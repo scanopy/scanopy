@@ -85,66 +85,6 @@ pub async fn cancel_server_discovery_sessions(client: &TestClient) -> Result<(),
     Ok(())
 }
 
-/// Cancel any active discovery session on the daemon and wait for it to stop.
-/// Returns Ok(()) even if no session is running (409 is expected).
-async fn cancel_daemon_discovery(
-    daemon_url: &str,
-    api_key: &str,
-    session_id: Option<Uuid>,
-) -> Result<(), String> {
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(5))
-        .build()
-        .map_err(|e| format!("Failed to create client: {}", e))?;
-
-    // Use a nil UUID if we don't know the session ID - daemon will cancel current session
-    let session_id = session_id.unwrap_or(Uuid::nil());
-
-    let response = client
-        .post(format!("{}/api/discovery/cancel", daemon_url))
-        .header("Authorization", format!("Bearer {}", api_key))
-        .json(&session_id)
-        .send()
-        .await;
-
-    match response {
-        Ok(r) if r.status().is_success() => {
-            println!("  Cancelled discovery session on daemon");
-            // Poll until we get 409 (no session running)
-            // Use 30 second timeout (120 * 250ms) to debug if cancel eventually works
-            for i in 0..120 {
-                tokio::time::sleep(std::time::Duration::from_millis(250)).await;
-                let check = client
-                    .post(format!("{}/api/discovery/cancel", daemon_url))
-                    .header("Authorization", format!("Bearer {}", api_key))
-                    .json(&session_id)
-                    .send()
-                    .await;
-                if let Ok(r) = check {
-                    if r.status().as_u16() == 409 {
-                        println!("  Session stopped after {} ms", (i + 1) * 250);
-                        return Ok(());
-                    }
-                }
-            }
-            Err("Discovery session did not stop within 30 seconds".to_string())
-        }
-        Ok(r) if r.status().as_u16() == 409 => {
-            // No session running - that's fine
-            Ok(())
-        }
-        Ok(r) => {
-            let status = r.status();
-            let body = r.text().await.unwrap_or_default();
-            Err(format!(
-                "Failed to cancel daemon discovery: {} - {}",
-                status, body
-            ))
-        }
-        Err(e) => Err(format!("Failed to cancel daemon discovery: {}", e)),
-    }
-}
-
 /// Run all compatibility tests against running server and daemon.
 ///
 /// The `serverpoll_daemon_api_key` is the API key that was used to initialize
@@ -195,8 +135,8 @@ pub async fn run_compat_tests(
     let client = TestClient::new();
     setup_authenticated_user(&client).await?;
     cancel_server_discovery_sessions(&client).await?;
-    // Then cancel directly on daemon to ensure daemon state is cleared
-    cancel_daemon_discovery(SERVERPOLL_DAEMON_URL, serverpoll_daemon_api_key, None).await?;
+    // The server cancels by session id; wait for the daemon to wind that session down
+    wait_for_daemon_idle(SERVERPOLL_DAEMON_URL, serverpoll_daemon_api_key).await?;
 
     // Use the API key from when the ServerPoll daemon was provisioned during discovery
     let daemon_ctx = ReplayContext {

@@ -58,6 +58,19 @@ export function getDaemonStatusTag(daemon: Daemon): TagProps & { label: string }
 }
 
 /**
+ * Whether a daemon is known to predate unified discovery: it has checked in, and the version it
+ * reported is below the floor.
+ *
+ * The server answers `supports_unified_discovery` from the version alone, and a daemon awaiting
+ * its first connection has none, so asking that flag directly reads every new daemon as legacy —
+ * which is what put a "your discoveries will be consolidated" banner in front of daemons that
+ * have never run one. No version yet is not the same as an old version.
+ */
+export function isPreUnifiedDaemon(daemon: Daemon): boolean {
+	return !!daemon.last_seen && daemon.version_status?.supports_unified_discovery === false;
+}
+
+/**
  * Whether a daemon has an active or upcoming sunset the user should act on.
  * True for Deprecated (a sunset date is scheduled) and Unsupported (past it).
  */

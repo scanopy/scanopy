@@ -1,4 +1,4 @@
-use super::{Body, Content, Email, EmailCategory, EmailPreference};
+use super::{Body, Content, Email, EmailCategory, EmailPreference, links};
 
 /// Sent when a checkout completes: welcomes the user to their newly active paid
 /// plan.
@@ -34,7 +34,7 @@ impl Email for CheckoutCompleted<'_> {
                         self.plan_name
                     )),
             )
-            .cta("{base_url}/?{utm}", "Open Scanopy")
+            .cta(links::APP_HOME, "Open Scanopy")
             .render()
     }
 }

@@ -3,6 +3,10 @@
 	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
 	import { discoveryPhases } from '$lib/shared/stores/metadata';
 	import {
+		discovery_cancellationWait,
+		discovery_foundHostsEstimating,
+		discovery_foundHostsRemaining,
+		discovery_scanningForHosts,
 		home_docsDiscoveryTakesLong,
 		home_docsDiscoveryTakesLongLinkText
 	} from '$lib/paraglide/messages';
@@ -23,13 +27,16 @@
 
 	let text = $derived.by(() => {
 		// Cancelling: frontend-only overlay during cancel mutation (no backend variant).
-		if (phase === 'Cancelling') return 'Cancellation can take up to 30 seconds';
+		if (phase === 'Cancelling') return discovery_cancellationWait();
 		// Scanning: dynamic host count + estimated remaining.
 		if (phase === 'Scanning') {
-			if (!hosts_discovered) return 'Scanning for hosts...';
+			if (!hosts_discovered) return discovery_scanningForHosts();
 			if (estimated_remaining_secs != null)
-				return `Found ${hosts_discovered} hosts — ${formatEstimatedRemaining(estimated_remaining_secs)} remaining`;
-			return `Found ${hosts_discovered} hosts — estimating scan time...`;
+				return discovery_foundHostsRemaining({
+					count: hosts_discovered,
+					remaining: formatEstimatedRemaining(estimated_remaining_secs)
+				});
+			return discovery_foundHostsEstimating({ count: hosts_discovered });
 		}
 		// All other backend DiscoveryPhase variants source from metadata fixture.
 		return discoveryPhases.getDescription(phase) || null;

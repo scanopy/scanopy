@@ -2,9 +2,11 @@
 	import { AlertTriangle } from 'lucide-svelte';
 	import AppBanner from './AppBanner.svelte';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { useHasPendingQuote } from '$lib/features/billing/queries';
 	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
 	import { getTrialDaysLeft, isTrialingWithoutPayment } from '$lib/shared/utils/trial';
 	import { trackOncePerSession } from '$lib/shared/utils/analytics';
+	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import {
 		billing_addPaymentMethod,
 		billing_trialBannerBody,
@@ -13,11 +15,19 @@
 	} from '$lib/paraglide/messages';
 
 	const organizationQuery = useOrganizationQuery();
+	const configQuery = useConfigQuery();
 
 	let org = $derived(organizationQuery.data);
+	let billingEnabled = $derived(configQuery.data?.billing_enabled ?? false);
 	let trialDaysLeft = $derived(getTrialDaysLeft(org));
+	// A quote out means payment is already being arranged; accepting it is what
+	// ends the trial, and that lives on the Billing tab.
+	const hasPendingQuote = useHasPendingQuote();
 	let shouldShow = $derived(
-		isTrialingWithoutPayment(org) && trialDaysLeft !== null && trialDaysLeft <= 3
+		isTrialingWithoutPayment(org, billingEnabled) &&
+			!hasPendingQuote.current &&
+			trialDaysLeft !== null &&
+			trialDaysLeft <= 3
 	);
 
 	let body = $derived.by(() => {

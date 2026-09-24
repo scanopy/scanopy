@@ -1,11 +1,17 @@
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::billing::types::base::BillingPlan;
+use crate::server::license::mint::MintError;
+use crate::server::license::types::LicenseKeyType;
 use crate::server::organizations::demo_status::DemoPopulateStatus;
 use crate::server::shared::events::bus::EventBus;
 use crate::server::shared::events::traits::{Event, OrgScope};
 use crate::server::shared::events::types::BillingOperation;
 use crate::server::shared::services::traits::EventBusService;
 use crate::server::shared::storage::filter::StorableFilter;
+use crate::server::shared::storage::lock::{
+    DEFAULT_LOCK_TIMEOUT, LockError, LockKey, SessionLockGuard,
+};
+use crate::server::shared::storage::traits::Storage;
 use crate::server::shared::types::metadata::HasId;
 use crate::server::tags::entity_tags::EntityTagService;
 use crate::server::{
@@ -14,7 +20,7 @@ use crate::server::{
 };
 use anyhow::Error;
 use async_trait::async_trait;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -49,6 +55,246 @@ impl CrudService<Organization> for OrganizationService {
 
     fn entity_tag_service(&self) -> Option<&Arc<EntityTagService>> {
         None
+    }
+}
+
+/// Why a license key type switch was refused.
+#[derive(Debug, thiserror::Error)]
+pub enum SwitchKeyTypeError {
+    /// Leaving an air-gapped key before the licence period is up. The key
+    /// already installed on the customer's server validates offline and runs
+    /// to its embedded expiry whatever the cloud does, so switching would
+    /// leave two live keys with no way to retire the one that matters.
+    #[error(
+        "an air-gapped key stays valid until {paid_through}; you can switch back to an online key from that date"
+    )]
+    AirGappedStillCurrent { paid_through: DateTime<Utc> },
+    /// The organization cannot be issued the key type it asked for, so the
+    /// switch was abandoned instead of persisted. Keeping the old type is what
+    /// stops a refused mint stranding the org: the switch retires the previous
+    /// key, and the read path mints whatever the row says, so a stored type
+    /// that cannot be signed would fail every later read.
+    #[error(transparent)]
+    Mint(#[from] MintError),
+    #[error(transparent)]
+    Lock(#[from] LockError),
+    #[error(transparent)]
+    Service(#[from] Error),
+}
+
+/// Drop sub-second precision, so a value survives a database round trip
+/// unchanged.
+fn whole_second(at: DateTime<Utc>) -> DateTime<Utc> {
+    DateTime::from_timestamp(at.timestamp(), 0).unwrap_or(at)
+}
+
+impl OrganizationService {
+    /// Hold the organization row's advisory lock. Every read-modify-write of
+    /// an org that can race another (the billing event mirror, license key
+    /// rotation, license check-ins) takes it, because each writes the
+    /// whole row back and would otherwise revert the other's change.
+    pub(crate) async fn lock_organization(
+        &self,
+        organization_id: Uuid,
+    ) -> Result<SessionLockGuard, Error> {
+        Ok(self
+            .storage
+            .session_lock(LockKey::Organization(organization_id), DEFAULT_LOCK_TIMEOUT)
+            .await?)
+    }
+
+    /// Record that a self-hosted server fetched an entitlement. Publishes no
+    /// entity event: check-ins are frequent and change nothing a user edits.
+    pub async fn record_license_check_in(
+        &self,
+        organization_id: Uuid,
+        at: DateTime<Utc>,
+    ) -> Result<(), Error> {
+        let lock = self.lock_organization(organization_id).await?;
+        if let Some(mut organization) = self.get_by_id(&organization_id).await? {
+            organization.base.license_checkin_at = Some(at);
+            self.storage.update(&mut organization).await?;
+        }
+        lock.release().await?;
+        Ok(())
+    }
+
+    /// The `iat` this org's online license key is signed with, assigned on
+    /// first use. Holding it makes minting deterministic: every copy of the
+    /// key returns the same string until the key is rotated.
+    pub async fn license_key_issued_at(
+        &self,
+        organization_id: Uuid,
+    ) -> Result<DateTime<Utc>, Error> {
+        let lock = self.lock_organization(organization_id).await?;
+        let mut organization = self
+            .get_by_id(&organization_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Organization {organization_id} not found"))?;
+
+        let issued_at = match organization.base.license_key_issued_at {
+            Some(issued_at) => issued_at,
+            None => {
+                // Whole seconds: the claim carries seconds, and Postgres keeps
+                // microseconds, so a truncating round trip would otherwise hand
+                // back a different stamp than the one just written.
+                let issued_at = whole_second(Utc::now());
+                organization.base.license_key_issued_at = Some(issued_at);
+                self.storage.update(&mut organization).await?;
+                tracing::info!(
+                    organization_id = %organization_id,
+                    key_version = organization.base.license_key_version,
+                    "Issued online license key"
+                );
+                issued_at
+            }
+        };
+
+        lock.release().await?;
+        Ok(issued_at)
+    }
+
+    /// Make `key_type` the org's issued key, retiring the previous one when
+    /// the type actually changes. A request for the type already issued is a
+    /// re-read and changes nothing, so copying a key twice returns the same
+    /// string.
+    ///
+    /// Retiring works by bumping the key version, which the entitlement
+    /// endpoint checks. That kills an online key at once. An air-gapped key
+    /// carries no version and never checks in, so a copy already installed on
+    /// a server keeps working until its embedded expiry; the UI says so.
+    ///
+    /// `can_issue` decides whether the org may hold `key_type`, and is given
+    /// the state about to be written rather than the current row. A refusal
+    /// abandons the switch: the version bump retires the previous key and
+    /// cannot be undone, so persisting a type the org cannot mint would leave
+    /// it with no usable key and no way back.
+    pub async fn switch_license_key_type(
+        &self,
+        organization_id: Uuid,
+        key_type: LicenseKeyType,
+        authentication: AuthenticatedEntity,
+        can_issue: impl Fn(&Organization) -> Result<(), MintError>,
+    ) -> Result<Organization, SwitchKeyTypeError> {
+        let lock = self.lock_organization(organization_id).await?;
+        let mut organization = self
+            .get_by_id(&organization_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Organization {organization_id} not found"))?;
+
+        if organization.base.license_key_type.unwrap_or_default() == key_type {
+            lock.release().await?;
+            return Ok(organization);
+        }
+
+        // Leaving an air-gapped key is only allowed once the licence period is
+        // up. Until then the key already installed on their server keeps
+        // working whatever we do here, so letting them switch would leave two
+        // live keys and no way to retire the one that matters.
+        if key_type == LicenseKeyType::Online
+            && let Some(paid_through) = organization.air_gapped_key_current_until()
+        {
+            lock.release().await?;
+            return Err(SwitchKeyTypeError::AirGappedStillCurrent { paid_through });
+        }
+
+        organization.base.license_key_type = Some(key_type);
+        organization.base.license_key_version = organization
+            .base
+            .license_key_version
+            .checked_add(1)
+            .ok_or_else(|| anyhow::anyhow!("License key version overflow"))?;
+        organization.base.license_key_issued_at = Some(whole_second(Utc::now()));
+
+        // Dry-run the mint against the state about to be written. The loaded
+        // copy is mutated but not yet persisted, so a refusal here leaves the
+        // row untouched, and the candidate already carries the new version an
+        // online key embeds — exact for both key types rather than an
+        // approximation from the pre-switch row.
+        //
+        // This belongs under the lock rather than in the caller: the billing
+        // subscriber writes `plan_status`, `has_payment_method` and
+        // `license_paid_through` under the same lock, so a Stripe webhook
+        // could land between a caller's own check and this write.
+        if let Err(e) = can_issue(&organization) {
+            lock.release().await?;
+            return Err(SwitchKeyTypeError::Mint(e));
+        }
+
+        let updated = self.update(&mut organization, authentication).await?;
+        tracing::info!(
+            organization_id = %organization_id,
+            key_type = %key_type,
+            key_version = updated.base.license_key_version,
+            "Switched license key type"
+        );
+
+        lock.release().await?;
+        Ok(updated)
+    }
+
+    /// Point a stranded organization back at an online key.
+    ///
+    /// Only for an org stored as air-gapped that can no longer be issued an
+    /// air-gapped key. Such a row is trapped in both directions: every read
+    /// mints the stored type and fails, and the switch back is refused while
+    /// the paid-through date is still ahead. Online is the type it would have
+    /// kept had the refused switch never applied.
+    ///
+    /// The key version stays where it is. The bump that retired the previous
+    /// key has already happened, and reviving a retired key is the one thing
+    /// this must not do.
+    pub async fn revert_license_key_type_to_online(
+        &self,
+        organization_id: Uuid,
+    ) -> Result<Organization, Error> {
+        let lock = self.lock_organization(organization_id).await?;
+        let mut organization = self
+            .get_by_id(&organization_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Organization {organization_id} not found"))?;
+        organization.base.license_key_type = Some(LicenseKeyType::Online);
+        let updated = self
+            .update(&mut organization, AuthenticatedEntity::System)
+            .await?;
+        tracing::warn!(
+            organization_id = %organization_id,
+            key_version = updated.base.license_key_version,
+            "Reverted a stranded organization to an online license key"
+        );
+        lock.release().await?;
+        Ok(updated)
+    }
+
+    /// Increment the org's license key version, retiring every key issued so
+    /// far. A server still running the old online key gets 403 at its next
+    /// check-in and needs the new one.
+    pub async fn rotate_license_key(
+        &self,
+        organization_id: Uuid,
+        authentication: AuthenticatedEntity,
+    ) -> Result<Organization, Error> {
+        let lock = self.lock_organization(organization_id).await?;
+        let mut organization = self
+            .get_by_id(&organization_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Organization {organization_id} not found"))?;
+        organization.base.license_key_version = organization
+            .base
+            .license_key_version
+            .checked_add(1)
+            .ok_or_else(|| anyhow::anyhow!("License key version overflow"))?;
+        // Move the stamp too. The version alone already changes the key; this
+        // keeps the stamp honest about when the current key was issued.
+        organization.base.license_key_issued_at = Some(whole_second(Utc::now()));
+        let updated = self.update(&mut organization, authentication).await?;
+        tracing::info!(
+            organization_id = %organization_id,
+            key_version = updated.base.license_key_version,
+            "Rotated license key"
+        );
+        lock.release().await?;
+        Ok(updated)
     }
 }
 
@@ -152,5 +398,40 @@ impl OrganizationService {
         }
 
         Ok(upgraded)
+    }
+
+    /// Write the online license key's latest entitlement (`None` after the
+    /// cloud rejected the key) and the check-in time to every org. The license
+    /// is instance-level, so every row holds the same value. Written through
+    /// storage, not `update`: this is server bookkeeping, and an `Updated`
+    /// entity event per org on every check-in would carry nothing.
+    pub async fn store_license_entitlement(
+        &self,
+        entitlement: Option<String>,
+        checked_at: DateTime<Utc>,
+    ) -> Result<(), Error> {
+        for mut org in self.get_all(StorableFilter::<Organization>::new()).await? {
+            org.base.license_entitlement = entitlement.clone();
+            org.base.license_entitlement_at = Some(checked_at);
+            self.storage.update(&mut org).await?;
+        }
+        Ok(())
+    }
+
+    /// The persisted entitlement with the latest check-in time across orgs,
+    /// and that time.
+    pub async fn load_license_entitlement(
+        &self,
+    ) -> Result<Option<(String, Option<DateTime<Utc>>)>, Error> {
+        let orgs = self.get_all(StorableFilter::<Organization>::new()).await?;
+        Ok(orgs
+            .into_iter()
+            .filter_map(|org| {
+                Some((
+                    org.base.license_entitlement?,
+                    org.base.license_entitlement_at,
+                ))
+            })
+            .max_by_key(|(_, checked_at)| *checked_at))
     }
 }

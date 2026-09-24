@@ -10,7 +10,13 @@
 	import { ArrowBigUpDash } from 'lucide-svelte';
 	import type { Daemon } from '../types/base';
 	import { VERSION } from '$lib/version';
-	import { type DaemonOS, detectOS, daemonServiceId, daemonLaunchdLabel } from '../utils';
+	import {
+		type DaemonOS,
+		detectOS,
+		daemonServiceId,
+		daemonLaunchdLabel,
+		isPreUnifiedDaemon
+	} from '../utils';
 	import { trackEvent } from '$lib/shared/utils/analytics';
 	import OsSelector from './OsSelector.svelte';
 	import {
@@ -137,7 +143,7 @@ docker compose up -d`;
 
 				<InlineInfo title="" body={daemons_upgradeConfigPreserved()} />
 
-				{#if daemon.version_status?.supports_unified_discovery === false}
+				{#if isPreUnifiedDaemon(daemon)}
 					<InlineWarning
 						title=""
 						body={discovery_upgradeConsolidationWarning()}

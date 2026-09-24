@@ -83,7 +83,9 @@
 	}
 
 	function switchToSignUp() {
-		goto(resolve('/onboarding'));
+		// Preserve the query string so signup params (e.g. `hosting`, UTM) survive
+		// eslint-disable-next-line svelte/no-navigation-without-resolve
+		goto(`${resolve('/onboarding')}${$page.url.search}`);
 	}
 
 	// Dummy onClose since we don't want to close these modals

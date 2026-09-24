@@ -2,6 +2,7 @@
 	import { CreditCard } from 'lucide-svelte';
 	import AppBanner from './AppBanner.svelte';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { useHasPendingQuote } from '$lib/features/billing/queries';
 	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
 	import {
 		getTrialDaysLeft,
@@ -9,23 +10,34 @@
 		isMissingPaymentMethod
 	} from '$lib/shared/utils/trial';
 	import { trackOncePerSession } from '$lib/shared/utils/analytics';
+	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import {
 		billing_addPaymentMethod,
 		billing_noPaymentMethodBannerBody
 	} from '$lib/paraglide/messages';
 
 	const organizationQuery = useOrganizationQuery();
+	const configQuery = useConfigQuery();
 
 	let org = $derived(organizationQuery.data);
+	let billingEnabled = $derived(configQuery.data?.billing_enabled ?? false);
 	let trialDaysLeft = $derived(getTrialDaysLeft(org));
 
 	// `isMissingPaymentMethod` is the shared predicate (Stripe-managed plan that
 	// requires a card but has none) used by every payment-method nag so they
 	// stay in sync. The final clause defers to TrialEndingBanner in its window
 	// (trialing + no card + <= 3 days) so the two never render together.
+	// An org with a quote out is already arranging payment, and accepting it is
+	// the Billing tab's primary action, so this would talk it out of that.
+	const hasPendingQuote = useHasPendingQuote();
 	let shouldShow = $derived(
-		isMissingPaymentMethod(org) &&
-			!(isTrialingWithoutPayment(org) && trialDaysLeft !== null && trialDaysLeft <= 3)
+		isMissingPaymentMethod(org, billingEnabled) &&
+			!hasPendingQuote.current &&
+			!(
+				isTrialingWithoutPayment(org, billingEnabled) &&
+				trialDaysLeft !== null &&
+				trialDaysLeft <= 3
+			)
 	);
 
 	$effect(() => {

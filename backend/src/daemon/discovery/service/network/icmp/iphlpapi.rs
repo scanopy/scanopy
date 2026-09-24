@@ -19,12 +19,12 @@ use super::types::IcmpScanResult;
 
 /// Concurrent echoes in flight, matching the SendARP path's chunking.
 #[cfg(target_family = "windows")]
-const ECHO_CONCURRENCY: usize = 50;
+pub(crate) const ECHO_CONCURRENCY: usize = 50;
 
 /// Per-request timeout in milliseconds. A LAN round trip is single-digit milliseconds; this is
 /// generous enough for a slow device without stalling a sweep on a dead address.
 #[cfg(target_family = "windows")]
-const ECHO_TIMEOUT_MS: u32 = 1000;
+pub(crate) const ECHO_TIMEOUT_MS: u32 = 1000;
 
 /// `IP_SUCCESS`. `IcmpSendEcho` reports unreachables as *replies* carrying a failure status, so a
 /// non-zero return is not on its own evidence that anything is alive.

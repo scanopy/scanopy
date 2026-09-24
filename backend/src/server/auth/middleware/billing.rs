@@ -5,20 +5,27 @@
 //! - For unauthenticated requests: Passes through (handler auth will reject if needed)
 //!
 //! Exemptions (always allowed regardless of billing):
-//! - Community plan
-//! - CommercialSelfHosted plan
-//! - Demo plan
+//! - Community, Free, CommercialSelfHosted, and Demo plans
 //! - Self-hosted instances (no stripe_secret configured)
+//!
+//! Orgs on a self-hosted license plan (SelfHostedStandard / SelfHostedPlus)
+//! run Scanopy on their own servers, so on the cloud they only reach the
+//! routes the Settings modal needs; everything else returns 403.
+//!
+//! A lapsed org (subscription ended, no paid plan chosen since) keeps its
+//! plan and can read everything, but every mutating request outside the
+//! Settings routes returns 402 until it chooses a paid plan.
 
 use crate::server::{
     auth::middleware::{auth::AuthenticatedEntity, cache::CachedNetwork},
     billing::types::base::BillingPlan,
     config::AppState,
+    shared::types::api::ApiError,
 };
 use axum::{
     body::Body,
     extract::{FromRequestParts, State},
-    http::{Request, StatusCode},
+    http::{Method, Request, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -96,30 +103,59 @@ pub async fn require_billing_for_users(
     // lets `/api/v1/organizations` succeed. The frontend reads the resulting
     // `plan = null` and opens BillingPlanModal to force plan selection.
     let plan = organization.base.plan.unwrap_or_default();
+    if plan.license_plan().is_some() {
+        if settings_route(request.method(), request.uri().path()) {
+            return next.run(request).await;
+        }
+        return ApiError::self_hosted_plan_locked().into_response();
+    }
     if matches!(
         plan,
         BillingPlan::Community(_)
             | BillingPlan::Free(_)
             | BillingPlan::CommercialSelfHosted(_)
-            | BillingPlan::SelfHostedStandard(_)
-            | BillingPlan::SelfHostedPlus(_)
             | BillingPlan::Demo(_)
     ) {
         return next.run(request).await;
     }
 
     // Check subscription status. None = no subscription yet (must select a
-    // plan); Cancelled = revoke access; everything else allows the request
-    // through (Active / Trialing / PendingCancellation / PastDue / Paused all
-    // keep features available — Paused is a Stripe collection pause, not a
-    // feature lockout).
-    use crate::server::billing::types::base::PlanStatus;
-    match organization.base.plan_status {
-        Some(PlanStatus::Cancelled) => {
-            billing_error_response("Your subscription has been canceled. Please renew to continue.")
+    // plan); Cancelled = the subscription ended and the org kept its plan, so
+    // it is read-only until it chooses a paid plan; everything else allows
+    // the request through (Active / Trialing / PendingCancellation / PastDue
+    // / Paused all keep features available — Paused is a Stripe collection
+    // pause, not a feature lockout).
+    if organization.is_lapsed() {
+        if request.method().is_safe() || settings_route(request.method(), request.uri().path()) {
+            return next.run(request).await;
         }
+        return ApiError::billing_plan_lapsed().into_response();
+    }
+    match organization.base.plan_status {
         Some(_) => next.run(request).await,
         None => billing_error_response("Active billing plan required. Please select a plan."),
+    }
+}
+
+/// Billed routes the Settings modal calls, which stay open to an org on a
+/// self-hosted license plan and to a lapsed org: reading, renaming, and
+/// deleting the org, and editing the current user. Everything else Settings
+/// needs (auth, billing, licenses, config) sits outside this middleware
+/// already.
+fn settings_route(method: &Method, path: &str) -> bool {
+    const ORGANIZATIONS: &str = "/api/v1/organizations";
+    const USERS: &str = "/api/v1/users";
+    let single_entity = |prefix: &str| {
+        path.strip_prefix(prefix)
+            .and_then(|rest| rest.strip_prefix('/'))
+            .is_some_and(|id| !id.is_empty() && !id.contains('/'))
+    };
+
+    match *method {
+        Method::GET => path == ORGANIZATIONS,
+        Method::PUT => single_entity(ORGANIZATIONS) || single_entity(USERS),
+        Method::DELETE => single_entity(ORGANIZATIONS),
+        _ => false,
     }
 }
 

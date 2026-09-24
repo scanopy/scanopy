@@ -478,11 +478,11 @@ pub async fn test_struct_deserialization_backward_compatibility() {
             let rows = sqlx::query(&format!("SELECT * FROM {}", table_name))
                 .fetch_all(&pool)
                 .await
-                .expect(&format!("Failed to fetch {}", table_name));
+                .unwrap_or_else(|_| panic!("Failed to fetch {}", table_name));
 
             for row in rows.iter() {
                 deserialize_fn(row)
-                    .expect(&format!("Failed to deserialize row from {}", table_name));
+                    .unwrap_or_else(|_| panic!("Failed to deserialize row from {}", table_name));
             }
 
             println!(
@@ -884,7 +884,7 @@ fn regenerate_db_enum_baseline() {
             .get(enum_name)
             .map(|prev| {
                 prev.iter()
-                    .filter(|v| !current.get(enum_name).map_or(false, |cur| cur.contains(v)))
+                    .filter(|v| !current.get(enum_name).is_some_and(|cur| cur.contains(v)))
                     .count()
             })
             .unwrap_or(0);
@@ -956,7 +956,7 @@ fn test_merge_db_enum_baseline_preserves_alias_entries() {
         "newly-added enum must appear in merged output",
     );
     assert!(
-        merged.get("OldEnum").is_none(),
+        !merged.contains_key("OldEnum"),
         "enums absent from current codebase must be pruned, not preserved",
     );
     assert_eq!(merged.len(), 2, "expected exactly EntitySource + NewEnum");

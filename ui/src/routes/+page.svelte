@@ -2,15 +2,8 @@
 	import { SvelteURL } from 'svelte/reactivity';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import Toast from '$lib/shared/components/feedback/Toast.svelte';
-	import EmailVerificationBanner from '$lib/shared/components/feedback/EmailVerificationBanner.svelte';
-	import DemoBanner from '$lib/shared/components/feedback/DemoBanner.svelte';
-	import LicenseLockedBanner from '$lib/shared/components/feedback/LicenseLockedBanner.svelte';
-	import LicenseGraceBanner from '$lib/shared/components/feedback/LicenseGraceBanner.svelte';
-	import LicenseExpiringBanner from '$lib/shared/components/feedback/LicenseExpiringBanner.svelte';
-	import TrialEndingBanner from '$lib/shared/components/feedback/TrialEndingBanner.svelte';
-	import NoPaymentMethodBanner from '$lib/shared/components/feedback/NoPaymentMethodBanner.svelte';
+	import AppBanners from '$lib/shared/components/feedback/AppBanners.svelte';
 	import TrialExpiryModal from '$lib/shared/components/feedback/TrialExpiryModal.svelte';
-	import PostStripeWelcomeBanner from '$lib/shared/components/feedback/PostStripeWelcomeBanner.svelte';
 	import Sidebar from '$lib/shared/components/layout/Sidebar.svelte';
 	import { onDestroy, onMount } from 'svelte';
 	import { discoverySSEManager } from '$lib/features/discovery/queries';
@@ -25,12 +18,14 @@
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
 	import BillingPlanModal from '$lib/features/billing/BillingPlanModal.svelte';
 	import DaemonPromptModal from '$lib/features/daemons/components/DaemonPromptModal.svelte';
-	import { useConfigQuery, isLicenseApproachingExpiry } from '$lib/shared/stores/config-query';
+	import { useConfigQuery, isLicenseSigningAvailable } from '$lib/shared/stores/config-query';
 	import {
 		useOrganizationQuery,
 		useDaemonPromptResponseMutation
 	} from '$lib/features/organizations/queries';
-	import { isBillingPlanActive } from '$lib/features/organizations/types';
+	import { hasLicensedPlan, isBillingPlanActive } from '$lib/features/organizations/types';
+	import { billingPlans } from '$lib/shared/stores/metadata';
+	import { licenseTabVisible } from '$lib/features/settings/license-tab';
 	import { reopenSettingsAfterBilling } from '$lib/features/billing/stores';
 	import {
 		modalState,
@@ -49,15 +44,45 @@
 	let isAuthenticated = $derived(currentUserQuery.data != null);
 	let isCheckingAuth = $derived(currentUserQuery.isPending);
 
-	// TanStack Query for daemons - used to determine default tab
-	// Only fetch when authenticated to avoid 401 errors during onboarding
-	const daemonsQuery = useDaemonsQuery({ enabled: () => isAuthenticated });
-
 	// Billing modal: show when billing is enabled but user has no active plan
 	const configQuery = useConfigQuery();
 	const organizationQuery = useOrganizationQuery();
 	let billingEnabled = $derived(configQuery.data?.billing_enabled ?? false);
+	let licenseSigningAvailable = $derived(
+		configQuery.data != null && isLicenseSigningAvailable(configQuery.data)
+	);
 	let organization = $derived(organizationQuery.data);
+	// A licensed self-hosted plan on a billing-enabled server locks the main app:
+	// the backend rejects main-app routes, and the org only gets Settings (its keys
+	// live on the License tab). Switching to a cloud plan unlocks it on the next
+	// org refetch.
+	// Set when the plan picker closes on a licensed plan and cleared once the org
+	// confirms it. The org's plan only flips after the Stripe webhook, so without
+	// this the picker closes onto the main app for a second or two before Settings
+	// opens on the License tab. The cache is deliberately not seeded instead:
+	// waitForOrgUpdate invalidates and refetches at once, so a seeded plan reverts
+	// within milliseconds and the License tab flickers out of the tab list.
+	let licensedPlanJustPicked = $state(false);
+	let isSelfHostedPlanLocked = $derived(
+		billingEnabled &&
+			(licensedPlanJustPicked || (organization != null && hasLicensedPlan(organization)))
+	);
+	$effect(() => {
+		if (licensedPlanJustPicked && organization != null && hasLicensedPlan(organization)) {
+			licensedPlanJustPicked = false;
+		}
+	});
+	// Main-app data (SSE streams, daemons) waits until the lock state is known.
+	let mainAppAvailable = $derived(
+		configQuery.data != null && organization != null && !isSelfHostedPlanLocked
+	);
+
+	// TanStack Query for daemons - used to determine default tab
+	// Only fetch when authenticated to avoid 401 errors during onboarding,
+	// and not while the main app is locked (the route would 403)
+	const daemonsQuery = useDaemonsQuery({
+		enabled: () => isAuthenticated && !isSelfHostedPlanLocked
+	});
 	let needsPlanSelection = $derived(
 		billingEnabled && organization != null && !isBillingPlanActive(organization)
 	);
@@ -75,6 +100,7 @@
 	// Don't nag Viewers (they can't install daemons) and never re-show the prompt once
 	// the user has responded to it (either CTA persists an onboarding milestone).
 	let isViewer = $derived(currentUserQuery.data?.permissions === 'Viewer');
+	let isOwner = $derived(currentUserQuery.data?.permissions === 'Owner');
 	let daemonPromptResponded = $derived(
 		(organization?.onboarding?.includes('DaemonPromptDismissed') ?? false) ||
 			(organization?.onboarding?.includes('DaemonPromptAccepted') ?? false)
@@ -85,12 +111,40 @@
 	let sidebarCollapsed = $state(false);
 	let dataLoadingStarted = $state(false);
 	let showSettings = $state(false);
-	// Billing-blocking states force the Settings modal open on the Billing tab
-	// and make it non-dismissible. Past-due users have to update payment; paused
-	// users have to click Resume Now before they can navigate elsewhere. The
-	// inline alerts in BillingTab carry the matching urgent copy.
+	// Billing-blocking states force the Settings modal open and make it
+	// non-dismissible. Past-due users have to update payment; paused users have to
+	// click Resume Now before they can navigate elsewhere; orgs on a licensed
+	// self-hosted plan manage their license and card on the License tab. The inline
+	// alerts in BillingTab carry the matching urgent copy.
 	let isBillingBlocking = $derived(
-		organization?.plan_status === 'past_due' || organization?.plan_status === 'paused'
+		(billingEnabled &&
+			(organization?.plan_status === 'past_due' || organization?.plan_status === 'paused')) ||
+			isSelfHostedPlanLocked
+	);
+	// Only owners can see the Billing tab; everyone else is held on Account,
+	// where SettingsModal explains that an owner has to resolve billing. An owner on
+	// a licensed self-hosted plan is held on License instead — the key is what that
+	// org came for, and Billing has nothing it must act on.
+	// This modal can't be dismissed, so the forced tab has to be one SettingsModal
+	// shows. Both read licenseTabVisible with the same inputs: an owner whose License
+	// tab is hidden (a server that lost its signing key, a demo org) goes to Billing.
+	// A true result already implies isSelfHostedPlanLocked and isOwner.
+	let isDemoOrg = $derived(
+		billingPlans.getMetadata(organization?.plan?.type ?? null).is_demo === true
+	);
+	let billingBlockingTab = $derived(
+		licenseTabVisible({
+			isOwner,
+			isDemoOrg,
+			billingEnabled,
+			signingAvailable: licenseSigningAvailable,
+			hasLicensedPlan: organization != null && hasLicensedPlan(organization),
+			licensedPlanPending: licensedPlanJustPicked
+		})
+			? 'license'
+			: isOwner
+				? 'billing'
+				: 'account'
 	);
 	let allTabs = $state<
 		Array<{
@@ -143,11 +197,34 @@
 		}
 	});
 
-	// Auto-open settings modal to billing tab when past_due or paused —
-	// either state requires user action before they can resume normal use.
+	// Auto-open settings modal to billing tab when past_due, paused, or on a
+	// licensed self-hosted plan — each requires owner action before normal use.
 	$effect(() => {
 		if (isBillingBlocking && appInitialized) {
-			openModal('settings', { tab: 'billing' });
+			openModal('settings', { tab: billingBlockingTab });
+		}
+	});
+
+	// A URL deep link (initModalFromUrl) can name a main-app modal, and the org may
+	// load after it opened. While locked, only the settings and billing modals stay.
+	const LOCKED_ORG_MODALS = ['settings', 'billing-plan', 'payment-method', 'support'];
+	$effect(() => {
+		const name = $modalState.name;
+		if (isSelfHostedPlanLocked && name && !LOCKED_ORG_MODALS.includes(name)) {
+			closeModal();
+		}
+	});
+
+	// Real-time streams are main-app routes: connect only once the org is known
+	// to be unlocked, and drop them if the org moves onto a licensed plan.
+	$effect(() => {
+		if (!appInitialized) return;
+		if (mainAppAvailable) {
+			topologySSEManager.connect();
+			discoverySSEManager.connect();
+		} else {
+			topologySSEManager.disconnect();
+			discoverySSEManager.disconnect();
 		}
 	});
 
@@ -159,6 +236,7 @@
 			appInitialized &&
 			!daemonPromptShown &&
 			!showBillingModal &&
+			!isSelfHostedPlanLocked &&
 			$modalState.name === null &&
 			!isViewer &&
 			organization?.onboarding?.includes('OrgCreated') &&
@@ -188,10 +266,7 @@
 		if (dataLoadingStarted) return;
 		dataLoadingStarted = true;
 
-		// Connect SSE managers for real-time updates
-		topologySSEManager.connect();
-		discoverySSEManager.connect();
-
+		// SSE managers connect from the mainAppAvailable effect once the org loads.
 		appInitialized = true;
 		initModalFromUrl();
 
@@ -235,8 +310,10 @@
 				bind:collapsed={sidebarCollapsed}
 				bind:allTabs
 				bind:showSettings
-				settingsInitialTab={isBillingBlocking ? 'billing' : 'account'}
+				settingsInitialTab={isBillingBlocking ? billingBlockingTab : 'account'}
 				settingsDismissible={!isBillingBlocking}
+				mainAppLocked={isSelfHostedPlanLocked}
+				licensedPlanPending={licensedPlanJustPicked}
 			/>
 		</div>
 
@@ -260,24 +337,12 @@
 			class:ml-16={sidebarCollapsed}
 			class:ml-48={!sidebarCollapsed}
 		>
-			{#if currentUserQuery.data && !currentUserQuery.data.email_verified}
-				<EmailVerificationBanner email={currentUserQuery.data.email} />
-			{/if}
-			<TrialEndingBanner />
-			<NoPaymentMethodBanner />
-			<PostStripeWelcomeBanner />
-			{#if organization?.plan?.type === 'Demo'}
-				<DemoBanner />
-			{/if}
-			{#if configQuery.data?.license_status === 'expired' || configQuery.data?.license_status === 'invalid'}
-				<LicenseLockedBanner status={configQuery.data.license_status} />
-			{:else if configQuery.data?.license_in_grace_period && configQuery.data?.license_intended_expiry && configQuery.data?.license_expiry}
-				<LicenseGraceBanner
-					intendedExpiry={configQuery.data.license_intended_expiry}
-					hardExpiry={configQuery.data.license_expiry}
-				/>
-			{:else if configQuery.data && isLicenseApproachingExpiry(configQuery.data) && configQuery.data.license_intended_expiry}
-				<LicenseExpiringBanner intendedExpiry={configQuery.data.license_intended_expiry} />
+			<!-- Only while the main app is reachable. When it is gated, the Settings
+			     modal carries the same stack in its frame instead, so exactly one copy
+			     is ever mounted: AppBanner holds its dismissed state locally, and a
+			     second copy behind the overlay would not follow a dismissal. -->
+			{#if !isBillingBlocking}
+				<AppBanners />
 			{/if}
 			<div class="p-4 [&_.sticky]:sticky [&_.sticky]:top-0">
 				<!--
@@ -294,22 +359,26 @@
 					zero-height wrapper the containing block, so those spans are clipped
 					with everything else.
 				-->
-				{#each allTabs as tab (tab.id)}
-					{#if tab.subTabIds && tab.subTabDefs}
-						<div class={!tab.subTabIds.includes(activeTab) ? 'relative h-0 overflow-hidden' : ''}>
-							<ContentSubTabs
-								tabs={tab.subTabDefs}
-								bind:activeTab
-								isReadOnly={tab.isReadOnly}
-								notifications={tab.subTabNotifications}
-							/>
-						</div>
-					{:else}
-						<div class={activeTab !== tab.id ? 'relative h-0 overflow-hidden' : ''}>
-							<tab.component isReadOnly={tab.isReadOnly} isActive={activeTab === tab.id} />
-						</div>
-					{/if}
-				{/each}
+				<!-- Main-app tabs mount only once the org is known to be unlocked; their
+				     queries hit routes a licensed self-hosted org is rejected from. -->
+				{#if mainAppAvailable}
+					{#each allTabs as tab (tab.id)}
+						{#if tab.subTabIds && tab.subTabDefs}
+							<div class={!tab.subTabIds.includes(activeTab) ? 'relative h-0 overflow-hidden' : ''}>
+								<ContentSubTabs
+									tabs={tab.subTabDefs}
+									bind:activeTab
+									isReadOnly={tab.isReadOnly}
+									notifications={tab.subTabNotifications}
+								/>
+							</div>
+						{:else}
+							<div class={activeTab !== tab.id ? 'relative h-0 overflow-hidden' : ''}>
+								<tab.component isReadOnly={tab.isReadOnly} isActive={activeTab === tab.id} />
+							</div>
+						{/if}
+					{/each}
+				{/if}
 			</div>
 
 			<Toast />
@@ -323,10 +392,23 @@
 		isOpen={showBillingModal}
 		name="billing-plan"
 		dismissible={!needsPlanSelection}
-		onClose={() => {
+		onClose={(selectedPlan) => {
 			planJustActivated = true;
+			// Key the licensed check off the plan the user just picked: `organization`
+			// still holds the previous plan at this point, which is how the daemon
+			// prompt used to win the race and ask a self-hosted buyer to install a
+			// daemon they can't reach. The lock effect opens Settings on the License
+			// tab as soon as the org query catches up.
+			const licensed =
+				selectedPlan != null && billingPlans.getMetadata(selectedPlan.type).license_plan != null;
 			closeModal();
-			if ($reopenSettingsAfterBilling) {
+			if (licensed) {
+				// Locks the app and opens Settings on the License tab now, rather than
+				// when the webhook lands the plan on the org.
+				licensedPlanJustPicked = true;
+				daemonPromptShown = true;
+				reopenSettingsAfterBilling.set(false);
+			} else if ($reopenSettingsAfterBilling) {
 				reopenSettingsAfterBilling.set(false);
 				openModal('settings', { tab: 'billing' });
 			} else if (!isViewer && !daemonPromptResponded && daemonsQuery.data?.length === 0) {

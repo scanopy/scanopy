@@ -222,7 +222,7 @@ async fn create_dependency(
         create_handler::<Dependency>(State(state.clone()), auth, Json(dependency)).await?;
 
     // Emit FirstDependencyCreated telemetry event if this is the first dependency
-    if response.data.is_some() {
+    if response.data().is_some() {
         let organization = state
             .services
             .organization_service

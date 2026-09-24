@@ -5,6 +5,7 @@
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
 import { queryKeys, queryClient } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
 import type { Network } from './types';
 import type { User } from '$lib/features/users/types';
 
@@ -20,13 +21,11 @@ export function useNetworksQuery() {
 			if (!user) {
 				return [];
 			}
-			const { data } = await apiClient.GET('/api/v1/networks', {
-				params: { query: { limit: 0 } }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to fetch networks');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.GET('/api/v1/networks', {
+					params: { query: { limit: 0 } }
+				})
+			);
 		}
 	}));
 }
@@ -39,11 +38,7 @@ export function useCreateNetworkMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (network: Network) => {
-			const { data } = await apiClient.POST('/api/v1/networks', { body: network });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to create network');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/v1/networks', { body: network }));
 		},
 		onSuccess: (newNetwork: Network) => {
 			queryClient.setQueryData<Network[]>(queryKeys.networks.all, (old) =>
@@ -63,14 +58,12 @@ export function useUpdateNetworkMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (network: Network) => {
-			const { data } = await apiClient.PUT('/api/v1/networks/{id}', {
-				params: { path: { id: network.id } },
-				body: network
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to update network');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.PUT('/api/v1/networks/{id}', {
+					params: { path: { id: network.id } },
+					body: network
+				})
+			);
 		},
 		onSuccess: (updatedNetwork: Network) => {
 			queryClient.setQueryData<Network[]>(
@@ -91,12 +84,11 @@ export function useDeleteNetworkMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (id: string) => {
-			const { data } = await apiClient.DELETE('/api/v1/networks/{id}', {
-				params: { path: { id } }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete network');
-			}
+			requireSuccess(
+				await apiClient.DELETE('/api/v1/networks/{id}', {
+					params: { path: { id } }
+				})
+			);
 			return id;
 		},
 		onSuccess: (id: string) => {
@@ -116,10 +108,7 @@ export function useBulkDeleteNetworksMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (ids: string[]) => {
-			const { data } = await apiClient.POST('/api/v1/networks/bulk-delete', { body: ids });
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete networks');
-			}
+			requireSuccess(await apiClient.POST('/api/v1/networks/bulk-delete', { body: ids }));
 			return ids;
 		},
 		onSuccess: (ids: string[]) => {

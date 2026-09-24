@@ -80,6 +80,12 @@ pub struct OrgNotifications {
     /// `None` until the first sunset email is sent.
     #[serde(default)]
     pub sunset_notified_floor: Option<Version>,
+    /// The `license_paid_through` an air-gapped organization has already been
+    /// warned about. The warning goes out once per licence period; a renewal
+    /// moves the date, so the next period's warning sends. `None` until the
+    /// first one.
+    #[serde(default)]
+    pub airgap_expiry_notified_through: Option<DateTime<Utc>>,
 }
 
 #[derive(
@@ -107,6 +113,12 @@ pub struct OrganizationBase {
     #[serde(default)]
     #[schema(read_only)]
     pub has_payment_method: bool,
+    /// Whether the subscription is billed by sent invoice, against a purchase
+    /// order. Such an org has no card, so this is the other half of "can this
+    /// org pay?" — see [`Organization::can_pay`].
+    #[serde(default)]
+    #[schema(read_only)]
+    pub bills_by_invoice: bool,
     /// When the free trial ends, if one is running.
     #[serde(default)]
     #[schema(read_only)]
@@ -161,12 +173,56 @@ pub struct OrganizationBase {
     /// Brevo company ID - internal, not exposed to API
     #[serde(default, skip_serializing)]
     pub brevo_company_id: Option<String>,
+    /// Latest entitlement an online license key fetched from Scanopy Cloud.
+    /// Instance-level: every org row holds the same value. It works as an
+    /// offline key until it expires, so it is never read from or written to
+    /// the API.
+    #[serde(skip)]
+    pub license_entitlement: Option<String>,
+    /// When Scanopy Cloud last answered this instance's license check-in.
+    #[serde(skip)]
+    pub license_entitlement_at: Option<DateTime<Utc>>,
     /// Per-org notification bookkeeping (plan-limit ratchets + daemon sunset).
     #[serde(default, skip_serializing)]
     pub notifications: OrgNotifications,
     /// Use case selection (homelab, company, msp, other)
     #[serde(default, deserialize_with = "deserialize_use_case_from_option")]
     pub use_case: UseCase,
+    /// When the org's self-hosted license is paid through: the trial end
+    /// during a self-hosted trial, then the end of the last paid invoice's
+    /// service period. While a sent invoice is unpaid, its due date plus a
+    /// grace window. License keys and entitlements expire 7 days later.
+    #[serde(default)]
+    #[schema(read_only)]
+    pub license_paid_through: Option<DateTime<Utc>>,
+    /// Last time a self-hosted server fetched an entitlement with this org's
+    /// online license key.
+    #[serde(default)]
+    #[schema(read_only)]
+    pub license_checkin_at: Option<DateTime<Utc>>,
+    /// Version embedded in online license keys - internal, not exposed to API.
+    /// Rotating the key increments it, retiring every earlier key.
+    #[serde(default, skip_serializing)]
+    pub license_key_version: i64,
+    /// `iat` embedded in this org's online license key. Held so re-minting
+    /// returns a byte-identical key rather than a new string each time; set on
+    /// first issue and moved on rotation. Not key material.
+    #[serde(default, skip_serializing)]
+    pub license_key_issued_at: Option<DateTime<Utc>>,
+    /// Which license key this org currently has issued - internal, not exposed
+    /// to API. `None` reads as online. Switching retires the previous key.
+    #[serde(default, skip_serializing)]
+    pub license_key_type: Option<crate::server::license::types::LicenseKeyType>,
+    /// The date this org's air-gapped key stays current until, or `None` when
+    /// it holds an online key or that date has passed.
+    ///
+    /// Computed on read from `license_key_type` and `license_paid_through`,
+    /// never stored. It carries the one fact the UI needs, that the org cannot
+    /// change plan yet, without exposing `license_key_type`, which stays
+    /// internal. See [`Organization::air_gapped_key_current_until`].
+    #[serde(default)]
+    #[schema(read_only)]
+    pub air_gapped_key_current_until: Option<DateTime<Utc>>,
 }
 
 #[derive(
@@ -198,6 +254,37 @@ impl Organization {
     pub fn has_onboarded(&self, step: &OnboardingOperationDiscriminants) -> bool {
         self.base.onboarding.contains(step)
     }
+
+    /// Whether the org has a way to pay its next invoice: a card on file, or a
+    /// subscription billed by sent invoice. Payment prompts and the paths that
+    /// check Stripe for a card both read this, so neither asks an
+    /// invoice-billed customer for a card.
+    pub fn can_pay(&self) -> bool {
+        self.base.has_payment_method || self.base.bills_by_invoice
+    }
+
+    /// Whether the org's subscription has ended without a paid plan being
+    /// chosen since. The org keeps the plan it lapsed from; the billing
+    /// middleware, the discovery scheduler and daemon work handout all read
+    /// this so a lapsed org is read-only in one consistent way.
+    pub fn is_lapsed(&self) -> bool {
+        self.base.plan.is_some_and(|plan| plan.is_stripe_managed())
+            && self.base.plan_status
+                == Some(crate::server::billing::types::base::PlanStatus::Cancelled)
+    }
+
+    /// The date an air-gapped key stays current until, when the org holds one.
+    ///
+    /// An air-gapped key validates offline and carries its own expiry, so
+    /// while this is `Some` the organization is committed to the plan it
+    /// bought: it cannot switch back to an online key, and it cannot change
+    /// plan. Both refusals read this, so the two rules cannot drift apart.
+    pub fn air_gapped_key_current_until(&self) -> Option<DateTime<Utc>> {
+        let paid_through = self.base.license_paid_through?;
+        (self.base.license_key_type == Some(crate::server::license::types::LicenseKeyType::Offline)
+            && Utc::now() < paid_through)
+            .then_some(paid_through)
+    }
 }
 
 impl Display for Organization {
@@ -209,5 +296,77 @@ impl Display for Organization {
 impl ChangeTriggersTopologyStaleness<Organization> for Organization {
     fn triggers_staleness(&self, _other: Option<Organization>) -> bool {
         false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::server::license::types::LicenseKeyType;
+
+    fn org(key_type: Option<LicenseKeyType>, paid_through: Option<DateTime<Utc>>) -> Organization {
+        let mut org = Organization::default();
+        org.base.license_key_type = key_type;
+        org.base.license_paid_through = paid_through;
+        org
+    }
+
+    /// The middleware, the discovery scheduler and daemon work handout all
+    /// read this. A plan with no Stripe lifecycle (Free, Community, Demo)
+    /// never lapses whatever its status column says, and a live subscription
+    /// in any other state is not lapsed.
+    #[test]
+    fn only_a_stripe_managed_plan_with_an_ended_subscription_is_lapsed() {
+        use crate::server::billing::plans::{get_free_plan, get_self_hosted_standard_plan};
+        use crate::server::billing::types::base::PlanStatus;
+
+        let with = |plan: BillingPlan, status: Option<PlanStatus>| {
+            let mut org = Organization::default();
+            org.base.plan = Some(plan);
+            org.base.plan_status = status;
+            org
+        };
+
+        assert!(with(get_self_hosted_standard_plan(), Some(PlanStatus::Cancelled)).is_lapsed());
+        assert!(!with(get_self_hosted_standard_plan(), Some(PlanStatus::Active)).is_lapsed());
+        assert!(!with(get_self_hosted_standard_plan(), Some(PlanStatus::PastDue)).is_lapsed());
+        assert!(!with(get_self_hosted_standard_plan(), None).is_lapsed());
+        assert!(!with(get_free_plan(), Some(PlanStatus::Cancelled)).is_lapsed());
+        assert!(!Organization::default().is_lapsed());
+    }
+
+    /// Two refusals read this: switching back to an online key, and changing
+    /// plan. Both are about a key the customer is already running, so only an
+    /// air-gapped key with time left on it counts.
+    #[test]
+    fn only_an_unexpired_air_gapped_key_is_current() {
+        let future = Utc::now() + chrono::Duration::days(30);
+        let past = Utc::now() - chrono::Duration::days(1);
+
+        assert_eq!(
+            org(Some(LicenseKeyType::Offline), Some(future)).air_gapped_key_current_until(),
+            Some(future),
+        );
+
+        // The period they paid for is over, so both rules lift on their own.
+        assert_eq!(
+            org(Some(LicenseKeyType::Offline), Some(past)).air_gapped_key_current_until(),
+            None
+        );
+
+        // An online key is retired by a version bump the moment anything
+        // changes, so it never blocks either transition.
+        assert_eq!(
+            org(Some(LicenseKeyType::Online), Some(future)).air_gapped_key_current_until(),
+            None
+        );
+        // `None` reads as online, per the column's documented default.
+        assert_eq!(org(None, Some(future)).air_gapped_key_current_until(), None);
+
+        // No paid-through date means nothing to be current until.
+        assert_eq!(
+            org(Some(LicenseKeyType::Offline), None).air_gapped_key_current_until(),
+            None
+        );
     }
 }

@@ -70,7 +70,8 @@ pub async fn generate_fixtures() {
         .parent()
         .expect("Failed to get parent directory")
         .join("ui/static/openapi-public.json");
-    super::openapi_gen::generate_public(&openapi_path).expect("Failed to generate OpenAPI spec");
+    scanopy::server::openapi::write_spec(&scanopy::server::openapi::public_spec(), &openapi_path)
+        .expect("Failed to generate OpenAPI spec");
 
     println!("✅ Generated test fixtures");
 }

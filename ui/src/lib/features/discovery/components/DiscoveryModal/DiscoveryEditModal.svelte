@@ -25,10 +25,14 @@
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
 	import { pushError, pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
+	import { copyText } from '$lib/shared/utils/clipboard';
+	import { formatDiagnostics } from '../../utils/diagnostics';
 	import type { Daemon } from '$lib/features/daemons/types/base';
+	import { isPreUnifiedDaemon } from '$lib/features/daemons/utils';
 	import type { Host } from '$lib/features/hosts/types/base';
 	import { useSubnetsQuery } from '$lib/features/subnets/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { isPlanLapsed } from '$lib/features/organizations/types';
 	import { billingPlans } from '$lib/shared/stores/metadata';
 	import {
 		Info,
@@ -56,7 +60,7 @@
 		common_deleting,
 		common_details,
 		common_failedToCopy,
-		common_warnings,
+		common_issues,
 		common_next,
 		common_saving,
 		common_schedule,
@@ -64,14 +68,13 @@
 		common_performance,
 		common_targets,
 		daemons_credentialWizardTargetRequired,
+		discovery_copyDiagnostics,
 		discovery_copyWarningData,
 		discovery_couldNotGetNetworkId,
 		discovery_createDiscovery,
 		discovery_createScheduled,
 		discovery_credentialsDescription,
 		discovery_edit,
-		discovery_failedToDelete,
-		discovery_failedToSave,
 		discovery_noDaemonSelected,
 		discovery_editActiveInfo,
 		discovery_updateDiscovery,
@@ -106,6 +109,9 @@
 
 	const organizationQuery = useOrganizationQuery();
 	let org = $derived(organizationQuery.data);
+	// The scheduler skips a lapsed org the way it skips a Free one; the plan's
+	// own feature flags still decide the run-type default below.
+	let scheduleLapsed = $derived(org != null && isPlanLapsed(org));
 	const subnetsQuery = useSubnetsQuery();
 	let subnetsData = $derived(subnetsQuery.data ?? []);
 	let hasScheduledDiscovery = $derived.by(() => {
@@ -132,6 +138,13 @@
 
 	let isEditing = $derived(discovery !== null);
 	let isHistoricalRun = $derived(discovery?.run_type.type === 'Historical');
+	let historicalResults = $derived(
+		discovery?.run_type.type === 'Historical' ? discovery.run_type.results : null
+	);
+	/** A run that failed or was cancelled: the Issues tab has its reason to show. */
+	let endedBadly = $derived(
+		historicalResults?.phase === 'Failed' || historicalResults?.phase === 'Cancelled'
+	);
 	let historicalWarnings = $derived(
 		discovery?.run_type.type === 'Historical' ? (discovery.run_type.results.warnings ?? []) : []
 	);
@@ -145,39 +158,27 @@
 	 * chips show names resolved live rather than what the scan recorded. The payload is the
 	 * durable artefact — every code with its own fields, one object per occurrence.
 	 *
-	 * `navigator.clipboard` is gated to secure contexts, and Scanopy supports plain-HTTP
-	 * self-hosts — the same trap `crypto.randomUUID` carries — so it is used only where it exists
-	 * and a selection-based copy stands in elsewhere. That is the deployment most likely to be
-	 * sharing warnings with us, so failing there would miss the point of the button.
+	 * `copyText` falls back to a selection copy on plain-HTTP self-hosts, the deployment most
+	 * likely to be sharing warnings with us.
 	 */
 	async function copyWarningData() {
-		const raw = JSON.stringify(historicalWarnings, null, 2);
+		await copyToClipboard(JSON.stringify(historicalWarnings, null, 2));
+	}
+
+	/**
+	 * Put the run's identifiers, versions and timings on the clipboard as plain text, for a
+	 * support thread about a run that failed or was cancelled.
+	 */
+	async function copyDiagnostics() {
+		if (historicalResults) await copyToClipboard(formatDiagnostics(historicalResults));
+	}
+
+	async function copyToClipboard(text: string) {
 		try {
-			if (window.isSecureContext && navigator.clipboard) {
-				await navigator.clipboard.writeText(raw);
-			} else if (!copyViaSelection(raw)) {
-				throw new Error('the browser refused the copy');
-			}
+			await copyText(text);
 			pushSuccess(common_copied());
 		} catch (error) {
 			pushWarning(common_failedToCopy({ error: String(error) }));
-		}
-	}
-
-	/** The pre-`navigator.clipboard` path, for a page served over plain HTTP. */
-	function copyViaSelection(text: string): boolean {
-		const field = document.createElement('textarea');
-		field.value = text;
-		// Off-screen rather than `display: none`: a hidden field cannot be selected.
-		field.setAttribute('readonly', '');
-		field.style.position = 'fixed';
-		field.style.opacity = '0';
-		document.body.appendChild(field);
-		try {
-			field.select();
-			return document.execCommand('copy');
-		} finally {
-			field.remove();
 		}
 	}
 
@@ -326,26 +327,26 @@
 	let hasPerformanceTab = $derived(
 		formData.discovery_type.type === 'Network' || formData.discovery_type.type === 'Unified'
 	);
-	let daemonSupportsUnified = $derived(
-		!daemon || daemon.version_status?.supports_unified_discovery !== false
-	);
+	let daemonSupportsUnified = $derived(!daemon || !isPreUnifiedDaemon(daemon));
 	let hasCredentialsTab = $derived(formData.discovery_type.type === 'Unified');
 	let hasScheduleTab = $derived(formData.run_type.type === 'Scheduled');
 
 	/**
-	 * A completed run has warnings and it has details, and they are read for different reasons —
-	 * "did this need me" before "what did it do". Two tabs rather than the warnings stapled to the
-	 * top of the details, which is what made a run with fourteen of them unreadable.
+	 * A run has issues and it has details, and they are read for different reasons — "did this
+	 * need me" before "what did it do". Two tabs rather than the warnings stapled to the top of
+	 * the details, which is what made a run with fourteen of them unreadable.
 	 *
-	 * The tab carries no status dot. Landing on Warnings already says the run has some, and the
-	 * count that says how many belongs on the row in scan history, where runs are compared.
+	 * Issues holds everything that went wrong: the warnings, and for a run that failed or was
+	 * cancelled, why it ended. The tab carries no status dot. Landing on it already says the run
+	 * has something, and the count that says how many belongs on the row in scan history, where
+	 * runs are compared.
 	 */
 	let tabs: ModalTab[] = $derived(
 		isHistoricalRun
 			? [
 					{
-						id: 'warnings',
-						label: common_warnings(),
+						id: 'issues',
+						label: common_issues(),
 						icon: TriangleAlert
 					},
 					{ id: 'details', label: common_details(), icon: Info }
@@ -590,8 +591,8 @@
 						await onCreate(formData);
 					}
 					onClose();
-				} catch (error) {
-					pushError(error instanceof Error ? error.message : discovery_failedToSave());
+				} catch {
+					// The API client reports the failure.
 				} finally {
 					loading = false;
 				}
@@ -602,9 +603,10 @@
 	}));
 
 	function handleOpen() {
-		// A run with warnings opens on them; a clean one opens on its details. The Warnings tab
-		// still exists either way, so the modal does not change shape between runs.
-		activeTab = historicalWarnings.length > 0 ? 'warnings' : 'details';
+		// A run with something wrong opens on it: its warnings, or the reason it did not finish.
+		// A clean one opens on its details. The Issues tab exists either way, so the modal does
+		// not change shape between runs.
+		activeTab = historicalWarnings.length > 0 || endedBadly ? 'issues' : 'details';
 		appliedJunctionFingerprint = '';
 		furthestReached = discovery ? Infinity : 0;
 		formData = getDefaultFormData();
@@ -708,8 +710,8 @@
 			try {
 				await onDelete(discovery.id);
 				onClose();
-			} catch (error) {
-				pushError(error instanceof Error ? error.message : discovery_failedToDelete());
+			} catch {
+				// The API client reports the failure.
 			} finally {
 				deleting = false;
 			}
@@ -765,7 +767,7 @@
 		>
 			{#if isHistoricalRun && discovery?.run_type.type === 'Historical'}
 				<div class="space-y-8 p-6">
-					{#if activeTab === 'warnings'}
+					{#if activeTab === 'issues'}
 						<WarningReport payload={discovery.run_type.results} />
 					{:else}
 						<DiscoveryHistoricalSummary payload={discovery.run_type.results} />
@@ -814,7 +816,8 @@
 						bind:formData
 						{readOnly}
 						bind:rawCronMode
-						schedulePaused={!hasScheduledDiscovery}
+						schedulePaused={!hasScheduledDiscovery || scheduleLapsed}
+						{scheduleLapsed}
 					/>
 				</div>
 			{/if}
@@ -858,7 +861,7 @@
 				<div class="flex items-center gap-3">
 					<!-- Beside Close rather than above the report: it acts on the whole run, not on
 					     any one row, and the footer is where a modal's whole-record actions live. -->
-					{#if activeTab === 'warnings' && historicalWarnings.length > 0}
+					{#if activeTab === 'issues' && historicalWarnings.length > 0}
 						<button
 							type="button"
 							class="btn-secondary flex items-center gap-1"
@@ -866,6 +869,16 @@
 						>
 							<Copy class="h-4 w-4" />
 							<span>{discovery_copyWarningData()}</span>
+						</button>
+					{/if}
+					{#if activeTab === 'issues' && endedBadly}
+						<button
+							type="button"
+							class="btn-secondary flex items-center gap-1"
+							onclick={copyDiagnostics}
+						>
+							<Copy class="h-4 w-4" />
+							<span>{discovery_copyDiagnostics()}</span>
 						</button>
 					{/if}
 					{#if isEditing || isHistoricalRun}

@@ -30,5 +30,5 @@ mod channel;
 mod identify;
 mod packet;
 
-pub use identify::{is_available, is_dcp_capable, scan_interface};
+pub use identify::{LISTEN_WINDOW, is_available, is_dcp_capable, scan_interface};
 pub use packet::DcpIdentifyResponse;

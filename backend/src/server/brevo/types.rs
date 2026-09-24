@@ -25,6 +25,9 @@ pub struct ContactAttributes {
     pub scanopy_marketing_opt_in_date: Option<String>,
     pub scanopy_domain_class: Option<String>,
     pub scanopy_institution_type: Option<String>,
+    /// The contact's org is on a licensed self-hosted plan. Contact-level
+    /// because Brevo automations can't condition on company attributes.
+    pub scanopy_licensed_plan: Option<bool>,
 }
 
 impl ContactAttributes {
@@ -104,6 +107,11 @@ impl ContactAttributes {
         self
     }
 
+    pub fn with_licensed_plan(mut self, licensed: bool) -> Self {
+        self.scanopy_licensed_plan = Some(licensed);
+        self
+    }
+
     /// Convert to Brevo API attributes map (UPPERCASE keys)
     pub fn to_attributes(&self) -> HashMap<String, serde_json::Value> {
         let mut attrs = HashMap::new();
@@ -149,6 +157,9 @@ impl ContactAttributes {
         }
         if let Some(v) = &self.scanopy_institution_type {
             attrs.insert("SCANOPY_INSTITUTION_TYPE".to_string(), serde_json::json!(v));
+        }
+        if let Some(v) = self.scanopy_licensed_plan {
+            attrs.insert("SCANOPY_LICENSED_PLAN".to_string(), serde_json::json!(v));
         }
         attrs
     }

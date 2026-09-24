@@ -1,6 +1,27 @@
 .PHONY: daemon-build daemon-rebuild daemon-dev daemon-fix-perms help build test test-unit clean format lint lint-migrations generate-schema generate-messages generate-fixtures refresh-vendored-data seed-dev set-plan-community set-plan-starter set-plan-pro set-plan-team set-plan-business set-plan-enterprise test-plan test-merge test-results install-dev-mac install-dev-linux install-dev-windows snmp-seed-credentials snmp-fixtures snmp-deploy snmp-verify snmp-status dcp-start dcp-stop dcp-verify dcp-status docker-proxy-up docker-proxy-up-tls docker-proxy-down docker-proxy-status podman-proxy-up podman-proxy-up-tls podman-proxy-down podman-proxy-status podman-workload-up podman-workload-down unifi-status unifi-capture issue-license daemon-clean daemon-purge daemon-logs daemon-restart daemon-config
 
 DAYS ?= 365
+PLAN ?= standard
+
+# A value in .env can be a 1Password reference rather than the secret itself, e.g.
+#   SCANOPY_LICENSE_SIGNING_KEY=op://Scanopy/License Key Pair/scanopy_license_private.pem
+# When .env holds at least one and the `op` CLI is installed, the dev server runs under
+# `op run`, which resolves the references into its environment at launch. The server's own
+# dotenv load then leaves those values alone, so the resolved secret wins over the reference.
+# With no references in .env, no .env, or no op CLI, the command runs unchanged.
+OP_RUN := $(shell [ -f .env ] && grep -qE '^[A-Za-z_][A-Za-z0-9_]*=op://' .env && command -v op >/dev/null 2>&1 && echo 'op run --env-file=$(CURDIR)/.env --')
+
+# Opt-in shared compilation cache across worktrees: `SCCACHE=1 make <target>`, with sccache
+# installed (`brew install sccache`).
+#
+# Off by default on purpose. sccache cannot cache incremental builds, so it has to turn
+# incremental off, and that makes a repeat build in one worktree slower. It pays for itself when
+# a *different* worktree compiles the same crates for the first time, and not otherwise — so turn
+# it on when opening a new worktree, not for everyday work in one.
+ifeq ($(SCCACHE),1)
+export RUSTC_WRAPPER := sccache
+export CARGO_INCREMENTAL := 0
+endif
 
 help:
 	@echo "Scanopy Development Commands"
@@ -29,7 +50,7 @@ help:
 	@echo "  make generate-messages - Generate i18n message functions from messages/*.json"
 	@echo "  make generate-fixtures - Regenerate billing-plans.json and features.json from backend"
 	@echo "  make generate-schema - Generate database schema diagram (requires tbls)"
-	@echo "  make issue-license  - Issue a signed Scanopy license key (requires LICENSE_SECRET_CMD + LICENSE_SECRET_REF env vars; [PLAN=standard] [DAYS=365])"
+	@echo "  make issue-license  - Issue a signed Scanopy license key (requires LICENSE_SECRET_CMD + LICENSE_SECRET_REF env vars; PLAN defaults to standard, DAYS to 365)"
 	@echo "  make clean          - Clean build artifacts and containers"
 	@echo "  make install-dev-mac      - Install development dependencies on macOS"
 	@echo "  make install-dev-linux    - Install development dependencies on Linux"
@@ -186,10 +207,11 @@ dump-db:
 dev-fresh:
 	make fresh-db
 	make migrate-db
+	make generate-fixtures
 	@trap 'kill 0' EXIT; \
 	cd ui && npm run dev & \
 	export DATABASE_URL="postgresql://postgres:password@localhost:5432/scanopy" && \
-	cd backend && cargo run --bin server -- --log-level debug --public-url http://localhost:60072
+	cd backend && $(OP_RUN) cargo run --bin server -- --log-level debug --public-url http://localhost:60072
 
 test-merge:
 	@if ! git diff --quiet || ! git diff --cached --quiet; then \
@@ -269,7 +291,7 @@ test-results:
 		if [ -z "$$branch" ]; then continue; fi; \
 		if grep -q "\"$$branch\"" "$$src" 2>/dev/null; then \
 			node -e " \
-				const r = require('$$src'); \
+				const r = JSON.parse(require('fs').readFileSync('$$src', 'utf8')); \
 				const d = r['$$branch']; \
 				if (d) { require('fs').writeFileSync('$$wt/TEST_RESULTS.json', JSON.stringify({'$$branch': d}, null, 2)); } \
 			" && echo "  $$branch -> $$wt/TEST_RESULTS.json"; \
@@ -281,7 +303,7 @@ test-results:
 dev-server:
 	make generate-fixtures
 	@export DATABASE_URL="postgresql://postgres:password@localhost:5432/scanopy" && \
-	cd backend && cargo run --bin server -- --log-level debug --public-url http://localhost:60072
+	cd backend && $(OP_RUN) cargo run --bin server -- --log-level debug --public-url http://localhost:60072
 
 # Unenrolled foreground daemon against a local server. For a daemon that is already
 # installed as a service, prefer `make daemon-dev`: it reuses the installed identity
@@ -343,14 +365,15 @@ format:
 	@echo "All code formatted!"
 
 lint:
-	@echo "Linting Server..."
-	cd backend && cargo fmt -- --check && cargo clippy --bin server -- -D warnings
-	@echo "Linting Daemon..."
-	cd backend && cargo clippy --bin daemon -- -D warnings
+	@echo "Linting Rust..."
+	@# One clippy pass over both bins, the lib and every test target: the two --bin passes
+	@# missed test code, which is how a broken tests/integration reached dev.
+	cd backend && cargo fmt -- --check && cargo clippy --workspace --all-targets -- -D warnings
 	@echo "Generating paraglide i18n..."
 	cd ui && npx paraglide-js compile --outdir ./src/lib/paraglide --silent
 	@echo "Linting UI..."
-	cd ui && npm run lint && npm run format -- --check && npm run check
+	@# `npm run lint` is `prettier --check . && eslint .`, so prettier already ran here.
+	cd ui && npm run lint && npm run check
 	@echo "Linting migrations..."
 	@$(MAKE) lint-migrations
 
@@ -359,7 +382,7 @@ generate-types: generate-api-types generate-error-codes
 
 generate-api-types:
 	@echo "Exporting OpenAPI spec from backend..."
-	cd backend && cargo test generate_openapi_spec -- --nocapture
+	cd backend && cargo run --bin generate-openapi
 	@echo "Generating TypeScript types from OpenAPI spec..."
 	cd ui && npm run generate:api
 	@echo "TypeScript types exported to ui/src/lib/api/schema.d.ts"
@@ -400,11 +423,13 @@ stripe-webhook:
 	stripe listen --forward-to http://localhost:60072/api/billing/webhooks
 
 # Issue a signed license key.
-#   make issue-license                        # unlimited Commercial (self-hosted) plan, 365 days
-#   make issue-license PLAN=standard          # a specific plan tier
-#   make issue-license PLAN=standard DAYS=90  # ...and a custom duration
-# PLAN is optional; omit it for the unlimited Commercial plan. Valid values are the
-# LicensePlan variants (see backend/src/.../types LicensePlan) in kebab-case, e.g. standard.
+#   make issue-license                        # Self-Hosted Standard, 365 days
+#   make issue-license PLAN=plus              # a different plan tier
+#   make issue-license PLAN=plus DAYS=90      # ...and a custom duration
+#   make issue-license PLAN=                  # legacy key: no tier claim at all
+# PLAN defaults to standard. Valid values are the LicensePlan variants (see
+# backend/src/.../types LicensePlan) in kebab-case: standard, plus. Setting it empty
+# omits the claim, which resolves to the grandfathered unlimited Commercial plan.
 #
 # The signing key is fetched at run time via LICENSE_SECRET_CMD "$LICENSE_SECRET_REF".
 # For a 1Password-backed setup, add to ~/.zshrc (requires the `op` CLI, `brew install 1password-cli`):

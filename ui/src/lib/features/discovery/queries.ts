@@ -10,16 +10,25 @@ import {
 } from '@tanstack/svelte-query';
 import { queryClient, queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { requireSuccess, unwrapData, unwrapEnvelope } from '$lib/api/query-helpers';
 import type { Discovery } from './types/base';
 import type { components } from '$lib/api/schema';
 import type { DiscoveryUpdatePayload } from './types/api';
 import type { Organization } from '../organizations/types';
 import { pushError, pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
 import { BaseSSEManager, type SSEConfig } from '$lib/shared/utils/sse';
+import { discoveryTerminalReasons } from '$lib/shared/stores/metadata';
 import { writable } from 'svelte/store';
 import * as m from '$lib/paraglide/messages';
 import { networkItems } from '$lib/features/networks/columns';
 import { daemonItems } from '$lib/features/daemons/columns';
+import {
+	discoveryStreamConnected,
+	forgetSession,
+	observeSessions,
+	recordSessionMessage,
+	sessionLastMessageAt
+} from './utils/staleness';
 
 /**
  * Query hook for fetching all discoveries.
@@ -33,13 +42,11 @@ export function useDiscoveriesQuery(enabled?: () => boolean) {
 	return createQuery(() => ({
 		queryKey: queryKeys.discovery.all,
 		queryFn: async () => {
-			const { data } = await apiClient.GET('/api/v1/discovery', {
-				params: { query: { limit: 0 } }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to fetch discoveries');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.GET('/api/v1/discovery', {
+					params: { query: { limit: 0 } }
+				})
+			);
 		},
 		...(enabled ? { enabled } : {})
 	}));
@@ -115,28 +122,27 @@ export function useDiscoveryHistoryQuery(
 			],
 			enabled: enabled(),
 			queryFn: async (): Promise<{ items: Discovery[]; pagination: PaginationMeta | null }> => {
-				const { data } = await apiClient.GET('/api/v1/discovery', {
-					params: {
-						query: {
-							limit,
-							offset,
-							group_by,
-							order_by,
-							order_direction,
-							search,
-							network_ids,
-							daemon_ids,
-							discovery_types,
-							historical: true
+				const envelope = unwrapEnvelope(
+					await apiClient.GET('/api/v1/discovery', {
+						params: {
+							query: {
+								limit,
+								offset,
+								group_by,
+								order_by,
+								order_direction,
+								search,
+								network_ids,
+								daemon_ids,
+								discovery_types,
+								historical: true
+							}
 						}
-					}
-				});
-				if (!data?.success || !data.data) {
-					throw new Error(data?.error || 'Failed to fetch discovery history');
-				}
+					})
+				);
 				return {
-					items: data.data,
-					pagination: data.meta?.pagination ?? null
+					items: envelope.data,
+					pagination: envelope.meta?.pagination ?? null
 				};
 			},
 			placeholderData: keepPreviousData
@@ -152,11 +158,7 @@ export function useCreateDiscoveryMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (discovery: Discovery) => {
-			const { data } = await apiClient.POST('/api/v1/discovery', { body: discovery });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to create discovery');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/v1/discovery', { body: discovery }));
 		},
 		onSuccess: (newDiscovery: Discovery) => {
 			queryClient.setQueryData<Discovery[]>(queryKeys.discovery.all, (old) =>
@@ -177,14 +179,12 @@ export function useUpdateDiscoveryMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (discovery: Discovery) => {
-			const { data } = await apiClient.PUT('/api/v1/discovery/{id}', {
-				params: { path: { id: discovery.id } },
-				body: discovery
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to update discovery');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.PUT('/api/v1/discovery/{id}', {
+					params: { path: { id: discovery.id } },
+					body: discovery
+				})
+			);
 		},
 		onSuccess: (updatedDiscovery: Discovery) => {
 			queryClient.setQueryData<Discovery[]>(
@@ -204,12 +204,11 @@ export function useDeleteDiscoveryMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (id: string) => {
-			const { data } = await apiClient.DELETE('/api/v1/discovery/{id}', {
-				params: { path: { id } }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete discovery');
-			}
+			requireSuccess(
+				await apiClient.DELETE('/api/v1/discovery/{id}', {
+					params: { path: { id } }
+				})
+			);
 			return id;
 		},
 		onSuccess: (id: string) => {
@@ -230,10 +229,7 @@ export function useBulkDeleteDiscoveriesMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (ids: string[]) => {
-			const { data } = await apiClient.POST('/api/v1/discovery/bulk-delete', { body: ids });
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete discoveries');
-			}
+			requireSuccess(await apiClient.POST('/api/v1/discovery/bulk-delete', { body: ids }));
 			return ids;
 		},
 		onSuccess: (ids: string[]) => {
@@ -493,11 +489,14 @@ export function useActiveSessionsQuery(getEnabled: () => boolean = () => true) {
 	return createQuery(() => ({
 		queryKey: queryKeys.discovery.sessions(),
 		queryFn: async () => {
-			const { data } = await apiClient.GET('/api/v1/discovery/active-sessions', {});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to fetch active sessions');
-			}
-			return data.data as DiscoveryUpdatePayload[];
+			const sessions = unwrapData(
+				await apiClient.GET('/api/v1/discovery/active-sessions', {})
+			) as DiscoveryUpdatePayload[];
+			observeSessions(
+				sessions.map((s) => s.session_id),
+				Date.now()
+			);
+			return sessions;
 		},
 		// Sessions change frequently, keep fresh
 		staleTime: 5 * 1000,
@@ -513,13 +512,11 @@ export function useInitiateDiscoveryMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (discoveryId: string) => {
-			const { data: result } = await apiClient.POST('/api/v1/discovery/start-session', {
-				body: discoveryId
-			});
-			if (!result?.success || !result.data) {
-				throw new Error(result?.error || 'Failed to initiate discovery');
-			}
-			return result.data as DiscoveryUpdatePayload;
+			return unwrapData(
+				await apiClient.POST('/api/v1/discovery/start-session', {
+					body: discoveryId
+				})
+			) as DiscoveryUpdatePayload;
 		},
 		onSuccess: (session: DiscoveryUpdatePayload) => {
 			// Add session to cache
@@ -554,25 +551,31 @@ export function useCancelDiscoveryMutation() {
 				m.set(sessionId, true);
 				return m;
 			});
-
-			const { data: result } = await apiClient.POST('/api/v1/discovery/{session_id}/cancel', {
-				params: { path: { session_id: sessionId } }
-			});
-
-			if (!result?.success) {
-				// Clear cancelling state on failure
+			const clearCancelling = () =>
 				cancellingSessions.update((c) => {
 					const m = new Map(c);
 					m.delete(sessionId);
 					return m;
 				});
-				throw new Error(result?.error || 'Failed to cancel discovery');
+
+			const result = await apiClient
+				.POST('/api/v1/discovery/{session_id}/cancel', {
+					params: { path: { session_id: sessionId } }
+				})
+				.catch((error: unknown) => {
+					// A request that never answered (a timeout included) left the session marked as
+					// cancelling for good; the stream only clears the mark when the session ends.
+					clearCancelling();
+					throw error;
+				});
+
+			if (!result.response.ok) {
+				// Clear cancelling state on failure, before the throw below
+				clearCancelling();
 			}
+			requireSuccess(result);
 
 			return sessionId;
-		},
-		onError: () => {
-			pushError(m.discovery_failedToCancel());
 		}
 		// Note: Success handling happens via SSE when the "Cancelled" phase is received
 	}));
@@ -584,6 +587,32 @@ export function useCancelDiscoveryMutation() {
 
 // Track last known progress per session to detect changes
 const lastProgress = new Map<string, number>();
+
+function isTerminalPhase(phase: DiscoveryUpdatePayload['phase']): boolean {
+	return phase === 'Complete' || phase === 'Cancelled' || phase === 'Failed';
+}
+
+/**
+ * A failed run's toast, sticky like every failure. A daemon's own failure shows its error. For any
+ * other reason the toast names it; a stall shows what to check, since its error only restates
+ * that the daemon went quiet.
+ */
+function pushFailureToast(update: DiscoveryUpdatePayload) {
+	const reason = update.reason;
+	if ((!reason || reason === 'DaemonReportedFailure') && update.error) {
+		pushError(m.discovery_error({ error: update.error }), -1);
+		return;
+	}
+	// A server older than the reason field, with no error to show either.
+	if (!reason) return;
+	const detail = discoveryTerminalReasons.getMetadata(reason).is_stall
+		? discoveryTerminalReasons.getDescription(reason)
+		: (update.error ?? discoveryTerminalReasons.getDescription(reason));
+	pushError(
+		m.discovery_stoppedWithReason({ reason: discoveryTerminalReasons.getName(reason), detail }),
+		-1
+	);
+}
 
 // Throttle configuration for query invalidations
 const INVALIDATION_THROTTLE_MS = 1000; // At most 1 invalidation per second
@@ -628,6 +657,8 @@ class DiscoverySSEManager extends BaseSSEManager<DiscoveryUpdatePayload> {
 
 		// Clear progress tracking for all sessions
 		lastProgress.clear();
+		sessionLastMessageAt.set(new Map());
+		discoveryStreamConnected.set(false);
 
 		super.disconnect();
 	}
@@ -636,6 +667,12 @@ class DiscoverySSEManager extends BaseSSEManager<DiscoveryUpdatePayload> {
 		return {
 			url: '/api/v1/discovery/stream',
 			onMessage: async (update) => {
+				if (isTerminalPhase(update.phase)) {
+					forgetSession(update.session_id);
+				} else {
+					recordSessionMessage(update.session_id, Date.now());
+				}
+
 				// Check if progress increased
 				const last = lastProgress.get(update.session_id) || 0;
 				const current = update.progress || 0;
@@ -663,8 +700,8 @@ class DiscoverySSEManager extends BaseSSEManager<DiscoveryUpdatePayload> {
 					]);
 				} else if (update.phase === 'Cancelled') {
 					pushWarning(m.discovery_cancelled());
-				} else if (update.phase === 'Failed' && update.error) {
-					pushError(m.discovery_error({ error: update.error }), -1);
+				} else if (update.phase === 'Failed') {
+					pushFailureToast(update);
 				}
 
 				// Invalidate org cache until FirstDiscoveryCompleted milestone appears
@@ -680,11 +717,7 @@ class DiscoverySSEManager extends BaseSSEManager<DiscoveryUpdatePayload> {
 						if (!current) current = [];
 
 						// Cleanup for terminal phases
-						if (
-							update.phase === 'Complete' ||
-							update.phase === 'Cancelled' ||
-							update.phase === 'Failed'
-						) {
+						if (isTerminalPhase(update.phase)) {
 							// Clear cancelling state
 							cancellingSessions.update((c) => {
 								const m = new Map(c);
@@ -722,9 +755,22 @@ class DiscoverySSEManager extends BaseSSEManager<DiscoveryUpdatePayload> {
 			},
 			onError: (error) => {
 				console.error('Discovery SSE error:', error);
+				discoveryStreamConnected.set(false);
 				pushError(m.discovery_lostConnection());
 			},
-			onOpen: () => {}
+			onOpen: () => {
+				// Silence while the stream was down says nothing about the daemon, so every session
+				// starts a fresh clock from the reconnect.
+				sessionLastMessageAt.set(new Map());
+				const sessions = queryClient.getQueryData<DiscoveryUpdatePayload[]>(
+					queryKeys.discovery.sessions()
+				);
+				observeSessions(
+					(sessions ?? []).map((s) => s.session_id),
+					Date.now()
+				);
+				discoveryStreamConnected.set(true);
+			}
 		};
 	}
 }

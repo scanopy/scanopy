@@ -518,7 +518,7 @@ mod tests {
         map_devices(&parse(json), network_id, &test_subnets(network_id))
     }
 
-    fn interface<'a>(device: &'a MappedDevice, if_index: i32) -> &'a Interface {
+    fn interface(device: &MappedDevice, if_index: i32) -> &Interface {
         device
             .interfaces
             .iter()

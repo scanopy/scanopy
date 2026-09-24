@@ -28,6 +28,13 @@
 
 	// Show OIDC error from redirect if present
 	onMount(() => {
+		// `?hosting=self_hosted` opens the post-registration plan picker on the
+		// Self-Hosted tab. Persisted so it survives registration and OIDC redirects.
+		const hosting = $page.url.searchParams.get('hosting');
+		if (hosting === 'self_hosted' || hosting === 'cloud') {
+			onboardingStore.setHosting(hosting);
+		}
+
 		const error = $page.url.searchParams.get('error');
 		const errorCode = $page.url.searchParams.get('error_code');
 		if (error) {

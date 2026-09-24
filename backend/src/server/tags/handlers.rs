@@ -239,7 +239,7 @@ pub async fn create_tag(
     .await?;
 
     // Emit onboarding milestones for first tag / first application tag
-    if let Some(ref created_tag) = response.data {
+    if let Some(created_tag) = response.data() {
         let organization = state
             .services
             .organization_service

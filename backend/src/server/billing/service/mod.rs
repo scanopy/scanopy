@@ -10,6 +10,7 @@ use crate::server::billing::types::base::{BillingInvoice, BillingPlan, CancelRea
 use crate::server::billing::types::features::Feature;
 use crate::server::billing::types::stripe_metadata::StripeSubscriptionMetadata;
 use crate::server::hosts::service::HostService;
+use crate::server::license::types::LicenseKeyType;
 use crate::server::networks::r#impl::Network;
 use crate::server::networks::service::NetworkService;
 use crate::server::organizations::r#impl::base::Organization;
@@ -39,7 +40,9 @@ use stripe_billing::subscription::CreateSubscriptionTrialSettingsEndBehavior;
 use stripe_billing::subscription::CreateSubscriptionTrialSettingsEndBehaviorMissingPaymentMethod;
 use stripe_billing::subscription::DiscountsDataParam;
 use stripe_billing::subscription::ListSubscription;
+use stripe_billing::subscription::RetrieveSubscription;
 use stripe_billing::subscription::UpdateSubscription;
+use stripe_billing::subscription::UpdateSubscriptionBillingCycleAnchor;
 use stripe_billing::subscription::UpdateSubscriptionCancelAt;
 use stripe_billing::subscription::UpdateSubscriptionCancellationDetails;
 use stripe_billing::subscription::UpdateSubscriptionCancellationDetailsFeedback;
@@ -75,6 +78,7 @@ use stripe_core::setup_intent::CreateSetupIntentUsage;
 use stripe_core::setup_intent::RetrieveSetupIntent;
 use stripe_core::{CustomerId, EventType};
 use stripe_product::Price;
+use stripe_product::Product;
 use stripe_product::coupon::RetrieveCoupon;
 use stripe_product::price::CreatePriceRecurring;
 use stripe_product::price::SearchPrice;
@@ -94,6 +98,10 @@ pub struct BillingService {
     pub host_service: Arc<HostService>,
     pub plans: OnceLock<Vec<BillingPlan>>,
     pub event_bus: Arc<EventBus>,
+    /// Secret key for Stripe endpoints the SDK cannot reach: rendered quote
+    /// PDFs are binary and served from Stripe's files host.
+    stripe_secret: String,
+    files_http: reqwest::Client,
 }
 
 const SEAT_PRODUCT_ID: &str = "extra_seats";
@@ -112,6 +120,7 @@ pub struct BillingServiceParams {
 }
 
 mod checkout;
+mod invoicing;
 mod lifecycle;
 mod plan_changes;
 mod setup;

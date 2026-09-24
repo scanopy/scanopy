@@ -58,15 +58,18 @@ pub fn sweep(
     retries: u32,
     rate_pps: u32,
     packets_sent: Arc<AtomicU64>,
+    cancel: tokio_util::sync::CancellationToken,
 ) -> Result<std::sync::mpsc::Receiver<IcmpScanResult>> {
     #[cfg(target_family = "windows")]
     {
+        // The iphlpapi sweep is a series of bounded OS requests and takes no cancellation.
+        let _ = &cancel;
         iphlpapi::sweep(targets, retries, rate_pps, packets_sent)
     }
 
     #[cfg(not(target_family = "windows"))]
     {
-        raw::sweep(targets, retries, rate_pps, packets_sent)
+        raw::sweep(targets, retries, rate_pps, packets_sent, cancel)
     }
 }
 

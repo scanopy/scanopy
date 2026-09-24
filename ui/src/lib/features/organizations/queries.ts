@@ -5,6 +5,7 @@
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
 import { queryKeys, queryClient } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
 import type { CreateInviteRequest, OrganizationInvite, Organization } from './types';
 import type { UserOrgPermissions, User } from '../users/types';
 import type { components } from '$lib/api/schema';
@@ -20,11 +21,7 @@ export function useOrganizationQuery() {
 		return {
 			queryKey: queryKeys.organizations.current(),
 			queryFn: async () => {
-				const { data } = await apiClient.GET('/api/v1/organizations');
-				if (!data?.success || !data.data) {
-					throw new Error(data?.error || 'Failed to fetch organization');
-				}
-				return data.data;
+				return unwrapData(await apiClient.GET('/api/v1/organizations'));
 			},
 			// Only fetch when user is authenticated
 			enabled: !!user
@@ -43,11 +40,7 @@ export function useInvitesQuery(options?: { enabled?: boolean | (() => boolean) 
 		return {
 			queryKey: queryKeys.invites.all,
 			queryFn: async () => {
-				const { data } = await apiClient.GET('/api/v1/invites');
-				if (!data?.success || !data.data) {
-					throw new Error(data?.error || 'Failed to fetch invites');
-				}
-				return data.data;
+				return unwrapData(await apiClient.GET('/api/v1/invites'));
 			},
 			enabled
 		};
@@ -62,14 +55,12 @@ export function useUpdateOrganizationMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async ({ id, name }: { id: string; name: string }) => {
-			const { data } = await apiClient.PUT('/api/v1/organizations/{id}', {
-				params: { path: { id } },
-				body: name
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to update organization');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.PUT('/api/v1/organizations/{id}', {
+					params: { path: { id } },
+					body: name
+				})
+			);
 		},
 		onSuccess: (updatedOrg: Organization) => {
 			queryClient.setQueryData(queryKeys.organizations.current(), updatedOrg);
@@ -100,11 +91,7 @@ export function useCreateInviteMutation() {
 				send_to: email?.length === 0 ? null : email
 			};
 
-			const { data } = await apiClient.POST('/api/v1/invites', { body: request });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to create invite');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/v1/invites', { body: request }));
 		},
 		onSuccess: (newInvite: OrganizationInvite) => {
 			queryClient.setQueryData<OrganizationInvite[]>(queryKeys.invites.all, (old) =>
@@ -122,12 +109,11 @@ export function useRevokeInviteMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (id: string) => {
-			const { data } = await apiClient.DELETE('/api/v1/invites/{id}/revoke', {
-				params: { path: { id } }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to revoke invite');
-			}
+			requireSuccess(
+				await apiClient.DELETE('/api/v1/invites/{id}/revoke', {
+					params: { path: { id } }
+				})
+			);
 			return id;
 		},
 		onSuccess: (id: string) => {
@@ -147,13 +133,11 @@ export function useResetOrganizationDataMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (orgId: string) => {
-			const { data } = await apiClient.POST('/api/v1/organizations/{id}/reset', {
-				params: { path: { id: orgId } }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to reset organization data');
-			}
-			return data;
+			requireSuccess(
+				await apiClient.POST('/api/v1/organizations/{id}/reset', {
+					params: { path: { id: orgId } }
+				})
+			);
 		},
 		onSuccess: () => {
 			// Invalidate all data queries after reset
@@ -170,13 +154,11 @@ export function useDeleteOrganizationMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (orgId: string) => {
-			const { data } = await apiClient.DELETE('/api/v1/organizations/{id}', {
-				params: { path: { id: orgId } }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete organization');
-			}
-			return data;
+			requireSuccess(
+				await apiClient.DELETE('/api/v1/organizations/{id}', {
+					params: { path: { id: orgId } }
+				})
+			);
 		},
 		onSuccess: () => {
 			queryClient.clear();
@@ -193,13 +175,11 @@ export function useDeleteOrganizationMutation() {
 export function usePopulateDemoDataMutation() {
 	return createMutation(() => ({
 		mutationFn: async (orgId: string) => {
-			const { data } = await apiClient.POST('/api/v1/organizations/{id}/populate-demo', {
-				params: { path: { id: orgId } }
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to start demo data population');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.POST('/api/v1/organizations/{id}/populate-demo', {
+					params: { path: { id: orgId } }
+				})
+			);
 		}
 	}));
 }
@@ -211,13 +191,11 @@ export function usePopulateDemoDataMutation() {
 export async function fetchDemoPopulateStatus(
 	orgId: string
 ): Promise<components['schemas']['DemoPopulateStatus']> {
-	const { data } = await apiClient.GET('/api/v1/organizations/{id}/populate-demo/status', {
-		params: { path: { id: orgId } }
-	});
-	if (!data?.success || !data.data) {
-		throw new Error(data?.error || 'Failed to fetch demo populate status');
-	}
-	return data.data;
+	return unwrapData(
+		await apiClient.GET('/api/v1/organizations/{id}/populate-demo/status', {
+			params: { path: { id: orgId } }
+		})
+	);
 }
 
 /**
@@ -231,12 +209,11 @@ export function useDaemonPromptResponseMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (action: components['schemas']['DaemonPromptAction']) => {
-			const { data } = await apiClient.POST('/api/v1/organizations/daemon-prompt-response', {
-				body: { action }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to record daemon prompt response');
-			}
+			requireSuccess(
+				await apiClient.POST('/api/v1/organizations/daemon-prompt-response', {
+					body: { action }
+				})
+			);
 			return action;
 		},
 		onSuccess: (action) => {
@@ -265,11 +242,7 @@ export async function fetchOrganization(): Promise<Organization> {
 	return queryClient.fetchQuery({
 		queryKey: queryKeys.organizations.current(),
 		queryFn: async () => {
-			const { data } = await apiClient.GET('/api/v1/organizations');
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to fetch organization');
-			}
-			return data.data;
+			return unwrapData(await apiClient.GET('/api/v1/organizations'));
 		}
 	});
 }
@@ -285,12 +258,11 @@ export function useReferralSourceMutation() {
 			referral_source: components['schemas']['ReferralSource'];
 			referral_source_other?: string;
 		}) => {
-			const { data } = await apiClient.POST('/api/v1/organizations/referral-source', {
-				body: request
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to submit referral source');
-			}
+			requireSuccess(
+				await apiClient.POST('/api/v1/organizations/referral-source', {
+					body: request
+				})
+			);
 			return true;
 		},
 		onSuccess: () => {

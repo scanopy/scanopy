@@ -7,6 +7,7 @@
 import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
 import { queryKeys } from '$lib/api/query-client';
 import { apiClient } from '$lib/api/client';
+import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
 import type { Tag } from './types/base';
 import type { components } from '$lib/api/schema';
 
@@ -24,13 +25,11 @@ export function useTagsQuery(atGetter?: () => string | undefined) {
 		return {
 			queryKey: at ? [...queryKeys.tags.all, 'asOf', at] : queryKeys.tags.all,
 			queryFn: async () => {
-				const { data } = await apiClient.GET('/api/v1/tags', {
-					params: { query: { limit: 0, at } }
-				});
-				if (!data?.success || !data.data) {
-					throw new Error(data?.error || 'Failed to fetch tags');
-				}
-				return data.data;
+				return unwrapData(
+					await apiClient.GET('/api/v1/tags', {
+						params: { query: { limit: 0, at } }
+					})
+				);
 			}
 		};
 	});
@@ -44,11 +43,7 @@ export function useCreateTagMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (tag: Tag) => {
-			const { data } = await apiClient.POST('/api/v1/tags', { body: tag });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to create tag');
-			}
-			return data.data;
+			return unwrapData(await apiClient.POST('/api/v1/tags', { body: tag }));
 		},
 		onSuccess: (newTag: Tag) => {
 			queryClient.setQueryData<Tag[]>(queryKeys.tags.all, (old) =>
@@ -66,14 +61,12 @@ export function useUpdateTagMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (tag: Tag) => {
-			const { data } = await apiClient.PUT('/api/v1/tags/{id}', {
-				params: { path: { id: tag.id } },
-				body: tag
-			});
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to update tag');
-			}
-			return data.data;
+			return unwrapData(
+				await apiClient.PUT('/api/v1/tags/{id}', {
+					params: { path: { id: tag.id } },
+					body: tag
+				})
+			);
 		},
 		onSuccess: (updatedTag: Tag) => {
 			queryClient.setQueryData<Tag[]>(
@@ -92,12 +85,11 @@ export function useDeleteTagMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (id: string) => {
-			const { data } = await apiClient.DELETE('/api/v1/tags/{id}', {
-				params: { path: { id } }
-			});
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete tag');
-			}
+			requireSuccess(
+				await apiClient.DELETE('/api/v1/tags/{id}', {
+					params: { path: { id } }
+				})
+			);
 			return id;
 		},
 		onSuccess: (id: string) => {
@@ -117,10 +109,7 @@ export function useBulkDeleteTagsMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (ids: string[]) => {
-			const { data } = await apiClient.POST('/api/v1/tags/bulk-delete', { body: ids });
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to delete tags');
-			}
+			requireSuccess(await apiClient.POST('/api/v1/tags/bulk-delete', { body: ids }));
 			return ids;
 		},
 		onSuccess: (ids: string[]) => {
@@ -202,12 +191,11 @@ export function useBulkAddTagMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (request: BulkTagRequest) => {
-			const { data } = await apiClient.POST('/api/v1/tags/assign/bulk-add', { body: request });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to add tag to entities');
-			}
+			const assignResult = unwrapData(
+				await apiClient.POST('/api/v1/tags/assign/bulk-add', { body: request })
+			);
 			return {
-				...data.data,
+				...assignResult,
 				entityType: request.entity_type,
 				tagId: request.tag_id,
 				entityIds: request.entity_ids
@@ -230,12 +218,11 @@ export function useBulkRemoveTagMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (request: BulkTagRequest) => {
-			const { data } = await apiClient.POST('/api/v1/tags/assign/bulk-remove', { body: request });
-			if (!data?.success || !data.data) {
-				throw new Error(data?.error || 'Failed to remove tag from entities');
-			}
+			const removeResult = unwrapData(
+				await apiClient.POST('/api/v1/tags/assign/bulk-remove', { body: request })
+			);
 			return {
-				...data.data,
+				...removeResult,
 				entityType: request.entity_type,
 				tagId: request.tag_id,
 				entityIds: request.entity_ids
@@ -258,10 +245,7 @@ export function useSetEntityTagsMutation() {
 
 	return createMutation(() => ({
 		mutationFn: async (request: SetTagsRequest) => {
-			const { data } = await apiClient.PUT('/api/v1/tags/assign', { body: request });
-			if (!data?.success) {
-				throw new Error(data?.error || 'Failed to set entity tags');
-			}
+			requireSuccess(await apiClient.PUT('/api/v1/tags/assign', { body: request }));
 			return { entityType: request.entity_type };
 		},
 		onSuccess: ({ entityType }) => {

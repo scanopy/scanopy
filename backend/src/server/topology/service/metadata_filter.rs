@@ -172,17 +172,19 @@ mod tests {
     use crate::server::topology::types::base::{TopologyOptions, TopologyRequestOptions};
 
     fn options_hiding(view: TopologyView, values: &[&str]) -> TopologyOptions {
-        let mut request = TopologyRequestOptions::default();
-        request.hide_metadata_values = HashMap::from([(
-            view,
-            HashMap::from([(
-                EntityDiscriminants::Interface,
+        let request = TopologyRequestOptions {
+            hide_metadata_values: HashMap::from([(
+                view,
                 HashMap::from([(
-                    MetadataFilterType::LinkState,
-                    values.iter().map(|v| v.to_string()).collect(),
+                    EntityDiscriminants::Interface,
+                    HashMap::from([(
+                        MetadataFilterType::LinkState,
+                        values.iter().map(|v| v.to_string()).collect(),
+                    )]),
                 )]),
             )]),
-        )]);
+            ..Default::default()
+        };
         TopologyOptions {
             request,
             ..Default::default()

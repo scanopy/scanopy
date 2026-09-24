@@ -5,7 +5,7 @@
  */
 
 import { QueryClient } from '@tanstack/svelte-query';
-import { ApiError } from './client';
+import { ApiError, RequestTimeoutError } from './client';
 
 /**
  * Create a QueryClient with application-specific defaults
@@ -22,6 +22,11 @@ export function createQueryClient(): QueryClient {
 				retry: (failureCount, error) => {
 					if (error instanceof ApiError && error.status === 429) {
 						return failureCount < 3;
+					}
+					// A request the server did not answer within its budget has already waited that
+					// long and been reported; a retry repeats both.
+					if (error instanceof RequestTimeoutError) {
+						return false;
 					}
 					return failureCount < 2;
 				},
@@ -168,7 +173,12 @@ export const queryKeys = {
 	billing: {
 		all: ['billing'] as const,
 		plans: () => [...queryKeys.billing.all, 'plans'] as const,
-		saveOfferCoupon: () => [...queryKeys.billing.all, 'save-offer-coupon'] as const
+		saveOfferCoupon: () => [...queryKeys.billing.all, 'save-offer-coupon'] as const,
+		invoiceBilling: () => [...queryKeys.billing.all, 'invoice-billing'] as const
+	},
+	licenses: {
+		all: ['licenses'] as const,
+		currentKey: () => [...queryKeys.licenses.all, 'current-key'] as const
 	},
 	shares: {
 		all: ['shares'] as const,
