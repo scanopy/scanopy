@@ -1226,7 +1226,7 @@ mod tests {
                 panic!("seeded credential is not a CredentialType: {e}\n{literal}")
             });
             assert!(
-                !format!("{literal}").contains("REDACTED"),
+                !literal.to_string().contains("REDACTED"),
                 "a redacted secret would seed a credential that authenticates against nothing"
             );
             seen.insert(CredentialTypeDiscriminants::from(&parsed));

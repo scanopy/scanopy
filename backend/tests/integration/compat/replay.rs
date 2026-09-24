@@ -363,11 +363,11 @@ async fn cancel_daemon_discovery_internal(
                     .json(&session_id)
                     .send()
                     .await;
-                if let Ok(r) = check {
-                    if r.status().as_u16() == 409 {
-                        println!("    Session stopped after {} ms", (i + 1) * 250);
-                        return Ok(());
-                    }
+                if let Ok(r) = check
+                    && r.status().as_u16() == 409
+                {
+                    println!("    Session stopped after {} ms", (i + 1) * 250);
+                    return Ok(());
                 }
             }
             Err("Discovery session did not stop within 30 seconds after cancellation".to_string())

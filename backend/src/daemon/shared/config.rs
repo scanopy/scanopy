@@ -1297,7 +1297,7 @@ mod tests {
             );
             println!("   Run release workflow to generate fixtures");
 
-            assert!(false, "Failed to load config fixture");
+            panic!("Failed to load config fixture");
         }
     }
 
