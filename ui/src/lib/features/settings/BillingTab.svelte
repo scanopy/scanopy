@@ -114,14 +114,20 @@
 	const dashboardQuery = useDashboardQuery({ enabled: () => org != null && !isLicensedPlan });
 	let planUsage = $derived(dashboardQuery.data?.plan_usage);
 
+	const configQuery = useConfigQuery();
+	let billingEnabled = $derived(configQuery.data?.billing_enabled ?? false);
+
 	// PO number, an open quote, and the link to an unpaid invoice. Self-hosted
-	// only: the endpoint refuses other plans, and a cloud org would pay for a
-	// Stripe round trip on every visit to this tab.
-	const invoiceBillingQuery = useInvoiceBillingStatusQuery(() => isLicensedPlan);
+	// plans on the cloud only: the endpoint refuses other plans, a cloud org
+	// would pay for a Stripe round trip on every visit to this tab, and a
+	// licensed self-hosted server has no Stripe to ask.
+	const invoiceBillingQuery = useInvoiceBillingStatusQuery(() => billingEnabled && isLicensedPlan);
 	// Gated on the plan as well as the query: disabling a TanStack query keeps
 	// its last value rather than clearing it, so a move to a cloud plan would
 	// otherwise keep offering the licensed plan's invoice.
-	let invoiceBilling = $derived(isLicensedPlan ? (invoiceBillingQuery.data ?? null) : null);
+	let invoiceBilling = $derived(
+		billingEnabled && isLicensedPlan ? (invoiceBillingQuery.data ?? null) : null
+	);
 	let pendingQuote = $derived(invoiceBilling?.pending_quote ?? null);
 	let openInvoiceUrl = $derived(invoiceBilling?.open_invoice?.hosted_invoice_url ?? null);
 	// The invoice this org defaulted on, while it is still lapsed. Settling it
@@ -241,10 +247,7 @@
 	// "Can this org pay?", so an invoice buyer sees no card warning.
 	let hasPaymentMethod = $derived(canPay(org));
 	// Stripe-managed plan that needs a card on file but has none.
-	const configQuery = useConfigQuery();
-	let missingCard = $derived(
-		isMissingPaymentMethod(org, configQuery.data?.billing_enabled ?? false)
-	);
+	let missingCard = $derived(isMissingPaymentMethod(org, billingEnabled));
 	let trialEndDate = $derived(org?.trial_end_date ? new Date(org.trial_end_date) : null);
 
 	// Renewal / subscription-ends label for the current plan; null when not
