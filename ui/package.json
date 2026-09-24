@@ -75,7 +75,7 @@
 	"dependencies": {
 		"@beyonk/gdpr-cookie-consent-banner": "^16.0.2",
 		"@peculiar/x509": "^1.14.3",
-		"@stripe/stripe-js": "^9.8.0",
+		"@stripe/stripe-js": "^9.16.0",
 		"@tailwindcss/forms": "^0.5.10",
 		"@tanstack/svelte-form": "^1.27.6",
 		"@tanstack/svelte-query": "^6.0.10",
