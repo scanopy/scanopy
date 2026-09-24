@@ -118,16 +118,13 @@
 	let billingEnabled = $derived(configQuery.data?.billing_enabled ?? false);
 
 	// PO number, an open quote, and the link to an unpaid invoice. Self-hosted
-	// plans on the cloud only: the endpoint refuses other plans, a cloud org
-	// would pay for a Stripe round trip on every visit to this tab, and a
-	// licensed self-hosted server has no Stripe to ask.
-	const invoiceBillingQuery = useInvoiceBillingStatusQuery(() => billingEnabled && isLicensedPlan);
+	// only: the endpoint refuses other plans, and a cloud org would pay for a
+	// Stripe round trip on every visit to this tab.
+	const invoiceBillingQuery = useInvoiceBillingStatusQuery(() => isLicensedPlan);
 	// Gated on the plan as well as the query: disabling a TanStack query keeps
 	// its last value rather than clearing it, so a move to a cloud plan would
 	// otherwise keep offering the licensed plan's invoice.
-	let invoiceBilling = $derived(
-		billingEnabled && isLicensedPlan ? (invoiceBillingQuery.data ?? null) : null
-	);
+	let invoiceBilling = $derived(isLicensedPlan ? (invoiceBillingQuery.data ?? null) : null);
 	let pendingQuote = $derived(invoiceBilling?.pending_quote ?? null);
 	let openInvoiceUrl = $derived(invoiceBilling?.open_invoice?.hosted_invoice_url ?? null);
 	// The invoice this org defaulted on, while it is still lapsed. Settling it

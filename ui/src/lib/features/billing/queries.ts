@@ -11,6 +11,7 @@ import { pushSuccess } from '$lib/shared/stores/feedback';
 import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
 import { useOrganizationQuery } from '$lib/features/organizations/queries';
 import { hasLicensedPlan } from '$lib/features/organizations/types';
+import { useConfigQuery } from '$lib/shared/stores/config-query';
 
 type PauseDuration = components['schemas']['PauseDuration'];
 type CancelSubscriptionRequest = components['schemas']['CancelSubscriptionRequest'];
@@ -312,11 +313,16 @@ type InvoiceSummary = components['schemas']['InvoiceSummary'];
 /**
  * Query hook for invoice billing state on a self-hosted plan: whether the
  * org pays by invoice, its PO number, the unpaid invoice, and an open quote.
+ *
+ * Only runs where billing is enabled. A licensed self-hosted server holds the
+ * same licensed plan but has no Stripe, and the endpoint refuses it with
+ * `billing_setup_incomplete`.
  */
 export function useInvoiceBillingStatusQuery(enabled: () => boolean = () => true) {
+	const configQuery = useConfigQuery();
 	return createQuery(() => ({
 		queryKey: queryKeys.billing.invoiceBilling(),
-		enabled: enabled(),
+		enabled: (configQuery.data?.billing_enabled ?? false) && enabled(),
 		queryFn: async (): Promise<InvoiceBillingStatus> => {
 			return unwrapData(await apiClient.GET('/api/billing/invoice-billing', {}));
 		}
