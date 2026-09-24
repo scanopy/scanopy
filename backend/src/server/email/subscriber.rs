@@ -130,12 +130,15 @@ impl Subscriber<BillingOperation> for EmailService {
                         let key_expires = self
                             .license_key_expires(event.scope.organization_id)
                             .await?;
+                        // A trial that ran out was never invoiced, so there is
+                        // nothing to have defaulted on.
                         self.send_self_hosted_license_ended_email(
                             org_owner,
                             plan.name(),
                             true,
                             false,
                             &key_expires,
+                            false,
                         )
                         .await?;
                     } else {
@@ -221,6 +224,7 @@ impl Subscriber<BillingOperation> for EmailService {
                     period_end,
                     was_trialing,
                     license_key_type,
+                    defaulted,
                     ..
                 } => {
                     // Decided on the plan the event carries. An unconverted
@@ -237,6 +241,7 @@ impl Subscriber<BillingOperation> for EmailService {
                             was_trialing,
                             license_key_type == Some(LicenseKeyType::Offline),
                             &key_expires,
+                            defaulted,
                         )
                         .await?;
                     } else if was_trialing {

@@ -47,6 +47,7 @@
 		settings_billing_license_airGappedPastDue,
 		settings_billing_license_keyLabel,
 		settings_billing_license_lapsed,
+		settings_billing_license_lapsedUnpaid,
 		settings_billing_license_keyTypeChanged,
 		settings_billing_license_keyTypeLabel,
 		settings_billing_license_lastCheckIn,
@@ -110,6 +111,15 @@
 	let isLapsed = $derived(org != null && isPlanLapsed(org));
 	let lapsedKeyStops = $derived(
 		isLapsed && org?.license_paid_through ? formatDate(org.license_paid_through) : null
+	);
+	// A default takes the date back to the start of the period it covered, so
+	// it has already passed and the key is gone rather than going. Settling the
+	// written-off invoice is what brings it back, so say that instead of naming
+	// a date in the past.
+	let lapsedKeyAlreadyStopped = $derived(
+		isLapsed &&
+			org?.license_paid_through != null &&
+			Date.parse(org.license_paid_through) <= Date.now()
 	);
 	// The server also refuses an air-gapped mint until the subscription is out of
 	// trial, but choosing the option during a trial is what ends the trial. A card
@@ -291,7 +301,13 @@
 			<div class="space-y-6">
 				<InfoCard title={common_license()}>
 					<div class="space-y-4">
-						{#if isLapsed && lapsedKeyStops}
+						{#if isLapsed && lapsedKeyAlreadyStopped}
+							<InlineWarning
+								title={settings_billing_license_lapsedUnpaid({
+									plan: billingPlans.getName(planType)
+								})}
+							/>
+						{:else if isLapsed && lapsedKeyStops}
 							<InlineWarning
 								title={settings_billing_license_lapsed({
 									plan: billingPlans.getName(planType),
