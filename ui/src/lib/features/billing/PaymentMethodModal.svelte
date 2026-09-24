@@ -3,10 +3,12 @@
 	import StripeCardForm from '$lib/features/billing/StripeCardForm.svelte';
 	import InvoiceBillingForm from '$lib/features/billing/InvoiceBillingForm.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
+	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
 	import {
 		useCheckoutMutation,
 		useCreateSetupIntentMutation,
-		useFinalizePaymentMethodMutation
+		useFinalizePaymentMethodMutation,
+		useWrittenOffInvoice
 	} from '$lib/features/billing/queries';
 	import type { BillingPlan } from '$lib/features/billing/types';
 	import type { components } from '$lib/api/schema';
@@ -24,7 +26,9 @@
 		billing_invoice_quoteCreated,
 		billing_invoice_sent,
 		billing_paymentMethodAdded,
-		billing_payByInvoice
+		billing_payByInvoice,
+		billing_invoice_termsUnavailable,
+		billing_invoice_payOutstanding
 	} from '$lib/paraglide/messages';
 
 	type InvoiceBillingMode = components['schemas']['InvoiceBillingMode'];
@@ -47,11 +51,16 @@
 	let orgPlanLicensed = $derived(
 		org?.plan?.type != null && billingPlans.getMetadata(org.plan.type).license_plan != null
 	);
-	let invoiceEligible = $derived(
+	// An org that defaulted on an invoice we wrote off has lost payment terms
+	// until it settles. The server refuses the request either way; withholding
+	// the link here is what stops the buyer walking into that refusal.
+	const writtenOffInvoice = useWrittenOffInvoice();
+	let planAllowsInvoice = $derived(
 		(pendingPlan?.type != null &&
 			billingPlans.getMetadata(pendingPlan.type).license_plan != null) ||
 			orgPlanLicensed
 	);
+	let invoiceEligible = $derived(planAllowsInvoice && writtenOffInvoice.current == null);
 	// Nothing names the plan to invoice for: the form asks. Covers a reload
 	// mid-flow, which rebuilds modal state from the URL without the plan.
 	let needsPlanChoice = $derived(pendingPlan == null && !orgPlanLicensed);
@@ -159,6 +168,27 @@
 			onPayByCard={() => (method = 'card')}
 		/>
 	{:else if clientSecret}
+		{#if planAllowsInvoice && writtenOffInvoice.current}
+			<div class="px-6 pt-4">
+				<InlineInfo
+					title={billing_invoice_termsUnavailable({
+						number: writtenOffInvoice.current.number ?? ''
+					})}
+				/>
+				{#if writtenOffInvoice.current.hosted_invoice_url}
+					<!-- eslint-disable svelte/no-navigation-without-resolve -->
+					<a
+						href={writtenOffInvoice.current.hosted_invoice_url}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="text-info mt-2 inline-block text-sm hover:underline"
+					>
+						{billing_invoice_payOutstanding()}
+					</a>
+					<!-- eslint-enable svelte/no-navigation-without-resolve -->
+				{/if}
+			</div>
+		{/if}
 		<StripeCardForm
 			{clientSecret}
 			email={userEmail}

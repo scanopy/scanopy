@@ -1,5 +1,6 @@
 //! Stripe webhook ingestion and subscription/payment-method event handlers.
 use super::*;
+use crate::server::billing::service::invoicing::write_off_unpaid_license_invoices;
 use stripe_shared::SubscriptionCollectionMethod;
 
 impl BillingService {
@@ -927,6 +928,34 @@ impl BillingService {
             );
         }
 
+        let period_end =
+            chrono::DateTime::<Utc>::from_timestamp(period_end_ts, 0).unwrap_or_else(Utc::now);
+
+        // Write off whatever this customer was billed for and never paid. The
+        // resulting `invoice.marked_uncollectible` webhook takes back the
+        // license period the invoice granted, and the written-off invoice is
+        // what refuses this customer payment terms until they settle it.
+        // `period_end` rather than our own clock: due dates are in Stripe's
+        // frame. Best-effort, like the discount removal above — a customer
+        // keeping terms they should have lost is not worth failing the
+        // webhook and losing the cancellation itself.
+        if let Some(customer_id) = &customer_id
+            && let Err(e) = write_off_unpaid_license_invoices(
+                &stripe,
+                org_id,
+                &CustomerId::from(customer_id.clone()),
+                period_end,
+            )
+            .await
+        {
+            tracing::warn!(
+                organization_id = %org_id,
+                customer_id = %customer_id,
+                error = ?e,
+                "Failed to write off the unpaid license invoices for a cancelled subscription"
+            );
+        }
+
         // Publish events and send emails. Invites get revoked downstream
         // by `InviteService::Subscriber<BillingOperation>` reacting to the
         // `SubscriptionCancelled` event we publish below.
@@ -935,8 +964,6 @@ impl BillingService {
         if let Some(owner) = owners.first() {
             let authentication: AuthenticatedEntity = owner.clone().into();
 
-            let period_end =
-                chrono::DateTime::<Utc>::from_timestamp(period_end_ts, 0).unwrap_or_else(Utc::now);
             event_bus
                 .publish(Event::new(
                     OrgScope {

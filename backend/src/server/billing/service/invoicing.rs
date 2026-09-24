@@ -2,12 +2,13 @@
 //! invoices, quotes, and the purchase order number printed on them.
 use super::*;
 use crate::server::billing::types::api::{
-    InvoiceBillingDetails, InvoiceBillingMode, InvoiceBillingStatus, OpenInvoice, PendingQuote,
+    InvoiceBillingDetails, InvoiceBillingMode, InvoiceBillingStatus, InvoiceSummary, PendingQuote,
 };
 use crate::server::billing::types::base::{InvoiceCollection, PO_NUMBER_FIELD};
 use crate::server::shared::types::api::ValidationError;
 use stripe_billing::invoice::{
-    FinalizeInvoiceInvoice, ListInvoice, RetrieveInvoice, VoidInvoiceInvoice,
+    FinalizeInvoiceInvoice, ListInvoice, MarkUncollectibleInvoice, RetrieveInvoice,
+    VoidInvoiceInvoice,
 };
 use stripe_billing::quote::{
     AcceptQuote, CancelQuote, CreateQuote, CreateQuoteInvoiceSettings, CreateQuoteLineItems,
@@ -48,6 +49,7 @@ impl BillingService {
         authentication: AuthenticatedEntity,
     ) -> Result<String, Error> {
         let organization = self.get_organization(organization_id).await?;
+        self.require_good_credit(&organization).await?;
         let current = self.find_current_subscription(&organization).await.ok();
 
         let plan = plan_to_invoice(
@@ -175,26 +177,23 @@ impl BillingService {
                 bills_by_invoice: false,
                 po_number: None,
                 open_invoice: None,
+                written_off_invoice: None,
                 pending_quote: None,
             });
         };
 
         let bills_by_invoice = organization.base.bills_by_invoice;
 
-        let open_invoice = self
-            .open_license_invoices(&customer_id)
+        let open_invoice = license_invoices(&self.stripe, &customer_id, InvoiceStatus::Open)
             .await?
-            .into_iter()
-            .next()
-            .map(|invoice| OpenInvoice {
-                number: invoice.number.clone(),
-                amount_due_cents: invoice.amount_due,
-                currency: invoice.currency.to_string(),
-                due_date: invoice
-                    .due_date
-                    .and_then(|ts| DateTime::<Utc>::from_timestamp(ts, 0)),
-                hosted_invoice_url: invoice.hosted_invoice_url.clone(),
-            });
+            .first()
+            .map(InvoiceSummary::from);
+
+        let written_off_invoice =
+            license_invoices(&self.stripe, &customer_id, InvoiceStatus::Uncollectible)
+                .await?
+                .first()
+                .map(InvoiceSummary::from);
 
         let pending_quote = self
             .open_quote(&customer_id)
@@ -214,6 +213,7 @@ impl BillingService {
             bills_by_invoice,
             po_number: self.po_number(&customer_id).await?,
             open_invoice,
+            written_off_invoice,
             pending_quote,
         })
     }
@@ -229,17 +229,22 @@ impl BillingService {
         let Some(customer_id) = organization.base.stripe_customer_id.map(CustomerId::from) else {
             return Ok(None);
         };
-        Ok(self
-            .open_license_invoices(&customer_id)
-            .await?
-            .iter()
-            .filter_map(|invoice| BillingInvoice::from(invoice).license_unpaid_from())
-            .min())
+        Ok(
+            license_invoices(&self.stripe, &customer_id, InvoiceStatus::Open)
+                .await?
+                .iter()
+                .filter_map(|invoice| BillingInvoice::from(invoice).license_unpaid_from())
+                .min(),
+        )
     }
 
     /// Accept the open quote: Stripe creates the invoiced subscription from
     /// it, and the subscription webhook retires any trial subscription.
     pub async fn accept_quote(&self, organization_id: Uuid) -> Result<String, Error> {
+        // A quote raised before the default would otherwise be a way back to
+        // payment terms without settling what is owed.
+        let organization = self.get_organization(organization_id).await?;
+        self.require_good_credit(&organization).await?;
         let customer_id = self.customer_id(organization_id).await?;
         let quote = self
             .open_quote(&customer_id)
@@ -341,70 +346,16 @@ impl BillingService {
             return Ok(());
         };
 
-        // Issuing an invoice is what licenses a buyer before the money
-        // arrives, so an organization that already owes us for an overdue one
-        // does not get a second term by issuing itself another.
-        let owes = self
-            .overdue_license_invoice(&organization, &snapshot)
-            .await?;
-        if let Some(owed) = &owes {
-            tracing::info!(
-                organization_id = %organization.id,
-                invoice_id = %snapshot.stripe_invoice_id,
-                unpaid_invoice_id = %owed,
-                "Issuing a licence invoice without extending the licence: an earlier one is overdue"
-            );
-        }
-
         self.event_bus
             .publish(Event::new(
                 OrgScope {
                     organization_id: organization.id,
                 },
-                BillingOperation::InvoiceIssued {
-                    invoice: snapshot,
-                    grants_licence: owes.is_none(),
-                },
+                BillingOperation::InvoiceIssued { invoice: snapshot },
                 AuthenticatedEntity::System,
             ))
             .await?;
         Ok(())
-    }
-
-    /// The id of another licence invoice that was already past its due date
-    /// when `issued` was raised, if any.
-    ///
-    /// Merely open is not enough: a plan change leaves two invoices open for a
-    /// moment, and a renewal is issued before the previous period ends. Only a
-    /// due date that has passed is evidence of a default.
-    ///
-    /// Both timestamps come from Stripe. Comparing a Stripe due date against
-    /// our own clock would be wrong even without the skew a test clock makes
-    /// obvious, where Stripe's dates run months ahead of the server's.
-    async fn overdue_license_invoice(
-        &self,
-        organization: &Organization,
-        issued: &BillingInvoice,
-    ) -> Result<Option<String>, Error> {
-        let Some(customer_id) = organization
-            .base
-            .stripe_customer_id
-            .clone()
-            .map(CustomerId::from)
-        else {
-            return Ok(None);
-        };
-        let open: Vec<BillingInvoice> = self
-            .open_license_invoices(&customer_id)
-            .await?
-            .iter()
-            .map(BillingInvoice::from)
-            .collect();
-        Ok(overdue_other_invoice(
-            &open,
-            &issued.stripe_invoice_id,
-            issued.created_at,
-        ))
     }
 
     /// Webhook: a draft invoice exists. A sent invoice for a self-hosted
@@ -542,12 +493,13 @@ impl BillingService {
         else {
             return Ok(None);
         };
-        Ok(self
-            .open_license_invoices(&customer_id)
-            .await?
-            .iter()
-            .map(BillingInvoice::from)
-            .find(|invoice| invoice.provisional_paid_through().is_some()))
+        Ok(
+            license_invoices(&self.stripe, &customer_id, InvoiceStatus::Open)
+                .await?
+                .iter()
+                .map(BillingInvoice::from)
+                .find(|invoice| invoice.provisional_paid_through().is_some()),
+        )
     }
 
     /// Webhook: a sent invoice was voided or marked uncollectible, so it will
@@ -596,7 +548,7 @@ impl BillingService {
         };
 
         let mut voided = false;
-        for invoice in self.open_license_invoices(&customer_id).await? {
+        for invoice in license_invoices(&self.stripe, &customer_id, InvoiceStatus::Open).await? {
             let Some(id) = invoice.id.clone() else {
                 continue;
             };
@@ -611,6 +563,48 @@ impl BillingService {
             );
         }
         Ok(voided)
+    }
+
+    /// The license invoice this customer defaulted on, if any.
+    ///
+    /// A written-off invoice is the record that they took payment terms and
+    /// did not pay, so it is what refuses them those terms again. Settling it
+    /// in Stripe, by marking it paid or voiding it, clears the refusal.
+    pub(crate) async fn written_off_license_invoice(
+        &self,
+        organization: &Organization,
+    ) -> Result<Option<BillingInvoice>, Error> {
+        let Some(customer_id) = organization
+            .base
+            .stripe_customer_id
+            .clone()
+            .map(CustomerId::from)
+        else {
+            return Ok(None);
+        };
+        Ok(
+            license_invoices(&self.stripe, &customer_id, InvoiceStatus::Uncollectible)
+                .await?
+                .iter()
+                .map(BillingInvoice::from)
+                .next(),
+        )
+    }
+
+    /// Refuse payment terms to a customer carrying a written-off invoice.
+    /// They can still buy, on a card.
+    async fn require_good_credit(&self, organization: &Organization) -> Result<(), Error> {
+        match self.written_off_license_invoice(organization).await? {
+            Some(invoice) => {
+                tracing::info!(
+                    organization_id = %organization.id,
+                    invoice_id = %invoice.stripe_invoice_id,
+                    "Refused invoice billing: this customer defaulted on an earlier invoice"
+                );
+                Err(refused(INVOICE_TERMS_REFUSED))
+            }
+            None => Ok(()),
+        }
     }
 
     async fn create_quote(
@@ -670,26 +664,6 @@ impl BillingService {
             .data
             .into_iter()
             .next())
-    }
-
-    /// Open invoices carrying a self-hosted license line, newest first.
-    async fn open_license_invoices(
-        &self,
-        customer_id: &CustomerId,
-    ) -> Result<Vec<stripe_billing::Invoice>, Error> {
-        Ok(ListInvoice::new()
-            .customer(customer_id.to_string())
-            .status(InvoiceStatus::Open)
-            .send(&self.stripe)
-            .await?
-            .data
-            .into_iter()
-            .filter(|invoice| {
-                BillingInvoice::from(invoice)
-                    .license_unpaid_from()
-                    .is_some()
-            })
-            .collect())
     }
 
     /// Finalize the subscription's draft invoice now instead of after
@@ -867,24 +841,85 @@ impl BillingService {
 
 const SELF_HOSTED_ONLY: &str = "Invoice billing is available on self-hosted plans only";
 
-/// The id of a licence invoice, other than `excluding`, whose due date had
-/// already passed at `as_of`.
+/// The customer's invoices in `status` that carry a self-hosted license line,
+/// newest first.
+///
+/// A free function rather than a method because the subscription-deleted
+/// webhook writes off what it finds here from a spawned task that holds the
+/// Stripe client but no service.
+pub(crate) async fn license_invoices(
+    stripe: &stripe::Client,
+    customer_id: &CustomerId,
+    status: InvoiceStatus,
+) -> Result<Vec<stripe_billing::Invoice>, Error> {
+    Ok(ListInvoice::new()
+        .customer(customer_id.to_string())
+        .status(status)
+        .send(stripe)
+        .await?
+        .data
+        .into_iter()
+        .filter(|invoice| {
+            BillingInvoice::from(invoice)
+                .license_unpaid_from()
+                .is_some()
+        })
+        .collect())
+}
+
+/// Write off the license invoices a customer never paid, at the moment their
+/// subscription ends. Reports how many.
+///
+/// Two things follow from the write-off. Stripe's
+/// `invoice.marked_uncollectible` webhook takes back the license period each
+/// invoice granted, which is right: a sent invoice licenses the buyer before
+/// they pay, and they did not. And the written-off invoice stays on the
+/// customer as the record that they took payment terms and defaulted, which is
+/// what [`BillingService::written_off_license_invoice`] reads.
+///
+/// `as_of` is Stripe's own timestamp for the cancellation. Due dates live in
+/// the customer's billing clock, which under a test clock is not the server's,
+/// so comparing against `Utc::now()` reads a different calendar.
+pub(crate) async fn write_off_unpaid_license_invoices(
+    stripe: &stripe::Client,
+    organization_id: Uuid,
+    customer_id: &CustomerId,
+    as_of: DateTime<Utc>,
+) -> Result<usize, Error> {
+    let open: Vec<BillingInvoice> = license_invoices(stripe, customer_id, InvoiceStatus::Open)
+        .await?
+        .iter()
+        .map(BillingInvoice::from)
+        .collect();
+
+    let defaulted = defaulted_license_invoices(&open, as_of);
+    for id in &defaulted {
+        MarkUncollectibleInvoice::new(id.clone())
+            .send(stripe)
+            .await?;
+        tracing::info!(
+            organization_id = %organization_id,
+            invoice_id = %id,
+            "Wrote off the license invoice this customer defaulted on"
+        );
+    }
+    Ok(defaulted.len())
+}
+
+const INVOICE_TERMS_REFUSED: &str = "Payment terms are not available while an earlier invoice is unpaid. \
+     Settle it, or pay by card, or contact support.";
+
+/// The ids of the license invoices this customer defaulted on, out of the ones
+/// still open at `as_of`.
 ///
 /// Merely open is not evidence of a default: a plan change leaves two invoices
 /// open for a moment, and a renewal is issued before the previous period ends.
 /// Only a due date that has passed says the customer stopped paying.
-///
-/// `as_of` is the issuing invoice's own creation time rather than the current
-/// time, so every timestamp compared here comes from Stripe.
-fn overdue_other_invoice(
-    open: &[BillingInvoice],
-    excluding: &str,
-    as_of: DateTime<Utc>,
-) -> Option<String> {
+fn defaulted_license_invoices(open: &[BillingInvoice], as_of: DateTime<Utc>) -> Vec<String> {
     open.iter()
-        .filter(|invoice| invoice.stripe_invoice_id != excluding)
-        .find(|invoice| invoice.due_date.is_some_and(|due| due < as_of))
+        .filter(|invoice| invoice.due_date.is_some_and(|due| due < as_of))
         .map(|invoice| invoice.stripe_invoice_id.clone())
+        .collect()
 }
 
 /// Whether this invoice is one we sent a self-hosted licence buyer, rather
@@ -1032,62 +1067,48 @@ mod tests {
         )));
     }
 
-    /// Issuing an invoice is what licenses a buyer before the money arrives,
-    /// so an org that left an earlier one overdue must not buy itself another
-    /// term by issuing a second. The not-yet-due case is the one that must
-    /// keep working: a renewal is issued before the previous period ends.
+    /// Which invoices a cancellation writes off. Getting this wrong either
+    /// forgives a debt the customer still owes, or writes off an invoice that
+    /// was never late and refuses that customer payment terms afterwards.
     #[test]
-    fn only_an_overdue_earlier_invoice_withholds_the_licence() {
-        // Stands for the issuing invoice's creation time, which is what the
-        // caller passes: every timestamp here is one Stripe reported.
-        let issued_at = Utc::now();
-        let with = |id: &str, due: DateTime<Utc>| BillingInvoice {
+    fn only_a_past_due_invoice_is_written_off() {
+        // Stands for Stripe's own timestamp for the cancellation, which is
+        // what the caller passes: every timestamp here is one Stripe reported.
+        let cancelled_at = Utc::now();
+        let with = |id: &str, due: Option<DateTime<Utc>>| BillingInvoice {
             stripe_invoice_id: id.to_string(),
-            due_date: Some(due),
+            due_date: due,
             ..licensed_invoice(InvoiceCollection::SendInvoice, true)
         };
 
-        let overdue = with("in_old", issued_at - chrono::Duration::days(1));
-        let upcoming = with("in_next", issued_at + chrono::Duration::days(30));
-        let being_issued = with("in_new", issued_at + chrono::Duration::days(30));
+        let overdue = with("in_old", Some(cancelled_at - chrono::Duration::days(1)));
+        let upcoming = with("in_next", Some(cancelled_at + chrono::Duration::days(30)));
 
         assert_eq!(
-            overdue_other_invoice(
-                &[overdue.clone(), being_issued.clone()],
-                "in_new",
-                issued_at
-            ),
-            Some("in_old".to_string())
+            defaulted_license_invoices(&[overdue.clone(), upcoming.clone()], cancelled_at),
+            vec!["in_old".to_string()]
         );
-        // A renewal alongside the one being issued is not a default.
-        assert_eq!(
-            overdue_other_invoice(&[upcoming, being_issued.clone()], "in_new", issued_at),
-            None
-        );
-        // The invoice being issued is never evidence against itself, however
-        // its own due date falls.
-        assert_eq!(
-            overdue_other_invoice(
-                &[with("in_new", issued_at - chrono::Duration::days(1))],
-                "in_new",
-                issued_at
-            ),
-            None
-        );
-        assert_eq!(overdue_other_invoice(&[], "in_new", issued_at), None);
+        // Cancelling with nothing yet due owes nothing: a customer who leaves
+        // mid-term keeps a collectible invoice, not a written-off one.
+        assert!(defaulted_license_invoices(&[upcoming], cancelled_at).is_empty());
+        // An invoice Stripe collects automatically carries no due date.
+        assert!(defaulted_license_invoices(&[with("in_card", None)], cancelled_at).is_empty());
+        assert!(defaulted_license_invoices(&[], cancelled_at).is_empty());
 
-        // The defect this replaced: a Stripe due date compared against our own
-        // clock. Under a test clock Stripe's dates run months ahead, so an
-        // invoice long overdue in Stripe's frame looked not yet due in ours
-        // and the licence was granted anyway.
-        let stripe_frame = issued_at + chrono::Duration::days(60);
+        // Both timestamps come from Stripe. Comparing a Stripe due date
+        // against our own clock is what broke the guard this replaced: under a
+        // test clock Stripe's dates run months ahead, so an invoice long
+        // overdue in Stripe's frame looked not yet due in ours.
+        let stripe_frame = cancelled_at + chrono::Duration::days(60);
         assert_eq!(
-            overdue_other_invoice(
-                &[with("in_old", stripe_frame - chrono::Duration::days(1))],
-                "in_new",
+            defaulted_license_invoices(
+                &[with(
+                    "in_old",
+                    Some(stripe_frame - chrono::Duration::days(1))
+                )],
                 stripe_frame
             ),
-            Some("in_old".to_string())
+            vec!["in_old".to_string()]
         );
     }
 
