@@ -12655,19 +12655,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-23T22:52:05.705333Z",
+              "created_at": "2026-09-24T02:30:14.342185Z",
               "first_discovery_id": null,
-              "id": "2386827a-8cb5-4bb1-a5b5-f9721b3d790e",
+              "id": "c344025a-88ec-49d3-a175-d7cea05fca7c",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-23T22:52:05.705333Z",
+              "last_seen_at": "2026-09-24T02:30:14.342185Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-23T22:52:05.705333Z",
-              "valid_from": "2026-09-23T22:52:05.705333Z",
+              "updated_at": "2026-09-24T02:30:14.342185Z",
+              "valid_from": "2026-09-24T02:30:14.342185Z",
               "valid_to": null
             }
           },
@@ -14239,19 +14239,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-23T22:52:05.688492Z",
+                      "created_at": "2026-09-24T02:30:14.328374Z",
                       "first_discovery_id": null,
-                      "id": "71424cbe-ae4f-4531-8104-538a01abcef7",
+                      "id": "3ec9c5d8-0a69-48f2-8c07-9acc856870c0",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-23T22:52:05.688492Z",
+                      "last_seen_at": "2026-09-24T02:30:14.328374Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-23T22:52:05.688492Z",
-                      "valid_from": "2026-09-23T22:52:05.688492Z",
+                      "updated_at": "2026-09-24T02:30:14.328374Z",
+                      "valid_from": "2026-09-24T02:30:14.328374Z",
                       "valid_to": null
                     }
                   ],
@@ -14265,7 +14265,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Grocy",
+                  "service_definition": "CheckMK Agent",
                   "source": {
                     "type": "Manual"
                   },
@@ -14704,7 +14704,7 @@
                     "type": "null"
                   },
                   {
-                    "$ref": "#/components/schemas/OpenInvoice"
+                    "$ref": "#/components/schemas/InvoiceSummary"
                   }
                 ]
               },
@@ -14724,6 +14724,17 @@
                   "null"
                 ],
                 "description": "Purchase order number printed on invoices."
+              },
+              "written_off_invoice": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/InvoiceSummary",
+                    "description": "An invoice this customer defaulted on and we wrote off. While one\nstands, they cannot take payment terms again."
+                  }
+                ]
               }
             }
           },
@@ -15644,19 +15655,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-23T22:52:05.701306Z",
+                  "created_at": "2026-09-24T02:30:14.338794Z",
                   "first_discovery_id": null,
-                  "id": "84bc3665-26d5-4913-834e-3de2bb74eadf",
+                  "id": "e572e8d4-3706-4d12-abd7-5824e23abd8c",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-23T22:52:05.701306Z",
+                  "last_seen_at": "2026-09-24T02:30:14.338794Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-23T22:52:05.701306Z",
-                  "valid_from": "2026-09-23T22:52:05.701306Z",
+                  "updated_at": "2026-09-24T02:30:14.338794Z",
+                  "valid_from": "2026-09-24T02:30:14.338794Z",
                   "valid_to": null
                 }
               ],
@@ -15670,7 +15681,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Grocy",
+              "service_definition": "CheckMK Agent",
               "source": {
                 "type": "Manual"
               },
@@ -18026,19 +18037,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-23T22:52:05.688930Z",
+          "created_at": "2026-09-24T02:30:14.328699Z",
           "first_discovery_id": null,
-          "id": "f97806e0-25dd-42df-ac8b-6adfffc765f1",
+          "id": "f4c86cf2-84c4-4ab3-8659-e2ef3d4b26f0",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-23T22:52:05.688930Z",
+          "last_seen_at": "2026-09-24T02:30:14.328699Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-23T22:52:05.688930Z",
-          "valid_from": "2026-09-23T22:52:05.688930Z",
+          "updated_at": "2026-09-24T02:30:14.328699Z",
+          "valid_from": "2026-09-24T02:30:14.328699Z",
           "valid_to": null
         }
       },
@@ -18746,7 +18757,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Grocy",
+              "service_definition": "CheckMK Agent",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -24282,19 +24293,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-23T22:52:05.688009Z",
+                  "created_at": "2026-09-24T02:30:14.328011Z",
                   "first_discovery_id": null,
-                  "id": "f08b9a6b-7900-4cf9-a485-80f0f2a583c4",
+                  "id": "88600115-38b9-4ebc-ab70-ec839f066b03",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-23T22:52:05.688009Z",
+                  "last_seen_at": "2026-09-24T02:30:14.328011Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-23T22:52:05.688009Z",
-                  "valid_from": "2026-09-23T22:52:05.688009Z",
+                  "updated_at": "2026-09-24T02:30:14.328011Z",
+                  "valid_from": "2026-09-24T02:30:14.328011Z",
                   "valid_to": null
                 }
               ],
@@ -24308,7 +24319,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Grocy",
+              "service_definition": "CheckMK Agent",
               "source": {
                 "type": "Manual"
               },
@@ -25806,7 +25817,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/OpenInvoice"
+                "$ref": "#/components/schemas/InvoiceSummary"
               }
             ]
           },
@@ -25826,6 +25837,17 @@
               "null"
             ],
             "description": "Purchase order number printed on invoices."
+          },
+          "written_off_invoice": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/InvoiceSummary",
+                "description": "An invoice this customer defaulted on and we wrote off. While one\nstands, they cannot take payment terms again."
+              }
+            ]
           }
         }
       },
@@ -25843,6 +25865,43 @@
           },
           "value": {
             "type": "string"
+          }
+        }
+      },
+      "InvoiceSummary": {
+        "type": "object",
+        "description": "An issued invoice that has not been paid.",
+        "required": [
+          "amount_due_cents",
+          "currency"
+        ],
+        "properties": {
+          "amount_due_cents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "due_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "hosted_invoice_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Stripe-hosted page where the invoice can be viewed and paid."
+          },
+          "number": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },
@@ -26919,43 +26978,6 @@
           }
         }
       },
-      "OpenInvoice": {
-        "type": "object",
-        "description": "An issued invoice that has not been paid yet.",
-        "required": [
-          "amount_due_cents",
-          "currency"
-        ],
-        "properties": {
-          "amount_due_cents": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "currency": {
-            "type": "string"
-          },
-          "due_date": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          },
-          "hosted_invoice_url": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "Stripe-hosted page where the invoice can be viewed and paid."
-          },
-          "number": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
-        }
-      },
       "OrderDirection": {
         "type": "string",
         "description": "Direction for ORDER BY clauses.",
@@ -27974,19 +27996,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-23T22:52:05.680488Z",
+                        "created_at": "2026-09-24T02:30:14.322597Z",
                         "first_discovery_id": null,
-                        "id": "63d851d7-b831-4006-9b57-75ede6fd4f55",
+                        "id": "dcd4e4e8-5568-48aa-91a5-e672f50fcf84",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-23T22:52:05.680488Z",
+                        "last_seen_at": "2026-09-24T02:30:14.322597Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-23T22:52:05.680488Z",
-                        "valid_from": "2026-09-23T22:52:05.680488Z",
+                        "updated_at": "2026-09-24T02:30:14.322597Z",
+                        "valid_from": "2026-09-24T02:30:14.322597Z",
                         "valid_to": null
                       }
                     ],
@@ -28000,7 +28022,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Grocy",
+                    "service_definition": "CheckMK Agent",
                     "source": {
                       "type": "Manual"
                     },
@@ -28143,19 +28165,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-23T22:52:05.700538Z",
+                    "created_at": "2026-09-24T02:30:14.338163Z",
                     "first_discovery_id": null,
-                    "id": "bfc20765-a98b-42c7-8a96-6cf414f7828e",
+                    "id": "3e94abba-6ca0-479e-ba45-8b15a42409bf",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-23T22:52:05.700538Z",
+                    "last_seen_at": "2026-09-24T02:30:14.338163Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-23T22:52:05.700538Z",
-                    "valid_from": "2026-09-23T22:52:05.700538Z",
+                    "updated_at": "2026-09-24T02:30:14.338163Z",
+                    "valid_from": "2026-09-24T02:30:14.338163Z",
                     "valid_to": null
                   }
                 ],
@@ -28169,7 +28191,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Grocy",
+                "service_definition": "CheckMK Agent",
                 "source": {
                   "type": "Manual"
                 },
@@ -30294,19 +30316,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-23T22:52:05.688793Z",
+              "created_at": "2026-09-24T02:30:14.328596Z",
               "first_discovery_id": null,
-              "id": "9f275e09-17e8-4f49-a2ab-42e26655836c",
+              "id": "3bef66a1-1435-481b-bb04-a9778e5b028d",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-23T22:52:05.688793Z",
+              "last_seen_at": "2026-09-24T02:30:14.328596Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-23T22:52:05.688793Z",
-              "valid_from": "2026-09-23T22:52:05.688793Z",
+              "updated_at": "2026-09-24T02:30:14.328596Z",
+              "valid_from": "2026-09-24T02:30:14.328596Z",
               "valid_to": null
             }
           ],
@@ -30320,7 +30342,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Grocy",
+          "service_definition": "CheckMK Agent",
           "source": {
             "type": "Manual"
           },
@@ -31688,7 +31710,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "019be937-cf08-41dd-8f87-04382879319b",
+                  "id": "50d47521-fcd9-4971-a2c2-57270d8f91fe",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -31698,23 +31720,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "542f50cd-e65a-4238-9650-b931d696df78",
+                  "id": "cf4f6590-f0f2-415f-a3f3-a37fe2968073",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "3d07369b-41af-470e-9c01-3917b519dfac",
+                  "id": "6a90fbe5-00e6-402c-93c4-b235a9c94571",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "0b931725-5be8-41db-882e-0c5a030a6b97",
+                  "id": "aaeb016b-1fd5-4890-b074-1a561f1995d7",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "542f50cd-e65a-4238-9650-b931d696df78",
+                  "id": "cf4f6590-f0f2-415f-a3f3-a37fe2968073",
                   "rule": "ByHost"
                 }
               ]
@@ -31744,19 +31766,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "1776231d-d357-405a-8134-a57bda84a359",
+                "id": "1ee829c1-5f97-42fa-91ee-45885d2b24f1",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "2394c9d7-3e85-43ff-b185-efe4af186ff3",
+                "id": "627d75ae-da58-4c5e-9259-67656f591e6f",
                 "rule": "ByVLAN"
               },
               {
-                "id": "fd11d4ac-6f83-4540-a91f-6a8e6038f960",
+                "id": "950dac73-82cb-4915-b487-1a9b87ca36cf",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "35078348-96b7-4a26-bf2f-538830a54d68",
+                "id": "59b8844e-72bb-4b01-8347-236e51ce553d",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -31774,7 +31796,7 @@
                 }
               },
               {
-                "id": "80e55e0d-790c-47dd-8de1-50e7cb1bf21a",
+                "id": "948cb117-9892-4385-bbef-fe96186d99bf",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -31783,15 +31805,15 @@
                 }
               },
               {
-                "id": "67c8909a-995f-4f82-b40a-70794a73c84c",
+                "id": "fca6cad1-baa0-4883-9b6d-68becf2ca56e",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "02aac8ba-53b8-4970-9dd3-6bc1e2778318",
+                "id": "21c50eb6-1007-4340-8999-ce3f1956aec9",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "a269db66-45a2-4a29-bbc7-81eeac8b1333",
+                "id": "d562a72b-aceb-4296-b2b2-bc7922a62721",
                 "rule": "ByStack"
               }
             ]

@@ -3466,19 +3466,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-23T22:52:05.642704Z",
+             *       "created_at": "2026-09-24T02:30:14.293010Z",
              *       "first_discovery_id": null,
-             *       "id": "21d8b5d3-a2a1-422b-8c56-81ef2f3543b7",
+             *       "id": "59c73604-af7b-4446-855e-aee8b0337222",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-23T22:52:05.642704Z",
+             *       "last_seen_at": "2026-09-24T02:30:14.293010Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-23T22:52:05.642704Z",
-             *       "valid_from": "2026-09-23T22:52:05.642704Z",
+             *       "updated_at": "2026-09-24T02:30:14.293010Z",
+             *       "valid_from": "2026-09-24T02:30:14.293010Z",
              *       "valid_to": null
              *     }
              */
@@ -4296,19 +4296,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-23T22:52:05.622286Z",
+             *               "created_at": "2026-09-24T02:30:14.275311Z",
              *               "first_discovery_id": null,
-             *               "id": "8b210391-eeb2-4b9b-99ea-7b3720158a29",
+             *               "id": "4187de06-b77e-47a3-bc2b-72a04d1ad0d7",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-23T22:52:05.622286Z",
+             *               "last_seen_at": "2026-09-24T02:30:14.275311Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-23T22:52:05.622286Z",
-             *               "valid_from": "2026-09-23T22:52:05.622286Z",
+             *               "updated_at": "2026-09-24T02:30:14.275311Z",
+             *               "valid_from": "2026-09-24T02:30:14.275311Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4322,7 +4322,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Grocy",
+             *           "service_definition": "CheckMK Agent",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4727,10 +4727,11 @@ export interface components {
             data?: {
                 /** @description The subscription is billed by sent invoice. */
                 bills_by_invoice: boolean;
-                open_invoice?: null | components["schemas"]["OpenInvoice"];
+                open_invoice?: null | components["schemas"]["InvoiceSummary"];
                 pending_quote?: null | components["schemas"]["PendingQuote"];
                 /** @description Purchase order number printed on invoices. */
                 po_number?: string | null;
+                written_off_invoice?: null | components["schemas"]["InvoiceSummary"];
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -5227,19 +5228,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-23T22:52:05.637743Z",
+             *           "created_at": "2026-09-24T02:30:14.289197Z",
              *           "first_discovery_id": null,
-             *           "id": "64458d54-8936-41dd-a6d4-d404efa856bd",
+             *           "id": "99092a52-f391-4044-8b26-31049f595665",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-23T22:52:05.637743Z",
+             *           "last_seen_at": "2026-09-24T02:30:14.289197Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-23T22:52:05.637743Z",
-             *           "valid_from": "2026-09-23T22:52:05.637743Z",
+             *           "updated_at": "2026-09-24T02:30:14.289197Z",
+             *           "valid_from": "2026-09-24T02:30:14.289197Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5253,7 +5254,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Grocy",
+             *       "service_definition": "CheckMK Agent",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6319,19 +6320,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-23T22:52:05.622726Z",
+         *       "created_at": "2026-09-24T02:30:14.275664Z",
          *       "first_discovery_id": null,
-         *       "id": "5f53e8e2-5ce8-4c78-8eea-2fa1b2552f3d",
+         *       "id": "735218db-0d80-4a8f-83f2-453c6bc04688",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-23T22:52:05.622726Z",
+         *       "last_seen_at": "2026-09-24T02:30:14.275664Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-23T22:52:05.622726Z",
-         *       "valid_from": "2026-09-23T22:52:05.622726Z",
+         *       "updated_at": "2026-09-24T02:30:14.275664Z",
+         *       "valid_from": "2026-09-24T02:30:14.275664Z",
          *       "valid_to": null
          *     }
          */
@@ -6657,7 +6658,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Grocy",
+         *           "service_definition": "CheckMK Agent",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8893,19 +8894,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-23T22:52:05.621810Z",
+         *               "created_at": "2026-09-24T02:30:14.274922Z",
          *               "first_discovery_id": null,
-         *               "id": "b0e5b8bf-9baa-4fc8-9edb-f415f7f65f4c",
+         *               "id": "d9339b3a-438b-4eb2-aab8-9c12a03561f6",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-23T22:52:05.621810Z",
+         *               "last_seen_at": "2026-09-24T02:30:14.274922Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-23T22:52:05.621810Z",
-         *               "valid_from": "2026-09-23T22:52:05.621810Z",
+         *               "updated_at": "2026-09-24T02:30:14.274922Z",
+         *               "valid_from": "2026-09-24T02:30:14.274922Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8919,7 +8920,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Grocy",
+         *           "service_definition": "CheckMK Agent",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -9836,16 +9837,28 @@ export interface components {
         InvoiceBillingStatus: {
             /** @description The subscription is billed by sent invoice. */
             bills_by_invoice: boolean;
-            open_invoice?: null | components["schemas"]["OpenInvoice"];
+            open_invoice?: null | components["schemas"]["InvoiceSummary"];
             pending_quote?: null | components["schemas"]["PendingQuote"];
             /** @description Purchase order number printed on invoices. */
             po_number?: string | null;
+            written_off_invoice?: null | components["schemas"]["InvoiceSummary"];
         };
         /** @description Tax ID of the billing entity, as Stripe's Tax ID Element returns it. */
         InvoiceBillingTaxId: {
             /** @description Stripe tax ID type, e.g. `eu_vat` or `us_ein`. */
             tax_id_type: string;
             value: string;
+        };
+        /** @description An issued invoice that has not been paid. */
+        InvoiceSummary: {
+            /** Format: int64 */
+            amount_due_cents: number;
+            currency: string;
+            /** Format: date-time */
+            due_date?: string | null;
+            /** @description Stripe-hosted page where the invoice can be viewed and paid. */
+            hosted_invoice_url?: string | null;
+            number?: string | null;
         };
         Ixy: {
             /** @description Horizontal position, which may be negative. */
@@ -10292,17 +10305,6 @@ export interface components {
             /** @description Identifier of the onboarding step the user has reached. */
             step: string;
             use_case?: null | components["schemas"]["UseCase"];
-        };
-        /** @description An issued invoice that has not been paid yet. */
-        OpenInvoice: {
-            /** Format: int64 */
-            amount_due_cents: number;
-            currency: string;
-            /** Format: date-time */
-            due_date?: string | null;
-            /** @description Stripe-hosted page where the invoice can be viewed and paid. */
-            hosted_invoice_url?: string | null;
-            number?: string | null;
         };
         /**
          * @description Direction for ORDER BY clauses.
@@ -11885,19 +11887,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-23T22:52:05.622588Z",
+         *           "created_at": "2026-09-24T02:30:14.275555Z",
          *           "first_discovery_id": null,
-         *           "id": "0b473dc0-b4a5-491f-9a76-9d2427ad3319",
+         *           "id": "b8e585be-f379-4c6a-9e6e-94a921d85a37",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-23T22:52:05.622588Z",
+         *           "last_seen_at": "2026-09-24T02:30:14.275555Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-23T22:52:05.622588Z",
-         *           "valid_from": "2026-09-23T22:52:05.622588Z",
+         *           "updated_at": "2026-09-24T02:30:14.275555Z",
+         *           "valid_from": "2026-09-24T02:30:14.275555Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -11911,7 +11913,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Grocy",
+         *       "service_definition": "CheckMK Agent",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12637,7 +12639,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "2ed23018-b280-4fae-b7f8-846991df3e37",
+             *           "id": "32e0d95c-18f8-483a-8f24-a706bed021eb",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -12647,23 +12649,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "bd0fd2c6-943a-45a0-86a2-00a9b7f92bef",
+             *           "id": "a730939c-1458-459e-bd3a-8cf9a8c77d02",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "295f2f20-535e-4d27-9987-86d9b639709c",
+             *           "id": "4bb8b9fc-e7fe-4d11-977c-21a64d0912ea",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "b7d51d67-4476-4dde-a4ae-65b35717a1cd",
+             *           "id": "64392417-7643-4192-8eb7-50fc3032943a",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "bd0fd2c6-943a-45a0-86a2-00a9b7f92bef",
+             *           "id": "a730939c-1458-459e-bd3a-8cf9a8c77d02",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -12676,19 +12678,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "c29caa5f-068a-4f9c-b696-5fcb9c89edea",
+             *         "id": "63753152-496c-48a1-b522-c86e287d693f",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "76c6d733-4198-4069-9b67-be79c5ecfb73",
+             *         "id": "a74af2a8-e83a-45c3-b92a-5ecbc151fe1c",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "b69f413e-0a03-4971-9ba7-b74c61c1748c",
+             *         "id": "0c85851e-e801-4c8b-9fb1-b1416a63757f",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "21de2e8c-e041-495a-8da6-190a022aae0b",
+             *         "id": "153c8e35-49d4-495c-ab93-a9c37c3fde46",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -12706,7 +12708,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "718bb524-6a53-48b7-a98e-7dc9210a91d6",
+             *         "id": "b42f9ebf-4721-4f5c-bfd8-0264de61eb58",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -12715,15 +12717,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "4678d420-ee64-4898-81ab-255071aa3dbd",
+             *         "id": "6815f549-2369-42cc-a1e0-5724f86a4d0d",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "cf13d96e-eed9-4c88-bff3-6127104866ce",
+             *         "id": "593e993d-28f7-47ee-8cc7-43f2f09633bb",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "87783bca-c6c4-4174-84e9-179b585131cb",
+             *         "id": "abe0fdb6-3bc8-4350-9fb9-682c323875f1",
              *         "rule": "ByStack"
              *       }
              *     ]
