@@ -614,14 +614,20 @@ impl BillingService {
         // subscription just started, describes a countdown that already ran
         // out.
         //
-        // The trial's own end date is what separates them. Status does not: this
-        // is a pre-transition notice, so the subscription still reads `trialing`
-        // either way, and the `active` snapshot arrives on the
-        // `customer.subscription.updated` that follows.
-        if sub.trial_end.is_some_and(|end| end <= event_created) {
+        // Read the subscription rather than this notice. The payload carries it
+        // as it stood *before* the update: on a converting trial its
+        // `trial_end` is still the original date, its `collection_method` is
+        // still `charge_automatically` and its status is still `trialing`, so
+        // nothing in the event separates the two cases. Our own update returned
+        // before Stripe queued this, so a fresh read already has the new values.
+        let current = RetrieveSubscription::new(&sub.id)
+            .send(&self.stripe)
+            .await?;
+
+        if current.trial_end.is_some_and(|end| end <= event_created) {
             tracing::info!(
                 subscription_id = %sub.id,
-                trial_end = ?sub.trial_end,
+                trial_end = ?current.trial_end,
                 "Trial ended now rather than ending soon, skipping the warning email"
             );
             return Ok(());
@@ -670,13 +676,15 @@ impl BillingService {
                         // Either way to pay keeps the subscription alive, so a
                         // buyer paying by invoice is not asked for a card.
                         //
-                        // The subscription, not just the org row: switching to
-                        // invoice billing sets `collection_method` in the same
-                        // call that ends the trial, while `bills_by_invoice`
-                        // waits on the invoice finalizing and round-tripping
-                        // back, two webhooks later.
+                        // The subscription as Stripe holds it now, not the org
+                        // row: switching to invoice billing sets
+                        // `collection_method` in the same call that ends the
+                        // trial, while `bills_by_invoice` waits on the invoice
+                        // finalizing and round-tripping back, two webhooks
+                        // later.
                         has_payment_method: organization.can_pay()
-                            || sub.collection_method == SubscriptionCollectionMethod::SendInvoice,
+                            || current.collection_method
+                                == SubscriptionCollectionMethod::SendInvoice,
                     },
                     owner.clone().into(),
                 ))
