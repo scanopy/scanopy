@@ -109,7 +109,7 @@
 	"billing_invoice_quoteTitle": "Quote {number}",
 	"billing_invoice_sendNow": "Send invoice now",
 	"billing_invoice_sent": "Invoice sent. Your license key keeps working while it is paid.",
-	"billing_invoice_trialEnds": "Sending an invoice ends your trial and bills the annual term starting today, payable within 30 days. Your license key keeps working while the invoice is outstanding, so nothing stops when the trial does. Getting a quote keeps the trial running instead.",
+	"billing_invoice_trialEnds": "Sending an invoice ends your trial and bills the annual term starting today, payable within 30 days. Your license key keeps working while the invoice is awaiting payment, so nothing stops when the trial does. Getting a quote keeps the trial running instead.",
 	"billing_lapsedBannerAskOwner": "Ask an organization owner to choose a plan.",
 	"billing_lapsedBannerBody": "Your {plan} subscription has ended. Scanopy is read-only until you choose a paid plan.",
 	"billing_lapsedBannerCta": "Choose a plan",

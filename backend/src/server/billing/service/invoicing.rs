@@ -1052,7 +1052,11 @@ mod tests {
         let being_issued = with("in_new", issued_at + chrono::Duration::days(30));
 
         assert_eq!(
-            overdue_other_invoice(&[overdue.clone(), being_issued.clone()], "in_new", issued_at),
+            overdue_other_invoice(
+                &[overdue.clone(), being_issued.clone()],
+                "in_new",
+                issued_at
+            ),
             Some("in_old".to_string())
         );
         // A renewal alongside the one being issued is not a default.

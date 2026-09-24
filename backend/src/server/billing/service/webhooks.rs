@@ -599,6 +599,21 @@ impl BillingService {
             return Ok(());
         }
 
+        // Stripe sends this three days ahead, *or* the moment a trial is ended
+        // early with `trial_end=now`, which is how an invoice buyer converts.
+        // Warning that a trial ends in three days, beside the mail saying the
+        // subscription just started, describes a countdown that already ran
+        // out. The status is the clock-free way to tell the two apart: a
+        // genuine advance warning still finds the subscription trialing.
+        if sub.status != SubscriptionStatus::Trialing {
+            tracing::info!(
+                subscription_id = %sub.id,
+                subscription_status = ?sub.status,
+                "Trial already ended rather than ending soon, skipping the warning email"
+            );
+            return Ok(());
+        }
+
         // Recover identification fields via the typed metadata view (the
         // stringly-typed `metadata.get` form is the documented anti-pattern;
         // `StripeSubscriptionMetadata` is the source of truth).
