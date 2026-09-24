@@ -48,9 +48,23 @@ strip = true        # Remove debug symbols
 # Development profile for faster builds
 [profile.dev]
 opt-level = 0       # No optimization for faster builds
-debug = true        # Keep debug symbols for debugging
+# Line tables give file/line in backtraces and panics, which is what debugging a test failure
+# actually needs. Full `debug = true` also emits variable and type info for a stepping debugger,
+# which is where most of the object size and link time goes.
+debug = "line-tables-only"
+# macOS default is to run dsymutil and pack debuginfo into a .dSYM on every link. Leaving it in
+# the object files skips that step.
+split-debuginfo = "unpacked"
 lto = false         # No LTO for faster builds
 incremental = true  # Enable incremental compilation
+
+# Dependencies are not what anyone debugs, and they are the bulk of the tree.
+[profile.dev.package."*"]
+debug = false
+
+# Same for the test profile, which inherits from dev.
+[profile.test.package."*"]
+debug = false
 
 # Dependencies grouped by purpose for better maintainability
 [dependencies]
