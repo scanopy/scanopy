@@ -35,7 +35,7 @@ impl Email for InvoiceCredited<'_> {
                     .heading("Nothing to pay")
                     .paragraph("Hi there,")
                     .paragraph(&format!(
-                        "Your move to {} left {} unused on what you had already paid. There is nothing to pay now: that amount is held as credit and comes off your next renewal automatically.",
+                        "Your move to {} left {} unused, held as credit against your next renewal. There is nothing to pay now.",
                         self.plan_name, self.credit
                     )),
             )
