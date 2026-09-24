@@ -307,6 +307,7 @@ export function useChangePlanPreviewQuery(plan: () => BillingPlan | null) {
 
 type InvoiceBillingRequest = components['schemas']['InvoiceBillingRequest'];
 type InvoiceBillingStatus = components['schemas']['InvoiceBillingStatus'];
+type InvoiceSummary = components['schemas']['InvoiceSummary'];
 
 /**
  * Query hook for invoice billing state on a self-hosted plan: whether the
@@ -339,6 +340,25 @@ export function useHasPendingQuote(): { current: boolean } {
 	return {
 		get current() {
 			return query.data?.pending_quote != null;
+		}
+	};
+}
+
+/**
+ * The invoice this org defaulted on and we wrote off, if any. While one
+ * stands the server refuses payment terms, so the places that offer invoice
+ * billing read this and offer a card instead.
+ *
+ * Gated and cached like {@link useHasPendingQuote}.
+ */
+export function useWrittenOffInvoice(): { current: InvoiceSummary | null } {
+	const organizationQuery = useOrganizationQuery();
+	const query = useInvoiceBillingStatusQuery(
+		() => organizationQuery.data != null && hasLicensedPlan(organizationQuery.data)
+	);
+	return {
+		get current() {
+			return query.data?.written_off_invoice ?? null;
 		}
 	};
 }

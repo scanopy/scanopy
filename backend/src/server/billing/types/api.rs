@@ -148,15 +148,29 @@ pub struct PendingQuote {
     pub expires_at: DateTime<Utc>,
 }
 
-/// An issued invoice that has not been paid yet.
+/// An issued invoice that has not been paid.
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct OpenInvoice {
+pub struct InvoiceSummary {
     pub number: Option<String>,
     pub amount_due_cents: i64,
     pub currency: String,
     pub due_date: Option<DateTime<Utc>>,
     /// Stripe-hosted page where the invoice can be viewed and paid.
     pub hosted_invoice_url: Option<String>,
+}
+
+impl From<&stripe_billing::Invoice> for InvoiceSummary {
+    fn from(invoice: &stripe_billing::Invoice) -> Self {
+        Self {
+            number: invoice.number.clone(),
+            amount_due_cents: invoice.amount_due,
+            currency: invoice.currency.to_string(),
+            due_date: invoice
+                .due_date
+                .and_then(|ts| DateTime::<Utc>::from_timestamp(ts, 0)),
+            hosted_invoice_url: invoice.hosted_invoice_url.clone(),
+        }
+    }
 }
 
 /// Invoice billing state shown on the License tab.
@@ -166,7 +180,10 @@ pub struct InvoiceBillingStatus {
     pub bills_by_invoice: bool,
     /// Purchase order number printed on invoices.
     pub po_number: Option<String>,
-    pub open_invoice: Option<OpenInvoice>,
+    pub open_invoice: Option<InvoiceSummary>,
+    /// An invoice this customer defaulted on and we wrote off. While one
+    /// stands, they cannot take payment terms again.
+    pub written_off_invoice: Option<InvoiceSummary>,
     pub pending_quote: Option<PendingQuote>,
 }
 

@@ -858,7 +858,6 @@ async fn sent_invoices_license_until_due_and_give_back_on_void() {
     let provisional = issued.provisional_paid_through().unwrap();
     publish(BillingOperation::InvoiceIssued {
         invoice: issued.clone(),
-        grants_licence: true,
     })
     .await
     .unwrap();
@@ -872,7 +871,6 @@ async fn sent_invoices_license_until_due_and_give_back_on_void() {
     // An invoice due earlier never shortens the period already granted.
     publish(BillingOperation::InvoiceIssued {
         invoice: sent(trial_end, whole_seconds_from_now(5)),
-        grants_licence: true,
     })
     .await
     .unwrap();
@@ -896,7 +894,6 @@ async fn sent_invoices_license_until_due_and_give_back_on_void() {
     // same invoice leaves the paid term alone.
     publish(BillingOperation::InvoiceIssued {
         invoice: issued.clone(),
-        grants_licence: true,
     })
     .await
     .unwrap();
