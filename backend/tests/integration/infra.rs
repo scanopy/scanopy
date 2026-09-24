@@ -96,6 +96,12 @@ impl ContainerManager {
                 "--force-recreate",
                 "--wait",
             ])
+            // The containers always build with `generate-fixtures`; only a run that asked for
+            // fixtures lets them record, so a plain test run leaves the fixtures untouched.
+            .env(
+                "CAPTURE_COMPAT_FIXTURES",
+                cfg!(feature = "generate-fixtures").to_string(),
+            )
             .current_dir("..")
             .status()
             .map_err(|e| format!("Failed to start containers: {}", e))?;

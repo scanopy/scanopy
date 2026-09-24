@@ -14,6 +14,7 @@ use super::types::{
     CapturedExchange, FixtureManifest, get_fixture_versions, load_manifest, load_openapi_spec,
 };
 use regex::Regex;
+use scanopy::server::auth::middleware::fixture_capture::FIXTURE_REPLAY_HEADER;
 use uuid::Uuid;
 
 /// Context for replaying requests with substituted IDs.
@@ -175,6 +176,7 @@ pub async fn replay_exchange(
 
     // Add daemon headers for server requests
     req = req
+        .header(FIXTURE_REPLAY_HEADER, "true")
         .header("X-Daemon-ID", ctx.daemon_id.to_string())
         .header("Authorization", format!("Bearer {}", &ctx.api_key));
 
@@ -329,60 +331,76 @@ pub async fn run_server_compat_tests(
     Ok(())
 }
 
-/// Cancel any active discovery session on the daemon and wait for it to stop.
-/// Returns Ok(()) even if no session is running (409 is expected).
-async fn cancel_daemon_discovery_internal(
-    daemon_url: &str,
-    api_key: &str,
-    session_id: Option<Uuid>,
-) -> Result<(), String> {
-    let client = reqwest::Client::builder()
+fn daemon_client() -> Result<reqwest::Client, String> {
+    reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(5))
         .build()
-        .map_err(|e| format!("Failed to create client: {}", e))?;
+        .map_err(|e| format!("Failed to create client: {}", e))
+}
 
-    // Use a nil UUID if we don't know the session ID - daemon will cancel current session
-    let session_id = session_id.unwrap_or(Uuid::nil());
+/// Wait until the daemon reports no running session (`ready_for_work` on `GET /api/status`).
+pub async fn wait_for_daemon_idle(daemon_url: &str, api_key: &str) -> Result<(), String> {
+    let client = daemon_client()?;
+    // 30 seconds (120 * 250ms): a cancelled scan winds down cooperatively.
+    for i in 0..120 {
+        let status: serde_json::Value = client
+            .get(format!("{}/api/status", daemon_url))
+            .header("Authorization", format!("Bearer {}", api_key))
+            .header(FIXTURE_REPLAY_HEADER, "true")
+            .send()
+            .await
+            .map_err(|e| format!("Failed to read daemon status: {}", e))?
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse daemon status: {}", e))?;
 
-    let response = client
+        if status["data"]["ready_for_work"].as_bool() == Some(true) {
+            if i > 0 {
+                println!("    Daemon idle after {} ms", i * 250);
+            }
+            return Ok(());
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+    }
+    Err("Daemon still running a discovery session after 30 seconds".to_string())
+}
+
+/// Cancel `session_id` on the daemon and wait for the daemon to go idle. The daemon cancels by
+/// session id, so a 409 means that session is not running.
+pub async fn stop_daemon_session(
+    daemon_url: &str,
+    api_key: &str,
+    session_id: Uuid,
+) -> Result<(), String> {
+    let response = daemon_client()?
         .post(format!("{}/api/discovery/cancel", daemon_url))
         .header("Authorization", format!("Bearer {}", api_key))
+        .header(FIXTURE_REPLAY_HEADER, "true")
         .json(&session_id)
         .send()
-        .await;
+        .await
+        .map_err(|e| format!("Failed to cancel daemon discovery: {}", e))?;
 
-    match response {
-        Ok(r) if r.status().is_success() => {
-            // Cancellation was signaled. Poll until we get 409 (no session running).
-            // Use 30 second timeout (120 * 250ms) to debug if cancel eventually works
-            for i in 0..120 {
-                tokio::time::sleep(std::time::Duration::from_millis(250)).await;
-                let check = client
-                    .post(format!("{}/api/discovery/cancel", daemon_url))
-                    .header("Authorization", format!("Bearer {}", api_key))
-                    .json(&session_id)
-                    .send()
-                    .await;
-                if let Ok(r) = check
-                    && r.status().as_u16() == 409
-                {
-                    println!("    Session stopped after {} ms", (i + 1) * 250);
-                    return Ok(());
-                }
-            }
-            Err("Discovery session did not stop within 30 seconds after cancellation".to_string())
-        }
-        Ok(r) if r.status().as_u16() == 409 => Ok(()), // No session running - that's fine
-        Ok(r) => {
-            let status = r.status();
-            let body = r.text().await.unwrap_or_default();
-            Err(format!(
-                "Failed to cancel daemon discovery: {} - {}",
-                status, body
-            ))
-        }
-        Err(e) => Err(format!("Failed to cancel daemon discovery: {}", e)),
+    let status = response.status();
+    if !status.is_success() && status != reqwest::StatusCode::CONFLICT {
+        let body = response.text().await.unwrap_or_default();
+        return Err(format!(
+            "Failed to cancel daemon discovery {}: {} - {}",
+            session_id, status, body
+        ));
     }
+    wait_for_daemon_idle(daemon_url, api_key).await
+}
+
+/// The session a manifest's `/api/discovery/initiate` starts. The replay sends the fixture's
+/// session id unchanged, so this is the id the daemon runs it under.
+fn initiated_session_id(manifest: &FixtureManifest) -> Option<Uuid> {
+    manifest
+        .exchanges
+        .iter()
+        .find(|e| e.path == "/api/discovery/initiate" && (200..300).contains(&e.response_status))
+        .and_then(|e| e.request_body["session_id"].as_str())
+        .and_then(|id| id.parse().ok())
 }
 
 /// Run daemon compatibility tests - replays old server requests against current daemon.
@@ -397,16 +415,12 @@ pub async fn run_daemon_compat_tests(daemon_url: &str, ctx: &ReplayContext) -> R
         return Ok(());
     }
 
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(5))
-        .build()
-        .map_err(|e| format!("Failed to create client: {}", e))?;
+    let client = daemon_client()?;
+
+    // Each version's /api/discovery/initiate needs an idle daemon
+    wait_for_daemon_idle(daemon_url, &ctx.api_key).await?;
 
     for version in versions {
-        // Cancel any active discovery sessions before each fixture version
-        // This ensures the daemon is in a clean state for /api/discovery/initiate requests
-        cancel_daemon_discovery_internal(daemon_url, &ctx.api_key, None).await?;
-
         let Some(manifest) = load_manifest(&version, "server_to_daemon.json") else {
             continue;
         };
@@ -436,6 +450,11 @@ pub async fn run_daemon_compat_tests(daemon_url: &str, ctx: &ReplayContext) -> R
                     return Err(format!("  ✗ Request failed: {}", e));
                 }
             }
+        }
+
+        // A Unified initiate runs a real scan; stop it before the next version initiates
+        if let Some(session_id) = initiated_session_id(&manifest) {
+            stop_daemon_session(daemon_url, &ctx.api_key, session_id).await?;
         }
     }
 
