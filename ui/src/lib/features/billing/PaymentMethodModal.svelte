@@ -14,7 +14,7 @@
 	import type { components } from '$lib/api/schema';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
-	import { isPaidSubscriptionActive } from '$lib/features/organizations/types';
+	import { isPaidSubscriptionActive, isPlanLapsed } from '$lib/features/organizations/types';
 	import { modalState, closeModal, openModal } from '$lib/shared/stores/modal-registry';
 	import { reopenSettingsTabAfterPayment } from '$lib/features/billing/stores';
 	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
@@ -28,6 +28,7 @@
 		billing_paymentMethodAdded,
 		billing_payByInvoice,
 		billing_invoice_termsUnavailable,
+		billing_invoice_termsUnavailableSettled,
 		billing_invoice_payOutstanding
 	} from '$lib/paraglide/messages';
 
@@ -55,6 +56,11 @@
 	// until it settles. The server refuses the request either way; withholding
 	// the link here is what stops the buyer walking into that refusal.
 	const writtenOffInvoice = useWrittenOffInvoice();
+	// A lapsed org can settle and get everything back. One that has already
+	// re-subscribed cannot: the resume path declines once a subscription
+	// exists, so paying here would buy nothing. It still cannot take terms,
+	// which is what the note has to explain without offering a payment.
+	let orgIsLapsed = $derived(org != null && isPlanLapsed(org));
 	let planAllowsInvoice = $derived(
 		(pendingPlan?.type != null &&
 			billingPlans.getMetadata(pendingPlan.type).license_plan != null) ||
@@ -171,11 +177,13 @@
 		{#if planAllowsInvoice && writtenOffInvoice.current}
 			<div class="px-6 pt-4">
 				<InlineInfo
-					title={billing_invoice_termsUnavailable({
-						number: writtenOffInvoice.current.number ?? ''
-					})}
+					title={orgIsLapsed
+						? billing_invoice_termsUnavailable({
+								number: writtenOffInvoice.current.number ?? ''
+							})
+						: billing_invoice_termsUnavailableSettled()}
 				/>
-				{#if writtenOffInvoice.current.hosted_invoice_url}
+				{#if orgIsLapsed && writtenOffInvoice.current.hosted_invoice_url}
 					<!-- eslint-disable svelte/no-navigation-without-resolve -->
 					<a
 						href={writtenOffInvoice.current.hosted_invoice_url}

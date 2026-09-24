@@ -107,14 +107,16 @@
 				loader: 'never'
 			});
 			const paymentElement = elements.create('payment', {
-				layout: 'accordion',
+				// `defaultCollapsed` left unset means Stripe expands whichever
+				// method it thinks converts best, and then reports that method
+				// as selected before the customer has touched anything. Open
+				// on the list instead, so "selected" means they picked it.
+				layout: { type: 'accordion', defaultCollapsed: true },
 				defaultValues: email ? { billingDetails: { email } } : undefined
 			});
 			paymentElement.on('ready', () => (ready = true));
-			// Until a pane in the accordion is opened there is nothing to save,
-			// so the submit button stays away. `empty` covers both: it is true
-			// with no pane chosen, and Stripe reports the chosen type as soon
-			// as one is, which the fallback reads.
+			// Nothing to save until a method is chosen, so the submit button
+			// waits for one.
 			paymentElement.on('change', (event) => {
 				methodSelected = !event.empty || event.value?.type != null;
 			});

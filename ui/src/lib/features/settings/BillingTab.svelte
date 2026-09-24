@@ -124,10 +124,16 @@
 	let invoiceBilling = $derived(isLicensedPlan ? (invoiceBillingQuery.data ?? null) : null);
 	let pendingQuote = $derived(invoiceBilling?.pending_quote ?? null);
 	let openInvoiceUrl = $derived(invoiceBilling?.open_invoice?.hosted_invoice_url ?? null);
-	// The invoice this org defaulted on. Settling it is what brings the plan,
-	// the licence and payment terms back, so it outranks choosing a new plan.
+	// The invoice this org defaulted on, while it is still lapsed. Settling it
+	// is what brings the plan, the licence and payment terms back, so it
+	// outranks choosing a new plan.
+	//
+	// Only while lapsed. An org that came back on a card is paying again, and
+	// nothing it can do here credits the old invoice: the resume path declines
+	// once a subscription exists. Chasing it in this slot would pin a paying
+	// customer's primary button on a dead invoice indefinitely.
 	let writtenOffInvoiceUrl = $derived(
-		invoiceBilling?.written_off_invoice?.hosted_invoice_url ?? null
+		isLapsed ? (invoiceBilling?.written_off_invoice?.hosted_invoice_url ?? null) : null
 	);
 
 	const acceptQuoteMutation = useAcceptQuoteMutation();
@@ -305,11 +311,6 @@
 			};
 		if (missingCard)
 			return { label: billing_addPaymentMethod(), onclick: handleSetupPayment, icon: CreditCard };
-		// An unpaid invoice is the outstanding thing to do, whether or not it
-		// has run past its due date yet, and the portal cannot pay a sent
-		// invoice, so this goes straight to the Stripe invoice. Change plan
-		// moves to the menu while it stands.
-		if (openInvoiceUrl) return { label: settings_billing_payInvoice(), onclick: handlePayInvoice };
 		if (isPastDue)
 			return { label: settings_billing_updatePaymentMethod(), onclick: handleManageSubscription };
 		if (isPaused)
@@ -324,6 +325,13 @@
 				onclick: handleReactivate,
 				disabled: reactivateMutation.isPending
 			};
+		// An unpaid invoice is the outstanding thing to do, whether or not it
+		// has run past its due date yet, and the portal cannot pay a sent
+		// invoice, so this goes straight to the Stripe invoice. Below the
+		// states above, which each have their own banner naming the button
+		// they expect: a pending cancellation is told to click Reactivate
+		// Subscription, and it has to be there.
+		if (openInvoiceUrl) return { label: settings_billing_payInvoice(), onclick: handlePayInvoice };
 		// Nothing here can change the plan, so the primary slot goes to the one
 		// action an air-gapped org still has. Without this the slot would hold a
 		// Change plan button whose only outcome is a 409 toast.

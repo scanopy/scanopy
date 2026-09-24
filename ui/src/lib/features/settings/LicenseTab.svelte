@@ -101,21 +101,15 @@
 	let hasCard = $derived(canPay(org));
 	let isTrialing = $derived(org?.plan_status === 'trialing');
 	let isPastDue = $derived(org?.plan_status === 'past_due');
-	// A lapsed self-hosted org keeps its plan and its entitlement until the
-	// period it paid for ends. The org came here for the key, so this tab says
-	// when it stops and that renewing keeps it working.
-	//
-	// The same date as "Valid through", deliberately: keys are minted with a
-	// buffer and a silent grace on top, and naming those left one card showing
-	// two dates for one licence. Understating is the safe direction.
+	// A lapsed org is told its plan ended and its key has stopped, and no date
+	// is quoted anywhere on the card. A date here only invites the question of
+	// what it means: after a write-off it is in the past, and after an ordinary
+	// lapse it is a deadline the org can no longer act on. Lapsed and stopped
+	// is the whole message.
 	let isLapsed = $derived(org != null && isPlanLapsed(org));
-	let lapsedKeyStops = $derived(
-		isLapsed && org?.license_paid_through ? formatDate(org.license_paid_through) : null
-	);
-	// A default takes the date back to the start of the period it covered, so
-	// it has already passed and the key is gone rather than going. Settling the
-	// written-off invoice is what brings it back, so say that instead of naming
-	// a date in the past.
+	// Which of the two lapse messages to show. A write-off takes the date back
+	// to the start of the period it covered, so a date already past says the
+	// invoice went unpaid rather than that the plan simply ended.
 	let lapsedKeyAlreadyStopped = $derived(
 		isLapsed &&
 			org?.license_paid_through != null &&
@@ -177,8 +171,11 @@
 		{ value: 'Offline', label: common_airGapped(), disabled: !airGappedAvailable }
 	]);
 
+	// Withheld once lapsed: the warning above already says the licence ended,
+	// and a "Valid through" date beside it either sits in the past or reads as
+	// a deadline the org can no longer meet.
 	let validThrough = $derived(
-		org?.license_paid_through ? formatDate(org.license_paid_through) : null
+		!isLapsed && org?.license_paid_through ? formatDate(org.license_paid_through) : null
 	);
 	let lastCheckIn = $derived(
 		org?.license_checkin_at ? formatTimestamp(org.license_checkin_at) : common_never()
@@ -301,17 +298,16 @@
 			<div class="space-y-6">
 				<InfoCard title={common_license()}>
 					<div class="space-y-4">
-						{#if isLapsed && lapsedKeyAlreadyStopped}
+						{#if lapsedKeyAlreadyStopped}
 							<InlineWarning
 								title={settings_billing_license_lapsedUnpaid({
 									plan: billingPlans.getName(planType)
 								})}
 							/>
-						{:else if isLapsed && lapsedKeyStops}
+						{:else if isLapsed}
 							<InlineWarning
 								title={settings_billing_license_lapsed({
-									plan: billingPlans.getName(planType),
-									date: lapsedKeyStops
+									plan: billingPlans.getName(planType)
 								})}
 							/>
 						{/if}
