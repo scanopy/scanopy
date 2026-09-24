@@ -311,6 +311,10 @@
 			};
 		if (missingCard)
 			return { label: billing_addPaymentMethod(), onclick: handleSetupPayment, icon: CreditCard };
+		// Past due on a sent invoice: paying it is the way out, and updating a
+		// card does nothing, so this outranks the card CTA below.
+		if (isPastDue && openInvoiceUrl)
+			return { label: settings_billing_payInvoice(), onclick: handlePayInvoice };
 		if (isPastDue)
 			return { label: settings_billing_updatePaymentMethod(), onclick: handleManageSubscription };
 		if (isPaused)
