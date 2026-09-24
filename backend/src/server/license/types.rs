@@ -68,6 +68,12 @@ pub struct LicenseClaims {
     /// to `CommercialSelfHosted`. See `plan_for_license`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub plan: Option<LicensePlan>,
+    /// End of the period the organization has paid for (unix timestamp), the
+    /// date the UI shows as "Valid through". Set on keys and entitlements the
+    /// cloud mints from `license_paid_through`; absent on CLI-minted and older
+    /// keys, which show `intended_exp` instead.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub paid_through: Option<i64>,
 }
 
 /// Runtime license state of a configured key, checked by middleware on every
@@ -134,6 +140,18 @@ impl LicenseStatus {
             _ => return None,
         };
         chrono::DateTime::from_timestamp(claims.intended_exp, 0)
+            .map(|d| d.format("%Y-%m-%d").to_string())
+    }
+
+    /// Date the license is paid through, as an ISO date string: the
+    /// `paid_through` claim, or `intended_exp` on a key minted without one.
+    /// Neither buffer past the paid period is shown.
+    pub fn valid_through_date(&self) -> Option<String> {
+        let claims = match self {
+            LicenseStatus::Valid(c) | LicenseStatus::Expired(c) => c,
+            _ => return None,
+        };
+        chrono::DateTime::from_timestamp(claims.paid_through.unwrap_or(claims.intended_exp), 0)
             .map(|d| d.format("%Y-%m-%d").to_string())
     }
 

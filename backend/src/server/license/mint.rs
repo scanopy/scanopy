@@ -46,6 +46,7 @@ pub fn license_claims(
         intended_exp: intended_exp.timestamp(),
         org_id,
         plan,
+        paid_through: None,
     }
 }
 
@@ -235,7 +236,10 @@ impl LicenseIssuer {
     ) -> Result<String, MintError> {
         let paid_through = paid_through.ok_or(MintError::NoPaidThrough)?;
         let intended_exp = paid_through + Duration::days(PAID_THROUGH_BUFFER_DAYS);
-        let claims = license_claims(now, intended_exp, Some(org.id.to_string()), plan);
+        let claims = LicenseClaims {
+            paid_through: Some(paid_through.timestamp()),
+            ..license_claims(now, intended_exp, Some(org.id.to_string()), plan)
+        };
         let token = sign_license(&claims, &self.encoding)?;
         tracing::info!(
             organization_id = %org.id,
@@ -368,6 +372,7 @@ pub(crate) mod tests {
 
         assert_eq!(claims.plan, Some(LicensePlan::Standard));
         assert_eq!(claims.org_id, Some(org.id.to_string()));
+        assert_eq!(claims.paid_through, Some(paid_through.timestamp()));
         let intended_exp = paid_through + Duration::days(PAID_THROUGH_BUFFER_DAYS);
         assert_eq!(claims.intended_exp, intended_exp.timestamp());
         assert_eq!(
