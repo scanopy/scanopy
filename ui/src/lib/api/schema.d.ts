@@ -3466,19 +3466,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-24T05:37:03.531107Z",
+             *       "created_at": "2026-09-24T05:58:12.472022Z",
              *       "first_discovery_id": null,
-             *       "id": "e5df2750-d8bc-4849-8a64-c4729fdf62a3",
+             *       "id": "0380cfe7-1e00-423b-8c49-f1d22296dbc3",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-24T05:37:03.531107Z",
+             *       "last_seen_at": "2026-09-24T05:58:12.472022Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-24T05:37:03.531107Z",
-             *       "valid_from": "2026-09-24T05:37:03.531107Z",
+             *       "updated_at": "2026-09-24T05:58:12.472022Z",
+             *       "valid_from": "2026-09-24T05:58:12.472022Z",
              *       "valid_to": null
              *     }
              */
@@ -4296,19 +4296,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-24T05:37:03.510050Z",
+             *               "created_at": "2026-09-24T05:58:12.451155Z",
              *               "first_discovery_id": null,
-             *               "id": "a23d99ba-d952-4413-851d-f1c19a07322c",
+             *               "id": "4a70367f-3fdd-4c08-acc3-461eb773408c",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-24T05:37:03.510050Z",
+             *               "last_seen_at": "2026-09-24T05:58:12.451155Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-24T05:37:03.510050Z",
-             *               "valid_from": "2026-09-24T05:37:03.510050Z",
+             *               "updated_at": "2026-09-24T05:58:12.451155Z",
+             *               "valid_from": "2026-09-24T05:58:12.451155Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4322,7 +4322,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Proxmox Backup Server",
+             *           "service_definition": "Frigate",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5228,19 +5228,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-24T05:37:03.526324Z",
+             *           "created_at": "2026-09-24T05:58:12.467398Z",
              *           "first_discovery_id": null,
-             *           "id": "c1110ffd-fbe1-4fb1-bbe6-d842bb0c2b42",
+             *           "id": "e6dc27f2-3160-4030-bb2d-f7aecff4c1cb",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-24T05:37:03.526324Z",
+             *           "last_seen_at": "2026-09-24T05:58:12.467398Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-24T05:37:03.526324Z",
-             *           "valid_from": "2026-09-24T05:37:03.526324Z",
+             *           "updated_at": "2026-09-24T05:58:12.467398Z",
+             *           "valid_from": "2026-09-24T05:58:12.467398Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5254,7 +5254,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Proxmox Backup Server",
+             *       "service_definition": "Frigate",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6320,19 +6320,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-24T05:37:03.510591Z",
+         *       "created_at": "2026-09-24T05:58:12.451668Z",
          *       "first_discovery_id": null,
-         *       "id": "f7d72df4-afd0-41f1-87b5-e1d92ebf5546",
+         *       "id": "725d6a56-64db-4ecd-8ea9-f5da83561db0",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-24T05:37:03.510591Z",
+         *       "last_seen_at": "2026-09-24T05:58:12.451668Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-24T05:37:03.510591Z",
-         *       "valid_from": "2026-09-24T05:37:03.510591Z",
+         *       "updated_at": "2026-09-24T05:58:12.451668Z",
+         *       "valid_from": "2026-09-24T05:58:12.451668Z",
          *       "valid_to": null
          *     }
          */
@@ -6658,7 +6658,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Proxmox Backup Server",
+         *           "service_definition": "Frigate",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8894,19 +8894,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-24T05:37:03.509571Z",
+         *               "created_at": "2026-09-24T05:58:12.450592Z",
          *               "first_discovery_id": null,
-         *               "id": "8a106ef7-1c6d-44e9-a2c8-b7c5dc2583dc",
+         *               "id": "a6016d8b-5d78-4641-ac37-4e3ab5ccdb9b",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-24T05:37:03.509571Z",
+         *               "last_seen_at": "2026-09-24T05:58:12.450592Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-24T05:37:03.509571Z",
-         *               "valid_from": "2026-09-24T05:37:03.509571Z",
+         *               "updated_at": "2026-09-24T05:58:12.450592Z",
+         *               "valid_from": "2026-09-24T05:58:12.450592Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8920,7 +8920,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Proxmox Backup Server",
+         *           "service_definition": "Frigate",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -11887,19 +11887,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-24T05:37:03.510380Z",
+         *           "created_at": "2026-09-24T05:58:12.451508Z",
          *           "first_discovery_id": null,
-         *           "id": "03f0d271-d5f4-42d3-b0d3-f0246e61e2e1",
+         *           "id": "f5efa41d-fc56-48a8-be2c-8706df3997f4",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-24T05:37:03.510380Z",
+         *           "last_seen_at": "2026-09-24T05:58:12.451508Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-24T05:37:03.510380Z",
-         *           "valid_from": "2026-09-24T05:37:03.510380Z",
+         *           "updated_at": "2026-09-24T05:58:12.451508Z",
+         *           "valid_from": "2026-09-24T05:58:12.451508Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -11913,7 +11913,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Proxmox Backup Server",
+         *       "service_definition": "Frigate",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12639,7 +12639,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "239a8095-9294-4726-8ed8-e3202adbdf9b",
+             *           "id": "895dfe36-def5-4a08-be52-bec025bebc70",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -12649,23 +12649,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "d82301f8-931c-483e-a06c-fc073b279aaf",
+             *           "id": "1350d78a-eb3a-46ce-8da9-76cbb4fcdd73",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "2175184b-b591-4633-b425-4771fbd49780",
+             *           "id": "bc4f2c51-90d6-48f6-9da6-f89392dff982",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "4eb43897-a686-4ffd-9197-240b257f7d31",
+             *           "id": "ffa4242d-06c1-4ff9-b8d6-19551a0c1f3c",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "d82301f8-931c-483e-a06c-fc073b279aaf",
+             *           "id": "1350d78a-eb3a-46ce-8da9-76cbb4fcdd73",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -12678,19 +12678,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "2832d277-9bc0-4806-83e3-d0148b14b8a9",
+             *         "id": "1e7b9015-0f1e-4b02-b273-d9fc9406c60e",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "9373323a-8f6f-443b-8e9b-0011677e553a",
+             *         "id": "8f24e455-1a1a-4d65-927c-54bf9dd656be",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "55decd81-3848-4ea3-b75d-ee72e2fd7c3b",
+             *         "id": "0b78fc73-3511-43d3-ad01-d3b835c411cd",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "f8057c12-ea65-4c21-94a9-5cb15ebb8391",
+             *         "id": "41370d44-15fe-41f0-81d6-a15e29d1784a",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -12708,7 +12708,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "5afbd09c-83b1-465a-b4a3-3f535f2f540b",
+             *         "id": "65990b01-89cb-489b-bf39-b7178f23c357",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -12717,15 +12717,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "76836303-2a95-43db-b50a-16095996f144",
+             *         "id": "f2208eae-6c45-4d4d-b1f6-c2d6e951a38a",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "283165dd-d379-447e-90f8-197a7f15e722",
+             *         "id": "8229ff67-403e-493f-bbc0-116547ba2ee8",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "231f272b-af32-4d20-b83e-2066d2e2a399",
+             *         "id": "e491a336-4977-42a9-9b0d-87844ac9411b",
              *         "rule": "ByStack"
              *       }
              *     ]
