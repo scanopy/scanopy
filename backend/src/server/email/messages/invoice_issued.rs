@@ -52,9 +52,8 @@ impl Email for InvoiceIssued<'_> {
             ));
         }
 
-        content = content.paragraph(
-            "Your license key works throughout, so your servers keep running while the invoice is paid.",
-        );
+        content = content
+            .paragraph("Your license key continues working while the invoice is awaiting payment.");
 
         Body::new()
             .content(content)
