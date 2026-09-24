@@ -352,6 +352,7 @@ async fn a_cloud_org_lapses_on_its_plan_when_the_subscription_ends() {
                 mrr_amount_cents: 0,
                 tenure_days: 14,
                 license_key_type: None,
+                defaulted: false,
             },
             AuthenticatedEntity::System,
         )])
@@ -930,6 +931,7 @@ async fn sent_invoices_license_until_due_and_give_back_on_void() {
         mrr_amount_cents: 0,
         tenure_days: 30,
         license_key_type: None,
+        defaulted: false,
     })
     .await
     .unwrap();

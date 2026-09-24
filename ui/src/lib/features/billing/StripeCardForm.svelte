@@ -61,6 +61,9 @@
 	let stripe: Stripe | null = null;
 	let elements: StripeElements | null = null;
 	let ready = $state(false);
+	// Whether the customer has picked a payment method in the element. Nothing
+	// to save until they have, so the submit button waits on it.
+	let methodSelected = $state(false);
 	let busy = $state(false);
 	let errorMessage = $state('');
 	let loadFailed = $state(false);
@@ -108,6 +111,13 @@
 				defaultValues: email ? { billingDetails: { email } } : undefined
 			});
 			paymentElement.on('ready', () => (ready = true));
+			// Until a pane in the accordion is opened there is nothing to save,
+			// so the submit button stays away. `empty` covers both: it is true
+			// with no pane chosen, and Stripe reports the chosen type as soon
+			// as one is, which the fallback reads.
+			paymentElement.on('change', (event) => {
+				methodSelected = !event.empty || event.value?.type != null;
+			});
 			paymentElement.mount(node);
 		})();
 	});
@@ -194,8 +204,10 @@
 				{common_cancel()}
 			</button>
 		{/if}
-		<button type="submit" class="btn-primary" disabled={busy || !ready}>
-			{busy ? common_processing() : submitLabel}
-		</button>
+		{#if methodSelected}
+			<button type="submit" class="btn-primary" disabled={busy || !ready}>
+				{busy ? common_processing() : submitLabel}
+			</button>
+		{/if}
 	</div>
 </form>

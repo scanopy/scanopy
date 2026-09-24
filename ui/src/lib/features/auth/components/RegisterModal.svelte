@@ -36,10 +36,8 @@
 		common_change,
 		common_continue,
 		common_email,
-		common_somethingWentWrong,
-		onboarding_selfHostedAccountTitle
+		common_somethingWentWrong
 	} from '$lib/paraglide/messages';
-	import { onboardingStore } from '../stores/onboarding';
 
 	let {
 		orgName = null,
@@ -235,10 +233,6 @@
 						title={auth_youreInvitedTitle()}
 						body={auth_youreInvitedBody({ orgName, invitedBy })}
 					/>
-				</div>
-			{:else if !invitedBy && $onboardingStore.hosting === 'self_hosted'}
-				<div class="mb-6">
-					<InlineInfo title={onboarding_selfHostedAccountTitle()} />
 				</div>
 			{/if}
 

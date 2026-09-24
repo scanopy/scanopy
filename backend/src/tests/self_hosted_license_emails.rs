@@ -176,6 +176,7 @@ async fn a_cloud_trial_that_runs_out_gets_the_trial_expired_email() {
         mrr_amount_cents: 0,
         tenure_days: 14,
         license_key_type: None,
+        defaulted: false,
     };
 
     handle_billing(&state, org.id, cancelled(true)).await;
@@ -222,6 +223,7 @@ async fn a_cancelled_license_sends_the_license_ended_email_not_the_cloud_one() {
             mrr_amount_cents: 0,
             tenure_days: 14,
             license_key_type: Some(LicenseKeyType::Online),
+            defaulted: false,
         },
     )
     .await;

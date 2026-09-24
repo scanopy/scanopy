@@ -230,6 +230,18 @@ pub enum BillingOperation {
         /// an org that never issued a key, and on events recorded before this
         /// field existed.
         license_key_type: Option<LicenseKeyType>,
+        /// The subscription ended for non-payment and we wrote off the unpaid
+        /// invoice, so the licence stopped with it rather than running to the
+        /// end of a period the customer paid for.
+        ///
+        /// Carried rather than derived because the write-off's claw-back
+        /// reaches the org row through a Stripe round trip, arriving after
+        /// this event. A subscriber that read `license_paid_through` would see
+        /// the date as it stood before the write-off and promise the customer
+        /// time we had just taken away. False on rows written before the
+        /// write-off existed, all of which were ordinary endings.
+        #[serde(default)]
+        defaulted: bool,
     },
     PaymentSucceeded {
         invoice: BillingInvoice,
@@ -651,6 +663,7 @@ mod tests {
             mrr_amount_cents: 9900,
             tenure_days: 42,
             license_key_type: Some(LicenseKeyType::Offline),
+            defaulted: false,
         });
     }
 
@@ -668,6 +681,7 @@ mod tests {
             mrr_amount_cents: 0,
             tenure_days: 0,
             license_key_type: None,
+            defaulted: false,
         });
     }
 
@@ -780,6 +794,7 @@ mod tests {
             mrr_amount_cents: 0,
             tenure_days: 10,
             license_key_type: None,
+            defaulted: false,
         };
         assert_eq!(cancelled.resulting_plan_name(), Some("Enterprise"));
         assert_eq!(cancelled.implied_status(), Some(PlanStatus::Cancelled));

@@ -12,12 +12,9 @@
 		onboarding_commercialNoticeTitle,
 		onboarding_howWillYouUse,
 		onboarding_logInHere,
-		onboarding_selfHostedAccountBody,
-		onboarding_selfHostedAccountTitle,
 		onboarding_tailorSetup,
 		onboarding_understandContinue
 	} from '$lib/paraglide/messages';
-	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 
 	let {
@@ -34,10 +31,6 @@
 
 	const configQuery = useConfigQuery();
 	let configData = $derived(configQuery.data);
-
-	// The self-hosted explainer makes the step taller, so it gets a wider modal
-	// to keep the panel to a couple of lines. Cloud signup is unchanged.
-	let isSelfHosted = $derived($onboardingStore.hosting === 'self_hosted');
 
 	let selectedUseCase = $state<UseCase | null>(null);
 	let showLicenseWarning = $state(false);
@@ -84,7 +77,7 @@
 	{isOpen}
 	title={onboarding_howWillYouUse()}
 	{onClose}
-	size={isSelfHosted ? 'xl' : 'lg'}
+	size="lg"
 	centerTitle={true}
 	showBackdrop={false}
 	showCloseButton={false}
@@ -97,13 +90,6 @@
 	<div class="flex min-h-0 flex-1 flex-col">
 		<div class="flex-1 overflow-y-auto p-6">
 			<div class="space-y-6">
-				{#if isSelfHosted}
-					<InlineInfo
-						title={onboarding_selfHostedAccountTitle()}
-						body={onboarding_selfHostedAccountBody()}
-					/>
-				{/if}
-
 				<p class="text-secondary text-center text-sm">{onboarding_tailorSetup()}</p>
 
 				<!-- Use Case Cards -->

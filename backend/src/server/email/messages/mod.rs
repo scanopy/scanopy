@@ -720,6 +720,7 @@ mod tests {
                 was_trial: true,
                 air_gapped: false,
                 key_expires: "March 22, 2026",
+                defaulted: false,
             },
         );
         f(
@@ -729,6 +730,7 @@ mod tests {
                 was_trial: false,
                 air_gapped: false,
                 key_expires: "March 22, 2026",
+                defaulted: false,
             },
         );
         f(
@@ -738,6 +740,17 @@ mod tests {
                 was_trial: false,
                 air_gapped: true,
                 key_expires: "March 22, 2026",
+                defaulted: false,
+            },
+        );
+        f(
+            "self_hosted_license_ended_defaulted",
+            &SelfHostedLicenseEnded {
+                plan_name: "Self-Hosted Standard",
+                was_trial: false,
+                air_gapped: false,
+                key_expires: "March 22, 2026",
+                defaulted: true,
             },
         );
         f(

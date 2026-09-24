@@ -939,21 +939,24 @@ impl BillingService {
         // frame. Best-effort, like the discount removal above — a customer
         // keeping terms they should have lost is not worth failing the
         // webhook and losing the cancellation itself.
-        if let Some(customer_id) = &customer_id
-            && let Err(e) = write_off_unpaid_license_invoices(
+        let mut defaulted = false;
+        if let Some(customer_id) = &customer_id {
+            match write_off_unpaid_license_invoices(
                 &stripe,
                 org_id,
                 &CustomerId::from(customer_id.clone()),
                 period_end,
             )
             .await
-        {
-            tracing::warn!(
-                organization_id = %org_id,
-                customer_id = %customer_id,
-                error = ?e,
-                "Failed to write off the unpaid license invoices for a cancelled subscription"
-            );
+            {
+                Ok(written_off) => defaulted = written_off > 0,
+                Err(e) => tracing::warn!(
+                    organization_id = %org_id,
+                    customer_id = %customer_id,
+                    error = ?e,
+                    "Failed to write off the unpaid license invoices for a cancelled subscription"
+                ),
+            }
         }
 
         // Publish events and send emails. Invites get revoked downstream
@@ -981,6 +984,7 @@ impl BillingService {
                         mrr_amount_cents,
                         tenure_days,
                         license_key_type,
+                        defaulted,
                     },
                     authentication.clone(),
                 ))
