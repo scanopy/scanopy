@@ -79,12 +79,17 @@ pub struct FinalizePaymentMethodRequest {
 /// Postal address of the billing entity, as Stripe's Address Element returns it.
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct InvoiceBillingAddress {
+    /// Street address, including number.
     pub line1: String,
+    /// Suite, unit or floor, when the address has one.
     #[serde(default)]
     pub line2: Option<String>,
+    /// City, town or locality.
     pub city: String,
+    /// State, province or region. Absent where the country has no such level.
     #[serde(default)]
     pub state: Option<String>,
+    /// Postal or ZIP code.
     pub postal_code: String,
     /// Two-letter ISO country code.
     pub country: String,
@@ -95,6 +100,7 @@ pub struct InvoiceBillingAddress {
 pub struct InvoiceBillingTaxId {
     /// Stripe tax ID type, e.g. `eu_vat` or `us_ein`.
     pub tax_id_type: String,
+    /// The registration number itself, in the format its type expects.
     pub value: String,
 }
 
@@ -144,16 +150,24 @@ pub struct PendingQuote {
     pub number: Option<String>,
     /// Total per annual term, in cents.
     pub amount_total_cents: i64,
+    /// Three-letter ISO currency code the quote is denominated in.
     pub currency: String,
+    /// When the quote stops being valid, after which the buyer needs a new one.
     pub expires_at: DateTime<Utc>,
 }
 
 /// An issued invoice that has not been paid.
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct InvoiceSummary {
+    /// Invoice number printed on the PDF, which a remittance references. Absent
+    /// until Stripe finalizes the invoice.
     pub number: Option<String>,
+    /// Outstanding balance, in cents.
     pub amount_due_cents: i64,
+    /// Three-letter ISO currency code the invoice is denominated in.
     pub currency: String,
+    /// When payment is due. Absent on an invoice Stripe collects automatically,
+    /// which is charged rather than sent.
     pub due_date: Option<DateTime<Utc>>,
     /// Stripe-hosted page where the invoice can be viewed and paid.
     pub hosted_invoice_url: Option<String>,

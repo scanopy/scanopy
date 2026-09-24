@@ -3466,19 +3466,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-24T05:58:12.472022Z",
+             *       "created_at": "2026-09-24T14:01:27.026596Z",
              *       "first_discovery_id": null,
-             *       "id": "0380cfe7-1e00-423b-8c49-f1d22296dbc3",
+             *       "id": "153e1b6e-6e7c-40ba-ae70-06ea71df1728",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-24T05:58:12.472022Z",
+             *       "last_seen_at": "2026-09-24T14:01:27.026596Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-24T05:58:12.472022Z",
-             *       "valid_from": "2026-09-24T05:58:12.472022Z",
+             *       "updated_at": "2026-09-24T14:01:27.026596Z",
+             *       "valid_from": "2026-09-24T14:01:27.026596Z",
              *       "valid_to": null
              *     }
              */
@@ -4296,19 +4296,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-24T05:58:12.451155Z",
+             *               "created_at": "2026-09-24T14:01:27.003763Z",
              *               "first_discovery_id": null,
-             *               "id": "4a70367f-3fdd-4c08-acc3-461eb773408c",
+             *               "id": "c4018eea-921d-465d-9ec9-20a20198fb01",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-24T05:58:12.451155Z",
+             *               "last_seen_at": "2026-09-24T14:01:27.003763Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-24T05:58:12.451155Z",
-             *               "valid_from": "2026-09-24T05:58:12.451155Z",
+             *               "updated_at": "2026-09-24T14:01:27.003763Z",
+             *               "valid_from": "2026-09-24T14:01:27.003763Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4322,7 +4322,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Frigate",
+             *           "service_definition": "Jellyseerr",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5228,19 +5228,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-24T05:58:12.467398Z",
+             *           "created_at": "2026-09-24T14:01:27.021450Z",
              *           "first_discovery_id": null,
-             *           "id": "e6dc27f2-3160-4030-bb2d-f7aecff4c1cb",
+             *           "id": "56237929-c7f3-4ca2-a89a-6c72abfe225f",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-24T05:58:12.467398Z",
+             *           "last_seen_at": "2026-09-24T14:01:27.021450Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-24T05:58:12.467398Z",
-             *           "valid_from": "2026-09-24T05:58:12.467398Z",
+             *           "updated_at": "2026-09-24T14:01:27.021450Z",
+             *           "valid_from": "2026-09-24T14:01:27.021450Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5254,7 +5254,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Frigate",
+             *       "service_definition": "Jellyseerr",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6320,19 +6320,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-24T05:58:12.451668Z",
+         *       "created_at": "2026-09-24T14:01:27.004400Z",
          *       "first_discovery_id": null,
-         *       "id": "725d6a56-64db-4ecd-8ea9-f5da83561db0",
+         *       "id": "b8e6238e-8124-43a8-82ad-debb2994b869",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-24T05:58:12.451668Z",
+         *       "last_seen_at": "2026-09-24T14:01:27.004400Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-24T05:58:12.451668Z",
-         *       "valid_from": "2026-09-24T05:58:12.451668Z",
+         *       "updated_at": "2026-09-24T14:01:27.004400Z",
+         *       "valid_from": "2026-09-24T14:01:27.004400Z",
          *       "valid_to": null
          *     }
          */
@@ -6658,7 +6658,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Frigate",
+         *           "service_definition": "Jellyseerr",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -8894,19 +8894,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-24T05:58:12.450592Z",
+         *               "created_at": "2026-09-24T14:01:27.003056Z",
          *               "first_discovery_id": null,
-         *               "id": "a6016d8b-5d78-4641-ac37-4e3ab5ccdb9b",
+         *               "id": "09436288-6d50-441d-86c8-281b0038d647",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-24T05:58:12.450592Z",
+         *               "last_seen_at": "2026-09-24T14:01:27.003056Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-24T05:58:12.450592Z",
-         *               "valid_from": "2026-09-24T05:58:12.450592Z",
+         *               "updated_at": "2026-09-24T14:01:27.003056Z",
+         *               "valid_from": "2026-09-24T14:01:27.003056Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8920,7 +8920,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Frigate",
+         *           "service_definition": "Jellyseerr",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -9797,12 +9797,17 @@ export interface components {
         };
         /** @description Postal address of the billing entity, as Stripe's Address Element returns it. */
         InvoiceBillingAddress: {
+            /** @description City, town or locality. */
             city: string;
             /** @description Two-letter ISO country code. */
             country: string;
+            /** @description Street address, including number. */
             line1: string;
+            /** @description Suite, unit or floor, when the address has one. */
             line2?: string | null;
+            /** @description Postal or ZIP code. */
             postal_code: string;
+            /** @description State, province or region. Absent where the country has no such level. */
             state?: string | null;
         };
         /**
@@ -9847,17 +9852,30 @@ export interface components {
         InvoiceBillingTaxId: {
             /** @description Stripe tax ID type, e.g. `eu_vat` or `us_ein`. */
             tax_id_type: string;
+            /** @description The registration number itself, in the format its type expects. */
             value: string;
         };
         /** @description An issued invoice that has not been paid. */
         InvoiceSummary: {
-            /** Format: int64 */
+            /**
+             * Format: int64
+             * @description Outstanding balance, in cents.
+             */
             amount_due_cents: number;
+            /** @description Three-letter ISO currency code the invoice is denominated in. */
             currency: string;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description When payment is due. Absent on an invoice Stripe collects automatically,
+             *     which is charged rather than sent.
+             */
             due_date?: string | null;
             /** @description Stripe-hosted page where the invoice can be viewed and paid. */
             hosted_invoice_url?: string | null;
+            /**
+             * @description Invoice number printed on the PDF, which a remittance references. Absent
+             *     until Stripe finalizes the invoice.
+             */
             number?: string | null;
         };
         Ixy: {
@@ -11111,8 +11129,12 @@ export interface components {
              * @description Total per annual term, in cents.
              */
             amount_total_cents: number;
+            /** @description Three-letter ISO currency code the quote is denominated in. */
             currency: string;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description When the quote stops being valid, after which the buyer needs a new one.
+             */
             expires_at: string;
             /** @description Quote number printed on the PDF, which the purchase order references. */
             number?: string | null;
@@ -11887,19 +11909,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-24T05:58:12.451508Z",
+         *           "created_at": "2026-09-24T14:01:27.004201Z",
          *           "first_discovery_id": null,
-         *           "id": "f5efa41d-fc56-48a8-be2c-8706df3997f4",
+         *           "id": "3aff4935-b6a9-4856-ba4e-a62f44cb1b39",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-24T05:58:12.451508Z",
+         *           "last_seen_at": "2026-09-24T14:01:27.004201Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-24T05:58:12.451508Z",
-         *           "valid_from": "2026-09-24T05:58:12.451508Z",
+         *           "updated_at": "2026-09-24T14:01:27.004201Z",
+         *           "valid_from": "2026-09-24T14:01:27.004201Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -11913,7 +11935,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Frigate",
+         *       "service_definition": "Jellyseerr",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12639,7 +12661,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "895dfe36-def5-4a08-be52-bec025bebc70",
+             *           "id": "76b15b32-ec00-4873-a9f3-b78a22420174",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -12649,23 +12671,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "1350d78a-eb3a-46ce-8da9-76cbb4fcdd73",
+             *           "id": "1661da45-060b-4163-9c9d-a301411cb3d9",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "bc4f2c51-90d6-48f6-9da6-f89392dff982",
+             *           "id": "b50e8005-0a4f-443a-8729-1ff45fd721d2",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "ffa4242d-06c1-4ff9-b8d6-19551a0c1f3c",
+             *           "id": "733076fd-a90e-4131-bbf8-d4a6db42f8e6",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "1350d78a-eb3a-46ce-8da9-76cbb4fcdd73",
+             *           "id": "1661da45-060b-4163-9c9d-a301411cb3d9",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -12678,19 +12700,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "1e7b9015-0f1e-4b02-b273-d9fc9406c60e",
+             *         "id": "5d28dcbc-8d9e-492c-9204-eb371c42676f",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "8f24e455-1a1a-4d65-927c-54bf9dd656be",
+             *         "id": "26ebc426-211a-4142-9165-fac7efb89b35",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "0b78fc73-3511-43d3-ad01-d3b835c411cd",
+             *         "id": "91f8ea57-8d35-40a4-8469-e109f8e2aa51",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "41370d44-15fe-41f0-81d6-a15e29d1784a",
+             *         "id": "18ecbf76-5cf9-480e-9ea6-fde1579b8a01",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -12708,7 +12730,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "65990b01-89cb-489b-bf39-b7178f23c357",
+             *         "id": "fb5f8d26-3087-4b4d-a7ed-27bb13a34f8c",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -12717,15 +12739,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "f2208eae-6c45-4d4d-b1f6-c2d6e951a38a",
+             *         "id": "08182e97-87c9-4bb7-8693-d319340698a4",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "8229ff67-403e-493f-bbc0-116547ba2ee8",
+             *         "id": "63dede36-eb69-48c5-b235-fc2d3cd11b22",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "e491a336-4977-42a9-9b0d-87844ac9411b",
+             *         "id": "8daac87c-7ebb-4222-a251-85b0c4719dd2",
              *         "rule": "ByStack"
              *       }
              *     ]
