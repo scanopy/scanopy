@@ -306,6 +306,14 @@ erDiagram
   timestamp_with_time_zone discount_save_offer_active_until
   timestamp_with_time_zone next_renewal_at
   jsonb notifications
+  timestamp_with_time_zone license_paid_through
+  timestamp_with_time_zone license_checkin_at
+  bigint license_key_version
+  text license_entitlement
+  timestamp_with_time_zone license_entitlement_at
+  timestamp_with_time_zone license_key_issued_at
+  text license_key_type
+  boolean bills_by_invoice
 }
 "public.topologies" {
   uuid id
