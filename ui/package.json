@@ -82,7 +82,7 @@
 		"@tanstack/table-core": "^8.21.3",
 		"@types/d3-force": "^3.0.10",
 		"@types/jquery": "^3.5.33",
-		"@xyflow/svelte": "^1.2.4",
+		"@xyflow/svelte": "^1.6.6",
 		"canvas-confetti": "^1.9.4",
 		"company-email-validator": "^1.2.0",
 		"d3-force": "^3.0.0",
