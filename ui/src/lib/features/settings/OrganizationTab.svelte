@@ -18,7 +18,7 @@
 	import { hasLicensedPlan } from '$lib/features/organizations/types';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { formatTimestamp } from '$lib/shared/utils/formatting';
+	import { formatLongDate, formatTimestamp } from '$lib/shared/utils/formatting';
 	import { createForm } from '@tanstack/svelte-form';
 	import { required, max } from '$lib/shared/components/forms/validators';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
@@ -50,9 +50,9 @@
 		settings_org_deleteSuccess,
 		settings_org_deleteTypeName,
 		settings_org_info,
-		settings_org_licenseExpiry,
+		settings_billing_license_lastCheckIn,
+		settings_billing_license_validThrough,
 		settings_org_licenseKeyType,
-		settings_org_licenseLastChecked,
 		settings_org_namePlaceholder,
 		settings_org_populateConfirm,
 		settings_org_populateDemo,
@@ -239,11 +239,10 @@
 						{#if org.plan}
 							<InfoRow label={common_plan()}>{billingPlans.getName(org.plan.type)}</InfoRow>
 						{/if}
-						{#if configQuery.data?.license_intended_expiry ?? configQuery.data?.license_expiry}
-							<InfoRow label={settings_org_licenseExpiry()}
-								>{configQuery.data.license_intended_expiry ??
-									configQuery.data.license_expiry}</InfoRow
-							>
+						{#if configQuery.data?.license_valid_through}
+							<InfoRow label={settings_billing_license_validThrough()}>
+								{formatLongDate(configQuery.data.license_valid_through)}
+							</InfoRow>
 						{/if}
 						{#if configQuery.data?.license_key_type}
 							<InfoRow label={settings_org_licenseKeyType()}>
@@ -253,7 +252,7 @@
 							</InfoRow>
 						{/if}
 						{#if configQuery.data?.license_key_type === 'Online'}
-							<InfoRow label={settings_org_licenseLastChecked()}>
+							<InfoRow label={settings_billing_license_lastCheckIn()}>
 								{configQuery.data.license_entitlement_at
 									? formatTimestamp(configQuery.data.license_entitlement_at)
 									: common_never()}

@@ -48,11 +48,14 @@
 	<LicenseLockedBanner status={configQuery.data.license_status} />
 {:else if configQuery.data?.license_status === 'pending'}
 	<LicensePendingBanner />
-{:else if configQuery.data?.license_in_grace_period && configQuery.data?.license_intended_expiry && configQuery.data?.license_expiry}
+{:else if configQuery.data?.license_in_grace_period && configQuery.data?.license_valid_through && configQuery.data?.license_expiry}
 	<LicenseGraceBanner
-		intendedExpiry={configQuery.data.license_intended_expiry}
+		validThrough={configQuery.data.license_valid_through}
 		hardExpiry={configQuery.data.license_expiry}
 	/>
-{:else if configQuery.data && isLicenseApproachingExpiry(configQuery.data) && configQuery.data.license_intended_expiry}
-	<LicenseExpiringBanner intendedExpiry={configQuery.data.license_intended_expiry} />
+{:else if configQuery.data && isLicenseApproachingExpiry(configQuery.data) && configQuery.data.license_valid_through && configQuery.data.license_expiry}
+	<LicenseExpiringBanner
+		validThrough={configQuery.data.license_valid_through}
+		hardExpiry={configQuery.data.license_expiry}
+	/>
 {/if}

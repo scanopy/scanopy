@@ -771,11 +771,12 @@ mod tests {
 
     #[test]
     fn valid_through_is_paid_through_else_intended_exp() {
-        // 2027-01-01 and 2027-01-08.
         let without = claims(1_700_000_000, 1_800_000_000, 1_799_366_400);
         assert_eq!(
-            LicenseStatus::Valid(without.clone()).valid_through_date(),
-            Some("2027-01-08".to_string())
+            LicenseStatus::Valid(without.clone())
+                .valid_through()
+                .map(|d| d.timestamp()),
+            Some(1_799_366_400)
         );
 
         let with = LicenseClaims {
@@ -783,8 +784,10 @@ mod tests {
             ..without
         };
         assert_eq!(
-            LicenseStatus::Valid(with).valid_through_date(),
-            Some("2027-01-01".to_string())
+            LicenseStatus::Valid(with)
+                .valid_through()
+                .map(|d| d.timestamp()),
+            Some(1_798_761_600)
         );
     }
 

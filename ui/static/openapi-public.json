@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Scanopy API",
-    "description": "\nNetwork topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.16\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.16\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.17.16)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **network(s)**:\n\n- You can only access entities within your organization\n- Network-level entities (hosts, services, etc.) are filtered to networks you have access to\n- Use `?network_id=<UUID>` to filter list endpoints to a specific network\n- API keys can be scoped to a subset of your accessible networks\n",
+    "description": "\nNetwork topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.17\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.17\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.17.17)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **network(s)**:\n\n- You can only access entities within your organization\n- Network-level entities (hosts, services, etc.) are filtered to networks you have access to\n- Use `?network_id=<UUID>` to filter list endpoints to a specific network\n- API keys can be scoped to a subset of your accessible networks\n",
     "license": {
       "name": "Dual (AGPL3.0, Commercial License Available)"
     },
@@ -12518,12 +12518,12 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.17.16"
+            "example": "0.17.17"
           }
         },
         "example": {
           "api_version": 1,
-          "server_version": "0.17.16"
+          "server_version": "0.17.17"
         }
       },
       "ApiResponse": {
@@ -12655,19 +12655,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-24T14:01:27.080102Z",
+              "created_at": "2026-09-24T19:14:03.291720Z",
               "first_discovery_id": null,
-              "id": "4f51704e-52bb-4df8-9469-ab1f3acbfb12",
+              "id": "0ad3ac41-96db-40cd-ae97-5c5a4699d424",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-24T14:01:27.080102Z",
+              "last_seen_at": "2026-09-24T19:14:03.291720Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-24T14:01:27.080102Z",
-              "valid_from": "2026-09-24T14:01:27.080102Z",
+              "updated_at": "2026-09-24T19:14:03.291720Z",
+              "valid_from": "2026-09-24T19:14:03.291720Z",
               "valid_to": null
             }
           },
@@ -14239,19 +14239,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-24T14:01:27.066652Z",
+                      "created_at": "2026-09-24T19:14:03.277864Z",
                       "first_discovery_id": null,
-                      "id": "52604e73-a66a-4d3d-bc72-bd021cf26828",
+                      "id": "7f92e387-da4d-4c17-bd9f-507b7349705e",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-24T14:01:27.066652Z",
+                      "last_seen_at": "2026-09-24T19:14:03.277864Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-24T14:01:27.066652Z",
-                      "valid_from": "2026-09-24T14:01:27.066652Z",
+                      "updated_at": "2026-09-24T19:14:03.277864Z",
+                      "valid_from": "2026-09-24T19:14:03.277864Z",
                       "valid_to": null
                     }
                   ],
@@ -14265,7 +14265,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Jellyseerr",
+                  "service_definition": "Ghost",
                   "source": {
                     "type": "Manual"
                   },
@@ -15376,6 +15376,14 @@
                   }
                 ]
               },
+              "license_valid_through": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time",
+                "description": "End of the paid period, shown as \"Valid through\" and in the expiry\nbanners. Falls back to the intended expiry for keys minted without a\npaid-through date."
+              },
               "needs_cookie_consent": {
                 "type": "boolean",
                 "description": "Whether the client should show a cookie-consent prompt."
@@ -15655,19 +15663,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-24T14:01:27.076846Z",
+                  "created_at": "2026-09-24T19:14:03.288299Z",
                   "first_discovery_id": null,
-                  "id": "00bdd496-9be5-4721-85e5-aa9b2e2cb899",
+                  "id": "8ef45564-c5ee-456d-afb9-4c51741bd72f",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-24T14:01:27.076846Z",
+                  "last_seen_at": "2026-09-24T19:14:03.288299Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-24T14:01:27.076846Z",
-                  "valid_from": "2026-09-24T14:01:27.076846Z",
+                  "updated_at": "2026-09-24T19:14:03.288299Z",
+                  "valid_from": "2026-09-24T19:14:03.288299Z",
                   "valid_to": null
                 }
               ],
@@ -15681,7 +15689,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Jellyseerr",
+              "service_definition": "Ghost",
               "source": {
                 "type": "Manual"
               },
@@ -18037,19 +18045,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-24T14:01:27.066967Z",
+          "created_at": "2026-09-24T19:14:03.278189Z",
           "first_discovery_id": null,
-          "id": "91215bfb-5226-49ad-bc5f-1415bff3bc54",
+          "id": "62064a06-a271-4b30-8786-bc2f6be7bdf4",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-24T14:01:27.066967Z",
+          "last_seen_at": "2026-09-24T19:14:03.278189Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-24T14:01:27.066967Z",
-          "valid_from": "2026-09-24T14:01:27.066967Z",
+          "updated_at": "2026-09-24T19:14:03.278189Z",
+          "valid_from": "2026-09-24T19:14:03.278189Z",
           "valid_to": null
         }
       },
@@ -18757,7 +18765,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Jellyseerr",
+              "service_definition": "Ghost",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -24293,19 +24301,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-24T14:01:27.066299Z",
+                  "created_at": "2026-09-24T19:14:03.277499Z",
                   "first_discovery_id": null,
-                  "id": "8875d59c-9854-43b0-a195-617960a11599",
+                  "id": "4a2a5ff8-5550-49cd-ab55-fe11b9fec35b",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-24T14:01:27.066299Z",
+                  "last_seen_at": "2026-09-24T19:14:03.277499Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-24T14:01:27.066299Z",
-                  "valid_from": "2026-09-24T14:01:27.066299Z",
+                  "updated_at": "2026-09-24T19:14:03.277499Z",
+                  "valid_from": "2026-09-24T19:14:03.277499Z",
                   "valid_to": null
                 }
               ],
@@ -24319,7 +24327,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Jellyseerr",
+              "service_definition": "Ghost",
               "source": {
                 "type": "Manual"
               },
@@ -27217,7 +27225,7 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.17.16"
+            "example": "0.17.17"
           }
         },
         "example": {
@@ -27228,7 +27236,7 @@
             "offset": 0,
             "total_count": 142
           },
-          "server_version": "0.17.16"
+          "server_version": "0.17.17"
         }
       },
       "PaginatedApiResponse_Credential": {
@@ -28006,19 +28014,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-24T14:01:27.060925Z",
+                        "created_at": "2026-09-24T19:14:03.272058Z",
                         "first_discovery_id": null,
-                        "id": "738f9fa6-aa7e-4cdc-9796-9f13a03cb14d",
+                        "id": "41d60fd5-0d30-46fc-ad17-16bce76ac62e",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-24T14:01:27.060925Z",
+                        "last_seen_at": "2026-09-24T19:14:03.272058Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-24T14:01:27.060925Z",
-                        "valid_from": "2026-09-24T14:01:27.060925Z",
+                        "updated_at": "2026-09-24T19:14:03.272058Z",
+                        "valid_from": "2026-09-24T19:14:03.272058Z",
                         "valid_to": null
                       }
                     ],
@@ -28032,7 +28040,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Jellyseerr",
+                    "service_definition": "Ghost",
                     "source": {
                       "type": "Manual"
                     },
@@ -28175,19 +28183,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-24T14:01:27.076214Z",
+                    "created_at": "2026-09-24T19:14:03.287669Z",
                     "first_discovery_id": null,
-                    "id": "43dfe54a-3bcc-4855-8323-63cd676026ee",
+                    "id": "fa94263b-f6ad-4a3c-8fdb-728449cbc49e",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-24T14:01:27.076214Z",
+                    "last_seen_at": "2026-09-24T19:14:03.287669Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-24T14:01:27.076214Z",
-                    "valid_from": "2026-09-24T14:01:27.076214Z",
+                    "updated_at": "2026-09-24T19:14:03.287669Z",
+                    "valid_from": "2026-09-24T19:14:03.287669Z",
                     "valid_to": null
                   }
                 ],
@@ -28201,7 +28209,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Jellyseerr",
+                "service_definition": "Ghost",
                 "source": {
                   "type": "Manual"
                 },
@@ -29602,6 +29610,14 @@
               }
             ]
           },
+          "license_valid_through": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "End of the paid period, shown as \"Valid through\" and in the expiry\nbanners. Falls back to the intended expiry for keys minted without a\npaid-through date."
+          },
           "needs_cookie_consent": {
             "type": "boolean",
             "description": "Whether the client should show a cookie-consent prompt."
@@ -30328,19 +30344,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-24T14:01:27.066869Z",
+              "created_at": "2026-09-24T19:14:03.278088Z",
               "first_discovery_id": null,
-              "id": "ee75f291-79fa-4a1f-a545-971304f86a0b",
+              "id": "ee30278a-303f-4ee6-9004-c88396214f4d",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-24T14:01:27.066869Z",
+              "last_seen_at": "2026-09-24T19:14:03.278088Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-24T14:01:27.066869Z",
-              "valid_from": "2026-09-24T14:01:27.066869Z",
+              "updated_at": "2026-09-24T19:14:03.278088Z",
+              "valid_from": "2026-09-24T19:14:03.278088Z",
               "valid_to": null
             }
           ],
@@ -30354,7 +30370,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Jellyseerr",
+          "service_definition": "Ghost",
           "source": {
             "type": "Manual"
           },
@@ -31722,7 +31738,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "7d5de60c-d634-4f96-a2c1-d6e9c9f024b1",
+                  "id": "b98b3e61-f96b-4109-b905-2f4e28557409",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -31732,23 +31748,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "f05b92e7-8af6-4761-9bb8-65b869e1a805",
+                  "id": "4cc7c308-89aa-4544-8d39-78651922885f",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "c5241a61-e9d2-4954-9539-00e863691b56",
+                  "id": "e9077ff9-a84d-4a09-8dc7-678b42419019",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "fe86531b-f511-42f5-8bfa-a14330df41b2",
+                  "id": "acf710eb-7955-41c9-ae5a-9ee86d9a94b0",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "f05b92e7-8af6-4761-9bb8-65b869e1a805",
+                  "id": "4cc7c308-89aa-4544-8d39-78651922885f",
                   "rule": "ByHost"
                 }
               ]
@@ -31778,19 +31794,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "eb0d224d-12ec-4218-91f0-41595eba755c",
+                "id": "088b17e6-b4bb-45a5-be4c-d37f597d2d41",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "1884b494-2599-44e1-9d90-6495ac97f1a1",
+                "id": "83031bc6-eb6c-4f7d-9ab4-70ba76803fc7",
                 "rule": "ByVLAN"
               },
               {
-                "id": "280dd5c2-e72b-46ff-a70d-8cdac97f289b",
+                "id": "94ce94b5-0a3f-4c06-b522-db411426ed32",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "a4802509-df75-4f8f-b82e-84b08e96e9c0",
+                "id": "3f31894e-bbab-41e0-b1ba-0e09e132ca88",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -31808,7 +31824,7 @@
                 }
               },
               {
-                "id": "d3600ed3-6b8d-4d97-9aa7-ce10ef546cf1",
+                "id": "da71007f-fca0-4577-b0fa-a0fa6bd4a26a",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -31817,15 +31833,15 @@
                 }
               },
               {
-                "id": "c5ea3270-fda8-419c-a340-b89c45575742",
+                "id": "15921fc5-e81a-4c7b-841e-39fb589bc435",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "cc4027ea-43da-442e-9459-fb5954ce603f",
+                "id": "ae4befc2-2d6b-43e0-86c4-25c5fe0e216a",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "c6609db6-b790-43c8-b4f7-75093fc0a912",
+                "id": "164f3373-32de-4c7d-af66-a20f93445863",
                 "rule": "ByStack"
               }
             ]

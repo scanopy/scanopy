@@ -1,13 +1,17 @@
 <script lang="ts">
 	import { ShieldAlert } from 'lucide-svelte';
-	import { license_graceBanner } from '$lib/paraglide/messages';
+	import { license_renewByBanner } from '$lib/paraglide/messages';
+	import { formatLongDate } from '$lib/shared/utils/formatting';
 	import AppBanner from './AppBanner.svelte';
 
-	let { intendedExpiry, hardExpiry }: { intendedExpiry: string; hardExpiry: string } = $props();
+	let { validThrough, hardExpiry }: { validThrough: string; hardExpiry: string } = $props();
 </script>
 
 <AppBanner
 	variant="warning"
 	icon={ShieldAlert}
-	body={license_graceBanner({ intendedExpiry, hardExpiry })}
+	body={license_renewByBanner({
+		validThrough: formatLongDate(validThrough),
+		lockout: formatLongDate(hardExpiry, 'UTC')
+	})}
 />

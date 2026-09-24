@@ -270,10 +270,10 @@ pub struct PublicConfigResponse {
     /// issued after grace-period support landed.
     #[schema(format = "date")]
     pub license_intended_expiry: Option<String>,
-    /// End of the paid period, the date shown as "Valid through". Falls back
-    /// to `license_intended_expiry` for keys minted without a paid-through date.
-    #[schema(format = "date")]
-    pub license_valid_through: Option<String>,
+    /// End of the paid period, shown as "Valid through" and in the expiry
+    /// banners. Falls back to the intended expiry for keys minted without a
+    /// paid-through date.
+    pub license_valid_through: Option<DateTime<Utc>>,
     /// True when the license is past `intended_exp` but not yet past
     /// the hard `exp` — the silent grace window.
     pub license_in_grace_period: bool,
@@ -575,9 +575,7 @@ pub async fn get_public_config(State(state): State<Arc<AppState>>) -> impl IntoR
     let license_intended_expiry = current_license
         .as_ref()
         .and_then(|s| s.intended_expiry_date());
-    let license_valid_through = current_license
-        .as_ref()
-        .and_then(|s| s.valid_through_date());
+    let license_valid_through = current_license.as_ref().and_then(|s| s.valid_through());
     let license_in_grace_period = current_license
         .as_ref()
         .is_some_and(|s| s.in_grace_period());

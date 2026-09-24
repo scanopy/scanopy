@@ -19,8 +19,12 @@ export const isLicenseLocked = (cfg: PublicServerConfig) =>
 
 /**
  * Soft-warning threshold: show an "approaching expiry" banner when the
- * user-visible expiry is within this many days of now. Pre-grace only —
+ * intended expiry is within this many days of now. Pre-grace only —
  * once past `intended_exp` the grace banner takes over.
+ *
+ * Timed on `intended_exp`, not `license_valid_through`: for a cloud-minted key
+ * the two are 7 days apart, and a window keyed on the paid-through date would
+ * show the banner for a week before every routine renewal.
  */
 const APPROACHING_EXPIRY_DAYS = 7;
 
