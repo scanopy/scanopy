@@ -7,6 +7,7 @@ use axum::{extract::Request, middleware::Next, response::Response};
 /// All requests to the daemon are assumed to come from the server.
 #[cfg(feature = "generate-fixtures")]
 pub async fn capture_fixtures_middleware(request: Request, next: Next) -> Response {
+    use crate::server::auth::middleware::fixture_capture::should_capture;
     use axum::body::{Body, to_bytes};
     use serde::{Deserialize, Serialize};
     use std::path::PathBuf;
@@ -78,7 +79,7 @@ pub async fn capture_fixtures_middleware(request: Request, next: Next) -> Respon
     let path = request.uri().path().to_string();
 
     // Skip health checks
-    if path.ends_with("/health") {
+    if !should_capture(&request) || path.ends_with("/health") {
         return next.run(request).await;
     }
 

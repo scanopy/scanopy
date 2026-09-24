@@ -54,6 +54,7 @@ services:
       - SCANOPY_DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres-dev:5432/scanopy
       - SCANOPY_WEB_EXTERNAL_PATH=/app/static
       - SCANOPY_LOG_LEVEL=debug
+      - CAPTURE_COMPAT_FIXTURES=${CAPTURE_COMPAT_FIXTURES:-false}
       - SCANOPY_INTEGRATED_DAEMON_URL=http://daemon:60073
       - SCANOPY_ENFORCE_BILLING_FOR_TESTING=true
     volumes:
@@ -95,6 +96,7 @@ services:
       - SCANOPY_NAME=scanopy-daemon
       - SCANOPY_MODE=daemon_poll
       - SCANOPY_LOG_LEVEL=debug
+      - CAPTURE_COMPAT_FIXTURES=${CAPTURE_COMPAT_FIXTURES:-false}
       - SCANOPY_HEARTBEAT_INTERVAL=30
     volumes:
       - ./backend:/app
@@ -128,6 +130,7 @@ services:
       - SCANOPY_BIND_ADDRESS=0.0.0.0
       - SCANOPY_NAME=scanopy-daemon-serverpoll
       - SCANOPY_LOG_LEVEL=debug
+      - CAPTURE_COMPAT_FIXTURES=${CAPTURE_COMPAT_FIXTURES:-false}
     volumes:
       - ./backend:/app
       - ./data/daemon_serverpoll_config:/root/.config/scanopy/daemon
