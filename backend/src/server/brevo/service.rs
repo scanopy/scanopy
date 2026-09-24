@@ -111,7 +111,8 @@ impl BrevoService {
             // off `implied_status()` so the mapping stays canonical.
             BillingOperation::PaymentFailed { .. }
             | BillingOperation::PaymentActionRequired { .. }
-            | BillingOperation::PaymentRecovered { .. } => {
+            | BillingOperation::PaymentRecovered { .. }
+            | BillingOperation::LicenseResumed { .. } => {
                 if let Some(status) = event.operation.implied_status() {
                     self.update_company_by_org(
                         event.scope.organization_id,

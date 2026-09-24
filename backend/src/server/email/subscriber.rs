@@ -75,6 +75,7 @@ impl Subscriber<BillingOperation> for EmailService {
             BillingOperationDiscriminants::Reactivated,
             BillingOperationDiscriminants::Paused,
             BillingOperationDiscriminants::Resumed,
+            BillingOperationDiscriminants::LicenseResumed,
         ])
     }
 
@@ -414,6 +415,26 @@ impl Subscriber<BillingOperation> for EmailService {
                     let amount = format_cents(amount_cents, "usd");
                     self.send_payment_recovered_email(org_owner, &amount)
                         .await?;
+                }
+                BillingOperation::LicenseResumed {
+                    plan,
+                    resumed_through,
+                    ..
+                } => {
+                    let Some(organization) = self
+                        .organization_service
+                        .get_by_id(&event.scope.organization_id)
+                        .await?
+                    else {
+                        continue;
+                    };
+                    self.send_self_hosted_license_resumed_email(
+                        org_owner,
+                        plan.name(),
+                        &resumed_through.format("%B %-d, %Y").to_string(),
+                        organization.base.license_key_type == Some(LicenseKeyType::Offline),
+                    )
+                    .await?;
                 }
                 BillingOperation::CancellationInitiated {
                     plan,

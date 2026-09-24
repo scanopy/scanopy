@@ -69,6 +69,7 @@
 		settings_billing_payInvoice,
 		billing_addPaymentMethod,
 		billing_invoice_acceptCta,
+		billing_invoice_payOutstanding,
 		billing_invoice_accepted,
 		billing_invoice_cancelQuote,
 		billing_invoice_cancelQuoteConfirm,
@@ -123,6 +124,11 @@
 	let invoiceBilling = $derived(isLicensedPlan ? (invoiceBillingQuery.data ?? null) : null);
 	let pendingQuote = $derived(invoiceBilling?.pending_quote ?? null);
 	let openInvoiceUrl = $derived(invoiceBilling?.open_invoice?.hosted_invoice_url ?? null);
+	// The invoice this org defaulted on. Settling it is what brings the plan,
+	// the licence and payment terms back, so it outranks choosing a new plan.
+	let writtenOffInvoiceUrl = $derived(
+		invoiceBilling?.written_off_invoice?.hosted_invoice_url ?? null
+	);
 
 	const acceptQuoteMutation = useAcceptQuoteMutation();
 	const cancelQuoteMutation = useCancelQuoteMutation();
@@ -173,6 +179,19 @@
 		const before = org?.license_paid_through;
 		void waitForOrgUpdate((o) => o.license_paid_through !== before).then((paid) => {
 			if (paid) invalidateInvoiceBilling();
+		});
+	}
+
+	function handlePayWrittenOffInvoice() {
+		if (!writtenOffInvoiceUrl) return;
+		window.open(writtenOffInvoiceUrl, '_blank', 'noopener,noreferrer');
+		// Settling this one also brings the org out of lapsed, which lands as a
+		// separate event from the licence date, so watch for either.
+		const before = org?.license_paid_through;
+		void waitForOrgUpdate(
+			(o) => o.plan_status === 'active' || o.license_paid_through !== before
+		).then((resumed) => {
+			if (resumed) invalidateInvoiceBilling();
 		});
 	}
 
@@ -271,6 +290,11 @@
 				onclick: handleAcceptQuote,
 				disabled: acceptQuoteMutation.isPending
 			};
+		// Settling the written-off invoice restores the plan, the licence and
+		// payment terms in one go, and the server refuses a new invoice while
+		// it stands, so it comes before the lapsed org's plan CTA.
+		if (writtenOffInvoiceUrl)
+			return { label: billing_invoice_payOutstanding(), onclick: handlePayWrittenOffInvoice };
 		// The plan it lapsed from is the plan it most likely wants back; the
 		// menu's Change plan covers the rest.
 		if (isLapsed)
