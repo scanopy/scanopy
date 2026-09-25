@@ -133,9 +133,9 @@ fn extract_cancellation_details(
     Option<String>,
     Option<stripe_billing::CancellationDetailsReason>,
 ) {
-    let feedback = details.and_then(|d| d.feedback);
+    let feedback = details.and_then(|d| d.feedback.clone());
     let comment = details.and_then(|d| d.comment.clone());
-    let reason = details.and_then(|d| d.reason);
+    let reason = details.and_then(|d| d.reason.clone());
     (feedback, comment, reason)
 }
 
@@ -317,6 +317,7 @@ mod tests {
         let details = stripe_billing::CancellationDetails {
             comment: None,
             feedback: None,
+            feedback_option: None,
             reason: None,
         };
         assert_eq!(
@@ -330,6 +331,7 @@ mod tests {
         let details = stripe_billing::CancellationDetails {
             comment: Some("too pricey for our team".to_string()),
             feedback: Some(stripe_billing::CancellationDetailsFeedback::TooExpensive),
+            feedback_option: None,
             reason: Some(stripe_billing::CancellationDetailsReason::CancellationRequested),
         };
         assert_eq!(

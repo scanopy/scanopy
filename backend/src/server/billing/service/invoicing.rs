@@ -97,7 +97,8 @@ impl BillingService {
                         update.send(&self.stripe).await?
                     }
                     None => {
-                        CreateSubscription::new(customer_id.clone())
+                        CreateSubscription::new()
+                            .customer(customer_id.clone())
                             .items(vec![CreateSubscriptionItems {
                                 price: Some(base_price.id.to_string()),
                                 quantity: Some(1),
@@ -180,7 +181,8 @@ impl BillingService {
             .await?
             .ok_or_else(|| anyhow!("Could not find base price for {}", plan.name()))?;
 
-        Ok(CreateSubscription::new(customer_id)
+        Ok(CreateSubscription::new()
+            .customer(customer_id)
             .items(vec![CreateSubscriptionItems {
                 price: Some(base_price.id.to_string()),
                 quantity: Some(1),

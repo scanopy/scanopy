@@ -140,7 +140,8 @@ impl BillingService {
             .stripe_customer_id
             .ok_or_else(|| anyhow!("No Stripe customer ID"))?;
 
-        let session = CreateBillingPortalSession::new(CustomerId::from(customer_id.clone()))
+        let session = CreateBillingPortalSession::new()
+            .customer(CustomerId::from(customer_id.clone()))
             .return_url(return_url)
             .send(&self.stripe)
             .await?;
