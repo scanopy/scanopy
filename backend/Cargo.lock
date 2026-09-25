@@ -6145,9 +6145,9 @@ dependencies = [
 
 [[package]]
 name = "rsntp"
-version = "4.1.0"
+version = "4.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c475cc467404cd97386127e5c40be936ce69cf77767306fbc5ec0dc812afd87"
+checksum = "bc507d0efdc8ce91a17455b1efe9ada6a21e2414470b3f1d84aefc7ebcf247bd"
 dependencies = [
  "chrono",
  "tokio",
