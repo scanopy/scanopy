@@ -149,12 +149,7 @@ export type FeatureId = keyof BillingPlanFeatures;
 
 /** Feature IDs plus resource-based upgrade reasons */
 export type UpgradeFeature =
-	| FeatureId
-	| 'seats'
-	| 'networks'
-	| 'hosts'
-	| 'plan_usage'
-	| 'snapshots';
+	FeatureId | 'seats' | 'networks' | 'hosts' | 'plan_usage' | 'snapshots';
 
 export interface BillingPlanMetadata {
 	features: BillingPlanFeatures;
@@ -393,8 +388,7 @@ function createTypeMetadataHelpers<T extends TypeMetadataKeys, M = unknown>(cate
 			const $registry = get(metadata);
 			return (
 				(($registry?.[category] as TypedTypeMetadata<M>[])?.find((item) => item.id === id) as
-					| TypedTypeMetadata<M>
-					| undefined) || null
+					TypedTypeMetadata<M> | undefined) || null
 			);
 		},
 
@@ -424,8 +418,7 @@ function createTypeMetadataHelpers<T extends TypeMetadataKeys, M = unknown>(cate
 			const $registry = get(metadata);
 			return (
 				(($registry?.[category] as TypeMetadata[])?.find((item) => item.id === id)?.metadata as
-					| M
-					| undefined) || ({} as M)
+					M | undefined) || ({} as M)
 			);
 		}
 	};

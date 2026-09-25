@@ -43,8 +43,7 @@
 		topoStore
 			? $topoStore
 			: (topo.query?.data?.find((t) => t.id === $selectedTopologyId) as
-					| RenderableTopology
-					| undefined)
+					RenderableTopology | undefined)
 	);
 
 	const nodes = $derived(topology?.nodes ?? []);

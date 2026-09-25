@@ -71,8 +71,7 @@
 		topoStore
 			? $topoStore
 			: (topo.query?.data?.find((t) => t.id === $selectedTopologyId) as
-					| RenderableTopology
-					| undefined)
+					RenderableTopology | undefined)
 	);
 	// Container resize is DISABLED — size changes are no longer persisted (the
 	// graph builds on request and ELK re-lays out every render, so there's no
@@ -275,8 +274,7 @@
 				const groupNode = topology?.nodes.find((n) => n.id === summary.groupId);
 				const sHeader = groupNode?.header ?? '';
 				const ruleId = (groupNode as Record<string, unknown>)?.element_rule_id as
-					| string
-					| undefined;
+					string | undefined;
 				const rule = ruleId
 					? ($topologyOptions.request.element_rules ?? []).find(
 							(r) => (r as { id: string }).id === ruleId

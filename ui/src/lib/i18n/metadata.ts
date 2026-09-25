@@ -71,8 +71,7 @@ export function metaNameWith(
 
 function resolveMetaWith(key: string, params: Record<string, unknown>, fallback: string): string {
 	const messageFn = m[key as keyof typeof m] as
-		| ((inputs: Record<string, unknown>) => string)
-		| undefined;
+		((inputs: Record<string, unknown>) => string) | undefined;
 
 	if (typeof messageFn === 'function') {
 		try {
