@@ -88,6 +88,20 @@ export function formatDate(timestamp: string): string {
 }
 
 /**
+ * Long date in the viewer's locale, e.g. `October 8, 2026`. Pass
+ * `timeZone: 'UTC'` for a date-only string (`2026-10-08`), which `Date`
+ * parses as UTC midnight and would otherwise show a day early west of UTC.
+ */
+export function formatLongDate(value: string | Date, timeZone?: string): string {
+	return new Date(value).toLocaleDateString(undefined, {
+		month: 'long',
+		day: 'numeric',
+		year: 'numeric',
+		timeZone
+	});
+}
+
+/**
  * Compact numeric date, e.g. `8/3/26`.
  *
  * For dense lists where a date is one column among many and "Aug 3, 2026" or a

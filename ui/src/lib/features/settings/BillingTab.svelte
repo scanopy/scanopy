@@ -114,6 +114,9 @@
 	const dashboardQuery = useDashboardQuery({ enabled: () => org != null && !isLicensedPlan });
 	let planUsage = $derived(dashboardQuery.data?.plan_usage);
 
+	const configQuery = useConfigQuery();
+	let billingEnabled = $derived(configQuery.data?.billing_enabled ?? false);
+
 	// PO number, an open quote, and the link to an unpaid invoice. Self-hosted
 	// only: the endpoint refuses other plans, and a cloud org would pay for a
 	// Stripe round trip on every visit to this tab.
@@ -241,10 +244,7 @@
 	// "Can this org pay?", so an invoice buyer sees no card warning.
 	let hasPaymentMethod = $derived(canPay(org));
 	// Stripe-managed plan that needs a card on file but has none.
-	const configQuery = useConfigQuery();
-	let missingCard = $derived(
-		isMissingPaymentMethod(org, configQuery.data?.billing_enabled ?? false)
-	);
+	let missingCard = $derived(isMissingPaymentMethod(org, billingEnabled));
 	let trialEndDate = $derived(org?.trial_end_date ? new Date(org.trial_end_date) : null);
 
 	// Renewal / subscription-ends label for the current plan; null when not

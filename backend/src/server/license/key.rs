@@ -158,6 +158,7 @@ pub(crate) mod test_support {
             intended_exp,
             org_id: org_id.map(str::to_string),
             plan,
+            paid_through: None,
         })
     }
 }

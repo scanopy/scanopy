@@ -393,6 +393,7 @@ mod tests {
             intended_exp,
             org_id: None,
             plan: None,
+            paid_through: None,
         }
     }
 
@@ -766,6 +767,28 @@ mod tests {
             "exp": 1800000000
         }"#;
         assert!(serde_json::from_str::<LicenseClaims>(json_missing_intended_exp).is_err());
+    }
+
+    #[test]
+    fn valid_through_is_paid_through_else_intended_exp() {
+        let without = claims(1_700_000_000, 1_800_000_000, 1_799_366_400);
+        assert_eq!(
+            LicenseStatus::Valid(without.clone())
+                .valid_through()
+                .map(|d| d.timestamp()),
+            Some(1_799_366_400)
+        );
+
+        let with = LicenseClaims {
+            paid_through: Some(1_798_761_600),
+            ..without
+        };
+        assert_eq!(
+            LicenseStatus::Valid(with)
+                .valid_through()
+                .map(|d| d.timestamp()),
+            Some(1_798_761_600)
+        );
     }
 
     #[test]

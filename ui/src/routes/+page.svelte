@@ -79,9 +79,9 @@
 
 	// TanStack Query for daemons - used to determine default tab
 	// Only fetch when authenticated to avoid 401 errors during onboarding,
-	// and not while the main app is locked (the route would 403)
+	// and only once the org is known not to be locked (the route would 403)
 	const daemonsQuery = useDaemonsQuery({
-		enabled: () => isAuthenticated && !isSelfHostedPlanLocked
+		enabled: () => isAuthenticated && mainAppAvailable
 	});
 	let needsPlanSelection = $derived(
 		billingEnabled && organization != null && !isBillingPlanActive(organization)
@@ -313,6 +313,7 @@
 				settingsInitialTab={isBillingBlocking ? billingBlockingTab : 'account'}
 				settingsDismissible={!isBillingBlocking}
 				mainAppLocked={isSelfHostedPlanLocked}
+				{mainAppAvailable}
 				licensedPlanPending={licensedPlanJustPicked}
 			/>
 		</div>

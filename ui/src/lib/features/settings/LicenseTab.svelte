@@ -22,7 +22,7 @@
 	import { pushError, pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
 	import { trackEvent } from '$lib/shared/utils/analytics';
 	import { copyText } from '$lib/shared/utils/clipboard';
-	import { formatTimestamp } from '$lib/shared/utils/formatting';
+	import { formatLongDate, formatTimestamp } from '$lib/shared/utils/formatting';
 	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
 	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
 	import type { components } from '$lib/api/schema';
@@ -140,14 +140,6 @@
 	let missingCard = $derived(isMissingPaymentMethod(org, billingEnabled));
 	let chargeAmount = $derived(priceToCharge(org));
 
-	function formatDate(value: string | Date): string {
-		return new Date(value).toLocaleDateString(undefined, {
-			month: 'long',
-			day: 'numeric',
-			year: 'numeric'
-		});
-	}
-
 	// An air-gapped key carries its expiry, so an org running one stays on it until
 	// the period it has paid for is over. The server enforces the refusal; the
 	// disabled option says so before the click.
@@ -155,7 +147,7 @@
 		keyType === 'Offline' &&
 			org?.license_paid_through != null &&
 			Date.now() < Date.parse(org.license_paid_through)
-			? formatDate(org.license_paid_through)
+			? formatLongDate(org.license_paid_through)
 			: null
 	);
 
@@ -175,7 +167,7 @@
 	// and a "Valid through" date beside it either sits in the past or reads as
 	// a deadline the org can no longer meet.
 	let validThrough = $derived(
-		!isLapsed && org?.license_paid_through ? formatDate(org.license_paid_through) : null
+		!isLapsed && org?.license_paid_through ? formatLongDate(org.license_paid_through) : null
 	);
 	let lastCheckIn = $derived(
 		org?.license_checkin_at ? formatTimestamp(org.license_checkin_at) : common_never()
@@ -371,7 +363,7 @@
 								     every branch below to no line at all. -->
 								<p class="text-secondary text-sm">
 									{settings_billing_license_airGappedCurrentUntil({
-										date: formatDate(airGappedCurrentUntil)
+										date: formatLongDate(airGappedCurrentUntil)
 									})}
 								</p>
 							{:else if !airGappedIncluded}
