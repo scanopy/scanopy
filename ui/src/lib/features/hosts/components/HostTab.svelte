@@ -143,26 +143,24 @@
 	// services tab's binding chips and the host editor's interface lists empty for
 	// anyone who never opens the hosts tab. Un-gate it only once those caches have
 	// real queries — see planned-work/child-cache-rearchitecture.md.
-	const hostsQuery = useHostsQuery(
-		(): HostQueryOptions => ({
-			limit: pageSize,
-			offset: (currentPage - 1) * pageSize,
-			group_by: groupBy,
-			order_by: orderBy,
-			order_direction: orderDirection,
-			tag_ids: tagIds.length > 0 ? tagIds : undefined,
-			stale: stale ?? undefined,
-			search: search || undefined,
-			network_ids: filterNetworkIds.length > 0 ? filterNetworkIds : undefined,
-			// Both values checked is no constraint, so it is sent as nothing.
-			hidden: filterHidden.length === 1 ? filterHidden : undefined,
-			virtualization_service_ids:
-				filterVirtualizationServiceIds.length > 0 ? filterVirtualizationServiceIds : undefined,
-			include_unvirtualized: filterIncludeUnvirtualized || undefined,
-			service_names: filterServiceNames.length > 0 ? filterServiceNames : undefined,
-			sources: filterSources.length > 0 ? filterSources : undefined
-		})
-	);
+	const hostsQuery = useHostsQuery((): HostQueryOptions => ({
+		limit: pageSize,
+		offset: (currentPage - 1) * pageSize,
+		group_by: groupBy,
+		order_by: orderBy,
+		order_direction: orderDirection,
+		tag_ids: tagIds.length > 0 ? tagIds : undefined,
+		stale: stale ?? undefined,
+		search: search || undefined,
+		network_ids: filterNetworkIds.length > 0 ? filterNetworkIds : undefined,
+		// Both values checked is no constraint, so it is sent as nothing.
+		hidden: filterHidden.length === 1 ? filterHidden : undefined,
+		virtualization_service_ids:
+			filterVirtualizationServiceIds.length > 0 ? filterVirtualizationServiceIds : undefined,
+		include_unvirtualized: filterIncludeUnvirtualized || undefined,
+		service_names: filterServiceNames.length > 0 ? filterServiceNames : undefined,
+		sources: filterSources.length > 0 ? filterSources : undefined
+	}));
 	const networksQuery = useNetworksQuery();
 	useDaemonsQuery();
 	const ipAddressesQuery = useIPAddressesQuery();

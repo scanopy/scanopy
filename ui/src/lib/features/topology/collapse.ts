@@ -305,8 +305,7 @@ export function toggleCollapse(containerId: string, allNodes?: TopologyNode[]): 
 				for (const node of allNodes) {
 					if (node.node_type === 'Container') {
 						const parentId = (node as Record<string, unknown>).parent_container_id as
-							| string
-							| undefined;
+							string | undefined;
 						if (parentId === containerId) next.delete(node.id);
 					}
 				}
@@ -318,8 +317,7 @@ export function toggleCollapse(containerId: string, allNodes?: TopologyNode[]): 
 				for (const node of allNodes) {
 					if (node.node_type === 'Container') {
 						const parentId = (node as Record<string, unknown>).parent_container_id as
-							| string
-							| undefined;
+							string | undefined;
 						if (parentId === containerId) next.add(node.id);
 					}
 				}

@@ -122,35 +122,29 @@ function toCreateHostRequest(formData: HostFormData): CreateHostRequest {
 		virtualization_service_id: formData.virtualization_service_id,
 		hidden: formData.hidden,
 		tags: formData.tags,
-		ip_addresses: formData.ip_addresses.map(
-			(iface, index): IPAddressInput => ({
-				id: iface.id,
-				subnet_id: iface.subnet_id,
-				ip_address: iface.ip_address,
-				mac_address: iface.mac_address,
-				name: iface.name,
-				position: index // Use array order as position
-			})
-		),
-		ports: formData.ports.map(
-			(port): PortInput => ({
-				id: port.id,
-				number: port.number,
-				protocol: port.protocol
-			})
-		),
-		services: formData.services.map(
-			(service, index): ServiceInput => ({
-				id: service.id,
-				service_definition: service.service_definition,
-				name: service.name,
-				bindings: service.bindings.map(toBindingInput),
-				virtualization_metadata: service.virtualization_metadata,
-				virtualization_service_id: service.virtualization_service_id,
-				tags: service.tags,
-				position: index
-			})
-		)
+		ip_addresses: formData.ip_addresses.map((iface, index): IPAddressInput => ({
+			id: iface.id,
+			subnet_id: iface.subnet_id,
+			ip_address: iface.ip_address,
+			mac_address: iface.mac_address,
+			name: iface.name,
+			position: index // Use array order as position
+		})),
+		ports: formData.ports.map((port): PortInput => ({
+			id: port.id,
+			number: port.number,
+			protocol: port.protocol
+		})),
+		services: formData.services.map((service, index): ServiceInput => ({
+			id: service.id,
+			service_definition: service.service_definition,
+			name: service.name,
+			bindings: service.bindings.map(toBindingInput),
+			virtualization_metadata: service.virtualization_metadata,
+			virtualization_service_id: service.virtualization_service_id,
+			tags: service.tags,
+			position: index
+		}))
 	};
 }
 
@@ -478,39 +472,33 @@ export function useUpdateHostMutation() {
 				expected_updated_at: data.host.updated_at,
 				// Only send arrays if provided (undefined = preserve existing)
 				ip_addresses: data.ip_addresses
-					? data.ip_addresses.map(
-							(iface, index): IPAddressInput => ({
-								id: iface.id,
-								subnet_id: iface.subnet_id,
-								ip_address: iface.ip_address,
-								mac_address: iface.mac_address,
-								name: iface.name,
-								position: index
-							})
-						)
+					? data.ip_addresses.map((iface, index): IPAddressInput => ({
+							id: iface.id,
+							subnet_id: iface.subnet_id,
+							ip_address: iface.ip_address,
+							mac_address: iface.mac_address,
+							name: iface.name,
+							position: index
+						}))
 					: undefined,
 				ports: data.ports
-					? data.ports.map(
-							(port): PortInput => ({
-								id: port.id,
-								number: port.number,
-								protocol: port.protocol
-							})
-						)
+					? data.ports.map((port): PortInput => ({
+							id: port.id,
+							number: port.number,
+							protocol: port.protocol
+						}))
 					: undefined,
 				services: data.services
-					? data.services.map(
-							(service, index): ServiceInput => ({
-								id: service.id,
-								service_definition: service.service_definition,
-								name: service.name,
-								bindings: service.bindings.map(toBindingInput),
-								virtualization_metadata: service.virtualization_metadata,
-								virtualization_service_id: service.virtualization_service_id,
-								tags: service.tags,
-								position: index
-							})
-						)
+					? data.services.map((service, index): ServiceInput => ({
+							id: service.id,
+							service_definition: service.service_definition,
+							name: service.name,
+							bindings: service.bindings.map(toBindingInput),
+							virtualization_metadata: service.virtualization_metadata,
+							virtualization_service_id: service.virtualization_service_id,
+							tags: service.tags,
+							position: index
+						}))
 					: undefined
 			};
 

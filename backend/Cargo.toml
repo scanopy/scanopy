@@ -120,7 +120,7 @@ tokio-stream = "0.1"
 pnet = "0.35.0"
 ipnetwork = "0.20"
 cidr = { version = "0.3.1", features = ["serde"] }
-if-addrs = "0.14.0"
+if-addrs = "0.15.0"
 # mDNS/DNS-SD browsing needs IP_MULTICAST_IF to choose which interface a query leaves by, and
 # neither std nor tokio exposes it. Already in the tree via tokio, so this declaration adds no
 # crate and no compile cost — it only makes an existing transitive dependency directly usable.
@@ -278,15 +278,15 @@ email_address = "0.2.9"
 urlencoding = "2.1.3"
 rlimit = "0.10.2"
 libc = "0.2.177"
-async-stripe = { version = "1.0.0-alpha.2", default-features = false, features = ["rustls-tls-webpki-roots"] }
-async-stripe-client-core = { version = "1.0.0-alpha.2", default-features = false }
-async-stripe-shared = { version = "1.0.0-alpha.2", default-features = false }
-async-stripe-core = { version = "1.0.0-alpha.2", default-features = false,features = ["customer", "customer_balance_transaction", "setup_intent"] }
-async-stripe-product = { version = "1.0.0-alpha.2", default-features = false,features = ["product", "price", "coupon"] }
-async-stripe-billing = { version = "1.0.0-alpha.2", default-features = false,features = ["plan", "subscription", "invoice", "quote", "tax_id", "deserialize", "serialize", "billing_portal_session"] }
-async-stripe-checkout = { version = "1.0.0-alpha.2", default-features = false,features = ["checkout_session"] }
-async-stripe-types = { version = "1.0.0-alpha.2", default-features = false }
-async-stripe-webhook = { version = "1.0.0-alpha.2", default-features = false }
+async-stripe = { version = "1.0.0-rc.8", default-features = false, features = ["rustls-tls-webpki-roots", "rustls-ring"] }
+async-stripe-client-core = { version = "1.0.0-rc.8", default-features = false }
+async-stripe-shared = { version = "1.0.0-rc.8", default-features = false }
+async-stripe-core = { version = "1.0.0-rc.8", default-features = false,features = ["customer", "customer_balance_transaction", "setup_intent"] }
+async-stripe-product = { version = "1.0.0-rc.8", default-features = false,features = ["product", "price", "coupon"] }
+async-stripe-billing = { version = "1.0.0-rc.8", default-features = false,features = ["plan", "subscription", "invoice", "quote", "tax_id", "deserialize", "serialize", "billing_portal_session"] }
+async-stripe-checkout = { version = "1.0.0-rc.8", default-features = false,features = ["checkout_session"] }
+async-stripe-types = { version = "1.0.0-rc.8", default-features = false }
+async-stripe-webhook = { version = "1.0.0-rc.8", default-features = false }
 moka = { version = "0.12.11", features = ["future"] }
 nanoid = "0.4.0"
 serde_with = "3.15.1"
@@ -322,7 +322,7 @@ windows-service = "0.7"
 net-route = "0.4.6"
 
 [target.'cfg(any(target_os = "freebsd", target_os = "openbsd"))'.dependencies]
-netdev = "0.45.0"
+netdev = "0.46.3"
 
 # Vendored pnet_datalink 0.35.0 (see vendor/pnet_datalink/README.md): macOS/BSD's raw-socket
 # backend calls libc::FD_SET on a fixed 1024-slot bitmap during channel construction, which

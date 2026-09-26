@@ -23,12 +23,12 @@ impl BillingService {
                 };
 
                 if let Some(sub) = sub {
-                    self.handle_subscription_update(sub).await?;
+                    self.handle_subscription_update(*sub).await?;
                 }
             }
             EventType::CustomerSubscriptionTrialWillEnd => {
                 if let EventObject::CustomerSubscriptionTrialWillEnd(sub) = event.data.object {
-                    self.handle_trial_will_end(sub, event.created).await?;
+                    self.handle_trial_will_end(*sub, event.created).await?;
                 }
             }
             EventType::CustomerSubscriptionPaused | EventType::CustomerSubscriptionDeleted => {
@@ -38,7 +38,7 @@ impl BillingService {
                     _ => None,
                 };
                 if let Some(sub) = sub {
-                    self.handle_subscription_deleted(sub).await?;
+                    self.handle_subscription_deleted(*sub).await?;
                 }
             }
             // CheckoutSessionCompleted intentionally unhandled. Stripe fires it
@@ -76,27 +76,28 @@ impl BillingService {
             }
             EventType::InvoicePaymentFailed => {
                 if let EventObject::InvoicePaymentFailed(invoice) = event.data.object {
-                    self.handle_invoice_payment_failed(invoice).await?;
+                    self.handle_invoice_payment_failed(*invoice).await?;
                 }
             }
             EventType::InvoicePaymentActionRequired => {
                 if let EventObject::InvoicePaymentActionRequired(invoice) = event.data.object {
-                    self.handle_invoice_payment_action_required(invoice).await?;
+                    self.handle_invoice_payment_action_required(*invoice)
+                        .await?;
                 }
             }
             EventType::InvoicePaid => {
                 if let EventObject::InvoicePaid(invoice) = event.data.object {
-                    self.handle_invoice_paid(invoice).await?;
+                    self.handle_invoice_paid(*invoice).await?;
                 }
             }
             EventType::InvoiceCreated => {
                 if let EventObject::InvoiceCreated(invoice) = event.data.object {
-                    self.handle_invoice_created(invoice).await?;
+                    self.handle_invoice_created(*invoice).await?;
                 }
             }
             EventType::InvoiceFinalizationFailed => {
                 if let EventObject::InvoiceFinalizationFailed(invoice) = event.data.object {
-                    self.handle_invoice_finalization_failed(invoice).await?;
+                    self.handle_invoice_finalization_failed(*invoice).await?;
                 }
             }
             // `invoice.overdue` intentionally unhandled. Stripe only sends it
@@ -106,7 +107,7 @@ impl BillingService {
             // unpaid is read from the subscription instead, below.
             EventType::InvoiceFinalized => {
                 if let EventObject::InvoiceFinalized(invoice) = event.data.object {
-                    self.handle_invoice_finalized(invoice).await?;
+                    self.handle_invoice_finalized(*invoice).await?;
                 }
             }
             EventType::InvoiceVoided | EventType::InvoiceMarkedUncollectible => {
@@ -116,7 +117,7 @@ impl BillingService {
                     _ => None,
                 };
                 if let Some(invoice) = invoice {
-                    self.handle_invoice_voided(invoice).await?;
+                    self.handle_invoice_voided(*invoice).await?;
                 }
             }
             _ => {
@@ -231,8 +232,8 @@ impl BillingService {
                             BillingOperation::CancellationInitiated {
                                 plan: organization.base.plan,
                                 reason_code: meta.scanopy_cancel_reason,
-                                stripe_feedback,
-                                stripe_reason,
+                                stripe_feedback: stripe_feedback.clone(),
+                                stripe_reason: stripe_reason.clone(),
                                 comment: comment.clone(),
                                 save_offer_shown: meta
                                     .scanopy_cancel_save_offer_shown
@@ -320,7 +321,7 @@ impl BillingService {
             // update for a lapsed org moves it to Active, including its
             // subscription going past due, which would undo the refusal in
             // `report_invoice_overdue` to let a lapsed org back in.
-            if resubscribed(prior_status, prior_was_free, sub.status) {
+            if resubscribed(prior_status, prior_was_free, sub.status.clone()) {
                 let plan_config = plan.config();
                 self.event_bus
                     .publish(Event::new(
@@ -561,8 +562,11 @@ impl BillingService {
         // send_invoice, it becomes past_due when its invoice remains unpaid by
         // the due date". No charge is attempted on one, so
         // `invoice.payment_failed` never fires for it either.
-        if sent_invoice_went_past_due(prior_status, sub.status, sub.collection_method)
-            && let Some(invoice) = self.open_license_invoice(&organization).await?
+        if sent_invoice_went_past_due(
+            prior_status,
+            sub.status.clone(),
+            sub.collection_method.clone(),
+        ) && let Some(invoice) = self.open_license_invoice(&organization).await?
         {
             self.report_invoice_overdue(&organization, invoice).await?;
         }

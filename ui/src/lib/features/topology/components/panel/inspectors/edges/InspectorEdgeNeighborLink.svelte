@@ -26,8 +26,7 @@
 		topoStore
 			? $topoStore
 			: (topo.query?.data?.find((t) => t.id === $selectedTopologyId) as
-					| RenderableTopology
-					| undefined)
+					RenderableTopology | undefined)
 	);
 
 	let sourceHost = $derived(topology?.hosts.find((h) => h.id === sourceHostId));

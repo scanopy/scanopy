@@ -69,10 +69,9 @@ type HostSourceKeys = Extract<keyof HostResponse, `${string}_source`>;
 //
 // The read-only naming and provenance fields are partial: a host being created has none of them
 // yet, and an edited one carries them from `hydrateHostToFormData`'s spread of the host.
-export interface HostFormData
-	extends Partial<
-		Pick<HostResponse, 'display_name' | 'display_name_rung' | 'name_ladder' | HostSourceKeys>
-	> {
+export interface HostFormData extends Partial<
+	Pick<HostResponse, 'display_name' | 'display_name_rung' | 'name_ladder' | HostSourceKeys>
+> {
 	// Host primitive fields
 	id: string;
 	created_at: string;

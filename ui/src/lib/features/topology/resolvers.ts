@@ -410,8 +410,7 @@ export function getContainerContents(
 	for (const nd of topologyNodes) {
 		if (nd.node_type === 'Container') {
 			const parentContainerId = (nd as Record<string, unknown>).parent_container_id as
-				| string
-				| undefined;
+				string | undefined;
 			if (parentContainerId === containerId) {
 				subcontainerIds.add(nd.id);
 			}

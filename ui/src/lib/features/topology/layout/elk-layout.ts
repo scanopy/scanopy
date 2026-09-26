@@ -1304,8 +1304,7 @@ export function applyLocalSizeAdjustment(
 		// Detect container type for correct spacing/padding
 		const containerNode = nodeById.get(containerId);
 		const containerType = (containerNode as Record<string, unknown>)?.container_type as
-			| string
-			| undefined;
+			string | undefined;
 		const ctMeta = containerTypes.getMetadata(containerType ?? 'Subnet');
 		const spacing = 25;
 		const bottomPad = ctMeta.padding.bottom;

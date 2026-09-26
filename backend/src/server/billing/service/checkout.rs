@@ -82,7 +82,7 @@ impl BillingService {
                 adjustable_quantity: None,
                 price_data: None,
                 tax_rates: None,
-                dynamic_tax_rates: None,
+                metadata: None,
             }])
             .metadata([("organization_id".to_string(), organization_id.to_string())])
             .subscription_data(CreateCheckoutSessionSubscriptionData {
@@ -206,7 +206,8 @@ impl BillingService {
             .await?
             .ok_or_else(|| anyhow!("Could not find base price for selected plan"))?;
 
-        let subscription = CreateSubscription::new(customer_id)
+        let subscription = CreateSubscription::new()
+            .customer(customer_id)
             .items(vec![CreateSubscriptionItems {
                 price: Some(base_price.id.to_string()),
                 quantity: Some(1),
@@ -275,7 +276,8 @@ impl BillingService {
             .await?
             .ok_or_else(|| anyhow!("Could not find base price for selected plan"))?;
 
-        let subscription = CreateSubscription::new(customer_id)
+        let subscription = CreateSubscription::new()
+            .customer(customer_id)
             .items(vec![CreateSubscriptionItems {
                 price: Some(base_price.id.to_string()),
                 quantity: Some(1),

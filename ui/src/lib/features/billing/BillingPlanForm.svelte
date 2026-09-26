@@ -249,8 +249,7 @@
 		}
 		const metadata = billingPlanHelpers.getMetadata(planType);
 		const features = metadata?.features as unknown as
-			| Record<string, boolean | string | number | null>
-			| undefined;
+			Record<string, boolean | string | number | null> | undefined;
 		return features?.[featureKey] ?? null;
 	}
 
