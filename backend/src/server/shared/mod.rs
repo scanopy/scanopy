@@ -3,6 +3,7 @@ pub mod attribution;
 pub mod concepts;
 pub mod entities;
 pub mod entity_metadata;
+pub mod env_file;
 pub mod events;
 pub mod extractors;
 pub mod fixtures;
