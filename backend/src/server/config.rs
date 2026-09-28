@@ -27,6 +27,7 @@ use tower_sessions::SessionManagerLayer;
 use tower_sessions_sqlx_store::PostgresStore;
 use utoipa::ToSchema;
 
+use crate::server::shared::env_file::apply_file_env_vars;
 use crate::server::shared::storage::factory::StorageFactory;
 use sqlx::PgPool;
 
@@ -344,6 +345,8 @@ impl Default for ServerConfig {
 
 impl ServerConfig {
     pub fn load(cli_args: ServerCli) -> anyhow::Result<Self> {
+        apply_file_env_vars::<ServerConfig>()?;
+
         // Standard configuration layering: Defaults → Env → CLI (highest priority)
         let mut figment = Figment::from(Serialized::defaults(ServerConfig::default()))
             .merge(Toml::file("../oidc.toml"))

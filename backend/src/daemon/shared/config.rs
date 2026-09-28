@@ -18,6 +18,7 @@ use std::net::IpAddr;
 
 use crate::server::credentials::r#impl::mapping::IntegrationTarget;
 use crate::server::daemons::r#impl::{api::LegacyCapabilities, base::DaemonMode};
+use crate::server::shared::env_file::apply_file_env_vars;
 
 /// Parse the `SCANOPY_CREDENTIAL_IDS` / `--credential-id` compact token grammar into per-daemon
 /// [`IntegrationTarget`]s. Every token references a stored credential by id; the suffix is the
@@ -745,6 +746,8 @@ impl AppConfig {
     }
 
     pub fn load(cli_args: DaemonArgs) -> anyhow::Result<Self> {
+        apply_file_env_vars::<AppConfig>()?;
+
         // Determine config path from the daemon name and any explicit --config-dir override.
         let (config_exists, config_path) = AppConfig::get_config_path_for_name(
             cli_args.name.as_deref(),
