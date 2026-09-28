@@ -92,14 +92,14 @@ jobs:
             ghcr.io/${{ github.repository }}/daemon:${{ inputs.release_tag }}
 
       - name: Checkout scanopy repo (dev branch for latest fixtures)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: dev
           fetch-depth: 0
           fetch-tags: true
 
       - name: Checkout website repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: scanopy/website
           token: ${{ secrets.SYNC_FIXTURES_TO_WEBSITE_TOKEN }}
