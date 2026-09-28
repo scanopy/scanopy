@@ -293,6 +293,53 @@ mod discovery_request_interfaces_complete_tests {
         let parsed: DiscoveryHostRequest = serde_json::from_value(json).expect("deserializes");
         assert!(!parsed.interfaces_complete);
     }
+
+    /// The address as `deep_scan_host` builds it, inside the request it POSTs.
+    fn request_with_arp_reply_mac() -> DiscoveryHostRequest {
+        let mut request = request_with(true);
+        request.ip_addresses = vec![IPAddress::new(IPAddressBase {
+            ip_address: "192.168.1.50".parse().unwrap(),
+            mac_address: Some(MacEvidence::new(
+                MacEvidenceValue("42:3d:16:7c:f6:1f".parse().unwrap()),
+                AttributeSource::ArpReply,
+            )),
+            ..Default::default()
+        })];
+        request
+    }
+
+    fn address_mac_source(request: &DiscoveryHostRequest) -> Option<AttributeSource> {
+        request.ip_addresses[0]
+            .base
+            .mac_address
+            .as_ref()
+            .map(|m| m.source())
+    }
+
+    /// GH #718: the address sits two flattens deep (`IPAddress.base.mac_address`), and its source
+    /// must cross the HTTP body intact.
+    #[test]
+    fn an_address_mac_source_survives_the_request_body() {
+        let body = serde_json::to_vec(&request_with_arp_reply_mac()).expect("serializes");
+        let parsed: DiscoveryHostRequest = serde_json::from_slice(&body).expect("deserializes");
+        assert_eq!(address_mac_source(&parsed), Some(AttributeSource::ArpReply));
+    }
+
+    /// A daemon predating provenance sends the MAC alone. It still deserializes, unattributed.
+    #[test]
+    fn an_address_mac_without_a_source_reads_as_unspecified() {
+        let mut json = serde_json::to_value(request_with_arp_reply_mac()).expect("serializes");
+        json["ip_addresses"][0]
+            .as_object_mut()
+            .expect("an address is a JSON object")
+            .remove("mac_address_source")
+            .expect("the current shape carries a source");
+        let parsed: DiscoveryHostRequest = serde_json::from_value(json).expect("deserializes");
+        assert_eq!(
+            address_mac_source(&parsed),
+            Some(AttributeSource::Unspecified)
+        );
+    }
 }
 
 // =============================================================================

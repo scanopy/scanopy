@@ -8,7 +8,6 @@ use sqlx::postgres::PgRow;
 use uuid::Uuid;
 
 use crate::server::ip_addresses::r#impl::base::{MacEvidenceValue, mac_of};
-use crate::server::shared::attribution::Attributed;
 use crate::server::shared::storage::attributed;
 use crate::server::{
     ip_addresses::r#impl::base::{IPAddress, IPAddressBase},
@@ -240,11 +239,9 @@ impl Entity for IPAddress {
         // a router's ARP cache reported could never be corrected by an ARP reply the address
         // itself sent — first-write-wins under another name. `MacEvidenceValue` is not
         // refreshable, so an equal-rung re-read still cannot move it.
-        let mut merged = existing.base.mac_address.clone();
-        if let Some(incoming) = self.base.mac_address.clone() {
-            Attributed::apply(&mut merged, incoming);
-        }
-        self.base.mac_address = merged;
+        let incoming = self.base.mac_address.take();
+        self.base.mac_address = existing.base.mac_address.clone();
+        self.base.apply_mac_address(incoming);
     }
 }
 
