@@ -81,6 +81,7 @@ impl ServiceDefinitionRegistry {
 // ============= NETWORK INFRASTRUCTURE =============
 
 // NetworkCore
+pub mod cockpit;
 pub mod dhcp_server;
 pub mod gateway;
 pub mod gnmi;
