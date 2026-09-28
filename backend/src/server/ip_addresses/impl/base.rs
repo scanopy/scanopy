@@ -106,6 +106,14 @@ impl Default for IPAddressBase {
 }
 
 impl IPAddressBase {
+    /// Merge a newer reading of this address's MAC into the one on file, by rung. Returns whether
+    /// anything changed.
+    ///
+    /// A reading with no MAC says nothing about the address and leaves the stored one alone.
+    pub fn apply_mac_address(&mut self, incoming: Option<MacEvidence>) -> bool {
+        incoming.is_some_and(|mac| Attributed::apply(&mut self.mac_address, mac))
+    }
+
     /// Create a conceptual IP address for a subnet.
     /// `host_id` can be `Uuid::nil()` as a placeholder - server will set the correct one.
     pub fn new_conceptual(host_id: Uuid, subnet: &Subnet) -> Self {
