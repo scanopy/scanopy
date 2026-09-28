@@ -85,7 +85,7 @@ pub struct LldpInventorySnapshot {
     /// `interfaces.mac_address` → the distinct hosts carrying it. A switch repeating its chassis
     /// MAC across 48 ports is one host and one answer, so this collapses before counting.
     hosts_by_interface_mac: HashMap<MacAddress, HashSet<Uuid>>,
-    /// `interfaces.if_descr` → host, network-wide.
+    /// `interfaces.if_descr` → host, network-wide, walked rows (`if_index` set) only.
     host_by_interface_descr: HashMap<String, Claim>,
 
     /// `(host, MAC)` → interface, physical rows only.
@@ -193,11 +193,15 @@ impl LldpInventorySnapshot {
             }
 
             if let Some(ref if_descr) = interface.base.if_descr {
-                claim(
-                    &mut snapshot.host_by_interface_descr,
-                    if_descr.clone(),
-                    host_id,
-                );
+                // Walked rows only, as `find_host_by_if_name` filters: a port recorded from a
+                // neighbour's advertisement says nothing about which host owns a name.
+                if interface.base.if_index.is_some() {
+                    claim(
+                        &mut snapshot.host_by_interface_descr,
+                        if_descr.clone(),
+                        host_id,
+                    );
+                }
                 claim(
                     &mut snapshot.interface_by_host_descr,
                     (host_id, if_descr.clone()),

@@ -25,6 +25,14 @@ impl<T: Storable> StorableFilter<T> {
         self
     }
 
+    /// Only interfaces a walk reported, which carry an `if_index` (for interfaces table). Rows
+    /// recorded from a neighbour's advertisement have none.
+    pub fn walked(mut self) -> Self {
+        let col = self.qualify_column("if_index");
+        self.conditions.push(format!("{} IS NOT NULL", col));
+        self
+    }
+
     /// Filter by if_name (for interfaces table)
     pub fn if_name(mut self, name: &str) -> Self {
         let col = self.qualify_column("if_name");
