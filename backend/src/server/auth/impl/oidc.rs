@@ -98,6 +98,7 @@ impl From<&OidcProvider> for OidcProviderMetadata {
 }
 
 impl OidcProvider {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         slug: String,
         name: String,

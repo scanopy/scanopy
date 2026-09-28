@@ -204,6 +204,9 @@ use crate::server::subnets::r#impl::inference::UnplacedFarEnd;
 
 use reciprocal::PortBinding;
 
+/// Ports neighbours advertised for one far end: each port's name and MAC, whichever were sent.
+type AdvertisedPorts = Vec<(Option<String>, Option<MacAddress>)>;
+
 impl HostService {
     // =========================================================================
     // LLDP link resolution
@@ -661,7 +664,7 @@ impl HostService {
         network_id: Uuid,
         advertised: Vec<(Uuid, Option<String>, Option<String>)>,
     ) {
-        let mut by_host: HashMap<Uuid, Vec<(Option<String>, Option<MacAddress>)>> = HashMap::new();
+        let mut by_host: HashMap<Uuid, AdvertisedPorts> = HashMap::new();
         for (host_id, name, mac) in advertised {
             let mac = mac.as_deref().and_then(|m| m.parse::<MacAddress>().ok());
             if name.is_some() || mac.is_some() {

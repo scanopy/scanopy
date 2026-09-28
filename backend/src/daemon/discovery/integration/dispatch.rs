@@ -205,6 +205,7 @@ pub struct IntegrationProbeResults {
 /// `skip_gate` bypasses `probe_gate_ports` — used for the daemon's own host
 /// (localhost) phase, which does no port scan and lets integrations self-probe.
 /// The network-scan phase passes `false` so the gate keeps the broad scan cheap.
+#[allow(clippy::too_many_arguments)]
 pub async fn probe_integrations(
     ip: IpAddr,
     credential_mappings: &[CredentialMapping<CredentialQueryPayload>],
