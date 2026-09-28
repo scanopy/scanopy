@@ -305,6 +305,7 @@ impl DiscoveryRunner {
         // Probe with 127.0.0.1 — credentials are keyed to localhost, not the daemon's real IP.
         // The daemon's real IP is used for subnet/interface matching below.
         let localhost_ip = IpAddr::V4(Ipv4Addr::LOCALHOST);
+        let trusted_ca = ops.config_store.get_trusted_ca().await;
         let probe_results = dispatch::probe_integrations(
             localhost_ip,
             &localhost_mappings,
@@ -313,6 +314,7 @@ impl DiscoveryRunner {
             cancel,
             &self.service.utils,
             ops.config_store.get_accept_invalid_scan_certs().await?,
+            trusted_ca.as_deref(),
         )
         .await?;
 

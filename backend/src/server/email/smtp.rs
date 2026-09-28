@@ -1,7 +1,7 @@
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Tokio1Executor,
     message::{Attachment, Mailbox, MultiPart, SinglePart, header::ContentType},
-    transport::smtp::authentication::Credentials,
+    transport::smtp::{authentication::Credentials, client::Tls},
 };
 
 use anyhow::{Error, anyhow};
@@ -9,6 +9,7 @@ use async_trait::async_trait;
 use email_address::EmailAddress;
 
 use super::{messages::Email, transport::EmailTransport};
+use crate::server::shared::trusted_ca::TrustedCaBundle;
 
 /// Extra guidance for a failure where we never got a reply out of the server.
 ///
@@ -45,19 +46,29 @@ impl SmtpEmailProvider {
         smtp_email: String,
         smtp_relay: String,
         smtp_port: Option<u16>,
+        trusted_ca: Option<&TrustedCaBundle>,
     ) -> Result<Self, Error> {
         let creds = Credentials::new(smtp_username, smtp_password);
 
         // Port 465 (or unset) uses implicit TLS (SMTPS) via `relay`, preserving
         // the historical default. Any other port uses STARTTLS, which is what
         // submission ports like 587 and 25 expect.
-        let builder = match smtp_port {
+        let mut builder = match smtp_port {
             None | Some(465) => AsyncSmtpTransport::<Tokio1Executor>::relay(&smtp_relay)
                 .map_err(|e| anyhow!("Failed to create SMTP transport: {}", e))?,
             Some(port) => AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&smtp_relay)
                 .map_err(|e| anyhow!("Failed to create SMTP transport: {}", e))?
                 .port(port),
         };
+
+        // Same TLS mode as above, with the operator's CA roots added to the default ones.
+        if let Some(bundle) = trusted_ca {
+            let params = bundle.smtp_tls_parameters(smtp_relay.clone())?;
+            builder = builder.tls(match smtp_port {
+                None | Some(465) => Tls::Wrapper(params),
+                Some(_) => Tls::Required(params),
+            });
+        }
 
         let mailer = builder.credentials(creds).build();
 
@@ -202,6 +213,7 @@ mod tests {
             "scanopy@example.test".to_string(),
             relay.to_string(),
             Some(closed_port()),
+            None,
         )
         .expect("provider should build");
 

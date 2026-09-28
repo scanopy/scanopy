@@ -83,6 +83,8 @@ pub struct OidcProvider {
     client_id: String,
     client_secret: String,
     redirect_url: String,
+    /// Shared client built by `OidcService::new`, carrying any extra trusted CA roots.
+    http_client: ReqwestClient,
 }
 
 impl From<&OidcProvider> for OidcProviderMetadata {
@@ -104,6 +106,7 @@ impl OidcProvider {
         client_id: String,
         client_secret: String,
         redirect_url: String,
+        http_client: ReqwestClient,
     ) -> Self {
         Self {
             slug,
@@ -113,18 +116,15 @@ impl OidcProvider {
             client_id,
             client_secret,
             redirect_url,
+            http_client,
         }
     }
 
     /// Generate authorization URL for user to visit
     pub async fn authorize_url(&self, flow: OidcFlow) -> Result<(String, OidcPendingAuth)> {
-        let http_client = ReqwestClient::builder()
-            .redirect(reqwest::redirect::Policy::limited(10))
-            .build()?;
-
         let provider_metadata = CoreProviderMetadata::discover_async(
             IssuerUrl::new(self.issuer_url.clone())?,
-            &http_client,
+            &self.http_client,
         )
         .await?;
 
@@ -165,13 +165,9 @@ impl OidcProvider {
         code: &str,
         pending_auth: &OidcPendingAuth,
     ) -> Result<OidcUserInfo> {
-        let http_client = ReqwestClient::builder()
-            .redirect(reqwest::redirect::Policy::limited(10))
-            .build()?;
-
         let provider_metadata = CoreProviderMetadata::discover_async(
             IssuerUrl::new(self.issuer_url.clone())?,
-            &http_client,
+            &self.http_client,
         )
         .await?;
 
@@ -188,7 +184,7 @@ impl OidcProvider {
         let token_response = client
             .exchange_code(AuthorizationCode::new(code.to_string()))?
             .set_pkce_verifier(pkce_verifier)
-            .request_async(&http_client)
+            .request_async(&self.http_client)
             .await?;
 
         let id_token = token_response

@@ -1,5 +1,6 @@
 use crate::daemon::shared::config::ConfigStore;
 use crate::daemon::shared::forward_compat::DaemonResponse;
+use crate::server::shared::trusted_ca::TrustedCaBundle;
 use crate::server::shared::types::api::{ApiErrorResponse, ApiResponse};
 use anyhow::{Error, bail};
 use reqwest::{Client, Method, RequestBuilder};
@@ -98,12 +99,17 @@ impl DaemonApiClient {
                 let allow_self_signed_certs =
                     self.config_store.get_allow_self_signed_certs().await?;
 
-                Client::builder()
-                    .danger_accept_invalid_certs(allow_self_signed_certs)
-                    .connect_timeout(Duration::from_secs(10))
-                    .timeout(Duration::from_secs(30))
-                    .build()
-                    .map_err(|e| anyhow::anyhow!("Failed to build HTTP client: {}", e))
+                let trusted_ca = self.config_store.get_trusted_ca().await;
+
+                TrustedCaBundle::apply(
+                    trusted_ca.as_deref(),
+                    Client::builder()
+                        .danger_accept_invalid_certs(allow_self_signed_certs)
+                        .connect_timeout(Duration::from_secs(10))
+                        .timeout(Duration::from_secs(30)),
+                )
+                .build()
+                .map_err(|e| anyhow::anyhow!("Failed to build HTTP client: {}", e))
             })
             .await
     }

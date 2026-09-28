@@ -114,6 +114,10 @@ pub struct ServerCli {
 
     #[arg(long)]
     pub brevo_api_key: Option<String>,
+
+    /// PEM file of CA certificates to trust for outbound TLS, in addition to the bundled roots
+    #[arg(long)]
+    pub trusted_ca_bundle: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -197,6 +201,13 @@ pub struct ServerConfig {
     /// from the env automatically via the existing Figment env-var pipeline.
     #[serde(default)]
     pub snapshot_retention_days_override: Option<u32>,
+
+    /// PEM file (`SCANOPY_TRUSTED_CA_BUNDLE`) whose CA certificates are trusted in addition to
+    /// the bundled roots by every outbound client that reaches an operator-controlled host
+    /// (OIDC issuers, SMTP relay, daemons, license server). A set but missing, unreadable or
+    /// certificate-free file stops startup.
+    #[serde(default)]
+    pub trusted_ca_bundle: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema, PartialEq)]
@@ -338,6 +349,7 @@ impl Default for ServerConfig {
             license_server_url: None,
             server_admin_contact_email: None,
             snapshot_retention_days_override: None,
+            trusted_ca_bundle: None,
         }
     }
 }
@@ -415,6 +427,9 @@ impl ServerConfig {
         }
         if let Some(brevo_api_key) = cli_args.brevo_api_key {
             figment = figment.merge(("brevo_api_key", brevo_api_key));
+        }
+        if let Some(trusted_ca_bundle) = cli_args.trusted_ca_bundle {
+            figment = figment.merge(("trusted_ca_bundle", trusted_ca_bundle));
         }
 
         let mut config: ServerConfig = figment

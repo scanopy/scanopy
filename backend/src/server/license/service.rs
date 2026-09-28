@@ -13,6 +13,7 @@ use super::types::{LicenseKeyType, LicenseStatus};
 use crate::server::billing::plans::plan_for_license;
 use crate::server::billing::types::base::BillingPlan;
 use crate::server::organizations::service::OrganizationService;
+use crate::server::shared::trusted_ca::TrustedCaBundle;
 use crate::server::shared::types::api::{ApiErrorResponse, ApiResponse};
 use crate::server::shared::types::error_codes::ErrorCode;
 
@@ -92,6 +93,7 @@ impl LicenseService {
         license_key: LicenseKey,
         organization_service: Arc<OrganizationService>,
         base_url: Option<String>,
+        trusted_ca: Option<&TrustedCaBundle>,
     ) -> Self {
         let key_type = license_key.key_type();
 
@@ -137,10 +139,12 @@ impl LicenseService {
             base_url,
             state: RwLock::new(state),
             organization_service,
-            http: reqwest::Client::builder()
-                .timeout(CHECK_IN_TIMEOUT)
-                .build()
-                .expect("Failed to create HTTP client"),
+            http: TrustedCaBundle::apply(
+                trusted_ca,
+                reqwest::Client::builder().timeout(CHECK_IN_TIMEOUT),
+            )
+            .build()
+            .expect("Failed to create HTTP client"),
         }
     }
 
@@ -412,7 +416,7 @@ mod tests {
     }
 
     async fn service(key: LicenseKey) -> LicenseService {
-        LicenseService::new(key, unreachable_org_service(), None).await
+        LicenseService::new(key, unreachable_org_service(), None, None).await
     }
 
     /// A stand-in for the cloud entitlement endpoint that answers every
@@ -499,6 +503,7 @@ mod tests {
                 online_key(ORG_ID),
                 unreachable_org_service(),
                 Some(base_url),
+                None,
             )
             .await,
         );
@@ -715,7 +720,7 @@ mod tests {
             .await
             .unwrap();
 
-        let license = LicenseService::new(online_key(ORG_ID), orgs.clone(), None).await;
+        let license = LicenseService::new(online_key(ORG_ID), orgs.clone(), None, None).await;
         assert!(matches!(
             license.current_status().await,
             LicenseStatus::Pending
@@ -737,7 +742,7 @@ mod tests {
         assert!(stored.base.license_entitlement.is_some());
 
         // Restart with the cloud unreachable: the persisted entitlement applies.
-        let restarted = LicenseService::new(online_key(ORG_ID), orgs.clone(), None).await;
+        let restarted = LicenseService::new(online_key(ORG_ID), orgs.clone(), None, None).await;
         assert!(matches!(
             restarted.current_status().await,
             LicenseStatus::Valid(_)
