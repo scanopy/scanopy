@@ -20,7 +20,7 @@ jobs:
           fetch-depth: 0
       
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@1.90.0
+        uses: dtolnay/rust-toolchain@1.120.0
         with:
           components: rustfmt, clippy
       
@@ -459,7 +459,7 @@ jobs:
           git reset --hard origin/${{ github.event.release.target_commitish }}
       
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@1.90.0
+        uses: dtolnay/rust-toolchain@1.120.0
         with:
           targets: ${{ matrix.target }}
 
@@ -825,7 +825,7 @@ jobs:
           token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@1.90.0
+        uses: dtolnay/rust-toolchain@1.120.0
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2

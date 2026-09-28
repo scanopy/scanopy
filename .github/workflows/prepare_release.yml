@@ -39,7 +39,7 @@ jobs:
         fi
     
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@1.90.0
+      uses: dtolnay/rust-toolchain@1.120.0
     
     - name: Update version in Cargo.toml and package.json
       run: |

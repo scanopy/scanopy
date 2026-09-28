@@ -106,7 +106,7 @@ jobs:
           path: website
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@1.90.0
+        uses: dtolnay/rust-toolchain@1.120.0
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
