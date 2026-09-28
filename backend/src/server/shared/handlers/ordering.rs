@@ -28,6 +28,23 @@ pub trait OrderField: Clone + Copy + Default + Send + Sync + 'static {
     fn join_sql(&self) -> Option<&'static str> {
         None
     }
+
+    /// Whether rows with no value for this field sort last in both directions.
+    ///
+    /// Postgres puts NULLs last for ASC but first for DESC. A field whose NULL means "nothing to
+    /// sort by" (e.g. a host with no MAC) returns true so those rows never lead a DESC listing.
+    fn nulls_last(&self) -> bool {
+        false
+    }
+
+    /// The field's ORDER BY term in the given direction.
+    fn order_term(&self, dir: &str) -> String {
+        if self.nulls_last() {
+            format!("{} {} NULLS LAST", self.to_sql(), dir)
+        } else {
+            format!("{} {}", self.to_sql(), dir)
+        }
+    }
 }
 
 // ============================================================================
@@ -40,6 +57,8 @@ pub trait OrderField: Clone + Copy + Default + Send + Sync + 'static {
 /// - Adding JOINs required by order fields
 /// - Avoiding duplicate JOINs when group_by and order_by use the same JOIN
 /// - Building the ORDER BY clause with group_by first (always ASC) then order_by
+/// - Ending a field ordering with the row id, so rows that tie on the field (every NULL, say)
+///   keep one order across pages instead of repeating on one page and vanishing from the next
 ///
 /// Returns: (modified_filter, order_by_sql)
 pub fn apply_ordering<T, O>(
@@ -60,7 +79,7 @@ where
         if let Some(join) = group_field.join_sql() {
             filter = filter.join(join);
         }
-        order_parts.push(format!("{} ASC", group_field.to_sql()));
+        order_parts.push(group_field.order_term("ASC"));
     }
 
     // Secondary: order_by field with specified direction
@@ -74,12 +93,13 @@ where
             filter = filter.join(join);
         }
         let dir = direction.unwrap_or_default().to_sql();
-        order_parts.push(format!("{} {}", order_field.to_sql(), dir));
+        order_parts.push(order_field.order_term(dir));
     }
 
     let order_by_sql = if order_parts.is_empty() {
         default_order.to_string()
     } else {
+        order_parts.push(format!("{}.id ASC", T::table_name()));
         order_parts.join(", ")
     };
 

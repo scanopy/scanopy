@@ -46,6 +46,7 @@
 		common_interfaces,
 		common_ipAddresses,
 		common_lastSeen,
+		common_macAddress,
 		common_confirmBulkDelete,
 		common_manufacturer,
 		common_model,
@@ -363,6 +364,15 @@
 		return ipAddressesData.filter((i) => i.host_id === host.id);
 	}
 
+	/** The host's distinct MACs across its IP addresses and interfaces, lowest first — the
+	 *  first is the one the server sorts the host by. */
+	function hostMacAddresses(host: Host): string[] {
+		const macs = [...hostIPAddresses(host), ...hostInterfaces(host)]
+			.map((i) => i.mac_address?.toUpperCase())
+			.filter((m): m is string => !!m);
+		return [...new Set(macs)].sort();
+	}
+
 	function isContainerSubnetFn(subnetId: string): boolean {
 		const subnet = subnetsData.find((s) => s.id === subnetId);
 		return subnet ? isContainerSubnet(subnet) : false;
@@ -474,6 +484,21 @@
 									color: entities.getColorHelper('IPAddress').color,
 									entityRef: entityRef('IPAddress', i.id, i, { subnets: subnetsData })
 								}))
+					}
+				},
+				mac_address: {
+					label: common_macAddress(),
+					type: 'string',
+					searchable: true,
+					groupable: false,
+					getValue: (host) => hostMacAddresses(host)[0] ?? '',
+					display: {
+						order: 5,
+						getItems: (host) =>
+							hostMacAddresses(host).map((mac) => ({
+								id: mac,
+								label: mac
+							}))
 					}
 				},
 				network_id: {
