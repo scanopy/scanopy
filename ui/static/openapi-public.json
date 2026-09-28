@@ -23871,7 +23871,8 @@
           "virtualized_by",
           "network_id",
           "interface_ip",
-          "last_seen_at"
+          "last_seen_at",
+          "mac_address"
         ]
       },
       "HostResponse": {

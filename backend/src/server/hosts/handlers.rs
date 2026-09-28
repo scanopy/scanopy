@@ -36,7 +36,7 @@ use crate::server::{
     daemons::r#impl::{base::Daemon, version::pre_interface_to_ip_address_rename},
     hosts::r#impl::{
         api::{CreateHostRequest, DiscoveryHostRequest, HostResponse, UpdateHostRequest},
-        base::{Host, PRIMARY_INTERFACE_JOIN},
+        base::{HOST_MAC_JOIN, Host, PRIMARY_INTERFACE_JOIN},
         legacy::{HostCreateRequestBody, HostCreateResponse, LegacyHostWithServicesResponse},
     },
     shared::types::api::{ApiError, ApiResponse, ApiResult, PaginatedApiResponse},
@@ -80,6 +80,9 @@ pub enum HostOrderField {
     InterfaceIp,
     /// Sort by when discovery last observed the host. Surfaces stale assets.
     LastSeenAt,
+    /// Sort by the host's lowest MAC across its live IP addresses and interfaces. Hosts with no
+    /// MAC sort last in both directions. Requires the [`HOST_MAC_JOIN`].
+    MacAddress,
 }
 
 /// The host title in SQL, built once: `to_sql` hands out `&'static str`.
@@ -98,7 +101,12 @@ impl OrderField for HostOrderField {
             Self::LastSeenAt => "hosts.last_seen_at",
             Self::VirtualizedBy => "COALESCE(virt_service.name, '')",
             Self::InterfaceIp => "primary_interface.ip_address",
+            Self::MacAddress => "host_mac.mac_address",
         }
+    }
+
+    fn nulls_last(&self) -> bool {
+        matches!(self, Self::MacAddress)
     }
 
     fn join_sql(&self) -> Option<&'static str> {
@@ -111,6 +119,7 @@ impl OrderField for HostOrderField {
             // produce a single `primary_interface` join. `apply_ordering` drops the second when
             // the two are equal, so what matters is that they cannot stop being equal.
             Self::Name | Self::InterfaceIp => Some(PRIMARY_INTERFACE_JOIN),
+            Self::MacAddress => Some(HOST_MAC_JOIN),
             _ => None,
         }
     }

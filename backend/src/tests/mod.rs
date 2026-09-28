@@ -45,6 +45,7 @@ pub mod dependencies;
 pub mod fdb_resolution;
 pub mod host_create_with_children;
 pub mod host_interface_sync;
+pub mod host_mac_ordering;
 pub mod host_naming;
 pub mod interface_neighbor_candidates;
 pub mod lldp_resolution;
