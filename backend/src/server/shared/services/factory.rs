@@ -33,6 +33,7 @@ use crate::server::{
             registry::{CollectedServices, ServiceCollector, register_all_subscribers},
         },
         storage::factory::StorageFactory,
+        trusted_ca::TrustedCaBundle,
     },
     shares::service::ShareService,
     snapshots::service::SnapshotService,
@@ -89,10 +90,29 @@ pub struct ServiceFactory {
     /// keyless deployment (community or cloud) has no license service —
     /// licensing is "not required".
     pub license_service: Option<Arc<LicenseService>>,
+    /// Extra CA certificates from `SCANOPY_TRUSTED_CA_BUNDLE`, loaded once here and shared by
+    /// every outbound client that reaches an operator-controlled host.
+    pub trusted_ca: Option<Arc<TrustedCaBundle>>,
 }
 
 impl ServiceFactory {
     pub async fn new(storage: &StorageFactory, config: ServerConfig) -> Result<Self> {
+        // Fail closed: a set but unusable bundle stops startup instead of surfacing later as
+        // TLS failures on the first OIDC login or email.
+        let trusted_ca = config
+            .trusted_ca_bundle
+            .as_deref()
+            .map(TrustedCaBundle::load)
+            .transpose()?
+            .map(Arc::new);
+        if let Some(bundle) = &trusted_ca {
+            tracing::info!(
+                path = %bundle.path().display(),
+                certificates = bundle.len(),
+                "Trusting extra CA certificates for outbound TLS"
+            );
+        }
+
         let event_bus = Arc::new(EventBus::new());
 
         let logging_service = Arc::new(LoggingService::new());
@@ -159,6 +179,7 @@ impl ServiceFactory {
                     key,
                     organization_service.clone(),
                     config.license_server_url.clone(),
+                    trusted_ca.as_deref(),
                 )
                 .await,
             )),
@@ -269,6 +290,7 @@ impl ServiceFactory {
             user_service.clone(),
             daemon_api_key_service.clone(),
             crate::server::config::get_deployment_type(&config),
+            trusted_ca.as_deref(),
         ));
 
         // HostService needs DaemonService
@@ -390,8 +412,14 @@ impl ServiceFactory {
                 config.smtp_relay,
             ) {
                 (Some(username), Some(password), Some(email), Some(relay)) => {
-                    match SmtpEmailProvider::new(username, password, email, relay, config.smtp_port)
-                    {
+                    match SmtpEmailProvider::new(
+                        username,
+                        password,
+                        email,
+                        relay,
+                        config.smtp_port,
+                        trusted_ca.as_deref(),
+                    ) {
                         Ok(smtp_provider) => Some(Arc::new(EmailService::new(
                             Box::new(smtp_provider),
                             user_service.clone(),
@@ -490,15 +518,20 @@ impl ServiceFactory {
             None
         };
 
-        let oidc_service = config.oidc_providers.map(|oidc_providers| {
-            Arc::new(OidcService::new(
-                oidc_providers,
-                &config.public_url,
-                auth_service.clone(),
-                user_service.clone(),
-                event_bus.clone(),
-            ))
-        });
+        let oidc_service = config
+            .oidc_providers
+            .map(|oidc_providers| {
+                OidcService::new(
+                    oidc_providers,
+                    &config.public_url,
+                    auth_service.clone(),
+                    user_service.clone(),
+                    event_bus.clone(),
+                    trusted_ca.as_deref(),
+                )
+                .map(Arc::new)
+            })
+            .transpose()?;
 
         let factory = Self {
             user_service,
@@ -536,6 +569,7 @@ impl ServiceFactory {
             vlan_service,
             discovery_digest_service,
             license_service,
+            trusted_ca,
         };
 
         // Register every `Subscriber<Op>` impl in the codebase. Entries are
@@ -592,6 +626,7 @@ impl ServiceFactory {
             vlan_service,
             discovery_digest_service,
             license_service: _, // not a Subscriber: bespoke service, no EventBusService impl
+            trusted_ca: _,      // not a service; shared TLS roots
         } = self;
 
         ServiceCollector::new()

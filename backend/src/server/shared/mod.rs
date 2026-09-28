@@ -13,6 +13,7 @@ pub mod oui;
 pub mod position;
 pub mod services;
 pub mod storage;
+pub mod trusted_ca;
 pub mod types;
 pub mod validation;
 pub mod web_assets;

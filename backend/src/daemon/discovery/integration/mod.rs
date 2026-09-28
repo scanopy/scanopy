@@ -38,6 +38,7 @@ use crate::{
         discovery::r#impl::types::HostNamingFallback,
         ports::r#impl::base::PortType,
         services::r#impl::{base::Service, endpoints::EndpointResponse, patterns::ClientProbe},
+        shared::trusted_ca::TrustedCaBundle,
         subnets::r#impl::base::Subnet,
     },
 };
@@ -342,6 +343,9 @@ pub struct ProbeContext<'a> {
     /// the same policy the execute phase gets. Appliance controllers (UniFi and friends) ship
     /// self-signed certs by default, so without this the probe fails before execute is reached.
     pub accept_invalid_certs: bool,
+    /// Extra CA roots from the daemon's `trusted_ca_bundle`, for controllers signed by a
+    /// private CA. Mirrors [`IntegrationContext::trusted_ca`].
+    pub trusted_ca: Option<&'a TrustedCaBundle>,
 }
 
 /// Successful probe — service responds with this credential.
@@ -387,6 +391,7 @@ pub struct IntegrationContext<'a> {
     /// controller rescan silently enrich nothing.
     pub known_subnets: &'a [Subnet],
     pub accept_invalid_certs: bool,
+    pub trusted_ca: Option<&'a TrustedCaBundle>,
     /// The subnet currently being scanned (needed by SNMP for remote subnet discovery).
     pub scanning_subnet: Option<&'a Subnet>,
 }

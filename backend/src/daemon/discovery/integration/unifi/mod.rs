@@ -88,20 +88,21 @@ impl DiscoveryIntegration for UnifiIntegration {
             return Err(ProbeFailure::malformed("Not a UniFi credential"));
         };
 
-        let client =
-            UnifiClient::connect(&ctx.ip.to_string(), credential, ctx.accept_invalid_certs)
-                .await
-                .map_err(|e| {
-                    // `e` is already phrased for an operator and never contains the secret. The
-                    // client distinguishes a refused login from an unknown site from a transport
-                    // failure, so keep that distinction rather than flattening it — a wrong
-                    // password and a self-signed certificate send an operator to opposite ends
-                    // of the problem, and both used to read as "was rejected".
-                    ProbeFailure::with_outcome(
-                        UnifiClient::classify_connect_error(&e),
-                        e.to_string(),
-                    )
-                })?;
+        let client = UnifiClient::connect(
+            &ctx.ip.to_string(),
+            credential,
+            ctx.accept_invalid_certs,
+            ctx.trusted_ca,
+        )
+        .await
+        .map_err(|e| {
+            // `e` is already phrased for an operator and never contains the secret. The
+            // client distinguishes a refused login from an unknown site from a transport
+            // failure, so keep that distinction rather than flattening it — a wrong
+            // password and a self-signed certificate send an operator to opposite ends
+            // of the problem, and both used to read as "was rejected".
+            ProbeFailure::with_outcome(UnifiClient::classify_connect_error(&e), e.to_string())
+        })?;
 
         tracing::info!(
             ip = %ctx.ip,

@@ -24,6 +24,7 @@ use crate::server::{
         },
         services::traits::CrudService,
         storage::filter::StorableFilter,
+        trusted_ca::TrustedCaBundle,
     },
     users::{r#impl::base::User, service::UserService},
 };
@@ -52,7 +53,16 @@ impl OidcService {
         auth_service: Arc<AuthService>,
         user_service: Arc<UserService>,
         event_bus: Arc<EventBus>,
-    ) -> Self {
+        trusted_ca: Option<&TrustedCaBundle>,
+    ) -> Result<Self> {
+        // One client for every provider's discovery, JWKS and token calls, so the extra CA
+        // roots are added once rather than rebuilt per request.
+        let http_client = TrustedCaBundle::apply(
+            trusted_ca,
+            reqwest::Client::builder().redirect(reqwest::redirect::Policy::limited(10)),
+        )
+        .build()?;
+
         let mut providers = HashMap::new();
 
         for config in configs {
@@ -71,17 +81,18 @@ impl OidcService {
                 config.client_id.clone(),
                 config.client_secret.clone(),
                 redirect_url,
+                http_client.clone(),
             );
 
             providers.insert(config.slug.clone(), Arc::new(provider));
         }
 
-        Self {
+        Ok(Self {
             providers,
             auth_service,
             user_service,
             event_bus,
-        }
+        })
     }
 
     pub fn get_provider(&self, slug: &str) -> Option<&Arc<OidcProvider>> {

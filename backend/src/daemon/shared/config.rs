@@ -19,6 +19,7 @@ use std::net::IpAddr;
 use crate::server::credentials::r#impl::mapping::IntegrationTarget;
 use crate::server::daemons::r#impl::{api::LegacyCapabilities, base::DaemonMode};
 use crate::server::shared::env_file::apply_file_env_vars;
+use crate::server::shared::trusted_ca::TrustedCaBundle;
 
 /// Parse the `SCANOPY_CREDENTIAL_IDS` / `--credential-id` compact token grammar into per-daemon
 /// [`IntegrationTarget`]s. Every token references a stored credential by id; the suffix is the
@@ -269,6 +270,13 @@ pub struct DaemonArgs {
     #[arg(long)]
     pub accept_invalid_scan_certs: Option<bool>,
 
+    /// PEM file of CA certificates to trust, in addition to the bundled roots, for connections
+    /// to the server and to integration controllers (UniFi). A set but unusable file stops startup.
+    // Daemon-host path, set by the operator: never part of the server's install API.
+    #[serde(skip)]
+    #[arg(long)]
+    pub trusted_ca_bundle: Option<PathBuf>,
+
     /// Integration target tokens (repeatable). Each is `<uuid>` (credential, no specific IP),
     /// `<uuid>@<ip>[+<ip>...]` (credential pinned to IP(s)), or `docker-socket` / `podman-socket`
     /// (credential-less local socket on the daemon host).
@@ -394,7 +402,8 @@ impl DaemonArgs {
             daemon_url: _, // Captured on the daemon record at provision time
             user_id: _,    // Server-set from the provisioning member
             accept_invalid_scan_certs,
-            credential_ids: _, // Seeded server-side from `seed_credential_refs`
+            trusted_ca_bundle: _, // A path on the daemon host; `install` persists it to config.json
+            credential_ids: _,    // Seeded server-side from `seed_credential_refs`
             log_file,
             use_npcap_arp: _, // Deprecated: scan settings are per-discovery via ScanSettings
             arp_retries: _,
@@ -584,6 +593,9 @@ pub struct AppConfig {
     /// Defaults to true since scanners probe arbitrary internal services.
     #[serde(default = "default_accept_invalid_scan_certs")]
     pub accept_invalid_scan_certs: bool,
+    /// PEM bundle of extra CA certificates to trust (`SCANOPY_TRUSTED_CA_BUNDLE`).
+    #[serde(default)]
+    pub trusted_ca_bundle: Option<PathBuf>,
     #[serde(default)]
     pub use_npcap_arp: bool,
     #[serde(default = "default_arp_retries")]
@@ -615,6 +627,9 @@ pub struct AppConfig {
     /// `--config-dir` override is honored consistently by both the write and read sides.
     #[serde(skip)]
     pub config_path: Option<PathBuf>,
+    /// `trusted_ca_bundle`, read and validated once by [`AppConfig::load`]. Runtime-only.
+    #[serde(skip)]
+    pub trusted_ca: Option<Arc<TrustedCaBundle>>,
 }
 
 fn default_accept_invalid_scan_certs() -> bool {
@@ -668,6 +683,7 @@ impl Default for AppConfig {
             docker_proxy_ssl_chain: None,
             docker_proxy_ssl_key: None,
             accept_invalid_scan_certs: default_accept_invalid_scan_certs(),
+            trusted_ca_bundle: None,
             use_npcap_arp: false,
             arp_retries: default_arp_retries(),
             arp_rate_pps: default_arp_rate_pps(),
@@ -678,6 +694,7 @@ impl Default for AppConfig {
             integration_targets: Vec::new(),
             has_self_reported: false,
             config_path: None,
+            trusted_ca: None,
         }
     }
 }
@@ -860,6 +877,9 @@ impl AppConfig {
         if let Some(accept_invalid_scan_certs) = cli_args.accept_invalid_scan_certs {
             figment = figment.merge(("accept_invalid_scan_certs", accept_invalid_scan_certs));
         }
+        if let Some(trusted_ca_bundle) = cli_args.trusted_ca_bundle {
+            figment = figment.merge(("trusted_ca_bundle", trusted_ca_bundle));
+        }
         if let Some(use_npcap_arp) = cli_args.use_npcap_arp {
             figment = figment.merge(("use_npcap_arp", use_npcap_arp));
         }
@@ -899,6 +919,14 @@ impl AppConfig {
         if let Some(tokens) = cli_args.credential_ids.or(env_target_tokens) {
             config.integration_targets = parse_integration_target_tokens(&tokens)?;
         }
+
+        // Fail closed: a set but unusable bundle stops the daemon (and `install`) here.
+        config.trusted_ca = config
+            .trusted_ca_bundle
+            .as_deref()
+            .map(TrustedCaBundle::load)
+            .transpose()?
+            .map(Arc::new);
 
         // Record the resolved path so the runtime read/write side uses it verbatim instead of
         // re-deriving (which would re-read `$HOME`/`--config-dir` and could diverge).
@@ -1076,6 +1104,10 @@ impl ConfigStore {
     pub async fn get_allow_self_signed_certs(&self) -> Result<bool> {
         let config = self.config.read().await;
         Ok(config.allow_self_signed_certs)
+    }
+
+    pub async fn get_trusted_ca(&self) -> Option<Arc<TrustedCaBundle>> {
+        self.config.read().await.trusted_ca.clone()
     }
 
     pub async fn get_api_key(&self) -> Result<Option<String>> {
@@ -1352,6 +1384,39 @@ mod tests {
         assert_eq!(config.server_url.as_deref(), Some("https://new.example"));
     }
 
+    /// A configured CA bundle is loaded once at config load, and an unusable one stops the
+    /// daemon there with an error naming the path, instead of every TLS call failing later.
+    #[test]
+    #[serial]
+    fn a_trusted_ca_bundle_is_loaded_at_startup_and_fails_closed() {
+        use crate::daemon::shared::config::DaemonArgs;
+
+        let dir = tempfile::tempdir().unwrap();
+        let load = |bundle: std::path::PathBuf| {
+            AppConfig::load(DaemonArgs {
+                config_dir: Some(dir.path().to_path_buf()),
+                trusted_ca_bundle: Some(bundle),
+                ..Default::default()
+            })
+        };
+
+        let unset = AppConfig::load(DaemonArgs {
+            config_dir: Some(dir.path().to_path_buf()),
+            ..Default::default()
+        })
+        .unwrap();
+        assert!(unset.trusted_ca.is_none());
+
+        let missing = dir.path().join("missing-ca.pem");
+        let err = load(missing.clone()).unwrap_err();
+        assert!(format!("{err:#}").contains(&missing.display().to_string()));
+
+        let empty = dir.path().join("empty-ca.pem");
+        std::fs::write(&empty, "").unwrap();
+        let err = load(empty.clone()).unwrap_err();
+        assert!(format!("{err:#}").contains(&empty.display().to_string()));
+    }
+
     #[derive(Debug)]
     struct FieldInfo {
         cli_flag: String,
@@ -1359,7 +1424,7 @@ mod tests {
         help_text: String,
     }
 
-    const EXCLUDED_FIELDS: [&str; 19] = [
+    const EXCLUDED_FIELDS: [&str; 20] = [
         "daemon_api_key",
         "network_id",
         "server_url",
@@ -1382,6 +1447,8 @@ mod tests {
         "docker_proxy_ssl_cert",
         "docker_proxy_ssl_key",
         "docker_proxy_ssl_chain",
+        // A path on the daemon host, set by the operator; the install command never carries it
+        "trusted_ca_bundle",
         // Deprecated: scan settings are now per-discovery via ScanSettings
         "use_npcap_arp",
         "arp_retries",

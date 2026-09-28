@@ -19,6 +19,7 @@ use crate::server::shared::handlers::traits::{CrudHandlers, update_handler};
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::{Entity, Storable};
+use crate::server::shared::trusted_ca::TrustedCaBundle;
 use crate::server::shared::types::api::ApiErrorResponse;
 use crate::server::shared::types::error_codes::ErrorCode;
 use crate::server::shared::validation::validate_network_access;
@@ -1338,12 +1339,15 @@ async fn test_reachability(
         // does not independently re-resolve the hostname — this closes the
         // DNS-rebinding TOCTOU where a name resolves to a public IP during the
         // SSRF check above and to an internal IP for this request.
-        let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(5))
-            .redirect(reqwest::redirect::Policy::none())
-            .resolve(host, addrs[0])
-            .build()
-            .unwrap_or_default();
+        let client = TrustedCaBundle::apply(
+            state.services.trusted_ca.as_deref(),
+            reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(5))
+                .redirect(reqwest::redirect::Policy::none())
+                .resolve(host, addrs[0]),
+        )
+        .build()
+        .unwrap_or_default();
 
         match client.get(&health_url).send().await {
             Ok(resp) => Some(resp.status().is_success()),

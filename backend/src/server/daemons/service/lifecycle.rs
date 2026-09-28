@@ -15,16 +15,19 @@ impl DaemonService {
         user_service: Arc<UserService>,
         daemon_api_key_service: Arc<DaemonApiKeyService>,
         deployment_type: crate::server::config::DeploymentType,
+        trusted_ca: Option<&TrustedCaBundle>,
     ) -> Self {
         let interfaced_subnet_storage =
             DaemonInterfacedSubnetStorage::new(daemon_storage.pool().clone());
         Self {
             daemon_storage,
             interfaced_subnet_storage,
-            client: reqwest::Client::builder()
-                .timeout(Duration::from_secs(10))
-                .build()
-                .expect("Failed to create HTTP client"),
+            client: TrustedCaBundle::apply(
+                trusted_ca,
+                reqwest::Client::builder().timeout(Duration::from_secs(10)),
+            )
+            .build()
+            .expect("Failed to create HTTP client"),
             event_bus,
             entity_tag_service,
             discovery_service,
