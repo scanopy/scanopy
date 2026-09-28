@@ -217,13 +217,17 @@ const SIX: [(&str, &str); 6] = [
     ("netlab-spine2", "Ethernet45"),
 ];
 
+fn names(ports: &[(&str, &str)]) -> HashSet<String> {
+    ports.iter().map(|(_, port)| port.to_string()).collect()
+}
+
 // ---------------------------------------------------------------------------------------------
-// Behaviour before GH #717, pinned so the change shows up as a diff to these two tests.
+// GH #717: every distinct advertised port, for as long as the device has described none itself.
 // ---------------------------------------------------------------------------------------------
 
-/// Six neighbours, six ports, one row.
+/// The reporter's management switch: six neighbours, six ports, six rows.
 #[tokio::test]
-async fn a_far_end_named_on_six_ports_holds_one() {
+async fn a_far_end_named_on_six_ports_holds_all_six() {
     let lab = Lab::new().await;
     let switch = lab.far_end(MUTE_SWITCH).await;
     for (name, port) in SIX {
@@ -231,14 +235,32 @@ async fn a_far_end_named_on_six_ports_holds_one() {
     }
 
     lab.resolve().await;
-    lab.resolve().await;
 
-    assert_eq!(lab.ports(switch.id).await.len(), 1);
+    assert_eq!(lab.port_names(switch.id).await, names(&SIX));
 }
 
-/// A far end nobody scanned is minted with the first port named for it, and the rest never land.
+/// A neighbour that first names the far end after its ports were recorded still adds its port.
 #[tokio::test]
-async fn a_minted_far_end_named_on_three_ports_holds_one() {
+async fn a_port_named_later_joins_the_recorded_ones() {
+    let lab = Lab::new().await;
+    let switch = lab.far_end(MUTE_SWITCH).await;
+    for (name, port) in SIX {
+        lab.neighbour(name, MUTE_SWITCH, port).await;
+    }
+    lab.resolve().await;
+
+    lab.neighbour("netlab-leaf3", MUTE_SWITCH, "Ethernet1")
+        .await;
+    lab.resolve().await;
+
+    let mut expected = names(&SIX);
+    expected.insert("Ethernet1".to_string());
+    assert_eq!(lab.port_names(switch.id).await, expected);
+}
+
+/// Minting keeps the first port named for a new far end; the pass after it records the rest.
+#[tokio::test]
+async fn a_minted_far_end_named_on_three_ports_holds_all_three() {
     let lab = Lab::new().await;
     for (name, port) in &SIX[..3] {
         lab.neighbour(name, MUTE_SWITCH, port).await;
@@ -248,7 +270,49 @@ async fn a_minted_far_end_named_on_three_ports_holds_one() {
     lab.resolve().await;
 
     let minted = lab.host_by_chassis_id(MUTE_SWITCH).await;
-    assert_eq!(lab.ports(minted.id).await.len(), 1);
+    assert_eq!(lab.port_names(minted.id).await, names(&SIX[..3]));
+}
+
+/// A far end that repeats one MAC as every port id, with each neighbour also reporting the port's
+/// description. With each port recorded, the MAC is ambiguous on that device and each neighbour
+/// lands on its own description.
+#[tokio::test]
+async fn neighbours_sharing_a_port_mac_bind_to_their_own_ports() {
+    let lab = Lab::new().await;
+    let switch = lab.far_end(MUTE_SWITCH).await;
+    let mut named: Vec<(Uuid, &str)> = Vec::new();
+    for (name, port) in &SIX[..3] {
+        let local = lab
+            .neighbour_with(
+                name,
+                InterfaceNeighborEvidence {
+                    lldp_chassis_id: Some(LldpChassisId::LocallyAssigned(MUTE_SWITCH.into())),
+                    lldp_port_id: Some(LldpPortId::MacAddress("e8:80:88:be:30:e7".into())),
+                    lldp_port_desc: Some(port.to_string()),
+                    ..Default::default()
+                },
+            )
+            .await;
+        named.push((local.id, port));
+    }
+
+    lab.resolve().await;
+    lab.resolve().await;
+
+    let recorded: HashMap<String, Uuid> = lab
+        .ports(switch.id)
+        .await
+        .into_iter()
+        .filter_map(|i| i.base.if_name.map(|n| (n, i.id)))
+        .collect();
+    assert_eq!(recorded.len(), 3);
+    for (local, port) in named {
+        assert_eq!(
+            lab.neighbours_of(local).await,
+            vec![Neighbor::Interface(recorded[port])],
+            "the neighbour naming {port}"
+        );
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -460,6 +524,9 @@ async fn a_mac_bound_link_keeps_its_port_when_a_sibling_shares_the_mac() {
 /// A chassis id of subtype `InterfaceName` finds its host by `if_descr` across the whole network.
 /// A port recorded from someone else's advertisement is no evidence of which host owns a name, so
 /// a generic one (`Ethernet2`) must not make another device's link unresolvable.
+///
+/// The link naming the other host is created last. An adjacency already bound is carried forward
+/// when a pass cannot re-confirm it, so only a first resolution shows whether the lookup answers.
 #[tokio::test]
 async fn an_advertised_port_name_does_not_contest_another_hosts_identity() {
     let lab = Lab::new().await;
@@ -469,6 +536,12 @@ async fn an_advertised_port_name_does_not_contest_another_hosts_identity() {
     other.base.name = HostName::manual("access-sw".to_string());
     lab.storage.hosts.create(&other).await.unwrap();
     lab.walked_port(other.id, 2, "Ethernet2").await;
+
+    lab.neighbour("leaf1", MUTE_SWITCH, "Ethernet46").await;
+    lab.resolve().await;
+    lab.neighbour("server", MUTE_SWITCH, "Ethernet2").await;
+    lab.resolve().await;
+
     let naming_other = lab
         .neighbour_with(
             "edge",
@@ -478,11 +551,6 @@ async fn an_advertised_port_name_does_not_contest_another_hosts_identity() {
             },
         )
         .await;
-
-    lab.neighbour("leaf1", MUTE_SWITCH, "Ethernet46").await;
-    lab.resolve().await;
-    lab.neighbour("server", MUTE_SWITCH, "Ethernet2").await;
-    lab.resolve().await;
     lab.resolve().await;
 
     assert!(!lab.ports(switch.id).await.is_empty());

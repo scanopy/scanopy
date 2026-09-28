@@ -60,7 +60,11 @@ pub trait LldpResolver: Send + Sync {
     /// Find host by IP address (via ip_addresses table).
     async fn find_host_by_ip(&self, ip: &IpAddr, network_id: Uuid) -> IdentityResolution;
 
-    /// Find host by interface name (via interfaces.if_descr).
+    /// Find host by interface name (via interfaces.if_descr), walked rows only.
+    ///
+    /// A row recorded from a neighbour's advertisement names a port on the far end, not the host
+    /// network-wide, and a generic name (`Ethernet2`) there would turn another host's match
+    /// ambiguous (GH #717).
     async fn find_host_by_if_name(&self, name: &str, network_id: Uuid) -> IdentityResolution;
 
     /// Find host by chassis_id field on hosts table.
@@ -173,6 +177,7 @@ impl LldpResolver for LldpResolverImpl {
     async fn find_host_by_if_name(&self, name: &str, network_id: Uuid) -> IdentityResolution {
         let filter = StorableFilter::<Interface>::new_from_network_ids(&[network_id])
             .if_descr(name)
+            .walked()
             .live();
         let Ok(found) = self.interface_service.get_unique(filter).await else {
             return IdentityResolution::NotFound;

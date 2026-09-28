@@ -5,6 +5,24 @@ use crate::daemon::discovery::types::warnings::{
     DiscoveryWarning, UnmatchedNeighbour, UnresolvedPort,
 };
 
+/// What makes two advertised ports on one far end the same port: the name when one was advertised,
+/// the MAC otherwise. Stored rows key the same way, so a pass and the rows it already wrote agree.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum AdvertisedPortKey {
+    Name(String),
+    Mac(MacAddress),
+}
+
+impl AdvertisedPortKey {
+    fn of(name: Option<&str>, mac: Option<MacAddress>) -> Option<Self> {
+        match (name, mac) {
+            (Some(name), _) => Some(Self::Name(name.to_string())),
+            (None, Some(mac)) => Some(Self::Mac(mac)),
+            (None, None) => None,
+        }
+    }
+}
+
 /// Why a far end could not be placed, carried alongside the identifiers that were tried.
 ///
 /// The distinction is the whole point of naming these at all: `NotFound` is a gap in what has been
@@ -612,41 +630,52 @@ impl HostService {
         })
     }
 
-    /// Give a far end the port it advertised, where nothing else has ever described one.
+    /// Give a far end every port its neighbours advertised, where nothing else has ever described
+    /// one.
     ///
     /// A device that answers only its system MIB has no ifTable to read, so it draws in L2 as a
     /// container with nothing in it — a box with a name and no ports, which reads as a rendering
-    /// fault rather than as "this device tells us nothing about itself". The neighbour that named
-    /// it *did* say which port it answers on, and for such a device that is the only description of
-    /// that port there will ever be.
+    /// fault rather than as "this device tells us nothing about itself". The neighbours that named
+    /// it *did* say which port each answers on, and for such a device those are the only
+    /// descriptions of its ports there will ever be. All of them, not the first: a port list of one
+    /// out of six reads as "this device has one port" (GH #717).
     ///
-    /// **Only where the host has no interfaces at all.** With nothing stored there is nothing to
-    /// duplicate, which is the whole risk: a device that advertises `1` while its own ifTable calls
-    /// the port `Gi0/1` would otherwise gain a phantom beside the real row. Should such a device
-    /// later be walked properly, the authoritative-walk prune in `create_with_children` removes
-    /// anything the walk did not report, so even that case heals itself.
+    /// **Only while the host has no walked port**, meaning no live row with an `if_index`. A walked
+    /// row is the device describing itself, and an advertisement beside it risks a phantom: a
+    /// device that advertises `1` while its own ifTable calls the port `Gi0/1`. Rows this function
+    /// (or far-end minting) wrote carry no `if_index`, so they do not stop a later pass adding a
+    /// port a new neighbour names.
+    ///
+    /// Deduplicated per host by port name, or by MAC for a port advertised only by MAC, both within
+    /// the pass and against rows already stored. That makes repeat passes idempotent, and keeps a
+    /// second insert off the live `(host_id, if_name)` unique index.
+    ///
+    /// Should the device later be walked properly, the walk updates each synthesised row whose
+    /// `if_name` it reports, and the authoritative-walk prune in `create_with_children` removes the
+    /// rest, however many there are.
     ///
     /// Distinct from the minting path, which builds these for a host that did not exist. Here the
-    /// host is real and already resolved; only its port is missing.
+    /// host is real and already resolved; only its ports are missing.
     async fn record_advertised_far_end_ports(
         &self,
         network_id: Uuid,
         advertised: Vec<(Uuid, Option<String>, Option<String>)>,
     ) {
-        let mut seen: HashSet<Uuid> = HashSet::new();
+        let mut by_host: HashMap<Uuid, Vec<(Option<String>, Option<MacAddress>)>> = HashMap::new();
         for (host_id, name, mac) in advertised {
-            if !seen.insert(host_id) {
-                continue;
+            let mac = mac.as_deref().and_then(|m| m.parse::<MacAddress>().ok());
+            if name.is_some() || mac.is_some() {
+                by_host.entry(host_id).or_default().push((name, mac));
             }
+        }
 
-            let existing = self
+        for (host_id, ports) in by_host {
+            let existing = match self
                 .interface_service
                 .get_all(StorableFilter::<Interface>::new_from_host_ids(&[host_id]).live())
-                .await;
-            match existing {
-                Ok(rows) if rows.is_empty() => {}
-                // Anything already stored describes this device better than an advertisement does.
-                Ok(_) => continue,
+                .await
+            {
+                Ok(rows) => rows,
                 Err(e) => {
                     tracing::warn!(
                         host_id = %host_id,
@@ -655,42 +684,63 @@ impl HostService {
                     );
                     continue;
                 }
+            };
+            // The device has described itself, which beats any advertisement about it.
+            if existing.iter().any(|row| row.base.if_index.is_some()) {
+                continue;
             }
 
-            let mac_address = mac.as_deref().and_then(|m| m.parse::<MacAddress>().ok());
-            let descr = match (&name, &mac_address) {
-                (Some(name), _) => name.clone(),
-                (None, Some(mac)) => mac.to_string(),
-                (None, None) => continue,
-            };
+            let mut recorded: HashSet<AdvertisedPortKey> = existing
+                .iter()
+                .filter_map(|row| {
+                    AdvertisedPortKey::of(
+                        row.base.if_name.as_deref(),
+                        mac_of(&row.base.mac_address),
+                    )
+                })
+                .collect();
 
-            let interface = Interface::new(InterfaceBase {
-                network_id,
-                host_id,
-                if_descr: Some(descr),
-                if_name: name,
-                // The port id a neighbour advertised for itself. Announced on a link anything
-                // could have spoken on, not something we asked the far end for.
-                mac_address: mac_address
-                    .map(|m| MacEvidence::new(MacEvidenceValue(m), AttributeSource::LldpChassisId)),
-                ..Default::default()
-            });
+            for (name, mac_address) in ports {
+                let Some(key) = AdvertisedPortKey::of(name.as_deref(), mac_address) else {
+                    continue;
+                };
+                let descr = match &key {
+                    AdvertisedPortKey::Name(name) => name.clone(),
+                    AdvertisedPortKey::Mac(mac) => mac.to_string(),
+                };
+                if !recorded.insert(key) {
+                    continue;
+                }
 
-            match self
-                .interface_service
-                .create(interface, AuthenticatedEntity::System)
-                .await
-            {
-                Ok(created) => tracing::info!(
-                    host_id = %host_id,
-                    port = %created.base.if_descr.as_deref().unwrap_or("?"),
-                    "Recorded the port a neighbour named for a device that describes none itself"
-                ),
-                Err(e) => tracing::warn!(
-                    host_id = %host_id,
-                    error = %e,
-                    "Could not record the port a neighbour named for a far end"
-                ),
+                let interface = Interface::new(InterfaceBase {
+                    network_id,
+                    host_id,
+                    if_descr: Some(descr),
+                    if_name: name,
+                    // The port id a neighbour advertised for itself. Announced on a link anything
+                    // could have spoken on, not something we asked the far end for.
+                    mac_address: mac_address.map(|m| {
+                        MacEvidence::new(MacEvidenceValue(m), AttributeSource::LldpChassisId)
+                    }),
+                    ..Default::default()
+                });
+
+                match self
+                    .interface_service
+                    .create(interface, AuthenticatedEntity::System)
+                    .await
+                {
+                    Ok(created) => tracing::info!(
+                        host_id = %host_id,
+                        port = %created.base.if_descr.as_deref().unwrap_or("?"),
+                        "Recorded the port a neighbour named for a device that describes none itself"
+                    ),
+                    Err(e) => tracing::warn!(
+                        host_id = %host_id,
+                        error = %e,
+                        "Could not record the port a neighbour named for a far end"
+                    ),
+                }
             }
         }
     }
