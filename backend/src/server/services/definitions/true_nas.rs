@@ -18,10 +18,12 @@ impl ServiceDefinition for TrueNAS {
         ServiceCategory::Storage
     }
 
+    // Every webui release from 12.0 (CORE) through SCALE carries `<title id="main-page-title">`
+    // in index.html. SCALE's index.html has no "TrueNAS" text at all: the title is set by script.
     fn discovery_pattern(&self) -> Pattern<'_> {
-        Pattern::AllOf(vec![
-            Pattern::Port(PortType::Samba),
-            Pattern::Endpoint(PortType::Http, "/", "TrueNAS", None),
+        Pattern::AnyOf(vec![
+            Pattern::Endpoint(PortType::Http, "/", "main-page-title", None),
+            Pattern::Endpoint(PortType::Https, "/", "main-page-title", None),
         ])
     }
 
