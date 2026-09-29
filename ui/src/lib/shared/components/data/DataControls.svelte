@@ -379,7 +379,7 @@
 			return matchesFilters(item, fields, filterState, serverMode);
 		});
 
-		return sortItems(result, fields, sortState);
+		return sortItems(result, fields, sortState, onOrderChange !== null);
 	});
 
 	// Per-group totals across every page, when the server supplied them.
