@@ -39,9 +39,8 @@ pub enum Feature {
     CsvExport,
     SnapshotRetentionDays,
     InvoiceBilling,
-    QuarterlyBilling,
+    CustomBilling,
     ProcurementDocuments,
-    DeploymentAssistance,
     SignedSla,
 }
 
@@ -75,9 +74,8 @@ impl HasId for Feature {
             Feature::CsvExport => "csv_export",
             Feature::SnapshotRetentionDays => "snapshot_retention_days",
             Feature::InvoiceBilling => "invoice_billing",
-            Feature::QuarterlyBilling => "quarterly_billing",
+            Feature::CustomBilling => "custom_billing",
             Feature::ProcurementDocuments => "procurement_documents",
-            Feature::DeploymentAssistance => "deployment_assistance",
             Feature::SignedSla => "signed_sla",
         }
     }
@@ -87,11 +85,7 @@ impl Feature {
     pub fn is_coming_soon(&self) -> bool {
         matches!(
             self,
-            Feature::Webhooks
-                | Feature::AuditLogs
-                | Feature::Saml
-                | Feature::Whitelabeling
-                | Feature::QuarterlyBilling
+            Feature::Webhooks | Feature::AuditLogs | Feature::Saml | Feature::Whitelabeling
         )
     }
 
@@ -150,7 +144,6 @@ impl TypeMetadataProvider for Feature {
             | Feature::LiveChatSupport
             | Feature::PrioritySupport
             | Feature::OnboardingCall
-            | Feature::DeploymentAssistance
             | Feature::SignedSla => "Support",
 
             Feature::CustomSso
@@ -160,7 +153,7 @@ impl TypeMetadataProvider for Feature {
             | Feature::Whitelabeling
             | Feature::AuditLogs
             | Feature::InvoiceBilling
-            | Feature::QuarterlyBilling
+            | Feature::CustomBilling
             | Feature::ProcurementDocuments => "Enterprise",
 
             Feature::CsvExport | Feature::Webhooks | Feature::ApiAccess => "Integrations",
@@ -196,9 +189,8 @@ impl TypeMetadataProvider for Feature {
             Feature::CsvExport => "CSV Export",
             Feature::SnapshotRetentionDays => "Snapshot Retention",
             Feature::InvoiceBilling => "Invoice & PO Billing",
-            Feature::QuarterlyBilling => "Quarterly Payments",
+            Feature::CustomBilling => "Custom Billing",
             Feature::ProcurementDocuments => "Procurement Documents",
-            Feature::DeploymentAssistance => "Deployment Assistance",
             Feature::SignedSla => "Signed SLA",
         }
     }
@@ -213,7 +205,7 @@ impl TypeMetadataProvider for Feature {
             }
             Feature::ShareViews => "Share live network diagrams with others",
             Feature::OnboardingCall => {
-                "30 minute onboarding call to ensure you're getting the most out of Scanopy"
+                "A call with the Scanopy team to get Scanopy set up, deployed and mapping your first network"
             }
             Feature::RemoveCreatedWith => {
                 "Remove 'Created using scanopy.net' in bottom right corner of exported images"
@@ -262,12 +254,11 @@ impl TypeMetadataProvider for Feature {
                 "How long captured snapshots are retained before automatic deletion"
             }
             Feature::InvoiceBilling => "Pay by invoice against a purchase order instead of by card",
-            Feature::QuarterlyBilling => "Pay the annual license in four quarterly installments",
+            Feature::CustomBilling => {
+                "Billing schedule and payment terms negotiated to fit your procurement process"
+            }
             Feature::ProcurementDocuments => {
                 "W-9, NDAA Section 889 attestation, and a data processing agreement for vendor onboarding"
-            }
-            Feature::DeploymentAssistance => {
-                "The Scanopy team helps you deploy and configure your self-hosted server"
             }
             Feature::SignedSla => {
                 "A signed service level agreement with committed support response times"

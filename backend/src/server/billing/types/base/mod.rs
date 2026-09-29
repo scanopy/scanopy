@@ -214,3 +214,55 @@ mod can_invite_users_tests {
         assert!(!get_community_plan().can_invite_users());
     }
 }
+
+#[cfg(test)]
+mod description_feature_tests {
+    use crate::server::billing::plans::get_website_fixture_plans;
+    use crate::server::billing::types::features::Feature;
+    use crate::server::shared::types::metadata::{HasId, TypeMetadataProvider};
+    use strum::IntoEnumIterator;
+
+    /// Lowercase, punctuation to spaces, padded so a phrase only matches on
+    /// word boundaries.
+    fn words(s: &str) -> String {
+        let normalized: String = s
+            .to_lowercase()
+            .chars()
+            .map(|c| if c.is_alphanumeric() { c } else { ' ' })
+            .collect();
+        format!(
+            " {} ",
+            normalized.split_whitespace().collect::<Vec<_>>().join(" ")
+        )
+    }
+
+    // A published plan's description may name a feature (by its display name
+    // or id) only when the plan includes it and it has shipped. Regression:
+    // Self-Hosted Plus advertised "SAML" while SAML was coming soon.
+    #[test]
+    fn plan_descriptions_only_name_included_shipped_features() {
+        for plan in get_website_fixture_plans() {
+            let description = words(plan.description());
+            for feature in Feature::iter() {
+                let named = [feature.name(), feature.id()]
+                    .iter()
+                    .any(|phrase| description.contains(&words(phrase)));
+                if !named {
+                    continue;
+                }
+                assert!(
+                    plan.has_feature(feature.id()),
+                    "{} description names {} but the plan does not include it",
+                    plan.id(),
+                    feature.id()
+                );
+                assert!(
+                    !feature.is_coming_soon(),
+                    "{} description names {}, which is coming soon",
+                    plan.id(),
+                    feature.id()
+                );
+            }
+        }
+    }
+}

@@ -136,7 +136,7 @@
 
 	// Recommended plan based on use case
 	let baseRecommendedPlan = $derived<string | null>(
-		useCase === 'internal_it' ? 'Team' : useCase === 'msp' ? 'Business' : null
+		useCase === 'internal_it' ? 'Pro' : useCase === 'msp' ? 'Business' : null
 	);
 
 	// Feature-contextual plan highlighting from upgrade CTAs

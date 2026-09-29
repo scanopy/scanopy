@@ -5,14 +5,14 @@ const BOOK_DEMO_URL: &str = "https://cal.com/mferrandiz/scanopy-demo";
 
 /// Sent when an organization moves onto a self-hosted plan: says where the
 /// license key lives, how to install a server, and (on plans that include
-/// deployment assistance) how to book time with the team.
+/// an onboarding call) how to book time with the team.
 pub struct SelfHostedWelcome<'a> {
     pub plan_name: &'a str,
     /// Trial length when the plan started as a trial; `None` when it was
     /// bought outright or switched to from a cloud plan.
     pub trial_days: Option<u32>,
-    /// Whether the plan includes deployment assistance, which adds the demo link.
-    pub deployment_assistance: bool,
+    /// Whether the plan includes an onboarding call, which adds the booking link.
+    pub onboarding_call: bool,
 }
 
 impl Email for SelfHostedWelcome<'_> {
@@ -54,9 +54,9 @@ impl Email for SelfHostedWelcome<'_> {
             ),
         };
 
-        if self.deployment_assistance {
+        if self.onboarding_call {
             content = content.paragraph(&format!(
-                r#"Your plan includes deployment assistance. <a href="{BOOK_DEMO_URL}?{{utm}}">Book time with us</a> and we will help you get it running."#
+                r#"Your plan includes an onboarding call. <a href="{BOOK_DEMO_URL}?{{utm}}">Book time with us</a> and we will help you get it running."#
             ));
         }
 

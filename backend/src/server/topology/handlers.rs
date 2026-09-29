@@ -4,6 +4,7 @@ use crate::server::shared::storage::traits::Entity;
 use crate::server::{
     auth::middleware::{
         auth::AuthenticatedEntity,
+        features::{ConfluenceExportFeature, MermaidExportFeature, RequireFeature},
         permissions::{Authorized, IsUser, Member, Viewer},
     },
     config::AppState,
@@ -459,6 +460,7 @@ async fn update_node_resize(
     params(("id" = Uuid, Path, description = "Topology ID"), TopologyExportQuery),
     responses(
         (status = 200, description = "Mermaid flowchart export", content_type = "text/plain", body = String),
+        (status = 402, description = "Mermaid export not available on plan", body = ApiErrorResponse),
         (status = 403, description = "Access denied", body = ApiErrorResponse),
         (status = 404, description = "Topology not found", body = ApiErrorResponse),
     ),
@@ -467,6 +469,7 @@ async fn update_node_resize(
 async fn export_mermaid(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Viewer>,
+    _feature: RequireFeature<MermaidExportFeature>,
     Path(id): Path<Uuid>,
     query: Query<TopologyExportQuery>,
 ) -> ApiResult<impl IntoResponse> {
@@ -523,6 +526,7 @@ async fn export_mermaid(
     params(("id" = Uuid, Path, description = "Topology ID"), TopologyExportQuery),
     responses(
         (status = 200, description = "Confluence wiki markup export", content_type = "text/plain", body = String),
+        (status = 402, description = "Confluence export not available on plan", body = ApiErrorResponse),
         (status = 403, description = "Access denied", body = ApiErrorResponse),
         (status = 404, description = "Topology not found", body = ApiErrorResponse),
     ),
@@ -531,6 +535,7 @@ async fn export_mermaid(
 async fn export_confluence(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Viewer>,
+    _feature: RequireFeature<ConfluenceExportFeature>,
     Path(id): Path<Uuid>,
     query: Query<TopologyExportQuery>,
 ) -> ApiResult<impl IntoResponse> {

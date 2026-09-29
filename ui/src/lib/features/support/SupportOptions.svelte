@@ -21,10 +21,10 @@
 
 	let {
 		isTroubleshooting = false,
-		hasEmailSupport = false
+		supportEmail = null
 	}: {
 		isTroubleshooting?: boolean;
-		hasEmailSupport?: boolean;
+		supportEmail?: string | null;
 	} = $props();
 
 	let options = $derived.by(() => {
@@ -53,11 +53,11 @@
 				}
 			];
 
-			if (hasEmailSupport) {
+			if (supportEmail) {
 				items.push({
 					title: common_email(),
 					description: support_emailDesc(),
-					url: 'mailto:support@scanopy.net',
+					url: `mailto:${supportEmail}`,
 					color: 'Blue',
 					icon: Mail
 				});

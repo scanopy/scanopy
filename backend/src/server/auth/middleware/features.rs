@@ -174,6 +174,38 @@ impl FeatureCheck for ShareViewsFeature {
 }
 
 #[derive(Default)]
+pub struct MermaidExportFeature;
+
+#[async_trait]
+impl FeatureCheck for MermaidExportFeature {
+    async fn check(&self, ctx: &FeatureCheckContext<'_>) -> FeatureCheckResult {
+        if !ctx.plan.features().mermaid_export {
+            return FeatureCheckResult::payment_required(
+                "Your plan does not include Mermaid export",
+            );
+        }
+
+        FeatureCheckResult::Allowed
+    }
+}
+
+#[derive(Default)]
+pub struct ConfluenceExportFeature;
+
+#[async_trait]
+impl FeatureCheck for ConfluenceExportFeature {
+    async fn check(&self, ctx: &FeatureCheckContext<'_>) -> FeatureCheckResult {
+        if !ctx.plan.features().confluence_export {
+            return FeatureCheckResult::payment_required(
+                "Your plan does not include Confluence export",
+            );
+        }
+
+        FeatureCheckResult::Allowed
+    }
+}
+
+#[derive(Default)]
 pub struct TakeSnapshotFeature;
 
 #[async_trait]

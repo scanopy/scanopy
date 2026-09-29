@@ -166,7 +166,7 @@ impl Subscriber<BillingOperation> for EmailService {
                                 org_owner,
                                 to.name(),
                                 None,
-                                to.features().deployment_assistance,
+                                to.features().onboarding_call,
                             )
                             .await?;
                         }
@@ -469,7 +469,7 @@ impl Subscriber<BillingOperation> for EmailService {
                             org_owner,
                             plan.name(),
                             is_trialing.then(|| plan.config().trial_days),
-                            plan.features().deployment_assistance,
+                            plan.features().onboarding_call,
                         )
                         .await?;
                     } else {
