@@ -75,7 +75,7 @@
 		daemonName?: string;
 		selectedOS: DaemonOS;
 		linuxMethod?: LinuxMethod;
-		hasEmailSupport?: boolean;
+		supportEmail?: string | null;
 		logFilePath?: string;
 		onHealthCheck?: () => void;
 		isCheckingHealth?: boolean;
@@ -91,7 +91,7 @@
 		daemonName = 'scanopy-daemon',
 		selectedOS,
 		linuxMethod = 'binary',
-		hasEmailSupport = false,
+		supportEmail = null,
 		logFilePath = '',
 		onHealthCheck,
 		isCheckingHealth = false,
@@ -433,7 +433,7 @@
 		<h3 class="text-primary text-sm font-semibold">{daemons_troubleshoot_stillStuck()}</h3>
 		<p class="text-tertiary mt-0.5 text-xs">{daemons_troubleshoot_stillStuckDesc()}</p>
 		<div class="mt-3">
-			<SupportOptions isTroubleshooting={true} {hasEmailSupport} />
+			<SupportOptions isTroubleshooting={true} {supportEmail} />
 		</div>
 	</div>
 </div>

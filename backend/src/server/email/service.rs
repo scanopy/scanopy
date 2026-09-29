@@ -494,14 +494,14 @@ impl EmailService {
         to: EmailAddress,
         plan_name: &str,
         trial_days: Option<u32>,
-        deployment_assistance: bool,
+        onboarding_call: bool,
     ) -> Result<()> {
         self.dispatch(
             to,
             &SelfHostedWelcome {
                 plan_name,
                 trial_days,
-                deployment_assistance,
+                onboarding_call,
             },
         )
         .await

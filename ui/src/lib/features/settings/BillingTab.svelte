@@ -26,6 +26,7 @@
 	import { renewalLabel } from '$lib/features/billing/renewal';
 	import { discountedPrice, saveOfferDiscount } from '$lib/features/billing/pricing';
 	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
+	import { PROCUREMENT_DOCUMENTS_MAILTO } from '$lib/features/support/support';
 	import { useDashboardQuery } from '$lib/features/home/queries';
 	import {
 		common_atLimit,
@@ -47,6 +48,7 @@
 		settings_billing_downgrade_pending,
 		settings_billing_paymentAndInvoices,
 		settings_billing_needHelp,
+		settings_billing_procurementDocuments,
 		settings_billing_pastDue,
 		settings_billing_cancelSubscription,
 		settings_billing_per,
@@ -224,6 +226,9 @@
 	let planStatusColor = $derived(planStatuses.getColorHelper(org?.plan_status ?? null).text);
 
 	let isFree = $derived(billingPlans.getMetadata(org?.plan?.type ?? null).is_free === true);
+	let hasProcurementDocuments = $derived(
+		billingPlans.getMetadata(org?.plan?.type ?? null).features?.procurement_documents === true
+	);
 
 	// Plan-status shorthands used across the banner + CTA section.
 	let isTrialing = $derived(org?.plan_status === 'trialing');
@@ -807,6 +812,13 @@
 						>
 						{settings_billing_billingQuestions()}
 					</p>
+					{#if hasProcurementDocuments}
+						<p class="text-secondary mt-2 text-sm">
+							<a href={PROCUREMENT_DOCUMENTS_MAILTO} class="text-link hover:underline"
+								>{settings_billing_procurementDocuments()}</a
+							>
+						</p>
+					{/if}
 				</InfoCard>
 			</div>
 		{:else}

@@ -642,15 +642,15 @@ mod tests {
             &SelfHostedWelcome {
                 plan_name: "Self-Hosted Standard",
                 trial_days: Some(14),
-                deployment_assistance: false,
+                onboarding_call: false,
             },
         );
         f(
-            "self_hosted_welcome_deployment_assistance",
+            "self_hosted_welcome_onboarding_call",
             &SelfHostedWelcome {
                 plan_name: "Self-Hosted Plus",
                 trial_days: None,
-                deployment_assistance: true,
+                onboarding_call: true,
             },
         );
         f(
@@ -664,10 +664,10 @@ mod tests {
         f(
             "airgap_expiring",
             &AirgapExpiring {
-                plan_name: "Self-Hosted Standard",
+                plan_name: "Self-Hosted Plus",
                 key_expires: "October 15, 2026",
                 renews_at: "October 1, 2026",
-                amount: "$4,000.00",
+                amount: "$6,000.00",
             },
         );
         f(
