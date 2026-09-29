@@ -520,6 +520,85 @@ pub async fn probe_snmp_ports(
     Ok(open_ports)
 }
 
+/// Requests `endpoint` at each of `urls` in order and returns the first response.
+///
+/// A `400 Bad Request` is held back while another URL remains. TLS listeners (cockpit-tls,
+/// nginx, Go's net/http) answer a plain-HTTP request with 400, and the TCP peek in
+/// `scan_tcp_ports` does not reliably flag those ports as HTTPS, so the HTTP attempt can come
+/// first and reach nothing of the application. The next URL's response wins whatever its
+/// status; if it gets none, the 400 is returned.
+async fn fetch_endpoint(
+    client: &reqwest::Client,
+    endpoint: Endpoint,
+    urls: Vec<String>,
+) -> Option<EndpointResponse> {
+    let mut bad_request = None;
+    let attempts = urls.len();
+    for (attempt, url) in urls.into_iter().enumerate() {
+        tracing::trace!("Trying endpoint: {}", url);
+
+        // Timeout covers TCP connect + TLS handshake + response headers.
+        // Body streaming has its own deadline via read_response_body_until_deadline.
+        // Without this, non-HTTP services (e.g. Chromecast port 8009) that accept
+        // TCP but never send HTTP headers would block .send() indefinitely.
+        match timeout(SCAN_TIMEOUT, client.get(&url).send()).await {
+            Ok(Ok(response)) => {
+                let status = response.status().as_u16();
+
+                let headers = response
+                    .headers()
+                    .iter()
+                    .filter_map(|(name, value)| {
+                        // Convert HeaderValue to string
+                        value.to_str().ok().map(|v| {
+                            (
+                                name.as_str().to_lowercase(), // Normalize to lowercase
+                                v.to_string(),
+                            )
+                        })
+                    })
+                    .collect();
+
+                let deadline = tokio::time::Instant::now() + SCAN_TIMEOUT;
+                let body = read_response_body_until_deadline(response, deadline).await;
+                tracing::debug!(
+                    "Endpoint {} returned {} (length: {})",
+                    url,
+                    status,
+                    body.len()
+                );
+                let response = EndpointResponse {
+                    endpoint: endpoint.clone(),
+                    headers,
+                    body,
+                    status,
+                };
+                if status == reqwest::StatusCode::BAD_REQUEST.as_u16()
+                    && bad_request.is_none()
+                    && attempt + 1 < attempts
+                {
+                    bad_request = Some(response);
+                    continue;
+                }
+                return Some(response);
+            }
+            Ok(Err(e)) => {
+                tracing::trace!("Endpoint {} failed: {}", url, e);
+                if DiscoveryCriticalError::is_critical_error(e.to_string()) {
+                    tracing::error!("Critical error scanning endpoint {}: {}", url, e);
+                }
+                continue;
+            }
+            Err(_) => {
+                tracing::trace!("Endpoint {} timed out waiting for response headers", url);
+                continue;
+            }
+        }
+    }
+
+    bad_request
+}
+
 pub async fn scan_endpoints(
     ip: IpAddr,
     cancel: CancellationToken,
@@ -599,61 +678,7 @@ pub async fn scan_endpoints(
                 vec![http_url, https_url]
             };
 
-            for url in urls {
-                tracing::trace!("Trying endpoint: {}", url);
-
-                // Timeout covers TCP connect + TLS handshake + response headers.
-                // Body streaming has its own deadline via read_response_body_until_deadline.
-                // Without this, non-HTTP services (e.g. Chromecast port 8009) that accept
-                // TCP but never send HTTP headers would block .send() indefinitely.
-                match timeout(SCAN_TIMEOUT, client.get(&url).send()).await {
-                    Ok(Ok(response)) => {
-                        let status = response.status().as_u16();
-
-                        let headers = response
-                            .headers()
-                            .iter()
-                            .filter_map(|(name, value)| {
-                                // Convert HeaderValue to string
-                                value.to_str().ok().map(|v| {
-                                    (
-                                        name.as_str().to_lowercase(), // Normalize to lowercase
-                                        v.to_string(),
-                                    )
-                                })
-                            })
-                            .collect();
-
-                        let deadline = tokio::time::Instant::now() + SCAN_TIMEOUT;
-                        let body = read_response_body_until_deadline(response, deadline).await;
-                        tracing::debug!(
-                            "Endpoint {} returned {} (length: {})",
-                            url,
-                            status,
-                            body.len()
-                        );
-                        return Some(EndpointResponse {
-                            endpoint: endpoint_with_ip,
-                            headers,
-                            body,
-                            status,
-                        });
-                    }
-                    Ok(Err(e)) => {
-                        tracing::trace!("Endpoint {} failed: {}", url, e);
-                        if DiscoveryCriticalError::is_critical_error(e.to_string()) {
-                            tracing::error!("Critical error scanning endpoint {}: {}", url, e);
-                        }
-                        continue;
-                    }
-                    Err(_) => {
-                        tracing::trace!("Endpoint {} timed out waiting for response headers", url);
-                        continue;
-                    }
-                }
-            }
-
-            None
+            fetch_endpoint(&client, endpoint_with_ip, urls).await
         }
     })
     .await;
@@ -1026,5 +1051,124 @@ mod tests {
         assert!(!controller.check_and_handle_error(&conn_refused));
         assert_eq!(controller.batch_size(), 200);
         assert!(!controller.is_degraded());
+    }
+
+    mod fetch_endpoint {
+        use super::*;
+        use rustls::pki_types::pem::PemObject;
+        use rustls::pki_types::{CertificateDer, PrivateKeyDer};
+        use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+        use tokio::net::TcpListener;
+
+        // Throwaway self-signed P-256 cert for 127.0.0.1 listeners; the client skips verification.
+        const CERT_PEM: &str = "-----BEGIN CERTIFICATE-----
+MIIBfzCCASWgAwIBAgIUK9JlYRip00xB8Gndjgk3zb5Wqg4wCgYIKoZIzj0EAwIw
+FDESMBAGA1UEAwwJbG9jYWxob3N0MCAXDTI2MDkyOTAxNDc0M1oYDzIxMjYwOTA1
+MDE0NzQzWjAUMRIwEAYDVQQDDAlsb2NhbGhvc3QwWTATBgcqhkjOPQIBBggqhkjO
+PQMBBwNCAASWhzFdL+lxOqhRlT5B8+kiBS86zxvIpav+CuhxIhqTNk7mB309FRVS
+0CYSlEft7THfykUb67efpyxaxpI6rJhMo1MwUTAdBgNVHQ4EFgQULwbUF5TojfIH
+kvkwF3qiqwZnUhUwHwYDVR0jBBgwFoAULwbUF5TojfIHkvkwF3qiqwZnUhUwDwYD
+VR0TAQH/BAUwAwEB/zAKBggqhkjOPQQDAgNIADBFAiEA3kWdhykfMKVIDt9A0G4k
+KPcx8C7FMfezckPzvmzq8JMCIFsjUXIAVie/pimi/PGXS1Xey/VfACNxcIS+sIkp
+5g2P
+-----END CERTIFICATE-----";
+        const KEY_PEM: &str = "-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQglR2BoNuUDBSzNHFA
+uuMtBnV5LaUBKtyWZYXPE4wRHyqhRANCAASWhzFdL+lxOqhRlT5B8+kiBS86zxvI
+pav+CuhxIhqTNk7mB309FRVS0CYSlEft7THfykUb67efpyxaxpI6rJhM
+-----END PRIVATE KEY-----";
+
+        const TLS_HANDSHAKE_RECORD: u8 = 0x16;
+
+        fn tls_acceptor() -> tokio_rustls::TlsAcceptor {
+            let config = rustls::ServerConfig::builder_with_provider(Arc::new(
+                rustls::crypto::ring::default_provider(),
+            ))
+            .with_safe_default_protocol_versions()
+            .unwrap()
+            .with_no_client_auth()
+            .with_single_cert(
+                vec![CertificateDer::from_pem_slice(CERT_PEM.as_bytes()).unwrap()],
+                PrivateKeyDer::from_pem_slice(KEY_PEM.as_bytes()).unwrap(),
+            )
+            .unwrap();
+            tokio_rustls::TlsAcceptor::from(Arc::new(config))
+        }
+
+        async fn respond<S: AsyncRead + AsyncWrite + Unpin>(mut stream: S, status_line: &str) {
+            let mut request = Vec::new();
+            let mut buf = [0u8; 1024];
+            while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+                match stream.read(&mut buf).await {
+                    Ok(0) | Err(_) => return,
+                    Ok(n) => request.extend_from_slice(&buf[..n]),
+                }
+            }
+            let response =
+                format!("HTTP/1.1 {status_line}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+            let _ = stream.write_all(response.as_bytes()).await;
+            let _ = stream.shutdown().await;
+        }
+
+        /// Serves 127.0.0.1 on an ephemeral port. A connection opening with a TLS handshake gets
+        /// `tls_status`; a plain-HTTP one gets `400 Bad Request`, as a TLS listener answers it.
+        async fn serve(tls_status: Option<&'static str>) -> u16 {
+            let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let port = listener.local_addr().unwrap().port();
+            let acceptor = tls_acceptor();
+            tokio::spawn(async move {
+                while let Ok((stream, _)) = listener.accept().await {
+                    let acceptor = acceptor.clone();
+                    tokio::spawn(async move {
+                        let mut first = [0u8; 1];
+                        let is_tls = matches!(stream.peek(&mut first).await, Ok(1))
+                            && first[0] == TLS_HANDSHAKE_RECORD;
+                        match (is_tls, tls_status) {
+                            (true, Some(status)) => {
+                                if let Ok(tls) = acceptor.accept(stream).await {
+                                    respond(tls, status).await;
+                                }
+                            }
+                            (true, None) => {}
+                            (false, _) => respond(stream, "400 Bad Request").await,
+                        }
+                    });
+                }
+            });
+            port
+        }
+
+        async fn fetch_http_first(port: u16) -> Option<EndpointResponse> {
+            let client = reqwest::Client::builder()
+                .danger_accept_invalid_certs(true)
+                .build()
+                .unwrap();
+            let endpoint = Endpoint::for_pattern(PortType::new_tcp(port), "/");
+            let urls = vec![
+                format!("http://127.0.0.1:{port}/"),
+                format!("https://127.0.0.1:{port}/"),
+            ];
+            fetch_endpoint(&client, endpoint, urls).await
+        }
+
+        #[tokio::test]
+        async fn a_400_is_kept_when_the_other_scheme_gets_no_response() {
+            let port = serve(None).await;
+
+            let response = fetch_http_first(port).await.expect("the 400 is a response");
+
+            assert_eq!(response.status, 400);
+        }
+
+        /// A TLS port the TCP peek did not flag as HTTPS is tried over plain HTTP first, and the
+        /// TLS listener refuses that with 400. The HTTPS attempt is what reaches the application.
+        #[tokio::test]
+        async fn a_400_over_http_falls_through_to_https() {
+            let port = serve(Some("200 OK")).await;
+
+            let response = fetch_http_first(port).await.expect("HTTPS answered");
+
+            assert_eq!(response.status, 200);
+        }
     }
 }
