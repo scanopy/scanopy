@@ -31,7 +31,7 @@ pub use metadata::{
 pub use super::mapping::Target;
 pub use secrets::{
     ExposeSecretsGuard, FileOrInline, REDACTED_SECRET_SENTINEL, SecretValue,
-    deserialize_optional_file_or_inline, deserialize_optional_secret_value,
+    deserialize_optional_file_or_inline, deserialize_optional_secret_value, serialize_secret_value,
 };
 
 // Re-export SnmpVersion and v3 protocol enums from snmp submodule

@@ -45,7 +45,7 @@ impl Drop for ExposeSecretsGuard {
 /// Serialize a secret: the real value when secret-exposure is active (storage
 /// writes, via [`ExposeSecretsGuard`]), otherwise the redacted sentinel — the
 /// default for API responses and logs.
-fn serialize_secret_value<S>(secret: &SecretString, serializer: S) -> Result<S::Ok, S::Error>
+pub fn serialize_secret_value<S>(secret: &SecretString, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {

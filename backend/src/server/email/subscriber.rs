@@ -7,6 +7,7 @@
 
 use anyhow::Error;
 use async_trait::async_trait;
+use secrecy::ExposeSecret;
 use std::collections::HashMap;
 
 use crate::server::{
@@ -521,7 +522,7 @@ impl Subscriber<AuthOperation> for EmailService {
                     self.send_verification_email(
                         params.email,
                         self.public_url.clone(),
-                        params.token,
+                        params.token.expose_secret().to_string(),
                     )
                     .await?
                 }
@@ -529,7 +530,7 @@ impl Subscriber<AuthOperation> for EmailService {
                     self.send_verification_email(
                         email_and_token.email,
                         self.public_url.clone(),
-                        email_and_token.token,
+                        email_and_token.token.expose_secret().to_string(),
                     )
                     .await?
                 }
@@ -537,7 +538,7 @@ impl Subscriber<AuthOperation> for EmailService {
                     self.send_verification_email(
                         email_and_token.email,
                         self.public_url.clone(),
-                        email_and_token.token,
+                        email_and_token.token.expose_secret().to_string(),
                     )
                     .await?
                 }
@@ -561,7 +562,7 @@ impl Subscriber<AuthOperation> for EmailService {
                     self.send_password_reset(
                         email_and_token.email,
                         self.public_url.clone(),
-                        email_and_token.token,
+                        email_and_token.token.expose_secret().to_string(),
                     )
                     .await?;
                 }
