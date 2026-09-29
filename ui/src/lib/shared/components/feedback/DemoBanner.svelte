@@ -15,6 +15,7 @@
 		>
 			{auth_createAccount()}
 		</a>
+		<!-- eslint-disable svelte/no-navigation-without-resolve -->
 		<a
 			href={`${BOOK_CALL_URL}?overlayCalendar=true`}
 			target="_blank"
@@ -23,5 +24,6 @@
 		>
 			{demo_talkToSales()}
 		</a>
+		<!-- eslint-enable svelte/no-navigation-without-resolve -->
 	{/snippet}
 </AppBanner>

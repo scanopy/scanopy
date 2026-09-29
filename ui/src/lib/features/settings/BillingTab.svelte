@@ -814,9 +814,11 @@
 					</p>
 					{#if hasProcurementDocuments}
 						<p class="text-secondary mt-2 text-sm">
+							<!-- eslint-disable svelte/no-navigation-without-resolve -->
 							<a href={PROCUREMENT_DOCUMENTS_MAILTO} class="text-link hover:underline"
 								>{settings_billing_procurementDocuments()}</a
 							>
+							<!-- eslint-enable svelte/no-navigation-without-resolve -->
 						</p>
 					{/if}
 				</InfoCard>

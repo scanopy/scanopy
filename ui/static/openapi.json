@@ -14213,6 +14213,16 @@
               }
             }
           },
+          "402": {
+            "description": "Confluence export not available on plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Access denied",
             "content": {
@@ -14279,6 +14289,16 @@
               "text/plain": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Mermaid export not available on plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }

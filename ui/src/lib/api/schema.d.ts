@@ -20870,6 +20870,15 @@ export interface operations {
                     "text/plain": string;
                 };
             };
+            /** @description Confluence export not available on plan */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
             /** @description Access denied */
             403: {
                 headers: {
@@ -20912,6 +20921,15 @@ export interface operations {
                 };
                 content: {
                     "text/plain": string;
+                };
+            };
+            /** @description Mermaid export not available on plan */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
             /** @description Access denied */
