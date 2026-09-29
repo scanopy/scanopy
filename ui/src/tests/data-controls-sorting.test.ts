@@ -135,6 +135,29 @@ describe('sorting', () => {
 		expect(sorted.map((r) => r.name)).toEqual(['f', 't']);
 	});
 
+	it('keeps a server-ordered page in the order the server sent it', () => {
+		// MACs in the server's order. Re-sorted here, `14:..` would drop below `7E:..`.
+		const macField: FieldConfig<Row, 'mac'> = {
+			orderField: 'mac',
+			label: 'MAC',
+			type: 'string',
+			getValue: (r) => r.name
+		};
+		const items = ['0A:BA', '14:E9', '3A:C1', '7E:C7', null].map((name) => row({ name }));
+		const sort: SortState = { field: 'mac', direction: 'asc' };
+
+		expect(sortItems(items, [macField], sort, true).map((r) => r.name)).toEqual(
+			items.map((r) => r.name)
+		);
+	});
+
+	it('still sorts an opted-in display field when the server orders the list', () => {
+		const opted: FieldConfig<Row> = { ...nameField, sortable: true };
+		const items = [row({ name: 'b' }), row({ name: 'a' })];
+
+		expect(sortItems(items, [opted], asc, true).map((r) => r.name)).toEqual(['a', 'b']);
+	});
+
 	it('signs the comparison by direction for non-null values', () => {
 		const a = row({ name: 'a' });
 		const b = row({ name: 'b' });

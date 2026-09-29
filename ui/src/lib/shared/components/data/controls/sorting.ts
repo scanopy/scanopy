@@ -59,12 +59,25 @@ export function compareByField<T>(
 	return direction === 'asc' ? comparison : -comparison;
 }
 
-/** Sort a copy of `items` by the field matching `sort.field`. */
-export function sortItems<T>(items: T[], fields: FieldConfig<T>[], sort: SortState): T[] {
+/**
+ * Sort a copy of `items` by the field matching `sort.field`.
+ *
+ * With `serverOrdered`, an orderable field is left in arrival order: the server
+ * already sorted every page by it, and this comparator can disagree (it reads a
+ * MAC's leading `14` as a number, and knows nothing of the server's SQL). Display
+ * fields opted in with `sortable` still sort here, since the server never saw them.
+ */
+export function sortItems<T>(
+	items: T[],
+	fields: FieldConfig<T>[],
+	sort: SortState,
+	serverOrdered = false
+): T[] {
 	if (!sort.field) return items;
 
 	const field = fields.find((f) => getFieldKey(f) === sort.field);
 	if (!field) return items;
+	if (serverOrdered && isOrderableField(field)) return items;
 
 	return [...items].sort((a, b) => compareByField(a, b, field, sort.direction));
 }

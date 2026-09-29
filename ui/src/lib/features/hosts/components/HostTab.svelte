@@ -491,7 +491,7 @@
 					type: 'string',
 					searchable: true,
 					groupable: false,
-					getValue: (host) => hostMacAddresses(host)[0] ?? '',
+					getValue: (host) => hostMacAddresses(host)[0] ?? null,
 					display: {
 						order: 5,
 						getItems: (host) =>
