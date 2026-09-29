@@ -261,17 +261,13 @@ test-merge:
 
 test-plan:
 	@echo "Collecting TEST_PLAN.json from this repo and worktrees..."
-	@echo "var TEST_PLANS = [" > tools/testing/test-plans.js
 	@# The main checkout is included first: work done directly on a branch here needs
 	@# testing just as much as work done in a worktree, and the worktree glob below
 	@# cannot match it — "scanopy" has no hyphen, so it fails "*/scanopy-*/".
-	@first=true; \
-	for f in $$(ls TEST_PLAN.json 2>/dev/null) $$(find .. -maxdepth 2 -name "TEST_PLAN.json" -path "*/scanopy-*/TEST_PLAN.json" 2>/dev/null); do \
-		if [ "$$first" = true ]; then first=false; else echo "," >> tools/testing/test-plans.js; fi; \
-		cat "$$f" >> tools/testing/test-plans.js; \
-		echo "  Found: $$f"; \
-	done
-	@echo "];" >> tools/testing/test-plans.js
+	@# Tests already passed in the TEST_RESULTS.json beside a plan are left out.
+	@node tools/testing/collect-test-plans.cjs \
+		$$(ls TEST_PLAN.json 2>/dev/null) \
+		$$(find .. -maxdepth 2 -name "TEST_PLAN.json" -path "*/scanopy-*/TEST_PLAN.json" 2>/dev/null)
 	@echo "Opening test runner..."
 	@open tools/testing/test-runner.html 2>/dev/null || xdg-open tools/testing/test-runner.html 2>/dev/null || echo "Open tools/testing/test-runner.html in your browser"
 
