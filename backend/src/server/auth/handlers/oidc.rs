@@ -82,10 +82,12 @@ pub(crate) async fn oidc_authorize(
         .ok_or_else(|| ApiError::bad_request("return_url parameter is required"))?;
 
     // Generate authorization URL using provider
-    let (auth_url, pending_auth) = provider
-        .authorize_url(flow)
-        .await
-        .map_err(|e| ApiError::internal_error(&format!("Failed to generate auth URL for '{}': {}. Check that the issuer URL is reachable from the server.", slug, e)))?;
+    let (auth_url, pending_auth) = provider.authorize_url(flow).await.map_err(|e| {
+        ApiError::internal_error(&format!(
+            "Failed to generate auth URL for '{}': {}.",
+            slug, e
+        ))
+    })?;
 
     // Store OIDC flow state in session
     session

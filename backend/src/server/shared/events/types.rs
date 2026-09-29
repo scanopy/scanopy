@@ -3,6 +3,7 @@ use crate::server::{
     billing::types::base::{
         BillingInvoice, BillingPlan, CancelReason, LimitSource, LimitType, SaveOffer,
     },
+    credentials::r#impl::types::serialize_secret_value,
     discovery::r#impl::types::DiscoveryType,
     license::types::LicenseKeyType,
     organizations::r#impl::base::UseCase,
@@ -10,6 +11,7 @@ use crate::server::{
 };
 use chrono::{DateTime, Utc};
 use email_address::EmailAddress;
+use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
 use stripe_billing::{CancellationDetailsFeedback, CancellationDetailsReason};
 use strum::EnumIter;
@@ -61,11 +63,24 @@ pub enum AuthMethod {
 }
 
 /// Struct used for operations where an email + token is used: email verification, password reset.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmailAndToken {
     pub email: EmailAddress,
-    pub token: String,
+    /// Anyone holding the token can verify the address or reset the password, and events are
+    /// logged as JSON, so it serializes as the redacted sentinel. The email subscriber reads it
+    /// in memory with `expose_secret`.
+    #[serde(serialize_with = "serialize_secret_value")]
+    pub token: SecretString,
 }
+
+/// `SecretString` has no `PartialEq`, so compare the exposed tokens explicitly.
+impl PartialEq for EmailAndToken {
+    fn eq(&self, other: &Self) -> bool {
+        self.email == other.email && self.token.expose_secret() == other.token.expose_secret()
+    }
+}
+
+impl Eq for EmailAndToken {}
 
 #[derive(
     Debug, Clone, Serialize, Deserialize, PartialEq, Eq, strum::Display, EnumDiscriminants,
@@ -901,5 +916,35 @@ mod tests {
             converted: true,
             next_renewal_at: DateTime::<Utc>::from_timestamp(1_800_000_000, 0),
         });
+    }
+
+    /// Events are logged as JSON via `Display`. A reset or verification token in that line
+    /// lets anyone who reads the logs take over the account, so it must render redacted.
+    #[test]
+    fn logged_auth_events_do_not_contain_the_token() {
+        use crate::server::auth::middleware::auth::AuthenticatedEntity;
+        use crate::server::shared::events::traits::{AuthScope, Event};
+
+        let token = "reset-token-3f9a1c";
+        let event = Event::new(
+            AuthScope {
+                user_id: None,
+                organization_id: None,
+                ip_address: "127.0.0.1".parse().unwrap(),
+                user_agent: None,
+            },
+            AuthOperation::PasswordResetRequested {
+                email_and_token: EmailAndToken {
+                    email: "owner@example.test".parse().unwrap(),
+                    token: token.to_string().into(),
+                },
+            },
+            AuthenticatedEntity::Anonymous,
+        );
+
+        let line = event.to_string();
+        assert!(!line.contains(token), "{line}");
+        assert!(line.contains("owner@example.test"), "{line}");
+        assert!(!format!("{event:?}").contains(token));
     }
 }

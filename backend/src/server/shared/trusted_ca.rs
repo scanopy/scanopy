@@ -100,15 +100,42 @@ impl TrustedCaBundle {
     }
 }
 
+/// True when `err`, or anything in its source chain, is rustls rejecting the peer's
+/// certificate (unknown issuer, expired, wrong name, ...). Clients use it to report an
+/// untrusted certificate as such, instead of as an unreachable host, and to point at
+/// `SCANOPY_TRUSTED_CA_BUNDLE`. rustls errors reach callers wrapped in `io::Error`, whose
+/// payload is only reachable through `get_ref`, so both links are followed.
+pub fn is_untrusted_certificate(err: &(dyn std::error::Error + 'static)) -> bool {
+    let mut current = Some(err);
+    while let Some(e) = current {
+        if matches!(
+            e.downcast_ref::<rustls::Error>(),
+            Some(rustls::Error::InvalidCertificate(_))
+        ) {
+            return true;
+        }
+        if let Some(inner) = e
+            .downcast_ref::<std::io::Error>()
+            .and_then(|io| io.get_ref())
+            && is_untrusted_certificate(inner)
+        {
+            return true;
+        }
+        current = e.source();
+    }
+    false
+}
+
+/// Test fixtures: throwaway CAs and a local HTTPS server whose leaf is signed by CA A.
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use std::io::Write;
+pub(crate) mod test_support {
     use std::sync::Arc;
 
-    // Throwaway self-signed P-256 CAs (100-year validity) and a `localhost` / 127.0.0.1 leaf
-    // signed by CA A. Test-only material, never trusted anywhere else.
-    const CA_A: &str = "-----BEGIN CERTIFICATE-----
+    use rustls::pki_types::{CertificateDer, PrivateKeyDer, pem::PemObject};
+
+    // Self-signed P-256 CAs (100-year validity) and a `localhost` / 127.0.0.1 leaf signed by
+    // CA A. Test-only material, never trusted anywhere else.
+    pub(crate) const CA_A: &str = "-----BEGIN CERTIFICATE-----
 MIIBjjCCATWgAwIBAgIUIegRP0BDvLFpg3KGCo/01+uEpmkwCgYIKoZIzj0EAwIw
 HDEaMBgGA1UEAwwRU2Nhbm9weSBUZXN0IENBIGEwIBcNMjYwOTI4MjEwNjA0WhgP
 MjEyNjA5MDQyMTA2MDRaMBwxGjAYBgNVBAMMEVNjYW5vcHkgVGVzdCBDQSBhMFkw
@@ -120,7 +147,7 @@ YSy7653vM0GNoxfm+gsFjy6mT9ao1VQtiomfQPHn5PUCIC5814t3SIq7chWd7gB0
 jhbKKvEo2VyEXV2CVzVrdNGo
 -----END CERTIFICATE-----
 ";
-    const CA_B: &str = "-----BEGIN CERTIFICATE-----
+    pub(crate) const CA_B: &str = "-----BEGIN CERTIFICATE-----
 MIIBkDCCATWgAwIBAgIUDwu0NVS0eEpEbg7szsTCNp0MA8gwCgYIKoZIzj0EAwIw
 HDEaMBgGA1UEAwwRU2Nhbm9weSBUZXN0IENBIGIwIBcNMjYwOTI4MjEwNjA0WhgP
 MjEyNjA5MDQyMTA2MDRaMBwxGjAYBgNVBAMMEVNjYW5vcHkgVGVzdCBDQSBiMFkw
@@ -145,12 +172,58 @@ AiEA/u+shzDpsOcBbfXaA9Zi7rNikW/xM+ZDMsveSeGCRD0CIAh9VmZ5+I0Nx9KF
 tRdpymIRp94Yk+Ak3wqAdR4Vb4H8
 -----END CERTIFICATE-----
 ";
-    const LEAF_KEY: &str = "-----BEGIN PRIVATE KEY-----
+    pub(crate) const LEAF_KEY: &str = "-----BEGIN PRIVATE KEY-----
 MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgbwuF9+C2N9sV2fLc
 KIT2PrDXn+7Ktl07trupEAevHvOhRANCAARs8bVeQIBBKgZmAuplW88MWgri7mZ7
 gmu95Yd7uZxtJbQXLR9MMCrVsZrYo5TIOleHgzRpYW2Dv4IDEiS4yt42
 -----END PRIVATE KEY-----
 ";
+
+    /// Serve HTTPS on 127.0.0.1 with a leaf signed by CA A, answering every request with
+    /// `200 ok`. Returns the port; reach it as `https://localhost:<port>/`.
+    pub(crate) async fn serve_test_tls() -> u16 {
+        let server_config = rustls::ServerConfig::builder_with_provider(Arc::new(
+            rustls::crypto::ring::default_provider(),
+        ))
+        .with_safe_default_protocol_versions()
+        .unwrap()
+        .with_no_client_auth()
+        .with_single_cert(
+            vec![CertificateDer::from_pem_slice(LEAF_CERT.as_bytes()).unwrap()],
+            PrivateKeyDer::from_pem_slice(LEAF_KEY.as_bytes()).unwrap(),
+        )
+        .unwrap();
+        let acceptor = tokio_rustls::TlsAcceptor::from(Arc::new(server_config));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        tokio::spawn(async move {
+            use tokio::io::{AsyncReadExt, AsyncWriteExt};
+            while let Ok((stream, _)) = listener.accept().await {
+                let acceptor = acceptor.clone();
+                tokio::spawn(async move {
+                    let Ok(mut tls) = acceptor.accept(stream).await else {
+                        return;
+                    };
+                    let mut buf = [0u8; 1024];
+                    let _ = tls.read(&mut buf).await;
+                    let _ = tls
+                        .write_all(
+                            b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok",
+                        )
+                        .await;
+                    let _ = tls.shutdown().await;
+                });
+            }
+        });
+        port
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::test_support::{CA_A, CA_B, LEAF_KEY, serve_test_tls};
+    use super::*;
+    use std::io::Write;
 
     fn write_bundle(contents: &str) -> tempfile::NamedTempFile {
         let mut file = tempfile::NamedTempFile::new().unwrap();
@@ -211,43 +284,11 @@ gmu95Yd7uZxtJbQXLR9MMCrVsZrYo5TIOleHgzRpYW2Dv4IDEiS4yt42
             .unwrap();
     }
 
-    /// Serve HTTPS on 127.0.0.1 with a leaf signed by CA A, then check that a reqwest client
-    /// reaches it only when the bundle is applied.
+    /// A reqwest client reaches a server whose leaf is signed by CA A only when the bundle
+    /// is applied.
     #[tokio::test]
     async fn reqwest_trusts_a_private_ca_only_with_the_bundle() {
-        let server_config = rustls::ServerConfig::builder_with_provider(Arc::new(
-            rustls::crypto::ring::default_provider(),
-        ))
-        .with_safe_default_protocol_versions()
-        .unwrap()
-        .with_no_client_auth()
-        .with_single_cert(
-            vec![CertificateDer::from_pem_slice(LEAF_CERT.as_bytes()).unwrap()],
-            rustls::pki_types::PrivateKeyDer::from_pem_slice(LEAF_KEY.as_bytes()).unwrap(),
-        )
-        .unwrap();
-        let acceptor = tokio_rustls::TlsAcceptor::from(Arc::new(server_config));
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let port = listener.local_addr().unwrap().port();
-        tokio::spawn(async move {
-            use tokio::io::{AsyncReadExt, AsyncWriteExt};
-            while let Ok((stream, _)) = listener.accept().await {
-                let acceptor = acceptor.clone();
-                tokio::spawn(async move {
-                    let Ok(mut tls) = acceptor.accept(stream).await else {
-                        return;
-                    };
-                    let mut buf = [0u8; 1024];
-                    let _ = tls.read(&mut buf).await;
-                    let _ = tls
-                        .write_all(
-                            b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok",
-                        )
-                        .await;
-                    let _ = tls.shutdown().await;
-                });
-            }
-        });
+        let port = serve_test_tls().await;
         let url = format!("https://localhost:{port}/");
 
         let file = write_bundle(CA_A);
@@ -269,5 +310,30 @@ gmu95Yd7uZxtJbQXLR9MMCrVsZrYo5TIOleHgzRpYW2Dv4IDEiS4yt42
             .build()
             .unwrap();
         assert!(default.get(&url).send().await.is_err());
+    }
+
+    /// An untrusted certificate is recognised through reqwest's error chain; a refused
+    /// connection is not mistaken for one.
+    #[tokio::test]
+    async fn detects_untrusted_certificates_and_nothing_else() {
+        let port = serve_test_tls().await;
+        let client = reqwest::Client::new();
+
+        let untrusted = client
+            .get(format!("https://localhost:{port}/"))
+            .send()
+            .await
+            .unwrap_err();
+        assert!(is_untrusted_certificate(&untrusted));
+
+        let closed = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let closed_port = closed.local_addr().unwrap().port();
+        drop(closed);
+        let refused = client
+            .get(format!("https://localhost:{closed_port}/"))
+            .send()
+            .await
+            .unwrap_err();
+        assert!(!is_untrusted_certificate(&refused));
     }
 }
