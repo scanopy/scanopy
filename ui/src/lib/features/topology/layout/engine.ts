@@ -16,7 +16,7 @@ export interface LayoutInput {
 	hiddenEdgeTypes?: string[];
 	/**
 	 * Keep every container's children in the order they appear in `nodes`, which the server has
-	 * already sorted. Off, the layout orders them itself to keep connections short.
+	 * already sorted. Off, the layout arranges them itself to fit each container compactly.
 	 */
 	preserveChildOrder?: boolean;
 }

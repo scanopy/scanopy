@@ -25879,9 +25879,9 @@
       },
       "ElementSort": {
         "type": "string",
-        "description": "The order nodes take inside each container.\n\nAnything other than `Layout` is applied by the server when it builds the graph, and the\nlayout keeps that order on screen, reading left to right, top to bottom.",
+        "description": "The order of the nodes inside each top-level container, groups within it included.\n\nTop-level containers keep their own placement whatever the sort. Anything other than\n`Automatic` is applied by the server when it builds the graph, and the layout keeps that order\non screen, reading left to right, top to bottom.",
         "enum": [
-          "Layout",
+          "Automatic",
           "Address",
           "PortIndex",
           "Name",

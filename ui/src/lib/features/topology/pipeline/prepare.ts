@@ -306,7 +306,9 @@ function getStructureKey(topo: RenderableTopology, view: string): string {
 	// Otherwise the order is incidental (the builders iterate hash maps) and must not.
 	const elementSort = effectiveElementSort(topo.options?.request, view);
 	const orderKey =
-		elementSort === 'Layout' ? nodeKeys.sort().join(',') : `${elementSort}:${nodeKeys.join(',')}`;
+		elementSort === 'Automatic'
+			? nodeKeys.sort().join(',')
+			: `${elementSort}:${nodeKeys.join(',')}`;
 	const inlineKey = getInlineContentKey(topo, view);
 	const hide = getHideStateKey(view);
 	// Segments: nodes | inline | resizing-hide | structural-hide. `prepare` compares the middle two

@@ -66,7 +66,7 @@ impl NaturalKey {
 ///
 /// Knows nothing about views: `GroupingConfig` has already dropped a sort the view cannot use.
 pub fn order_children(nodes: &mut [Node], sort: ElementSort, ctx: &TopologyContext) {
-    if sort == ElementSort::Layout {
+    if sort == ElementSort::Automatic {
         return;
     }
 
@@ -182,7 +182,7 @@ impl<'a> Lookups<'a> {
             return None;
         };
         match sort {
-            ElementSort::Layout => None,
+            ElementSort::Automatic => None,
             ElementSort::Address => match element {
                 ElementEntityType::IPAddress { ip_address_id, .. } => ip_address_id
                     .and_then(|id| self.addresses.get(&id))
@@ -470,7 +470,7 @@ mod tests {
         let before: Vec<Uuid> = nodes.iter().map(|n| n.id).collect();
 
         with_ctx(&ips, &[], &[], |ctx| {
-            order_children(&mut nodes, ElementSort::Layout, ctx)
+            order_children(&mut nodes, ElementSort::Automatic, ctx)
         });
 
         assert_eq!(nodes.iter().map(|n| n.id).collect::<Vec<_>>(), before);
