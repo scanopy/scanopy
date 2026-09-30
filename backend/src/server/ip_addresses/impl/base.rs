@@ -15,6 +15,17 @@ use validator::Validate;
 
 pub const ALL_IP_ADDRESSES_IP: IpAddr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
 
+/// Whether `mac` is the all-zero placeholder: what firmware and OS APIs report for an interface
+/// with no hardware address (Net-SNMP's `lo`, several platforms' NIC enumeration).
+///
+/// It is not an address. Every loopback in an estate wears it, and its OUI `000000` happens to be
+/// registered, so a check that only asks "is this a real vendor block" grades it as strong
+/// identity. One definition so the daemon's readers and the server's identity and storage rules
+/// cannot disagree about it.
+pub fn is_unset_mac(mac: &MacAddress) -> bool {
+    mac.bytes() == [0; 6]
+}
+
 /// A MAC address, and the evidence for it.
 ///
 /// Four sites produce one and they are not equally good: our own ARP request answered by the
@@ -43,6 +54,12 @@ impl AttributeValue for MacEvidenceValue {
     /// stronger source may still correct one a weaker source got wrong, which is the point: an ARP
     /// reply we solicited should be able to fix a MAC a forwarding table reported.
     const REFRESHABLE: bool = false;
+
+    /// The all-zero placeholder is an absent MAC. Reads back as `None`, is never written, and
+    /// yields to any real MAC whatever its rung. That last rule clears one an older daemon sent.
+    fn is_blank(&self) -> bool {
+        is_unset_mac(&self.0)
+    }
 }
 
 impl utoipa::PartialSchema for MacEvidenceValue {

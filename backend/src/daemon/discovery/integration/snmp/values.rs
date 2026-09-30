@@ -2,6 +2,7 @@
 //!
 //! Functions for extracting typed values from SNMP varbinds.
 
+use crate::server::ip_addresses::r#impl::base::is_unset_mac;
 use crate::server::shared::storage::pg_value::strip_nuls;
 use mac_address::MacAddress;
 use snmp2::Value;
@@ -83,12 +84,15 @@ pub fn value_to_u64(value: &Value) -> Option<u64> {
     }
 }
 
-/// Extract a MAC address from an SNMP varbind value
+/// Extract a MAC address from an SNMP varbind value.
+///
+/// Six zero bytes read as no address, the same as an empty value: Net-SNMP answers `lo`'s
+/// `ifPhysAddress` that way, where other agents send nothing.
 pub fn value_to_mac(value: &Value) -> Option<MacAddress> {
     match value {
         Value::OctetString(bytes) if bytes.len() == 6 => {
             let arr: [u8; 6] = [bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5]];
-            Some(MacAddress::new(arr))
+            Some(MacAddress::new(arr)).filter(|mac| !is_unset_mac(mac))
         }
         _ => None,
     }

@@ -157,10 +157,12 @@ enum LocalPortEvidence {
 /// The all-zero address is dropped for the same reason: it is what firmware reports for an
 /// interface that has no hardware address, not an identity.
 pub(crate) fn unique_interface_macs(if_entries: &[IfTableEntry]) -> HashMap<MacAddress, i32> {
-    let unset = MacAddress::new([0; 6]);
     let mut by_mac: HashMap<MacAddress, Option<i32>> = HashMap::new();
     for e in if_entries {
-        let Some(mac) = e.if_phys_address.filter(|m| *m != unset) else {
+        let Some(mac) = e
+            .if_phys_address
+            .filter(|m| !crate::server::ip_addresses::r#impl::base::is_unset_mac(m))
+        else {
             continue;
         };
         by_mac

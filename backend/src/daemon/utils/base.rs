@@ -3,7 +3,7 @@ use crate::server::interfaces::r#impl::base::{
     IfAdminStatus, IfOperStatus, Interface, InterfaceBase, if_type,
 };
 use crate::server::ip_addresses::r#impl::base::{
-    IPAddress, IPAddressBase, MacEvidence, MacEvidenceValue, mac_of,
+    IPAddress, IPAddressBase, MacEvidence, MacEvidenceValue, is_unset_mac, mac_of,
 };
 use crate::server::shared::attribution::AttributeSource;
 use crate::server::subnets::r#impl::base::Subnet;
@@ -188,10 +188,10 @@ fn nic_to_interface(
 
 /// A NIC's MAC, or `None` for the all-zero placeholder several platforms report.
 fn nic_mac(iface: &pnet::datalink::NetworkInterface) -> Option<MacAddress> {
-    match iface.mac {
-        Some(mac) if !mac.octets().iter().all(|o| *o == 0) => Some(MacAddress::new(mac.octets())),
-        _ => None,
-    }
+    iface
+        .mac
+        .map(|mac| MacAddress::new(mac.octets()))
+        .filter(|mac| !is_unset_mac(mac))
 }
 
 /// Cross-platform system utilities trait
