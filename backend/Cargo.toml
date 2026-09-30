@@ -309,7 +309,12 @@ procfs = { version = "0.16" }
 [target.'cfg(target_family = "windows")'.dependencies]
 windows = { version = "0.52", features = [
     "Win32_NetworkManagement_IpHelper",
-    "Win32_Foundation"
+    "Win32_Foundation",
+    # Daemon crash reporting (daemon/runtime/crash_log.rs): unhandled-exception filter and the
+    # faulting module's path.
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_Kernel",
+    "Win32_System_LibraryLoader",
 ]}
 # Windows Service Control Manager integration: lets the daemon run under the SCM (report
 # RUNNING/STOPPED, handle the STOP control) when launched as a service by `daemon install`.
