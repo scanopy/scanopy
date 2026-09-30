@@ -971,4 +971,18 @@ mod tests {
             _ => panic!("Expected V4"),
         }
     }
+
+    /// Listing this host's NICs is the first thing every poll does. On Windows it used to call into
+    /// the delay-loaded packet.dll, so on a host without Npcap on the DLL search path this call
+    /// killed the whole process (0xC06D007E), taking the test binary with it. Run it on a Windows
+    /// host both with and without Npcap.
+    #[cfg(windows)]
+    #[test]
+    fn own_nics_are_listed_whether_or_not_npcap_is_installed() {
+        let nics = filtered_own_nics(&[]);
+        assert!(
+            nics.iter().any(|nic| !nic.ips.is_empty()),
+            "expected at least one NIC with an address, got {nics:?}"
+        );
+    }
 }

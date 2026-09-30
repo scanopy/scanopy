@@ -35,8 +35,23 @@ Local patches (all marked in-source with `SCANOPY LOCAL PATCH`):
     permanently (not a temporary diagnostic): the one place that actually sees the raw fd, so any
     future recurrence of this bug class is a logged fact instead of a silent abort.
 
+  * src/winpcap.rs (Windows) — `interfaces()` no longer calls `PacketGetAdapterNames`. The daemon
+    delay-loads packet.dll (see backend/build.rs), and upstream called into it just to list NICs,
+    so every interface enumeration on a host without packet.dll on the search path raised
+    0xC06D007E and killed the process right after startup. Reproduced with the released v0.17.17
+    daemon on Windows 11, both with no Npcap and with a default-mode Npcap install (packet.dll only
+    in `System32\Npcap`). Names are now built as `\Device\NPF_{GUID}` from `GetAdaptersInfo`,
+    the same string Npcap reports. Both `GetAdaptersInfo` return codes are checked (upstream
+    walked an unfilled buffer on failure), and the `panic!` on a second `PacketGetAdapterNames`
+    failure is gone with the call.
+  * src/winpcap.rs — `packet_dll_available()` loads packet.dll from `System32\Npcap` by full path,
+    then from the default search path. `channel()` returns `NotFound` instead of reaching a
+    Packet* call when neither load works. That covers every raw-socket caller (broadcast ARP,
+    Npcap ARP, DCP) at the one place they all go through. `bindings/winpcap.rs` gains the two
+    kernel32 imports it uses.
+
 Remove this vendored copy and return to a crates.io dependency once upstream ships a release of
-`pnet_datalink` with the equivalent fix in `bpf.rs` (no such release exists as of this writing —
+`pnet_datalink` with the equivalent fix in `bpf.rs` and the Windows changes above (no such release exists as of this writing —
 `bpf.rs` in every published 0.35.x is still the unpatched `select`/`FD_SET` version).
 ====================================================================
 -->

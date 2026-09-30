@@ -80,6 +80,15 @@ impl Default for Config {
 /// Create a datalink channel using the WinPcap library.
 #[inline]
 pub fn channel(network_interface: &NetworkInterface, config: Config) -> io::Result<super::Channel> {
+    // SCANOPY LOCAL PATCH: every Packet* call below goes through the delay-loaded packet.dll. With
+    // no packet.dll the loader raises 0xC06D007E and the process dies, so refuse here instead.
+    if !packet_dll_available() {
+        return Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            "Npcap is not installed (packet.dll could not be loaded)",
+        ));
+    }
+
     let mut read_buffer = Vec::new();
     read_buffer.resize(config.read_buffer_size, 0u8);
 
@@ -265,33 +274,86 @@ impl DataLinkReceiver for DataLinkReceiverImpl {
     }
 }
 
+/// Whether packet.dll can be loaded, so that a Packet* call won't fail its delay-load.
+///
+/// SCANOPY LOCAL PATCH. The daemon links packet.dll with `/DELAYLOAD`, so a missing DLL
+/// surfaces at the first Packet* call as an SEH exception (0xC06D007E) that kills the process.
+/// Npcap's default install puts packet.dll only in `System32\Npcap`, which is not on the DLL
+/// search path (only its WinPcap-compatible mode also copies it into `System32`). Loading it by
+/// full path from there first puts it in the process's module list, and the delay-load helper's
+/// later `LoadLibrary("packet.dll")` resolves to the already-loaded module by name. Then fall
+/// back to the normal search path for WinPcap-compatible installs. Checked once per process.
+pub fn packet_dll_available() -> bool {
+    static AVAILABLE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *AVAILABLE.get_or_init(|| {
+        let load = |path: &str, flags: u32| -> bool {
+            let wide: Vec<u16> = path.encode_utf16().chain(std::iter::once(0)).collect();
+            !unsafe { winpcap::LoadLibraryExW(wide.as_ptr(), std::ptr::null_mut(), flags) }
+                .is_null()
+        };
+
+        let mut sys_dir = [0u16; 260];
+        let len = unsafe { winpcap::GetSystemDirectoryW(sys_dir.as_mut_ptr(), sys_dir.len() as u32) }
+            as usize;
+        if len > 0 && len < sys_dir.len() {
+            let npcap = format!(
+                "{}\\Npcap\\Packet.dll",
+                String::from_utf16_lossy(&sys_dir[..len])
+            );
+            if load(&npcap, winpcap::LOAD_WITH_ALTERED_SEARCH_PATH) {
+                return true;
+            }
+        }
+        load("packet.dll", 0)
+    })
+}
+
 /// Get a list of available network interfaces for the current machine.
+///
+/// SCANOPY LOCAL PATCH: upstream intersected this list with `PacketGetAdapterNames`, a packet.dll
+/// call, so merely listing NICs crashed the process on a host without Npcap (see
+/// `packet_dll_available`). Npcap names each adapter `\Device\NPF_{<AdapterName>}`, the same GUID
+/// `GetAdaptersInfo` reports, so build that name directly and the result, names included, is what
+/// upstream returned whenever Npcap is installed. Both `GetAdaptersInfo` return codes are also
+/// checked now: upstream walked the buffer even when the second call failed, reading
+/// uninitialised memory whenever the adapter list grew between the two calls.
 pub fn interfaces() -> Vec<NetworkInterface> {
-    // use super::bindings::winpcap;
+    const ERROR_SUCCESS: u32 = 0;
+    const ERROR_BUFFER_OVERFLOW: u32 = 111;
+    const ATTEMPTS: usize = 3;
 
+    let entry_size = mem::size_of::<winpcap::IP_ADAPTER_INFO>() as u32;
     let mut adapters_size = 0u32;
+    let mut adapters: Vec<winpcap::IP_ADAPTER_INFO> = Vec::new();
+    let mut filled = false;
 
-    unsafe {
-        let mut tmp: winpcap::IP_ADAPTER_INFO = mem::zeroed();
-        // FIXME [windows] This only gets IPv4 addresses - should use
-        // GetAdaptersAddresses
-        winpcap::GetAdaptersInfo(&mut tmp, &mut adapters_size);
+    // FIXME [windows] This only gets IPv4 addresses - should use GetAdaptersAddresses
+    for _ in 0..ATTEMPTS {
+        let vec_size = adapters_size.div_ceil(entry_size).max(1) as usize;
+        adapters = Vec::with_capacity(vec_size);
+        let mut buf_size = (vec_size as u32) * entry_size;
+        let ret = unsafe {
+            std::ptr::write_bytes(adapters.as_mut_ptr(), 0, vec_size);
+            winpcap::GetAdaptersInfo(adapters.as_mut_ptr(), &mut buf_size)
+        };
+        match ret {
+            ERROR_SUCCESS => {
+                filled = true;
+                break;
+            }
+            // The list grew since the size was read; retry with the new size.
+            ERROR_BUFFER_OVERFLOW => adapters_size = buf_size,
+            // ERROR_NO_DATA (no adapters) or a real failure: nothing to walk.
+            _ => return Vec::new(),
+        }
     }
-
-    let mut vec_size = adapters_size / mem::size_of::<winpcap::IP_ADAPTER_INFO>() as u32;
-    if adapters_size % mem::size_of::<winpcap::IP_ADAPTER_INFO>() as u32 != 0 {
-        vec_size += 1;
-    }
-    let mut adapters = Vec::with_capacity(vec_size as usize);
-
-    // FIXME [windows] Check return code
-    unsafe {
-        winpcap::GetAdaptersInfo(adapters.as_mut_ptr(), &mut adapters_size);
+    if !filled {
+        return Vec::new();
     }
 
     // Create a complete list of NetworkInterfaces for the machine
     let mut cursor = adapters.as_mut_ptr();
-    let mut all_ifaces = Vec::with_capacity(vec_size as usize);
+    let mut all_ifaces = Vec::with_capacity(adapters.capacity());
     while !cursor.is_null() {
         let mac = unsafe {
             MacAddr(
@@ -323,7 +385,7 @@ pub fn interfaces() -> Vec<NetworkInterface> {
             let description_str = from_utf8_unchecked(bytes).to_owned();
 
             all_ifaces.push(NetworkInterface {
-                name: name_str,
+                name: format!("\\Device\\NPF_{}", name_str),
                 description: description_str,
                 index: (*cursor).Index,
                 mac: Some(mac),
@@ -336,44 +398,7 @@ pub fn interfaces() -> Vec<NetworkInterface> {
         }
     }
 
-    let mut buf = vec![0u8; 4096];
-    let mut buflen = buf.len() as u32;
-
-    if unsafe { winpcap::PacketGetAdapterNames(buf.as_mut_ptr() as *mut i8, &mut buflen) } == 0 {
-        buf.resize(buflen as usize, 0);
-
-        // Second call should now work with the correct buffer size. If not, this may be
-        // due to some privilege or other unforeseen issue.
-        if unsafe { winpcap::PacketGetAdapterNames(buf.as_mut_ptr() as *mut i8, &mut buflen) } == 0
-        {
-            panic!("Unable to get interface list despite increasing buffer size");
-        }
-    }
-
-    let buf_str = unsafe { from_utf8_unchecked(&buf) };
-    let iface_names = buf_str.split("\0\0").next();
-    let mut vec = Vec::new();
-
-    // Return only supported adapters
-    match iface_names {
-        Some(iface_names) => {
-            for iface in iface_names.split('\0') {
-                let name = iface.to_owned();
-                let next = all_ifaces
-                    .iter()
-                    .filter(|x| name[..].ends_with(&x.name[..]))
-                    .next();
-                if next.is_some() {
-                    let mut iface = next.unwrap().clone();
-                    iface.name = name;
-                    vec.push(iface);
-                }
-            }
-        }
-        None => (),
-    };
-
-    vec
+    all_ifaces
 }
 
 fn parse_ip_network(ip_cursor: winpcap::PIP_ADDR_STRING) -> Result<IpNetwork, ()> {

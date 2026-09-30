@@ -9,7 +9,7 @@ use scanopy::{
     daemon::shared::api_client::ConnectionError,
     daemon::{
         install::run_command,
-        runtime::types::DaemonAppState,
+        runtime::{crash_log, types::DaemonAppState},
         shared::{
             config::{AppConfig, ConfigStore, DaemonArgs, DaemonCli},
             handlers::create_router,
@@ -25,7 +25,6 @@ use tower_http::{
     cors::{Any, CorsLayer},
     trace::TraceLayer,
 };
-use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 fn main() -> anyhow::Result<()> {
@@ -103,6 +102,29 @@ fn raise_fd_limit() {
 #[cfg(not(unix))]
 fn raise_fd_limit() {}
 
+/// Start a new or empty log file with a UTF-8 byte-order mark on Windows. Without one, Windows
+/// PowerShell's `Get-Content` decodes the file as ANSI and shows the banner's `━` separators (and
+/// any other non-ASCII text) as mojibake. An existing file with content is left alone, so the BOM
+/// never lands mid-file.
+#[cfg(windows)]
+fn mark_new_log_file_utf8(path: &std::path::Path) {
+    use std::io::Write;
+    let is_empty = std::fs::metadata(path)
+        .map(|m| m.len() == 0)
+        .unwrap_or(true);
+    if is_empty
+        && let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)
+    {
+        let _ = file.write_all("\u{FEFF}".as_bytes());
+    }
+}
+
+#[cfg(not(windows))]
+fn mark_new_log_file_utf8(_path: &std::path::Path) {}
+
 fn build_runtime() -> anyhow::Result<tokio::runtime::Runtime> {
     Ok(tokio::runtime::Builder::new_multi_thread()
         .thread_stack_size(4 * 1024 * 1024) // 4MB stack for deep async scanning
@@ -126,21 +148,20 @@ async fn run_daemon<F: std::future::Future<Output = ()>>(
         lvl = config.log_level
     ));
 
-    // _guard must be held for the lifetime of the program to ensure logs flush
-    let _file_guard: Option<WorkerGuard>;
-
     if let Some(ref path) = log_path {
         // Create parent directory if it doesn't exist
         if let Some(parent) = path.parent() {
             let _ = std::fs::create_dir_all(parent);
         }
+        mark_new_log_file_utf8(path);
         let log_dir = path.parent().unwrap_or_else(|| std::path::Path::new("."));
         let log_filename = path
             .file_name()
             .unwrap_or_else(|| std::ffi::OsStr::new("scanopy-daemon.log"));
+        // Written synchronously, not through `tracing_appender::non_blocking`: its queue is only
+        // flushed when its guard drops, which never happens on a crash, an abort or
+        // `process::exit`, so the lines just before the process ended were the ones lost.
         let file_appender = tracing_appender::rolling::never(log_dir, log_filename);
-        let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
-        _file_guard = Some(guard);
 
         tracing_subscriber::registry()
             .with(env_filter)
@@ -152,12 +173,11 @@ async fn run_daemon<F: std::future::Future<Output = ()>>(
             .with(
                 tracing_subscriber::fmt::layer()
                     .fmt_fields(scanopy::server::logging::format::LabelFields)
-                    .with_writer(non_blocking)
+                    .with_writer(file_appender)
                     .with_ansi(false),
             )
             .init();
     } else {
-        _file_guard = None;
         tracing_subscriber::registry()
             .with(env_filter)
             .with(
@@ -167,6 +187,9 @@ async fn run_daemon<F: std::future::Future<Output = ()>>(
             )
             .init();
     }
+
+    // From here on, a panic or a native fault leaves "Daemon crashed: ..." in the log.
+    crash_log::install(log_path.clone());
 
     // Raise the open-file-descriptor soft limit before anything opens FDs, so discovery's
     // deep-scan concurrency isn't starved (macOS defaults the soft limit to 256, which
@@ -545,9 +568,11 @@ mod win_service {
     define_windows_service!(ffi_service_main, service_main);
 
     fn service_main(_arguments: Vec<OsString>) {
-        // Errors here can't reach the SCM meaningfully; the daemon's own file log (via --log-file
-        // in the service binPath) captures startup failures.
+        // Errors here can't reach the SCM meaningfully, and stderr is discarded under the SCM, so
+        // log them too: the daemon's file log (via --log-file in the service binPath) is the only
+        // place a service operator can see why it stopped.
         if let Err(e) = run_service() {
+            tracing::error!("Daemon stopped with an error: {e:#}");
             eprintln!("scanopy-daemon service error: {e}");
         }
     }
