@@ -983,7 +983,7 @@
 	"errors_daemon_identity_mismatch": "Cannot send updates for a different daemon",
 	"errors_daemon_network_mismatch": "Cannot send updates for a different network",
 	"errors_daemon_not_registered": "Daemon not found on server. It may have been deleted or the database was reset. Reinstall or reconfigure the daemon.",
-	"errors_daemon_standby": "Your plan does not support DaemonPoll mode. The daemon is on standby. Upgrade your plan and restart the daemon to resume.",
+	"errors_daemon_standby": "The daemon is on standby because it has not completed a discovery in over 30 days. Restart the daemon or start a discovery to resume.",
 	"errors_daemon_version_too_old": "Daemon version {daemon_version} is older than server version {server_version}. Update the daemon to match the server version.",
 	"errors_database_duplicate_entry": "A record with this {field} already exists",
 	"errors_database_error": "A database error occurred",

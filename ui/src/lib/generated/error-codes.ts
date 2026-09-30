@@ -63,7 +63,7 @@ export const ERROR_CODES = {
 	daemon_network_mismatch: 'Cannot send updates for a different network',
 	daemon_identity_mismatch: 'Cannot send updates for a different daemon',
 	daemon_standby:
-		'Your plan does not support DaemonPoll mode. The daemon is on standby. Upgrade your plan and restart the daemon to resume.',
+		'The daemon is on standby because it has not completed a discovery in over 30 days. Restart the daemon or start a discovery to resume.',
 	daemon_not_registered:
 		'Daemon not found on server. It may have been deleted or the database was reset. Reinstall or reconfigure the daemon.',
 	daemon_version_too_old:
