@@ -472,8 +472,8 @@ async fn the_mute_far_end_is_placed_only_by_the_address_its_neighbour_publishes(
 
 /// GH #717, from the lab. `switch-offsite-01` names `switch-mute-01` on two ports (Gi0/4 → `1`,
 /// Gi0/7 → `2`), and `offsite-branch-01`, which nothing scans, on two more (Gi0/6, Gi0/8). Each far
-/// end holds every port named for it, each cable lands on its own port, and a later pass adds
-/// nothing.
+/// end holds every port named for it, each cable lands on its own port within the one scan, and a
+/// later scan adds nothing.
 #[tokio::test]
 async fn far_ends_named_on_several_ports_hold_each_of_them() {
     let lab = Lab::new().await;
@@ -539,33 +539,15 @@ async fn far_ends_named_on_several_ports_hold_each_of_them() {
     let mute_ports = port_ids(mute.id).await;
     assert_eq!(mute_ports, HashSet::from([gi4.id, gi7.id]));
 
-    // The minted far end holds both ports already, but its second is recorded at the end of the
-    // re-run that follows minting, after that pass placed its links. The cable naming it binds on
-    // the next pass, as the single-port code's did.
-    let gi6 = far_port(6).await;
+    // Minted in the first pass with the port named first; its second port is recorded by the pass
+    // after, and bound by the one after that, all within this one call.
+    let (gi6, gi8) = (far_port(6).await, far_port(8).await);
     let branch = gi6.base.host_id;
     assert_ne!(branch, mute.id);
+    assert_eq!(gi8.base.host_id, branch, "one minted far end, not two");
     assert_eq!(gi6.base.if_name.as_deref(), Some("GigabitEthernet1/0/1"));
-    let branch_ports = port_ids(branch).await;
-    assert_eq!(branch_ports.len(), 2);
-    assert_eq!(
-        lab.neighbours
-            .resolved_for_interface(&persisted[&8])
-            .await
-            .unwrap()
-            .into_iter()
-            .map(|row| row.neighbor)
-            .collect::<Vec<_>>(),
-        vec![Neighbor::Host(branch)],
-        "one minted far end, not two"
-    );
-
-    lab.host_service
-        .resolve_lldp_links(lab.network_id, chrono::Utc::now())
-        .await
-        .unwrap();
-    let gi8 = far_port(8).await;
     assert_eq!(gi8.base.if_name.as_deref(), Some("GigabitEthernet1/0/2"));
+    let branch_ports = port_ids(branch).await;
     assert_eq!(branch_ports, HashSet::from([gi6.id, gi8.id]));
 
     lab.host_service

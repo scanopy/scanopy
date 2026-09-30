@@ -454,6 +454,35 @@ async fn a_partial_walk_neither_prunes_nor_lets_advertisements_add() {
     assert!(!names.contains("Ethernet50"), "nothing added");
 }
 
+/// A port recorded during a scan is bound during that scan. The pass that records it has already
+/// placed its links, so resolution runs again rather than leaving the neighbour on the device until
+/// the next scan.
+#[tokio::test]
+async fn a_recorded_port_is_bound_in_the_scan_that_records_it() {
+    let lab = Lab::new().await;
+    let switch = lab.far_end(MUTE_SWITCH).await;
+    let mut named: Vec<(Uuid, &str)> = Vec::new();
+    for (name, port) in SIX {
+        named.push((lab.neighbour(name, MUTE_SWITCH, port).await.id, port));
+    }
+
+    lab.resolve().await;
+
+    let recorded: HashMap<String, Uuid> = lab
+        .ports(switch.id)
+        .await
+        .into_iter()
+        .filter_map(|i| i.base.if_name.map(|n| (n, i.id)))
+        .collect();
+    for (local, port) in named {
+        assert_eq!(
+            lab.neighbours_of(local).await,
+            vec![Neighbor::Interface(recorded[port])],
+            "the neighbour naming {port}"
+        );
+    }
+}
+
 /// The point of recording a port: the neighbour that named it links to it on the next pass.
 #[tokio::test]
 async fn each_neighbour_binds_to_the_port_recorded_for_it() {

@@ -190,6 +190,9 @@ struct NeighbourPass {
     /// Far ends that published an address and still matched nothing — the evidence the inference
     /// runs on, and empty on the second pass for anything the first one caused to be minted.
     unplaced: Vec<UnplacedFarEnd>,
+    /// Ports recorded on far ends from what their neighbours advertised. Each one is a port the next
+    /// pass can bind a neighbour to, which is why a pass that recorded any is followed by another.
+    recorded_ports: usize,
 }
 
 mod inference;
@@ -556,7 +559,8 @@ impl HostService {
                 .await?;
         }
 
-        self.record_advertised_far_end_ports(network_id, advertised_ports)
+        let recorded_ports = self
+            .record_advertised_far_end_ports(network_id, advertised_ports)
             .await;
 
         tracing::info!(
@@ -572,6 +576,7 @@ impl HostService {
             host_no_strategy = stats.host_no_strategy,
             reopened,
             rebound,
+            recorded_ports,
             "LLDP/CDP link resolution complete"
         );
 
@@ -579,24 +584,33 @@ impl HostService {
             stats,
             warnings,
             unplaced,
+            recorded_ports,
         })
     }
 
     /// Resolve LLDP links for all interfaces in a network, inferring what is missing.
     ///
-    /// Two passes at most. The first resolves what it can and collects the far ends that told us
-    /// where they live and still matched nothing; those become subnets and hosts; the second pass
-    /// then places the neighbours naming them.
+    /// Three passes at most. The first resolves what it can and collects the far ends that told us
+    /// where they live and still matched nothing; those become subnets and hosts. A pass runs again
+    /// whenever the one before it created something to resolve against: hosts minted from it, or
+    /// ports recorded on a far end from its neighbours' advertisements (GH #717). Without that, a
+    /// neighbour naming a port recorded at the end of a pass drew to the device rather than the
+    /// port until the next scan. A minted far end takes all three: minted, then its other
+    /// advertised ports recorded, then bound.
     ///
-    /// The second pass's findings *replace* the first's rather than adding to them. A far end that
-    /// resolves once its host exists is no longer an unmatched neighbour, and reporting both would
-    /// tell an operator that the same devices are missing and were just added.
+    /// The last pass's findings *replace* the earlier ones rather than adding to them. A far end
+    /// that resolves once its host exists is no longer an unmatched neighbour, and reporting both
+    /// would tell an operator that the same devices are missing and were just added.
     pub async fn resolve_lldp_links(
         &self,
         network_id: Uuid,
         scan_time: DateTime<Utc>,
     ) -> Result<LldpResolutionOutcome> {
-        let first = self.resolve_neighbours_once(network_id).await?;
+        /// Re-runs never mint, and a port is recorded once, so passes settle on their own. The cap
+        /// bounds the request should one not; a port it leaves unbound binds on the next scan.
+        const MAX_RERUNS: usize = 2;
+
+        let mut first = self.resolve_neighbours_once(network_id).await?;
 
         // The plan's host limit, built the way the daemon batch path builds it
         // (`DaemonService::process_discovery_entities`). Minting runs outside both existing gates,
@@ -604,30 +618,27 @@ impl HostService {
         // a customer is shown on their dashboard and in their usage email.
         let limit_ctx = self.host_limit_context(network_id).await;
 
+        let unplaced = std::mem::take(&mut first.unplaced);
         let inferred = self
-            .infer_far_end_subnets(network_id, first.unplaced, limit_ctx.as_ref(), scan_time)
+            .infer_far_end_subnets(network_id, unplaced, limit_ctx.as_ref(), scan_time)
             .await?;
 
         // A pass that created nothing has nothing new to resolve against, whatever the standing
         // report says about ranges awaiting confirmation.
-        if inferred.minted_host_ids.is_empty() {
-            let mut warnings = first.warnings;
-            warnings.extend(inferred.warnings);
-            return Ok(LldpResolutionOutcome {
-                stats: first.stats,
-                warnings,
-                minted_host_ids: Vec::new(),
-            });
+        let mut rerun = !inferred.minted_host_ids.is_empty() || first.recorded_ports > 0;
+        let mut last = first;
+        for _ in 0..MAX_RERUNS {
+            if !rerun {
+                break;
+            }
+            last = self.resolve_neighbours_once(network_id).await?;
+            rerun = last.recorded_ports > 0;
         }
 
-        // Exactly one re-run, never a loop: the second pass mints nothing, so a far end it still
-        // cannot place is one no further pass would place either.
-        let second = self.resolve_neighbours_once(network_id).await?;
-        let mut warnings = second.warnings;
+        let mut warnings = last.warnings;
         warnings.extend(inferred.warnings);
-
         Ok(LldpResolutionOutcome {
-            stats: second.stats,
+            stats: last.stats,
             warnings,
             minted_host_ids: inferred.minted_host_ids,
         })
@@ -659,11 +670,15 @@ impl HostService {
     ///
     /// Distinct from the minting path, which builds these for a host that did not exist. Here the
     /// host is real and already resolved; only its ports are missing.
+    ///
+    /// Returns how many ports it recorded, so the caller knows whether another pass has something
+    /// new to bind.
     async fn record_advertised_far_end_ports(
         &self,
         network_id: Uuid,
         advertised: Vec<(Uuid, Option<String>, Option<String>)>,
-    ) {
+    ) -> usize {
+        let mut recorded_count = 0;
         let mut by_host: HashMap<Uuid, AdvertisedPorts> = HashMap::new();
         for (host_id, name, mac) in advertised {
             let mac = mac.as_deref().and_then(|m| m.parse::<MacAddress>().ok());
@@ -733,11 +748,14 @@ impl HostService {
                     .create(interface, AuthenticatedEntity::System)
                     .await
                 {
-                    Ok(created) => tracing::info!(
-                        host_id = %host_id,
-                        port = %created.base.if_descr.as_deref().unwrap_or("?"),
-                        "Recorded the port a neighbour named for a device that describes none itself"
-                    ),
+                    Ok(created) => {
+                        recorded_count += 1;
+                        tracing::info!(
+                            host_id = %host_id,
+                            port = %created.base.if_descr.as_deref().unwrap_or("?"),
+                            "Recorded the port a neighbour named for a device that describes none itself"
+                        )
+                    }
                     Err(e) => tracing::warn!(
                         host_id = %host_id,
                         error = %e,
@@ -746,6 +764,8 @@ impl HostService {
                 }
             }
         }
+
+        recorded_count
     }
 
     /// Read this network's identity columns once, for the pass to resolve against.
