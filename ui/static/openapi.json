@@ -25877,6 +25877,17 @@
           }
         ]
       },
+      "ElementSort": {
+        "type": "string",
+        "description": "The order nodes take inside each container.\n\nAnything other than `Layout` is applied by the server when it builds the graph, and the\nlayout keeps that order on screen, reading left to right, top to bottom.",
+        "enum": [
+          "Layout",
+          "Address",
+          "PortIndex",
+          "Name",
+          "Category"
+        ]
+      },
       "EmailInstallCommandRequest": {
         "type": "object",
         "description": "Request body for emailing an install command to the authenticated user.",
@@ -34765,6 +34776,24 @@
                 "rule": "ByStack"
               }
             ]
+          },
+          "element_sort": {
+            "type": "object",
+            "description": "How nodes are ordered inside containers, per view. A view with no entry uses the\nlayout's own order.",
+            "default": {},
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ElementSort"
+            },
+            "propertyNames": {
+              "type": "string",
+              "description": "Which topology view is being rendered",
+              "enum": [
+                "L2Physical",
+                "L3Logical",
+                "Workloads",
+                "Application"
+              ]
+            }
           },
           "hide_entities": {
             "type": "object",

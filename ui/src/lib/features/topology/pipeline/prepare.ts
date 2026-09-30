@@ -20,6 +20,7 @@ import { tagHiddenNodeIds, hiddenEntityIdsByType } from '../interactions';
 import { buildTopologyParentIndex } from '../topology-parent-index';
 import { ENTITY_COLLECTIONS } from '../resolvers';
 import { noteRunDetail } from '../diagnostics';
+import { effectiveElementSort } from '../element-sort';
 
 /**
  * Build a stable signature of everything the active view inlines on its
@@ -297,18 +298,20 @@ function applyAutoCollapse(
 }
 
 function getStructureKey(topo: RenderableTopology, view: string): string {
-	const nodeKeys = topo.nodes
-		.map((n) => {
-			const parentId = n.node_type === 'Element' ? n.container_id : n.parent_container_id;
-			return `${n.id}@${parentId ?? ''}`;
-		})
-		.sort()
-		.join(',');
+	const nodeKeys = topo.nodes.map((n) => {
+		const parentId = n.node_type === 'Element' ? n.container_id : n.parent_container_id;
+		return `${n.id}@${parentId ?? ''}`;
+	});
+	// Under a server-side sort the node order is the layout's input, so a reorder has to relayout.
+	// Otherwise the order is incidental (the builders iterate hash maps) and must not.
+	const elementSort = effectiveElementSort(topo.options?.request, view);
+	const orderKey =
+		elementSort === 'Layout' ? nodeKeys.sort().join(',') : `${elementSort}:${nodeKeys.join(',')}`;
 	const inlineKey = getInlineContentKey(topo, view);
 	const hide = getHideStateKey(view);
 	// Segments: nodes | inline | resizing-hide | structural-hide. `prepare` compares the middle two
 	// to decide whether measured sizes survive — see the cache handling in `prepareTopologyData`.
-	return `${topo.nodes.length}:${topo.edges.length}:${nodeKeys}|${inlineKey}|${hide.resizing}|${hide.structural}`;
+	return `${topo.nodes.length}:${topo.edges.length}:${orderKey}|${inlineKey}|${hide.resizing}|${hide.structural}`;
 }
 
 /**

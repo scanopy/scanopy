@@ -882,6 +882,7 @@ mod tests {
                 IdentifiedRule::new(ElementRule::ByHypervisor),
                 IdentifiedRule::new(ElementRule::ByContainerRuntime),
             ],
+            element_sort: Default::default(),
         }
     }
 

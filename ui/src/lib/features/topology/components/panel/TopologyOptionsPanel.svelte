@@ -11,7 +11,7 @@
 	} from '../../queries';
 	import type { RenderableTopology } from '../../types/base';
 	import { get } from 'svelte/store';
-	import { ChevronLeft, ChevronRight, Filter, Group, Eye } from 'lucide-svelte';
+	import { ChevronLeft, ChevronRight, Filter, LayoutGrid, Eye } from 'lucide-svelte';
 	import OptionsContent from './options/OptionsContent.svelte';
 	import InspectorNode from './inspectors/InspectorNode.svelte';
 	import InspectorEdge from './inspectors/InspectorEdge.svelte';
@@ -20,17 +20,17 @@
 		topology_collapsePanel,
 		topology_expandPanel,
 		common_filters,
-		common_groupsLabel,
+		common_layout,
 		common_display,
 		topology_tutorialPanelHint
 	} from '$lib/paraglide/messages';
 
-	type OptionsTab = 'filter' | 'group' | 'visual';
+	type OptionsTab = 'filter' | 'layout' | 'visual';
 	let activeTab = $state<OptionsTab>('filter');
 
 	const tabs: { id: OptionsTab; label: string; icon: typeof Filter }[] = [
 		{ id: 'filter', label: common_filters(), icon: Filter },
-		{ id: 'group', label: common_groupsLabel(), icon: Group },
+		{ id: 'layout', label: common_layout(), icon: LayoutGrid },
 		{ id: 'visual', label: common_display(), icon: Eye }
 	];
 

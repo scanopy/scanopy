@@ -24,6 +24,7 @@
 	import CategoryFilterGroup from './CategoryFilterGroup.svelte';
 	import FilterGroup from './FilterGroup.svelte';
 	import GroupingRuleEditor from './GroupingRuleEditor.svelte';
+	import ElementSortSelect from './ElementSortSelect.svelte';
 	import EntityFilterHeader from './EntityFilterHeader.svelte';
 	import { useTagsQuery } from '$lib/features/tags/queries';
 	import {
@@ -39,7 +40,7 @@
 		common_edges,
 		common_clearAll,
 		topology_filtersApplyToView,
-		topology_groupsHelp,
+		topology_layoutHelp,
 		topology_displayHelp,
 		topology_nFiltersApplied
 	} from '$lib/paraglide/messages';
@@ -50,7 +51,7 @@
 		activeTab,
 		renderableTopology
 	}: {
-		activeTab: 'filter' | 'group' | 'visual';
+		activeTab: 'filter' | 'layout' | 'visual';
 		/** Enriched bundle for the active view — network- and snapshot-scoped. */
 		renderableTopology: RenderableTopology | undefined;
 	} = $props();
@@ -755,10 +756,14 @@
 			{/if}
 		{/each}
 	</div>
-{:else if activeTab === 'group'}
-	<!-- Group By -->
+{:else if activeTab === 'layout'}
+	<!-- Sort and group -->
 	<div class="space-y-3">
-		<p class="text-tertiary text-xs">{topology_groupsHelp()}</p>
+		<p class="text-tertiary text-xs">{topology_layoutHelp()}</p>
+		<ElementSortSelect
+			disabled={!editState.isEditable}
+			disabledReason={editState.isEditable ? '' : getOptionDisabledTooltip()}
+		/>
 		<GroupingRuleEditor />
 	</div>
 {:else if activeTab === 'visual'}
