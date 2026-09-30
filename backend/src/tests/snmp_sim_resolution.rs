@@ -22,6 +22,7 @@ use crate::daemon::discovery::integration::snmp::sim::harness::{self, Collected}
 use crate::daemon::discovery::integration::snmp::types::{IfTableEntry, LldpNeighbor};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::hosts::r#impl::name::{HostName, HostNameSources};
+use crate::server::interface_neighbors::r#impl::base::Neighbor;
 use crate::server::interface_neighbors::service::InterfaceNeighborService;
 use crate::server::interfaces::r#impl::base::InterfaceDataComplete;
 use crate::server::interfaces::r#impl::wire::DiscoveryInterface;
@@ -32,7 +33,7 @@ use crate::server::{
         AdvertisedIdentity, IdentityResolution, LldpChassisId, LldpPortId,
         resolver::{LldpResolver, LldpResolverImpl},
     },
-    shared::storage::traits::Storage,
+    shared::storage::{filter::StorableFilter, traits::Storage},
 };
 
 use super::{host, network, organization, subnet, test_services};
@@ -49,6 +50,7 @@ const SNMP_READ: AttributeSource = AttributeSource::Probe(ClientProbe::Snmp);
 /// database.
 struct Lab {
     resolver: LldpResolverImpl,
+    host_service: std::sync::Arc<crate::server::hosts::service::HostService>,
     interfaces: std::sync::Arc<crate::server::interfaces::service::InterfaceService>,
     neighbours: std::sync::Arc<InterfaceNeighborService>,
     storage: crate::server::shared::storage::factory::StorageFactory,
@@ -76,6 +78,7 @@ impl Lab {
 
         Self {
             resolver,
+            host_service: services.host_service.clone(),
             interfaces: services.interface_service.clone(),
             neighbours: services.interface_neighbor_service.clone(),
             network_id: network.id,
@@ -164,6 +167,55 @@ impl Lab {
         record
     }
 
+    /// Submit what a collection of `name` read the way `execute` does: each ifTable row through the
+    /// wire type, carrying the neighbours heard on it as candidates. Returns the host and each
+    /// ifIndex's persisted interface.
+    async fn submit(
+        &self,
+        name: &str,
+        collected: &Collected,
+        groups: InterfaceDataComplete,
+    ) -> (Host, HashMap<i32, Uuid>) {
+        let mut record = host(&self.network_id);
+        record.base.name = HostName::manual(name.to_string());
+        self.storage.hosts.create(&record).await.unwrap();
+
+        let mut claimed = HashSet::new();
+        let mut persisted = HashMap::new();
+        for entry in &collected.if_table.entries {
+            let submitted = convert_snmp_if_entry(
+                entry,
+                self.network_id,
+                &collected.neighbours.records,
+                &collected.cdp.records,
+                &[],
+                &[],
+                &HashMap::new(),
+                &HashSet::new(),
+            );
+            let wire = serde_json::to_value(&submitted).unwrap();
+            let mut received: Interface = serde_json::from_value::<DiscoveryInterface>(wire)
+                .unwrap()
+                .into();
+            received.base.host_id = record.id;
+
+            let stored = self
+                .interfaces
+                .create_or_update_from_discovery(
+                    received,
+                    &claimed,
+                    groups,
+                    AuthenticatedEntity::System,
+                )
+                .await
+                .unwrap();
+            claimed.insert(stored.id);
+            persisted.insert(entry.if_index, stored.id);
+        }
+
+        (record, persisted)
+    }
+
     async fn interface(
         &self,
         host_id: Uuid,
@@ -231,10 +283,6 @@ async fn a_neighbour_walk_that_stopped_part_way_keeps_every_row_it_read() {
         "the fixture has to stop part way having read something, or this proves nothing"
     );
 
-    let mut record = host(&lab.network_id);
-    record.base.name = HostName::manual(device.name.to_string());
-    lab.storage.hosts.create(&record).await.unwrap();
-
     // What `execute` submits: neighbours on the interfaces they sit on, and LLDP marked
     // authoritative only when the walk finished.
     let collected_groups = InterfaceDataComplete {
@@ -243,38 +291,7 @@ async fn a_neighbour_walk_that_stopped_part_way_keeps_every_row_it_read() {
     };
     assert!(!collected_groups.lldp);
 
-    let mut claimed = HashSet::new();
-    let mut persisted = HashMap::new();
-    for entry in &collected.if_table.entries {
-        let submitted = convert_snmp_if_entry(
-            entry,
-            lab.network_id,
-            &collected.neighbours.records,
-            &collected.cdp.records,
-            &[],
-            &[],
-            &HashMap::new(),
-            &HashSet::new(),
-        );
-        let wire = serde_json::to_value(&submitted).unwrap();
-        let mut received: Interface = serde_json::from_value::<DiscoveryInterface>(wire)
-            .unwrap()
-            .into();
-        received.base.host_id = record.id;
-
-        let stored = lab
-            .interfaces
-            .create_or_update_from_discovery(
-                received,
-                &claimed,
-                collected_groups,
-                AuthenticatedEntity::System,
-            )
-            .await
-            .unwrap();
-        claimed.insert(stored.id);
-        persisted.insert(entry.if_index, stored.id);
-    }
+    let (_, persisted) = lab.submit(device.name, &collected, collected_groups).await;
 
     for neighbour in &collected.neighbours.records {
         let interface_id = persisted[&neighbour.local_port_index];
@@ -451,6 +468,112 @@ async fn the_mute_far_end_is_placed_only_by_the_address_its_neighbour_publishes(
         IdentityResolution::Resolved(mute.id),
         "a device sitting in the host list, placeable only by the address it publishes"
     );
+}
+
+/// GH #717, from the lab. `switch-offsite-01` names `switch-mute-01` on two ports (Gi0/4 → `1`,
+/// Gi0/7 → `2`), and `offsite-branch-01`, which nothing scans, on two more (Gi0/6, Gi0/8). Each far
+/// end holds every port named for it, each cable lands on its own port, and a later pass adds
+/// nothing.
+#[tokio::test]
+async fn far_ends_named_on_several_ports_hold_each_of_them() {
+    let lab = Lab::new().await;
+    let mute_device = crate::daemon::discovery::integration::snmp::sim::device("switch-mute-01");
+    let mute = lab
+        .mute_host(
+            "switch-mute-01",
+            IpAddr::V4(mute_device.ip),
+            mute_device.system.sys_name.as_deref(),
+        )
+        .await;
+    let device = crate::daemon::discovery::integration::snmp::sim::device("switch-offsite-01");
+    let collected = harness::collect(&device).await;
+    let (_, persisted) = lab
+        .submit(device.name, &collected, InterfaceDataComplete::default())
+        .await;
+
+    // The far-end port a cable on local ifIndex `if_index` is bound to.
+    let far_port = |if_index: i32| {
+        let local = persisted[&if_index];
+        let lab = &lab;
+        async move {
+            let rows = lab.neighbours.resolved_for_interface(&local).await.unwrap();
+            let [row] = rows.as_slice() else {
+                panic!("Gi0/{if_index} holds {} adjacencies, not one", rows.len());
+            };
+            let Neighbor::Interface(id) = row.neighbor else {
+                panic!("Gi0/{if_index} resolved to a device, not a port");
+            };
+            lab.storage
+                .interfaces
+                .get_all(StorableFilter::<Interface>::new_from_entity_ids(&[id]).live())
+                .await
+                .unwrap()
+                .pop()
+                .expect("the bound port is live")
+        }
+    };
+    let port_ids = |host_id: Uuid| {
+        let lab = &lab;
+        async move {
+            lab.storage
+                .interfaces
+                .get_all(StorableFilter::<Interface>::new_from_host_ids(&[host_id]).live())
+                .await
+                .unwrap()
+                .into_iter()
+                .map(|i| i.id)
+                .collect::<HashSet<Uuid>>()
+        }
+    };
+
+    lab.host_service
+        .resolve_lldp_links(lab.network_id, chrono::Utc::now())
+        .await
+        .unwrap();
+
+    let (gi4, gi7) = (far_port(4).await, far_port(7).await);
+    assert_eq!(gi4.base.host_id, mute.id);
+    assert_eq!(gi7.base.host_id, mute.id);
+    assert_eq!(gi4.base.if_name.as_deref(), Some("1"));
+    assert_eq!(gi7.base.if_name.as_deref(), Some("2"));
+    let mute_ports = port_ids(mute.id).await;
+    assert_eq!(mute_ports, HashSet::from([gi4.id, gi7.id]));
+
+    // The minted far end holds both ports already, but its second is recorded at the end of the
+    // re-run that follows minting, after that pass placed its links. The cable naming it binds on
+    // the next pass, as the single-port code's did.
+    let gi6 = far_port(6).await;
+    let branch = gi6.base.host_id;
+    assert_ne!(branch, mute.id);
+    assert_eq!(gi6.base.if_name.as_deref(), Some("GigabitEthernet1/0/1"));
+    let branch_ports = port_ids(branch).await;
+    assert_eq!(branch_ports.len(), 2);
+    assert_eq!(
+        lab.neighbours
+            .resolved_for_interface(&persisted[&8])
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|row| row.neighbor)
+            .collect::<Vec<_>>(),
+        vec![Neighbor::Host(branch)],
+        "one minted far end, not two"
+    );
+
+    lab.host_service
+        .resolve_lldp_links(lab.network_id, chrono::Utc::now())
+        .await
+        .unwrap();
+    let gi8 = far_port(8).await;
+    assert_eq!(gi8.base.if_name.as_deref(), Some("GigabitEthernet1/0/2"));
+    assert_eq!(branch_ports, HashSet::from([gi6.id, gi8.id]));
+
+    lab.host_service
+        .resolve_lldp_links(lab.network_id, chrono::Utc::now())
+        .await
+        .unwrap();
+    assert_eq!(port_ids(mute.id).await, mute_ports);
+    assert_eq!(port_ids(branch).await, branch_ports);
 }
 
 /// An address nothing holds stays `NotFound` — the tier must not invent a match, and this is the

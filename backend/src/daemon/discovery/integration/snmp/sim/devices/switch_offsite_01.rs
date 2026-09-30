@@ -123,10 +123,26 @@ fn if_table() -> IfTable {
         .speed(1000000000)
         .name("Gi0/6")
         .high_speed(),
+        IfRow::port(
+            7,
+            "GigabitEthernet0/7",
+            Some("00:1a:2b:00:fc:07".parse().unwrap()),
+        )
+        .speed(1000000000)
+        .name("Gi0/7")
+        .high_speed(),
+        IfRow::port(
+            8,
+            "GigabitEthernet0/8",
+            Some("00:1a:2b:00:fc:08".parse().unwrap()),
+        )
+        .speed(1000000000)
+        .name("Gi0/8")
+        .high_speed(),
     ])
 }
 
-/// Six uplinks, and the shapes the address tier has to tell apart.
+/// Eight uplinks, and the shapes the address tier has to tell apart.
 ///
 /// Ports 1 and 2 name far ends that publish a management address, both in the same `10.20.30.0/24`
 /// — that pair is what the server-side bucketing folds into one inferred subnet. Port 3 names a far
@@ -134,7 +150,8 @@ fn if_table() -> IfTable {
 /// and is the control the other two are read against. Port 4 is GH #668 itself and port 5 carries
 /// the address-as-identity subtypes; both are described at their neighbour below. Port 6 sits in a
 /// *second* range, so the lab holds two assumed ranges rather than one — without it the case where
-/// a later reading covers several of them is unreachable.
+/// a later reading covers several of them is unreachable. Ports 7 and 8 are second cables to the
+/// far ends on ports 4 and 6, so each is named on two ports (GH #717).
 ///
 /// Every port here needs a row in [`if_table`] as well. A neighbour whose local port resolves to no
 /// interface is discarded whole by `count_dropped_neighbours` before the server ever sees it —
@@ -171,6 +188,14 @@ fn lldp() -> LldpTable {
         LocalPort::new(
             6,
             Advertised::octets(LldpPortId::InterfaceName("GigabitEthernet0/6".to_string())),
+        ),
+        LocalPort::new(
+            7,
+            Advertised::octets(LldpPortId::InterfaceName("GigabitEthernet0/7".to_string())),
+        ),
+        LocalPort::new(
+            8,
+            Advertised::octets(LldpPortId::InterfaceName("GigabitEthernet0/8".to_string())),
         ),
     ])
     .neighbours(vec![
@@ -235,6 +260,27 @@ fn lldp() -> LldpTable {
             Advertised::octets(LldpChassisId::MacAddress("00:ad:24:c0:ff:e4".to_string())),
             Advertised::octets(LldpPortId::InterfaceName(
                 "GigabitEthernet1/0/1".to_string(),
+            )),
+        )
+        .sys_name("offsite-branch-01")
+        .mgmt_addr(BRANCH_NEIGHBOUR.parse().unwrap()),
+        // GH #717. A second cable to switch-mute-01, on its port 2. A far end that serves no ifTable
+        // gets its ports from what its neighbours advertise, and with only Gi0/4 naming it the lab
+        // could not show whether it keeps one port or all of them.
+        RemoteNeighbour::new(
+            7,
+            Advertised::octets(LldpChassisId::MacAddress("00:ad:24:c0:ff:e3".to_string())),
+            Advertised::octets(LldpPortId::InterfaceName("2".to_string())),
+        )
+        .sys_name(MUTE_NEIGHBOUR_SYS_NAME)
+        .mgmt_addr_of(switch_mute_01::NAME),
+        // GH #717 again, for a far end nobody scans: a second cable to offsite-branch-01. Minting
+        // gives it the port named first, and the pass after records this one beside it.
+        RemoteNeighbour::new(
+            8,
+            Advertised::octets(LldpChassisId::MacAddress("00:ad:24:c0:ff:e4".to_string())),
+            Advertised::octets(LldpPortId::InterfaceName(
+                "GigabitEthernet1/0/2".to_string(),
             )),
         )
         .sys_name("offsite-branch-01")
