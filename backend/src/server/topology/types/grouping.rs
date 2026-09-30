@@ -243,10 +243,11 @@ impl TypeMetadataProvider for ContainerRule {
     }
 }
 
-/// The order nodes take inside each container.
+/// The order of the nodes inside each top-level container, groups within it included.
 ///
-/// Anything other than `Layout` is applied by the server when it builds the graph, and the
-/// layout keeps that order on screen, reading left to right, top to bottom.
+/// Top-level containers keep their own placement whatever the sort. Anything other than
+/// `Automatic` is applied by the server when it builds the graph, and the layout keeps that order
+/// on screen, reading left to right, top to bottom.
 #[derive(
     Debug,
     Clone,
@@ -262,9 +263,9 @@ impl TypeMetadataProvider for ContainerRule {
     IntoStaticStr,
 )]
 pub enum ElementSort {
-    /// The layout places nodes to keep connections short.
+    /// The layout arranges nodes to fit each container compactly.
     #[default]
-    Layout,
+    Automatic,
     /// By IP address, numerically, IPv4 before IPv6.
     Address,
     /// By interface index, the order the device numbers its ports.
@@ -278,7 +279,7 @@ pub enum ElementSort {
 impl ElementSort {
     pub fn applicable_views(&self) -> &'static [TopologyView] {
         match self {
-            ElementSort::Layout | ElementSort::Name => &[
+            ElementSort::Automatic | ElementSort::Name => &[
                 TopologyView::L3Logical,
                 TopologyView::L2Physical,
                 TopologyView::Workloads,
@@ -304,7 +305,7 @@ impl EntityMetadataProvider for ElementSort {
 
     fn icon(&self) -> Icon {
         match self {
-            ElementSort::Layout => Icon::Waypoints,
+            ElementSort::Automatic => Icon::LayoutGrid,
             ElementSort::Address => Icon::Network,
             ElementSort::PortIndex => Icon::EthernetPort,
             ElementSort::Name => Icon::ArrowDownAZ,
@@ -316,7 +317,7 @@ impl EntityMetadataProvider for ElementSort {
 impl TypeMetadataProvider for ElementSort {
     fn name(&self) -> &'static str {
         match self {
-            ElementSort::Layout => "Layout",
+            ElementSort::Automatic => "Automatic",
             ElementSort::Address => "IP address",
             ElementSort::PortIndex => "Port number",
             ElementSort::Name => "Name",
@@ -326,7 +327,7 @@ impl TypeMetadataProvider for ElementSort {
 
     fn description(&self) -> &'static str {
         match self {
-            ElementSort::Layout => "Placed to keep connections short",
+            ElementSort::Automatic => "Arranged to fit each box compactly",
             ElementSort::Address => "Lowest address first, IPv4 before IPv6",
             ElementSort::PortIndex => "In the order the device numbers its ports",
             ElementSort::Name => "Alphabetical, with numbers in numeric order",
@@ -626,8 +627,8 @@ mod tests {
 
         assert_eq!(sort_for(TopologyView::L3Logical), ElementSort::Address);
         // Workloads has no interfaces to index, so the stored sort cannot apply there.
-        assert_eq!(sort_for(TopologyView::Workloads), ElementSort::Layout);
-        assert_eq!(sort_for(TopologyView::Application), ElementSort::Layout);
+        assert_eq!(sort_for(TopologyView::Workloads), ElementSort::Automatic);
+        assert_eq!(sort_for(TopologyView::Application), ElementSort::Automatic);
     }
 
     #[test]

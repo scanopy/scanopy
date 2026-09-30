@@ -103,7 +103,8 @@ export async function executeLayout(
 			elementNodeSizes,
 			hiddenEdgeTypes,
 			// Read from the options these nodes were built with, so the flag always matches their order.
-			preserveChildOrder: effectiveElementSort(topology.options?.request, currentView) !== 'Layout'
+			preserveChildOrder:
+				effectiveElementSort(topology.options?.request, currentView) !== 'Automatic'
 		});
 		elkComputeDone();
 		// Superseded, but too late for the check above to have saved anything: this layout ran in

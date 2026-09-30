@@ -8395,13 +8395,14 @@ export interface components {
             interface_id: string;
         };
         /**
-         * @description The order nodes take inside each container.
+         * @description The order of the nodes inside each top-level container, groups within it included.
          *
-         *     Anything other than `Layout` is applied by the server when it builds the graph, and the
-         *     layout keeps that order on screen, reading left to right, top to bottom.
+         *     Top-level containers keep their own placement whatever the sort. Anything other than
+         *     `Automatic` is applied by the server when it builds the graph, and the layout keeps that order
+         *     on screen, reading left to right, top to bottom.
          * @enum {string}
          */
-        ElementSort: "Layout" | "Address" | "PortIndex" | "Name" | "Category";
+        ElementSort: "Automatic" | "Address" | "PortIndex" | "Name" | "Category";
         /** @description Request body for emailing an install command to the authenticated user. */
         EmailInstallCommandRequest: {
             /** @description The install command to send, exactly as shown in the UI. */

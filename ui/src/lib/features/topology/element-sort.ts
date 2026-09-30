@@ -12,7 +12,7 @@ export function elementSortsFor(view: string): ElementSortMetadata[] {
 }
 
 /**
- * The sort a view is built with: the stored choice if the view offers it, otherwise `Layout`.
+ * The sort a view is built with: the stored choice if the view offers it, otherwise `Automatic`.
  * Mirrors `GroupingConfig::from_request_options`, which drops a sort the view cannot use.
  */
 export function effectiveElementSort(
@@ -21,5 +21,5 @@ export function effectiveElementSort(
 ): ElementSort {
 	const stored = request?.element_sort?.[view];
 	if (stored && elementSortsFor(view).some((s) => s.id === stored)) return stored;
-	return 'Layout';
+	return 'Automatic';
 }
