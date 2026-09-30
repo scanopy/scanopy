@@ -403,13 +403,11 @@
 	function sortFeaturesByCategory(features: string[]): string[] {
 		const order = ['Discovery', 'Visualization', 'Integrations', 'Support', 'Enterprise'];
 		return [...features].sort((a, b) => {
-			// Coming-soon features sort to end
-			const soonA = isComingSoon(a) ? 1 : 0;
-			const soonB = isComingSoon(b) ? 1 : 0;
-			if (soonA !== soonB) return soonA - soonB;
 			const catA = order.indexOf(featureHelpers.getCategory(a));
 			const catB = order.indexOf(featureHelpers.getCategory(b));
-			return (catA === -1 ? 99 : catA) - (catB === -1 ? 99 : catB);
+			if (catA !== catB) return (catA === -1 ? 99 : catA) - (catB === -1 ? 99 : catB);
+			// Within a category, coming-soon features sort to the end
+			return (isComingSoon(a) ? 1 : 0) - (isComingSoon(b) ? 1 : 0);
 		});
 	}
 
@@ -730,7 +728,17 @@
 							{/if}
 
 							<ul class="space-y-1.5 {expandedFeatures.has(plan.type) ? '' : 'hidden sm:block'}">
-								{#each displayFeatures as featureKey (featureKey)}
+								{#each displayFeatures as featureKey, i (featureKey)}
+									{@const category = featureHelpers.getCategory(featureKey)}
+									{#if i === 0 || category !== featureHelpers.getCategory(displayFeatures[i - 1])}
+										<li
+											class="text-tertiary text-[10px] font-medium uppercase tracking-wider {i > 0
+												? 'mt-2'
+												: ''}"
+										>
+											{category}
+										</li>
+									{/if}
 									{@const comingSoon = isComingSoon(featureKey)}
 									<li class="flex items-start gap-2 text-sm">
 										<Check
