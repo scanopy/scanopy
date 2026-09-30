@@ -367,6 +367,7 @@ mod tests {
         GroupingConfig {
             container_rules: vec![],
             element_rules: vec![],
+            element_sort: Default::default(),
         }
     }
 

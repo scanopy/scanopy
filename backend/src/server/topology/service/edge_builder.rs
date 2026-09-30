@@ -781,6 +781,7 @@ mod tests {
         GroupingConfig {
             container_rules: vec![IdentifiedRule::new(ContainerRule::BySubnet)],
             element_rules: vec![],
+            element_sort: Default::default(),
         }
     }
 
@@ -792,6 +793,7 @@ mod tests {
                 tag_ids: vec![],
             })],
             element_rules: vec![],
+            element_sort: Default::default(),
         }
     }
 
@@ -804,6 +806,7 @@ mod tests {
                 IdentifiedRule::new(ContainerRule::MergeContainerBridges),
             ],
             element_rules: vec![],
+            element_sort: Default::default(),
         }
     }
 

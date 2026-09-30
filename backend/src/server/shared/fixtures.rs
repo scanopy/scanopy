@@ -26,7 +26,7 @@ use crate::server::shared::types::entities::EntitySourceDiscriminants;
 use crate::server::shared::types::metadata::{EntityMetadata, MetadataProvider, TypeMetadata};
 use crate::server::subnets::r#impl::types::SubnetType;
 use crate::server::topology::types::edges::EdgeType;
-use crate::server::topology::types::grouping::{ContainerRule, ElementRule};
+use crate::server::topology::types::grouping::{ContainerRule, ElementRule, ElementSort};
 use crate::server::topology::types::nodes::ContainerType;
 use crate::server::topology::types::views::TopologyView;
 use crate::server::users::r#impl::permissions::UserOrgPermissions;
@@ -192,6 +192,9 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
     let element_rule_types: Vec<TypeMetadata> =
         ElementRule::iter().map(|r| r.to_metadata()).collect();
     write_fixture(&element_rule_types, output_dir, "element-rule-types.json");
+
+    let element_sorts: Vec<TypeMetadata> = ElementSort::iter().map(|s| s.to_metadata()).collect();
+    write_fixture(&element_sorts, output_dir, "element-sorts.json");
 
     let container_types: Vec<TypeMetadata> =
         ContainerType::iter().map(|r| r.to_metadata()).collect();

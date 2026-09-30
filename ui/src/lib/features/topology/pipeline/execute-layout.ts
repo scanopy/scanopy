@@ -6,6 +6,7 @@ import { computeForceLayout, type ForceNode, type ForceLink } from '../layout/fo
 import { containerTypes } from '$lib/shared/stores/metadata';
 import * as perf from '../perf';
 import { noteRunDetail, noteElkResultDiscarded } from '../diagnostics';
+import { effectiveElementSort } from '../element-sort';
 
 const layoutEngine = new ElkLayoutEngine();
 
@@ -100,7 +101,9 @@ export async function executeLayout(
 			collapsedContainers: elkCollapsed,
 			expandedContainerSizes: prevExpandedSizes,
 			elementNodeSizes,
-			hiddenEdgeTypes
+			hiddenEdgeTypes,
+			// Read from the options these nodes were built with, so the flag always matches their order.
+			preserveChildOrder: effectiveElementSort(topology.options?.request, currentView) !== 'Layout'
 		});
 		elkComputeDone();
 		// Superseded, but too late for the check above to have saved anything: this layout ran in

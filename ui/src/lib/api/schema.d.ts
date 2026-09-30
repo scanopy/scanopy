@@ -8394,6 +8394,14 @@ export interface components {
              */
             interface_id: string;
         };
+        /**
+         * @description The order nodes take inside each container.
+         *
+         *     Anything other than `Layout` is applied by the server when it builds the graph, and the
+         *     layout keeps that order on screen, reading left to right, top to bottom.
+         * @enum {string}
+         */
+        ElementSort: "Layout" | "Address" | "PortIndex" | "Name" | "Category";
         /** @description Request body for emailing an install command to the authenticated user. */
         EmailInstallCommandRequest: {
             /** @description The install command to send, exactly as shown in the UI. */
@@ -12767,6 +12775,14 @@ export interface components {
              *     ]
              */
             element_rules: components["schemas"]["IdentifiedRule_ElementRule"][];
+            /**
+             * @description How nodes are ordered inside containers, per view. A view with no entry uses the
+             *     layout's own order.
+             * @default {}
+             */
+            element_sort: {
+                [key: string]: components["schemas"]["ElementSort"];
+            };
             /**
              * @description Entity types hidden per view. Keyed by TopologyView, values are entity
              *     types (matching those declared as container/element/inline in the

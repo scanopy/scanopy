@@ -243,6 +243,102 @@ impl TypeMetadataProvider for ContainerRule {
     }
 }
 
+/// The order nodes take inside each container.
+///
+/// Anything other than `Layout` is applied by the server when it builds the graph, and the
+/// layout keeps that order on screen, reading left to right, top to bottom.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Default,
+    PartialEq,
+    Eq,
+    Hash,
+    Serialize,
+    Deserialize,
+    ToSchema,
+    EnumIter,
+    IntoStaticStr,
+)]
+pub enum ElementSort {
+    /// The layout places nodes to keep connections short.
+    #[default]
+    Layout,
+    /// By IP address, numerically, IPv4 before IPv6.
+    Address,
+    /// By interface index, the order the device numbers its ports.
+    PortIndex,
+    /// By name, with runs of digits compared as numbers.
+    Name,
+    /// By service category, then name.
+    Category,
+}
+
+impl ElementSort {
+    pub fn applicable_views(&self) -> &'static [TopologyView] {
+        match self {
+            ElementSort::Layout | ElementSort::Name => &[
+                TopologyView::L3Logical,
+                TopologyView::L2Physical,
+                TopologyView::Workloads,
+                TopologyView::Application,
+            ],
+            ElementSort::Address => &[TopologyView::L3Logical],
+            ElementSort::PortIndex => &[TopologyView::L2Physical],
+            ElementSort::Category => &[TopologyView::Workloads, TopologyView::Application],
+        }
+    }
+}
+
+impl HasId for ElementSort {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+impl EntityMetadataProvider for ElementSort {
+    fn color(&self) -> Color {
+        Color::Gray
+    }
+
+    fn icon(&self) -> Icon {
+        match self {
+            ElementSort::Layout => Icon::Waypoints,
+            ElementSort::Address => Icon::Network,
+            ElementSort::PortIndex => Icon::EthernetPort,
+            ElementSort::Name => Icon::ArrowDownAZ,
+            ElementSort::Category => Icon::Shapes,
+        }
+    }
+}
+
+impl TypeMetadataProvider for ElementSort {
+    fn name(&self) -> &'static str {
+        match self {
+            ElementSort::Layout => "Layout",
+            ElementSort::Address => "IP address",
+            ElementSort::PortIndex => "Port number",
+            ElementSort::Name => "Name",
+            ElementSort::Category => "Category",
+        }
+    }
+
+    fn description(&self) -> &'static str {
+        match self {
+            ElementSort::Layout => "Placed to keep connections short",
+            ElementSort::Address => "Lowest address first, IPv4 before IPv6",
+            ElementSort::PortIndex => "In the order the device numbers its ports",
+            ElementSort::Name => "Alphabetical, with numbers in numeric order",
+            ElementSort::Category => "Grouped by service category, then by name",
+        }
+    }
+
+    fn metadata(&self) -> serde_json::Value {
+        serde_json::json!({ "views": self.applicable_views() })
+    }
+}
+
 /// Rules that organize nodes within a container into sub-groups.
 #[derive(
     Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema, EnumIter, IntoStaticStr,
@@ -448,6 +544,7 @@ impl TypeMetadataProvider for ElementRule {
 pub struct GroupingConfig {
     pub container_rules: Vec<IdentifiedRule<ContainerRule>>,
     pub element_rules: Vec<IdentifiedRule<ElementRule>>,
+    pub element_sort: ElementSort,
 }
 
 impl GroupingConfig {
@@ -467,9 +564,18 @@ impl GroupingConfig {
             .cloned()
             .collect();
 
+        // A stored sort the view has no key for falls back to the layout's own order.
+        let element_sort = options
+            .element_sort
+            .get(&view)
+            .copied()
+            .filter(|sort| sort.applicable_views().contains(&view))
+            .unwrap_or_default();
+
         GroupingConfig {
             container_rules,
             element_rules,
+            element_sort,
         }
     }
 
@@ -506,6 +612,23 @@ mod tests {
     use super::*;
     use crate::server::shared::types::metadata::TypeMetadataProvider;
     use crate::server::topology::types::base::TopologyRequestOptions;
+
+    #[test]
+    fn element_sort_resolves_per_view_and_drops_inapplicable_sorts() {
+        let options = TopologyRequestOptions {
+            element_sort: HashMap::from([
+                (TopologyView::L3Logical, ElementSort::Address),
+                (TopologyView::Workloads, ElementSort::PortIndex),
+            ]),
+            ..Default::default()
+        };
+        let sort_for = |view| GroupingConfig::from_request_options(&options, view).element_sort;
+
+        assert_eq!(sort_for(TopologyView::L3Logical), ElementSort::Address);
+        // Workloads has no interfaces to index, so the stored sort cannot apply there.
+        assert_eq!(sort_for(TopologyView::Workloads), ElementSort::Layout);
+        assert_eq!(sort_for(TopologyView::Application), ElementSort::Layout);
+    }
 
     #[test]
     fn test_metadata_includes_capability_flags() {
