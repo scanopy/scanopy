@@ -1,5 +1,22 @@
 //! Cron scheduler initialization and per-discovery scheduling.
 use super::*;
+use tokio_cron_scheduler::JobSchedulerError;
+
+/// Delays between boot-time scheduling attempts; one attempt more than entries.
+const SCHEDULE_RETRY_BACKOFF: [std::time::Duration; 2] = [
+    std::time::Duration::from_millis(500),
+    std::time::Duration::from_secs(2),
+];
+
+/// Whether a [`DiscoveryService::schedule_discovery`] error comes from a cron
+/// expression that can never parse. Every other error (scheduler timeout,
+/// scheduler add failure) can clear on its own.
+fn is_invalid_schedule(e: &anyhow::Error) -> bool {
+    matches!(
+        e.downcast_ref::<JobSchedulerError>(),
+        Some(JobSchedulerError::ParseSchedule)
+    )
+}
 
 impl DiscoveryService {
     /// Initialize scheduler with all scheduled discoveries
@@ -17,37 +34,86 @@ impl DiscoveryService {
         let discoveries = self.discovery_storage.get_all(filter).await?;
         let count = discoveries.len();
 
-        let mut failed_count = 0;
+        let mut disabled_count = 0;
+        let mut unscheduled_count = 0;
         for mut discovery in discoveries {
-            if let Err(e) = Self::schedule_discovery(self, &discovery).await {
-                tracing::error!(
-                    "Failed to schedule discovery {}: {}. Disabling.",
-                    discovery.id,
-                    e
-                );
+            let Err(e) = self.schedule_discovery_with_retry(&discovery).await else {
+                continue;
+            };
 
-                // Disable and save
-                discovery.disable();
-                let _ = self.discovery_storage.update(&mut discovery).await;
-                failed_count += 1;
+            if !is_invalid_schedule(&e) {
+                // Transient (e.g. the scheduler timed out adding the job). The
+                // discovery stays enabled so the next boot schedules it again.
+                tracing::error!(
+                    discovery_id = %discovery.id,
+                    error = %e,
+                    "Failed to schedule discovery after {} attempts; left enabled",
+                    SCHEDULE_RETRY_BACKOFF.len() + 1
+                );
+                unscheduled_count += 1;
+                continue;
             }
+
+            // The cron expression can never parse, so retrying is pointless.
+            tracing::error!(
+                discovery_id = %discovery.id,
+                error = %e,
+                "Discovery has an invalid schedule. Disabling."
+            );
+            discovery.disable();
+            if let Err(e) = self.discovery_storage.update(&mut discovery).await {
+                tracing::error!(
+                    discovery_id = %discovery.id,
+                    error = %e,
+                    "Failed to save disabled discovery"
+                );
+            }
+            disabled_count += 1;
         }
 
         scheduler.start().await?;
 
-        if failed_count == 0 {
+        if disabled_count == 0 && unscheduled_count == 0 {
             tracing::info!(target: LOG_TARGET, "Discovery scheduler started with {} jobs", count);
         } else {
             tracing::warn!(
                 target: LOG_TARGET,
-                "Discovery scheduler started with {}/{} jobs. {} failed and were disabled.",
-                count - failed_count,
+                "Discovery scheduler started with {}/{} jobs. {} disabled for an invalid schedule, {} left enabled but unscheduled.",
+                count - disabled_count - unscheduled_count,
                 count,
-                failed_count
+                disabled_count,
+                unscheduled_count
             );
         }
 
         Ok(())
+    }
+
+    /// [`Self::schedule_discovery`], retried with backoff unless the schedule
+    /// itself is invalid.
+    async fn schedule_discovery_with_retry(
+        self: &Arc<Self>,
+        discovery: &Discovery,
+    ) -> Result<Uuid> {
+        let mut backoff = SCHEDULE_RETRY_BACKOFF.iter();
+        loop {
+            match Self::schedule_discovery(self, discovery).await {
+                Ok(job_id) => return Ok(job_id),
+                Err(e) if is_invalid_schedule(&e) => return Err(e),
+                Err(e) => {
+                    let Some(delay) = backoff.next() else {
+                        return Err(e);
+                    };
+                    tracing::warn!(
+                        discovery_id = %discovery.id,
+                        error = %e,
+                        retry_in_ms = delay.as_millis() as u64,
+                        "Failed to schedule discovery; retrying"
+                    );
+                    tokio::time::sleep(*delay).await;
+                }
+            }
+        }
     }
 
     /// Schedule a single discovery
@@ -86,7 +152,10 @@ impl DiscoveryService {
         let job = JobBuilder::new()
             .with_timezone(tz)
             .with_cron_job_type()
-            .with_schedule(cron_schedule)?
+            .with_schedule(cron_schedule)
+            .map_err(|e| {
+                anyhow::Error::new(e).context(format!("Invalid cron schedule {cron_schedule:?}"))
+            })?
             .with_run_async(Box::new(move |_uuid, _lock| {
                 let discovery = discovery.clone();
                 let storage = storage.clone();
@@ -198,11 +267,11 @@ impl DiscoveryService {
 
         let job_id = tokio::time::timeout(std::time::Duration::from_secs(5), scheduler.add(job))
             .await
-            .map_err(|_| {
-                anyhow!(
+            .map_err(|elapsed| {
+                anyhow::Error::new(elapsed).context(format!(
                     "Timed out adding scheduled job for discovery {}",
                     discovery_id
-                )
+                ))
             })?
             .map_err(|e| {
                 anyhow!(
@@ -222,5 +291,35 @@ impl DiscoveryService {
             cron_schedule
         );
         Ok(job_id)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anyhow::Context;
+
+    #[test]
+    fn unparseable_cron_is_an_invalid_schedule() {
+        let e = JobBuilder::new()
+            .with_timezone(chrono_tz::UTC)
+            .with_cron_job_type()
+            .with_schedule("every tuesday-ish")
+            .map(|_| ())
+            .context("Invalid cron schedule")
+            .unwrap_err();
+        assert!(is_invalid_schedule(&e));
+    }
+
+    #[tokio::test]
+    async fn scheduler_timeout_is_not_an_invalid_schedule() {
+        let e = tokio::time::timeout(
+            std::time::Duration::from_millis(1),
+            std::future::pending::<()>(),
+        )
+        .await
+        .context("Timed out adding scheduled job")
+        .unwrap_err();
+        assert!(!is_invalid_schedule(&e));
     }
 }

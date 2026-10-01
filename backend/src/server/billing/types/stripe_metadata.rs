@@ -4,7 +4,8 @@
 //! to recover Scanopy-only context like the cancel reason) go through this
 //! struct so the contract stays in one place. Stringly-typed `metadata.get`
 //! calls everywhere else are an anti-pattern; the typed instance is the
-//! source of truth.
+//! source of truth. `StripeOrgMetadata` plays the same role for the
+//! org-only metadata on customers, SetupIntents and Checkout sessions.
 //!
 //! Stripe's update API preserves keys that aren't sent, so a partial
 //! instance can be written without disturbing identification fields like
@@ -46,6 +47,17 @@ pub struct StripeSubscriptionMetadata {
 }
 
 impl StripeSubscriptionMetadata {
+    /// The identification keys every Scanopy-created subscription carries.
+    /// The webhooks read both to map the subscription back to its org and
+    /// plan.
+    pub fn identity(organization_id: Uuid, plan: BillingPlan) -> Self {
+        Self {
+            organization_id: Some(organization_id),
+            plan: Some(plan),
+            ..Default::default()
+        }
+    }
+
     /// Build the HashMap to pass to Stripe. Only `Some` fields land in the
     /// map. Stripe preserves keys that aren't sent, so a partial instance
     /// can extend an existing subscription's metadata without overwriting
@@ -120,6 +132,45 @@ impl StripeSubscriptionMetadata {
             || self.scanopy_cancel_reason.is_some()
             || self.scanopy_cancel_save_offer_shown.is_some()
             || self.scanopy_cancel_save_offer_redeemed.is_some()
+    }
+}
+
+/// Identity metadata for Stripe objects that only need to name their org:
+/// customers, SetupIntents and Checkout sessions. `get_or_create_customer`
+/// searches customers by this key, so the writer and the search query share
+/// `KEY_ORGANIZATION_ID`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct StripeOrgMetadata {
+    pub organization_id: Option<Uuid>,
+}
+
+impl StripeOrgMetadata {
+    pub fn new(organization_id: Uuid) -> Self {
+        Self {
+            organization_id: Some(organization_id),
+        }
+    }
+
+    /// Build the HashMap to pass to Stripe. Only `Some` fields land in the map.
+    pub fn to_stripe(&self) -> HashMap<String, String> {
+        let mut out = HashMap::new();
+        if let Some(org_id) = self.organization_id {
+            out.insert(KEY_ORGANIZATION_ID.into(), org_id.to_string());
+        }
+        out
+    }
+
+    /// Parse a Stripe metadata map. A missing or malformed id lands as `None`.
+    pub fn from_stripe(m: &HashMap<String, String>) -> Self {
+        Self {
+            organization_id: m.get(KEY_ORGANIZATION_ID).and_then(|s| s.parse().ok()),
+        }
+    }
+
+    /// Stripe Search Query Language clause matching objects whose metadata
+    /// names `organization_id`.
+    pub fn search_query(organization_id: Uuid) -> String {
+        format!("metadata['{KEY_ORGANIZATION_ID}']:'{organization_id}'")
     }
 }
 
@@ -213,5 +264,30 @@ mod tests {
             ..Default::default()
         };
         assert!(with_reason.contains_scanopy_keys());
+    }
+
+    #[test]
+    fn org_metadata_round_trips() {
+        let original = StripeOrgMetadata::new(Uuid::new_v4());
+        let parsed = StripeOrgMetadata::from_stripe(&original.to_stripe());
+        assert_eq!(parsed, original);
+
+        let empty = StripeOrgMetadata::default();
+        assert!(empty.to_stripe().is_empty());
+        assert_eq!(StripeOrgMetadata::from_stripe(&HashMap::new()), empty);
+    }
+
+    #[test]
+    fn org_search_query_targets_the_written_key_and_value() {
+        let org_id = Uuid::new_v4();
+        let written = StripeOrgMetadata::new(org_id).to_stripe();
+        let query = StripeOrgMetadata::search_query(org_id);
+        for (key, value) in &written {
+            assert!(
+                query.contains(&format!("metadata['{key}']:'{value}'")),
+                "search query {query} does not match written metadata {key}={value}"
+            );
+        }
+        assert_eq!(written.len(), 1);
     }
 }

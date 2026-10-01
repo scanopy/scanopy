@@ -87,7 +87,7 @@ pub fn describe_metrics() {
     describe_counter!(
         "scanopy_event_subscriber_errors_total",
         Unit::Count,
-        "Event bus subscriber failures; the event was not applied by that subscriber"
+        "Event bus subscriber deliveries that hit an error, by final outcome (recovered after retry, exhausted, not_retried)"
     );
     describe_counter!(
         "scanopy_discovery_warnings_total",

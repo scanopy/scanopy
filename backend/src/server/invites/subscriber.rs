@@ -22,7 +22,10 @@ impl Subscriber<BillingOperation> for InviteService {
         EventFilter::ops(vec![BillingOperationDiscriminants::SubscriptionCancelled])
     }
 
+    /// Revoking is an idempotent delete, so a failure is a plain `Err` and the bus retries the
+    /// whole batch. Every event is still attempted first.
     async fn handle(&self, events: Vec<Event<BillingOperation>>) -> Result<(), Error> {
+        let mut first_error = None;
         for event in events {
             if matches!(
                 event.operation,
@@ -30,15 +33,13 @@ impl Subscriber<BillingOperation> for InviteService {
             ) {
                 let org_id = event.scope.organization_id;
                 if let Err(e) = self.revoke_org_invites(&org_id).await {
-                    tracing::warn!(
-                        organization_id = %org_id,
-                        error = %e,
-                        "Failed to revoke org invites on subscription cancellation",
-                    );
+                    first_error.get_or_insert(e.context(format!(
+                        "revoke invites for org {org_id} on subscription cancellation"
+                    )));
                 }
             }
         }
-        Ok(())
+        first_error.map_or(Ok(()), Err)
     }
 }
 inventory::submit!(SubscriberRegistration::new::<InviteService, BillingOperation>());

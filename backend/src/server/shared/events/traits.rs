@@ -489,9 +489,129 @@ pub type EntityDiscriminant = EntityOperationDiscriminants;
 #[async_trait::async_trait]
 pub trait Subscriber<Op: Operation>: Send + Sync {
     fn filter(&self) -> Op::Filter;
+    /// Apply `events`. Report every failure as `Err`; never log and continue, or the failure
+    /// reaches neither the bus retry nor `scanopy_event_subscriber_errors_total`.
+    ///
+    /// A plain `Err` tells the bus that calling `handle` again with the same events is safe, and
+    /// it retries. Return [`NonRetryable`] instead when side effects already applied would repeat
+    /// on a re-run (some emails of a batch sent, a non-idempotent create done); the bus counts it
+    /// and does not retry.
     async fn handle(&self, events: Vec<Event<Op>>) -> anyhow::Result<()>;
     fn debounce_window_ms(&self) -> u64 {
         0
+    }
+}
+
+/// A subscriber failure that a re-run would make worse: side effects for part of the work have
+/// already been applied, and running `handle` again would repeat them. `failed` is how many
+/// events (or sends) failed, so the error counter reflects the size of the loss.
+#[derive(Debug, thiserror::Error)]
+#[error("{failed} failed: {source}")]
+pub struct NonRetryable {
+    pub failed: usize,
+    #[source]
+    pub source: anyhow::Error,
+}
+
+impl NonRetryable {
+    /// `None` when `failures` is empty; otherwise the count and the first error.
+    pub fn from_failures(failures: Vec<anyhow::Error>) -> Option<Self> {
+        let failed = failures.len();
+        failures
+            .into_iter()
+            .next()
+            .map(|source| Self { failed, source })
+    }
+}
+
+/// Attempts per delivery, including the first, and the waits between them. Short, because the
+/// inline path runs inside HTTP requests, Stripe webhooks among them.
+const SUBSCRIBER_RETRY_BACKOFF: [Duration; 2] =
+    [Duration::from_millis(200), Duration::from_secs(1)];
+
+/// How a delivery that hit an error ended. The `outcome` label of
+/// `scanopy_event_subscriber_errors_total`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::IntoStaticStr)]
+#[strum(serialize_all = "snake_case")]
+pub enum SubscriberErrorOutcome {
+    /// A later attempt succeeded.
+    Recovered,
+    /// Every attempt failed.
+    Exhausted,
+    /// Not retried: the subscriber said a re-run is unsafe, or the error can't clear in time.
+    NotRetried,
+}
+
+/// Errors a retry can't fix within the budget: a [`NonRetryable`] report, a validation failure,
+/// or an org lock that already waited its full timeout.
+fn not_retryable(e: &anyhow::Error) -> bool {
+    e.chain().any(|c| {
+        c.is::<NonRetryable>()
+            || c.is::<crate::server::shared::types::api::ValidationError>()
+            || matches!(
+                c.downcast_ref::<crate::server::shared::storage::lock::LockError>(),
+                Some(crate::server::shared::storage::lock::LockError::Timeout(..))
+            )
+    })
+}
+
+/// Run `subscriber.handle`, retrying this subscriber alone (never the others on the bus, whose
+/// side effects already ran) while the error is retryable and attempts remain. Records one
+/// `scanopy_event_subscriber_errors_total` increment per delivery that hit an error.
+async fn handle_with_retry<Op: Operation>(
+    subscriber: &dyn Subscriber<Op>,
+    name: &'static str,
+    events: Vec<Event<Op>>,
+) {
+    use crate::server::metrics::subscriber::record_subscriber_error;
+
+    let mut backoff = SUBSCRIBER_RETRY_BACKOFF.iter();
+    let mut attempt = 1;
+    loop {
+        let Err(e) = subscriber.handle(events.clone()).await else {
+            if attempt > 1 {
+                record_subscriber_error(name, SubscriberErrorOutcome::Recovered, 1);
+                tracing::warn!(
+                    subscriber = name,
+                    attempts = attempt,
+                    "Typed subscriber recovered after retry"
+                );
+            }
+            return;
+        };
+
+        if not_retryable(&e) {
+            let failed = e
+                .chain()
+                .find_map(|c| c.downcast_ref::<NonRetryable>())
+                .map_or(1, |n| n.failed);
+            record_subscriber_error(name, SubscriberErrorOutcome::NotRetried, failed as u64);
+            tracing::error!(
+                subscriber = name,
+                error = format!("{e:#}"),
+                "Typed subscriber failed; not retried"
+            );
+            return;
+        }
+
+        let Some(wait) = backoff.next() else {
+            record_subscriber_error(name, SubscriberErrorOutcome::Exhausted, 1);
+            tracing::error!(
+                subscriber = name,
+                attempts = attempt,
+                error = format!("{e:#}"),
+                "Typed subscriber failed after retries"
+            );
+            return;
+        };
+        tracing::debug!(
+            subscriber = name,
+            attempt,
+            error = format!("{e:#}"),
+            "Typed subscriber failed; retrying"
+        );
+        tokio::time::sleep(*wait).await;
+        attempt += 1;
     }
 }
 
@@ -525,14 +645,7 @@ impl<Op: Operation> TypedSubscriberState<Op> {
                         }
                         p.drain(..).collect()
                     };
-                    if let Err(e) = subscriber_clone.handle(drained).await {
-                        crate::server::metrics::subscriber::record_subscriber_error(name);
-                        tracing::error!(
-                            subscriber = name,
-                            error = %e,
-                            "Typed subscriber failed to handle batched events",
-                        );
-                    }
+                    handle_with_retry(subscriber_clone.as_ref(), name, drained).await;
                 }
             });
         }
@@ -546,14 +659,7 @@ impl<Op: Operation> TypedSubscriberState<Op> {
 
     async fn add_event(&self, event: Event<Op>) {
         if self.subscriber.debounce_window_ms() == 0 {
-            if let Err(e) = self.subscriber.handle(vec![event]).await {
-                crate::server::metrics::subscriber::record_subscriber_error(self.name);
-                tracing::error!(
-                    subscriber = self.name,
-                    error = %e,
-                    "Typed subscriber failed to handle event",
-                );
-            }
+            handle_with_retry(self.subscriber.as_ref(), self.name, vec![event]).await;
         } else {
             self.pending.write().await.push(event);
         }
@@ -616,31 +722,47 @@ mod tests {
     use super::*;
     use crate::server::shared::events::types::OnboardingOperation;
 
-    struct FailingSubscriber;
+    use crate::server::shared::storage::lock::{LockError, LockKey};
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    /// Fails its first `failures` calls with the error `make_error` builds, then succeeds.
+    struct ScriptedSubscriber {
+        failures: usize,
+        make_error: fn() -> anyhow::Error,
+        calls: Arc<AtomicUsize>,
+    }
 
     #[async_trait::async_trait]
-    impl Subscriber<OnboardingOperation> for FailingSubscriber {
+    impl Subscriber<OnboardingOperation> for ScriptedSubscriber {
         fn filter(&self) -> EventFilter<OnboardingOperation> {
             EventFilter::all()
         }
         async fn handle(&self, _: Vec<Event<OnboardingOperation>>) -> anyhow::Result<()> {
-            anyhow::bail!("org write failed")
+            let call = self.calls.fetch_add(1, Ordering::SeqCst);
+            if call < self.failures {
+                return Err((self.make_error)());
+            }
+            Ok(())
         }
     }
 
-    /// A subscriber error is otherwise only a log line, and the publisher carries on; the counter
-    /// is what surfaces it in Grafana.
-    #[tokio::test(flavor = "current_thread")]
-    async fn failing_subscriber_increments_error_counter() {
+    /// Publish one event to a channel holding only `subscriber`; return its call count and the
+    /// rendered `scanopy_event_subscriber_errors_total` lines.
+    async fn deliver(failures: usize, make_error: fn() -> anyhow::Error) -> (usize, String) {
         let recorder = crate::server::metrics::prometheus_builder().build_recorder();
         let handle = recorder.handle();
         let _guard = metrics::set_default_local_recorder(&recorder);
 
+        let calls = Arc::new(AtomicUsize::new(0));
         let channel = TypedChannel::<OnboardingOperation>::new();
         channel
             .register(
-                Arc::new(FailingSubscriber),
-                "failing_subscriber:onboarding_operation",
+                Arc::new(ScriptedSubscriber {
+                    failures,
+                    make_error,
+                    calls: calls.clone(),
+                }),
+                "scripted_subscriber:onboarding_operation",
             )
             .await;
         channel
@@ -654,12 +776,72 @@ mod tests {
             .await
             .expect("publish carries on past a failing subscriber");
 
-        let rendered = handle.render();
-        assert!(
-            rendered.contains(
-                r#"scanopy_event_subscriber_errors_total{subscriber="failing_subscriber",event_type="onboarding_operation"} 1"#
-            ),
-            "{rendered}"
-        );
+        let rendered = handle
+            .render()
+            .lines()
+            .filter(|l| l.starts_with("scanopy_event_subscriber_errors_total{"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        (calls.load(Ordering::SeqCst), rendered)
+    }
+
+    fn series(outcome: &str, value: u64) -> String {
+        format!(
+            r#"scanopy_event_subscriber_errors_total{{subscriber="scripted_subscriber",event_type="onboarding_operation",outcome="{outcome}"}} {value}"#
+        )
+    }
+
+    fn transient() -> anyhow::Error {
+        anyhow::anyhow!("connection reset")
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn transient_failure_is_retried_and_counted_as_recovered() {
+        let (calls, rendered) = deliver(1, transient).await;
+        assert_eq!(calls, 2);
+        assert_eq!(rendered, series("recovered", 1));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn persistent_failure_stops_after_three_attempts() {
+        let (calls, rendered) = deliver(usize::MAX, transient).await;
+        assert_eq!(calls, 3);
+        assert_eq!(rendered, series("exhausted", 1));
+    }
+
+    /// The lock already waited its full timeout; retrying would hold the request for another 30s.
+    #[tokio::test(flavor = "current_thread")]
+    async fn lock_timeout_is_not_retried() {
+        let (calls, rendered) = deliver(usize::MAX, || {
+            anyhow::Error::from(LockError::Timeout(
+                Duration::from_secs(30),
+                LockKey::Organization(Uuid::nil()),
+            ))
+            .context("org mirror write")
+        })
+        .await;
+        assert_eq!(calls, 1);
+        assert_eq!(rendered, series("not_retried", 1));
+    }
+
+    /// A subscriber that already applied part of its work reports the failures without a retry,
+    /// and the counter carries how many failed.
+    #[tokio::test(flavor = "current_thread")]
+    async fn non_retryable_report_counts_each_failure() {
+        let (calls, rendered) = deliver(usize::MAX, || {
+            NonRetryable::from_failures(vec![transient(), transient(), transient()])
+                .expect("three failures")
+                .into()
+        })
+        .await;
+        assert_eq!(calls, 1);
+        assert_eq!(rendered, series("not_retried", 3));
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn successful_delivery_records_nothing() {
+        let (calls, rendered) = deliver(0, transient).await;
+        assert_eq!(calls, 1);
+        assert!(rendered.is_empty(), "{rendered}");
     }
 }
