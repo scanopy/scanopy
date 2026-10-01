@@ -2208,6 +2208,9 @@ pub(crate) fn unanswered_credential_targets(
         .filter(|o| subnets.iter().any(|s| s.base.cidr.contains(&o.ip)))
         .filter(|o| target_ips.is_none_or(|t| t.contains(&o.ip)))
         .filter(|o| !answered.contains(&o.ip))
+        // A host Wake-on-LAN could not wake is already reported by the wake step, with the cause
+        // (no MAC, or no answer within the wait). A second line saying nothing answered adds nothing.
+        .filter(|o| !matches!(o.credential, CredentialQueryPayload::WakeOnLan(_)))
         // The same rule as the pre-scan check, against the addresses that answered rather than
         // the ones in scope: a device that answered on one of its addresses was reached, and its
         // silent second address is not an untried credential.
@@ -2344,6 +2347,23 @@ mod tests {
         assert_eq!(issues.len(), 1);
         assert_eq!(issues[0].ip, ip("192.168.4.141"));
         assert_eq!(issues[0].reason, CredentialIssueReason::TargetNotResponding);
+    }
+
+    #[test]
+    fn a_wake_on_lan_target_that_never_answered_is_left_to_the_wake_step() {
+        let subnets = [subnet("192.168.4.0/22")];
+        let mut mapping = mapping_targeting("192.168.4.141");
+        mapping.ip_overrides[0].credential = CredentialQueryPayload::WakeOnLan(
+            crate::server::credentials::r#impl::mapping::WakeOnLanQueryCredential {
+                port: 9,
+                wait_seconds: 90,
+                broadcast_address: None,
+                secure_on_password: None,
+            },
+        );
+        assert!(
+            unanswered_credential_targets(&[mapping], &subnets, None, &HashSet::new()).is_empty()
+        );
     }
 
     #[test]
