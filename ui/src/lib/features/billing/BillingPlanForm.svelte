@@ -47,7 +47,6 @@
 		common_hosts,
 		common_monthly,
 		common_networks,
-		common_recommended,
 		common_seats,
 		common_unlimited,
 		common_yearly
@@ -92,7 +91,6 @@
 		/** Tab the Cloud / Self-Hosted toggle opens on (only used with showHosting). */
 		initialHosting?: PlanPickerHosting;
 		class?: string;
-		recommendedPlan?: string | null;
 		/** If true, user is a returning customer and should not see trial offers */
 		isReturningCustomer?: boolean;
 		/** If true, user is currently on an active trial */
@@ -117,7 +115,6 @@
 		class: className = '',
 		showHosting = false,
 		initialHosting = 'cloud',
-		recommendedPlan = null,
 		isReturningCustomer = false,
 		isCurrentlyTrialing = false,
 		currentPlanType = null,
@@ -459,7 +456,6 @@
 				{#each filteredPlans as plan (plan.type + plan.rate)}
 					{@const IconComponent = billingPlanHelpers.getIconComponent(plan.type)}
 					{@const colorHelper = billingPlanHelpers.getColorHelper(plan.type)}
-					{@const isRecommended = recommendedPlan === plan.type}
 					{@const description = billingPlanHelpers.getDescription(plan.type)}
 					{@const trial = hasTrial(plan)}
 					{@const metadata = billingPlanHelpers.getMetadata(plan.type)}
@@ -478,18 +474,7 @@
 							: incrementalFeatures
 					)}
 
-					<div
-						class="plan-card card card-static flex flex-col {isRecommended
-							? 'plan-card-recommended'
-							: ''}"
-					>
-						<!-- Recommended Badge -->
-						{#if isRecommended}
-							<div class="-mt-3 mb-1 flex justify-center">
-								<Tag label={common_recommended()} color="Yellow" />
-							</div>
-						{/if}
-
+					<div class="plan-card card card-static flex flex-col">
 						<!-- Plan Header -->
 						<div class="flex flex-col items-center gap-2 pb-4">
 							<div class="flex items-center gap-2">
@@ -876,11 +861,6 @@
 	.plan-card {
 		padding: 1.25rem;
 		position: relative;
-	}
-
-	.plan-card-recommended {
-		outline: 2px solid rgb(234 179 8);
-		outline-offset: -2px;
 	}
 
 	/* Stepper controls for pricing simulator */
