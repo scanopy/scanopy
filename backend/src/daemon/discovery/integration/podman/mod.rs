@@ -24,24 +24,34 @@ use super::{
 };
 use crate::daemon::discovery::service::ops::HostData;
 
-/// Resolve the Podman socket path. Honors `CONTAINER_HOST` (Podman's
-/// `DOCKER_HOST` analog) when it points at a unix socket, then falls back to the
-/// rootful (`/run/podman/podman.sock`) and rootless
-/// (`$XDG_RUNTIME_DIR/podman/podman.sock`) defaults, returning the first that
-/// exists. Returns `None` if no candidate path is present (the probe then fails
-/// cleanly).
+/// Resolve the Podman API socket when the credential names none, returning the first that exists.
+///
+/// Honors `CONTAINER_HOST` (Podman's `DOCKER_HOST` analog) first. Then, on Unix, the rootful
+/// (`/run/podman/podman.sock`) and rootless (`$XDG_RUNTIME_DIR/podman/podman.sock`) sockets; on
+/// Windows, Podman machine's own pipe (`\\.\pipe\podman-machine-default`). Not `docker_engine`:
+/// Podman only takes that pipe when Docker is absent, and probing it as Podman could reach Docker.
+/// Returns `None` if nothing is present (the probe then fails cleanly).
 pub fn resolve_podman_socket_path() -> Option<String> {
-    if let Ok(host) = std::env::var("CONTAINER_HOST")
-        && let Some(path) = host.strip_prefix("unix://")
-        && std::path::Path::new(path).exists()
-    {
-        return Some(path.to_string());
+    if let Ok(host) = std::env::var("CONTAINER_HOST") {
+        let path = host
+            .strip_prefix("unix://")
+            .or_else(|| host.strip_prefix("npipe://"));
+        if let Some(path) = path
+            && std::path::Path::new(path).exists()
+        {
+            return Some(path.to_string());
+        }
     }
 
-    let mut candidates = vec!["/run/podman/podman.sock".to_string()];
-    if let Ok(xdg) = std::env::var("XDG_RUNTIME_DIR") {
-        candidates.push(format!("{}/podman/podman.sock", xdg.trim_end_matches('/')));
-    }
+    let candidates: Vec<String> = if cfg!(windows) {
+        vec![r"\\.\pipe\podman-machine-default".to_string()]
+    } else {
+        let mut c = vec!["/run/podman/podman.sock".to_string()];
+        if let Ok(xdg) = std::env::var("XDG_RUNTIME_DIR") {
+            c.push(format!("{}/podman/podman.sock", xdg.trim_end_matches('/')));
+        }
+        c
+    };
     candidates
         .into_iter()
         .find(|p| std::path::Path::new(p).exists())
@@ -120,13 +130,17 @@ impl DiscoveryIntegration for PodmanSocketIntegration {
         CONTAINER_SCAN_TIMEOUT
     }
 
-    // No probe_gate_ports — Unix socket, no TCP port needed.
+    // No probe_gate_ports — a local Unix socket or named pipe, no TCP port needed.
 
     async fn probe(&self, ctx: &ProbeContext<'_>) -> Result<ProbeSuccess, ProbeFailure> {
         // Explicit socket_path from the credential wins; otherwise auto-detect the rootful /
         // rootless Podman socket.
         let socket_path = match ctx.credential {
-            CredentialQueryPayload::PodmanSocket(c) => c.socket_path.clone(),
+            CredentialQueryPayload::PodmanSocket(c) => c
+                .socket_path
+                .as_ref()
+                .filter(|s| !s.is_blank())
+                .map(|s| s.as_str().to_string()),
             _ => None,
         }
         .or_else(resolve_podman_socket_path);

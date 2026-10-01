@@ -15,9 +15,10 @@ use crate::server::{
 };
 
 use super::{
-    CredentialType, CredentialTypeDiscriminants, SecretValue, default_docker_port,
-    default_gnmi_port, default_ssh_port, default_ssh_timeout_seconds, default_unifi_port,
-    default_unifi_site, default_wake_on_lan_port, default_wake_on_lan_wait_seconds,
+    CredentialType, CredentialTypeDiscriminants, OsFamily, ScriptSource, SecretValue,
+    default_docker_port, default_gnmi_port, default_ssh_port, default_ssh_timeout_seconds,
+    default_unifi_port, default_unifi_site, default_wake_on_lan_port,
+    default_wake_on_lan_wait_seconds,
 };
 
 /// Category grouping for credential types.
@@ -191,7 +192,11 @@ impl CredentialTypeDiscriminants {
                 password: SecretValue::Inline {
                     value: SecretString::from(String::new()),
                 },
-                script: String::new(),
+                // The form opens on the default mode: a file already on the scanned host.
+                script: ScriptSource::HostFile {
+                    path: String::new().into(),
+                },
+                target_os: OsFamily::Unix,
                 timeout_seconds: default_ssh_timeout_seconds(),
                 host_key_fingerprint: None,
             },
@@ -202,7 +207,11 @@ impl CredentialTypeDiscriminants {
                     value: SecretString::from(String::new()),
                 },
                 passphrase: None,
-                script: String::new(),
+                // The form opens on the default mode: a file already on the scanned host.
+                script: ScriptSource::HostFile {
+                    path: String::new().into(),
+                },
+                target_os: OsFamily::Unix,
                 timeout_seconds: default_ssh_timeout_seconds(),
                 host_key_fingerprint: None,
             },

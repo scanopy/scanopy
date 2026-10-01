@@ -1,5 +1,12 @@
 use super::CredentialType;
-use crate::server::shared::types::field_definition::{FieldDefinition, FieldType, InlineFormat};
+use super::paths::OsFamily;
+use crate::server::shared::types::field_definition::{
+    DependentPlaceholder, FieldDefinition, FieldType, InlineFormat,
+};
+
+/// The id a `DependentPlaceholder` uses for the credential's own `daemon_os`, which is a column on
+/// the credential rather than a field of its type.
+pub const DAEMON_OS_FIELD: &str = "daemon_os";
 
 // ============================================================================
 // Credential field definitions — the form each credential type renders.
@@ -20,6 +27,7 @@ impl CredentialType {
                     label: "Community String",
                     field_type: FieldType::SecretPathOrInline,
                     placeholder: Some("custom-community-string"),
+                    placeholder_by: None,
                     secret: true,
                     optional: false,
                     help_text: Some(
@@ -45,6 +53,7 @@ impl CredentialType {
                     label: "gNMI Port",
                     field_type: FieldType::Port,
                     placeholder: Some("9339"),
+                    placeholder_by: None,
                     secret: false,
                     optional: true,
                     help_text: Some(
@@ -60,6 +69,7 @@ impl CredentialType {
                     label: "Username",
                     field_type: FieldType::String,
                     placeholder: Some("gnmi-user"),
+                    placeholder_by: None,
                     secret: false,
                     optional: false,
                     help_text: Some(
@@ -75,6 +85,7 @@ impl CredentialType {
                     label: "Password",
                     field_type: FieldType::SecretPathOrInline,
                     placeholder: None,
+                    placeholder_by: None,
                     secret: true,
                     optional: false,
                     help_text: Some("Sent as gRPC `password` metadata."),
@@ -97,6 +108,7 @@ impl CredentialType {
                     label: "Security Name",
                     field_type: FieldType::String,
                     placeholder: Some("snmp-user"),
+                    placeholder_by: None,
                     secret: false,
                     optional: false,
                     help_text: Some("SNMPv3 USM user name (security name)."),
@@ -110,6 +122,7 @@ impl CredentialType {
                     label: "Auth Protocol",
                     field_type: FieldType::Select,
                     placeholder: None,
+                    placeholder_by: None,
                     secret: false,
                     optional: false,
                     help_text: Some("Authentication hash algorithm."),
@@ -123,6 +136,7 @@ impl CredentialType {
                     label: "Auth Password",
                     field_type: FieldType::SecretPathOrInline,
                     placeholder: None,
+                    placeholder_by: None,
                     secret: true,
                     optional: false,
                     help_text: Some("Authentication password (minimum 8 characters)."),
@@ -136,6 +150,7 @@ impl CredentialType {
                     label: "Privacy Protocol",
                     field_type: FieldType::Select,
                     placeholder: None,
+                    placeholder_by: None,
                     secret: false,
                     optional: false,
                     help_text: Some("Privacy (encryption) algorithm."),
@@ -149,6 +164,7 @@ impl CredentialType {
                     label: "Privacy Password",
                     field_type: FieldType::SecretPathOrInline,
                     placeholder: None,
+                    placeholder_by: None,
                     secret: true,
                     optional: false,
                     help_text: Some("Privacy (encryption) password (minimum 8 characters)."),
@@ -162,6 +178,7 @@ impl CredentialType {
                     label: "Context Name",
                     field_type: FieldType::String,
                     placeholder: Some("(default)"),
+                    placeholder_by: None,
                     secret: false,
                     optional: true,
                     help_text: Some(
@@ -183,11 +200,21 @@ impl CredentialType {
             ),
             Self::DockerSocket { .. } => vec![socket_path_field(
                 "/var/run/docker.sock",
-                "Path to the Docker Unix socket. Leave blank to auto-detect (DOCKER_HOST or /var/run/docker.sock).",
+                &[DependentPlaceholder {
+                    field: DAEMON_OS_FIELD,
+                    value: "Windows",
+                    placeholder: r"\\.\pipe\docker_engine",
+                }],
+                "The Docker socket on Unix, or its named pipe on Windows. Leave blank to auto-detect (DOCKER_HOST or /var/run/docker.sock on Unix, the docker_engine pipe on Windows).",
             )],
             Self::PodmanSocket { .. } => vec![socket_path_field(
                 "/run/podman/podman.sock",
-                "Path to the Podman Unix socket. Leave blank to auto-detect (rootful /run/podman/podman.sock or the rootless $XDG_RUNTIME_DIR/podman/podman.sock).",
+                &[DependentPlaceholder {
+                    field: DAEMON_OS_FIELD,
+                    value: "Windows",
+                    placeholder: r"\\.\pipe\podman-machine-default",
+                }],
+                "The Podman socket on Unix, or Podman machine's named pipe on Windows. Leave blank to auto-detect (CONTAINER_HOST, then the rootful and rootless sockets on Unix or the podman-machine-default pipe on Windows).",
             )],
             Self::UnifiApiKey { .. } => {
                 let mut fields = unifi_connection_fields();
@@ -196,6 +223,7 @@ impl CredentialType {
                     label: "API Key",
                     field_type: FieldType::SecretPathOrInline,
                     placeholder: None,
+                    placeholder_by: None,
                     secret: true,
                     optional: false,
                     help_text: Some(
@@ -215,6 +243,7 @@ impl CredentialType {
                     label: "Username",
                     field_type: FieldType::String,
                     placeholder: None,
+                    placeholder_by: None,
                     secret: false,
                     optional: false,
                     help_text: Some(
@@ -230,6 +259,7 @@ impl CredentialType {
                     label: "Password",
                     field_type: FieldType::SecretPathOrInline,
                     placeholder: None,
+                    placeholder_by: None,
                     secret: true,
                     optional: false,
                     help_text: Some("Password for the local admin account."),
@@ -246,6 +276,7 @@ impl CredentialType {
                     label: "Portal Account",
                     field_type: FieldType::String,
                     placeholder: Some("scanopy@example.com"),
+                    placeholder_by: None,
                     secret: false,
                     optional: false,
                     help_text: Some(
@@ -261,6 +292,7 @@ impl CredentialType {
                     label: "Password",
                     field_type: FieldType::SecretPathOrInline,
                     placeholder: None,
+                    placeholder_by: None,
                     secret: true,
                     optional: false,
                     help_text: Some("Password for that portal account."),
@@ -274,6 +306,7 @@ impl CredentialType {
                     label: "Site",
                     field_type: FieldType::String,
                     placeholder: Some("(all sites)"),
+                    placeholder_by: None,
                     secret: false,
                     optional: true,
                     help_text: Some(
@@ -289,6 +322,7 @@ impl CredentialType {
                 port: _,
                 username: _,
                 password: _,
+                target_os: _,
                 script: _,
                 timeout_seconds: _,
                 host_key_fingerprint: _,
@@ -297,6 +331,7 @@ impl CredentialType {
                 label: "Password",
                 field_type: FieldType::SecretPathOrInline,
                 placeholder: None,
+                placeholder_by: None,
                 secret: true,
                 optional: false,
                 help_text: Some(
@@ -312,6 +347,7 @@ impl CredentialType {
                 username: _,
                 private_key: _,
                 passphrase: _,
+                target_os: _,
                 script: _,
                 timeout_seconds: _,
                 host_key_fingerprint: _,
@@ -321,6 +357,7 @@ impl CredentialType {
                     label: "Private Key",
                     field_type: FieldType::SecretPathOrInline,
                     placeholder: None,
+                    placeholder_by: None,
                     secret: true,
                     optional: false,
                     help_text: Some(
@@ -336,6 +373,7 @@ impl CredentialType {
                     label: "Key Passphrase",
                     field_type: FieldType::SecretPathOrInline,
                     placeholder: None,
+                    placeholder_by: None,
                     secret: true,
                     optional: true,
                     help_text: Some("Only if the private key is encrypted."),
@@ -356,6 +394,7 @@ impl CredentialType {
                     label: "UDP Port",
                     field_type: FieldType::Port,
                     placeholder: Some("9"),
+                    placeholder_by: None,
                     secret: false,
                     optional: true,
                     help_text: Some(
@@ -371,6 +410,7 @@ impl CredentialType {
                     label: "Broadcast Address",
                     field_type: FieldType::String,
                     placeholder: Some("(host's subnet broadcast)"),
+                    placeholder_by: None,
                     secret: false,
                     optional: true,
                     help_text: Some(
@@ -386,6 +426,7 @@ impl CredentialType {
                     label: "Wait (seconds)",
                     field_type: FieldType::Number,
                     placeholder: Some("90"),
+                    placeholder_by: None,
                     secret: false,
                     optional: true,
                     help_text: Some(
@@ -401,6 +442,7 @@ impl CredentialType {
                     label: "SecureOn Password",
                     field_type: FieldType::SecretPathOrInline,
                     placeholder: Some("01:23:45:67:89:ab"),
+                    placeholder_by: None,
                     secret: true,
                     optional: true,
                     help_text: Some(
@@ -425,6 +467,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             label: "SSH Port",
             field_type: FieldType::Port,
             placeholder: Some("22"),
+            placeholder_by: None,
             secret: false,
             optional: true,
             help_text: None,
@@ -438,6 +481,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             label: "Username",
             field_type: FieldType::String,
             placeholder: Some("scanopy"),
+            placeholder_by: None,
             secret: false,
             optional: false,
             help_text: Some(
@@ -452,14 +496,36 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
     fields.extend(auth_fields);
     fields.extend([
         FieldDefinition {
-            id: "script",
-            label: "Script",
-            field_type: FieldType::Text,
-            placeholder: Some("#!/bin/sh\nprintf '{\"model\": \"%s\"}' \"$(cat /sys/class/dmi/id/product_name)\""),
+            id: "target_os",
+            label: "Scanned Host OS",
+            field_type: FieldType::Radio,
+            placeholder: None,
+            placeholder_by: None,
             secret: false,
             optional: false,
             help_text: Some(
-                "Runs on the host at each scan. It must print one JSON object whose keys are host fields, such as hostname, model or serial_number, and optionally an interfaces list. See the SSH integration guide for every key.",
+                "Scripts run in the login shell on Linux, macOS and BSD, and in PowerShell on Windows.",
+            ),
+            options: Some(OsFamily::OPTIONS),
+            default_value: Some("Unix"),
+            inline_format: None,
+            group: Some("Script"),
+        },
+        FieldDefinition {
+            id: "script",
+            label: "Script",
+            field_type: FieldType::ScriptSource,
+            // The file-on-scanned-host path, which is the default mode.
+            placeholder: Some("/usr/local/bin/scanopy-inventory"),
+            placeholder_by: Some(&[DependentPlaceholder {
+                field: "target_os",
+                value: "Windows",
+                placeholder: r"C:\Scanopy\inventory.ps1",
+            }]),
+            secret: false,
+            optional: false,
+            help_text: Some(
+                "Runs at each scan: a file already on the scanned host, a file on the daemon's machine, or text entered here. It must print one JSON object whose keys are host fields, such as hostname, model or serial_number, and optionally an interfaces list. See the SSH integration guide for every key.",
             ),
             options: None,
             default_value: None,
@@ -471,6 +537,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             label: "Timeout (seconds)",
             field_type: FieldType::Number,
             placeholder: Some("60"),
+            placeholder_by: None,
             secret: false,
             optional: true,
             help_text: Some("The script is stopped and the run reports a failure after this long."),
@@ -484,6 +551,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             label: "Host Key Fingerprint",
             field_type: FieldType::String,
             placeholder: Some("SHA256:…"),
+            placeholder_by: None,
             secret: false,
             optional: true,
             help_text: Some(
@@ -508,6 +576,7 @@ fn unifi_connection_fields() -> Vec<FieldDefinition> {
             label: "Controller Port",
             field_type: FieldType::Port,
             placeholder: Some("443"),
+            placeholder_by: None,
             secret: false,
             optional: true,
             help_text: Some(
@@ -523,6 +592,7 @@ fn unifi_connection_fields() -> Vec<FieldDefinition> {
             label: "Site",
             field_type: FieldType::String,
             placeholder: Some("default"),
+            placeholder_by: None,
             secret: false,
             optional: true,
             help_text: Some(
@@ -539,12 +609,17 @@ fn unifi_connection_fields() -> Vec<FieldDefinition> {
 /// Optional, non-secret socket-path field for local container-socket credentials. The
 /// `placeholder` shows the runtime's default socket so it differs for Docker vs Podman. Blank ⇒
 /// the daemon auto-detects, so a socket credential needs no required config.
-fn socket_path_field(placeholder: &'static str, help: &'static str) -> FieldDefinition {
+fn socket_path_field(
+    placeholder: &'static str,
+    placeholder_by: &'static [DependentPlaceholder],
+    help: &'static str,
+) -> FieldDefinition {
     FieldDefinition {
         id: "socket_path",
         label: "Socket Path",
         field_type: FieldType::String,
         placeholder: Some(placeholder),
+        placeholder_by: Some(placeholder_by),
         secret: false,
         optional: true,
         help_text: Some(help),
@@ -568,6 +643,7 @@ fn container_proxy_field_definitions(
             label: port_label,
             field_type: FieldType::Port,
             placeholder: Some("2375"),
+            placeholder_by: None,
             secret: false,
             optional: true,
             help_text: Some(port_help),
@@ -581,6 +657,7 @@ fn container_proxy_field_definitions(
             label: "URL Path Prefix",
             field_type: FieldType::String,
             placeholder: Some("/"),
+            placeholder_by: None,
             secret: false,
             optional: true,
             help_text: Some("Optional URL path prefix appended after the port"),
@@ -594,6 +671,7 @@ fn container_proxy_field_definitions(
             label: "SSL Certificate",
             field_type: FieldType::PathOrInline,
             placeholder: Some("-----BEGIN CERTIFICATE-----"),
+            placeholder_by: None,
             secret: false,
             optional: true,
             help_text: Some(
@@ -609,6 +687,7 @@ fn container_proxy_field_definitions(
             label: "SSL Private Key",
             field_type: FieldType::SecretPathOrInline,
             placeholder: None,
+            placeholder_by: None,
             secret: true,
             optional: true,
             help_text: Some("PEM private key. All three TLS fields must be provided together."),
@@ -622,6 +701,7 @@ fn container_proxy_field_definitions(
             label: "SSL CA Chain",
             field_type: FieldType::PathOrInline,
             placeholder: Some("-----BEGIN CERTIFICATE-----"),
+            placeholder_by: None,
             secret: false,
             optional: true,
             help_text: Some(

@@ -8,7 +8,7 @@ use uuid::Uuid;
 use crate::server::{
     credentials::r#impl::{
         base::{Credential, CredentialBase},
-        types::CredentialType,
+        types::{CredentialType, OsFamily},
     },
     shared::{
         entities::EntityDiscriminants,
@@ -60,6 +60,7 @@ impl Storable for Credential {
                     organization_id,
                     name,
                     credential_type,
+                    daemon_os,
                     tags: _,                 // Stored in entity_tags junction table
                     assigned_network_ids: _, // Stored in network_credentials junction table
                     host_assignments: _,     // Stored in host_credentials junction table
@@ -72,6 +73,7 @@ impl Storable for Credential {
                 "organization_id",
                 "name",
                 "credential_type",
+                "daemon_os",
                 "created_at",
                 "updated_at",
             ],
@@ -80,6 +82,7 @@ impl Storable for Credential {
                 SqlValue::Uuid(organization_id),
                 SqlValue::String(name),
                 SqlValue::CredentialType(credential_type),
+                SqlValue::OsFamily(daemon_os),
                 SqlValue::Timestamp(created_at),
                 SqlValue::Timestamp(updated_at),
             ],
@@ -89,6 +92,7 @@ impl Storable for Credential {
     fn from_row(row: &PgRow) -> Result<Self, anyhow::Error> {
         let credential_type_json: serde_json::Value = row.get("credential_type");
         let credential_type: CredentialType = serde_json::from_value(credential_type_json)?;
+        let daemon_os: OsFamily = serde_json::from_str(&row.get::<String, _>("daemon_os"))?;
 
         Ok(Credential {
             id: row.get("id"),
@@ -98,6 +102,7 @@ impl Storable for Credential {
                 organization_id: row.get("organization_id"),
                 name: row.get("name"),
                 credential_type,
+                daemon_os,
                 tags: Vec::new(), // Hydrated from entity_tags junction table
                 assigned_network_ids: Vec::new(), // Hydrated from network_credentials junction table
                 host_assignments: Vec::new(),     // Hydrated from host_credentials junction table

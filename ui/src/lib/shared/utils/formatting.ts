@@ -60,6 +60,11 @@ export function formatDurationHuman(totalSeconds: number): string {
 	return parts.join(', ');
 }
 
+/** A short measured interval in seconds to one decimal place: `4.2s`. */
+export function formatMillisAsSeconds(ms: number): string {
+	return `${(ms / 1000).toFixed(1)}s`;
+}
+
 // Date helpers. Each one is a style preset over `formatDateTime`, which applies the user's
 // display settings (date order, clock, time zone), so every displayed date follows them.
 

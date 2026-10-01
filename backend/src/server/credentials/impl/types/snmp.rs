@@ -417,7 +417,7 @@ mod tests {
     fn community_value(cred: &SnmpQueryCredential) -> &str {
         match &cred.community {
             ResolvableSecret::Value { value } => value,
-            ResolvableSecret::FilePath { path } => path,
+            ResolvableSecret::FilePath { path } => path.as_str(),
         }
     }
 

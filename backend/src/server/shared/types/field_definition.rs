@@ -19,6 +19,9 @@ pub enum FieldType {
     Boolean,
     /// Fixed choice from `options`.
     Select,
+    /// Fixed choice from `options`, every option shown at once. For a short list where seeing the
+    /// alternatives is part of choosing, such as the shell an SSH script runs in.
+    Radio,
     /// TCP/UDP port. Distinct from `Number` because it carries a 1-65535 range the frontend
     /// validator enforces — and because declaring it is what stops the form guessing "is this a
     /// port?" from the field's label.
@@ -27,6 +30,8 @@ pub enum FieldType {
     SecretPathOrInline,
     /// Non-secret value supplied either inline or as a path to a file the daemon reads.
     PathOrInline,
+    /// An SSH script: a file on the scanned host, a file on the daemon, or text entered here.
+    ScriptSource,
 }
 
 /// Definition of a form field for dynamic UI rendering.
@@ -46,6 +51,11 @@ pub struct FieldDefinition {
     /// Placeholder text for the input.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub placeholder: Option<&'static str>,
+    /// Placeholders that replace `placeholder` while another field holds a given value, e.g. a
+    /// Windows path once the OS picker says Windows. `field` is a sibling field id, or `daemon_os`
+    /// for the credential's own daemon OS.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub placeholder_by: Option<&'static [DependentPlaceholder]>,
     /// Whether the value is a secret, so it is masked and never echoed back.
     pub secret: bool,
     /// Whether the field may be left empty.
@@ -67,6 +77,14 @@ pub struct FieldDefinition {
     /// Grouping label used to section a long form.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub group: Option<&'static str>,
+}
+
+/// A placeholder that applies while `field` holds `value`.
+#[derive(Debug, Clone, Copy, Serialize, ToSchema)]
+pub struct DependentPlaceholder {
+    pub field: &'static str,
+    pub value: &'static str,
+    pub placeholder: &'static str,
 }
 
 /// A single choice for a `Select` field. `value` is the wire value (serialized enum variant, e.g.

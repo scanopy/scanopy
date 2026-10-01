@@ -496,9 +496,13 @@ pub trait DaemonUtils {
             // Podman with no resolved socket: fail cleanly rather than fall back to
             // the Docker default socket.
             (None, ContainerRuntime::Podman) => {
+                let checked = if cfg!(windows) {
+                    r"CONTAINER_HOST and \\.\pipe\podman-machine-default"
+                } else {
+                    "CONTAINER_HOST, /run/podman/podman.sock and $XDG_RUNTIME_DIR/podman/podman.sock"
+                };
                 return Err(anyhow::anyhow!(
-                    "No Podman socket found — checked CONTAINER_HOST, /run/podman/podman.sock, \
-                     and $XDG_RUNTIME_DIR/podman/podman.sock. Set the credential's socket_path \
+                    "No Podman socket found — checked {checked}. Set the credential's socket path \
                      or CONTAINER_HOST to the Podman socket."
                 ));
             }

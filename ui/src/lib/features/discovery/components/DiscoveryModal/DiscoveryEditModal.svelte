@@ -21,6 +21,7 @@
 	import type { Discovery } from '../../types/base';
 	import DiscoveryHistoricalSummary from './DiscoveryHistoricalSummary.svelte';
 	import WarningReport from './WarningReport.svelte';
+	import CredentialResults from './CredentialResults.svelte';
 	import { uuidv4Sentinel } from '$lib/shared/utils/formatting';
 	import { createEmptyDiscoveryFormData, parseDayTimeCronSchedule } from '../../queries';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
@@ -329,8 +330,11 @@
 		formData.discovery_type.type === 'Network' || formData.discovery_type.type === 'Unified'
 	);
 	let daemonSupportsUnified = $derived(!daemon || !isPreUnifiedDaemon(daemon));
-	let hasCredentialsTab = $derived(formData.discovery_type.type === 'Unified');
+	// The credential wizard. A historical run has a Credentials tab of its own, read-only.
+	let hasCredentialsTab = $derived(!isHistoricalRun && formData.discovery_type.type === 'Unified');
 	let hasScheduleTab = $derived(formData.run_type.type === 'Scheduled');
+	/** The wizard's Credentials tab is open: it lays itself out and scrolls internally. */
+	let wizardCredentialsActive = $derived(hasCredentialsTab && activeTab === 'credentials');
 
 	/**
 	 * A run has issues and it has details, and they are read for different reasons — "did this
@@ -341,6 +345,9 @@
 	 * cancelled, why it ended. The tab carries no status dot. Landing on it already says the run
 	 * has something, and the count that says how many belongs on the row in scan history, where
 	 * runs are compared.
+	 *
+	 * Credentials sits between them: what each stored credential did, with a link back to Issues
+	 * for the ones that had problems.
 	 */
 	let tabs: ModalTab[] = $derived(
 		isHistoricalRun
@@ -350,6 +357,7 @@
 						label: common_issues(),
 						icon: TriangleAlert
 					},
+					{ id: 'credentials', label: common_credentials(), icon: KeyRound },
 					{ id: 'details', label: common_details(), icon: Info }
 				]
 			: [
@@ -440,7 +448,7 @@
 		if (activeTab === 'performance' && !hasPerformanceTab) {
 			activeTab = hasDetectionTab ? 'detection' : hasTargetsTab ? 'targets' : 'details';
 		}
-		if (activeTab === 'credentials' && !hasCredentialsTab) {
+		if (activeTab === 'credentials' && !hasCredentialsTab && !isHistoricalRun) {
 			activeTab = 'details';
 		}
 	});
@@ -762,14 +770,19 @@
 	>
 		<div
 			class="min-h-0 flex-1"
-			class:overflow-y-auto={activeTab !== 'credentials'}
-			class:flex={activeTab === 'credentials'}
-			class:flex-col={activeTab === 'credentials'}
+			class:overflow-y-auto={!wizardCredentialsActive}
+			class:flex={wizardCredentialsActive}
+			class:flex-col={wizardCredentialsActive}
 		>
 			{#if isHistoricalRun && discovery?.run_type.type === 'Historical'}
 				<div class="space-y-8 p-6">
 					{#if activeTab === 'issues'}
 						<WarningReport payload={discovery.run_type.results} />
+					{:else if activeTab === 'credentials'}
+						<CredentialResults
+							payload={discovery.run_type.results}
+							onShowIssues={() => (activeTab = 'issues')}
+						/>
 					{:else}
 						<DiscoveryHistoricalSummary payload={discovery.run_type.results} />
 					{/if}

@@ -283,6 +283,20 @@ pub enum DiscoveryWarning {
         #[schema(required)]
         credential_id: Option<Uuid>,
     },
+    /// The credential's files or sockets were declared for one OS and this daemon runs another, so
+    /// it was not used here.
+    #[schema(title = "CredentialDaemonOsMismatch")]
+    CredentialDaemonOsMismatch {
+        integration: CredentialQueryPayloadDiscriminants,
+        /// The stored credential. See [`CredentialAttempt::credential_id`].
+        #[serde(default)]
+        #[schema(required)]
+        credential_id: Option<Uuid>,
+        /// The OS the credential's paths were declared for.
+        declared: crate::server::credentials::r#impl::types::OsFamily,
+        /// The OS this daemon runs.
+        actual: crate::server::credentials::r#impl::types::OsFamily,
+    },
     /// The port the credential needs was not open, so it was never tried.
     #[schema(title = "CredentialGateClosed")]
     CredentialGateClosed {
@@ -628,6 +642,7 @@ pub enum DiscoveryWarningCode {
     EqualReachIntegrationsMerged,
     CredentialTargetNotScanned,
     CredentialTargetNotResponding,
+    CredentialDaemonOsMismatch,
     CredentialGateClosed,
     CredentialRejected,
     CredentialMalformed,
@@ -710,6 +725,9 @@ impl DiscoveryWarning {
             Self::CredentialTargetNotResponding { .. } => {
                 DiscoveryWarningCode::CredentialTargetNotResponding
             }
+            Self::CredentialDaemonOsMismatch { .. } => {
+                DiscoveryWarningCode::CredentialDaemonOsMismatch
+            }
             Self::CredentialGateClosed { .. } => DiscoveryWarningCode::CredentialGateClosed,
             Self::CredentialRejected(_) => DiscoveryWarningCode::CredentialRejected,
             Self::CredentialMalformed(_) => DiscoveryWarningCode::CredentialMalformed,
@@ -781,7 +799,8 @@ impl DiscoveryWarning {
 
             Self::CredentialTargetNotScanned { integration, .. }
             | Self::CredentialTargetNotResponding { integration, .. }
-            | Self::CredentialGateClosed { integration, .. } => Some(*integration),
+            | Self::CredentialGateClosed { integration, .. }
+            | Self::CredentialDaemonOsMismatch { integration, .. } => Some(*integration),
 
             Self::CredentialRejected(a)
             | Self::CredentialMalformed(a)

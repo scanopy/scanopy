@@ -79,6 +79,7 @@ impl DiscoveryRunner {
         // Always try SNMP "public" community on all hosts.
         // Injected as a broadcast default — user-configured credentials (IP overrides) take priority.
         self.credential_mappings.push(CredentialMapping {
+            daemon_os: Default::default(),
             default_credential: Some(CredentialQueryPayload::Snmp(
                 crate::server::credentials::r#impl::mapping::SnmpQueryCredential::public_default(),
             )),
@@ -98,6 +99,19 @@ impl DiscoveryRunner {
             }
             ops.finish_session(Err(e), cancel).await?;
             return Ok(());
+        }
+
+        // A credential whose files or sockets were declared for another OS cannot work on this
+        // daemon. Drop it before any phase can try it, and say so once per credential.
+        let os_mismatches = crate::daemon::discovery::credentials::take_os_mismatches(
+            &mut self.credential_mappings,
+            crate::server::credentials::r#impl::types::OsFamily::current(),
+        );
+        if !os_mismatches.is_empty()
+            && let Ok(session) = ops.get_session().await
+            && let Ok(mut warnings) = session.warnings.lock()
+        {
+            warnings.extend(os_mismatches);
         }
 
         let discovery_result = with_heartbeat(&ops, async {

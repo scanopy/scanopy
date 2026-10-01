@@ -334,8 +334,9 @@ pub struct DiscoverySessionUpdate {
     /// Non-fatal warnings for a completed run (e.g. hit the time limit with hosts
     /// left un-scanned). Distinct from `error`, which marks the run as failed.
     pub warnings: Vec<DiscoveryWarning>,
-    /// SSH script runs, carried on the terminal update.
-    pub ssh_script_runs: Vec<crate::server::credentials::r#impl::types::ssh_script::SshScriptRun>,
+    /// Per-credential results, carried on the terminal update.
+    pub credential_results:
+        Vec<crate::server::credentials::r#impl::run_results::CredentialRunResult>,
     pub finished_at: Option<DateTime<Utc>>,
     /// Set only for the reasons the daemon alone can know; see
     /// [`DiscoveryTerminalReason::daemon_assigned`].
@@ -349,7 +350,7 @@ impl DiscoverySessionUpdate {
             progress: progress.min(100),
             error: None,
             warnings: Vec::new(),
-            ssh_script_runs: Vec::new(),
+            credential_results: Vec::new(),
             finished_at: None,
             reason: None,
         }

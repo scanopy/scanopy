@@ -154,7 +154,7 @@ impl CrudService<Credential> for CredentialService {
         entity: Credential,
         authentication: AuthenticatedEntity,
     ) -> Result<Credential, Error> {
-        entity.base.credential_type.validate()?;
+        entity.base.validate_settings()?;
 
         let created = self.create_base(entity, authentication.clone()).await?;
 
@@ -641,6 +641,7 @@ impl CredentialService {
         );
 
         Ok(SnmpCredentialMapping {
+            daemon_os: Default::default(),
             default_credential: network_snmp_credential,
             // Legacy pre-v0.15.0 path: this mapping is built per network rather than per
             // credential, so there is no single id for its default to carry, and the daemons it
@@ -715,8 +716,9 @@ impl CredentialService {
                 && owned_by_network_org(&cred)
             {
                 let cred_type = &cred.base.credential_type;
-                mapping_for(&mut mappings_by_credential, cred.id, cred_type).default_credential =
-                    Some(cred_type.to_query_payload());
+                let mapping = mapping_for(&mut mappings_by_credential, cred.id, cred_type);
+                mapping.default_credential = Some(cred_type.to_query_payload());
+                mapping.daemon_os = cred.base.daemon_os;
             }
         }
 
@@ -759,6 +761,9 @@ impl CredentialService {
                 target,
                 &cred.base.credential_type,
             );
+            if let Some(typed) = mappings_by_credential.get_mut(&cred.id) {
+                typed.mapping.daemon_os = cred.base.daemon_os;
+            }
         }
 
         // Version gate: never dispatch a credential mapping the target daemon can't
@@ -788,6 +793,7 @@ impl TypedCredentialMapping {
         Self {
             discriminant,
             mapping: CredentialMapping {
+                daemon_os: Default::default(),
                 default_credential: None,
                 // Stamped from the accumulator key in `order_mappings_for_dispatch`, which is the
                 // one place that knows which credential this mapping belongs to.
@@ -954,6 +960,7 @@ pub(crate) fn apply_host_assignment(
     let cred_type = &credential.base.credential_type;
     let payload = cred_type.to_query_payload();
     let mapping = mapping_for(mappings_by_credential, credential.id, cred_type);
+    mapping.daemon_os = credential.base.daemon_os;
 
     let relevant_interfaces = ip_addresses.iter().filter(|i| {
         if i.base.host_id != host_id {

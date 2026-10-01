@@ -213,6 +213,7 @@ impl ScanSettings {
                 label: "Port Scan Rate",
                 field_type: FieldType::Number,
                 placeholder: Some("500"),
+                placeholder_by: None,
                 secret: false,
                 optional: true,
                 help_text: Some(
@@ -228,6 +229,7 @@ impl ScanSettings {
                 label: "ARP Scan Rate",
                 field_type: FieldType::Number,
                 placeholder: Some("50"),
+                placeholder_by: None,
                 secret: false,
                 optional: true,
                 help_text: Some(
@@ -243,6 +245,7 @@ impl ScanSettings {
                 label: "ARP Retries",
                 field_type: FieldType::Number,
                 placeholder: Some("2"),
+                placeholder_by: None,
                 secret: false,
                 optional: true,
                 help_text: Some(
@@ -258,6 +261,7 @@ impl ScanSettings {
                 label: "Port Scan Batch Size",
                 field_type: FieldType::Number,
                 placeholder: Some("200"),
+                placeholder_by: None,
                 secret: false,
                 optional: true,
                 help_text: Some("Ports scanned concurrently per host. Range: 16-1000."),
@@ -271,6 +275,7 @@ impl ScanSettings {
                 label: "Trust Port-Only Detections",
                 field_type: FieldType::Boolean,
                 placeholder: None,
+                placeholder_by: None,
                 secret: false,
                 optional: false,
                 help_text: Some(
@@ -288,6 +293,7 @@ impl ScanSettings {
                 label: "Probe Raw Socket Ports",
                 field_type: FieldType::Boolean,
                 placeholder: None,
+                placeholder_by: None,
                 secret: false,
                 optional: false,
                 help_text: Some("Scan ports 9100-9107. May cause ghost printing on some printers."),
@@ -301,6 +307,7 @@ impl ScanSettings {
                 label: "ARP Scan Cutoff",
                 field_type: FieldType::Number,
                 placeholder: Some("15"),
+                placeholder_by: None,
                 secret: false,
                 optional: true,
                 help_text: Some(
@@ -316,6 +323,7 @@ impl ScanSettings {
                 label: "Use Npcap ARP (Windows)",
                 field_type: FieldType::Boolean,
                 placeholder: None,
+                placeholder_by: None,
                 secret: false,
                 optional: false,
                 help_text: Some(
@@ -331,6 +339,7 @@ impl ScanSettings {
                 label: "Full Scan Interval",
                 field_type: FieldType::Number,
                 placeholder: Some("3"),
+                placeholder_by: None,
                 secret: false,
                 optional: true,
                 help_text: Some(
@@ -346,6 +355,7 @@ impl ScanSettings {
                 label: "Max Discovery Duration (seconds)",
                 field_type: FieldType::Number,
                 placeholder: Some("21600"),
+                placeholder_by: None,
                 secret: false,
                 optional: true,
                 help_text: Some(

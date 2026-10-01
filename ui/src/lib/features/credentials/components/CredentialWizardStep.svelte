@@ -22,6 +22,7 @@
 	import { useNetworksQuery } from '$lib/features/networks/queries';
 	import { useCredentialsQuery } from '$lib/features/credentials/queries';
 	import { daemonTooOldForCredential } from '$lib/features/credentials/utils/versionGate';
+	import { defaultFieldValue } from '$lib/features/credentials/utils/fieldValues';
 	import {
 		DAEMON_HOST_IP,
 		hasExplicitTarget
@@ -263,11 +264,7 @@
 		const fields = meta?.fields ?? [];
 		const values: Record<string, string> = {};
 		for (const field of fields) {
-			if (field.field_type === 'pathorinline') {
-				values[field.id] = JSON.stringify({ mode: 'Inline', value: '' });
-			} else {
-				values[field.id] = field.default_value ?? '';
-			}
+			values[field.id] = defaultFieldValue(field);
 		}
 		return values;
 	}
@@ -498,6 +495,7 @@
 					credential: {
 						...p.credential,
 						credential_type: credentialType,
+						daemon_os: ref?.getDaemonOs() ?? p.credential.daemon_os,
 						// Broadcast: assign as a network default. Per-host: leave to target_ips.
 						assigned_network_ids: isBroadcast && networkId ? [networkId] : []
 					},

@@ -28,7 +28,9 @@ use crate::{
     },
     server::{
         credentials::r#impl::{
-            mapping::CredentialQueryPayloadDiscriminants, types::CredentialAssignment,
+            mapping::CredentialQueryPayloadDiscriminants,
+            run_results::{CredentialRunOutcome, CredentialRunResult},
+            types::CredentialAssignment,
         },
         daemons::r#impl::{
             api::{DaemonDiscoveryRequest, DiscoveryUpdatePayload},
@@ -691,7 +693,7 @@ impl DiscoveryOps {
             progress: 0,
             error: None,
             warnings: Vec::new(),
-            ssh_script_runs: Vec::new(),
+            credential_results: Vec::new(),
             finished_at: None,
             reason: None,
         })
@@ -763,10 +765,17 @@ impl DiscoveryOps {
         }
 
         truncate_warnings(&mut warnings);
-        let ssh_script_runs = session
-            .ssh_script_runs
+        let credential_results = session
+            .credential_results
             .lock()
-            .map(|r| r.clone())
+            .map(|r| {
+                r.iter()
+                    .map(|(id, outcome)| CredentialRunResult {
+                        credential_id: *id,
+                        outcome: outcome.clone(),
+                    })
+                    .collect::<Vec<_>>()
+            })
             .unwrap_or_default();
 
         let warning_count = warnings.len();
@@ -775,7 +784,7 @@ impl DiscoveryOps {
             cancel.is_cancelled(),
             final_progress,
             warnings,
-            ssh_script_runs,
+            credential_results,
             Utc::now(),
         );
         match terminal_update.phase {
@@ -972,16 +981,70 @@ impl DiscoveryOps {
         }
     }
 
+    /// Apply `f` to a credential's run outcome, creating the empty outcome for its kind first.
+    async fn with_credential_result(
+        &self,
+        credential_id: uuid::Uuid,
+        integration: CredentialQueryPayloadDiscriminants,
+        f: impl FnOnce(&mut CredentialRunOutcome),
+    ) {
+        if let Ok(session) = self.get_session().await
+            && let Ok(mut results) = session.credential_results.lock()
+        {
+            f(results
+                .entry(credential_id)
+                .or_insert_with(|| CredentialRunOutcome::empty_for(integration)));
+        }
+    }
+
+    /// A credential collected from one more host.
+    pub async fn record_collected(
+        &self,
+        credential_id: uuid::Uuid,
+        integration: CredentialQueryPayloadDiscriminants,
+    ) {
+        self.with_credential_result(credential_id, integration, |o| {
+            if let CredentialRunOutcome::Collected { hosts } = o {
+                *hosts += 1;
+            }
+        })
+        .await;
+    }
+
     /// Record what one SSH script did on one host, whether it succeeded or not.
     pub async fn record_ssh_script_run(
         &self,
+        credential_id: uuid::Uuid,
         run: crate::server::credentials::r#impl::types::ssh_script::SshScriptRun,
     ) {
-        if let Ok(session) = self.get_session().await
-            && let Ok(mut runs) = session.ssh_script_runs.lock()
-        {
-            runs.push(run);
-        }
+        self.with_credential_result(
+            credential_id,
+            CredentialQueryPayloadDiscriminants::Ssh,
+            |o| {
+                if let CredentialRunOutcome::SshScript { runs } = o {
+                    runs.push(run);
+                }
+            },
+        )
+        .await;
+    }
+
+    /// Record whether one address woke, woken or not.
+    pub async fn record_wake_on_lan(
+        &self,
+        credential_id: uuid::Uuid,
+        result: crate::server::credentials::r#impl::run_results::WakeOnLanResult,
+    ) {
+        self.with_credential_result(
+            credential_id,
+            CredentialQueryPayloadDiscriminants::WakeOnLan,
+            |o| {
+                if let CredentialRunOutcome::WakeOnLan { hosts } = o {
+                    hosts.push(result);
+                }
+            },
+        )
+        .await;
     }
 
     /// Record LLDP neighbours whose local port could not be matched to an interface.
@@ -1618,7 +1681,7 @@ fn terminal_update(
     cancelled: bool,
     progress: u8,
     warnings: Vec<DiscoveryWarning>,
-    ssh_script_runs: Vec<crate::server::credentials::r#impl::types::ssh_script::SshScriptRun>,
+    credential_results: Vec<CredentialRunResult>,
     now: chrono::DateTime<Utc>,
 ) -> DiscoverySessionUpdate {
     let (phase, progress, error, reason) = match result {
@@ -1645,7 +1708,7 @@ fn terminal_update(
         progress,
         error,
         warnings,
-        ssh_script_runs,
+        credential_results,
         finished_at: Some(now),
         reason,
     }

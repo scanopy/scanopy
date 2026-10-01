@@ -1,4 +1,6 @@
-use crate::server::credentials::r#impl::types::{CredentialHostAssignment, CredentialType};
+use crate::server::credentials::r#impl::types::{
+    CredentialHostAssignment, CredentialType, OsFamily,
+};
 use crate::server::shared::entities::ChangeTriggersTopologyStaleness;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -25,6 +27,10 @@ pub struct CredentialBase {
     pub name: String,
     /// Protocol this credential authenticates with, and its settings.
     pub credential_type: CredentialType,
+    /// The OS of the daemons that will read this credential's files and sockets. Paths are
+    /// validated for it, and a daemon on another OS skips the credential with a warning.
+    #[serde(default)]
+    pub daemon_os: OsFamily,
     /// Tags assigned to this entity.
     #[serde(default = "default_tags")]
     #[schema(required)]
@@ -46,9 +52,19 @@ impl PartialEq for CredentialBase {
         self.organization_id == other.organization_id
             && self.name == other.name
             && self.credential_type == other.credential_type
+            && self.daemon_os == other.daemon_os
             && self.tags == other.tags
             && self.assigned_network_ids == other.assigned_network_ids
             && self.host_assignments == other.host_assignments
+    }
+}
+
+impl CredentialBase {
+    /// Everything the API checks about a credential's settings before saving it: the inline
+    /// formats its type declares, and every path for the OS of the machine that holds it.
+    pub fn validate_settings(&self) -> Result<(), anyhow::Error> {
+        self.credential_type.validate()?;
+        self.credential_type.validate_paths(self.daemon_os)
     }
 }
 
@@ -64,6 +80,7 @@ impl Default for CredentialBase {
                     value: SecretString::from(String::new()),
                 },
             },
+            daemon_os: OsFamily::default(),
             tags: Vec::new(),
             assigned_network_ids: Vec::new(),
             host_assignments: Vec::new(),

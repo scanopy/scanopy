@@ -183,6 +183,9 @@ tokio-rustls = { version = "0.26", default-features = false, features = ["ring",
 # SSH client for the SSH credential integration. `default-features = false` + `ring` for the same
 # reason as rustls above: russh defaults to `aws-lc-rs`, which is banned.
 russh = { version = "0.63", default-features = false, features = ["ring", "rsa", "flate2"] }
+# Parses Unix and Windows paths on any host OS, so the server can validate a credential path for
+# the OS that will read it rather than the one it runs on. Zero dependencies.
+typed-path = "0.12"
 # Reads the subject out of the captured certificate. Chosen over `x509-parser`, which wants
 # `asn1-rs ^0.7` against the 0.6 vendored by snmp2 and would add a second asn1-rs and a third nom;
 # this builds on `der`/`spki`/`const-oid`, already in the tree.

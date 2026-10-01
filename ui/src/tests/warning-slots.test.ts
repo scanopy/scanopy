@@ -58,6 +58,8 @@ describe('discovery warning rendering', () => {
 			sys_names: ['offsite-core-01'],
 			seen_by_host_ids: ['00000000-0000-0000-0000-000000000001'],
 			widened_by_vlan: false,
+			declared: 'Windows',
+			actual: 'Unix',
 			elided: 7
 		}) as unknown as DiscoveryWarning;
 

@@ -103,13 +103,17 @@ impl DiscoveryIntegration for DockerSocketIntegration {
         CONTAINER_SCAN_TIMEOUT
     }
 
-    // No probe_gate_ports — Unix socket, no TCP port needed.
+    // No probe_gate_ports — a local Unix socket or named pipe, no TCP port needed.
 
     async fn probe(&self, ctx: &ProbeContext<'_>) -> Result<ProbeSuccess, ProbeFailure> {
         // Explicit socket_path from the credential repoints the socket; None → bollard Docker
-        // defaults (DOCKER_HOST / /var/run/docker.sock).
+        // defaults (DOCKER_HOST or /var/run/docker.sock on Unix, the docker_engine pipe on Windows).
         let socket_path = match ctx.credential {
-            CredentialQueryPayload::DockerSocket(c) => c.socket_path.clone(),
+            CredentialQueryPayload::DockerSocket(c) => c
+                .socket_path
+                .as_ref()
+                .filter(|s| !s.is_blank())
+                .map(|s| s.as_str().to_string()),
             _ => None,
         };
         container::probe_socket(ctx, ContainerRuntime::Docker, socket_path).await

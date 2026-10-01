@@ -129,6 +129,7 @@
 				...(formValues as unknown as Credential),
 				organization_id: organization.id,
 				credential_type: credentialType,
+				daemon_os: credentialFormRef?.getDaemonOs() ?? 'Unix',
 				assigned_network_ids: permitted.assignedNetworkIds,
 				host_assignments: permitted.hostAssignments
 			};
