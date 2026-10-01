@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:75c7994c-b207-461e-aa11-ef255a70e37d",
+  "serialNumber": "urn:uuid:2ee129cc-bf0e-42ba-9ecd-c9d141478e3f",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-09-24T22:02:07Z",
+    "timestamp": "2026-10-01T09:29:08Z",
     "tools": {
       "components": [
         {
@@ -2781,10 +2781,10 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/%40posthog/browser-common@0.2.3?package-id=35f290794a0df876",
+      "bom-ref": "pkg:npm/%40posthog/browser-common@0.9.0?package-id=d3d3bb4c1c4cb845",
       "type": "library",
       "name": "@posthog/browser-common",
-      "version": "0.2.3",
+      "version": "0.9.0",
       "licenses": [
         {
           "license": {
@@ -2792,8 +2792,8 @@
           }
         }
       ],
-      "cpe": "cpe:2.3:a:\\@posthog\\/browser-common:\\@posthog\\/browser-common:0.2.3:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/%40posthog/browser-common@0.2.3",
+      "cpe": "cpe:2.3:a:\\@posthog\\/browser-common:\\@posthog\\/browser-common:0.9.0:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/%40posthog/browser-common@0.9.0",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -2813,23 +2813,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@posthog\\/browser-common:\\@posthog\\/browser_common:0.2.3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@posthog\\/browser-common:\\@posthog\\/browser_common:0.9.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@posthog\\/browser_common:\\@posthog\\/browser-common:0.2.3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@posthog\\/browser_common:\\@posthog\\/browser-common:0.9.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@posthog\\/browser_common:\\@posthog\\/browser_common:0.2.3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@posthog\\/browser_common:\\@posthog\\/browser_common:0.9.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@posthog\\/browser:\\@posthog\\/browser-common:0.2.3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@posthog\\/browser:\\@posthog\\/browser-common:0.9.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@posthog\\/browser:\\@posthog\\/browser_common:0.2.3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@posthog\\/browser:\\@posthog\\/browser_common:0.9.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -2838,10 +2838,10 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/%40posthog/core@1.45.1?package-id=2720d3c29d734a17",
+      "bom-ref": "pkg:npm/%40posthog/core@1.55.1?package-id=aee8c71d24fcf3e6",
       "type": "library",
       "name": "@posthog/core",
-      "version": "1.45.1",
+      "version": "1.55.1",
       "licenses": [
         {
           "license": {
@@ -2849,8 +2849,8 @@
           }
         }
       ],
-      "cpe": "cpe:2.3:a:\\@posthog\\/core:\\@posthog\\/core:1.45.1:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/%40posthog/core@1.45.1",
+      "cpe": "cpe:2.3:a:\\@posthog\\/core:\\@posthog\\/core:1.55.1:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/%40posthog/core@1.55.1",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -2875,10 +2875,10 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/%40posthog/types@1.398.0?package-id=01cbf4ceaa134407",
+      "bom-ref": "pkg:npm/%40posthog/types@1.412.4?package-id=9e42601c11c9a42b",
       "type": "library",
       "name": "@posthog/types",
-      "version": "1.398.0",
+      "version": "1.412.4",
       "licenses": [
         {
           "license": {
@@ -2886,8 +2886,8 @@
           }
         }
       ],
-      "cpe": "cpe:2.3:a:\\@posthog\\/types:\\@posthog\\/types:1.398.0:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/%40posthog/types@1.398.0",
+      "cpe": "cpe:2.3:a:\\@posthog\\/types:\\@posthog\\/types:1.412.4:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/%40posthog/types@1.412.4",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -5156,10 +5156,10 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/%40stripe/stripe-js@9.8.0?package-id=5416ab84066791dc",
+      "bom-ref": "pkg:npm/%40stripe/stripe-js@9.16.0?package-id=70630a10179288cc",
       "type": "library",
       "name": "@stripe/stripe-js",
-      "version": "9.8.0",
+      "version": "9.16.0",
       "licenses": [
         {
           "license": {
@@ -5167,8 +5167,8 @@
           }
         }
       ],
-      "cpe": "cpe:2.3:a:\\@stripe\\/stripe-js:\\@stripe\\/stripe-js:9.8.0:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/%40stripe/stripe-js@9.8.0",
+      "cpe": "cpe:2.3:a:\\@stripe\\/stripe-js:\\@stripe\\/stripe-js:9.16.0:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/%40stripe/stripe-js@9.16.0",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -5188,23 +5188,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@stripe\\/stripe-js:\\@stripe\\/stripe_js:9.8.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@stripe\\/stripe-js:\\@stripe\\/stripe_js:9.16.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@stripe\\/stripe_js:\\@stripe\\/stripe-js:9.8.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@stripe\\/stripe_js:\\@stripe\\/stripe-js:9.16.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@stripe\\/stripe_js:\\@stripe\\/stripe_js:9.8.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@stripe\\/stripe_js:\\@stripe\\/stripe_js:9.16.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@stripe\\/stripe:\\@stripe\\/stripe-js:9.8.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@stripe\\/stripe:\\@stripe\\/stripe-js:9.16.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@stripe\\/stripe:\\@stripe\\/stripe_js:9.8.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@stripe\\/stripe:\\@stripe\\/stripe_js:9.16.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -6101,10 +6101,10 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/%40types/d3-selection@3.0.11?package-id=8d8ad7e5b06c967f",
+      "bom-ref": "pkg:npm/%40types/d3-selection@3.0.12?package-id=7c7559fcc92bfd1e",
       "type": "library",
       "name": "@types/d3-selection",
-      "version": "3.0.11",
+      "version": "3.0.12",
       "licenses": [
         {
           "license": {
@@ -6112,8 +6112,8 @@
           }
         }
       ],
-      "cpe": "cpe:2.3:a:\\@types\\/d3-selection:\\@types\\/d3-selection:3.0.11:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/%40types/d3-selection@3.0.11",
+      "cpe": "cpe:2.3:a:\\@types\\/d3-selection:\\@types\\/d3-selection:3.0.12:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/%40types/d3-selection@3.0.12",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -6133,23 +6133,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@types\\/d3-selection:\\@types\\/d3_selection:3.0.11:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@types\\/d3-selection:\\@types\\/d3_selection:3.0.12:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@types\\/d3_selection:\\@types\\/d3-selection:3.0.11:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@types\\/d3_selection:\\@types\\/d3-selection:3.0.12:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@types\\/d3_selection:\\@types\\/d3_selection:3.0.11:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@types\\/d3_selection:\\@types\\/d3_selection:3.0.12:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@types\\/d3:\\@types\\/d3-selection:3.0.11:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@types\\/d3:\\@types\\/d3-selection:3.0.12:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:\\@types\\/d3:\\@types\\/d3_selection:3.0.11:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:\\@types\\/d3:\\@types\\/d3_selection:3.0.12:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -6534,10 +6534,10 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/%40xyflow/svelte@1.5.1?package-id=396e2a568c303cf2",
+      "bom-ref": "pkg:npm/%40xyflow/svelte@1.6.6?package-id=9b437f663694e6cf",
       "type": "library",
       "name": "@xyflow/svelte",
-      "version": "1.5.1",
+      "version": "1.6.6",
       "licenses": [
         {
           "license": {
@@ -6545,8 +6545,8 @@
           }
         }
       ],
-      "cpe": "cpe:2.3:a:\\@xyflow\\/svelte:\\@xyflow\\/svelte:1.5.1:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/%40xyflow/svelte@1.5.1",
+      "cpe": "cpe:2.3:a:\\@xyflow\\/svelte:\\@xyflow\\/svelte:1.6.6:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/%40xyflow/svelte@1.6.6",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -6571,10 +6571,10 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/%40xyflow/system@0.0.75?package-id=ef10bf28949a13f8",
+      "bom-ref": "pkg:npm/%40xyflow/system@0.0.82?package-id=e70a7d5ea5197274",
       "type": "library",
       "name": "@xyflow/system",
-      "version": "0.0.75",
+      "version": "0.0.82",
       "licenses": [
         {
           "license": {
@@ -6582,8 +6582,8 @@
           }
         }
       ],
-      "cpe": "cpe:2.3:a:\\@xyflow\\/system:\\@xyflow\\/system:0.0.75:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/%40xyflow/system@0.0.75",
+      "cpe": "cpe:2.3:a:\\@xyflow\\/system:\\@xyflow\\/system:0.0.82:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/%40xyflow/system@0.0.82",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -6921,12 +6921,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:github/actions/cache@v4?package-id=d274269420714ebe",
+      "bom-ref": "pkg:github/actions/cache@v6?package-id=838e8735f1f8f155",
       "type": "library",
       "name": "actions/cache",
-      "version": "v4",
-      "cpe": "cpe:2.3:a:actions\\/cache:actions\\/cache:v4:*:*:*:*:*:*:*",
-      "purl": "pkg:github/actions/cache@v4",
+      "version": "v6",
+      "cpe": "cpe:2.3:a:actions\\/cache:actions\\/cache:v6:*:*:*:*:*:*:*",
+      "purl": "pkg:github/actions/cache@v6",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -7233,12 +7233,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:github/actions/download-artifact@v4?package-id=0eccb2671b34b053",
+      "bom-ref": "pkg:github/actions/download-artifact@v8?package-id=d944c54c92146fdd",
       "type": "library",
       "name": "actions/download-artifact",
-      "version": "v4",
-      "cpe": "cpe:2.3:a:actions\\/download-artifact:actions\\/download-artifact:v4:*:*:*:*:*:*:*",
-      "purl": "pkg:github/actions/download-artifact@v4",
+      "version": "v8",
+      "cpe": "cpe:2.3:a:actions\\/download-artifact:actions\\/download-artifact:v8:*:*:*:*:*:*:*",
+      "purl": "pkg:github/actions/download-artifact@v8",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -7254,23 +7254,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:actions\\/download-artifact:actions\\/download_artifact:v4:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:actions\\/download-artifact:actions\\/download_artifact:v8:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:actions\\/download_artifact:actions\\/download-artifact:v4:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:actions\\/download_artifact:actions\\/download-artifact:v8:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:actions\\/download_artifact:actions\\/download_artifact:v4:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:actions\\/download_artifact:actions\\/download_artifact:v8:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:actions\\/download:actions\\/download-artifact:v4:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:actions\\/download:actions\\/download-artifact:v8:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:actions\\/download:actions\\/download_artifact:v4:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:actions\\/download:actions\\/download_artifact:v8:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -7279,12 +7279,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:github/actions/github-script@v7?package-id=a2884ef99ddbacae",
+      "bom-ref": "pkg:github/actions/github-script@v9?package-id=60bf975286ec36cc",
       "type": "library",
       "name": "actions/github-script",
-      "version": "v7",
-      "cpe": "cpe:2.3:a:actions\\/github-script:actions\\/github-script:v7:*:*:*:*:*:*:*",
-      "purl": "pkg:github/actions/github-script@v7",
+      "version": "v9",
+      "cpe": "cpe:2.3:a:actions\\/github-script:actions\\/github-script:v9:*:*:*:*:*:*:*",
+      "purl": "pkg:github/actions/github-script@v9",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -7300,23 +7300,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:actions\\/github-script:actions\\/github_script:v7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:actions\\/github-script:actions\\/github_script:v9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:actions\\/github_script:actions\\/github-script:v7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:actions\\/github_script:actions\\/github-script:v9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:actions\\/github_script:actions\\/github_script:v7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:actions\\/github_script:actions\\/github_script:v9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:actions\\/github:actions\\/github-script:v7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:actions\\/github:actions\\/github-script:v9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:actions\\/github:actions\\/github_script:v7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:actions\\/github:actions\\/github_script:v9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -7325,12 +7325,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:github/actions/github-script@v7?package-id=f79f537556d1dfe5",
+      "bom-ref": "pkg:github/actions/github-script@v9?package-id=863ab17d8e0c42f3",
       "type": "library",
       "name": "actions/github-script",
-      "version": "v7",
-      "cpe": "cpe:2.3:a:actions\\/github-script:actions\\/github-script:v7:*:*:*:*:*:*:*",
-      "purl": "pkg:github/actions/github-script@v7",
+      "version": "v9",
+      "cpe": "cpe:2.3:a:actions\\/github-script:actions\\/github-script:v9:*:*:*:*:*:*:*",
+      "purl": "pkg:github/actions/github-script@v9",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -7346,23 +7346,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:actions\\/github-script:actions\\/github_script:v7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:actions\\/github-script:actions\\/github_script:v9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:actions\\/github_script:actions\\/github-script:v7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:actions\\/github_script:actions\\/github-script:v9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:actions\\/github_script:actions\\/github_script:v7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:actions\\/github_script:actions\\/github_script:v9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:actions\\/github:actions\\/github-script:v7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:actions\\/github:actions\\/github-script:v9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:actions\\/github:actions\\/github_script:v7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:actions\\/github:actions\\/github_script:v9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -7371,12 +7371,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:github/actions/github-script@v7?package-id=c579bc9df8528c84",
+      "bom-ref": "pkg:github/actions/github-script@v9?package-id=8dfd3aaf88dc54fb",
       "type": "library",
       "name": "actions/github-script",
-      "version": "v7",
-      "cpe": "cpe:2.3:a:actions\\/github-script:actions\\/github-script:v7:*:*:*:*:*:*:*",
-      "purl": "pkg:github/actions/github-script@v7",
+      "version": "v9",
+      "cpe": "cpe:2.3:a:actions\\/github-script:actions\\/github-script:v9:*:*:*:*:*:*:*",
+      "purl": "pkg:github/actions/github-script@v9",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -7392,23 +7392,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:actions\\/github-script:actions\\/github_script:v7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:actions\\/github-script:actions\\/github_script:v9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:actions\\/github_script:actions\\/github-script:v7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:actions\\/github_script:actions\\/github-script:v9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:actions\\/github_script:actions\\/github_script:v7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:actions\\/github_script:actions\\/github_script:v9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:actions\\/github:actions\\/github-script:v7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:actions\\/github:actions\\/github-script:v9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:actions\\/github:actions\\/github_script:v7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:actions\\/github:actions\\/github_script:v9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -7555,12 +7555,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:github/actions/stale@v10.1.0?package-id=a4563a52c85b3374",
+      "bom-ref": "pkg:github/actions/stale@v11.0.0?package-id=767f862afbf20c33",
       "type": "library",
       "name": "actions/stale",
-      "version": "v10.1.0",
-      "cpe": "cpe:2.3:a:actions\\/stale:actions\\/stale:v10.1.0:*:*:*:*:*:*:*",
-      "purl": "pkg:github/actions/stale@v10.1.0",
+      "version": "v11.0.0",
+      "cpe": "cpe:2.3:a:actions\\/stale:actions\\/stale:v11.0.0:*:*:*:*:*:*:*",
+      "purl": "pkg:github/actions/stale@v11.0.0",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -9625,12 +9625,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/async-stripe@1.0.0-alpha.7?package-id=104d35a4baadc21e",
+      "bom-ref": "pkg:cargo/async-stripe@1.0.0-rc.9?package-id=45b72c2885c746b7",
       "type": "library",
       "name": "async-stripe",
-      "version": "1.0.0-alpha.7",
-      "cpe": "cpe:2.3:a:async-stripe:async-stripe:1.0.0-alpha.7:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/async-stripe@1.0.0-alpha.7",
+      "version": "1.0.0-rc.9",
+      "cpe": "cpe:2.3:a:async-stripe:async-stripe:1.0.0-rc.9:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/async-stripe@1.0.0-rc.9",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -9656,23 +9656,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe:async_stripe:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe:async_stripe:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe:async-stripe:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe:async-stripe:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe:async_stripe:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe:async_stripe:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async:async-stripe:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async:async-stripe:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async:async_stripe:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async:async_stripe:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -9681,12 +9681,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/async-stripe-billing@1.0.0-alpha.7?package-id=bec02fc72ba54e68",
+      "bom-ref": "pkg:cargo/async-stripe-billing@1.0.0-rc.9?package-id=231fb40f970bc0bf",
       "type": "library",
       "name": "async-stripe-billing",
-      "version": "1.0.0-alpha.7",
-      "cpe": "cpe:2.3:a:async-stripe-billing:async-stripe-billing:1.0.0-alpha.7:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/async-stripe-billing@1.0.0-alpha.7",
+      "version": "1.0.0-rc.9",
+      "cpe": "cpe:2.3:a:async-stripe-billing:async-stripe-billing:1.0.0-rc.9:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/async-stripe-billing@1.0.0-rc.9",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -9712,39 +9712,39 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe-billing:async_stripe_billing:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe-billing:async_stripe_billing:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe_billing:async-stripe-billing:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe_billing:async-stripe-billing:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe_billing:async_stripe_billing:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe_billing:async_stripe_billing:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe:async-stripe-billing:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe:async-stripe-billing:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe:async_stripe_billing:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe:async_stripe_billing:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe:async-stripe-billing:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe:async-stripe-billing:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe:async_stripe_billing:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe:async_stripe_billing:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async:async-stripe-billing:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async:async-stripe-billing:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async:async_stripe_billing:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async:async_stripe_billing:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -9753,12 +9753,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/async-stripe-checkout@1.0.0-alpha.7?package-id=0dc32ca8df509782",
+      "bom-ref": "pkg:cargo/async-stripe-checkout@1.0.0-rc.9?package-id=78553e6f081cf9ed",
       "type": "library",
       "name": "async-stripe-checkout",
-      "version": "1.0.0-alpha.7",
-      "cpe": "cpe:2.3:a:async-stripe-checkout:async-stripe-checkout:1.0.0-alpha.7:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/async-stripe-checkout@1.0.0-alpha.7",
+      "version": "1.0.0-rc.9",
+      "cpe": "cpe:2.3:a:async-stripe-checkout:async-stripe-checkout:1.0.0-rc.9:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/async-stripe-checkout@1.0.0-rc.9",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -9784,39 +9784,39 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe-checkout:async_stripe_checkout:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe-checkout:async_stripe_checkout:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe_checkout:async-stripe-checkout:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe_checkout:async-stripe-checkout:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe_checkout:async_stripe_checkout:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe_checkout:async_stripe_checkout:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe:async-stripe-checkout:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe:async-stripe-checkout:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe:async_stripe_checkout:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe:async_stripe_checkout:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe:async-stripe-checkout:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe:async-stripe-checkout:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe:async_stripe_checkout:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe:async_stripe_checkout:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async:async-stripe-checkout:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async:async-stripe-checkout:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async:async_stripe_checkout:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async:async_stripe_checkout:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -9825,12 +9825,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/async-stripe-client-core@1.0.0-alpha.7?package-id=583f078ec8d23301",
+      "bom-ref": "pkg:cargo/async-stripe-client-core@1.0.0-rc.9?package-id=3daadb2e89e46cb0",
       "type": "library",
       "name": "async-stripe-client-core",
-      "version": "1.0.0-alpha.7",
-      "cpe": "cpe:2.3:a:async-stripe-client-core:async-stripe-client-core:1.0.0-alpha.7:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/async-stripe-client-core@1.0.0-alpha.7",
+      "version": "1.0.0-rc.9",
+      "cpe": "cpe:2.3:a:async-stripe-client-core:async-stripe-client-core:1.0.0-rc.9:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/async-stripe-client-core@1.0.0-rc.9",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -9856,55 +9856,55 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe-client-core:async_stripe_client_core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe-client-core:async_stripe_client_core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe_client_core:async-stripe-client-core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe_client_core:async-stripe-client-core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe_client_core:async_stripe_client_core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe_client_core:async_stripe_client_core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe-client:async-stripe-client-core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe-client:async-stripe-client-core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe-client:async_stripe_client_core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe-client:async_stripe_client_core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe_client:async-stripe-client-core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe_client:async-stripe-client-core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe_client:async_stripe_client_core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe_client:async_stripe_client_core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe:async-stripe-client-core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe:async-stripe-client-core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe:async_stripe_client_core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe:async_stripe_client_core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe:async-stripe-client-core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe:async-stripe-client-core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe:async_stripe_client_core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe:async_stripe_client_core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async:async-stripe-client-core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async:async-stripe-client-core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async:async_stripe_client_core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async:async_stripe_client_core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -9913,12 +9913,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/async-stripe-core@1.0.0-alpha.7?package-id=1df672462daf6eff",
+      "bom-ref": "pkg:cargo/async-stripe-core@1.0.0-rc.9?package-id=80db86f5a3a24c9c",
       "type": "library",
       "name": "async-stripe-core",
-      "version": "1.0.0-alpha.7",
-      "cpe": "cpe:2.3:a:async-stripe-core:async-stripe-core:1.0.0-alpha.7:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/async-stripe-core@1.0.0-alpha.7",
+      "version": "1.0.0-rc.9",
+      "cpe": "cpe:2.3:a:async-stripe-core:async-stripe-core:1.0.0-rc.9:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/async-stripe-core@1.0.0-rc.9",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -9944,39 +9944,39 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe-core:async_stripe_core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe-core:async_stripe_core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe_core:async-stripe-core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe_core:async-stripe-core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe_core:async_stripe_core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe_core:async_stripe_core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe:async-stripe-core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe:async-stripe-core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe:async_stripe_core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe:async_stripe_core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe:async-stripe-core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe:async-stripe-core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe:async_stripe_core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe:async_stripe_core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async:async-stripe-core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async:async-stripe-core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async:async_stripe_core:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async:async_stripe_core:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -9985,12 +9985,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/async-stripe-product@1.0.0-alpha.7?package-id=63a0768fb8d2ee63",
+      "bom-ref": "pkg:cargo/async-stripe-product@1.0.0-rc.9?package-id=315b29b3dfa96bed",
       "type": "library",
       "name": "async-stripe-product",
-      "version": "1.0.0-alpha.7",
-      "cpe": "cpe:2.3:a:async-stripe-product:async-stripe-product:1.0.0-alpha.7:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/async-stripe-product@1.0.0-alpha.7",
+      "version": "1.0.0-rc.9",
+      "cpe": "cpe:2.3:a:async-stripe-product:async-stripe-product:1.0.0-rc.9:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/async-stripe-product@1.0.0-rc.9",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -10016,39 +10016,39 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe-product:async_stripe_product:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe-product:async_stripe_product:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe_product:async-stripe-product:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe_product:async-stripe-product:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe_product:async_stripe_product:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe_product:async_stripe_product:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe:async-stripe-product:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe:async-stripe-product:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe:async_stripe_product:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe:async_stripe_product:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe:async-stripe-product:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe:async-stripe-product:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe:async_stripe_product:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe:async_stripe_product:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async:async-stripe-product:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async:async-stripe-product:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async:async_stripe_product:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async:async_stripe_product:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -10057,12 +10057,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/async-stripe-shared@1.0.0-alpha.7?package-id=2fb3ccc0d69b3d4e",
+      "bom-ref": "pkg:cargo/async-stripe-shared@1.0.0-rc.9?package-id=609a8baa601c9311",
       "type": "library",
       "name": "async-stripe-shared",
-      "version": "1.0.0-alpha.7",
-      "cpe": "cpe:2.3:a:async-stripe-shared:async-stripe-shared:1.0.0-alpha.7:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/async-stripe-shared@1.0.0-alpha.7",
+      "version": "1.0.0-rc.9",
+      "cpe": "cpe:2.3:a:async-stripe-shared:async-stripe-shared:1.0.0-rc.9:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/async-stripe-shared@1.0.0-rc.9",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -10088,39 +10088,39 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe-shared:async_stripe_shared:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe-shared:async_stripe_shared:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe_shared:async-stripe-shared:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe_shared:async-stripe-shared:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe_shared:async_stripe_shared:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe_shared:async_stripe_shared:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe:async-stripe-shared:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe:async-stripe-shared:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe:async_stripe_shared:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe:async_stripe_shared:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe:async-stripe-shared:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe:async-stripe-shared:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe:async_stripe_shared:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe:async_stripe_shared:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async:async-stripe-shared:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async:async-stripe-shared:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async:async_stripe_shared:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async:async_stripe_shared:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -10129,12 +10129,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/async-stripe-types@1.0.0-alpha.7?package-id=df42c5cc39cfe977",
+      "bom-ref": "pkg:cargo/async-stripe-types@1.0.0-rc.9?package-id=e356ddccb0d3c38c",
       "type": "library",
       "name": "async-stripe-types",
-      "version": "1.0.0-alpha.7",
-      "cpe": "cpe:2.3:a:async-stripe-types:async-stripe-types:1.0.0-alpha.7:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/async-stripe-types@1.0.0-alpha.7",
+      "version": "1.0.0-rc.9",
+      "cpe": "cpe:2.3:a:async-stripe-types:async-stripe-types:1.0.0-rc.9:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/async-stripe-types@1.0.0-rc.9",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -10160,111 +10160,39 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe-types:async_stripe_types:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe-types:async_stripe_types:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe_types:async-stripe-types:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe_types:async-stripe-types:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe_types:async_stripe_types:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe_types:async_stripe_types:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe:async-stripe-types:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe:async-stripe-types:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe:async_stripe_types:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async-stripe:async_stripe_types:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe:async-stripe-types:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe:async-stripe-types:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe:async_stripe_types:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async_stripe:async_stripe_types:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async:async-stripe-types:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async:async-stripe-types:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async:async_stripe_types:1.0.0-alpha.7:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:location:0:path",
-          "value": "/backend/Cargo.lock"
-        }
-      ]
-    },
-    {
-      "bom-ref": "pkg:cargo/async-stripe-webhook@1.0.0-alpha.7?package-id=6045d215092cf7ee",
-      "type": "library",
-      "name": "async-stripe-webhook",
-      "version": "1.0.0-alpha.7",
-      "cpe": "cpe:2.3:a:async-stripe-webhook:async-stripe-webhook:1.0.0-alpha.7:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/async-stripe-webhook@1.0.0-alpha.7",
-      "externalReferences": [
-        {
-          "url": "registry+https://github.com/rust-lang/crates.io-index",
-          "type": "distribution"
-        }
-      ],
-      "properties": [
-        {
-          "name": "syft:package:foundBy",
-          "value": "rust-cargo-lock-cataloger"
-        },
-        {
-          "name": "syft:package:language",
-          "value": "rust"
-        },
-        {
-          "name": "syft:package:type",
-          "value": "rust-crate"
-        },
-        {
-          "name": "syft:package:metadataType",
-          "value": "rust-cargo-lock-entry"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe-webhook:async_stripe_webhook:1.0.0-alpha.7:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe_webhook:async-stripe-webhook:1.0.0-alpha.7:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe_webhook:async_stripe_webhook:1.0.0-alpha.7:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe:async-stripe-webhook:1.0.0-alpha.7:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async-stripe:async_stripe_webhook:1.0.0-alpha.7:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe:async-stripe-webhook:1.0.0-alpha.7:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async_stripe:async_stripe_webhook:1.0.0-alpha.7:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async:async-stripe-webhook:1.0.0-alpha.7:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:async:async_stripe_webhook:1.0.0-alpha.7:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:async:async_stripe_types:1.0.0-rc.9:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -11069,6 +10997,42 @@
       "version": "0.22.1",
       "cpe": "cpe:2.3:a:base64:base64:0.22.1:*:*:*:*:*:*:*",
       "purl": "pkg:cargo/base64@0.22.1",
+      "externalReferences": [
+        {
+          "url": "registry+https://github.com/rust-lang/crates.io-index",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "rust-cargo-lock-cataloger"
+        },
+        {
+          "name": "syft:package:language",
+          "value": "rust"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "rust-crate"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "rust-cargo-lock-entry"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/backend/Cargo.lock"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:cargo/base64@0.23.1?package-id=2f73d3dc8f8570af",
+      "type": "library",
+      "name": "base64",
+      "version": "0.23.1",
+      "cpe": "cpe:2.3:a:base64:base64:0.23.1:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/base64@0.23.1",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -18669,10 +18633,10 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/devalue@5.8.1?package-id=c4e27152bd1338fd",
+      "bom-ref": "pkg:npm/devalue@5.9.4?package-id=9e8c1435a796549a",
       "type": "library",
       "name": "devalue",
-      "version": "5.8.1",
+      "version": "5.9.4",
       "licenses": [
         {
           "license": {
@@ -18680,8 +18644,8 @@
           }
         }
       ],
-      "cpe": "cpe:2.3:a:devalue:devalue:5.8.1:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/devalue@5.8.1",
+      "cpe": "cpe:2.3:a:devalue:devalue:5.9.4:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/devalue@5.9.4",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -19354,12 +19318,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:github/docker/login-action@v3?package-id=dd67a8b3b1bb0afc",
+      "bom-ref": "pkg:github/docker/login-action@v4?package-id=c9f13c11bfd81773",
       "type": "library",
       "name": "docker/login-action",
-      "version": "v3",
-      "cpe": "cpe:2.3:a:docker\\/login-action:docker\\/login-action:v3:*:*:*:*:*:*:*",
-      "purl": "pkg:github/docker/login-action@v3",
+      "version": "v4",
+      "cpe": "cpe:2.3:a:docker\\/login-action:docker\\/login-action:v4:*:*:*:*:*:*:*",
+      "purl": "pkg:github/docker/login-action@v4",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -19375,23 +19339,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:docker\\/login-action:docker\\/login_action:v3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:docker\\/login-action:docker\\/login_action:v4:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:docker\\/login_action:docker\\/login-action:v3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:docker\\/login_action:docker\\/login-action:v4:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:docker\\/login_action:docker\\/login_action:v3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:docker\\/login_action:docker\\/login_action:v4:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:docker\\/login:docker\\/login-action:v3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:docker\\/login:docker\\/login-action:v4:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:docker\\/login:docker\\/login_action:v3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:docker\\/login:docker\\/login_action:v4:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -19400,12 +19364,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:github/docker/login-action@v3?package-id=ed2a1f68612a25f6",
+      "bom-ref": "pkg:github/docker/login-action@v4?package-id=f72ecbdc464ba095",
       "type": "library",
       "name": "docker/login-action",
-      "version": "v3",
-      "cpe": "cpe:2.3:a:docker\\/login-action:docker\\/login-action:v3:*:*:*:*:*:*:*",
-      "purl": "pkg:github/docker/login-action@v3",
+      "version": "v4",
+      "cpe": "cpe:2.3:a:docker\\/login-action:docker\\/login-action:v4:*:*:*:*:*:*:*",
+      "purl": "pkg:github/docker/login-action@v4",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -19421,23 +19385,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:docker\\/login-action:docker\\/login_action:v3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:docker\\/login-action:docker\\/login_action:v4:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:docker\\/login_action:docker\\/login-action:v3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:docker\\/login_action:docker\\/login-action:v4:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:docker\\/login_action:docker\\/login_action:v3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:docker\\/login_action:docker\\/login_action:v4:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:docker\\/login:docker\\/login-action:v3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:docker\\/login:docker\\/login-action:v4:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:docker\\/login:docker\\/login_action:v3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:docker\\/login:docker\\/login_action:v4:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -19446,12 +19410,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:github/docker/login-action@v3?package-id=1f2231a896f3c213",
+      "bom-ref": "pkg:github/docker/login-action@v4?package-id=554f4ad98588346c",
       "type": "library",
       "name": "docker/login-action",
-      "version": "v3",
-      "cpe": "cpe:2.3:a:docker\\/login-action:docker\\/login-action:v3:*:*:*:*:*:*:*",
-      "purl": "pkg:github/docker/login-action@v3",
+      "version": "v4",
+      "cpe": "cpe:2.3:a:docker\\/login-action:docker\\/login-action:v4:*:*:*:*:*:*:*",
+      "purl": "pkg:github/docker/login-action@v4",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -19467,23 +19431,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:docker\\/login-action:docker\\/login_action:v3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:docker\\/login-action:docker\\/login_action:v4:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:docker\\/login_action:docker\\/login-action:v3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:docker\\/login_action:docker\\/login-action:v4:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:docker\\/login_action:docker\\/login_action:v3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:docker\\/login_action:docker\\/login_action:v4:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:docker\\/login:docker\\/login-action:v3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:docker\\/login:docker\\/login-action:v4:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:docker\\/login:docker\\/login_action:v3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:docker\\/login:docker\\/login_action:v4:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -20561,19 +20525,17 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/elkjs@0.10.2?package-id=34a4ab321277a73e",
+      "bom-ref": "pkg:npm/elkjs@0.12.0?package-id=c9cafd425c6748c9",
       "type": "library",
       "name": "elkjs",
-      "version": "0.10.2",
+      "version": "0.12.0",
       "licenses": [
         {
-          "license": {
-            "id": "EPL-2.0"
-          }
+          "expression": "EPL-2.0 OR GPL-3.0-or-later"
         }
       ],
-      "cpe": "cpe:2.3:a:elkjs:elkjs:0.10.2:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/elkjs@0.10.2",
+      "cpe": "cpe:2.3:a:elkjs:elkjs:0.12.0:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/elkjs@0.12.0",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -22048,10 +22010,10 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/fflate@0.4.8?package-id=74fc25e7bd2565e0",
+      "bom-ref": "pkg:npm/fflate@0.4.9?package-id=4bad73d08ebf6ead",
       "type": "library",
       "name": "fflate",
-      "version": "0.4.8",
+      "version": "0.4.9",
       "licenses": [
         {
           "license": {
@@ -22059,8 +22021,8 @@
           }
         }
       ],
-      "cpe": "cpe:2.3:a:fflate:fflate:0.4.8:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/fflate@0.4.8",
+      "cpe": "cpe:2.3:a:fflate:fflate:0.4.9:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/fflate@0.4.9",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -24083,7 +24045,7 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/h2@0.3.27?package-id=5b06d5f53e4c1499",
+      "bom-ref": "pkg:cargo/h2@0.3.27?package-id=2ca9679bffe42c1a",
       "type": "library",
       "name": "h2",
       "version": "0.3.27",
@@ -24119,7 +24081,7 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/h2@0.4.12?package-id=3bf492e3b4000a22",
+      "bom-ref": "pkg:cargo/h2@0.4.12?package-id=ebdfc292df5e3535",
       "type": "library",
       "name": "h2",
       "version": "0.4.12",
@@ -24269,6 +24231,42 @@
       "version": "0.16.0",
       "cpe": "cpe:2.3:a:hashbrown:hashbrown:0.16.0:*:*:*:*:*:*:*",
       "purl": "pkg:cargo/hashbrown@0.16.0",
+      "externalReferences": [
+        {
+          "url": "registry+https://github.com/rust-lang/crates.io-index",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "rust-cargo-lock-cataloger"
+        },
+        {
+          "name": "syft:package:language",
+          "value": "rust"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "rust-crate"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "rust-cargo-lock-entry"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/backend/Cargo.lock"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:cargo/hashbrown@0.17.1?package-id=3b5d2df71708d9b1",
+      "type": "library",
+      "name": "hashbrown",
+      "version": "0.17.1",
+      "cpe": "cpe:2.3:a:hashbrown:hashbrown:0.17.1:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/hashbrown@0.17.1",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -26710,12 +26708,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/if-addrs@0.14.0?package-id=d0478085a1cf13c7",
+      "bom-ref": "pkg:cargo/if-addrs@0.15.0?package-id=5fd98bb8d7ed4138",
       "type": "library",
       "name": "if-addrs",
-      "version": "0.14.0",
-      "cpe": "cpe:2.3:a:if-addrs:if-addrs:0.14.0:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/if-addrs@0.14.0",
+      "version": "0.15.0",
+      "cpe": "cpe:2.3:a:if-addrs:if-addrs:0.15.0:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/if-addrs@0.15.0",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -26741,23 +26739,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:if-addrs:if_addrs:0.14.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:if-addrs:if_addrs:0.15.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:if_addrs:if-addrs:0.14.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:if_addrs:if-addrs:0.15.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:if_addrs:if_addrs:0.14.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:if_addrs:if_addrs:0.15.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:if:if-addrs:0.14.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:if:if-addrs:0.15.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:if:if_addrs:0.14.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:if:if_addrs:0.15.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -27003,12 +27001,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/indexmap@2.12.0?package-id=51445eabeff707d9",
+      "bom-ref": "pkg:cargo/indexmap@2.14.2?package-id=a029dcc81321bab4",
       "type": "library",
       "name": "indexmap",
-      "version": "2.12.0",
-      "cpe": "cpe:2.3:a:indexmap:indexmap:2.12.0:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/indexmap@2.12.0",
+      "version": "2.14.2",
+      "cpe": "cpe:2.3:a:indexmap:indexmap:2.14.2:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/indexmap@2.14.2",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -28996,10 +28994,10 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/js-yaml@4.3.1?package-id=af547786a4e7bc97",
+      "bom-ref": "pkg:npm/js-yaml@4.3.2?package-id=494f13c989afeb60",
       "type": "library",
       "name": "js-yaml",
-      "version": "4.3.1",
+      "version": "4.3.2",
       "licenses": [
         {
           "license": {
@@ -29007,8 +29005,8 @@
           }
         }
       ],
-      "cpe": "cpe:2.3:a:nodeca:js-yaml:4.3.1:*:*:*:*:node.js:*:*",
-      "purl": "pkg:npm/js-yaml@4.3.1",
+      "cpe": "cpe:2.3:a:nodeca:js-yaml:4.3.2:*:*:*:*:node.js:*:*",
+      "purl": "pkg:npm/js-yaml@4.3.2",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -29343,7 +29341,7 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/kafka-protocol@0.18.0?package-id=d585c3ca9cc3e8ca",
+      "bom-ref": "pkg:cargo/kafka-protocol@0.18.0?package-id=22ae017270c3b61f",
       "type": "library",
       "name": "kafka-protocol",
       "version": "0.18.0",
@@ -31156,7 +31154,7 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/metrics-exporter-prometheus@0.16.2?package-id=7d0b16414362cbc3",
+      "bom-ref": "pkg:cargo/metrics-exporter-prometheus@0.16.2?package-id=ecc304ce2739f6c3",
       "type": "library",
       "name": "metrics-exporter-prometheus",
       "version": "0.16.2",
@@ -32286,7 +32284,7 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/net-route@0.4.6?package-id=f3b5c5db2e4fa0b1",
+      "bom-ref": "pkg:cargo/net-route@0.4.6?package-id=59e6fd4918d01c1e",
       "type": "library",
       "name": "net-route",
       "version": "0.4.6",
@@ -32342,12 +32340,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/netdev@0.45.0?package-id=c8bdd011dfac7eb0",
+      "bom-ref": "pkg:cargo/netdev@0.46.3?package-id=6f6dd95aaa39f5f7",
       "type": "library",
       "name": "netdev",
-      "version": "0.45.0",
-      "cpe": "cpe:2.3:a:netdev:netdev:0.45.0:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/netdev@0.45.0",
+      "version": "0.46.3",
+      "cpe": "cpe:2.3:a:netdev:netdev:0.46.3:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/netdev@0.46.3",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -32450,12 +32448,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/netlink-packet-core@0.8.1?package-id=d23460e9c9b47b2c",
+      "bom-ref": "pkg:cargo/netlink-packet-core@0.9.0?package-id=02d76e333bd55c59",
       "type": "library",
       "name": "netlink-packet-core",
-      "version": "0.8.1",
-      "cpe": "cpe:2.3:a:netlink-packet-core:netlink-packet-core:0.8.1:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/netlink-packet-core@0.8.1",
+      "version": "0.9.0",
+      "cpe": "cpe:2.3:a:netlink-packet-core:netlink-packet-core:0.9.0:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/netlink-packet-core@0.9.0",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -32481,39 +32479,39 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:netlink-packet-core:netlink_packet_core:0.8.1:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:netlink-packet-core:netlink_packet_core:0.9.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:netlink_packet_core:netlink-packet-core:0.8.1:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:netlink_packet_core:netlink-packet-core:0.9.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:netlink_packet_core:netlink_packet_core:0.8.1:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:netlink_packet_core:netlink_packet_core:0.9.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:netlink-packet:netlink-packet-core:0.8.1:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:netlink-packet:netlink-packet-core:0.9.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:netlink-packet:netlink_packet_core:0.8.1:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:netlink-packet:netlink_packet_core:0.9.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:netlink_packet:netlink-packet-core:0.8.1:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:netlink_packet:netlink-packet-core:0.9.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:netlink_packet:netlink_packet_core:0.8.1:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:netlink_packet:netlink_packet_core:0.9.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:netlink:netlink-packet-core:0.8.1:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:netlink:netlink-packet-core:0.9.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:netlink:netlink_packet_core:0.8.1:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:netlink:netlink_packet_core:0.9.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -32594,12 +32592,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/netlink-packet-route@0.31.0?package-id=4349d7e60ce90a51",
+      "bom-ref": "pkg:cargo/netlink-packet-route@0.33.0?package-id=a945e03f7e1581e6",
       "type": "library",
       "name": "netlink-packet-route",
-      "version": "0.31.0",
-      "cpe": "cpe:2.3:a:netlink-packet-route:netlink-packet-route:0.31.0:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/netlink-packet-route@0.31.0",
+      "version": "0.33.0",
+      "cpe": "cpe:2.3:a:netlink-packet-route:netlink-packet-route:0.33.0:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/netlink-packet-route@0.33.0",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -32625,39 +32623,39 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:netlink-packet-route:netlink_packet_route:0.31.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:netlink-packet-route:netlink_packet_route:0.33.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:netlink_packet_route:netlink-packet-route:0.31.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:netlink_packet_route:netlink-packet-route:0.33.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:netlink_packet_route:netlink_packet_route:0.31.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:netlink_packet_route:netlink_packet_route:0.33.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:netlink-packet:netlink-packet-route:0.31.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:netlink-packet:netlink-packet-route:0.33.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:netlink-packet:netlink_packet_route:0.31.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:netlink-packet:netlink_packet_route:0.33.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:netlink_packet:netlink-packet-route:0.31.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:netlink_packet:netlink-packet-route:0.33.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:netlink_packet:netlink_packet_route:0.31.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:netlink_packet:netlink_packet_route:0.33.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:netlink:netlink-packet-route:0.31.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:netlink:netlink-packet-route:0.33.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:netlink:netlink_packet_route:0.31.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:netlink:netlink_packet_route:0.33.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -32738,7 +32736,7 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/netlink-proto@0.11.5?package-id=a4f7dbfbad322123",
+      "bom-ref": "pkg:cargo/netlink-proto@0.11.5?package-id=dd1a93f77c387548",
       "type": "library",
       "name": "netlink-proto",
       "version": "0.11.5",
@@ -32842,6 +32840,62 @@
         {
           "name": "syft:cpe23",
           "value": "cpe:2.3:a:netlink:netlink_sys:0.8.8:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/backend/Cargo.lock"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:cargo/netlink-sys@0.9.0?package-id=730db815e2a590d0",
+      "type": "library",
+      "name": "netlink-sys",
+      "version": "0.9.0",
+      "cpe": "cpe:2.3:a:netlink-sys:netlink-sys:0.9.0:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/netlink-sys@0.9.0",
+      "externalReferences": [
+        {
+          "url": "registry+https://github.com/rust-lang/crates.io-index",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "rust-cargo-lock-cataloger"
+        },
+        {
+          "name": "syft:package:language",
+          "value": "rust"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "rust-crate"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "rust-cargo-lock-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:netlink-sys:netlink_sys:0.9.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:netlink_sys:netlink-sys:0.9.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:netlink_sys:netlink_sys:0.9.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:netlink:netlink-sys:0.9.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:netlink:netlink_sys:0.9.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -34135,78 +34189,6 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/objc2-core-wlan@0.3.2?package-id=1fdb336a43c5c241",
-      "type": "library",
-      "name": "objc2-core-wlan",
-      "version": "0.3.2",
-      "cpe": "cpe:2.3:a:objc2-core-wlan:objc2-core-wlan:0.3.2:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/objc2-core-wlan@0.3.2",
-      "externalReferences": [
-        {
-          "url": "registry+https://github.com/rust-lang/crates.io-index",
-          "type": "distribution"
-        }
-      ],
-      "properties": [
-        {
-          "name": "syft:package:foundBy",
-          "value": "rust-cargo-lock-cataloger"
-        },
-        {
-          "name": "syft:package:language",
-          "value": "rust"
-        },
-        {
-          "name": "syft:package:type",
-          "value": "rust-crate"
-        },
-        {
-          "name": "syft:package:metadataType",
-          "value": "rust-cargo-lock-entry"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2-core-wlan:objc2_core_wlan:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2_core_wlan:objc2-core-wlan:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2_core_wlan:objc2_core_wlan:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2-core:objc2-core-wlan:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2-core:objc2_core_wlan:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2_core:objc2-core-wlan:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2_core:objc2_core_wlan:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2:objc2-core-wlan:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2:objc2_core_wlan:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:location:0:path",
-          "value": "/backend/Cargo.lock"
-        }
-      ]
-    },
-    {
       "bom-ref": "pkg:cargo/objc2-encode@4.1.0?package-id=cb26370253dd6aaf",
       "type": "library",
       "name": "objc2-encode",
@@ -34255,190 +34237,6 @@
         {
           "name": "syft:cpe23",
           "value": "cpe:2.3:a:objc2:objc2_encode:4.1.0:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:location:0:path",
-          "value": "/backend/Cargo.lock"
-        }
-      ]
-    },
-    {
-      "bom-ref": "pkg:cargo/objc2-foundation@0.3.2?package-id=68bb8ad6723dbba5",
-      "type": "library",
-      "name": "objc2-foundation",
-      "version": "0.3.2",
-      "cpe": "cpe:2.3:a:objc2-foundation:objc2-foundation:0.3.2:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/objc2-foundation@0.3.2",
-      "externalReferences": [
-        {
-          "url": "registry+https://github.com/rust-lang/crates.io-index",
-          "type": "distribution"
-        }
-      ],
-      "properties": [
-        {
-          "name": "syft:package:foundBy",
-          "value": "rust-cargo-lock-cataloger"
-        },
-        {
-          "name": "syft:package:language",
-          "value": "rust"
-        },
-        {
-          "name": "syft:package:type",
-          "value": "rust-crate"
-        },
-        {
-          "name": "syft:package:metadataType",
-          "value": "rust-cargo-lock-entry"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2-foundation:objc2_foundation:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2_foundation:objc2-foundation:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2_foundation:objc2_foundation:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2:objc2-foundation:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2:objc2_foundation:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:location:0:path",
-          "value": "/backend/Cargo.lock"
-        }
-      ]
-    },
-    {
-      "bom-ref": "pkg:cargo/objc2-security@0.3.2?package-id=592eda48ae0c2e71",
-      "type": "library",
-      "name": "objc2-security",
-      "version": "0.3.2",
-      "cpe": "cpe:2.3:a:objc2-security:objc2-security:0.3.2:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/objc2-security@0.3.2",
-      "externalReferences": [
-        {
-          "url": "registry+https://github.com/rust-lang/crates.io-index",
-          "type": "distribution"
-        }
-      ],
-      "properties": [
-        {
-          "name": "syft:package:foundBy",
-          "value": "rust-cargo-lock-cataloger"
-        },
-        {
-          "name": "syft:package:language",
-          "value": "rust"
-        },
-        {
-          "name": "syft:package:type",
-          "value": "rust-crate"
-        },
-        {
-          "name": "syft:package:metadataType",
-          "value": "rust-cargo-lock-entry"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2-security:objc2_security:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2_security:objc2-security:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2_security:objc2_security:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2:objc2-security:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2:objc2_security:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:location:0:path",
-          "value": "/backend/Cargo.lock"
-        }
-      ]
-    },
-    {
-      "bom-ref": "pkg:cargo/objc2-security-foundation@0.3.2?package-id=c41cc11547828128",
-      "type": "library",
-      "name": "objc2-security-foundation",
-      "version": "0.3.2",
-      "cpe": "cpe:2.3:a:objc2-security-foundation:objc2-security-foundation:0.3.2:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/objc2-security-foundation@0.3.2",
-      "externalReferences": [
-        {
-          "url": "registry+https://github.com/rust-lang/crates.io-index",
-          "type": "distribution"
-        }
-      ],
-      "properties": [
-        {
-          "name": "syft:package:foundBy",
-          "value": "rust-cargo-lock-cataloger"
-        },
-        {
-          "name": "syft:package:language",
-          "value": "rust"
-        },
-        {
-          "name": "syft:package:type",
-          "value": "rust-crate"
-        },
-        {
-          "name": "syft:package:metadataType",
-          "value": "rust-cargo-lock-entry"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2-security-foundation:objc2_security_foundation:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2_security_foundation:objc2-security-foundation:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2_security_foundation:objc2_security_foundation:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2-security:objc2-security-foundation:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2-security:objc2_security_foundation:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2_security:objc2-security-foundation:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2_security:objc2_security_foundation:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2:objc2-security-foundation:0.3.2:*:*:*:*:*:*:*"
-        },
-        {
-          "name": "syft:cpe23",
-          "value": "cpe:2.3:a:objc2:objc2_security_foundation:0.3.2:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -36500,7 +36298,7 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/petgraph@0.8.3?package-id=620f107fdf52f867",
+      "bom-ref": "pkg:cargo/petgraph@0.8.3?package-id=47fab6e6fbc5eb7a",
       "type": "library",
       "name": "petgraph",
       "version": "0.8.3",
@@ -37894,12 +37692,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/plist@1.8.0?package-id=e076b7a1f6cc8f49",
+      "bom-ref": "pkg:cargo/plist@1.10.1?package-id=7f5d83c5fc56d735",
       "type": "library",
       "name": "plist",
-      "version": "1.8.0",
-      "cpe": "cpe:2.3:a:plist:plist:1.8.0:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/plist@1.8.0",
+      "version": "1.10.1",
+      "cpe": "cpe:2.3:a:plist:plist:1.10.1:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/plist@1.10.1",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -38944,17 +38742,17 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/posthog-js@1.407.3?package-id=d3440424e1d02125",
+      "bom-ref": "pkg:npm/posthog-js@1.434.4?package-id=87e5eb74737ca55b",
       "type": "library",
       "name": "posthog-js",
-      "version": "1.407.3",
+      "version": "1.434.4",
       "licenses": [
         {
           "expression": "Apache-2.0 AND MIT"
         }
       ],
-      "cpe": "cpe:2.3:a:posthog-js:posthog-js:1.407.3:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/posthog-js@1.407.3",
+      "cpe": "cpe:2.3:a:posthog-js:posthog-js:1.434.4:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/posthog-js@1.434.4",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -38974,23 +38772,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:posthog-js:posthog_js:1.407.3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:posthog-js:posthog_js:1.434.4:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:posthog_js:posthog-js:1.407.3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:posthog_js:posthog-js:1.434.4:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:posthog_js:posthog_js:1.407.3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:posthog_js:posthog_js:1.434.4:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:posthog:posthog-js:1.407.3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:posthog:posthog-js:1.434.4:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:posthog:posthog_js:1.407.3:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:posthog:posthog_js:1.434.4:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -40430,12 +40228,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/quick-xml@0.38.4?package-id=fae2bd3d803f99c5",
+      "bom-ref": "pkg:cargo/quick-xml@0.42.0?package-id=70ddc7d2cb9739b0",
       "type": "library",
       "name": "quick-xml",
-      "version": "0.38.4",
-      "cpe": "cpe:2.3:a:quick-xml:quick-xml:0.38.4:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/quick-xml@0.38.4",
+      "version": "0.42.0",
+      "cpe": "cpe:2.3:a:quick-xml:quick-xml:0.42.0:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/quick-xml@0.42.0",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -40461,23 +40259,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:quick-xml:quick_xml:0.38.4:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:quick-xml:quick_xml:0.42.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:quick_xml:quick-xml:0.38.4:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:quick_xml:quick-xml:0.42.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:quick_xml:quick_xml:0.38.4:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:quick_xml:quick_xml:0.42.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:quick:quick-xml:0.38.4:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:quick:quick-xml:0.42.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:quick:quick_xml:0.38.4:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:quick:quick_xml:0.42.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -42821,12 +42619,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/rsntp@4.1.0?package-id=5e82318cce5251d1",
+      "bom-ref": "pkg:cargo/rsntp@4.1.2?package-id=b22f04aa25822c28",
       "type": "library",
       "name": "rsntp",
-      "version": "4.1.0",
-      "cpe": "cpe:2.3:a:rsntp:rsntp:4.1.0:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/rsntp@4.1.0",
+      "version": "4.1.2",
+      "cpe": "cpe:2.3:a:rsntp:rsntp:4.1.2:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/rsntp@4.1.2",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -42857,7 +42655,7 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/rtnetlink@0.14.1?package-id=c8d9b1945fe33919",
+      "bom-ref": "pkg:cargo/rtnetlink@0.14.1?package-id=4e9c82aa6cbc0660",
       "type": "library",
       "name": "rtnetlink",
       "version": "0.14.1",
@@ -44030,12 +43828,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/scanopy-server@0.17.17?package-id=3132c89775c69ecf",
+      "bom-ref": "pkg:cargo/scanopy-server@0.17.18?package-id=a0008079c557161d",
       "type": "library",
       "name": "scanopy-server",
-      "version": "0.17.17",
-      "cpe": "cpe:2.3:a:scanopy-server:scanopy-server:0.17.17:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/scanopy-server@0.17.17",
+      "version": "0.17.18",
+      "cpe": "cpe:2.3:a:scanopy-server:scanopy-server:0.17.18:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/scanopy-server@0.17.18",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -44055,23 +43853,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy-server:scanopy_server:0.17.17:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy-server:scanopy_server:0.17.18:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy_server:scanopy-server:0.17.17:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy_server:scanopy-server:0.17.18:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy_server:scanopy_server:0.17.17:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy_server:scanopy_server:0.17.18:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy:scanopy-server:0.17.17:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy:scanopy-server:0.17.18:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy:scanopy_server:0.17.17:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy:scanopy_server:0.17.18:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -44080,12 +43878,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/scanopy-ui@0.17.17?package-id=dd864d238d61c416",
+      "bom-ref": "pkg:npm/scanopy-ui@0.17.18?package-id=de3e2f898307848e",
       "type": "library",
       "name": "scanopy-ui",
-      "version": "0.17.17",
-      "cpe": "cpe:2.3:a:scanopy-ui:scanopy-ui:0.17.17:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/scanopy-ui@0.17.17",
+      "version": "0.17.18",
+      "cpe": "cpe:2.3:a:scanopy-ui:scanopy-ui:0.17.18:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/scanopy-ui@0.17.18",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -44105,23 +43903,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy-ui:scanopy_ui:0.17.17:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy-ui:scanopy_ui:0.17.18:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy_ui:scanopy-ui:0.17.17:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy_ui:scanopy-ui:0.17.18:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy_ui:scanopy_ui:0.17.17:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy_ui:scanopy_ui:0.17.18:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy:scanopy-ui:0.17.17:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy:scanopy-ui:0.17.18:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy:scanopy_ui:0.17.17:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy:scanopy_ui:0.17.18:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -44915,7 +44713,7 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/serde_html_form@0.2.8?package-id=137bbade1c0e38bf",
+      "bom-ref": "pkg:cargo/serde_html_form@0.2.8?package-id=7e266529f31fe8a7",
       "type": "library",
       "name": "serde_html_form",
       "version": "0.2.8",
@@ -45187,12 +44985,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/serde_qs@0.15.0?package-id=e41c5636b91489b1",
+      "bom-ref": "pkg:cargo/serde_qs@1.1.3?package-id=188217d6baf8f0ab",
       "type": "library",
       "name": "serde_qs",
-      "version": "0.15.0",
-      "cpe": "cpe:2.3:a:serde-qs:serde-qs:0.15.0:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/serde_qs@0.15.0",
+      "version": "1.1.3",
+      "cpe": "cpe:2.3:a:serde-qs:serde-qs:1.1.3:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/serde_qs@1.1.3",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -45218,23 +45016,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:serde-qs:serde_qs:0.15.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:serde-qs:serde_qs:1.1.3:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:serde_qs:serde-qs:0.15.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:serde_qs:serde-qs:1.1.3:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:serde_qs:serde_qs:0.15.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:serde_qs:serde_qs:1.1.3:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:serde:serde-qs:0.15.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:serde:serde-qs:1.1.3:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:serde:serde_qs:0.15.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:serde:serde_qs:1.1.3:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -45411,7 +45209,7 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/serde_with@3.21.0?package-id=263b6521c8474abf",
+      "bom-ref": "pkg:cargo/serde_with@3.21.0?package-id=963dae4db23cbd7d",
       "type": "library",
       "name": "serde_with",
       "version": "3.21.0",
@@ -46507,12 +46305,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/smol_str@0.3.2?package-id=c1ecfdf36544679a",
+      "bom-ref": "pkg:cargo/smol_str@0.3.6?package-id=dd3da61a21f8705b",
       "type": "library",
       "name": "smol_str",
-      "version": "0.3.2",
-      "cpe": "cpe:2.3:a:smol-str:smol-str:0.3.2:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/smol_str@0.3.2",
+      "version": "0.3.6",
+      "cpe": "cpe:2.3:a:smol-str:smol-str:0.3.6:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/smol_str@0.3.6",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -46538,23 +46336,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:smol-str:smol_str:0.3.2:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:smol-str:smol_str:0.3.6:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:smol_str:smol-str:0.3.2:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:smol_str:smol-str:0.3.6:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:smol_str:smol_str:0.3.2:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:smol_str:smol_str:0.3.6:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:smol:smol-str:0.3.2:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:smol:smol-str:0.3.6:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:smol:smol_str:0.3.2:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:smol:smol_str:0.3.6:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -47128,7 +46926,7 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/sqlx-core@0.8.6?package-id=247d7c7226488e4f",
+      "bom-ref": "pkg:cargo/sqlx-core@0.8.6?package-id=0d6c8bd92afe4141",
       "type": "library",
       "name": "sqlx-core",
       "version": "0.8.6",
@@ -50533,7 +50331,7 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/toml_edit@0.22.27?package-id=eab7a81a4b92eb3e",
+      "bom-ref": "pkg:cargo/toml_edit@0.22.27?package-id=b4f28b7e5b1e07ba",
       "type": "library",
       "name": "toml_edit",
       "version": "0.22.27",
@@ -50845,7 +50643,7 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/tower@0.5.2?package-id=1050585c0f825f60",
+      "bom-ref": "pkg:cargo/tower@0.5.2?package-id=7abf7c18adfa37f4",
       "type": "library",
       "name": "tower",
       "version": "0.5.2",
@@ -53059,12 +52857,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/url@2.5.7?package-id=a7287982ccee90d4",
+      "bom-ref": "pkg:cargo/url@2.5.8?package-id=2ff2e5aae0621403",
       "type": "library",
       "name": "url",
-      "version": "2.5.7",
-      "cpe": "cpe:2.3:a:url:url:2.5.7:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/url@2.5.7",
+      "version": "2.5.8",
+      "cpe": "cpe:2.3:a:url:url:2.5.8:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/url@2.5.8",
       "externalReferences": [
         {
           "url": "registry+https://github.com/rust-lang/crates.io-index",
@@ -53336,7 +53134,7 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/utoipa@5.4.0?package-id=b2f7fc2eab2d566c",
+      "bom-ref": "pkg:cargo/utoipa@5.4.0?package-id=8a6bbc1e101160c5",
       "type": "library",
       "name": "utoipa",
       "version": "5.4.0",
@@ -54697,10 +54495,10 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/web-vitals@5.3.0?package-id=7fe08da289afab4d",
+      "bom-ref": "pkg:npm/web-vitals@6.2.1?package-id=54e3c0bf87c3c985",
       "type": "library",
       "name": "web-vitals",
-      "version": "5.3.0",
+      "version": "6.2.1",
       "licenses": [
         {
           "license": {
@@ -54708,8 +54506,8 @@
           }
         }
       ],
-      "cpe": "cpe:2.3:a:web-vitals:web-vitals:5.3.0:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/web-vitals@5.3.0",
+      "cpe": "cpe:2.3:a:web-vitals:web-vitals:6.2.1:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/web-vitals@6.2.1",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -54729,23 +54527,80 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:web-vitals:web_vitals:5.3.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:web-vitals:web_vitals:6.2.1:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:web_vitals:web-vitals:5.3.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:web_vitals:web-vitals:6.2.1:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:web_vitals:web_vitals:5.3.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:web_vitals:web_vitals:6.2.1:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:web:web-vitals:5.3.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:web:web-vitals:6.2.1:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:web:web_vitals:5.3.0:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:web:web_vitals:6.2.1:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/ui/package-lock.json"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:npm/web-vitals@6.2.2?package-id=739d26fb12114606",
+      "type": "library",
+      "name": "web-vitals",
+      "version": "6.2.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "cpe": "cpe:2.3:a:web-vitals:web-vitals:6.2.2:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/web-vitals@6.2.2",
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "javascript-lock-cataloger"
+        },
+        {
+          "name": "syft:package:language",
+          "value": "javascript"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "npm"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "javascript-npm-package-lock-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:web-vitals:web_vitals:6.2.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:web_vitals:web-vitals:6.2.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:web_vitals:web_vitals:6.2.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:web:web-vitals:6.2.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:web:web_vitals:6.2.2:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -60173,7 +60028,7 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/zip@2.4.2?package-id=209643001e35ae68",
+      "bom-ref": "pkg:cargo/zip@2.4.2?package-id=5355448c6d1a7dd3",
       "type": "library",
       "name": "zip",
       "version": "2.4.2",
@@ -60414,11 +60269,11 @@
       "hashes": [
         {
           "alg": "SHA-1",
-          "content": "1d6b0695f32cadffcef149f56c7101c45d07e709"
+          "content": "94974806d5f3ab4ddc63e3d6de1bd423e6e9c2c9"
         },
         {
           "alg": "SHA-256",
-          "content": "22744dbbf71bf6bb0da0efae8f02d4366a23a4885f7f48603bf67d266214abc7"
+          "content": "2c781018204c39862b3d9803e5c3445621bdb00dca68457432da5f9ab994d578"
         }
       ]
     },
@@ -60429,11 +60284,11 @@
       "hashes": [
         {
           "alg": "SHA-1",
-          "content": "c93933c2e9700fb512906c2bc017d8b7435ee6fd"
+          "content": "17652360f91642a7c0c90dc759f083d292aff8ac"
         },
         {
           "alg": "SHA-256",
-          "content": "4107d1e6a9ca5fddba08b439f5a80d069936659fb4d1c5d7f840eae685f39de4"
+          "content": "ec7c8bab52f86696ef132d4e86d08236610271b4582e01953b7452a0637c64d1"
         }
       ]
     },
@@ -60459,11 +60314,11 @@
       "hashes": [
         {
           "alg": "SHA-1",
-          "content": "0cb6c7d2fcefa57366594b7f41fc882c2f656471"
+          "content": "2f981b11bbb2f7e9d6435dd5d1fcc1ea60c05432"
         },
         {
           "alg": "SHA-256",
-          "content": "38215551d97cab12ebca1d6cc5fe3f4c5c7e20479097db6d4301631040c951a8"
+          "content": "a6b1d7f366a9ba40ab55d3a8a1c057d9b1a6526ae629376e5b3c26e828baa600"
         }
       ]
     },
@@ -60519,11 +60374,11 @@
       "hashes": [
         {
           "alg": "SHA-1",
-          "content": "c0124cc14fb0b77029a9e3bd6767d07a6479e382"
+          "content": "148df616fd2a27743178c933021abf915cf09213"
         },
         {
           "alg": "SHA-256",
-          "content": "3638e78f90b0271d86c658716afd6d03c368387b96b34b83fe7b9ed72afa3038"
+          "content": "c10bf03138c60919617921a7dd8a31eae7279d0fa304acd6dd6db36ee786fc9c"
         }
       ]
     },
@@ -60534,11 +60389,11 @@
       "hashes": [
         {
           "alg": "SHA-1",
-          "content": "b679bbeb83e8dd2e584bf467663b35cdfefe0011"
+          "content": "d27ef5a5319941e25c3d318e126c12f2ce6df06b"
         },
         {
           "alg": "SHA-256",
-          "content": "aeeaed986df8e80f4f612816945d82a9e2b1216fb95507b84efa5ad8f3c92934"
+          "content": "043ebe2089ece01e255fad67878667baa2c0fa45857ed90cf13a96a430314038"
         }
       ]
     },
@@ -60564,11 +60419,11 @@
       "hashes": [
         {
           "alg": "SHA-1",
-          "content": "f6d6b3c31286a6abfe1f0b0a14bb07fca2029b36"
+          "content": "6af96686c6faf33a75299f7db968acf7f7b24a7e"
         },
         {
           "alg": "SHA-256",
-          "content": "043f013b24ee7fdde05892cc0db46bf5dd92883fe0355beb90d2a986d8959575"
+          "content": "b7bd958edf5049d35c234efe3d0ac42a36ca675388d4ae72042c82b9301f3bad"
         }
       ]
     },
@@ -60579,11 +60434,11 @@
       "hashes": [
         {
           "alg": "SHA-1",
-          "content": "b63ae383db9d95879f39e675699d7000945e04a1"
+          "content": "fb0eb7289dcd217dee8f4ee58742f98cc6137e30"
         },
         {
           "alg": "SHA-256",
-          "content": "21099b9c7188ab1cb5c88069fd0bcfa33248e95403cbb93a1cae9101a5c65863"
+          "content": "cd43f5b78b9d97ab1856413b70f101e68cd259ad4f82af81b906cb9c2fbd9386"
         }
       ]
     },
@@ -60594,11 +60449,11 @@
       "hashes": [
         {
           "alg": "SHA-1",
-          "content": "89d06dc602d648cfec9081268221e4e5ac044942"
+          "content": "82d5803c14b74840483acca0ed8c83ed38b26641"
         },
         {
           "alg": "SHA-256",
-          "content": "f17fe5f6e839ded76b32cd7fa51657b3d33b5377b86b7d9900fb149b20663e07"
+          "content": "16bcb697c9f4c6e47e602144bfade4392b5b89e6fc783f11765aa6e090a98ba4"
         }
       ]
     },
@@ -60609,11 +60464,11 @@
       "hashes": [
         {
           "alg": "SHA-1",
-          "content": "56b0fa0631a7d78868d28798d4dd43dfd8ba8a69"
+          "content": "b1a3fc8d3c8867b42175191de649bef15093ec46"
         },
         {
           "alg": "SHA-256",
-          "content": "65949f15925bb5e0bc24b527d42d2f4b204ef6a3f61440cc9296fde6adc3811c"
+          "content": "ce454e3fd8a724413602ba35b3004461010e3f590b692f0337b1d294a021596b"
         }
       ]
     },
@@ -60639,11 +60494,11 @@
       "hashes": [
         {
           "alg": "SHA-1",
-          "content": "4f3fc4f1227169113c571cb683dcffe8a658e944"
+          "content": "1e821364a55ffcf28435a42293b1ab3d5dbb862a"
         },
         {
           "alg": "SHA-256",
-          "content": "d408932a0956e0b1eafa85a1bdaed725577b78ee59dd9100400f42476d4f0478"
+          "content": "d872aa68896e9514760cda9b45e442fdec57cc2fbcff13665f694d57667b0915"
         }
       ]
     }
@@ -60855,103 +60710,94 @@
       ]
     },
     {
-      "ref": "pkg:cargo/async-stripe-billing@1.0.0-alpha.7?package-id=bec02fc72ba54e68",
+      "ref": "pkg:cargo/async-stripe-billing@1.0.0-rc.9?package-id=231fb40f970bc0bf",
       "dependsOn": [
-        "pkg:cargo/async-stripe-client-core@1.0.0-alpha.7?package-id=583f078ec8d23301",
-        "pkg:cargo/async-stripe-shared@1.0.0-alpha.7?package-id=2fb3ccc0d69b3d4e",
-        "pkg:cargo/async-stripe-types@1.0.0-alpha.7?package-id=df42c5cc39cfe977",
+        "pkg:cargo/async-stripe-client-core@1.0.0-rc.9?package-id=3daadb2e89e46cb0",
+        "pkg:cargo/async-stripe-shared@1.0.0-rc.9?package-id=609a8baa601c9311",
+        "pkg:cargo/async-stripe-types@1.0.0-rc.9?package-id=e356ddccb0d3c38c",
         "pkg:cargo/miniserde@0.1.43?package-id=7324be8910310286",
         "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
         "pkg:cargo/serde_json@1.0.145?package-id=d81b198d2106a3fc",
-        "pkg:cargo/smol_str@0.3.2?package-id=c1ecfdf36544679a"
+        "pkg:cargo/smol_str@0.3.6?package-id=dd3da61a21f8705b",
+        "pkg:cargo/tracing@0.1.41?package-id=4322088d4de9c2ec"
       ]
     },
     {
-      "ref": "pkg:cargo/async-stripe-checkout@1.0.0-alpha.7?package-id=0dc32ca8df509782",
+      "ref": "pkg:cargo/async-stripe-checkout@1.0.0-rc.9?package-id=78553e6f081cf9ed",
       "dependsOn": [
-        "pkg:cargo/async-stripe-client-core@1.0.0-alpha.7?package-id=583f078ec8d23301",
-        "pkg:cargo/async-stripe-shared@1.0.0-alpha.7?package-id=2fb3ccc0d69b3d4e",
-        "pkg:cargo/async-stripe-types@1.0.0-alpha.7?package-id=df42c5cc39cfe977",
+        "pkg:cargo/async-stripe-client-core@1.0.0-rc.9?package-id=3daadb2e89e46cb0",
+        "pkg:cargo/async-stripe-shared@1.0.0-rc.9?package-id=609a8baa601c9311",
+        "pkg:cargo/async-stripe-types@1.0.0-rc.9?package-id=e356ddccb0d3c38c",
         "pkg:cargo/miniserde@0.1.43?package-id=7324be8910310286",
         "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
-        "pkg:cargo/smol_str@0.3.2?package-id=c1ecfdf36544679a"
+        "pkg:cargo/smol_str@0.3.6?package-id=dd3da61a21f8705b",
+        "pkg:cargo/tracing@0.1.41?package-id=4322088d4de9c2ec"
       ]
     },
     {
-      "ref": "pkg:cargo/async-stripe-client-core@1.0.0-alpha.7?package-id=583f078ec8d23301",
+      "ref": "pkg:cargo/async-stripe-client-core@1.0.0-rc.9?package-id=3daadb2e89e46cb0",
       "dependsOn": [
-        "pkg:cargo/async-stripe-shared@1.0.0-alpha.7?package-id=2fb3ccc0d69b3d4e",
-        "pkg:cargo/async-stripe-types@1.0.0-alpha.7?package-id=df42c5cc39cfe977",
+        "pkg:cargo/async-stripe-shared@1.0.0-rc.9?package-id=609a8baa601c9311",
+        "pkg:cargo/async-stripe-types@1.0.0-rc.9?package-id=e356ddccb0d3c38c",
         "pkg:cargo/bytes@1.11.1?package-id=c69b0fb622a21615",
         "pkg:cargo/futures-util@0.3.31?package-id=b2563392c52b3804",
         "pkg:cargo/miniserde@0.1.43?package-id=7324be8910310286",
         "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
         "pkg:cargo/serde_json@1.0.145?package-id=d81b198d2106a3fc",
-        "pkg:cargo/serde_qs@0.15.0?package-id=e41c5636b91489b1",
+        "pkg:cargo/serde_qs@1.1.3?package-id=188217d6baf8f0ab",
         "pkg:cargo/thiserror@2.0.18?package-id=c9058539c8b0f2a6",
         "pkg:cargo/tracing@0.1.41?package-id=4322088d4de9c2ec"
       ]
     },
     {
-      "ref": "pkg:cargo/async-stripe-core@1.0.0-alpha.7?package-id=1df672462daf6eff",
+      "ref": "pkg:cargo/async-stripe-core@1.0.0-rc.9?package-id=80db86f5a3a24c9c",
       "dependsOn": [
-        "pkg:cargo/async-stripe-client-core@1.0.0-alpha.7?package-id=583f078ec8d23301",
-        "pkg:cargo/async-stripe-shared@1.0.0-alpha.7?package-id=2fb3ccc0d69b3d4e",
-        "pkg:cargo/async-stripe-types@1.0.0-alpha.7?package-id=df42c5cc39cfe977",
+        "pkg:cargo/async-stripe-client-core@1.0.0-rc.9?package-id=3daadb2e89e46cb0",
+        "pkg:cargo/async-stripe-shared@1.0.0-rc.9?package-id=609a8baa601c9311",
+        "pkg:cargo/async-stripe-types@1.0.0-rc.9?package-id=e356ddccb0d3c38c",
         "pkg:cargo/miniserde@0.1.43?package-id=7324be8910310286",
         "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
-        "pkg:cargo/smol_str@0.3.2?package-id=c1ecfdf36544679a"
+        "pkg:cargo/smol_str@0.3.6?package-id=dd3da61a21f8705b",
+        "pkg:cargo/tracing@0.1.41?package-id=4322088d4de9c2ec"
       ]
     },
     {
-      "ref": "pkg:cargo/async-stripe-product@1.0.0-alpha.7?package-id=63a0768fb8d2ee63",
+      "ref": "pkg:cargo/async-stripe-product@1.0.0-rc.9?package-id=315b29b3dfa96bed",
       "dependsOn": [
-        "pkg:cargo/async-stripe-client-core@1.0.0-alpha.7?package-id=583f078ec8d23301",
-        "pkg:cargo/async-stripe-shared@1.0.0-alpha.7?package-id=2fb3ccc0d69b3d4e",
-        "pkg:cargo/async-stripe-types@1.0.0-alpha.7?package-id=df42c5cc39cfe977",
+        "pkg:cargo/async-stripe-client-core@1.0.0-rc.9?package-id=3daadb2e89e46cb0",
+        "pkg:cargo/async-stripe-shared@1.0.0-rc.9?package-id=609a8baa601c9311",
+        "pkg:cargo/async-stripe-types@1.0.0-rc.9?package-id=e356ddccb0d3c38c",
         "pkg:cargo/miniserde@0.1.43?package-id=7324be8910310286",
         "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
-        "pkg:cargo/smol_str@0.3.2?package-id=c1ecfdf36544679a"
+        "pkg:cargo/smol_str@0.3.6?package-id=dd3da61a21f8705b",
+        "pkg:cargo/tracing@0.1.41?package-id=4322088d4de9c2ec"
       ]
     },
     {
-      "ref": "pkg:cargo/async-stripe-shared@1.0.0-alpha.7?package-id=2fb3ccc0d69b3d4e",
+      "ref": "pkg:cargo/async-stripe-shared@1.0.0-rc.9?package-id=609a8baa601c9311",
       "dependsOn": [
-        "pkg:cargo/async-stripe-types@1.0.0-alpha.7?package-id=df42c5cc39cfe977",
-        "pkg:cargo/miniserde@0.1.43?package-id=7324be8910310286",
-        "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
-        "pkg:cargo/serde_json@1.0.145?package-id=d81b198d2106a3fc",
-        "pkg:cargo/smol_str@0.3.2?package-id=c1ecfdf36544679a"
-      ]
-    },
-    {
-      "ref": "pkg:cargo/async-stripe-types@1.0.0-alpha.7?package-id=df42c5cc39cfe977",
-      "dependsOn": [
+        "pkg:cargo/async-stripe-types@1.0.0-rc.9?package-id=e356ddccb0d3c38c",
         "pkg:cargo/miniserde@0.1.43?package-id=7324be8910310286",
         "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
         "pkg:cargo/serde_json@1.0.145?package-id=d81b198d2106a3fc",
-        "pkg:cargo/smol_str@0.3.2?package-id=c1ecfdf36544679a"
+        "pkg:cargo/smol_str@0.3.6?package-id=dd3da61a21f8705b",
+        "pkg:cargo/tracing@0.1.41?package-id=4322088d4de9c2ec"
       ]
     },
     {
-      "ref": "pkg:cargo/async-stripe-webhook@1.0.0-alpha.7?package-id=6045d215092cf7ee",
+      "ref": "pkg:cargo/async-stripe-types@1.0.0-rc.9?package-id=e356ddccb0d3c38c",
       "dependsOn": [
-        "pkg:cargo/async-stripe-shared@1.0.0-alpha.7?package-id=2fb3ccc0d69b3d4e",
-        "pkg:cargo/async-stripe-types@1.0.0-alpha.7?package-id=df42c5cc39cfe977",
-        "pkg:cargo/chrono@0.4.42?package-id=d553903367a0a99a",
-        "pkg:cargo/hex@0.4.3?package-id=770a3d2932e67887",
-        "pkg:cargo/hmac@0.12.1?package-id=b49e7717a37dd091",
         "pkg:cargo/miniserde@0.1.43?package-id=7324be8910310286",
         "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
-        "pkg:cargo/sha2@0.10.9?package-id=927e05652d1a75e6",
-        "pkg:cargo/thiserror@2.0.18?package-id=c9058539c8b0f2a6"
+        "pkg:cargo/serde_json@1.0.145?package-id=d81b198d2106a3fc",
+        "pkg:cargo/smol_str@0.3.6?package-id=dd3da61a21f8705b"
       ]
     },
     {
-      "ref": "pkg:cargo/async-stripe@1.0.0-alpha.7?package-id=104d35a4baadc21e",
+      "ref": "pkg:cargo/async-stripe@1.0.0-rc.9?package-id=45b72c2885c746b7",
       "dependsOn": [
-        "pkg:cargo/async-stripe-client-core@1.0.0-alpha.7?package-id=583f078ec8d23301",
-        "pkg:cargo/async-stripe-shared@1.0.0-alpha.7?package-id=2fb3ccc0d69b3d4e",
+        "pkg:cargo/async-stripe-client-core@1.0.0-rc.9?package-id=3daadb2e89e46cb0",
+        "pkg:cargo/async-stripe-shared@1.0.0-rc.9?package-id=609a8baa601c9311",
         "pkg:cargo/bytes@1.11.1?package-id=c69b0fb622a21615",
         "pkg:cargo/http-body-util@0.1.3?package-id=e50f39318f035ab6",
         "pkg:cargo/hyper-rustls@0.27.7?package-id=c745af779d4f2949",
@@ -60959,7 +60805,8 @@
         "pkg:cargo/hyper@1.8.1?package-id=e70b792564b94b4c",
         "pkg:cargo/miniserde@0.1.43?package-id=7324be8910310286",
         "pkg:cargo/thiserror@2.0.18?package-id=c9058539c8b0f2a6",
-        "pkg:cargo/tokio@1.48.0?package-id=84f7fbd5e2f3c1d8"
+        "pkg:cargo/tokio@1.48.0?package-id=84f7fbd5e2f3c1d8",
+        "pkg:cargo/tracing@0.1.41?package-id=4322088d4de9c2ec"
       ]
     },
     {
@@ -61023,7 +60870,7 @@
         "pkg:cargo/pin-project-lite@0.2.16?package-id=3bf6cbc61136d164",
         "pkg:cargo/rustversion@1.0.22?package-id=5fa926fff8ae149f",
         "pkg:cargo/serde_core@1.0.228?package-id=c7213ea9d20007b4",
-        "pkg:cargo/serde_html_form@0.2.8?package-id=137bbade1c0e38bf",
+        "pkg:cargo/serde_html_form@0.2.8?package-id=7e266529f31fe8a7",
         "pkg:cargo/serde_path_to_error@0.1.20?package-id=9ec8a092e769a200",
         "pkg:cargo/tower-layer@0.3.3?package-id=b1dda0191cac0589",
         "pkg:cargo/tower-service@0.3.3?package-id=f7b00c4ded946e92",
@@ -61064,7 +60911,7 @@
         "pkg:cargo/tokio@1.48.0?package-id=84f7fbd5e2f3c1d8",
         "pkg:cargo/tower-layer@0.3.3?package-id=b1dda0191cac0589",
         "pkg:cargo/tower-service@0.3.3?package-id=f7b00c4ded946e92",
-        "pkg:cargo/tower@0.5.2?package-id=1050585c0f825f60",
+        "pkg:cargo/tower@0.5.2?package-id=7abf7c18adfa37f4",
         "pkg:cargo/tracing@0.1.41?package-id=4322088d4de9c2ec"
       ]
     },
@@ -61234,7 +61081,7 @@
         "pkg:cargo/tokio@1.48.0?package-id=84f7fbd5e2f3c1d8",
         "pkg:cargo/tonic@0.14.2?package-id=8f1c3b8ab63b439c",
         "pkg:cargo/tower-service@0.3.3?package-id=f7b00c4ded946e92",
-        "pkg:cargo/url@2.5.7?package-id=a7287982ccee90d4",
+        "pkg:cargo/url@2.5.8?package-id=2ff2e5aae0621403",
         "pkg:cargo/winapi@0.3.9?package-id=55bbc7d784bfb092"
       ]
     },
@@ -61554,7 +61401,7 @@
         "pkg:cargo/serde_derive@1.0.228?package-id=4d31f54b562adfe5",
         "pkg:cargo/serde_json@1.0.145?package-id=d81b198d2106a3fc",
         "pkg:cargo/time@0.3.47?package-id=bdce32ec92c9c797",
-        "pkg:cargo/url@2.5.7?package-id=a7287982ccee90d4"
+        "pkg:cargo/url@2.5.8?package-id=2ff2e5aae0621403"
       ]
     },
     {
@@ -62395,7 +62242,7 @@
       ]
     },
     {
-      "ref": "pkg:cargo/h2@0.3.27?package-id=5b06d5f53e4c1499",
+      "ref": "pkg:cargo/h2@0.3.27?package-id=2ca9679bffe42c1a",
       "dependsOn": [
         "pkg:cargo/bytes@1.11.1?package-id=c69b0fb622a21615",
         "pkg:cargo/fnv@1.0.7?package-id=25c64f4a53a75d8c",
@@ -62403,7 +62250,7 @@
         "pkg:cargo/futures-sink@0.3.31?package-id=55a5fc6fa0557922",
         "pkg:cargo/futures-util@0.3.31?package-id=b2563392c52b3804",
         "pkg:cargo/http@0.2.12?package-id=72a8e8118d29bbf5",
-        "pkg:cargo/indexmap@2.12.0?package-id=51445eabeff707d9",
+        "pkg:cargo/indexmap@2.14.2?package-id=a029dcc81321bab4",
         "pkg:cargo/slab@0.4.11?package-id=c3c516d29562048b",
         "pkg:cargo/tokio-util@0.7.17?package-id=6d427651821bda1c",
         "pkg:cargo/tokio@1.48.0?package-id=84f7fbd5e2f3c1d8",
@@ -62411,7 +62258,7 @@
       ]
     },
     {
-      "ref": "pkg:cargo/h2@0.4.12?package-id=3bf492e3b4000a22",
+      "ref": "pkg:cargo/h2@0.4.12?package-id=ebdfc292df5e3535",
       "dependsOn": [
         "pkg:cargo/atomic-waker@1.1.2?package-id=b16fc314b8abd35e",
         "pkg:cargo/bytes@1.11.1?package-id=c69b0fb622a21615",
@@ -62419,7 +62266,7 @@
         "pkg:cargo/futures-core@0.3.31?package-id=c3623053c7fce089",
         "pkg:cargo/futures-sink@0.3.31?package-id=55a5fc6fa0557922",
         "pkg:cargo/http@1.3.1?package-id=cc9a26417902e4c4",
-        "pkg:cargo/indexmap@2.12.0?package-id=51445eabeff707d9",
+        "pkg:cargo/indexmap@2.14.2?package-id=a029dcc81321bab4",
         "pkg:cargo/slab@0.4.11?package-id=c3c516d29562048b",
         "pkg:cargo/tokio-util@0.7.17?package-id=6d427651821bda1c",
         "pkg:cargo/tokio@1.48.0?package-id=84f7fbd5e2f3c1d8",
@@ -62497,7 +62344,7 @@
         "pkg:cargo/tinyvec@1.10.0?package-id=d9c0d26cd5f41e60",
         "pkg:cargo/tokio@1.48.0?package-id=84f7fbd5e2f3c1d8",
         "pkg:cargo/tracing@0.1.41?package-id=4322088d4de9c2ec",
-        "pkg:cargo/url@2.5.7?package-id=a7287982ccee90d4"
+        "pkg:cargo/url@2.5.8?package-id=2ff2e5aae0621403"
       ]
     },
     {
@@ -62514,7 +62361,7 @@
         "pkg:cargo/thiserror@2.0.18?package-id=c9058539c8b0f2a6",
         "pkg:cargo/tinyvec@1.10.0?package-id=d9c0d26cd5f41e60",
         "pkg:cargo/tracing@0.1.41?package-id=4322088d4de9c2ec",
-        "pkg:cargo/url@2.5.7?package-id=a7287982ccee90d4"
+        "pkg:cargo/url@2.5.8?package-id=2ff2e5aae0621403"
       ]
     },
     {
@@ -62711,7 +62558,7 @@
         "pkg:cargo/futures-channel@0.3.31?package-id=cf01e75c2ea842fe",
         "pkg:cargo/futures-core@0.3.31?package-id=c3623053c7fce089",
         "pkg:cargo/futures-util@0.3.31?package-id=b2563392c52b3804",
-        "pkg:cargo/h2@0.3.27?package-id=5b06d5f53e4c1499",
+        "pkg:cargo/h2@0.3.27?package-id=2ca9679bffe42c1a",
         "pkg:cargo/http-body@0.4.6?package-id=42346381de88bca9",
         "pkg:cargo/http@0.2.12?package-id=72a8e8118d29bbf5",
         "pkg:cargo/httparse@1.10.1?package-id=3923a095a4cf213e",
@@ -62732,7 +62579,7 @@
         "pkg:cargo/bytes@1.11.1?package-id=c69b0fb622a21615",
         "pkg:cargo/futures-channel@0.3.31?package-id=cf01e75c2ea842fe",
         "pkg:cargo/futures-core@0.3.31?package-id=c3623053c7fce089",
-        "pkg:cargo/h2@0.4.12?package-id=3bf492e3b4000a22",
+        "pkg:cargo/h2@0.4.12?package-id=ebdfc292df5e3535",
         "pkg:cargo/http-body@1.0.1?package-id=159f2cfc618f3806",
         "pkg:cargo/http@1.3.1?package-id=cc9a26417902e4c4",
         "pkg:cargo/httparse@1.10.1?package-id=3923a095a4cf213e",
@@ -62845,10 +62692,10 @@
       ]
     },
     {
-      "ref": "pkg:cargo/if-addrs@0.14.0?package-id=d0478085a1cf13c7",
+      "ref": "pkg:cargo/if-addrs@0.15.0?package-id=5fd98bb8d7ed4138",
       "dependsOn": [
         "pkg:cargo/libc@0.2.186?package-id=66a0bc5b0a2159ca",
-        "pkg:cargo/windows-sys@0.59.0?package-id=05465b5a19028348"
+        "pkg:cargo/windows-sys@0.61.2?package-id=8d2e3181934ac350"
       ]
     },
     {
@@ -62873,10 +62720,10 @@
       ]
     },
     {
-      "ref": "pkg:cargo/indexmap@2.12.0?package-id=51445eabeff707d9",
+      "ref": "pkg:cargo/indexmap@2.14.2?package-id=a029dcc81321bab4",
       "dependsOn": [
         "pkg:cargo/equivalent@1.0.2?package-id=7f28cd0ed684cce9",
-        "pkg:cargo/hashbrown@0.16.0?package-id=a7e021f07f3c748a",
+        "pkg:cargo/hashbrown@0.17.1?package-id=3b5d2df71708d9b1",
         "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
         "pkg:cargo/serde_core@1.0.228?package-id=c7213ea9d20007b4"
       ]
@@ -63107,13 +62954,13 @@
       ]
     },
     {
-      "ref": "pkg:cargo/kafka-protocol@0.18.0?package-id=d585c3ca9cc3e8ca",
+      "ref": "pkg:cargo/kafka-protocol@0.18.0?package-id=22ae017270c3b61f",
       "dependsOn": [
         "pkg:cargo/anyhow@1.0.103?package-id=cc88ccfde1e2cc6a",
         "pkg:cargo/bytes@1.11.1?package-id=c69b0fb622a21615",
         "pkg:cargo/crc32c@0.6.8?package-id=c4eaa08ae0280c3f",
         "pkg:cargo/crc@3.3.0?package-id=54fddf190917e8d4",
-        "pkg:cargo/indexmap@2.12.0?package-id=51445eabeff707d9",
+        "pkg:cargo/indexmap@2.14.2?package-id=a029dcc81321bab4",
         "pkg:cargo/uuid@1.26.0?package-id=52f225f30c0b41e6"
       ]
     },
@@ -63143,7 +62990,7 @@
         "pkg:cargo/socket2@0.6.1?package-id=571ad36f01c2c44c",
         "pkg:cargo/tokio-rustls@0.26.4?package-id=d43b6145de178d37",
         "pkg:cargo/tokio@1.48.0?package-id=84f7fbd5e2f3c1d8",
-        "pkg:cargo/url@2.5.7?package-id=a7287982ccee90d4",
+        "pkg:cargo/url@2.5.8?package-id=2ff2e5aae0621403",
         "pkg:cargo/webpki-roots@1.0.4?package-id=680bb676d96f8041"
       ]
     },
@@ -63262,13 +63109,13 @@
       ]
     },
     {
-      "ref": "pkg:cargo/metrics-exporter-prometheus@0.16.2?package-id=7d0b16414362cbc3",
+      "ref": "pkg:cargo/metrics-exporter-prometheus@0.16.2?package-id=ecc304ce2739f6c3",
       "dependsOn": [
         "pkg:cargo/base64@0.22.1?package-id=b74355108b3a28f3",
         "pkg:cargo/http-body-util@0.1.3?package-id=e50f39318f035ab6",
         "pkg:cargo/hyper-util@0.1.18?package-id=9ab03f9ff762059d",
         "pkg:cargo/hyper@1.8.1?package-id=e70b792564b94b4c",
-        "pkg:cargo/indexmap@2.12.0?package-id=51445eabeff707d9",
+        "pkg:cargo/indexmap@2.14.2?package-id=a029dcc81321bab4",
         "pkg:cargo/ipnet@2.12.0?package-id=49e8e57b3fa13fa5",
         "pkg:cargo/metrics-util@0.19.1?package-id=076d0c1443710501",
         "pkg:cargo/metrics@0.24.3?package-id=e113ee20a560dd15",
@@ -63404,7 +63251,7 @@
       ]
     },
     {
-      "ref": "pkg:cargo/net-route@0.4.6?package-id=f3b5c5db2e4fa0b1",
+      "ref": "pkg:cargo/net-route@0.4.6?package-id=59e6fd4918d01c1e",
       "dependsOn": [
         "pkg:cargo/async-stream@0.3.6?package-id=21452e03fd84d7a2",
         "pkg:cargo/bindgen@0.71.1?package-id=fd4723b8639867d1",
@@ -63412,13 +63259,13 @@
         "pkg:cargo/netlink-packet-core@0.7.0?package-id=134fac88352256b2",
         "pkg:cargo/netlink-packet-route@0.19.0?package-id=092821d92d5a650e",
         "pkg:cargo/netlink-sys@0.8.8?package-id=1d00fa257d5c1cba",
-        "pkg:cargo/rtnetlink@0.14.1?package-id=c8d9b1945fe33919",
+        "pkg:cargo/rtnetlink@0.14.1?package-id=4e9c82aa6cbc0660",
         "pkg:cargo/tokio@1.48.0?package-id=84f7fbd5e2f3c1d8",
         "pkg:cargo/windows-sys@0.59.0?package-id=05465b5a19028348"
       ]
     },
     {
-      "ref": "pkg:cargo/netdev@0.45.0?package-id=c8bdd011dfac7eb0",
+      "ref": "pkg:cargo/netdev@0.46.3?package-id=6f6dd95aaa39f5f7",
       "dependsOn": [
         "pkg:cargo/block2@0.6.2?package-id=61024df0ba7720b4",
         "pkg:cargo/dispatch2@0.3.1?package-id=36e7e5b3c2357ed8",
@@ -63428,16 +63275,13 @@
         "pkg:cargo/libc@0.2.186?package-id=66a0bc5b0a2159ca",
         "pkg:cargo/mac-addr@0.3.0?package-id=5251f2a8a3e6d6e5",
         "pkg:cargo/ndk-context@0.1.1?package-id=55edd303ba896d65",
-        "pkg:cargo/netlink-packet-core@0.8.1?package-id=d23460e9c9b47b2c",
-        "pkg:cargo/netlink-packet-route@0.31.0?package-id=4349d7e60ce90a51",
-        "pkg:cargo/netlink-sys@0.8.8?package-id=1d00fa257d5c1cba",
+        "pkg:cargo/netlink-packet-core@0.9.0?package-id=02d76e333bd55c59",
+        "pkg:cargo/netlink-packet-route@0.33.0?package-id=a945e03f7e1581e6",
+        "pkg:cargo/netlink-sys@0.9.0?package-id=730db815e2a590d0",
         "pkg:cargo/objc2-core-foundation@0.3.2?package-id=19bbe6bcaba3b4e8",
-        "pkg:cargo/objc2-core-wlan@0.3.2?package-id=1fdb336a43c5c241",
-        "pkg:cargo/objc2-foundation@0.3.2?package-id=68bb8ad6723dbba5",
         "pkg:cargo/objc2-system-configuration@0.3.2?package-id=55ed2ef092753377",
-        "pkg:cargo/objc2@0.6.4?package-id=09f978a5f4fc9934",
         "pkg:cargo/once_cell@1.21.3?package-id=97ab8d25a7aec695",
-        "pkg:cargo/plist@1.8.0?package-id=e076b7a1f6cc8f49",
+        "pkg:cargo/plist@1.10.1?package-id=7f5d83c5fc56d735",
         "pkg:cargo/windows-sys@0.61.2?package-id=8d2e3181934ac350"
       ]
     },
@@ -63447,12 +63291,6 @@
         "pkg:cargo/anyhow@1.0.103?package-id=cc88ccfde1e2cc6a",
         "pkg:cargo/byteorder@1.5.0?package-id=ffe3744533753d1f",
         "pkg:cargo/netlink-packet-utils@0.5.2?package-id=da62063e04269ef1"
-      ]
-    },
-    {
-      "ref": "pkg:cargo/netlink-packet-core@0.8.1?package-id=d23460e9c9b47b2c",
-      "dependsOn": [
-        "pkg:cargo/paste@1.0.15?package-id=9e55703f425f8f56"
       ]
     },
     {
@@ -63467,12 +63305,13 @@
       ]
     },
     {
-      "ref": "pkg:cargo/netlink-packet-route@0.31.0?package-id=4349d7e60ce90a51",
+      "ref": "pkg:cargo/netlink-packet-route@0.33.0?package-id=a945e03f7e1581e6",
       "dependsOn": [
         "pkg:cargo/bitflags@2.13.1?package-id=04741419980f336d",
         "pkg:cargo/libc@0.2.186?package-id=66a0bc5b0a2159ca",
         "pkg:cargo/log@0.4.28?package-id=286ae7b051f75c65",
-        "pkg:cargo/netlink-packet-core@0.8.1?package-id=d23460e9c9b47b2c"
+        "pkg:cargo/netlink-packet-core@0.9.0?package-id=02d76e333bd55c59",
+        "pkg:cargo/zerocopy@0.8.27?package-id=8c1e1b3a16bb4dae"
       ]
     },
     {
@@ -63485,7 +63324,7 @@
       ]
     },
     {
-      "ref": "pkg:cargo/netlink-proto@0.11.5?package-id=a4f7dbfbad322123",
+      "ref": "pkg:cargo/netlink-proto@0.11.5?package-id=dd1a93f77c387548",
       "dependsOn": [
         "pkg:cargo/bytes@1.11.1?package-id=c69b0fb622a21615",
         "pkg:cargo/futures@0.3.31?package-id=0f7d9dafe4db512e",
@@ -63503,6 +63342,14 @@
         "pkg:cargo/libc@0.2.186?package-id=66a0bc5b0a2159ca",
         "pkg:cargo/log@0.4.28?package-id=286ae7b051f75c65",
         "pkg:cargo/tokio@1.48.0?package-id=84f7fbd5e2f3c1d8"
+      ]
+    },
+    {
+      "ref": "pkg:cargo/netlink-sys@0.9.0?package-id=730db815e2a590d0",
+      "dependsOn": [
+        "pkg:cargo/bytes@1.11.1?package-id=c69b0fb622a21615",
+        "pkg:cargo/libc@0.2.186?package-id=66a0bc5b0a2159ca",
+        "pkg:cargo/log@0.4.28?package-id=286ae7b051f75c65"
       ]
     },
     {
@@ -63637,7 +63484,7 @@
         "pkg:cargo/serde_path_to_error@0.1.20?package-id=9ec8a092e769a200",
         "pkg:cargo/sha2@0.10.9?package-id=927e05652d1a75e6",
         "pkg:cargo/thiserror@1.0.69?package-id=23a3a4c19c6a0fbb",
-        "pkg:cargo/url@2.5.7?package-id=a7287982ccee90d4"
+        "pkg:cargo/url@2.5.8?package-id=2ff2e5aae0621403"
       ]
     },
     {
@@ -63647,41 +63494,6 @@
         "pkg:cargo/block2@0.6.2?package-id=61024df0ba7720b4",
         "pkg:cargo/dispatch2@0.3.1?package-id=36e7e5b3c2357ed8",
         "pkg:cargo/libc@0.2.186?package-id=66a0bc5b0a2159ca",
-        "pkg:cargo/objc2@0.6.4?package-id=09f978a5f4fc9934"
-      ]
-    },
-    {
-      "ref": "pkg:cargo/objc2-core-wlan@0.3.2?package-id=1fdb336a43c5c241",
-      "dependsOn": [
-        "pkg:cargo/bitflags@2.13.1?package-id=04741419980f336d",
-        "pkg:cargo/objc2-core-foundation@0.3.2?package-id=19bbe6bcaba3b4e8",
-        "pkg:cargo/objc2-foundation@0.3.2?package-id=68bb8ad6723dbba5",
-        "pkg:cargo/objc2-security-foundation@0.3.2?package-id=c41cc11547828128",
-        "pkg:cargo/objc2-security@0.3.2?package-id=592eda48ae0c2e71",
-        "pkg:cargo/objc2@0.6.4?package-id=09f978a5f4fc9934"
-      ]
-    },
-    {
-      "ref": "pkg:cargo/objc2-foundation@0.3.2?package-id=68bb8ad6723dbba5",
-      "dependsOn": [
-        "pkg:cargo/bitflags@2.13.1?package-id=04741419980f336d",
-        "pkg:cargo/block2@0.6.2?package-id=61024df0ba7720b4",
-        "pkg:cargo/libc@0.2.186?package-id=66a0bc5b0a2159ca",
-        "pkg:cargo/objc2-core-foundation@0.3.2?package-id=19bbe6bcaba3b4e8",
-        "pkg:cargo/objc2@0.6.4?package-id=09f978a5f4fc9934"
-      ]
-    },
-    {
-      "ref": "pkg:cargo/objc2-security-foundation@0.3.2?package-id=c41cc11547828128",
-      "dependsOn": [
-        "pkg:cargo/objc2-foundation@0.3.2?package-id=68bb8ad6723dbba5",
-        "pkg:cargo/objc2@0.6.4?package-id=09f978a5f4fc9934"
-      ]
-    },
-    {
-      "ref": "pkg:cargo/objc2-security@0.3.2?package-id=592eda48ae0c2e71",
-      "dependsOn": [
-        "pkg:cargo/objc2-core-foundation@0.3.2?package-id=19bbe6bcaba3b4e8",
         "pkg:cargo/objc2@0.6.4?package-id=09f978a5f4fc9934"
       ]
     },
@@ -63755,11 +63567,11 @@
         "pkg:cargo/serde_json@1.0.145?package-id=d81b198d2106a3fc",
         "pkg:cargo/serde_path_to_error@0.1.20?package-id=9ec8a092e769a200",
         "pkg:cargo/serde_plain@1.0.2?package-id=d61e28ff1b1483ae",
-        "pkg:cargo/serde_with@3.21.0?package-id=263b6521c8474abf",
+        "pkg:cargo/serde_with@3.21.0?package-id=963dae4db23cbd7d",
         "pkg:cargo/sha2@0.10.9?package-id=927e05652d1a75e6",
         "pkg:cargo/subtle@2.6.1?package-id=14ab505ea3d24f64",
         "pkg:cargo/thiserror@1.0.69?package-id=23a3a4c19c6a0fbb",
-        "pkg:cargo/url@2.5.7?package-id=a7287982ccee90d4"
+        "pkg:cargo/url@2.5.8?package-id=2ff2e5aae0621403"
       ]
     },
     {
@@ -63913,11 +63725,11 @@
       ]
     },
     {
-      "ref": "pkg:cargo/petgraph@0.8.3?package-id=620f107fdf52f867",
+      "ref": "pkg:cargo/petgraph@0.8.3?package-id=47fab6e6fbc5eb7a",
       "dependsOn": [
         "pkg:cargo/fixedbitset@0.5.7?package-id=0918b6019c500b64",
         "pkg:cargo/hashbrown@0.15.5?package-id=eb7f27c1f3898205",
-        "pkg:cargo/indexmap@2.12.0?package-id=51445eabeff707d9",
+        "pkg:cargo/indexmap@2.14.2?package-id=a029dcc81321bab4",
         "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
         "pkg:cargo/serde_derive@1.0.228?package-id=4d31f54b562adfe5"
       ]
@@ -64080,11 +63892,11 @@
       ]
     },
     {
-      "ref": "pkg:cargo/plist@1.8.0?package-id=e076b7a1f6cc8f49",
+      "ref": "pkg:cargo/plist@1.10.1?package-id=7f5d83c5fc56d735",
       "dependsOn": [
-        "pkg:cargo/base64@0.22.1?package-id=b74355108b3a28f3",
-        "pkg:cargo/indexmap@2.12.0?package-id=51445eabeff707d9",
-        "pkg:cargo/quick-xml@0.38.4?package-id=fae2bd3d803f99c5",
+        "pkg:cargo/base64@0.23.1?package-id=2f73d3dc8f8570af",
+        "pkg:cargo/indexmap@2.14.2?package-id=a029dcc81321bab4",
+        "pkg:cargo/quick-xml@0.42.0?package-id=70ddc7d2cb9739b0",
         "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
         "pkg:cargo/time@0.3.47?package-id=bdce32ec92c9c797"
       ]
@@ -64322,7 +64134,7 @@
       ]
     },
     {
-      "ref": "pkg:cargo/quick-xml@0.38.4?package-id=fae2bd3d803f99c5",
+      "ref": "pkg:cargo/quick-xml@0.42.0?package-id=70ddc7d2cb9739b0",
       "dependsOn": [
         "pkg:cargo/memchr@2.7.6?package-id=60ccbd57bb909f00"
       ]
@@ -64572,7 +64384,7 @@
         "pkg:cargo/encoding_rs@0.8.35?package-id=5324425666c5e85d",
         "pkg:cargo/futures-core@0.3.31?package-id=c3623053c7fce089",
         "pkg:cargo/futures-util@0.3.31?package-id=b2563392c52b3804",
-        "pkg:cargo/h2@0.3.27?package-id=5b06d5f53e4c1499",
+        "pkg:cargo/h2@0.3.27?package-id=2ca9679bffe42c1a",
         "pkg:cargo/http-body@0.4.6?package-id=42346381de88bca9",
         "pkg:cargo/http@0.2.12?package-id=72a8e8118d29bbf5",
         "pkg:cargo/hyper-rustls@0.24.2?package-id=8c94b964455b9f26",
@@ -64595,7 +64407,7 @@
         "pkg:cargo/tokio-util@0.7.17?package-id=6d427651821bda1c",
         "pkg:cargo/tokio@1.48.0?package-id=84f7fbd5e2f3c1d8",
         "pkg:cargo/tower-service@0.3.3?package-id=f7b00c4ded946e92",
-        "pkg:cargo/url@2.5.7?package-id=a7287982ccee90d4",
+        "pkg:cargo/url@2.5.8?package-id=2ff2e5aae0621403",
         "pkg:cargo/wasm-bindgen-futures@0.4.55?package-id=59d143b0645ca8c3",
         "pkg:cargo/wasm-bindgen@0.2.105?package-id=0ed28880ee19069c",
         "pkg:cargo/web-sys@0.3.82?package-id=68fe064a82e592bb",
@@ -64635,8 +64447,8 @@
         "pkg:cargo/tokio@1.48.0?package-id=84f7fbd5e2f3c1d8",
         "pkg:cargo/tower-http@0.6.8?package-id=0f6a9797d51b688e",
         "pkg:cargo/tower-service@0.3.3?package-id=f7b00c4ded946e92",
-        "pkg:cargo/tower@0.5.2?package-id=1050585c0f825f60",
-        "pkg:cargo/url@2.5.7?package-id=a7287982ccee90d4",
+        "pkg:cargo/tower@0.5.2?package-id=7abf7c18adfa37f4",
+        "pkg:cargo/url@2.5.8?package-id=2ff2e5aae0621403",
         "pkg:cargo/wasm-bindgen-futures@0.4.55?package-id=59d143b0645ca8c3",
         "pkg:cargo/wasm-bindgen@0.2.105?package-id=0ed28880ee19069c",
         "pkg:cargo/wasm-streams@0.4.2?package-id=b9a288a6a809d068",
@@ -64711,21 +64523,21 @@
       ]
     },
     {
-      "ref": "pkg:cargo/rsntp@4.1.0?package-id=5e82318cce5251d1",
+      "ref": "pkg:cargo/rsntp@4.1.2?package-id=b22f04aa25822c28",
       "dependsOn": [
         "pkg:cargo/chrono@0.4.42?package-id=d553903367a0a99a",
         "pkg:cargo/tokio@1.48.0?package-id=84f7fbd5e2f3c1d8"
       ]
     },
     {
-      "ref": "pkg:cargo/rtnetlink@0.14.1?package-id=c8d9b1945fe33919",
+      "ref": "pkg:cargo/rtnetlink@0.14.1?package-id=4e9c82aa6cbc0660",
       "dependsOn": [
         "pkg:cargo/futures@0.3.31?package-id=0f7d9dafe4db512e",
         "pkg:cargo/log@0.4.28?package-id=286ae7b051f75c65",
         "pkg:cargo/netlink-packet-core@0.7.0?package-id=134fac88352256b2",
         "pkg:cargo/netlink-packet-route@0.19.0?package-id=092821d92d5a650e",
         "pkg:cargo/netlink-packet-utils@0.5.2?package-id=da62063e04269ef1",
-        "pkg:cargo/netlink-proto@0.11.5?package-id=a4f7dbfbad322123",
+        "pkg:cargo/netlink-proto@0.11.5?package-id=dd1a93f77c387548",
         "pkg:cargo/netlink-sys@0.8.8?package-id=1d00fa257d5c1cba",
         "pkg:cargo/nix@0.27.1?package-id=522645159e33daf1",
         "pkg:cargo/thiserror@1.0.69?package-id=23a3a4c19c6a0fbb",
@@ -64738,7 +64550,7 @@
         "pkg:cargo/cookie-factory@0.3.2?package-id=0c16163cfe98537e",
         "pkg:cargo/nom@7.1.3?package-id=df73a38866b5afa8",
         "pkg:cargo/tinyvec@1.10.0?package-id=d9c0d26cd5f41e60",
-        "pkg:cargo/url@2.5.7?package-id=a7287982ccee90d4"
+        "pkg:cargo/url@2.5.8?package-id=2ff2e5aae0621403"
       ]
     },
     {
@@ -64871,22 +64683,21 @@
       ]
     },
     {
-      "ref": "pkg:cargo/scanopy-server@0.17.17?package-id=3132c89775c69ecf",
+      "ref": "pkg:cargo/scanopy-server@0.17.18?package-id=a0008079c557161d",
       "dependsOn": [
         "pkg:cargo/anstyle-query@1.1.5?package-id=3eb3e92be11ef569",
         "pkg:cargo/anyhow@1.0.103?package-id=cc88ccfde1e2cc6a",
         "pkg:cargo/argon2@0.5.3?package-id=1d04dc9f0c8de45c",
         "pkg:cargo/async-fs@2.2.0?package-id=d4f41c53459d4187",
         "pkg:cargo/async-stream@0.3.6?package-id=21452e03fd84d7a2",
-        "pkg:cargo/async-stripe-billing@1.0.0-alpha.7?package-id=bec02fc72ba54e68",
-        "pkg:cargo/async-stripe-checkout@1.0.0-alpha.7?package-id=0dc32ca8df509782",
-        "pkg:cargo/async-stripe-client-core@1.0.0-alpha.7?package-id=583f078ec8d23301",
-        "pkg:cargo/async-stripe-core@1.0.0-alpha.7?package-id=1df672462daf6eff",
-        "pkg:cargo/async-stripe-product@1.0.0-alpha.7?package-id=63a0768fb8d2ee63",
-        "pkg:cargo/async-stripe-shared@1.0.0-alpha.7?package-id=2fb3ccc0d69b3d4e",
-        "pkg:cargo/async-stripe-types@1.0.0-alpha.7?package-id=df42c5cc39cfe977",
-        "pkg:cargo/async-stripe-webhook@1.0.0-alpha.7?package-id=6045d215092cf7ee",
-        "pkg:cargo/async-stripe@1.0.0-alpha.7?package-id=104d35a4baadc21e",
+        "pkg:cargo/async-stripe-billing@1.0.0-rc.9?package-id=231fb40f970bc0bf",
+        "pkg:cargo/async-stripe-checkout@1.0.0-rc.9?package-id=78553e6f081cf9ed",
+        "pkg:cargo/async-stripe-client-core@1.0.0-rc.9?package-id=3daadb2e89e46cb0",
+        "pkg:cargo/async-stripe-core@1.0.0-rc.9?package-id=80db86f5a3a24c9c",
+        "pkg:cargo/async-stripe-product@1.0.0-rc.9?package-id=315b29b3dfa96bed",
+        "pkg:cargo/async-stripe-shared@1.0.0-rc.9?package-id=609a8baa601c9311",
+        "pkg:cargo/async-stripe-types@1.0.0-rc.9?package-id=e356ddccb0d3c38c",
+        "pkg:cargo/async-stripe@1.0.0-rc.9?package-id=45b72c2885c746b7",
         "pkg:cargo/async-trait@0.1.89?package-id=27f695f61cfc2df2",
         "pkg:cargo/axum-client-ip@1.1.3?package-id=f0032727a7088c3c",
         "pkg:cargo/axum-extra@0.10.3?package-id=18f5264e046b1b60",
@@ -64920,11 +64731,12 @@
         "pkg:cargo/governor@0.10.2?package-id=35ac56605aef126c",
         "pkg:cargo/hex@0.4.3?package-id=770a3d2932e67887",
         "pkg:cargo/hickory-resolver@0.26.1?package-id=c05952819f0f0cc5",
+        "pkg:cargo/hmac@0.12.1?package-id=b49e7717a37dd091",
         "pkg:cargo/hostname@0.4.1?package-id=ef320aa9314d1c07",
         "pkg:cargo/html2text@0.16.4?package-id=8261804674b7c0dd",
         "pkg:cargo/httparse@1.10.1?package-id=3923a095a4cf213e",
         "pkg:cargo/idna@1.1.0?package-id=19ba3fd4cfa45e93",
-        "pkg:cargo/if-addrs@0.14.0?package-id=d0478085a1cf13c7",
+        "pkg:cargo/if-addrs@0.15.0?package-id=5fd98bb8d7ed4138",
         "pkg:cargo/inventory@0.3.21?package-id=29cba67653f0cf02",
         "pkg:cargo/ipgen@1.0.2?package-id=6d23d308fea63e57",
         "pkg:cargo/ipnetwork@0.20.0?package-id=0b6cd0806640ad25",
@@ -64934,7 +64746,7 @@
         "pkg:cargo/json_value_merge@2.0.1?package-id=b1b387e8b60fe205",
         "pkg:cargo/jsonschema@0.29.1?package-id=69c5f0c37dc004e9",
         "pkg:cargo/jsonwebtoken@10.3.0?package-id=d41267b9b10306b1",
-        "pkg:cargo/kafka-protocol@0.18.0?package-id=d585c3ca9cc3e8ca",
+        "pkg:cargo/kafka-protocol@0.18.0?package-id=22ae017270c3b61f",
         "pkg:cargo/lazy_static@1.5.0?package-id=ecd9ee8d6583d966",
         "pkg:cargo/lettre@0.11.22?package-id=c149c535fa3942c5",
         "pkg:cargo/libc@0.2.186?package-id=66a0bc5b0a2159ca",
@@ -64942,21 +64754,21 @@
         "pkg:cargo/lucide-icons@0.562.0?package-id=7475954eba776f27",
         "pkg:cargo/mac_address@1.1.8?package-id=98e27810930612fd",
         "pkg:cargo/mailchecker@6.0.20?package-id=92668fe3fbf25264",
-        "pkg:cargo/metrics-exporter-prometheus@0.16.2?package-id=7d0b16414362cbc3",
+        "pkg:cargo/metrics-exporter-prometheus@0.16.2?package-id=ecc304ce2739f6c3",
         "pkg:cargo/metrics@0.24.3?package-id=e113ee20a560dd15",
         "pkg:cargo/mime_guess@2.0.5?package-id=ad2cbd7b325a5f4d",
         "pkg:cargo/moka@0.12.11?package-id=c8586e24295115be",
         "pkg:cargo/mysql_common@0.38.2?package-id=8ce5aecdcb6439e7",
         "pkg:cargo/nanoid@0.4.0?package-id=93ea75c40e170718",
-        "pkg:cargo/net-route@0.4.6?package-id=f3b5c5db2e4fa0b1",
-        "pkg:cargo/netdev@0.45.0?package-id=c8bdd011dfac7eb0",
+        "pkg:cargo/net-route@0.4.6?package-id=59e6fd4918d01c1e",
+        "pkg:cargo/netdev@0.46.3?package-id=6f6dd95aaa39f5f7",
         "pkg:cargo/oauth2@5.0.0?package-id=a957cf88c1401d62",
         "pkg:cargo/onc-rpc@0.3.3?package-id=b18070ea384d6bc8",
         "pkg:cargo/openidconnect@4.0.1?package-id=d3679b3f0e145ff4",
         "pkg:cargo/password-hash@0.5.0?package-id=c4535090e6e03774",
         "pkg:cargo/paste@1.0.15?package-id=9e55703f425f8f56",
         "pkg:cargo/pem@3.0.6?package-id=15285de18c749b26",
-        "pkg:cargo/petgraph@0.8.3?package-id=620f107fdf52f867",
+        "pkg:cargo/petgraph@0.8.3?package-id=47fab6e6fbc5eb7a",
         "pkg:cargo/phf@0.11.3?package-id=003f80957e4d7874",
         "pkg:cargo/picky-asn1-der@0.5.6?package-id=2930ce76cc6ac2f7",
         "pkg:cargo/picky-asn1@0.10.1?package-id=fb4c91fad2378f9f",
@@ -64977,7 +64789,7 @@
         "pkg:cargo/regex@1.12.2?package-id=3cd9dbed983917ce",
         "pkg:cargo/reqwest@0.12.24?package-id=5e0d2ec5f3b875be",
         "pkg:cargo/rlimit@0.10.2?package-id=104ce37c1785d61a",
-        "pkg:cargo/rsntp@4.1.0?package-id=5e82318cce5251d1",
+        "pkg:cargo/rsntp@4.1.2?package-id=b22f04aa25822c28",
         "pkg:cargo/rtsp-types@0.1.3?package-id=9ceb23c42c62e9d8",
         "pkg:cargo/rust-embed@8.12.0?package-id=173eb21651d1117d",
         "pkg:cargo/rustls@0.23.35?package-id=3865aa7f3c9a922e",
@@ -64985,7 +64797,7 @@
         "pkg:cargo/semver@1.0.27?package-id=91547c64d7f86db8",
         "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
         "pkg:cargo/serde_json@1.0.145?package-id=d81b198d2106a3fc",
-        "pkg:cargo/serde_with@3.21.0?package-id=263b6521c8474abf",
+        "pkg:cargo/serde_with@3.21.0?package-id=963dae4db23cbd7d",
         "pkg:cargo/serial_test@3.2.0?package-id=354b4edb1420c4fe",
         "pkg:cargo/sha2@0.10.9?package-id=927e05652d1a75e6",
         "pkg:cargo/snmp2@0.5.0?package-id=ddca971f2fd191de",
@@ -65015,10 +64827,10 @@
         "pkg:cargo/tracing-appender@0.2.4?package-id=acd0567c18b5aa98",
         "pkg:cargo/tracing-subscriber@0.3.20?package-id=9a7669a1df6d9419",
         "pkg:cargo/tracing@0.1.41?package-id=4322088d4de9c2ec",
-        "pkg:cargo/url@2.5.7?package-id=a7287982ccee90d4",
+        "pkg:cargo/url@2.5.8?package-id=2ff2e5aae0621403",
         "pkg:cargo/urlencoding@2.1.3?package-id=fda4326c0b85c124",
         "pkg:cargo/utoipa-axum@0.2.0?package-id=633521f606f7b336",
-        "pkg:cargo/utoipa@5.4.0?package-id=b2f7fc2eab2d566c",
+        "pkg:cargo/utoipa@5.4.0?package-id=8a6bbc1e101160c5",
         "pkg:cargo/uuid@1.26.0?package-id=52f225f30c0b41e6",
         "pkg:cargo/validator@0.20.0?package-id=776118a90f4eb866",
         "pkg:cargo/walkdir@2.5.0?package-id=1f29230ab6c3c5e1",
@@ -65026,7 +64838,7 @@
         "pkg:cargo/windows-service@0.7.0?package-id=54249452f524cf33",
         "pkg:cargo/windows@0.52.0?package-id=f38358beef8d9e39",
         "pkg:cargo/x509-cert@0.3.0?package-id=1c9524ac2c4fb3a7",
-        "pkg:cargo/zip@2.4.2?package-id=209643001e35ae68"
+        "pkg:cargo/zip@2.4.2?package-id=5355448c6d1a7dd3"
       ]
     },
     {
@@ -65144,10 +64956,10 @@
       ]
     },
     {
-      "ref": "pkg:cargo/serde_html_form@0.2.8?package-id=137bbade1c0e38bf",
+      "ref": "pkg:cargo/serde_html_form@0.2.8?package-id=7e266529f31fe8a7",
       "dependsOn": [
         "pkg:cargo/form_urlencoded@1.2.2?package-id=5ee951dbf7859462",
-        "pkg:cargo/indexmap@2.12.0?package-id=51445eabeff707d9",
+        "pkg:cargo/indexmap@2.14.2?package-id=a029dcc81321bab4",
         "pkg:cargo/itoa@1.0.15?package-id=1f4f899cc037f963",
         "pkg:cargo/ryu@1.0.20?package-id=f59faaac17b9e4bf",
         "pkg:cargo/serde_core@1.0.228?package-id=c7213ea9d20007b4"
@@ -65178,11 +64990,12 @@
       ]
     },
     {
-      "ref": "pkg:cargo/serde_qs@0.15.0?package-id=e41c5636b91489b1",
+      "ref": "pkg:cargo/serde_qs@1.1.3?package-id=188217d6baf8f0ab",
       "dependsOn": [
+        "pkg:cargo/itoa@1.0.15?package-id=1f4f899cc037f963",
         "pkg:cargo/percent-encoding@2.3.2?package-id=b8f6f04eb1c2b0da",
-        "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
-        "pkg:cargo/thiserror@2.0.18?package-id=c9058539c8b0f2a6"
+        "pkg:cargo/ryu@1.0.20?package-id=f59faaac17b9e4bf",
+        "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e"
       ]
     },
     {
@@ -65209,14 +65022,14 @@
       ]
     },
     {
-      "ref": "pkg:cargo/serde_with@3.21.0?package-id=263b6521c8474abf",
+      "ref": "pkg:cargo/serde_with@3.21.0?package-id=963dae4db23cbd7d",
       "dependsOn": [
         "pkg:cargo/base64@0.22.1?package-id=b74355108b3a28f3",
         "pkg:cargo/bs58@0.5.1?package-id=eb631d8c968cd733",
         "pkg:cargo/chrono@0.4.42?package-id=d553903367a0a99a",
         "pkg:cargo/hex@0.4.3?package-id=770a3d2932e67887",
         "pkg:cargo/indexmap@1.9.3?package-id=c68bed098d2c22cd",
-        "pkg:cargo/indexmap@2.12.0?package-id=51445eabeff707d9",
+        "pkg:cargo/indexmap@2.14.2?package-id=a029dcc81321bab4",
         "pkg:cargo/schemars@0.9.0?package-id=3bc685d219010b59",
         "pkg:cargo/schemars@1.1.0?package-id=6d921b8dbcdba57d",
         "pkg:cargo/serde_core@1.0.228?package-id=c7213ea9d20007b4",
@@ -65334,10 +65147,10 @@
       ]
     },
     {
-      "ref": "pkg:cargo/smol_str@0.3.2?package-id=c1ecfdf36544679a",
+      "ref": "pkg:cargo/smol_str@0.3.6?package-id=dd3da61a21f8705b",
       "dependsOn": [
         "pkg:cargo/borsh@1.5.7?package-id=b89fdad6fc0f8470",
-        "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e"
+        "pkg:cargo/serde_core@1.0.228?package-id=c7213ea9d20007b4"
       ]
     },
     {
@@ -65414,7 +65227,7 @@
       ]
     },
     {
-      "ref": "pkg:cargo/sqlx-core@0.8.6?package-id=247d7c7226488e4f",
+      "ref": "pkg:cargo/sqlx-core@0.8.6?package-id=0d6c8bd92afe4141",
       "dependsOn": [
         "pkg:cargo/base64@0.22.1?package-id=b74355108b3a28f3",
         "pkg:cargo/bytes@1.11.1?package-id=c69b0fb622a21615",
@@ -65429,7 +65242,7 @@
         "pkg:cargo/futures-util@0.3.31?package-id=b2563392c52b3804",
         "pkg:cargo/hashbrown@0.15.5?package-id=eb7f27c1f3898205",
         "pkg:cargo/hashlink@0.10.0?package-id=c3aa0d44fce30b78",
-        "pkg:cargo/indexmap@2.12.0?package-id=51445eabeff707d9",
+        "pkg:cargo/indexmap@2.14.2?package-id=a029dcc81321bab4",
         "pkg:cargo/ipnetwork@0.20.0?package-id=0b6cd0806640ad25",
         "pkg:cargo/log@0.4.28?package-id=286ae7b051f75c65",
         "pkg:cargo/mac_address@1.1.8?package-id=98e27810930612fd",
@@ -65446,7 +65259,7 @@
         "pkg:cargo/tokio-stream@0.1.17?package-id=91d69567044518ea",
         "pkg:cargo/tokio@1.48.0?package-id=84f7fbd5e2f3c1d8",
         "pkg:cargo/tracing@0.1.41?package-id=4322088d4de9c2ec",
-        "pkg:cargo/url@2.5.7?package-id=a7287982ccee90d4",
+        "pkg:cargo/url@2.5.8?package-id=2ff2e5aae0621403",
         "pkg:cargo/uuid@1.26.0?package-id=52f225f30c0b41e6",
         "pkg:cargo/webpki-roots@0.26.11?package-id=9e23ecaa47a0e496"
       ]
@@ -65464,13 +65277,13 @@
         "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
         "pkg:cargo/serde_json@1.0.145?package-id=d81b198d2106a3fc",
         "pkg:cargo/sha2@0.10.9?package-id=927e05652d1a75e6",
-        "pkg:cargo/sqlx-core@0.8.6?package-id=247d7c7226488e4f",
+        "pkg:cargo/sqlx-core@0.8.6?package-id=0d6c8bd92afe4141",
         "pkg:cargo/sqlx-mysql@0.8.6?package-id=9c6525477d5b56a5",
         "pkg:cargo/sqlx-postgres@0.8.6?package-id=7ee88a10b7c20f86",
         "pkg:cargo/sqlx-sqlite@0.8.6?package-id=195336c5f1e5f71a",
         "pkg:cargo/syn@2.0.110?package-id=8b37ec211f9ed2e0",
         "pkg:cargo/tokio@1.48.0?package-id=84f7fbd5e2f3c1d8",
-        "pkg:cargo/url@2.5.7?package-id=a7287982ccee90d4"
+        "pkg:cargo/url@2.5.8?package-id=2ff2e5aae0621403"
       ]
     },
     {
@@ -65478,7 +65291,7 @@
       "dependsOn": [
         "pkg:cargo/proc-macro2@1.0.103?package-id=81fedb686e17648d",
         "pkg:cargo/quote@1.0.42?package-id=809daabb5d78ac48",
-        "pkg:cargo/sqlx-core@0.8.6?package-id=247d7c7226488e4f",
+        "pkg:cargo/sqlx-core@0.8.6?package-id=0d6c8bd92afe4141",
         "pkg:cargo/sqlx-macros-core@0.8.6?package-id=8246a831af2b8a02",
         "pkg:cargo/syn@2.0.110?package-id=8b37ec211f9ed2e0"
       ]
@@ -65516,7 +65329,7 @@
         "pkg:cargo/sha1@0.10.6?package-id=fdf2cac6a93103cd",
         "pkg:cargo/sha2@0.10.9?package-id=927e05652d1a75e6",
         "pkg:cargo/smallvec@1.15.1?package-id=74e8f64781dc1446",
-        "pkg:cargo/sqlx-core@0.8.6?package-id=247d7c7226488e4f",
+        "pkg:cargo/sqlx-core@0.8.6?package-id=0d6c8bd92afe4141",
         "pkg:cargo/stringprep@0.1.5?package-id=38176fe5c977ea56",
         "pkg:cargo/thiserror@2.0.18?package-id=c9058539c8b0f2a6",
         "pkg:cargo/time@0.3.47?package-id=bdce32ec92c9c797",
@@ -65555,7 +65368,7 @@
         "pkg:cargo/serde_json@1.0.145?package-id=d81b198d2106a3fc",
         "pkg:cargo/sha2@0.10.9?package-id=927e05652d1a75e6",
         "pkg:cargo/smallvec@1.15.1?package-id=74e8f64781dc1446",
-        "pkg:cargo/sqlx-core@0.8.6?package-id=247d7c7226488e4f",
+        "pkg:cargo/sqlx-core@0.8.6?package-id=0d6c8bd92afe4141",
         "pkg:cargo/stringprep@0.1.5?package-id=38176fe5c977ea56",
         "pkg:cargo/thiserror@2.0.18?package-id=c9058539c8b0f2a6",
         "pkg:cargo/time@0.3.47?package-id=bdce32ec92c9c797",
@@ -65580,18 +65393,18 @@
         "pkg:cargo/percent-encoding@2.3.2?package-id=b8f6f04eb1c2b0da",
         "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
         "pkg:cargo/serde_urlencoded@0.7.1?package-id=b15793bd5fd72a0f",
-        "pkg:cargo/sqlx-core@0.8.6?package-id=247d7c7226488e4f",
+        "pkg:cargo/sqlx-core@0.8.6?package-id=0d6c8bd92afe4141",
         "pkg:cargo/thiserror@2.0.18?package-id=c9058539c8b0f2a6",
         "pkg:cargo/time@0.3.47?package-id=bdce32ec92c9c797",
         "pkg:cargo/tracing@0.1.41?package-id=4322088d4de9c2ec",
-        "pkg:cargo/url@2.5.7?package-id=a7287982ccee90d4",
+        "pkg:cargo/url@2.5.8?package-id=2ff2e5aae0621403",
         "pkg:cargo/uuid@1.26.0?package-id=52f225f30c0b41e6"
       ]
     },
     {
       "ref": "pkg:cargo/sqlx@0.8.6?package-id=238ae5835b3e0071",
       "dependsOn": [
-        "pkg:cargo/sqlx-core@0.8.6?package-id=247d7c7226488e4f",
+        "pkg:cargo/sqlx-core@0.8.6?package-id=0d6c8bd92afe4141",
         "pkg:cargo/sqlx-macros@0.8.6?package-id=d5e5f4086aad63c0",
         "pkg:cargo/sqlx-mysql@0.8.6?package-id=9c6525477d5b56a5",
         "pkg:cargo/sqlx-postgres@0.8.6?package-id=7ee88a10b7c20f86",
@@ -65696,7 +65509,7 @@
         "pkg:cargo/fnv@1.0.7?package-id=25c64f4a53a75d8c",
         "pkg:cargo/once_cell@1.21.3?package-id=97ab8d25a7aec695",
         "pkg:cargo/onig@6.5.1?package-id=8266206abf695181",
-        "pkg:cargo/plist@1.8.0?package-id=e076b7a1f6cc8f49",
+        "pkg:cargo/plist@1.10.1?package-id=7f5d83c5fc56d735",
         "pkg:cargo/regex-syntax@0.8.8?package-id=d8497e263576ab41",
         "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
         "pkg:cargo/serde_derive@1.0.228?package-id=4d31f54b562adfe5",
@@ -65789,12 +65602,12 @@
         "pkg:cargo/pin-project-lite@0.2.16?package-id=3bf6cbc61136d164",
         "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
         "pkg:cargo/serde_json@1.0.145?package-id=d81b198d2106a3fc",
-        "pkg:cargo/serde_with@3.21.0?package-id=263b6521c8474abf",
+        "pkg:cargo/serde_with@3.21.0?package-id=963dae4db23cbd7d",
         "pkg:cargo/thiserror@2.0.18?package-id=c9058539c8b0f2a6",
         "pkg:cargo/tokio-stream@0.1.17?package-id=91d69567044518ea",
         "pkg:cargo/tokio-util@0.7.17?package-id=6d427651821bda1c",
         "pkg:cargo/tokio@1.48.0?package-id=84f7fbd5e2f3c1d8",
-        "pkg:cargo/url@2.5.7?package-id=a7287982ccee90d4"
+        "pkg:cargo/url@2.5.8?package-id=2ff2e5aae0621403"
       ]
     },
     {
@@ -65956,7 +65769,7 @@
         "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
         "pkg:cargo/serde_spanned@0.6.9?package-id=965a050e17f0c4c6",
         "pkg:cargo/toml_datetime@0.6.11?package-id=3892cb47638465e5",
-        "pkg:cargo/toml_edit@0.22.27?package-id=eab7a81a4b92eb3e"
+        "pkg:cargo/toml_edit@0.22.27?package-id=b4f28b7e5b1e07ba"
       ]
     },
     {
@@ -65966,9 +65779,9 @@
       ]
     },
     {
-      "ref": "pkg:cargo/toml_edit@0.22.27?package-id=eab7a81a4b92eb3e",
+      "ref": "pkg:cargo/toml_edit@0.22.27?package-id=b4f28b7e5b1e07ba",
       "dependsOn": [
-        "pkg:cargo/indexmap@2.12.0?package-id=51445eabeff707d9",
+        "pkg:cargo/indexmap@2.14.2?package-id=a029dcc81321bab4",
         "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
         "pkg:cargo/serde_spanned@0.6.9?package-id=965a050e17f0c4c6",
         "pkg:cargo/toml_datetime@0.6.11?package-id=3892cb47638465e5",
@@ -65991,7 +65804,7 @@
         "pkg:cargo/axum@0.8.7?package-id=bb46e7b1e360bc2c",
         "pkg:cargo/base64@0.22.1?package-id=b74355108b3a28f3",
         "pkg:cargo/bytes@1.11.1?package-id=c69b0fb622a21615",
-        "pkg:cargo/h2@0.4.12?package-id=3bf492e3b4000a22",
+        "pkg:cargo/h2@0.4.12?package-id=ebdfc292df5e3535",
         "pkg:cargo/http-body-util@0.1.3?package-id=e50f39318f035ab6",
         "pkg:cargo/http-body@1.0.1?package-id=159f2cfc618f3806",
         "pkg:cargo/http@1.3.1?package-id=cc9a26417902e4c4",
@@ -66007,7 +65820,7 @@
         "pkg:cargo/tokio@1.48.0?package-id=84f7fbd5e2f3c1d8",
         "pkg:cargo/tower-layer@0.3.3?package-id=b1dda0191cac0589",
         "pkg:cargo/tower-service@0.3.3?package-id=f7b00c4ded946e92",
-        "pkg:cargo/tower@0.5.2?package-id=1050585c0f825f60",
+        "pkg:cargo/tower@0.5.2?package-id=7abf7c18adfa37f4",
         "pkg:cargo/tracing@0.1.41?package-id=4322088d4de9c2ec",
         "pkg:cargo/webpki-roots@1.0.4?package-id=680bb676d96f8041"
       ]
@@ -66065,7 +65878,7 @@
         "pkg:cargo/pin-project-lite@0.2.16?package-id=3bf6cbc61136d164",
         "pkg:cargo/tower-layer@0.3.3?package-id=b1dda0191cac0589",
         "pkg:cargo/tower-service@0.3.3?package-id=f7b00c4ded946e92",
-        "pkg:cargo/tower@0.5.2?package-id=1050585c0f825f60"
+        "pkg:cargo/tower@0.5.2?package-id=7abf7c18adfa37f4"
       ]
     },
     {
@@ -66130,11 +65943,11 @@
       ]
     },
     {
-      "ref": "pkg:cargo/tower@0.5.2?package-id=1050585c0f825f60",
+      "ref": "pkg:cargo/tower@0.5.2?package-id=7abf7c18adfa37f4",
       "dependsOn": [
         "pkg:cargo/futures-core@0.3.31?package-id=c3623053c7fce089",
         "pkg:cargo/futures-util@0.3.31?package-id=b2563392c52b3804",
-        "pkg:cargo/indexmap@2.12.0?package-id=51445eabeff707d9",
+        "pkg:cargo/indexmap@2.14.2?package-id=a029dcc81321bab4",
         "pkg:cargo/pin-project-lite@0.2.16?package-id=3bf6cbc61136d164",
         "pkg:cargo/slab@0.4.11?package-id=c3c516d29562048b",
         "pkg:cargo/sync_wrapper@1.0.2?package-id=07f6596deb0b93a4",
@@ -66236,12 +66049,13 @@
       ]
     },
     {
-      "ref": "pkg:cargo/url@2.5.7?package-id=a7287982ccee90d4",
+      "ref": "pkg:cargo/url@2.5.8?package-id=2ff2e5aae0621403",
       "dependsOn": [
         "pkg:cargo/form_urlencoded@1.2.2?package-id=5ee951dbf7859462",
         "pkg:cargo/idna@1.1.0?package-id=19ba3fd4cfa45e93",
         "pkg:cargo/percent-encoding@2.3.2?package-id=b8f6f04eb1c2b0da",
-        "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e"
+        "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
+        "pkg:cargo/serde_derive@1.0.228?package-id=4d31f54b562adfe5"
       ]
     },
     {
@@ -66251,7 +66065,7 @@
         "pkg:cargo/paste@1.0.15?package-id=9e55703f425f8f56",
         "pkg:cargo/tower-layer@0.3.3?package-id=b1dda0191cac0589",
         "pkg:cargo/tower-service@0.3.3?package-id=f7b00c4ded946e92",
-        "pkg:cargo/utoipa@5.4.0?package-id=b2f7fc2eab2d566c"
+        "pkg:cargo/utoipa@5.4.0?package-id=8a6bbc1e101160c5"
       ]
     },
     {
@@ -66265,9 +66079,9 @@
       ]
     },
     {
-      "ref": "pkg:cargo/utoipa@5.4.0?package-id=b2f7fc2eab2d566c",
+      "ref": "pkg:cargo/utoipa@5.4.0?package-id=8a6bbc1e101160c5",
       "dependsOn": [
-        "pkg:cargo/indexmap@2.12.0?package-id=51445eabeff707d9",
+        "pkg:cargo/indexmap@2.14.2?package-id=a029dcc81321bab4",
         "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
         "pkg:cargo/serde_json@1.0.145?package-id=d81b198d2106a3fc",
         "pkg:cargo/utoipa-gen@5.4.0?package-id=97d3d8381cdebab6"
@@ -66300,7 +66114,7 @@
         "pkg:cargo/serde@1.0.228?package-id=8d47347b1891d18e",
         "pkg:cargo/serde_derive@1.0.228?package-id=4d31f54b562adfe5",
         "pkg:cargo/serde_json@1.0.145?package-id=d81b198d2106a3fc",
-        "pkg:cargo/url@2.5.7?package-id=a7287982ccee90d4",
+        "pkg:cargo/url@2.5.8?package-id=2ff2e5aae0621403",
         "pkg:cargo/validator_derive@0.20.0?package-id=d2eb3ab28c47de49"
       ]
     },
@@ -66737,7 +66551,7 @@
       ]
     },
     {
-      "ref": "pkg:cargo/zip@2.4.2?package-id=209643001e35ae68",
+      "ref": "pkg:cargo/zip@2.4.2?package-id=5355448c6d1a7dd3",
       "dependsOn": [
         "pkg:cargo/aes@0.8.4?package-id=8a1ca42be4f5d512",
         "pkg:cargo/arbitrary@1.4.2?package-id=691a59002b4b56a6",
@@ -66750,7 +66564,7 @@
         "pkg:cargo/flate2@1.1.5?package-id=145815e0c26e0b6a",
         "pkg:cargo/getrandom@0.3.4?package-id=fac3a5a16ce42eaa",
         "pkg:cargo/hmac@0.12.1?package-id=b49e7717a37dd091",
-        "pkg:cargo/indexmap@2.12.0?package-id=51445eabeff707d9",
+        "pkg:cargo/indexmap@2.14.2?package-id=a029dcc81321bab4",
         "pkg:cargo/lzma-rs@0.3.0?package-id=0a5c0a12c80b15e9",
         "pkg:cargo/memchr@2.7.6?package-id=60ccbd57bb909f00",
         "pkg:cargo/pbkdf2@0.12.2?package-id=72315479947cd45a",
@@ -66965,16 +66779,16 @@
       ]
     },
     {
-      "ref": "pkg:npm/%40posthog/browser-common@0.2.3?package-id=35f290794a0df876",
+      "ref": "pkg:npm/%40posthog/browser-common@0.9.0?package-id=d3d3bb4c1c4cb845",
       "dependsOn": [
-        "pkg:npm/%40posthog/core@1.45.1?package-id=2720d3c29d734a17",
-        "pkg:npm/%40posthog/types@1.398.0?package-id=01cbf4ceaa134407"
+        "pkg:npm/%40posthog/core@1.55.1?package-id=aee8c71d24fcf3e6",
+        "pkg:npm/%40posthog/types@1.412.4?package-id=9e42601c11c9a42b"
       ]
     },
     {
-      "ref": "pkg:npm/%40posthog/core@1.45.1?package-id=2720d3c29d734a17",
+      "ref": "pkg:npm/%40posthog/core@1.55.1?package-id=aee8c71d24fcf3e6",
       "dependsOn": [
-        "pkg:npm/%40posthog/types@1.398.0?package-id=01cbf4ceaa134407"
+        "pkg:npm/%40posthog/types@1.412.4?package-id=9e42601c11c9a42b"
       ]
     },
     {
@@ -66994,7 +66808,7 @@
         "pkg:npm/colorette@1.4.0?package-id=1261542d1dae6fda",
         "pkg:npm/https-proxy-agent@7.0.6?package-id=49e1288302948f29",
         "pkg:npm/js-levenshtein@1.1.6?package-id=a810c0c02d28a68f",
-        "pkg:npm/js-yaml@4.3.1?package-id=af547786a4e7bc97",
+        "pkg:npm/js-yaml@4.3.2?package-id=494f13c989afeb60",
         "pkg:npm/minimatch@10.2.6?package-id=aafa81a0079c4112",
         "pkg:npm/pluralize@8.0.0?package-id=5ce1397af1643880",
         "pkg:npm/yaml-ast-parser@0.0.43?package-id=55b0683e62d7add8"
@@ -67036,7 +66850,7 @@
     {
       "ref": "pkg:npm/%40types/d3-drag@3.0.7?package-id=c09517ccd96fa098",
       "dependsOn": [
-        "pkg:npm/%40types/d3-selection@3.0.11?package-id=8d8ad7e5b06c967f"
+        "pkg:npm/%40types/d3-selection@3.0.12?package-id=7c7559fcc92bfd1e"
       ]
     },
     {
@@ -67048,14 +66862,14 @@
     {
       "ref": "pkg:npm/%40types/d3-transition@3.0.9?package-id=5bb4cec2c85742ec",
       "dependsOn": [
-        "pkg:npm/%40types/d3-selection@3.0.11?package-id=8d8ad7e5b06c967f"
+        "pkg:npm/%40types/d3-selection@3.0.12?package-id=7c7559fcc92bfd1e"
       ]
     },
     {
       "ref": "pkg:npm/%40types/d3-zoom@3.0.8?package-id=95caac4f50893d8a",
       "dependsOn": [
         "pkg:npm/%40types/d3-interpolate@3.0.4?package-id=04b0714c3b2e90d9",
-        "pkg:npm/%40types/d3-selection@3.0.11?package-id=8d8ad7e5b06c967f"
+        "pkg:npm/%40types/d3-selection@3.0.12?package-id=7c7559fcc92bfd1e"
       ]
     },
     {
@@ -67071,18 +66885,18 @@
       ]
     },
     {
-      "ref": "pkg:npm/%40xyflow/svelte@1.5.1?package-id=396e2a568c303cf2",
+      "ref": "pkg:npm/%40xyflow/svelte@1.6.6?package-id=9b437f663694e6cf",
       "dependsOn": [
         "pkg:npm/%40svelte-put/shortcut@4.1.0?package-id=21259c08d12e91e7",
-        "pkg:npm/%40xyflow/system@0.0.75?package-id=ef10bf28949a13f8"
+        "pkg:npm/%40xyflow/system@0.0.82?package-id=e70a7d5ea5197274"
       ]
     },
     {
-      "ref": "pkg:npm/%40xyflow/system@0.0.75?package-id=ef10bf28949a13f8",
+      "ref": "pkg:npm/%40xyflow/system@0.0.82?package-id=e70a7d5ea5197274",
       "dependsOn": [
         "pkg:npm/%40types/d3-drag@3.0.7?package-id=c09517ccd96fa098",
         "pkg:npm/%40types/d3-interpolate@3.0.4?package-id=04b0714c3b2e90d9",
-        "pkg:npm/%40types/d3-selection@3.0.11?package-id=8d8ad7e5b06c967f",
+        "pkg:npm/%40types/d3-selection@3.0.12?package-id=7c7559fcc92bfd1e",
         "pkg:npm/%40types/d3-transition@3.0.9?package-id=5bb4cec2c85742ec",
         "pkg:npm/%40types/d3-zoom@3.0.8?package-id=95caac4f50893d8a",
         "pkg:npm/d3-drag@3.0.0?package-id=a6f3c8deee60783b",
@@ -67265,7 +67079,7 @@
       ]
     },
     {
-      "ref": "pkg:npm/js-yaml@4.3.1?package-id=af547786a4e7bc97",
+      "ref": "pkg:npm/js-yaml@4.3.2?package-id=494f13c989afeb60",
       "dependsOn": [
         "pkg:npm/argparse@2.0.1?package-id=7f1cd9371e0fe19d"
       ]
@@ -67365,17 +67179,18 @@
       ]
     },
     {
-      "ref": "pkg:npm/posthog-js@1.407.3?package-id=d3440424e1d02125",
+      "ref": "pkg:npm/posthog-js@1.434.4?package-id=87e5eb74737ca55b",
       "dependsOn": [
-        "pkg:npm/%40posthog/browser-common@0.2.3?package-id=35f290794a0df876",
-        "pkg:npm/%40posthog/core@1.45.1?package-id=2720d3c29d734a17",
-        "pkg:npm/%40posthog/types@1.398.0?package-id=01cbf4ceaa134407",
+        "pkg:npm/%40posthog/browser-common@0.9.0?package-id=d3d3bb4c1c4cb845",
+        "pkg:npm/%40posthog/core@1.55.1?package-id=aee8c71d24fcf3e6",
+        "pkg:npm/%40posthog/types@1.412.4?package-id=9e42601c11c9a42b",
         "pkg:npm/core-js@3.49.0?package-id=f3740f5e3041656a",
         "pkg:npm/dompurify@3.4.14?package-id=b2260fdd67fdb5bc",
-        "pkg:npm/fflate@0.4.8?package-id=74fc25e7bd2565e0",
+        "pkg:npm/fflate@0.4.9?package-id=4bad73d08ebf6ead",
         "pkg:npm/preact@10.29.7?package-id=91ec7cd81ba9805e",
         "pkg:npm/query-selector-shadow-dom@1.0.1?package-id=b3551b9b1b0c2c42",
-        "pkg:npm/web-vitals@5.3.0?package-id=7fe08da289afab4d"
+        "pkg:npm/web-vitals@6.2.1?package-id=54e3c0bf87c3c985",
+        "pkg:npm/web-vitals@6.2.2?package-id=739d26fb12114606"
       ]
     },
     {
@@ -67419,23 +67234,23 @@
       ]
     },
     {
-      "ref": "pkg:npm/scanopy-ui@0.17.17?package-id=dd864d238d61c416",
+      "ref": "pkg:npm/scanopy-ui@0.17.18?package-id=de3e2f898307848e",
       "dependsOn": [
         "pkg:npm/%40beyonk/gdpr-cookie-consent-banner@16.0.2?package-id=cd6aef3707be3a0f",
         "pkg:npm/%40peculiar/x509@1.14.3?package-id=f9f09aa6bd0dd2b7",
-        "pkg:npm/%40stripe/stripe-js@9.8.0?package-id=5416ab84066791dc",
+        "pkg:npm/%40stripe/stripe-js@9.16.0?package-id=70630a10179288cc",
         "pkg:npm/%40tailwindcss/forms@0.5.11?package-id=c4e06eaa1fd86e52",
         "pkg:npm/%40tanstack/svelte-form@1.28.3?package-id=ed03a61a54a62e31",
         "pkg:npm/%40tanstack/svelte-query@6.0.18?package-id=23ebc66d3d1f7fcd",
         "pkg:npm/%40tanstack/table-core@8.21.3?package-id=3bddf21a0702cbc2",
         "pkg:npm/%40types/d3-force@3.0.10?package-id=3ded41696afd1fa1",
         "pkg:npm/%40types/jquery@3.5.33?package-id=13e7ee6c1d86e2d0",
-        "pkg:npm/%40xyflow/svelte@1.5.1?package-id=396e2a568c303cf2",
+        "pkg:npm/%40xyflow/svelte@1.6.6?package-id=9b437f663694e6cf",
         "pkg:npm/canvas-confetti@1.9.4?package-id=066014164b1aeca1",
         "pkg:npm/company-email-validator@1.2.1?package-id=038b6cb306e63514",
         "pkg:npm/d3-force@3.0.0?package-id=f717e7081e2a6364",
         "pkg:npm/deepmerge@4.3.1?package-id=fae109776ab4c002",
-        "pkg:npm/elkjs@0.10.2?package-id=34a4ab321277a73e",
+        "pkg:npm/elkjs@0.12.0?package-id=c9cafd425c6748c9",
         "pkg:npm/email-validator@2.0.4?package-id=06412cb1af880cbb",
         "pkg:npm/free-email-domains-list@1.0.16?package-id=6abdaf7cfd9eebc8",
         "pkg:npm/html-to-image@1.11.13?package-id=ed989d19bae3e125",
@@ -67445,7 +67260,7 @@
         "pkg:npm/openapi-fetch@0.15.2?package-id=39b51ac70659508f",
         "pkg:npm/openapi-typescript@7.13.0?package-id=c07c3241dfd1d439",
         "pkg:npm/postcss@8.5.23?package-id=3a41d2a15bfb69f6",
-        "pkg:npm/posthog-js@1.407.3?package-id=d3440424e1d02125",
+        "pkg:npm/posthog-js@1.434.4?package-id=87e5eb74737ca55b",
         "pkg:npm/semver@7.7.4?package-id=bf564866ea4b030c",
         "pkg:npm/svelte-forms@2.3.1?package-id=c0f246fa65336def",
         "pkg:npm/svelte-prism@1.1.6?package-id=3855204c1e37a873",
@@ -67491,7 +67306,7 @@
         "pkg:npm/aria-query@5.3.1?package-id=7107bd89ab868e1c",
         "pkg:npm/axobject-query@4.1.0?package-id=22c7e9bc79025647",
         "pkg:npm/clsx@2.1.1?package-id=c1f7cafa49ecf324",
-        "pkg:npm/devalue@5.8.1?package-id=c4e27152bd1338fd",
+        "pkg:npm/devalue@5.9.4?package-id=9e8c1435a796549a",
         "pkg:npm/esm-env@1.2.2?package-id=3cf59cf9aaa51f8e",
         "pkg:npm/esrap@2.2.11?package-id=59df6ad76c8ac970",
         "pkg:npm/is-reference@3.0.3?package-id=7df20b3e2533933f",
