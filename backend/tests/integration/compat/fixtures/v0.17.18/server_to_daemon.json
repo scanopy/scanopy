@@ -1,19 +1,19 @@
 {
-  "version": "0.17.17",
+  "version": "0.17.18",
   "exchanges": [
     {
       "method": "POST",
       "path": "/api/initialize",
       "request_body": {
-        "api_key": "scp_d_E1ytmA9YN4jEpge2tgUfhprv0CZVMSra",
-        "network_id": "bec7993c-7ff5-4c06-91cb-edb5214642f6"
+        "api_key": "scp_d_gpv55nFSgQTDIKEUpXlh3SUWp0jbFvJ8",
+        "network_id": "07c4b363-af53-42d8-a520-09f0308d23b8"
       },
       "response_status": 200,
       "response_body": {
         "data": "Daemon initialized successfully",
         "meta": {
           "api_version": 1,
-          "server_version": "0.17.17"
+          "server_version": "0.17.18"
         },
         "success": true
       }
@@ -22,18 +22,18 @@
       "method": "POST",
       "path": "/api/first-contact",
       "request_body": {
-        "daemon_id": "e0da4ed4-66eb-4553-b3b0-a0a12c796ced",
+        "daemon_id": "da9904a8-734b-4b9d-ae81-0bae5a9fc286",
         "name": "scanopy-daemon-serverpoll",
-        "network_id": "bec7993c-7ff5-4c06-91cb-edb5214642f6",
+        "network_id": "07c4b363-af53-42d8-a520-09f0308d23b8",
         "server_capabilities": {
           "deprecation_warnings": [
             {
-              "message": "Daemon version unknown. Update to 0.17.17 or later.",
+              "message": "Daemon version unknown. Update to 0.17.18 or later.",
               "severity": "Warning"
             }
           ],
           "minimum_daemon_version": "0.12.0",
-          "server_version": "0.17.17"
+          "server_version": "0.17.18"
         }
       },
       "response_status": 200,
@@ -44,46 +44,46 @@
           },
           "interfaced_subnets": [
             {
-              "cidr": "127.0.0.0/8",
-              "cidr_source": "DaemonSelfReport",
-              "created_at": "2026-09-24T21:01:31.775475391Z",
-              "description": null,
-              "first_discovery_id": null,
-              "id": "6c2e496d-2a24-4add-af7a-f0ec8add3739",
-              "last_discovery_id": null,
-              "last_seen_at": "2026-09-24T21:01:31.775475391Z",
-              "lineage_id": null,
-              "name": "127.0.0.0/8",
-              "network_id": "bec7993c-7ff5-4c06-91cb-edb5214642f6",
-              "source": {
-                "type": "Discovery"
-              },
-              "subnet_type": "Loopback",
-              "tags": [],
-              "updated_at": "2026-09-24T21:01:31.775475391Z",
-              "valid_from": "2026-09-24T21:01:31.775475391Z",
-              "valid_to": null,
-              "virtualization_service_id": null
-            },
-            {
               "cidr": "172.25.0.0/28",
               "cidr_source": "DaemonSelfReport",
-              "created_at": "2026-09-24T21:01:31.775525506Z",
+              "created_at": "2026-10-01T04:03:53.876260859Z",
               "description": null,
               "first_discovery_id": null,
-              "id": "56e4ef8a-13cb-4762-8f99-2edeb773e2dc",
+              "id": "bb5b2432-110b-4159-aa93-1bc6a9023742",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-24T21:01:31.775525506Z",
+              "last_seen_at": "2026-10-01T04:03:53.876260859Z",
               "lineage_id": null,
               "name": "172.25.0.0/28",
-              "network_id": "bec7993c-7ff5-4c06-91cb-edb5214642f6",
+              "network_id": "07c4b363-af53-42d8-a520-09f0308d23b8",
               "source": {
                 "type": "Discovery"
               },
               "subnet_type": "Lan",
               "tags": [],
-              "updated_at": "2026-09-24T21:01:31.775525506Z",
-              "valid_from": "2026-09-24T21:01:31.775525506Z",
+              "updated_at": "2026-10-01T04:03:53.876260859Z",
+              "valid_from": "2026-10-01T04:03:53.876260859Z",
+              "valid_to": null,
+              "virtualization_service_id": null
+            },
+            {
+              "cidr": "127.0.0.0/8",
+              "cidr_source": "DaemonSelfReport",
+              "created_at": "2026-10-01T04:03:53.876214803Z",
+              "description": null,
+              "first_discovery_id": null,
+              "id": "448a3919-55cd-4aea-9104-e266f57ecc43",
+              "last_discovery_id": null,
+              "last_seen_at": "2026-10-01T04:03:53.876214803Z",
+              "lineage_id": null,
+              "name": "127.0.0.0/8",
+              "network_id": "07c4b363-af53-42d8-a520-09f0308d23b8",
+              "source": {
+                "type": "Discovery"
+              },
+              "subnet_type": "Loopback",
+              "tags": [],
+              "updated_at": "2026-10-01T04:03:53.876214803Z",
+              "valid_from": "2026-10-01T04:03:53.876214803Z",
               "valid_to": null,
               "virtualization_service_id": null
             }
@@ -91,11 +91,11 @@
           "mode": "server_poll",
           "name": "scanopy-daemon-serverpoll",
           "ready_for_work": true,
-          "version": "0.17.17"
+          "version": "0.17.18"
         },
         "meta": {
           "api_version": 1,
-          "server_version": "0.17.17"
+          "server_version": "0.17.18"
         },
         "success": true
       }
@@ -115,7 +115,7 @@
         },
         "meta": {
           "api_version": 1,
-          "server_version": "0.17.17"
+          "server_version": "0.17.18"
         },
         "success": true
       }
@@ -125,9 +125,9 @@
       "path": "/api/discovery/initiate",
       "request_body": {
         "credential_mappings": [],
-        "discovery_id": "2c866ea1-e9a5-4803-bd9f-2967d12aa176",
+        "discovery_id": "82cf15a8-82b5-4a8a-af1f-b8c61511dff9",
         "discovery_type": {
-          "host_id": "fd55fcfc-bdcf-4039-902e-d171b34fb740",
+          "host_id": "74639d80-f428-433e-8ecc-d7de25ca8e25",
           "host_naming_fallback": "BestService",
           "scan_settings": {
             "arp_rate_pps": null,
@@ -145,49 +145,49 @@
           "subnet_ids": null,
           "type": "Unified"
         },
-        "session_id": "3dec6b93-d9d7-46ab-94e2-ef221564d563",
+        "session_id": "075ee07b-1779-47db-8c94-50c17ce5f66d",
         "subnets": [
           {
             "cidr": "127.0.0.0/8",
             "cidr_source": "DaemonSelfReport",
-            "created_at": "2026-09-24T21:01:31.775475Z",
+            "created_at": "2026-10-01T04:03:53.876214Z",
             "description": null,
             "first_discovery_id": null,
-            "id": "6c2e496d-2a24-4add-af7a-f0ec8add3739",
+            "id": "448a3919-55cd-4aea-9104-e266f57ecc43",
             "last_discovery_id": null,
-            "last_seen_at": "2026-09-24T21:01:31.775475Z",
+            "last_seen_at": "2026-10-01T04:03:53.876214Z",
             "lineage_id": null,
             "name": "127.0.0.0/8",
-            "network_id": "bec7993c-7ff5-4c06-91cb-edb5214642f6",
+            "network_id": "07c4b363-af53-42d8-a520-09f0308d23b8",
             "source": {
               "type": "Discovery"
             },
             "subnet_type": "Loopback",
             "tags": [],
-            "updated_at": "2026-09-24T21:01:31.775475Z",
-            "valid_from": "2026-09-24T21:01:31.775475Z",
+            "updated_at": "2026-10-01T04:03:53.876214Z",
+            "valid_from": "2026-10-01T04:03:53.876214Z",
             "valid_to": null,
             "virtualization_service_id": null
           },
           {
             "cidr": "172.25.0.0/28",
             "cidr_source": "DaemonSelfReport",
-            "created_at": "2026-09-24T21:01:31.775525Z",
+            "created_at": "2026-10-01T04:03:53.876260Z",
             "description": null,
             "first_discovery_id": null,
-            "id": "56e4ef8a-13cb-4762-8f99-2edeb773e2dc",
+            "id": "bb5b2432-110b-4159-aa93-1bc6a9023742",
             "last_discovery_id": null,
-            "last_seen_at": "2026-09-24T21:01:31.775525Z",
+            "last_seen_at": "2026-10-01T04:03:53.876260Z",
             "lineage_id": null,
             "name": "172.25.0.0/28",
-            "network_id": "bec7993c-7ff5-4c06-91cb-edb5214642f6",
+            "network_id": "07c4b363-af53-42d8-a520-09f0308d23b8",
             "source": {
               "type": "Discovery"
             },
             "subnet_type": "Lan",
             "tags": [],
-            "updated_at": "2026-09-24T21:01:31.775525Z",
-            "valid_from": "2026-09-24T21:01:31.775525Z",
+            "updated_at": "2026-10-01T04:03:53.876260Z",
+            "valid_from": "2026-10-01T04:03:53.876260Z",
             "valid_to": null,
             "virtualization_service_id": null
           }
@@ -196,11 +196,11 @@
       "response_status": 200,
       "response_body": {
         "data": {
-          "session_id": "3dec6b93-d9d7-46ab-94e2-ef221564d563"
+          "session_id": "075ee07b-1779-47db-8c94-50c17ce5f66d"
         },
         "meta": {
           "api_version": 1,
-          "server_version": "0.17.17"
+          "server_version": "0.17.18"
         },
         "success": true
       }
@@ -219,44 +219,44 @@
             {
               "cidr": "172.25.0.0/28",
               "cidr_source": "DaemonSelfReport",
-              "created_at": "2026-09-24T21:02:01.772993266Z",
+              "created_at": "2026-10-01T04:04:23.872555047Z",
               "description": null,
               "first_discovery_id": null,
-              "id": "125738fb-7ef8-4a30-92d4-a56bf4f16c9b",
+              "id": "83718ede-763b-433a-bb32-277f603b4ffe",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-24T21:02:01.772993266Z",
+              "last_seen_at": "2026-10-01T04:04:23.872555047Z",
               "lineage_id": null,
               "name": "172.25.0.0/28",
-              "network_id": "bec7993c-7ff5-4c06-91cb-edb5214642f6",
+              "network_id": "07c4b363-af53-42d8-a520-09f0308d23b8",
               "source": {
                 "type": "Discovery"
               },
               "subnet_type": "Lan",
               "tags": [],
-              "updated_at": "2026-09-24T21:02:01.772993266Z",
-              "valid_from": "2026-09-24T21:02:01.772993266Z",
+              "updated_at": "2026-10-01T04:04:23.872555047Z",
+              "valid_from": "2026-10-01T04:04:23.872555047Z",
               "valid_to": null,
               "virtualization_service_id": null
             },
             {
               "cidr": "127.0.0.0/8",
               "cidr_source": "DaemonSelfReport",
-              "created_at": "2026-09-24T21:02:01.772963351Z",
+              "created_at": "2026-10-01T04:04:23.872522787Z",
               "description": null,
               "first_discovery_id": null,
-              "id": "f3cd6f34-0056-4668-a40a-f56c2740a9a0",
+              "id": "09f6b49f-1557-434c-8659-b0d2e1a6368a",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-24T21:02:01.772963351Z",
+              "last_seen_at": "2026-10-01T04:04:23.872522787Z",
               "lineage_id": null,
               "name": "127.0.0.0/8",
-              "network_id": "bec7993c-7ff5-4c06-91cb-edb5214642f6",
+              "network_id": "07c4b363-af53-42d8-a520-09f0308d23b8",
               "source": {
                 "type": "Discovery"
               },
               "subnet_type": "Loopback",
               "tags": [],
-              "updated_at": "2026-09-24T21:02:01.772963351Z",
-              "valid_from": "2026-09-24T21:02:01.772963351Z",
+              "updated_at": "2026-10-01T04:04:23.872522787Z",
+              "valid_from": "2026-10-01T04:04:23.872522787Z",
               "valid_to": null,
               "virtualization_service_id": null
             }
@@ -264,11 +264,11 @@
           "mode": "server_poll",
           "name": "scanopy-daemon-serverpoll",
           "ready_for_work": false,
-          "version": "0.17.17"
+          "version": "0.17.18"
         },
         "meta": {
           "api_version": 1,
-          "server_version": "0.17.17"
+          "server_version": "0.17.18"
         },
         "success": true
       }
@@ -280,51 +280,51 @@
         "hosts": [],
         "subnets": [
           [
-            "3a33d428-ddb1-4022-95d7-9bb770dc1361",
-            {
-              "cidr": "127.0.0.0/8",
-              "cidr_source": "DaemonSelfReport",
-              "created_at": "2026-09-24T21:01:31.775475Z",
-              "description": null,
-              "first_discovery_id": null,
-              "id": "6c2e496d-2a24-4add-af7a-f0ec8add3739",
-              "last_discovery_id": null,
-              "last_seen_at": "2026-09-24T21:01:31.825963505Z",
-              "lineage_id": null,
-              "name": "127.0.0.0/8",
-              "network_id": "bec7993c-7ff5-4c06-91cb-edb5214642f6",
-              "source": {
-                "type": "Discovery"
-              },
-              "subnet_type": "Loopback",
-              "tags": [],
-              "updated_at": "2026-09-24T21:01:31.775475Z",
-              "valid_from": "2026-09-24T21:01:31.775475Z",
-              "valid_to": null,
-              "virtualization_service_id": null
-            }
-          ],
-          [
-            "49ae967b-9d7f-4b13-9d23-29cc1393de86",
+            "c86dc51e-3814-4ed7-9c74-092f85eafc91",
             {
               "cidr": "172.25.0.0/28",
               "cidr_source": "DaemonSelfReport",
-              "created_at": "2026-09-24T21:01:31.775525Z",
+              "created_at": "2026-10-01T04:03:53.876260Z",
               "description": null,
               "first_discovery_id": null,
-              "id": "56e4ef8a-13cb-4762-8f99-2edeb773e2dc",
+              "id": "bb5b2432-110b-4159-aa93-1bc6a9023742",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-24T21:01:31.825997627Z",
+              "last_seen_at": "2026-10-01T04:03:53.927189026Z",
               "lineage_id": null,
               "name": "172.25.0.0/28",
-              "network_id": "bec7993c-7ff5-4c06-91cb-edb5214642f6",
+              "network_id": "07c4b363-af53-42d8-a520-09f0308d23b8",
               "source": {
                 "type": "Discovery"
               },
               "subnet_type": "Lan",
               "tags": [],
-              "updated_at": "2026-09-24T21:01:31.775525Z",
-              "valid_from": "2026-09-24T21:01:31.775525Z",
+              "updated_at": "2026-10-01T04:03:53.876260Z",
+              "valid_from": "2026-10-01T04:03:53.876260Z",
+              "valid_to": null,
+              "virtualization_service_id": null
+            }
+          ],
+          [
+            "b9748078-d4d2-4704-9211-871a28c5fa64",
+            {
+              "cidr": "127.0.0.0/8",
+              "cidr_source": "DaemonSelfReport",
+              "created_at": "2026-10-01T04:03:53.876214Z",
+              "description": null,
+              "first_discovery_id": null,
+              "id": "448a3919-55cd-4aea-9104-e266f57ecc43",
+              "last_discovery_id": null,
+              "last_seen_at": "2026-10-01T04:03:53.927157988Z",
+              "lineage_id": null,
+              "name": "127.0.0.0/8",
+              "network_id": "07c4b363-af53-42d8-a520-09f0308d23b8",
+              "source": {
+                "type": "Discovery"
+              },
+              "subnet_type": "Loopback",
+              "tags": [],
+              "updated_at": "2026-10-01T04:03:53.876214Z",
+              "valid_from": "2026-10-01T04:03:53.876214Z",
               "valid_to": null,
               "virtualization_service_id": null
             }
@@ -336,7 +336,7 @@
         "data": "Created entities acknowledged",
         "meta": {
           "api_version": 1,
-          "server_version": "0.17.17"
+          "server_version": "0.17.18"
         },
         "success": true
       }
