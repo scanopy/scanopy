@@ -6874,6 +6874,18 @@ export interface components {
             /** @description IP address IDs to limit this credential to on the host. None = all host ip_addresses. */
             ip_address_ids: string[] | null;
         };
+        /**
+         * @description The integration a credential type connects to: one per associated service, shared by all of
+         *     that service's transports (SNMP v1/v2c/v3 are three transports of the `Snmp` integration).
+         *
+         *     The single source of the type → integration mapping
+         *     ([`CredentialTypeDiscriminants::integration`]); the associated service, category, fallback
+         *     icon, discovery text and docs guide all derive from it. The id is an identifier-safe code name
+         *     rather than the service's display name, so it can key `meta_credential_integrations_*`
+         *     messages.
+         * @enum {string}
+         */
+        CredentialIntegration: "Snmp" | "Gnmi" | "Docker" | "Podman" | "UnifiController" | "InstantOn" | "Ssh" | "WakeOnLan";
         /** @enum {string} */
         CredentialOrderField: "created_at" | "name" | "updated_at";
         /** @enum {string} */

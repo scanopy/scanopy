@@ -873,6 +873,7 @@
 						selectedValue={selectedTypeId}
 						options={typeOptions}
 						displayComponent={CredentialTypeDisplay}
+						showSearch={true}
 						disabled={isEditing}
 						onSelect={handleTypeChange}
 					/>

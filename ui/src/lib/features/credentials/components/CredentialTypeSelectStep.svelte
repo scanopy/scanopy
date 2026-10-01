@@ -1,20 +1,52 @@
-<script lang="ts">
-	import { credentialTypes } from '$lib/shared/stores/metadata';
-	import type { TypedTypeMetadata, CredentialTypeMetadata } from '$lib/shared/stores/metadata';
-	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
+<script lang="ts" module>
+	import { credentialIntegrations } from '$lib/shared/stores/metadata';
+	import type {
+		TypedTypeMetadata,
+		CredentialTypeMetadata,
+		CredentialIntegrationMetadata
+	} from '$lib/shared/stores/metadata';
+	import type { EntityDisplayComponent } from '$lib/shared/components/forms/selection/types';
+	import type { IntegrationGroup } from '$lib/features/credentials/utils/integrationPicker';
 	import { CredentialTypeDisplay } from '$lib/shared/components/forms/selection/display/CredentialTypeDisplay.svelte';
+
+	type CredType = TypedTypeMetadata<CredentialTypeMetadata>;
+	type Group = IntegrationGroup<TypedTypeMetadata<CredentialIntegrationMetadata>, CredType>;
+
+	// An integration row: the integration's name, logo and "what it discovers" text. A
+	// single-type row also carries that type's tags (Beta, targets), since the row is the card.
+	const IntegrationRowDisplay: EntityDisplayComponent<Group, object> = {
+		getId: (group) => group.integration.id,
+		getLabel: (group) => credentialIntegrations.getName(group.integration.id),
+		getDescription: (group) => credentialIntegrations.getDescription(group.integration.id),
+		getIcon: (group) => credentialIntegrations.getIconComponent(group.integration.id),
+		getIconColor: (group) => credentialIntegrations.getColorHelper(group.integration.id).icon,
+		getTags: (group) =>
+			group.types.length === 1 ? (CredentialTypeDisplay.getTags?.(group.types[0], {}) ?? []) : []
+	};
+</script>
+
+<script lang="ts">
+	import { untrack } from 'svelte';
+	import { ChevronDown, ChevronRight, Square, CheckSquare } from 'lucide-svelte';
+	import { credentialTypes } from '$lib/shared/stores/metadata';
+	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
+	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import { tooltip } from '$lib/shared/actions/tooltip';
 	import { daemonTooOldForCredential } from '$lib/features/credentials/utils/versionGate';
 	import {
+		groupTypesByIntegration,
+		initiallyExpandedIntegrationIds,
+		selectedTypeCount
+	} from '$lib/features/credentials/utils/integrationPicker';
+	import {
 		daemons_integrationsSubtitle,
+		credentials_integrationSelectedCount,
 		credentials_lockedDaemonCapability,
 		credentials_requiresDaemonVersion
 	} from '$lib/paraglide/messages';
 
-	type CredType = TypedTypeMetadata<CredentialTypeMetadata>;
-
 	interface Props {
-		/** Selected integration cards. Configurable types prefill the wizard; auto-local
+		/** Selected credential types. Configurable types prefill the wizard; auto-local
 		 *  types (e.g. Docker socket) map to a daemon install flag. */
 		selectedTypeIds: string[];
 		/** Type ids rendered read-only (non-toggleable), reflecting a fixed daemon
@@ -24,7 +56,7 @@
 		 *  for locked cards reflecting a fixed capability). */
 		forceCheckedTypeIds?: string[];
 		/** Version of the single daemon this picker targets (the discovery modal's bound
-		 *  daemon). A card is disabled when this version is older than the credential
+		 *  daemon). A type is disabled when this version is older than the credential
 		 *  type's `minimum_daemon_version`. `null`/absent (e.g. create-daemon flow, where
 		 *  no daemon is connected yet) ⇒ no version gate. Assignment surfaces that span
 		 *  many daemons don't pass this — those are handled by the backend dispatch filter. */
@@ -41,43 +73,25 @@
 		daemonName = null
 	}: Props = $props();
 
-	// One flat list of cards: every user-selectable type plus the auto-local
-	// capabilities (Docker socket), so all integration options look the same.
-	// Every credential type is user-selectable now (sockets included), so no filtering.
-	let cards = $derived(credentialTypes.getItems());
+	// One row per integration (SNMP, Docker, SSH, …), grouped on the backend's
+	// `metadata.integration` key. Daemon-only integrations first, network-applicable last.
+	let groups = $derived(
+		groupTypesByIntegration(credentialTypes.getItems(), credentialIntegrations.getItems())
+	);
 
-	// Rank a type by how far its applicable targets reach: daemon-only first (0), host (1),
-	// network-applicable last (2). Drives the daemon→network ordering below.
-	function targetRank(card: CredType): number {
-		const targets = card.metadata?.targets ?? [];
-		if (targets.includes('Network')) return 2;
-		if (targets.includes('Hosts')) return 1;
-		return 0;
+	let checkedTypeIds = $derived([...new Set([...selectedTypeIds, ...forceCheckedTypeIds])]);
+
+	// Rows holding a selection on open start expanded, so a returning user sees what they
+	// picked. After that, expansion is the user's alone.
+	let expandedIds = $state<string[]>(
+		untrack(() => initiallyExpandedIntegrationIds(groups, checkedTypeIds))
+	);
+
+	function toggleExpanded(id: string) {
+		expandedIds = expandedIds.includes(id)
+			? expandedIds.filter((x) => x !== id)
+			: [...expandedIds, id];
 	}
-
-	// Group cards by their integration (the backend `associated_service`, e.g. SNMP / Docker /
-	// Podman) so the grid breaks between integrations for legibility — no section headers, just a
-	// clear gap. Then order by applicable targets: daemon-only integrations first, any that apply
-	// to the network last. Within a group, daemon-only types precede network-applicable ones.
-	// Sorts are stable, so original order is preserved on ties.
-	let cardGroups = $derived.by(() => {
-		const groups: { key: string; cards: CredType[] }[] = [];
-		for (const card of cards) {
-			const key = card.metadata?.associated_service ?? '';
-			let group = groups.find((g) => g.key === key);
-			if (!group) {
-				group = { key, cards: [] };
-				groups.push(group);
-			}
-			group.cards.push(card);
-		}
-		for (const group of groups) {
-			group.cards.sort((a, b) => targetRank(a) - targetRank(b));
-		}
-		const groupRank = (g: { cards: CredType[] }) => Math.min(...g.cards.map(targetRank));
-		groups.sort((a, b) => groupRank(a) - groupRank(b));
-		return groups;
-	});
 
 	function isLocked(id: string): boolean {
 		return lockedTypeIds.includes(id);
@@ -104,7 +118,7 @@
 		}
 		if (isLocked(type.id)) {
 			return credentials_lockedDaemonCapability({
-				integration: type.metadata?.associated_service ?? ''
+				integration: credentialIntegrations.getName(type.metadata?.integration ?? null)
 			});
 		}
 		return undefined;
@@ -122,38 +136,98 @@
 <div class="flex min-h-0 flex-1 flex-col overflow-auto p-4 sm:p-6">
 	<p class="text-secondary mb-4 text-sm">{daemons_integrationsSubtitle()}</p>
 
-	<!-- One grid per integration (SNMP, Docker, Podman, …) so each starts on its own row,
-	     with a wider gap between groups than within a group for a clear visual break. -->
-	<div class="flex flex-col gap-6">
-		{#each cardGroups as group (group.key)}
-			<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-				{#each group.cards as type (type.id)}
-					{@const selected =
-						selectedTypeIds.includes(type.id) || forceCheckedTypeIds.includes(type.id)}
-					{@const locked = isDisabled(type)}
-					<!-- Wrapper is the grid item; it carries the tooltip so a disabled (locked
-					     or version-incompatible) card still shows the reason on hover. -->
-					<span class="block" data-tooltip={disabledReason(type)} use:tooltip>
-						<button
-							type="button"
-							onclick={() => toggleType(type)}
-							aria-pressed={selected}
-							disabled={locked}
-							class="card w-full rounded-lg border p-3 text-left {locked
-								? 'cursor-not-allowed opacity-60'
-								: ''}"
-							class:card-selected={selected}
-						>
+	<div class="flex flex-col gap-2">
+		{#each groups as group (group.integration.id)}
+			{#if group.types.length === 1}
+				<!-- A single-type integration has nothing to expand: the row is the type's card. -->
+				{@const type = group.types[0]}
+				{@const selected = checkedTypeIds.includes(type.id)}
+				{@const locked = isDisabled(type)}
+				<span class="block" data-tooltip={disabledReason(type)} use:tooltip>
+					<button
+						type="button"
+						onclick={() => toggleType(type)}
+						aria-pressed={selected}
+						disabled={locked}
+						class="card flex w-full items-center gap-3 rounded-lg border p-3 text-left {locked
+							? 'cursor-not-allowed opacity-60'
+							: ''}"
+						class:card-selected={selected}
+					>
+						<div class="min-w-0 flex-1">
 							<ListSelectItem
-								item={type}
-								displayComponent={CredentialTypeDisplay}
+								item={group}
+								displayComponent={IntegrationRowDisplay}
 								context={{}}
 								staticTags={true}
 							/>
-						</button>
-					</span>
-				{/each}
-			</div>
+						</div>
+						{#if selected}
+							<CheckSquare class="text-secondary h-4 w-4 flex-shrink-0" />
+						{:else}
+							<Square class="text-secondary h-4 w-4 flex-shrink-0" />
+						{/if}
+					</button>
+				</span>
+			{:else}
+				{@const expanded = expandedIds.includes(group.integration.id)}
+				{@const count = selectedTypeCount(group, checkedTypeIds)}
+				<div class="card card-static rounded-lg border p-3">
+					<button
+						type="button"
+						onclick={() => toggleExpanded(group.integration.id)}
+						aria-expanded={expanded}
+						class="flex w-full items-center gap-3 text-left"
+					>
+						<div class="min-w-0 flex-1">
+							<ListSelectItem
+								item={group}
+								displayComponent={IntegrationRowDisplay}
+								context={{}}
+								staticTags={true}
+							/>
+						</div>
+						{#if count > 0}
+							<Tag label={credentials_integrationSelectedCount({ count })} color="Blue" pill />
+						{/if}
+						{#if expanded}
+							<ChevronDown class="text-secondary h-4 w-4 flex-shrink-0" />
+						{:else}
+							<ChevronRight class="text-secondary h-4 w-4 flex-shrink-0" />
+						{/if}
+					</button>
+
+					{#if expanded}
+						<div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+							{#each group.types as type (type.id)}
+								{@const selected = checkedTypeIds.includes(type.id)}
+								{@const locked = isDisabled(type)}
+								<!-- Wrapper is the grid item; it carries the tooltip so a disabled (locked
+								     or version-incompatible) card still shows the reason on hover. -->
+								<span class="block" data-tooltip={disabledReason(type)} use:tooltip>
+									<button
+										type="button"
+										onclick={() => toggleType(type)}
+										aria-pressed={selected}
+										disabled={locked}
+										class="card w-full rounded-lg border p-3 text-left {locked
+											? 'cursor-not-allowed opacity-60'
+											: ''}"
+										class:card-selected={selected}
+									>
+										<ListSelectItem
+											item={type}
+											displayComponent={CredentialTypeDisplay}
+											context={{}}
+											staticTags={true}
+										/>
+									</button>
+								</span>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			{/if}
 		{/each}
 	</div>
 </div>

@@ -10,7 +10,9 @@ use crate::server::billing::types::base::{BillingPlan, CancelReason, PlanStatus,
 use crate::server::billing::types::features::Feature;
 use crate::server::credentials::r#impl::integrations::all_integrations;
 use crate::server::credentials::r#impl::mapping::CredentialQueryPayloadDiscriminants;
-use crate::server::credentials::r#impl::types::CredentialTypeDiscriminants;
+use crate::server::credentials::r#impl::types::{
+    CredentialIntegration, CredentialTypeDiscriminants,
+};
 use crate::server::dependencies::r#impl::types::DependencyType;
 use crate::server::discovery::r#impl::scan_settings::ScanSettings;
 use crate::server::discovery::r#impl::types::DiscoveryType;
@@ -171,6 +173,17 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
         .map(|d| d.to_metadata())
         .collect();
     write_fixture(&credential_types, output_dir, "credential-types.json");
+
+    // The integration each credential type belongs to (`metadata.integration` on a type), for
+    // the app's integration-first credential picker.
+    let credential_integrations: Vec<TypeMetadata> = CredentialIntegration::iter()
+        .map(|i| i.to_metadata())
+        .collect();
+    write_fixture(
+        &credential_integrations,
+        output_dir,
+        "credential-integrations.json",
+    );
 
     // Integrations: a service joined with the credential transports that target
     // it and one canonical discovery description (for the website integrations
