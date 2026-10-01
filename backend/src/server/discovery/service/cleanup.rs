@@ -280,6 +280,9 @@ impl DiscoveryService {
         };
 
         if let Err(e) = self.discovery_storage.create(&historical_discovery).await {
+            super::dispatch::record_finish_error(
+                super::dispatch::DiscoveryFinishStep::HistoryRecord,
+            );
             tracing::error!(
                 session_id = %session_id,
                 error = %e,

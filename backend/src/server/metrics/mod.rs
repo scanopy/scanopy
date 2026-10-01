@@ -109,6 +109,11 @@ pub fn describe_metrics() {
         Unit::Count,
         "Live discovery sessions by phase, refreshed every 60s"
     );
+    describe_counter!(
+        "scanopy_discovery_finish_errors_total",
+        Unit::Count,
+        "Finished discovery sessions the server failed to record, by step (finalize_scan, history_record)"
+    );
     describe_histogram!(
         "scanopy_link_resolution_duration_seconds",
         Unit::Seconds,
