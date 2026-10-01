@@ -1074,40 +1074,45 @@ pub(super) fn generate_hosts_and_services(
         });
     }
 
-    // 18. Synology Backup
-    result.push(host_with_services!(
-        with_snmp(
-            with_mac(
-                create_host(
-                    "synology-backup",
-                    Some("synology.acme.local"),
-                    Some("Synology backup NAS"),
-                    hq,
-                    hq_storage,
-                    Ipv4Addr::new(10, 0, 40, 21),
-                    backup_tag.into_iter().collect(),
-                    None,
-                    None,
-                    now,
+    // 18. Synology Backup. Retired once truenas-primary took over backups; it has not answered a
+    // scan since.
+    result.push(gone_quiet(
+        host_with_services!(
+            with_snmp(
+                with_mac(
+                    create_host(
+                        "synology-backup",
+                        Some("synology.acme.local"),
+                        Some("Synology backup NAS"),
+                        hq,
+                        hq_storage,
+                        Ipv4Addr::new(10, 0, 40, 21),
+                        backup_tag.into_iter().collect(),
+                        None,
+                        None,
+                        now,
+                    ),
+                    [0x00, 0x11, 0x32, 0x40, 0x18, 0x01],
                 ),
-                [0x00, 0x11, 0x32, 0x40, 0x18, 0x01],
+                Some("Synology NAS DS1621+ DSM 7.2.1-69057 Update 5"),
+                Some("1.3.6.1.4.1.6574.1"),
+                Some("HQ Server Room, Rack C2"),
+                Some("sysadmin@acme-corp.com"),
+                None,
+                Some("Synology"),
+                Some("DS1621+"),
+                Some("2140PDN6C201"),
             ),
-            Some("Synology NAS DS1621+ DSM 7.2.1-69057 Update 5"),
-            Some("1.3.6.1.4.1.6574.1"),
-            Some("HQ Server Room, Rack C2"),
-            Some("sysadmin@acme-corp.com"),
-            None,
-            Some("Synology"),
-            Some("DS1621+"),
-            Some("2140PDN6C201"),
+            now,
+            (
+                "Synology DSM",
+                "Synology DSM",
+                Some(PortType::Https),
+                [backup_tag, storage_tag].into_iter().flatten().collect()
+            ),
         ),
-        now,
-        (
-            "Synology DSM",
-            "Synology DSM",
-            Some(PortType::Https),
-            [backup_tag, storage_tag].into_iter().flatten().collect()
-        ),
+        now - Duration::days(1400),
+        now - Duration::days(400),
     ));
 
     // -- Office LAN (10.0.10.x) --
@@ -1154,11 +1159,17 @@ pub(super) fn generate_hosts_and_services(
             [0xf8, 0xbc, 0x12, 0x10, mac_last, 0x01],
         );
         let host = if name.is_empty() { unnamed(host) } else { host };
-        result.push(host_with_services!(
+        let hws = host_with_services!(
             host,
             now,
             ("Workstation", "Workstation", Some(PortType::Rdp), vec![]),
-        ));
+        );
+        // The accounting workstation was retired and never came back on the LAN.
+        result.push(if name == "ws-accounting-01" {
+            gone_quiet(hws, now - Duration::days(1000), now - Duration::days(380))
+        } else {
+            hws
+        });
     }
 
     // -- IoT (10.0.30.x) --
@@ -1261,40 +1272,45 @@ pub(super) fn generate_hosts_and_services(
         ),
     ));
 
-    // 26. HP Printer. Never named in Scanopy, so it is titled by the sysName it reports.
-    result.push(host_with_services!(
-        unnamed(with_snmp(
-            with_mac(
-                create_host(
-                    "printer-hp-main",
-                    None,
-                    Some("HP LaserJet Pro"),
-                    hq,
-                    hq_iot,
-                    Ipv4Addr::new(10, 0, 30, 50),
-                    iot_tag.into_iter().collect(),
-                    None,
-                    None,
-                    now,
+    // 26. HP Printer. Never named in Scanopy, so it is titled by the sysName it reports. Unplugged
+    // when the copy room got a replacement; it has not answered a scan since.
+    result.push(gone_quiet(
+        host_with_services!(
+            unnamed(with_snmp(
+                with_mac(
+                    create_host(
+                        "printer-hp-main",
+                        None,
+                        Some("HP LaserJet Pro"),
+                        hq,
+                        hq_iot,
+                        Ipv4Addr::new(10, 0, 30, 50),
+                        iot_tag.into_iter().collect(),
+                        None,
+                        None,
+                        now,
+                    ),
+                    [0x3c, 0xd9, 0x2b, 0x30, 0x26, 0x01],
                 ),
-                [0x3c, 0xd9, 0x2b, 0x30, 0x26, 0x01],
+                Some("HP LaserJet Pro MFP M428fdw, Firmware 20230809"),
+                Some("1.3.6.1.4.1.11.2.3.9.1"),
+                Some("HQ Floor 1, Copy Room"),
+                Some("helpdesk@acme-corp.com"),
+                None,
+                Some("HP"),
+                Some("LaserJet Pro MFP M428fdw"),
+                Some("CNBRK1F0X8"),
+            )),
+            now,
+            (
+                "HP Printer",
+                "HP Printer",
+                Some(PortType::Ipp),
+                iot_tag.into_iter().collect()
             ),
-            Some("HP LaserJet Pro MFP M428fdw, Firmware 20230809"),
-            Some("1.3.6.1.4.1.11.2.3.9.1"),
-            Some("HQ Floor 1, Copy Room"),
-            Some("helpdesk@acme-corp.com"),
-            None,
-            Some("HP"),
-            Some("LaserJet Pro MFP M428fdw"),
-            Some("CNBRK1F0X8"),
-        )),
-        now,
-        (
-            "HP Printer",
-            "HP Printer",
-            Some(PortType::Ipp),
-            iot_tag.into_iter().collect()
         ),
+        now - Duration::days(1100),
+        now - Duration::days(430),
     ));
 
     // 27. Camera Entrance
@@ -2360,30 +2376,35 @@ pub(super) fn generate_hosts_and_services(
         });
     }
 
-    // 17. InfluxDB
-    result.push(host_with_services!(
-        with_mac(
-            create_host(
-                "influxdb-metrics",
-                Some("influxdb.dc.acme.io"),
-                Some("InfluxDB metrics store"),
-                dc,
-                dc_storage,
-                Ipv4Addr::new(172, 16, 20, 31),
-                database_tag.into_iter().chain(monitoring_tag).collect(),
-                None,
-                None,
-                now
+    // 17. InfluxDB. Decommissioned after metrics moved to Prometheus; it has not answered a scan
+    // since.
+    result.push(gone_quiet(
+        host_with_services!(
+            with_mac(
+                create_host(
+                    "influxdb-metrics",
+                    Some("influxdb.dc.acme.io"),
+                    Some("InfluxDB metrics store"),
+                    dc,
+                    dc_storage,
+                    Ipv4Addr::new(172, 16, 20, 31),
+                    database_tag.into_iter().chain(monitoring_tag).collect(),
+                    None,
+                    None,
+                    now
+                ),
+                [0xf8, 0xbc, 0x12, 0xdc, 0x17, 0x01],
             ),
-            [0xf8, 0xbc, 0x12, 0xdc, 0x17, 0x01],
+            now,
+            (
+                "InfluxDB",
+                "InfluxDB",
+                Some(PortType::InfluxDb),
+                database_tag.into_iter().collect()
+            ),
         ),
-        now,
-        (
-            "InfluxDB",
-            "InfluxDB",
-            Some(PortType::InfluxDb),
-            database_tag.into_iter().collect()
-        ),
+        now - Duration::days(900),
+        now - Duration::days(410),
     ));
 
     // -- VPN Tunnel (10.8.0.x) --

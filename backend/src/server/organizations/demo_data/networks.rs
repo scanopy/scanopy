@@ -2,6 +2,10 @@
 
 use super::*;
 
+/// Every demo network uses a 365-day staleness window, so a demo org reads as fresh for a year
+/// after it is created. Only the hosts `gone_quiet` backdates past the window read as stale.
+const DEMO_STALE_AFTER_HOURS: i64 = 24 * 365;
+
 pub(super) fn generate_networks(
     organization_id: Uuid,
     tags: &[Tag],
@@ -27,9 +31,9 @@ pub(super) fn generate_networks(
                 organization_id,
                 tags: production_tag.into_iter().collect(),
                 credential_ids: vec![],
-                stale_after_hours: Some(48),
+                stale_after_hours: Some(DEMO_STALE_AFTER_HOURS),
             },
-            effective_stale_after_hours: 48,
+            effective_stale_after_hours: DEMO_STALE_AFTER_HOURS,
         },
         Network {
             id: Uuid::new_v4(),
@@ -40,9 +44,9 @@ pub(super) fn generate_networks(
                 organization_id,
                 tags: production_tag.into_iter().collect(),
                 credential_ids: vec![],
-                stale_after_hours: None,
+                stale_after_hours: Some(DEMO_STALE_AFTER_HOURS),
             },
-            effective_stale_after_hours: DEFAULT_STALE_AFTER_HOURS,
+            effective_stale_after_hours: DEMO_STALE_AFTER_HOURS,
         },
     ]
 }
