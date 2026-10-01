@@ -14,7 +14,7 @@ jobs:
       contents: write
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.release.target_commitish }}
           fetch-depth: 0
@@ -116,7 +116,7 @@ jobs:
     outputs:
       deploy_mode: ${{ steps.deploy_mode.outputs.mode }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.release.target_commitish }}
 
@@ -310,7 +310,7 @@ jobs:
     needs: test-and-update-fixtures
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Pull latest changes
         run: |
@@ -371,7 +371,7 @@ jobs:
             binary: scanopy-server-linux-arm64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Pull latest changes
         run: |
@@ -450,7 +450,7 @@ jobs:
             use_cross: true
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Pull latest changes
         shell: bash
@@ -639,7 +639,7 @@ jobs:
             suffix: arm64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Pull latest changes
         run: |
@@ -703,7 +703,7 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Pull latest changes
         run: |
@@ -818,7 +818,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: dev
           fetch-depth: 0
@@ -897,7 +897,7 @@ jobs:
       SYFT_VERSION: v1.45.1
       TAG: ${{ github.event.release.tag_name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.release.tag_name }}
 
