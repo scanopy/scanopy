@@ -269,15 +269,13 @@ impl Subscriber<BillingOperation> for PosthogService {
             inject_org_group(&mut props);
             self.capture(&event_name, &distinct_id, props).await;
 
-            // Update person and group properties. Use the *resulting* plan so a
-            // downgrade-to-Free (cancellation / unconverted trial) labels the
-            // person/org as Free, not the outgoing paid plan that `plan()`
-            // carries.
-            let plan_name: serde_json::Value = event
-                .operation
-                .resulting_plan_name()
-                .map(|n| json!(n))
-                .unwrap_or(json!(null));
+            // Update person and group properties from the plan the org lands
+            // on. Events that carry no plan (payment method, invoice, discount
+            // events and the like) leave `plan_type` as it is rather than
+            // nulling it.
+            let Some(plan_name) = event.operation.resulting_plan_name() else {
+                continue;
+            };
 
             self.identify(
                 &distinct_id,

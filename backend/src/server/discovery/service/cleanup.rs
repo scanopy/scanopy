@@ -332,10 +332,11 @@ impl DiscoveryService {
 /// included, so a phase that empties reads 0 rather than holding its last count. Terminal sessions
 /// leave the map as they end, so there is nothing to count for them.
 fn record_active_sessions(sessions: &HashMap<Uuid, DiscoveryUpdatePayload>) {
+    use crate::server::shared::types::metadata::HasId;
     use strum::IntoEnumIterator;
     for phase in DiscoveryPhase::iter().filter(|p| !p.is_terminal()) {
         let count = sessions.values().filter(|s| s.phase == phase).count();
-        metrics::gauge!("scanopy_discovery_sessions_active", "phase" => phase.to_string())
+        metrics::gauge!("scanopy_discovery_sessions_active", "phase" => phase.id())
             .set(count as f64);
     }
 }

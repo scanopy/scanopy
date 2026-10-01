@@ -13,6 +13,7 @@
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { trackEvent } from '$lib/shared/utils/analytics';
 	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
+	import type { PaymentFormSource } from '$lib/shared/billing/setup-payment';
 	import { isPlanLapsed, isBillingPlanActive } from '$lib/features/organizations/types';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
 	import { isLicenseSigningAvailable, useConfigQuery } from '$lib/shared/stores/config-query';
@@ -145,7 +146,9 @@
 			// Closed without the plan: nothing is bought yet, so the page must not lock
 			// onto the License tab over the dialog. The lock follows the webhook.
 			onClose();
-			openModal('payment-method', { entityData: { plan } });
+			openModal('payment-method', {
+				entityData: { plan, source: 'plan_picker' satisfies PaymentFormSource }
+			});
 			return;
 		}
 
