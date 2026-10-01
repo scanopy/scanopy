@@ -28,7 +28,7 @@ impl BillingService {
             .customer(customer_id.to_string())
             .automatic_payment_methods(automatic_payment_methods)
             .usage(CreateSetupIntentUsage::OffSession)
-            .metadata([("organization_id".to_string(), organization_id.to_string())])
+            .metadata(StripeOrgMetadata::new(organization_id).to_stripe())
             .send(&self.stripe)
             .await
             .map_err(|e| anyhow!(e.to_string()))?;
@@ -401,10 +401,9 @@ impl BillingService {
             }
             let updated = update
                 .items(items)
-                .metadata([
-                    ("plan".to_string(), serde_json::to_string(&target_plan)?),
-                    ("organization_id".to_string(), organization_id.to_string()),
-                ])
+                .metadata(
+                    StripeSubscriptionMetadata::identity(organization_id, target_plan).to_stripe(),
+                )
                 .proration_behavior(proration)
                 // Clear any pending cancellation. We standardize on `cancel_at`
                 // everywhere we SET or READ scheduled-cancellation state, but

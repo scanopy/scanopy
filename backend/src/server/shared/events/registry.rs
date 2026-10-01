@@ -224,3 +224,28 @@ fn to_snake_case(s: &str) -> String {
     }
     out
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// `scanopy_event_subscriber_errors_total` splits each name at `:` into its `subscriber` and
+    /// `event_type` labels. Every registered subscriber must yield both halves, or its failures
+    /// land under a malformed series.
+    #[test]
+    fn every_subscriber_name_splits_into_metric_labels() {
+        let mut count = 0;
+        for entry in inventory::iter::<SubscriberRegistration> {
+            let name = (entry.name)();
+            let (subscriber, event_type) = name
+                .split_once(':')
+                .unwrap_or_else(|| panic!("{name} has no ':'"));
+            assert!(
+                !subscriber.is_empty() && !event_type.is_empty() && !event_type.contains(':'),
+                "{name} does not split into subscriber and event_type"
+            );
+            count += 1;
+        }
+        assert!(count > 0, "no subscribers registered");
+    }
+}

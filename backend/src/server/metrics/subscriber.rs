@@ -58,21 +58,30 @@ fn record_event(category: &str, operation: impl std::fmt::Display) {
     .increment(1);
 }
 
-/// A subscriber that returned an error, so its side of the event was never applied (an org
-/// field left unwritten, an email unsent). The bus only logs these and the publisher carries on,
-/// so a Stripe webhook still gets its 200 and is not retried; this counter is the only alert.
+/// A subscriber delivery that hit an error, by how it ended (`traits.rs::handle_with_retry`).
+/// `recovered` means a retry applied it; `exhausted` and `not_retried` mean that subscriber's side
+/// of the event was never applied (an org field left unwritten, an email unsent). The publisher
+/// carries on either way, so a Stripe webhook still gets its 200 and is not redelivered; this
+/// counter is the alert.
 ///
 /// `name` is the registry's `<service_snake>:<op_snake>` (`registry.rs`), split into two
 /// labels so failures can be summed per service or per event type. Both halves come from type
-/// names, so the label set is fixed at compile time.
-pub(crate) fn record_subscriber_error(name: &'static str) {
+/// names, so the label set is fixed at compile time. `count` is above 1 only for a
+/// `NonRetryable` report covering several failed events.
+pub(crate) fn record_subscriber_error(
+    name: &'static str,
+    outcome: crate::server::shared::events::traits::SubscriberErrorOutcome,
+    count: u64,
+) {
     let (subscriber, event_type) = name.split_once(':').unwrap_or((name, "unknown"));
+    let outcome: &'static str = outcome.into();
     metrics::counter!(
         "scanopy_event_subscriber_errors_total",
         "subscriber" => subscriber,
         "event_type" => event_type,
+        "outcome" => outcome,
     )
-    .increment(1);
+    .increment(count);
 }
 
 /// Per-code, per-integration counter for discovery scan warnings.

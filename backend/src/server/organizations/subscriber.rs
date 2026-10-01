@@ -405,7 +405,15 @@ impl Subscriber<BillingOperation> for OrganizationService {
                 self.update(&mut organization, AuthenticatedEntity::System)
                     .await?;
             }
-            lock.release().await?;
+            // The write has committed. A failed release is not a failed event: returning it
+            // would have the bus retry work that is done. The guard's Drop releases the lock.
+            if let Err(e) = lock.release().await {
+                tracing::warn!(
+                    organization_id = %org_id,
+                    error = %e,
+                    "Org lock release failed after the billing mirror write committed",
+                );
+            }
         }
 
         Ok(())

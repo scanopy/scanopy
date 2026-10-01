@@ -4,6 +4,10 @@
 //! engagement counters) and contact attributes (email, role, marketing opt-in,
 //! signup metadata). Routes auth `Register` to contact creation + DOI flow;
 //! routes org/billing/discovery/entity events to company updates.
+//!
+//! Every handler processes its whole batch and reports failures as `NonRetryable`: a re-run
+//! would repeat the syncs that already succeeded, and company creation and the DOI register
+//! email are not idempotent.
 
 use crate::{
     daemon::discovery::types::base::{DiscoveryPhase, DiscoveryPhaseDiscriminants},
@@ -14,7 +18,7 @@ use crate::{
             entities::EntityDiscriminants,
             events::{
                 registry::SubscriberRegistration,
-                traits::{EntityEventFilter, Event, EventFilter, Subscriber},
+                traits::{EntityEventFilter, Event, EventFilter, NonRetryable, Subscriber},
                 types::{
                     AuthOperation, AuthOperationDiscriminants, BillingOperation, EntityOperation,
                     EntityOperationDiscriminants, OnboardingOperation,
@@ -23,7 +27,7 @@ use crate::{
         },
     },
 };
-use anyhow::Error;
+use anyhow::{Error, anyhow};
 use async_trait::async_trait;
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
@@ -35,16 +39,13 @@ impl Subscriber<BillingOperation> for BrevoService {
     }
 
     async fn handle(&self, events: Vec<Event<BillingOperation>>) -> Result<(), Error> {
+        let mut failures = Vec::new();
         for event in &events {
             if let Err(e) = self.handle_billing_event(event).await {
-                tracing::warn!(
-                    error = %e,
-                    operation = %event.operation,
-                    "Failed to sync billing event to Brevo"
-                );
+                failures.push(anyhow!("billing {}: {e:#}", event.operation));
             }
         }
-        Ok(())
+        NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
     }
 
     fn debounce_window_ms(&self) -> u64 {
@@ -60,16 +61,13 @@ impl Subscriber<OnboardingOperation> for BrevoService {
     }
 
     async fn handle(&self, events: Vec<Event<OnboardingOperation>>) -> Result<(), Error> {
+        let mut failures = Vec::new();
         for event in &events {
             if let Err(e) = self.handle_onboarding_event(event).await {
-                tracing::warn!(
-                    error = %e,
-                    operation = %event.operation,
-                    "Failed to sync onboarding event to Brevo"
-                );
+                failures.push(anyhow!("onboarding {}: {e:#}", event.operation));
             }
         }
-        Ok(())
+        NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
     }
 
     fn debounce_window_ms(&self) -> u64 {
@@ -91,6 +89,7 @@ impl Subscriber<AuthOperation> for BrevoService {
     }
 
     async fn handle(&self, events: Vec<Event<AuthOperation>>) -> Result<(), Error> {
+        let mut failures = Vec::new();
         for event in &events {
             match &event.operation {
                 AuthOperation::LoginSuccess { .. } => {
@@ -99,18 +98,18 @@ impl Subscriber<AuthOperation> for BrevoService {
                             .update_contact_last_login(email.to_string(), *user_id)
                             .await
                     {
-                        tracing::warn!(error = %e, "Failed to sync auth login to Brevo");
+                        failures.push(anyhow!("login sync for user {user_id}: {e:#}"));
                     }
                 }
                 AuthOperation::Register { .. } => {
                     if let Err(e) = self.handle_register(event).await {
-                        tracing::warn!(error = %e, "Failed to handle register in Brevo");
+                        failures.push(anyhow!("register: {e:#}"));
                     }
                 }
                 _ => {}
             }
         }
-        Ok(())
+        NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
     }
 }
 inventory::submit!(SubscriberRegistration::new::<BrevoService, AuthOperation>());
@@ -122,15 +121,16 @@ impl Subscriber<DiscoveryPhase> for BrevoService {
     }
 
     async fn handle(&self, events: Vec<Event<DiscoveryPhase>>) -> Result<(), Error> {
+        let mut failures = Vec::new();
         for event in &events {
             if event.operation == DiscoveryPhase::Scanning
                 && let Some(org_id) = self.get_org_id_from_network(&event.scope.network_id).await
                 && let Err(e) = self.update_company_last_discovery(org_id).await
             {
-                tracing::warn!(error = %e, "Failed to sync discovery to Brevo");
+                failures.push(anyhow!("discovery sync for org {org_id}: {e:#}"));
             }
         }
-        Ok(())
+        NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
     }
 }
 inventory::submit!(SubscriberRegistration::new::<BrevoService, DiscoveryPhase>());
@@ -162,17 +162,13 @@ impl Subscriber<EntityOperation> for BrevoService {
             }
         }
 
+        let mut failures = Vec::new();
         for org_id in org_ids_for_metrics {
             if let Err(e) = self.sync_org_entity_metrics(org_id).await {
-                tracing::warn!(
-                    error = %e,
-                    organization_id = %org_id,
-                    "Failed to sync organization metrics to Brevo"
-                );
+                failures.push(anyhow!("entity metrics sync for org {org_id}: {e:#}"));
             }
         }
-
-        Ok(())
+        NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
     }
 
     fn debounce_window_ms(&self) -> u64 {

@@ -84,15 +84,11 @@ impl BillingService {
                 tax_rates: None,
                 metadata: None,
             }])
-            .metadata([("organization_id".to_string(), organization_id.to_string())])
+            .metadata(StripeOrgMetadata::new(organization_id).to_stripe())
             .subscription_data(CreateCheckoutSessionSubscriptionData {
                 trial_period_days: trial_days,
                 metadata: Some(
-                    [
-                        ("organization_id".to_string(), organization_id.to_string()),
-                        ("plan".to_string(), serde_json::to_string(&plan)?),
-                    ]
-                    .into(),
+                    StripeSubscriptionMetadata::identity(organization_id, plan).to_stripe(),
                 ),
                 ..Default::default()
             });
@@ -219,10 +215,15 @@ impl BillingService {
                     CreateSubscriptionTrialSettingsEndBehaviorMissingPaymentMethod::Cancel,
                 ),
             ))
-            .metadata([
-                ("organization_id".to_string(), organization_id.to_string()),
-                ("plan".to_string(), serde_json::to_string(&plan)?),
-            ])
+            .metadata(StripeSubscriptionMetadata::identity(organization_id, plan).to_stripe())
+            // A trial is allowed once per org, so the key is the org: a retried
+            // or concurrent request returns the first subscription instead of
+            // opening a second trial before `trial_end_date` lands on the org.
+            .customize()
+            .request_strategy(RequestStrategy::Idempotent(
+                IdempotencyKey::new(format!("trial-subscription-{organization_id}"))
+                    .map_err(|e| anyhow!("Invalid idempotency key: {e:?}"))?,
+            ))
             .send(&self.stripe)
             .await
             .map_err(|e| anyhow!(e.to_string()))?;
@@ -283,10 +284,7 @@ impl BillingService {
                 quantity: Some(1),
                 ..Default::default()
             }])
-            .metadata([
-                ("organization_id".to_string(), organization_id.to_string()),
-                ("plan".to_string(), serde_json::to_string(&plan)?),
-            ])
+            .metadata(StripeSubscriptionMetadata::identity(organization_id, plan).to_stripe())
             .send(&self.stripe)
             .await
             .map_err(|e| anyhow!(e.to_string()))?;
@@ -469,9 +467,19 @@ impl BillingService {
         Ok(())
     }
 
-    /// Get existing customer or create new one. On create, publishes
+    /// Get existing customer or create new one. On create or adopt, publishes
     /// `StripeCustomerCreated` so the org-service subscriber mirrors the
     /// customer id onto `organizations.stripe_customer_id`.
+    ///
+    /// The mirror write runs after the customer exists in Stripe and can fail,
+    /// leaving a customer the org row doesn't name. Before creating, this
+    /// searches Stripe for a customer carrying the org's id in metadata and
+    /// adopts it, which heals the mirror. Stripe search lags writes by up to a
+    /// minute (longer during incidents), so two requests close together can
+    /// both miss; the create's idempotency key makes those return one
+    /// customer. No org lock is taken here: the `StripeCustomerCreated`
+    /// subscriber takes the org lock itself, so publishing while holding it
+    /// would block that subscriber until the lock times out.
     pub(crate) async fn get_or_create_customer(
         &self,
         organization_id: Uuid,
@@ -488,40 +496,91 @@ impl BillingService {
             return Ok(CustomerId::from(customer_id.to_owned()));
         }
 
-        let organization_owners = self
-            .user_service
-            .get_organization_owners(&organization_id)
-            .await?;
+        let customer_id = match self.find_org_customer(organization_id).await? {
+            Some(customer_id) => {
+                tracing::info!(
+                    organization_id = %organization_id,
+                    customer_id = %customer_id,
+                    "Adopted existing Stripe customer found by org metadata"
+                );
+                customer_id
+            }
+            None => {
+                let organization_owners = self
+                    .user_service
+                    .get_organization_owners(&organization_id)
+                    .await?;
 
-        let first_owner = organization_owners
-            .first()
-            .ok_or_else(|| anyhow!("Organization {} doesn't have an owner.", organization_id))?;
+                let first_owner = organization_owners.first().ok_or_else(|| {
+                    anyhow!("Organization {} doesn't have an owner.", organization_id)
+                })?;
 
-        // Create new customer
-        let create_customer = CreateCustomer::new()
-            .metadata([("organization_id".to_string(), organization_id.to_string())])
-            .email(first_owner.base.email.clone());
+                let idempotency_key =
+                    IdempotencyKey::new(format!("customer-{organization_id}-{}", first_owner.id))
+                        .map_err(|e| anyhow!("Invalid idempotency key: {e:?}"))?;
 
-        let customer = create_customer.send(&self.stripe).await?;
+                let customer = CreateCustomer::new()
+                    .metadata(StripeOrgMetadata::new(organization_id).to_stripe())
+                    .email(first_owner.base.email.clone())
+                    .customize()
+                    .request_strategy(RequestStrategy::Idempotent(idempotency_key))
+                    .send(&self.stripe)
+                    .await?;
 
-        tracing::info!(
-            organization_id = %organization_id,
-            customer_id = %customer.id,
-            customer_email = %first_owner.base.email,
-            "Created new Stripe customer"
-        );
+                tracing::info!(
+                    organization_id = %organization_id,
+                    customer_id = %customer.id,
+                    customer_email = %first_owner.base.email,
+                    "Created new Stripe customer"
+                );
+                customer.id
+            }
+        };
 
         self.event_bus
             .publish(Event::new(
                 OrgScope { organization_id },
                 BillingOperation::StripeCustomerCreated {
-                    customer_id: customer.id.to_string(),
+                    customer_id: customer_id.to_string(),
                 },
                 AuthenticatedEntity::System,
             ))
             .await?;
 
-        Ok(customer.id)
+        Ok(customer_id)
+    }
+
+    /// The oldest live Stripe customer whose metadata names this org, if any.
+    /// Stripe search excludes deleted customers. More than one hit means
+    /// duplicates were created before this lookup existed; the oldest is the
+    /// one any earlier subscription most likely hangs off.
+    async fn find_org_customer(&self, organization_id: Uuid) -> Result<Option<CustomerId>, Error> {
+        let hits = SearchCustomer::new(StripeOrgMetadata::search_query(organization_id))
+            .send(&self.stripe)
+            .await?
+            .data;
+
+        let mut matching: Vec<_> = hits
+            .into_iter()
+            .filter(|c| {
+                c.metadata
+                    .as_ref()
+                    .map(StripeOrgMetadata::from_stripe)
+                    .and_then(|m| m.organization_id)
+                    == Some(organization_id)
+            })
+            .collect();
+
+        if matching.len() > 1 {
+            tracing::warn!(
+                organization_id = %organization_id,
+                customer_ids = ?matching.iter().map(|c| c.id.to_string()).collect::<Vec<_>>(),
+                "Multiple Stripe customers carry this org's id; adopting the oldest"
+            );
+        }
+
+        matching.sort_by_key(|c| c.created);
+        Ok(matching.into_iter().next().map(|c| c.id))
     }
 
     /// Permanently delete the Stripe customer. Stripe auto-cancels active

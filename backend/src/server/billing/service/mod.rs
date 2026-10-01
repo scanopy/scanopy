@@ -8,7 +8,9 @@ use crate::server::billing::types::api::{
 };
 use crate::server::billing::types::base::{BillingInvoice, BillingPlan, CancelReason, PlanStatus};
 use crate::server::billing::types::features::Feature;
-use crate::server::billing::types::stripe_metadata::StripeSubscriptionMetadata;
+use crate::server::billing::types::stripe_metadata::{
+    StripeOrgMetadata, StripeSubscriptionMetadata,
+};
 use crate::server::hosts::service::HostService;
 use crate::server::license::types::LicenseKeyType;
 use crate::server::networks::r#impl::Network;
@@ -70,6 +72,7 @@ use stripe_core::customer::CreateCustomer;
 use stripe_core::customer::DeleteCustomer;
 use stripe_core::customer::DeleteDiscountCustomer;
 use stripe_core::customer::ListPaymentMethodsCustomer;
+use stripe_core::customer::SearchCustomer;
 use stripe_core::customer::UpdateCustomer;
 use stripe_core::customer::UpdateCustomerInvoiceSettings;
 use stripe_core::customer_balance_transaction::CreateCustomerCustomerBalanceTransaction;
@@ -215,17 +218,21 @@ struct PauseCredit {
 /// credit).
 ///
 /// The math:
-/// - `actual_paused_secs = clamp(now - scanopy_paused_at, 0, requested_secs)`
+/// - `actual_paused_secs = clamp(resumed_at - scanopy_paused_at, 0, requested_secs)`
 /// - `effective_per_period = base × (1 − active_discount_pct)` (use the
 ///   post-discount rate so we don't over-credit by the coupon amount)
 /// - `credit_cents = effective_per_period × actual_paused_secs / period_secs`
-fn compute_pause_credit(sub: &Subscription, organization: &Organization) -> Option<PauseCredit> {
+fn compute_pause_credit(
+    sub: &Subscription,
+    organization: &Organization,
+    resumed_at: DateTime<Utc>,
+) -> Option<PauseCredit> {
     let meta = StripeSubscriptionMetadata::from_stripe(&sub.metadata);
     let paused_at_ts = meta.scanopy_paused_at?;
     let item = sub.items.data.first()?;
 
-    let now_ts = Utc::now().timestamp();
-    let raw_elapsed = (now_ts - paused_at_ts).max(0);
+    let resumed_ts = resumed_at.timestamp();
+    let raw_elapsed = (resumed_ts - paused_at_ts).max(0);
     let cap_secs = meta
         .scanopy_pause_duration_days
         .map(|d| i64::from(d) * 86_400)
@@ -242,7 +249,7 @@ fn compute_pause_credit(sub: &Subscription, organization: &Organization) -> Opti
         organization.base.discount_save_offer_percent_off,
         organization.base.discount_save_offer_active_until,
     ) {
-        (Some(percent_off), Some(active_until)) if active_until > Utc::now() => {
+        (Some(percent_off), Some(active_until)) if active_until > resumed_at => {
             (gross_per_period as f64 * (1.0 - percent_off as f64 / 100.0)).round() as i64
         }
         _ => gross_per_period,

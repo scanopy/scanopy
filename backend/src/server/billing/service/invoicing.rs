@@ -106,7 +106,10 @@ impl BillingService {
                             }])
                             .collection_method(SubscriptionCollectionMethod::SendInvoice)
                             .days_until_due(INVOICE_DAYS_UNTIL_DUE)
-                            .metadata(subscription_metadata(organization_id, plan)?)
+                            .metadata(
+                                StripeSubscriptionMetadata::identity(organization_id, plan)
+                                    .to_stripe(),
+                            )
                             .send(&self.stripe)
                             .await?
                     }
@@ -196,7 +199,7 @@ impl BillingService {
             .days_until_due(INVOICE_DAYS_UNTIL_DUE)
             .billing_cycle_anchor(term_end.timestamp())
             .proration_behavior(CreateSubscriptionProrationBehavior::None)
-            .metadata(subscription_metadata(organization.id, plan)?)
+            .metadata(StripeSubscriptionMetadata::identity(organization.id, plan).to_stripe())
             .customize()
             .request_strategy(RequestStrategy::Idempotent(idempotency_key))
             .send(&self.stripe)
@@ -678,7 +681,8 @@ impl BillingService {
         invoice_settings.days_until_due = Some(INVOICE_DAYS_UNTIL_DUE);
 
         let mut subscription_data = CreateQuoteSubscriptionData::new();
-        subscription_data.metadata = Some(subscription_metadata(organization_id, plan)?);
+        subscription_data.metadata =
+            Some(StripeSubscriptionMetadata::identity(organization_id, plan).to_stripe());
 
         let draft = CreateQuote::new()
             .customer(customer_id.to_string())
@@ -1044,20 +1048,6 @@ fn plan_to_invoice(
 /// A request the buyer can correct, returned as 400 rather than 500.
 fn refused(message: impl Into<String>) -> Error {
     ValidationError::new(message).into()
-}
-
-/// Subscription metadata identifying the org and plan, as every Stripe
-/// subscription the webhooks read carries.
-fn subscription_metadata(
-    organization_id: Uuid,
-    plan: BillingPlan,
-) -> Result<std::collections::HashMap<String, String>, Error> {
-    Ok(StripeSubscriptionMetadata {
-        organization_id: Some(organization_id),
-        plan: Some(plan),
-        ..Default::default()
-    }
-    .to_stripe())
 }
 
 #[cfg(test)]
