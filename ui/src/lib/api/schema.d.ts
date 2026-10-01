@@ -6587,6 +6587,8 @@ export interface components {
          */
         ClientProbe: "Docker" | "Gnmi" | "Podman" | "Snmp" | "UnifiController" | "InstantOn" | "ModbusTcp" | "OpcUa" | "EtherNetIp" | "Sip" | "Ssh" | "Ftp" | "Telnet" | "Rtsp" | "Nut" | "ZabbixAgent" | "CheckMkAgent" | "Smb" | "Ldap" | "Kerberos" | "MySql" | "PostgreSql" | "MsSql" | "MongoDb" | "Redis" | "Cassandra" | "Kafka" | "Amqp" | "Mqtt" | "OracleTns" | "Rdp" | "Nfs" | "DnsTcp" | "DockerSwarm" | "Tls" | "Ike" | "OpenVpn" | "Zmtp" | "Bacula" | "BeszelAgent" | "H323";
         /** @enum {string} */
+        ClockFormat: "browser_default" | "twelve_hour" | "twenty_four_hour";
+        /** @enum {string} */
         Color: "Pink" | "Rose" | "Red" | "Amber" | "Orange" | "Green" | "Emerald" | "Teal" | "Cyan" | "Blue" | "Indigo" | "Purple" | "Fuchsia" | "Violet" | "Sky" | "Gray" | "Lime" | "Yellow";
         /** @enum {string} */
         ContainerType: "Subnet" | "ServiceCategory" | "Application" | "ApplicationUngrouped" | "Root" | "Host" | "NestedTag" | "NestedServiceCategory" | "Hypervisor" | "ContainerRuntime" | "Stack" | "TrunkPort" | "VLAN" | "PortOpStatus";
@@ -7342,6 +7344,8 @@ export interface components {
             /** @description The most recent discovery runs, newest first. */
             recent_discoveries: components["schemas"]["Discovery"][];
         };
+        /** @enum {string} */
+        DateOrder: "browser_default" | "iso" | "day_first" | "month_first";
         /**
          * @description Lifecycle of a demo-populate task. `Running` is set synchronously in the
          *     POST handler (before the `202`), then flipped to a terminal variant by the
@@ -8155,6 +8159,29 @@ export interface components {
             code: "Unknown";
             /** @description The original warning text, rendered as-is. */
             detail: string;
+        };
+        /**
+         * @description Per-user display preferences for dates and times in the UI.
+         *
+         *     Stored as a JSONB blob with `#[serde(default)]` on the struct, so a stored
+         *     object missing a key (including the `{}` every existing row starts with)
+         *     reads as that field's default. Every default reproduces the UI's
+         *     behaviour from before the setting existed.
+         */
+        DisplaySettings: {
+            /** @default browser_default */
+            clock: components["schemas"]["ClockFormat"];
+            /** @default browser_default */
+            date_order: components["schemas"]["DateOrder"];
+            /**
+             * @description IANA time zone dates are shown in. `None` uses the browser's zone.
+             * @default null
+             */
+            time_zone: string | null;
+            /** @default relative */
+            timestamps: components["schemas"]["TimestampStyle"];
+            /** @default monday */
+            week_start: components["schemas"]["WeekStart"];
         };
         /** @description The docker install method. */
         DockerInstall: {
@@ -12506,6 +12533,8 @@ export interface components {
             /** @description Whether the TCP connection succeeded */
             reachable: boolean;
         };
+        /** @enum {string} */
+        TimestampStyle: "relative" | "absolute";
         Topology: components["schemas"]["TopologyBase"] & {
             /**
              * Format: date-time
@@ -13092,6 +13121,8 @@ export interface components {
             readonly key: string;
         };
         UserBase: {
+            /** @description Per-user date and time display preferences */
+            display_settings?: components["schemas"]["DisplaySettings"];
             /**
              * Format: email
              * @description The user's email address, also their login identifier.
@@ -13287,6 +13318,8 @@ export interface components {
         };
         /** @enum {string} */
         VlanOrderField: "created_at" | "name" | "vlan_number" | "updated_at";
+        /** @enum {string} */
+        WeekStart: "monday" | "sunday";
     };
     responses: never;
     parameters: never;

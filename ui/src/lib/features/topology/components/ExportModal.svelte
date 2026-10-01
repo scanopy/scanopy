@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatTimestamp } from '$lib/shared/utils/formatting';
 	import { toPng, toSvg } from 'html-to-image';
 	import { useSvelteFlow } from '@xyflow/svelte';
 	import {
@@ -336,7 +337,7 @@
 		let header = document.createElement('div');
 		if (includeHeader) {
 			const exportName = topologyName || 'Network Topology';
-			const exportDate = new Date().toLocaleString();
+			const exportDate = formatTimestamp(new Date());
 			const textColor = exportTheme === 'dark' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.8)';
 			const dateColor = exportTheme === 'dark' ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.4)';
 			header.style.cssText = `

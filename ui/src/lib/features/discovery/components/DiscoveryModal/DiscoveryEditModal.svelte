@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { effectiveTimeZone } from '$lib/shared/stores/display-settings.svelte';
 	import { createForm } from '@tanstack/svelte-form';
 	import { submitForm, validateForm } from '$lib/shared/components/forms/form-context';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
@@ -535,7 +536,7 @@
 			host_naming_fallback: 'BestService' as 'BestService' | 'Ip',
 			schedule_days_of_week: '0',
 			schedule_time: '00:00',
-			schedule_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+			schedule_timezone: effectiveTimeZone(),
 			schedule_cron: '0 0 0 * * 0'
 		},
 		onSubmit: async ({ value }) => {
@@ -655,7 +656,7 @@
 		let scheduleDaysOfWeek = '0';
 		let scheduleTime = '00:00';
 		let scheduleCron = '0 0 0 * * 0';
-		let scheduleTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+		let scheduleTimezone = effectiveTimeZone();
 
 		if (formData.run_type.type === 'Scheduled') {
 			scheduleCron = formData.run_type.cron_schedule;

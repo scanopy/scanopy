@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatLongDate } from '$lib/shared/utils/formatting';
 	import { createForm } from '@tanstack/svelte-form';
 	import { submitForm } from '$lib/shared/components/forms/form-context';
 	import { max } from '$lib/shared/components/forms/validators';
@@ -33,14 +34,6 @@
 			style: 'currency',
 			currency: currency.toUpperCase()
 		}).format(cents / 100);
-	}
-
-	function formatDate(value: string): string {
-		return new Date(value).toLocaleDateString(undefined, {
-			month: 'long',
-			day: 'numeric',
-			year: 'numeric'
-		});
 	}
 
 	let quote = $derived(status.pending_quote ?? null);
@@ -120,12 +113,12 @@
 			{status.po_number
 				? billing_invoice_quoteBodyWithPo({
 						amount: formatMoney(quote.amount_total_cents, quote.currency),
-						date: formatDate(quote.expires_at),
+						date: formatLongDate(quote.expires_at),
 						po: status.po_number
 					})
 				: billing_invoice_quoteBodyNoPo({
 						amount: formatMoney(quote.amount_total_cents, quote.currency),
-						date: formatDate(quote.expires_at)
+						date: formatLongDate(quote.expires_at)
 					})}
 		</p>
 	</div>

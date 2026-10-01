@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatDate } from '$lib/shared/utils/formatting';
 	import { useCurrentUserQuery, useLogoutMutation } from '$lib/features/auth/queries';
 	import { useQueryClient } from '@tanstack/svelte-query';
 	import { queryKeys } from '$lib/api/query-client';
@@ -301,7 +302,7 @@
 														{#if isLinked}
 															<p class="text-secondary text-xs">
 																{settings_account_linkedOn({
-																	date: new Date(user.oidc_linked_at || '').toLocaleDateString()
+																	date: formatDate(user.oidc_linked_at || '')
 																})}
 															</p>
 														{:else if isDisabled}

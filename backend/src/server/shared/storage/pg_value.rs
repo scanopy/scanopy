@@ -257,6 +257,7 @@ impl SqlValue {
             Self::DiscoveryType(v) => Bound::Json(PgJson::new(serde_json::to_value(v)?)),
             Self::IntegrationTargets(v) => Bound::Json(PgJson::new(serde_json::to_value(v)?)),
             Self::EmailSettings(v) => Bound::Json(PgJson::new(serde_json::to_value(v)?)),
+            Self::DisplaySettings(v) => Bound::Json(PgJson::new(serde_json::to_value(v)?)),
             Self::OptionBillingPlan(v) => Bound::Json(PgJson::new(serde_json::to_value(v)?)),
             Self::BillingOperation(v) => Bound::Json(PgJson::new(serde_json::to_value(v)?)),
             Self::AuthenticatedEntity(v) => Bound::Json(PgJson::new(serde_json::to_value(v)?)),

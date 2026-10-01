@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatLongDate } from '$lib/shared/utils/formatting';
 	import { createForm } from '@tanstack/svelte-form';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
 	import SelectInput from '$lib/shared/components/forms/input/SelectInput.svelte';
@@ -246,15 +247,6 @@
 		return { renewalDate: renewal };
 	});
 
-	function fmtDate(d: Date | string): string {
-		const dt = typeof d === 'string' ? new Date(d) : d;
-		return dt.toLocaleDateString(undefined, {
-			month: 'long',
-			day: 'numeric',
-			year: 'numeric'
-		});
-	}
-
 	function reset() {
 		currentStep = 1;
 		selectedReason = '';
@@ -277,7 +269,7 @@
 			await pauseMutation.mutateAsync(selectedPauseDuration);
 			const flipped = await waitForOrgUpdate((o) => o.plan_status === 'paused');
 			if (flipped) {
-				pushSuccess(billing_subscriptionPausedUntil({ date: fmtDate(pauseResumesAt) }));
+				pushSuccess(billing_subscriptionPausedUntil({ date: formatLongDate(pauseResumesAt) }));
 			} else {
 				pushWarning(billing_requestAccepted());
 			}
@@ -318,7 +310,7 @@
 			if (flipped) {
 				pushSuccess(
 					settings_billing_cancelModal_doneSummary({
-						periodEnd: fmtDate(response.period_end)
+						periodEnd: formatLongDate(response.period_end)
 					})
 				);
 			} else {
@@ -394,8 +386,8 @@
 							{#if pauseCooldownEnd && lastPausedAt}
 								<InlineWarning
 									title={settings_billing_saveOffer_pauseCooldown({
-										lastPausedDate: fmtDate(new Date(lastPausedAt)),
-										nextEligibleDate: fmtDate(pauseCooldownEnd)
+										lastPausedDate: formatLongDate(new Date(lastPausedAt)),
+										nextEligibleDate: formatLongDate(pauseCooldownEnd)
 									})}
 								/>
 							{:else}
@@ -415,13 +407,13 @@
 								</div>
 								<p class="text-tertiary text-sm">
 									{settings_billing_saveOffer_pausePreview({
-										resumesAt: fmtDate(pauseResumesAt)
+										resumesAt: formatLongDate(pauseResumesAt)
 									})}
 								</p>
 								{#if renewalSpanWarning}
 									<InlineInfo
 										title={settings_billing_saveOffer_pauseSpansRenewal_title({
-											renewalDate: fmtDate(renewalSpanWarning.renewalDate)
+											renewalDate: formatLongDate(renewalSpanWarning.renewalDate)
 										})}
 										body={settings_billing_saveOffer_pauseSpansRenewal_body()}
 									/>
@@ -450,7 +442,7 @@
 									{#if saveOfferCoupon?.billing_rate === 'Year'}
 										{settings_billing_saveOffer_discountSubtitleYearly({
 											percentOff: saveOfferCoupon.percent_off,
-											nextRenewalDate: fmtDate(new Date(saveOfferCoupon.next_renewal_at))
+											nextRenewalDate: formatLongDate(new Date(saveOfferCoupon.next_renewal_at))
 										})}
 									{:else if saveOfferCoupon}
 										{settings_billing_saveOffer_discountSubtitleMonthly({

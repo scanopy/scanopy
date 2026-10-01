@@ -21389,6 +21389,14 @@
           "H323"
         ]
       },
+      "ClockFormat": {
+        "type": "string",
+        "enum": [
+          "browser_default",
+          "twelve_hour",
+          "twenty_four_hour"
+        ]
+      },
       "Color": {
         "type": "string",
         "enum": [
@@ -23054,6 +23062,15 @@
             "description": "The most recent discovery runs, newest first."
           }
         }
+      },
+      "DateOrder": {
+        "type": "string",
+        "enum": [
+          "browser_default",
+          "iso",
+          "day_first",
+          "month_first"
+        ]
       },
       "DemoPopulateStatus": {
         "oneOf": [
@@ -25307,6 +25324,56 @@
           }
         ],
         "description": "A single non-fatal finding from one discovery run, about one device, neighbour, or the scan\nitself.\n\nSerialized with the code as the tag, so the generated TypeScript is a discriminated union the\nUI can switch on exhaustively. The derived `Deserialize` reads that shape; the leniency that\nkeeps historical records and pre-coded daemons working lives in [`deserialize_warnings`],\nwhich is applied at the one field that holds these."
+      },
+      "DisplaySettings": {
+        "type": "object",
+        "description": "Per-user display preferences for dates and times in the UI.\n\nStored as a JSONB blob with `#[serde(default)]` on the struct, so a stored\nobject missing a key (including the `{}` every existing row starts with)\nreads as that field's default. Every default reproduces the UI's\nbehaviour from before the setting existed.",
+        "properties": {
+          "clock": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ClockFormat",
+                "description": "12- or 24-hour clock for displayed times."
+              }
+            ],
+            "default": "browser_default"
+          },
+          "date_order": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DateOrder",
+                "description": "Order of day, month and year in displayed dates."
+              }
+            ],
+            "default": "browser_default"
+          },
+          "time_zone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "IANA time zone dates are shown in. `None` uses the browser's zone.",
+            "default": null
+          },
+          "timestamps": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TimestampStyle",
+                "description": "Whether recent events show as relative (\"3h ago\") or absolute times."
+              }
+            ],
+            "default": "relative"
+          },
+          "week_start": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WeekStart",
+                "description": "First day of the week in day pickers."
+              }
+            ],
+            "default": "monday"
+          }
+        }
       },
       "DockerInstall": {
         "type": "object",
@@ -34328,6 +34395,13 @@
           }
         }
       },
+      "TimestampStyle": {
+        "type": "string",
+        "enum": [
+          "relative",
+          "absolute"
+        ]
+      },
       "Topology": {
         "allOf": [
           {
@@ -35398,6 +35472,10 @@
           "network_ids"
         ],
         "properties": {
+          "display_settings": {
+            "$ref": "#/components/schemas/DisplaySettings",
+            "description": "Per-user date and time display preferences"
+          },
           "email": {
             "type": "string",
             "format": "email",
@@ -35777,6 +35855,13 @@
           "name",
           "vlan_number",
           "updated_at"
+        ]
+      },
+      "WeekStart": {
+        "type": "string",
+        "enum": [
+          "monday",
+          "sunday"
         ]
       }
     },

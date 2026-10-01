@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatLongDate } from '$lib/shared/utils/formatting';
 	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
@@ -104,12 +105,7 @@
 	let sunsetDateDisplay = $derived.by(() => {
 		const iso = daemonsData.find(hasSunsetWarning)?.version_status.sunset_date;
 		if (!iso) return null;
-		return new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric',
-			timeZone: 'UTC'
-		});
+		return formatLongDate(iso, 'UTC');
 	});
 	let networksData = $derived(networksQuery.data ?? []);
 	let subnetsData = $derived((subnetsQuery.data ?? []).filter(isUserManagedSubnet));

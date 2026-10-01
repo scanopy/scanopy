@@ -7,7 +7,10 @@ use crate::server::{
         entity_metadata::EntityCategory,
         storage::traits::{Entity, SqlValue, Storable},
     },
-    users::r#impl::{email_settings::EmailSettings, permissions::UserOrgPermissions},
+    users::r#impl::{
+        display_settings::DisplaySettings, email_settings::EmailSettings,
+        permissions::UserOrgPermissions,
+    },
 };
 use anyhow::{Error, Result};
 use chrono::{DateTime, Utc};
@@ -87,6 +90,9 @@ pub struct UserBase {
     /// Per-user email preferences
     #[serde(default)]
     pub email_settings: EmailSettings,
+    /// Per-user date and time display preferences
+    #[serde(default)]
+    pub display_settings: DisplaySettings,
     /// Monotonic session epoch. Every active session records the epoch it was
     /// created under; the auth extractor rejects a session whose epoch is below
     /// the user's current value. Bumping this (on password change/reset)
@@ -115,6 +121,7 @@ impl Default for UserBase {
             password_reset_expires: None,
             pending_email: None,
             email_settings: EmailSettings::default(),
+            display_settings: DisplaySettings::default(),
             session_epoch: 0,
         }
     }
@@ -149,6 +156,7 @@ impl UserBase {
             password_reset_expires: None,
             pending_email: None,
             email_settings: EmailSettings::default(),
+            display_settings: DisplaySettings::default(),
             session_epoch: 0,
         }
     }
@@ -180,6 +188,7 @@ impl UserBase {
             password_reset_expires: None,
             pending_email: None,
             email_settings: EmailSettings::default(),
+            display_settings: DisplaySettings::default(),
             session_epoch: 0,
         }
     }
@@ -271,6 +280,7 @@ impl Storable for User {
                     password_reset_expires,
                     pending_email,
                     email_settings,
+                    display_settings,
                     session_epoch,
                     ..
                 },
@@ -297,6 +307,7 @@ impl Storable for User {
                 "password_reset_expires",
                 "pending_email",
                 "email_settings",
+                "display_settings",
                 "session_epoch",
             ],
             vec![
@@ -318,6 +329,7 @@ impl Storable for User {
                 SqlValue::OptionTimestamp(password_reset_expires),
                 SqlValue::OptionalString(pending_email.map(|e| e.to_string())),
                 SqlValue::EmailSettings(email_settings),
+                SqlValue::DisplaySettings(display_settings),
                 SqlValue::I64(session_epoch),
             ],
         ))
@@ -363,6 +375,11 @@ impl Storable for User {
                 pending_email,
                 email_settings: row
                     .try_get::<serde_json::Value, _>("email_settings")
+                    .ok()
+                    .and_then(|v| serde_json::from_value(v).ok())
+                    .unwrap_or_default(),
+                display_settings: row
+                    .try_get::<serde_json::Value, _>("display_settings")
                     .ok()
                     .and_then(|v| serde_json::from_value(v).ok())
                     .unwrap_or_default(),
