@@ -8,8 +8,7 @@
 		useNodesInitialized,
 		useViewport,
 		type Connection,
-		useSvelteFlow,
-		useUpdateNodeInternals
+		useSvelteFlow
 	} from '@xyflow/svelte';
 	import {
 		common_collapse,
@@ -35,7 +34,6 @@
 	import './topology-viewer.css';
 	import { pushError } from '$lib/shared/stores/feedback';
 	import {
-		previewEdges,
 		baseFlowEdges,
 		selectedNodes,
 		selectedEdge as selectedEdgeStore,
@@ -89,6 +87,7 @@
 		tagHiddenNodeIds,
 		hiddenEntityIds
 	} from '../../interactions';
+	import { useRevealedPreviewEdges } from '../../preview-reveal.svelte';
 	import {
 		selectNode,
 		selectEdge,
@@ -1555,35 +1554,7 @@
 	}
 
 	// Preview edges enter `edges` only once SvelteFlow has bounds for the handles they name.
-	//
-	// A new dependency's preview usually names a side no real edge on that node uses, so the node
-	// never rendered that handle (`edgeHandlesByNode`) and SvelteFlow drops the edge with "Couldn't
-	// create edge for source handle id". Publishing the handles renders their divs, but SvelteFlow
-	// re-reads handle bounds from the DOM only when a node's size changes, and adding a handle does
-	// not change it. So the endpoints are force-measured, and the preview is revealed on the frame
-	// after that lands. `previewRun` discards a run the next preview has already superseded.
-	const updateNodeInternals = useUpdateNodeInternals();
-	let revealedPreview = $state<Edge[]>([]);
-	let previewRun = 0;
-	$effect(() => {
-		const preview = $previewEdges;
-		const run = ++previewRun;
-		const handles = collectEdgeHandles(preview);
-		previewEdgeHandlesByNode.set(handles);
-		if (preview.length === 0) {
-			revealedPreview = [];
-			return;
-		}
-		void (async () => {
-			await tick();
-			if (run !== previewRun) return;
-			updateNodeInternals([...handles.keys()]);
-			// The hook measures on the next frame; this callback is queued after it.
-			await new Promise((resolve) => requestAnimationFrame(resolve));
-			if (run !== previewRun) return;
-			revealedPreview = preview;
-		})();
-	});
+	const revealedPreview = useRevealedPreviewEdges();
 
 	// Derive the xyflow `edges` store from three reactive sources:
 	//   - baseFlowEdges: the real edges produced by the rebuild pipeline
@@ -1602,7 +1573,7 @@
 	});
 	$effect(() => {
 		const base = currentBaseFlowEdges;
-		const preview = revealedPreview;
+		const preview = revealedPreview.current;
 		const editingId = $editingDependencyId;
 		const aggregatedOriginals = $aggregatedEdgeOriginals;
 

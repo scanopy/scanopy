@@ -8394,6 +8394,15 @@ export interface components {
              */
             interface_id: string;
         };
+        /**
+         * @description The order of the nodes inside each top-level container, groups within it included.
+         *
+         *     Top-level containers keep their own placement whatever the sort. Anything other than
+         *     `Automatic` is applied by the server when it builds the graph, and the layout keeps that order
+         *     on screen, reading left to right, top to bottom.
+         * @enum {string}
+         */
+        ElementSort: "Automatic" | "Address" | "PortIndex" | "Name" | "Category";
         /** @description Request body for emailing an install command to the authenticated user. */
         EmailInstallCommandRequest: {
             /** @description The install command to send, exactly as shown in the UI. */
@@ -8777,7 +8786,7 @@ export interface components {
          * @description Fields that hosts can be ordered/grouped by.
          * @enum {string}
          */
-        HostOrderField: "created_at" | "name" | "hostname" | "updated_at" | "virtualized_by" | "network_id" | "interface_ip" | "last_seen_at";
+        HostOrderField: "created_at" | "name" | "hostname" | "updated_at" | "virtualized_by" | "network_id" | "interface_ip" | "last_seen_at" | "mac_address";
         /**
          * @description Response type for host endpoints.
          *     Includes children (ip_addresses, ports, services, interfaces).
@@ -12767,6 +12776,14 @@ export interface components {
              *     ]
              */
             element_rules: components["schemas"]["IdentifiedRule_ElementRule"][];
+            /**
+             * @description How nodes are ordered inside containers, per view. A view with no entry uses the
+             *     layout's own order.
+             * @default {}
+             */
+            element_sort: {
+                [key: string]: components["schemas"]["ElementSort"];
+            };
             /**
              * @description Entity types hidden per view. Keyed by TopologyView, values are entity
              *     types (matching those declared as container/element/inline in the
@@ -20870,6 +20887,15 @@ export interface operations {
                     "text/plain": string;
                 };
             };
+            /** @description Confluence export not available on plan */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
             /** @description Access denied */
             403: {
                 headers: {
@@ -20912,6 +20938,15 @@ export interface operations {
                 };
                 content: {
                     "text/plain": string;
+                };
+            };
+            /** @description Mermaid export not available on plan */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
             /** @description Access denied */

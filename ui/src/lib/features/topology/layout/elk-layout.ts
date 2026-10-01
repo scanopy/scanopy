@@ -13,6 +13,7 @@ import { getTopologyIndex } from '../entity-index';
 import * as perf from '../perf';
 import { resolveCollapsedAncestor } from '../collapse';
 import { noteElkRun } from '../diagnostics';
+import { pinChildOrder } from './child-order';
 
 /**
  * The port-constraint a container's own ports can honour.
@@ -174,6 +175,8 @@ function buildElkGraph(
 	// (crossing minimization for port-to-port edges)
 	const view = input.view;
 	const useLayeredChildren = view === 'L2Physical';
+	// The server has already sorted every container's children; the layout keeps that order.
+	const preserveOrder = !!input.preserveChildOrder;
 
 	// Create container (parent) nodes
 	for (const node of input.nodes) {
@@ -469,11 +472,19 @@ function buildElkGraph(
 		}
 	}
 
+	// Under a server-side sort, every container (subcontainers included) takes its children in
+	// input order instead.
+	const inputRank = new Map(input.nodes.map((node, index) => [node.id, index]));
+
 	// Sort children: for L2 views, subcontainers (with connected Up ports) come FIRST
 	// so edges don't traverse through disconnected Down ports.
 	// For other views: elements grouped by target, then subcontainers last.
 	for (const [containerId, container] of containers) {
 		if (!container.children || container.children.length < 2) continue;
+		if (preserveOrder) {
+			pinChildOrder(container.children, inputRank);
+			continue;
+		}
 		if (parentContainerMap.has(containerId)) continue;
 
 		container.children.sort((a, b) => {
@@ -752,7 +763,11 @@ function buildElkGraph(
 	const rootsWithCrossChildEdges = new Set<string>();
 	const seenInnerEdges = new Map<string, Set<string>>();
 
-	for (const edge of input.edges) {
+	// A container with cross-child edges switches to layered, which assigns rows from those edges,
+	// so no model-order option would keep a reading order. Under a server-side sort containers stay
+	// box-packed and connected children are no longer pulled together.
+	const crossChildCandidates = preserveOrder ? [] : input.edges;
+	for (const edge of crossChildCandidates) {
 		if (!affectsLayout(edge)) continue;
 
 		const srcImm = resolveEndpoint(edge.source);
@@ -1304,8 +1319,7 @@ export function applyLocalSizeAdjustment(
 		// Detect container type for correct spacing/padding
 		const containerNode = nodeById.get(containerId);
 		const containerType = (containerNode as Record<string, unknown>)?.container_type as
-			| string
-			| undefined;
+			string | undefined;
 		const ctMeta = containerTypes.getMetadata(containerType ?? 'Subnet');
 		const spacing = 25;
 		const bottomPad = ctMeta.padding.bottom;

@@ -29,7 +29,6 @@ use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use std::sync::Arc;
 use std::sync::OnceLock;
-use stripe::Client;
 use stripe_billing::CancellationDetailsFeedback;
 use stripe_billing::billing_portal_session::CreateBillingPortalSession;
 use stripe_billing::subscription::CancelSubscription;
@@ -63,7 +62,10 @@ use stripe_checkout::checkout_session::{
 use stripe_checkout::{
     CheckoutSession, CheckoutSessionBillingAddressCollection, CheckoutSessionMode,
 };
-use stripe_client_core::{RequestBuilder, StripeMethod, StripeRequest};
+use stripe_client::RateLimitedStripe;
+use stripe_client_core::{
+    IdempotencyKey, RequestBuilder, RequestStrategy, StripeMethod, StripeRequest,
+};
 use stripe_core::customer::CreateCustomer;
 use stripe_core::customer::DeleteCustomer;
 use stripe_core::customer::DeleteDiscountCustomer;
@@ -86,11 +88,10 @@ use stripe_product::price::{CreatePrice, CreatePriceRecurringUsageType};
 use stripe_product::product::Features;
 use stripe_product::product::{CreateProduct, RetrieveProduct};
 use stripe_shared::SetupIntentStatus;
-use stripe_webhook::{EventObject, Webhook};
 use uuid::Uuid;
 
 pub struct BillingService {
-    pub stripe: stripe::Client,
+    pub stripe: RateLimitedStripe,
     pub webhook_secret: String,
     pub organization_service: Arc<OrganizationService>,
     pub user_service: Arc<UserService>,
@@ -124,6 +125,8 @@ mod invoicing;
 mod lifecycle;
 mod plan_changes;
 mod setup;
+pub(crate) mod stripe_client;
+pub(crate) mod webhook_envelope;
 mod webhooks;
 
 fn extract_cancellation_details(
@@ -133,9 +136,9 @@ fn extract_cancellation_details(
     Option<String>,
     Option<stripe_billing::CancellationDetailsReason>,
 ) {
-    let feedback = details.and_then(|d| d.feedback);
+    let feedback = details.and_then(|d| d.feedback.clone());
     let comment = details.and_then(|d| d.comment.clone());
-    let reason = details.and_then(|d| d.reason);
+    let reason = details.and_then(|d| d.reason.clone());
     (feedback, comment, reason)
 }
 
@@ -273,7 +276,7 @@ struct ClearPauseCollectionForm {
 /// Custom Stripe request used by [`BillingService::resume_subscription`].
 ///
 /// Implements [`StripeRequest`] directly so it reuses the existing
-/// `stripe::Client` (auth, retries, response decoding) without dropping to raw
+/// billing Stripe client (auth, retries, rate limit, response decoding) without dropping to raw
 /// HTTP or stashing the Stripe secret on `BillingService`.
 struct ClearPauseCollection {
     sub_id: stripe_billing::SubscriptionId,
@@ -317,6 +320,7 @@ mod tests {
         let details = stripe_billing::CancellationDetails {
             comment: None,
             feedback: None,
+            feedback_option: None,
             reason: None,
         };
         assert_eq!(
@@ -330,6 +334,7 @@ mod tests {
         let details = stripe_billing::CancellationDetails {
             comment: Some("too pricey for our team".to_string()),
             feedback: Some(stripe_billing::CancellationDetailsFeedback::TooExpensive),
+            feedback_option: None,
             reason: Some(stripe_billing::CancellationDetailsReason::CancellationRequested),
         };
         assert_eq!(

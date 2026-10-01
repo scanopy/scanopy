@@ -26,6 +26,11 @@ services:
       POSTGRES_DB: scanopy
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      # To read the password from a secret file (see the secrets block at the bottom),
+      # replace POSTGRES_PASSWORD above with:
+      # POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    # secrets:
+    #   - postgres_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -57,6 +62,14 @@ services:
       SCANOPY_WEB_EXTERNAL_PATH: /app/static
       SCANOPY_PUBLIC_URL: ${SCANOPY_PUBLIC_URL:-http://localhost:60072}
       SCANOPY_INTEGRATED_DAEMON_URL: http://host.docker.internal:60073
+      # Any SCANOPY_<NAME> can instead be read from a file with SCANOPY_<NAME>_FILE. Set one or
+      # the other, never both. The database URL embeds the Postgres password, so with secrets,
+      # replace SCANOPY_DATABASE_URL above with:
+      # SCANOPY_DATABASE_URL_FILE: /run/secrets/database_url
+      # SCANOPY_LICENSE_KEY_FILE: /run/secrets/license_key (replaces SCANOPY_LICENSE_KEY above)
+    # secrets:
+    #   - database_url
+    #   - license_key
     volumes:
       - ./data:/data
     extra_hosts:
@@ -73,6 +86,16 @@ services:
 volumes:
   postgres_data:
   daemon-config:
+
+# Secret files for the commented-out *_FILE settings above. Each file holds only the value.
+# database_url holds the full URL, e.g. postgresql://postgres:<password>@postgres:5432/scanopy
+# secrets:
+#   postgres_password:
+#     file: ./secrets/postgres_password
+#   database_url:
+#     file: ./secrets/database_url
+#   license_key:
+#     file: ./secrets/license_key
 
 networks:
   scanopy:

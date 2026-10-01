@@ -2,7 +2,7 @@ use crate::server::services::r#impl::categories::ServiceCategory;
 use crate::server::shared::entities::{ChangeTriggersTopologyStaleness, EntityDiscriminants};
 use crate::server::topology::types::edges::{EdgeHandle, EdgeTypeDiscriminants};
 use crate::server::topology::types::grouping::{
-    ContainerRule, ElementRule, GraphRule, IdentifiedRule,
+    ContainerRule, ElementRule, ElementSort, GraphRule, IdentifiedRule,
 };
 use crate::server::topology::types::layout::{Ixy, Uxy};
 use crate::server::topology::types::views::{
@@ -194,6 +194,10 @@ pub struct TopologyRequestOptions {
     /// Rules deciding how entities are placed and inlined within containers.
     #[serde(default = "default_element_rules")]
     pub element_rules: Vec<IdentifiedRule<ElementRule>>,
+    /// How nodes are ordered inside containers, per view. A view with no entry uses the
+    /// layout's own order.
+    #[serde(default)]
+    pub element_sort: HashMap<TopologyView, ElementSort>,
 }
 
 /// The hide-set a topology starts with when the user has expressed no preference.
@@ -286,6 +290,7 @@ impl Default for TopologyRequestOptions {
             hide_metadata_values: default_hide_metadata_values(),
             container_rules: default_container_rules(),
             element_rules: default_element_rules(),
+            element_sort: HashMap::new(),
         }
     }
 }

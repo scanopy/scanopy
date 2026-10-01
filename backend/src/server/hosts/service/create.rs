@@ -788,10 +788,18 @@ impl HostService {
             }
 
             if matches!(conflict_behavior, ConflictBehavior::Upsert) {
+                // Each match below writes the stored row back, so the incoming MAC is merged into
+                // it by rung first. Without that the reading was dropped whole: an ARP reply could
+                // neither fill an address stored without a MAC nor lift one stored `Unspecified`
+                // (GH #718).
+                //
                 // Check if interface already exists by ID
                 if let Some(mut existing_iface) =
                     self.ip_address_service.get_by_id(&ip_address.id).await?
                 {
+                    existing_iface
+                        .base
+                        .apply_mac_address(ip_address.base.mac_address.clone());
                     existing_iface.set_last_seen_at(ip_address.last_seen_at);
                     ip_addresses_to_refresh.push(existing_iface.clone());
                     created_ip_addresses.push(existing_iface);
@@ -811,6 +819,9 @@ impl HostService {
                     .into_iter()
                     .find(|i| i.base.ip_address == ip_address.base.ip_address)
                 {
+                    existing_iface
+                        .base
+                        .apply_mac_address(ip_address.base.mac_address.clone());
                     existing_iface.set_last_seen_at(ip_address.last_seen_at);
                     ip_addresses_to_refresh.push(existing_iface.clone());
                     created_ip_addresses.push(existing_iface);
@@ -873,6 +884,9 @@ impl HostService {
                             existing_iface.base.ip_address = ip_address.base.ip_address;
                             existing_iface.base.subnet_id = ip_address.base.subnet_id;
                         }
+                        existing_iface
+                            .base
+                            .apply_mac_address(ip_address.base.mac_address.clone());
                         existing_iface.set_last_seen_at(ip_address.last_seen_at);
                         ip_addresses_to_refresh.push(existing_iface.clone());
                         created_ip_addresses.push(existing_iface);

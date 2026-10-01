@@ -15,7 +15,6 @@
 	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
 	import { isPlanLapsed, isBillingPlanActive } from '$lib/features/organizations/types';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
-	import { upgradeContext } from '$lib/features/billing/stores';
 	import { isLicenseSigningAvailable, useConfigQuery } from '$lib/shared/stores/config-query';
 	import { openModal } from '$lib/shared/stores/modal-registry';
 	import { canPay } from '$lib/shared/utils/trial';
@@ -114,9 +113,6 @@
 	// Mutations
 	const checkoutMutation = useCheckoutMutation();
 
-	// Determine initial filter based on use case from onboarding
-	let useCase = $derived($onboardingStore.useCase);
-
 	// An org on a Stripe-managed plan (live or lapsed) opens on that plan's
 	// hosting. A lapsed org keeps its plan, so a licensed one lands on
 	// Self-Hosted from that alone. Otherwise the tab requested at signup
@@ -134,29 +130,6 @@
 		!signingAvailable ? 'cloud' : (planHosting ?? $onboardingStore.hosting ?? 'cloud')
 	);
 
-	// Recommended plan based on use case
-	let baseRecommendedPlan = $derived<string | null>(
-		useCase === 'internal_it' ? 'Team' : useCase === 'msp' ? 'Business' : null
-	);
-
-	// Feature-contextual plan highlighting from upgrade CTAs
-	let upgradeCtx = $derived($upgradeContext);
-
-	let contextHighlightPlan = $derived.by(() => {
-		if (!upgradeCtx) return null;
-		const feat = upgradeCtx.feature;
-		// Feature-based: look up minimum_plan from feature metadata
-		const featureMeta = featureHelpers.getMetadata(feat);
-		if (featureMeta?.minimum_plan) return featureMeta.minimum_plan;
-		// Resource-based: find first plan with addon pricing
-		if (feat === 'seats') return plansData.find((p) => p.seat_cents)?.type ?? null;
-		if (feat === 'networks') return plansData.find((p) => p.network_cents)?.type ?? null;
-		if (feat === 'hosts') return plansData.find((p) => p.host_cents)?.type ?? null;
-		return null;
-	});
-
-	let recommendedPlan = $derived(contextHighlightPlan ?? baseRecommendedPlan);
-
 	// `triggerUpgrade` refuses before opening this, but two routes reach it
 	// anyway: the ?modal=billing-plan deep link is whitelisted for locked orgs,
 	// and the forced picker opens non-dismissible. Offering cards in either case
@@ -169,7 +142,6 @@
 		// instead (and offers invoice billing on self-hosted plans), then the
 		// backend creates the subscription. Cloud and self-hosted behave alike.
 		if (plan.base_cents > 0 && isReturningCustomer && !canPay(organization)) {
-			upgradeContext.set(null);
 			// Closed without the plan: nothing is bought yet, so the page must not lock
 			// onto the License tab over the dialog. The lock follows the webhook.
 			onClose();
@@ -207,7 +179,6 @@
 				// tab converges once the checkout webhook activates the plan.
 				if (stripeTab) {
 					stripeTab.location.href = result;
-					upgradeContext.set(null);
 					onClose(plan);
 					// 500 ms steps: the Settings modal opens on the picked plan's intent flag
 					// and clears it when the org confirms, so the poll is what ends the
@@ -221,7 +192,6 @@
 			} else {
 				// Direct activation needs no Stripe tab.
 				stripeTab?.close();
-				upgradeContext.set(null);
 				onClose(plan);
 				// Plan activated directly (Free or trial) is still webhook-driven, so a
 				// single refetch races the webhook and reads stale state (e.g. plan_status
@@ -244,12 +214,7 @@
 	{isOpen}
 	title=""
 	{name}
-	onClose={dismissible
-		? () => {
-				upgradeContext.set(null);
-				onClose();
-			}
-		: null}
+	onClose={dismissible ? () => onClose() : null}
 	size="max"
 	preventCloseOnClickOutside={!dismissible}
 	showCloseButton={false}
@@ -277,7 +242,6 @@
 				showHosting={signingAvailable}
 				{initialHosting}
 				onPlanSelect={handlePlanSelect}
-				{recommendedPlan}
 				{isReturningCustomer}
 				{isCurrentlyTrialing}
 				currentPlanType={organization?.plan?.type ?? null}

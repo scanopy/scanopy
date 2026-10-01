@@ -46,6 +46,7 @@
 		common_interfaces,
 		common_ipAddresses,
 		common_lastSeen,
+		common_macAddress,
 		common_confirmBulkDelete,
 		common_manufacturer,
 		common_model,
@@ -143,26 +144,24 @@
 	// services tab's binding chips and the host editor's interface lists empty for
 	// anyone who never opens the hosts tab. Un-gate it only once those caches have
 	// real queries — see planned-work/child-cache-rearchitecture.md.
-	const hostsQuery = useHostsQuery(
-		(): HostQueryOptions => ({
-			limit: pageSize,
-			offset: (currentPage - 1) * pageSize,
-			group_by: groupBy,
-			order_by: orderBy,
-			order_direction: orderDirection,
-			tag_ids: tagIds.length > 0 ? tagIds : undefined,
-			stale: stale ?? undefined,
-			search: search || undefined,
-			network_ids: filterNetworkIds.length > 0 ? filterNetworkIds : undefined,
-			// Both values checked is no constraint, so it is sent as nothing.
-			hidden: filterHidden.length === 1 ? filterHidden : undefined,
-			virtualization_service_ids:
-				filterVirtualizationServiceIds.length > 0 ? filterVirtualizationServiceIds : undefined,
-			include_unvirtualized: filterIncludeUnvirtualized || undefined,
-			service_names: filterServiceNames.length > 0 ? filterServiceNames : undefined,
-			sources: filterSources.length > 0 ? filterSources : undefined
-		})
-	);
+	const hostsQuery = useHostsQuery((): HostQueryOptions => ({
+		limit: pageSize,
+		offset: (currentPage - 1) * pageSize,
+		group_by: groupBy,
+		order_by: orderBy,
+		order_direction: orderDirection,
+		tag_ids: tagIds.length > 0 ? tagIds : undefined,
+		stale: stale ?? undefined,
+		search: search || undefined,
+		network_ids: filterNetworkIds.length > 0 ? filterNetworkIds : undefined,
+		// Both values checked is no constraint, so it is sent as nothing.
+		hidden: filterHidden.length === 1 ? filterHidden : undefined,
+		virtualization_service_ids:
+			filterVirtualizationServiceIds.length > 0 ? filterVirtualizationServiceIds : undefined,
+		include_unvirtualized: filterIncludeUnvirtualized || undefined,
+		service_names: filterServiceNames.length > 0 ? filterServiceNames : undefined,
+		sources: filterSources.length > 0 ? filterSources : undefined
+	}));
 	const networksQuery = useNetworksQuery();
 	useDaemonsQuery();
 	const ipAddressesQuery = useIPAddressesQuery();
@@ -365,6 +364,15 @@
 		return ipAddressesData.filter((i) => i.host_id === host.id);
 	}
 
+	/** The host's distinct MACs across its IP addresses and interfaces, lowest first — the
+	 *  first is the one the server sorts the host by. */
+	function hostMacAddresses(host: Host): string[] {
+		const macs = [...hostIPAddresses(host), ...hostInterfaces(host)]
+			.map((i) => i.mac_address?.toUpperCase())
+			.filter((m): m is string => !!m);
+		return [...new Set(macs)].sort();
+	}
+
 	function isContainerSubnetFn(subnetId: string): boolean {
 		const subnet = subnetsData.find((s) => s.id === subnetId);
 		return subnet ? isContainerSubnet(subnet) : false;
@@ -476,6 +484,21 @@
 									color: entities.getColorHelper('IPAddress').color,
 									entityRef: entityRef('IPAddress', i.id, i, { subnets: subnetsData })
 								}))
+					}
+				},
+				mac_address: {
+					label: common_macAddress(),
+					type: 'string',
+					searchable: true,
+					groupable: false,
+					getValue: (host) => hostMacAddresses(host)[0] ?? null,
+					display: {
+						order: 5,
+						getItems: (host) =>
+							hostMacAddresses(host).map((mac) => ({
+								id: mac,
+								label: mac
+							}))
 					}
 				},
 				network_id: {

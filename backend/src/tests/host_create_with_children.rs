@@ -21,7 +21,9 @@ use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::hosts::r#impl::api::HostResponse;
 use crate::server::hosts::r#impl::base::{Host, HostBase};
 use crate::server::interfaces::r#impl::base::InterfaceDataComplete;
-use crate::server::ip_addresses::r#impl::base::{IPAddress, IPAddressBase};
+use crate::server::ip_addresses::r#impl::base::{
+    IPAddress, IPAddressBase, MacEvidence, MacEvidenceValue,
+};
 use crate::server::networks::r#impl::{Network, NetworkBase};
 use crate::server::ports::r#impl::base::{Port, PortBase, PortType};
 use crate::server::services::definitions::ServiceDefinitionRegistry;
@@ -518,4 +520,105 @@ async fn api_rejects_an_unresolvable_host_virtualizer() {
         .expect("a bare-metal host has no virtualizer and must be accepted");
 
     let _ = network_id;
+}
+
+// =============================================================================
+// GH #718: an address MAC's provenance on a rescan
+// =============================================================================
+
+const HOST_MAC: &str = "42:3d:16:7c:f6:1f";
+
+fn host_mac(source: AttributeSource) -> MacEvidence {
+    MacEvidence::new(MacEvidenceValue(HOST_MAC.parse().unwrap()), source)
+}
+
+/// Scan the container host twice, its LAN address carrying `first` then `second`, and return the
+/// LAN address row as stored after the second scan.
+async fn lan_address_after_two_scans(
+    first: Option<MacEvidence>,
+    second: Option<MacEvidence>,
+) -> IPAddress {
+    harness!(services, network_id, _container);
+
+    let mut initial = Submission::container_host(network_id);
+    let lan_ip = initial.ip_addresses[0].base.ip_address;
+    initial.ip_addresses[0].base.mac_address = first;
+    let response = submit(&services, initial)
+        .await
+        .expect("first scan persists");
+
+    let persisted = services
+        .subnet_service
+        .get_all(StorableFilter::<Subnet>::new_from_network_ids(&[network_id]).live())
+        .await
+        .unwrap();
+    let lan_id = persisted
+        .iter()
+        .find(|s| s.base.subnet_type == SubnetType::Lan)
+        .expect("lan subnet persisted")
+        .id;
+    let bridge_id = persisted
+        .iter()
+        .find(|s| s.base.subnet_type == SubnetType::DockerBridge)
+        .expect("bridge subnet persisted")
+        .id;
+
+    let mut rescan = Submission::container_host(network_id);
+    rescan.rescan(response.id, lan_id, bridge_id);
+    rescan.ip_addresses[0].base.mac_address = second;
+    submit(&services, rescan).await.expect("rescan persists");
+
+    services
+        .ip_address_service
+        .get_for_host(&response.id)
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|ip| ip.base.ip_address == lan_ip)
+        .expect("the LAN address is stored")
+}
+
+/// GH #718, as a test. Every address MAC stored before provenance existed reads `Unspecified`,
+/// and a rescan matches the stored row, so a rescan is the path every such MAC takes. The ARP
+/// reply the daemon stamps has to reach the row: it outranks the floor, and nothing else can
+/// correct a MAC stored there.
+#[tokio::test]
+async fn an_arp_reply_upgrades_an_unattributed_address_mac() {
+    let stored = lan_address_after_two_scans(
+        Some(host_mac(AttributeSource::Unspecified)),
+        Some(host_mac(AttributeSource::ArpReply)),
+    )
+    .await;
+
+    assert_eq!(
+        stored.base.mac_address.map(|m| m.source()),
+        Some(AttributeSource::ArpReply),
+        "a rescan's ARP reply must replace an unattributed MAC source on the stored address"
+    );
+}
+
+/// An address first seen without a MAC (ICMP- or TCP-only, or reported by an integration that
+/// had none) must take the MAC a later ARP reply finds.
+#[tokio::test]
+async fn an_arp_reply_fills_an_address_first_stored_without_a_mac() {
+    let stored = lan_address_after_two_scans(None, Some(host_mac(AttributeSource::ArpReply))).await;
+
+    assert_eq!(
+        stored.base.mac_address,
+        Some(host_mac(AttributeSource::ArpReply)),
+        "a rescan's ARP reply must fill a stored address that had no MAC"
+    );
+}
+
+/// A rescan that has no MAC for the address says nothing about it, and must not erase one a
+/// previous scan found.
+#[tokio::test]
+async fn a_rescan_without_a_mac_keeps_the_stored_one() {
+    let stored = lan_address_after_two_scans(Some(host_mac(AttributeSource::ArpReply)), None).await;
+
+    assert_eq!(
+        stored.base.mac_address,
+        Some(host_mac(AttributeSource::ArpReply)),
+        "an address rescan with no MAC must keep the MAC and source already stored"
+    );
 }

@@ -8,6 +8,7 @@ use std::sync::Arc;
 use crate::server::{
     auth::middleware::permissions::{Authorized, IsExternalService, Prometheus},
     config::AppState,
+    shared::types::api::ApiError,
 };
 
 /// Get Prometheus metrics.
@@ -20,7 +21,7 @@ pub async fn get_metrics(
 ) -> impl IntoResponse {
     // Check if metrics are enabled (token configured)
     if state.config.metrics_token.is_none() {
-        return (StatusCode::NOT_FOUND, "Metrics not enabled").into_response();
+        return ApiError::not_found("Metrics not enabled".to_string()).into_response();
     }
 
     let metrics = state.services.metrics_service.handle.render();

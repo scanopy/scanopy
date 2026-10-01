@@ -38,7 +38,7 @@ impl Email for TrialStarted<'_> {
                     ))
                     .paragraph("Hi there,")
                     .paragraph(&format!(
-                        "Your trial of the {} {} plan has started. You have full access to all features for the next {} days.",
+                        "Your trial of the {} {} plan has started. You have full access to the plan's features for the next {} days.",
                         self.plan_name, self.billing_period, self.trial_days
                     ))
                     .paragraph(

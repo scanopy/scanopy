@@ -26,8 +26,7 @@
 		topoStore
 			? $topoStore
 			: (topo.query?.data?.find((t) => t.id === $selectedTopologyId) as
-					| RenderableTopology
-					| undefined)
+					RenderableTopology | undefined)
 	);
 
 	// Unified edit state
@@ -48,8 +47,7 @@
 	// endpoint can't work: the endpoint is elevated onto the subnet box before it reaches us.
 	let containerizedServiceIds = $derived(
 		((edge.data as Record<string, unknown> | undefined)?.containerized_service_ids as
-			| string[]
-			| undefined) ?? []
+			string[] | undefined) ?? []
 	);
 	let containerizedServices = $derived(
 		topology
@@ -64,8 +62,7 @@
 		topology
 			? (
 					((edge.data as Record<string, unknown> | undefined)?.subnet_ids as
-						| string[]
-						| undefined) ?? []
+						string[] | undefined) ?? []
 				).flatMap((id) => topology.subnets.find((s) => s.id === id) ?? [])
 			: []
 	);

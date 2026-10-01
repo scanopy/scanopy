@@ -111,8 +111,12 @@ impl BillingPlan {
 
         // Round discounted monthly base to nearest dollar then subtract 1 cent
         // so yearly prices end in .99 (e.g. $14.99/mo → $11.99/mo billed yearly).
-        let monthly_base = Self::round_to_99(yearly_config.base_cents as f32 * (1.0 - discount));
-        yearly_config.base_cents = monthly_base * 12;
+        // A $0 base stays $0 rather than rounding to -1 cent.
+        if yearly_config.base_cents > 0 {
+            let monthly_base =
+                Self::round_to_99(yearly_config.base_cents as f32 * (1.0 - discount));
+            yearly_config.base_cents = monthly_base * 12;
+        }
         yearly_config.seat_cents = yearly_config.seat_cents.map(|c| {
             let monthly = Self::round_to_dollar(c as f32 * (1.0 - discount));
             monthly * 12
@@ -244,12 +248,10 @@ pub struct BillingPlanFeatures {
     pub priority_support: bool,
     /// Pay by invoice against a purchase order.
     pub invoice_billing: bool,
-    /// Annual license paid in quarterly installments.
-    pub quarterly_billing: bool,
-    /// W-9, NDAA 889 attestation, and DPA supplied for vendor onboarding.
+    /// Billing schedule and payment terms negotiated per contract.
+    pub custom_billing: bool,
+    /// W-9 and NDAA 889 attestation supplied for vendor onboarding.
     pub procurement_documents: bool,
-    /// Hands-on help deploying a self-hosted server.
-    pub deployment_assistance: bool,
     /// Signed service level agreement.
     pub signed_sla: bool,
     // Core features
@@ -640,9 +642,8 @@ impl BillingPlan {
                 discovery_integrations: true,
                 csv_export: true,
                 invoice_billing: false,
-                quarterly_billing: false,
+                custom_billing: false,
                 procurement_documents: false,
-                deployment_assistance: false,
                 signed_sla: false,
                 snapshot_retention_days: 90,
             },
@@ -673,9 +674,8 @@ impl BillingPlan {
                 discovery_integrations: true,
                 csv_export: true,
                 invoice_billing: false,
-                quarterly_billing: false,
+                custom_billing: false,
                 procurement_documents: false,
-                deployment_assistance: false,
                 signed_sla: false,
                 snapshot_retention_days: 0,
             },
@@ -706,9 +706,8 @@ impl BillingPlan {
                 discovery_integrations: true,
                 csv_export: true,
                 invoice_billing: false,
-                quarterly_billing: false,
+                custom_billing: false,
                 procurement_documents: false,
-                deployment_assistance: false,
                 signed_sla: false,
                 snapshot_retention_days: 7,
             },
@@ -739,9 +738,8 @@ impl BillingPlan {
                 discovery_integrations: true,
                 csv_export: true,
                 invoice_billing: false,
-                quarterly_billing: false,
+                custom_billing: false,
                 procurement_documents: false,
-                deployment_assistance: false,
                 signed_sla: false,
                 snapshot_retention_days: 30,
             },
@@ -772,9 +770,8 @@ impl BillingPlan {
                 discovery_integrations: true,
                 csv_export: true,
                 invoice_billing: false,
-                quarterly_billing: false,
+                custom_billing: false,
                 procurement_documents: false,
-                deployment_assistance: false,
                 signed_sla: false,
                 snapshot_retention_days: 90,
             },
@@ -805,9 +802,8 @@ impl BillingPlan {
                 discovery_integrations: true,
                 csv_export: true,
                 invoice_billing: false,
-                quarterly_billing: false,
+                custom_billing: false,
                 procurement_documents: false,
-                deployment_assistance: false,
                 signed_sla: false,
                 snapshot_retention_days: 90,
             },
@@ -838,9 +834,8 @@ impl BillingPlan {
                 discovery_integrations: true,
                 csv_export: true,
                 invoice_billing: true,
-                quarterly_billing: false,
+                custom_billing: true,
                 procurement_documents: true,
-                deployment_assistance: true,
                 signed_sla: true,
                 snapshot_retention_days: 90,
             },
@@ -871,9 +866,8 @@ impl BillingPlan {
                 discovery_integrations: true,
                 csv_export: true,
                 invoice_billing: true,
-                quarterly_billing: true,
+                custom_billing: true,
                 procurement_documents: true,
-                deployment_assistance: true,
                 signed_sla: true,
                 snapshot_retention_days: 90,
             },
@@ -904,9 +898,8 @@ impl BillingPlan {
                 discovery_integrations: true,
                 csv_export: true,
                 invoice_billing: true,
-                quarterly_billing: true,
+                custom_billing: true,
                 procurement_documents: true,
-                deployment_assistance: true,
                 signed_sla: false,
                 snapshot_retention_days: 90,
             },
@@ -937,9 +930,8 @@ impl BillingPlan {
                 discovery_integrations: true,
                 csv_export: true,
                 invoice_billing: true,
-                quarterly_billing: true,
+                custom_billing: false,
                 procurement_documents: true,
-                deployment_assistance: false,
                 signed_sla: false,
                 snapshot_retention_days: 90,
             },
@@ -970,9 +962,8 @@ impl BillingPlan {
                 discovery_integrations: true,
                 csv_export: true,
                 invoice_billing: true,
-                quarterly_billing: true,
+                custom_billing: false,
                 procurement_documents: true,
-                deployment_assistance: true,
                 signed_sla: false,
                 snapshot_retention_days: 90,
             },
@@ -1012,9 +1003,8 @@ impl Into<Vec<Feature>> for BillingPlanFeatures {
             discovery_integrations,
             csv_export,
             invoice_billing,
-            quarterly_billing,
+            custom_billing,
             procurement_documents,
-            deployment_assistance,
             signed_sla,
             snapshot_retention_days,
         } = self;
@@ -1071,16 +1061,12 @@ impl Into<Vec<Feature>> for BillingPlanFeatures {
             features.push(Feature::InvoiceBilling)
         }
 
-        if quarterly_billing {
-            features.push(Feature::QuarterlyBilling)
+        if custom_billing {
+            features.push(Feature::CustomBilling)
         }
 
         if procurement_documents {
             features.push(Feature::ProcurementDocuments)
-        }
-
-        if deployment_assistance {
-            features.push(Feature::DeploymentAssistance)
         }
 
         if signed_sla {
@@ -1225,7 +1211,7 @@ impl TypeMetadataProvider for BillingPlan {
                 "Commercial self-hosted license for a single organization"
             }
             BillingPlan::SelfHostedPlus { .. } => {
-                "Multi-organization self-hosted license with offline keys and SAML"
+                "Multi-organization self-hosted license with offline (air-gapped) keys"
             }
         }
     }

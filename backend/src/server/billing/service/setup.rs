@@ -63,7 +63,7 @@ impl BillingService {
         } = params;
 
         Self {
-            stripe: Client::new(stripe_secret.clone()),
+            stripe: RateLimitedStripe::new(&stripe_secret),
             stripe_secret,
             files_http: reqwest::Client::new(),
             webhook_secret,

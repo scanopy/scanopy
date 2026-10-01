@@ -239,8 +239,7 @@ export interface DisplayFieldConfig<T> extends BaseFieldConfig<T> {
  * - Fields with `key` are display-only
  */
 export type FieldConfig<T, O extends string = string> =
-	| OrderableFieldConfig<T, O>
-	| DisplayFieldConfig<T>;
+	OrderableFieldConfig<T, O> | DisplayFieldConfig<T>;
 
 /**
  * Type guard to check if a field supports server-side ordering.

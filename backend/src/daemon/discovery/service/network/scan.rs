@@ -1632,6 +1632,7 @@ impl NetworkScan {
         // Read once here rather than at the endpoint scan below: integration probes make their
         // own TLS calls and need the same policy.
         let accept_invalid_certs = ops.config_store.get_accept_invalid_scan_certs().await?;
+        let trusted_ca = ops.config_store.get_trusted_ca().await;
 
         // Integration probes — each checks connectivity and returns a ClientProbe for service matching
         use crate::daemon::discovery::integration::dispatch;
@@ -1643,6 +1644,7 @@ impl NetworkScan {
             &cancel,
             utils,
             accept_invalid_certs,
+            trusted_ca.as_deref(),
         )
         .await?;
         open_ports.extend(probe_results.additional_ports.iter());

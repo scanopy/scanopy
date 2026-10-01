@@ -210,6 +210,23 @@ pub(crate) use host_primary_address_join;
 /// duplicate would still dedupe today — but only for exactly as long as the copies stay identical.
 pub const PRIMARY_INTERFACE_JOIN: &str = host_primary_address_join!("hosts");
 
+/// Each host's lowest MAC across its live IP addresses and interfaces, as `host_mac.mac_address`.
+///
+/// `DISTINCT ON` rather than `MIN` because Postgres has no `min(macaddr)`. One row per host keeps
+/// the paginated COUNT and page slices correct; a host with no MAC gets no row, so the LEFT JOIN
+/// leaves it NULL.
+pub const HOST_MAC_JOIN: &str = "LEFT JOIN (\
+        SELECT DISTINCT ON (host_id) host_id, mac_address \
+        FROM (\
+            SELECT host_id, mac_address FROM ip_addresses \
+            WHERE valid_to IS NULL AND mac_address IS NOT NULL \
+            UNION ALL \
+            SELECT host_id, mac_address FROM interfaces \
+            WHERE valid_to IS NULL AND mac_address IS NOT NULL\
+        ) AS host_macs \
+        ORDER BY host_id, mac_address ASC\
+    ) AS host_mac ON hosts.id = host_mac.host_id";
+
 impl HostBase {
     /// Assign the host's name if `candidate` is at least as authoritative as what is stored.
     /// Returns whether anything changed.

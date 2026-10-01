@@ -114,47 +114,14 @@ export type TypedTypeMetadata<TMetadata> = Omit<TypeMetadata, 'metadata'> & {
 	metadata: TMetadata;
 };
 
-export interface BillingPlanFeatures {
-	share_views: boolean;
-	remove_created_with: boolean;
-	audit_logs: boolean;
-	webhooks: boolean;
-	api_access: boolean;
-	onboarding_call: boolean;
-	custom_sso: boolean;
-	managed_deployment: boolean;
-	whitelabeling: boolean;
-	live_chat_support: boolean;
-	embeds: boolean;
-	email_support: boolean;
-	community_support: boolean;
-	priority_support: boolean;
-	scheduled_discovery: boolean;
-	daemon_poll: boolean;
-	service_definitions: boolean;
-	docker_integration: boolean;
-	real_time_updates: boolean;
-	snmp_integration: boolean;
-	png_export: boolean;
-	svg_export: boolean;
-	mermaid_export: boolean;
-	confluence_export: boolean;
-	pdf_export: boolean;
-	html_export: boolean;
-	air_gapped_deployment: boolean;
-	snapshot_retention_days: number;
-}
+/** Plan feature flags, derived from the generated plan fixture. */
+export type BillingPlanFeatures = (typeof billingPlansJson)[number]['metadata']['features'];
 
 export type FeatureId = keyof BillingPlanFeatures;
 
 /** Feature IDs plus resource-based upgrade reasons */
 export type UpgradeFeature =
-	| FeatureId
-	| 'seats'
-	| 'networks'
-	| 'hosts'
-	| 'plan_usage'
-	| 'snapshots';
+	FeatureId | 'seats' | 'networks' | 'hosts' | 'plan_usage' | 'snapshots';
 
 export interface BillingPlanMetadata {
 	features: BillingPlanFeatures;
@@ -393,8 +360,7 @@ function createTypeMetadataHelpers<T extends TypeMetadataKeys, M = unknown>(cate
 			const $registry = get(metadata);
 			return (
 				(($registry?.[category] as TypedTypeMetadata<M>[])?.find((item) => item.id === id) as
-					| TypedTypeMetadata<M>
-					| undefined) || null
+					TypedTypeMetadata<M> | undefined) || null
 			);
 		},
 
@@ -424,8 +390,7 @@ function createTypeMetadataHelpers<T extends TypeMetadataKeys, M = unknown>(cate
 			const $registry = get(metadata);
 			return (
 				(($registry?.[category] as TypeMetadata[])?.find((item) => item.id === id)?.metadata as
-					| M
-					| undefined) || ({} as M)
+					M | undefined) || ({} as M)
 			);
 		}
 	};

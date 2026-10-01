@@ -354,6 +354,21 @@ extern "system" {
     ) -> minwindef::DWORD;
 }
 
+// SCANOPY LOCAL PATCH: the loader calls `packet_dll_available()` (winpcap.rs) uses to find
+// packet.dll before the delay-load helper does. kernel32 is always linked, so these import nothing
+// new.
+pub const LOAD_WITH_ALTERED_SEARCH_PATH: minwindef::DWORD = 0x0000_0008;
+
+#[link(name = "kernel32")]
+extern "system" {
+    pub fn LoadLibraryExW(
+        lpLibFileName: *const winnt::WCHAR,
+        hFile: winnt::HANDLE,
+        dwFlags: minwindef::DWORD,
+    ) -> minwindef::HMODULE;
+    pub fn GetSystemDirectoryW(lpBuffer: *mut winnt::WCHAR, uSize: UINT) -> UINT;
+}
+
 #[link(name = "Packet")]
 #[allow(improper_ctypes)]
 extern "C" {

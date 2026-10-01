@@ -44,8 +44,7 @@
 		: true;
 	$: descriptionOnSave = showEditableDescription
 		? ((context as Record<string, unknown>).onEntityDescriptionSave as
-				| ((value: string | null) => void)
-				| undefined)
+				((value: string | null) => void) | undefined)
 		: undefined;
 
 	let containerEl: HTMLDivElement;

@@ -42,15 +42,19 @@ use uuid::Uuid;
 
 pub mod demo_data_seeding;
 pub mod dependencies;
+pub mod far_end_advertised_ports;
 pub mod fdb_resolution;
 pub mod host_create_with_children;
 pub mod host_interface_sync;
+pub mod host_mac_ordering;
 pub mod host_naming;
 pub mod interface_neighbor_candidates;
 pub mod lldp_resolution;
 pub mod self_hosted_license_emails;
 pub mod self_hosted_licensing;
 pub mod snmp_sim_resolution;
+pub mod stripe_webhook_retries;
+pub mod stripe_webhooks;
 pub mod subnet_placement;
 
 pub const DAEMON_CONFIG_FIXTURE: &str = "src/tests/daemon_config.json";

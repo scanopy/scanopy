@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { SvelteFlow, SvelteFlowProvider, Background, BackgroundVariant } from '@xyflow/svelte';
+	import { SvelteFlowProvider } from '@xyflow/svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { writable } from 'svelte/store';
 	import { setContext } from 'svelte';
@@ -7,9 +7,8 @@
 	import './visualization/topology-viewer.css';
 	import TopologyOverlay from './TopologyOverlay.svelte';
 	import ChecklistItem from '$lib/shared/components/data/ChecklistItem.svelte';
-	import ElementNode from './visualization/ElementNode.svelte';
-	import CustomEdge from './visualization/CustomEdge.svelte';
-	import { selectedNodes, previewEdges } from '../queries';
+	import DependencyTutorialCanvas from './DependencyTutorialCanvas.svelte';
+	import { selectedNodes } from '../queries';
 	import { dependencyTypes } from '$lib/shared/stores/metadata';
 	import { browser } from '$app/environment';
 	import {
@@ -48,17 +47,6 @@
 	setContext('selectedNode', localSelectedNode);
 	setContext('selectedEdge', localSelectedEdge);
 
-	// Node/edge types for mini SvelteFlow
-	const nodeTypes = { Element: ElementNode };
-	const edgeTypes = { custom: CustomEdge };
-
-	// Xyflow stores — must be writable stores (same as BaseTopologyViewer)
-	const tutorialNodes = writable<Node[]>([...TUTORIAL_XYFLOW_NODES]);
-	const tutorialEdges = writable<Edge[]>([]);
-	previewEdges.subscribe((value) => {
-		tutorialEdges.set(value);
-	});
-
 	// Track clicked nodes
 	let clickedNodeIds = $state(new Set<string>());
 
@@ -93,31 +81,7 @@
 			<!-- Mini SvelteFlow canvas with real ElementNode + edge rendering -->
 			<div class="min-h-0 flex-1">
 				<SvelteFlowProvider>
-					<SvelteFlow
-						nodes={$tutorialNodes}
-						edges={$tutorialEdges}
-						{nodeTypes}
-						{edgeTypes}
-						onnodeclick={handleNodeClick}
-						fitView={true}
-						fitViewOptions={{ padding: 0.3 }}
-						minZoom={0.5}
-						maxZoom={1.5}
-						nodesDraggable={false}
-						nodesConnectable={false}
-						elementsSelectable={true}
-						selectionOnDrag={false}
-						panOnDrag={true}
-						zoomOnScroll={false}
-						zoomOnDoubleClick={false}
-					>
-						<Background
-							variant={BackgroundVariant.Dots}
-							bgColor="var(--color-topology-bg)"
-							gap={50}
-							size={1}
-						/>
-					</SvelteFlow>
+					<DependencyTutorialCanvas onnodeclick={handleNodeClick} />
 				</SvelteFlowProvider>
 			</div>
 

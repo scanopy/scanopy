@@ -62,10 +62,7 @@ export function getHighlightBehavior(edge: TopologyEdge): 'when_visible' | 'alwa
 	if (vc.type !== 'active') return 'when_visible';
 	return (
 		((vc as Record<string, unknown>).highlight_behavior as
-			| 'when_visible'
-			| 'always'
-			| 'never'
-			| undefined) ?? 'when_visible'
+			'when_visible' | 'always' | 'never' | undefined) ?? 'when_visible'
 	);
 }
 

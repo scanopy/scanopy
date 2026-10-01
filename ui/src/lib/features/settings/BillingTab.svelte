@@ -4,7 +4,7 @@
 	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { hasLicensedPlan, isPlanLapsed } from '$lib/features/organizations/types';
-	import { billingPlans, planStatuses } from '$lib/shared/stores/metadata';
+	import { billingPlans, features, planStatuses } from '$lib/shared/stores/metadata';
 	import { canPay, isMissingPaymentMethod } from '$lib/shared/utils/trial';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import { trackEvent, trackOncePerSession } from '$lib/shared/utils/analytics';
@@ -26,6 +26,7 @@
 	import { renewalLabel } from '$lib/features/billing/renewal';
 	import { discountedPrice, saveOfferDiscount } from '$lib/features/billing/pricing';
 	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
+	import ProcurementDocumentsRequest from '$lib/features/billing/ProcurementDocumentsRequest.svelte';
 	import { useDashboardQuery } from '$lib/features/home/queries';
 	import {
 		common_atLimit,
@@ -224,6 +225,9 @@
 	let planStatusColor = $derived(planStatuses.getColorHelper(org?.plan_status ?? null).text);
 
 	let isFree = $derived(billingPlans.getMetadata(org?.plan?.type ?? null).is_free === true);
+	let hasProcurementDocuments = $derived(
+		billingPlans.getMetadata(org?.plan?.type ?? null).features?.procurement_documents === true
+	);
 
 	// Plan-status shorthands used across the banner + CTA section.
 	let isTrialing = $derived(org?.plan_status === 'trialing');
@@ -808,6 +812,16 @@
 						{settings_billing_billingQuestions()}
 					</p>
 				</InfoCard>
+
+				{#if hasProcurementDocuments}
+					<InfoCard title={features.getName('procurement_documents')}>
+						<ProcurementDocumentsRequest
+							orgName={org.name}
+							orgId={org.id}
+							planName={billingPlans.getName(org.plan?.type ?? null)}
+						/>
+					</InfoCard>
+				{/if}
 			</div>
 		{:else}
 			<div class="text-secondary py-8 text-center">

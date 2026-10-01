@@ -165,7 +165,7 @@ impl From<&stripe_billing::Invoice> for BillingInvoice {
             created_at: ts_to_chrono(inv.created),
             period_start: ts_to_chrono(inv.period_start),
             period_end: ts_to_chrono(inv.period_end),
-            billing_reason: inv.billing_reason.into(),
+            billing_reason: inv.billing_reason.clone().into(),
             line_items: inv
                 .lines
                 .data
@@ -174,7 +174,7 @@ impl From<&stripe_billing::Invoice> for BillingInvoice {
                 .collect(),
             invoice_pdf: inv.invoice_pdf.clone(),
             hosted_invoice_url: inv.hosted_invoice_url.clone(),
-            collection: inv.collection_method.into(),
+            collection: inv.collection_method.clone().into(),
             due_date: inv.due_date.map(ts_to_chrono),
             po_number: inv
                 .custom_fields

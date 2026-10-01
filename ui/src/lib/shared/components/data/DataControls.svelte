@@ -155,8 +155,7 @@
 		// Server-side ordering: called when group/sort changes
 		// Args: (groupBy field key, orderBy field key, direction)
 		onOrderChange?:
-			| ((groupBy: string | null, orderBy: string | null, direction: 'asc' | 'desc') => void)
-			| null;
+			((groupBy: string | null, orderBy: string | null, direction: 'asc' | 'desc') => void) | null;
 		// Server-side tag filtering: called when tag filter changes
 		// Args: array of tag IDs to filter by
 		onTagFilterChange?: ((tagIds: string[]) => void) | null;
@@ -380,7 +379,7 @@
 			return matchesFilters(item, fields, filterState, serverMode);
 		});
 
-		return sortItems(result, fields, sortState);
+		return sortItems(result, fields, sortState, onOrderChange !== null);
 	});
 
 	// Per-group totals across every page, when the server supplied them.

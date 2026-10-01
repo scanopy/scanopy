@@ -130,7 +130,7 @@ pub fn get_self_hosted_standard_plan() -> BillingPlan {
     })
 }
 
-/// Self-Hosted Plus: multi-org commercial license with offline keys and SAML,
+/// Self-Hosted Plus: multi-org commercial license with offline (air-gapped) keys,
 /// annual-only, published price. Air-gapped. Hard caps, no Stripe overage.
 pub fn get_self_hosted_plus_plan() -> BillingPlan {
     BillingPlan::SelfHostedPlus(PlanConfig {

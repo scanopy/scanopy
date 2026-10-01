@@ -5,6 +5,24 @@ use crate::daemon::discovery::types::warnings::{
     DiscoveryWarning, UnmatchedNeighbour, UnresolvedPort,
 };
 
+/// What makes two advertised ports on one far end the same port: the name when one was advertised,
+/// the MAC otherwise. Stored rows key the same way, so a pass and the rows it already wrote agree.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum AdvertisedPortKey {
+    Name(String),
+    Mac(MacAddress),
+}
+
+impl AdvertisedPortKey {
+    fn of(name: Option<&str>, mac: Option<MacAddress>) -> Option<Self> {
+        match (name, mac) {
+            (Some(name), _) => Some(Self::Name(name.to_string())),
+            (None, Some(mac)) => Some(Self::Mac(mac)),
+            (None, None) => None,
+        }
+    }
+}
+
 /// Why a far end could not be placed, carried alongside the identifiers that were tried.
 ///
 /// The distinction is the whole point of naming these at all: `NotFound` is a gap in what has been
@@ -172,6 +190,9 @@ struct NeighbourPass {
     /// Far ends that published an address and still matched nothing — the evidence the inference
     /// runs on, and empty on the second pass for anything the first one caused to be minted.
     unplaced: Vec<UnplacedFarEnd>,
+    /// Ports recorded on far ends from what their neighbours advertised. Each one is a port the next
+    /// pass can bind a neighbour to, which is why a pass that recorded any is followed by another.
+    recorded_ports: usize,
 }
 
 mod inference;
@@ -185,6 +206,9 @@ use crate::server::ip_addresses::r#impl::base::{MacEvidence, MacEvidenceValue};
 use crate::server::subnets::r#impl::inference::UnplacedFarEnd;
 
 use reciprocal::PortBinding;
+
+/// Ports neighbours advertised for one far end: each port's name and MAC, whichever were sent.
+type AdvertisedPorts = Vec<(Option<String>, Option<MacAddress>)>;
 
 impl HostService {
     // =========================================================================
@@ -535,7 +559,8 @@ impl HostService {
                 .await?;
         }
 
-        self.record_advertised_far_end_ports(network_id, advertised_ports)
+        let recorded_ports = self
+            .record_advertised_far_end_ports(network_id, advertised_ports)
             .await;
 
         tracing::info!(
@@ -551,6 +576,7 @@ impl HostService {
             host_no_strategy = stats.host_no_strategy,
             reopened,
             rebound,
+            recorded_ports,
             "LLDP/CDP link resolution complete"
         );
 
@@ -558,24 +584,33 @@ impl HostService {
             stats,
             warnings,
             unplaced,
+            recorded_ports,
         })
     }
 
     /// Resolve LLDP links for all interfaces in a network, inferring what is missing.
     ///
-    /// Two passes at most. The first resolves what it can and collects the far ends that told us
-    /// where they live and still matched nothing; those become subnets and hosts; the second pass
-    /// then places the neighbours naming them.
+    /// Three passes at most. The first resolves what it can and collects the far ends that told us
+    /// where they live and still matched nothing; those become subnets and hosts. A pass runs again
+    /// whenever the one before it created something to resolve against: hosts minted from it, or
+    /// ports recorded on a far end from its neighbours' advertisements (GH #717). Without that, a
+    /// neighbour naming a port recorded at the end of a pass drew to the device rather than the
+    /// port until the next scan. A minted far end takes all three: minted, then its other
+    /// advertised ports recorded, then bound.
     ///
-    /// The second pass's findings *replace* the first's rather than adding to them. A far end that
-    /// resolves once its host exists is no longer an unmatched neighbour, and reporting both would
-    /// tell an operator that the same devices are missing and were just added.
+    /// The last pass's findings *replace* the earlier ones rather than adding to them. A far end
+    /// that resolves once its host exists is no longer an unmatched neighbour, and reporting both
+    /// would tell an operator that the same devices are missing and were just added.
     pub async fn resolve_lldp_links(
         &self,
         network_id: Uuid,
         scan_time: DateTime<Utc>,
     ) -> Result<LldpResolutionOutcome> {
-        let first = self.resolve_neighbours_once(network_id).await?;
+        /// Re-runs never mint, and a port is recorded once, so passes settle on their own. The cap
+        /// bounds the request should one not; a port it leaves unbound binds on the next scan.
+        const MAX_RERUNS: usize = 2;
+
+        let mut first = self.resolve_neighbours_once(network_id).await?;
 
         // The plan's host limit, built the way the daemon batch path builds it
         // (`DaemonService::process_discovery_entities`). Minting runs outside both existing gates,
@@ -583,70 +618,82 @@ impl HostService {
         // a customer is shown on their dashboard and in their usage email.
         let limit_ctx = self.host_limit_context(network_id).await;
 
+        let unplaced = std::mem::take(&mut first.unplaced);
         let inferred = self
-            .infer_far_end_subnets(network_id, first.unplaced, limit_ctx.as_ref(), scan_time)
+            .infer_far_end_subnets(network_id, unplaced, limit_ctx.as_ref(), scan_time)
             .await?;
 
         // A pass that created nothing has nothing new to resolve against, whatever the standing
         // report says about ranges awaiting confirmation.
-        if inferred.minted_host_ids.is_empty() {
-            let mut warnings = first.warnings;
-            warnings.extend(inferred.warnings);
-            return Ok(LldpResolutionOutcome {
-                stats: first.stats,
-                warnings,
-                minted_host_ids: Vec::new(),
-            });
+        let mut rerun = !inferred.minted_host_ids.is_empty() || first.recorded_ports > 0;
+        let mut last = first;
+        for _ in 0..MAX_RERUNS {
+            if !rerun {
+                break;
+            }
+            last = self.resolve_neighbours_once(network_id).await?;
+            rerun = last.recorded_ports > 0;
         }
 
-        // Exactly one re-run, never a loop: the second pass mints nothing, so a far end it still
-        // cannot place is one no further pass would place either.
-        let second = self.resolve_neighbours_once(network_id).await?;
-        let mut warnings = second.warnings;
+        let mut warnings = last.warnings;
         warnings.extend(inferred.warnings);
-
         Ok(LldpResolutionOutcome {
-            stats: second.stats,
+            stats: last.stats,
             warnings,
             minted_host_ids: inferred.minted_host_ids,
         })
     }
 
-    /// Give a far end the port it advertised, where nothing else has ever described one.
+    /// Give a far end every port its neighbours advertised, where nothing else has ever described
+    /// one.
     ///
     /// A device that answers only its system MIB has no ifTable to read, so it draws in L2 as a
     /// container with nothing in it — a box with a name and no ports, which reads as a rendering
-    /// fault rather than as "this device tells us nothing about itself". The neighbour that named
-    /// it *did* say which port it answers on, and for such a device that is the only description of
-    /// that port there will ever be.
+    /// fault rather than as "this device tells us nothing about itself". The neighbours that named
+    /// it *did* say which port each answers on, and for such a device those are the only
+    /// descriptions of its ports there will ever be. All of them, not the first: a port list of one
+    /// out of six reads as "this device has one port" (GH #717).
     ///
-    /// **Only where the host has no interfaces at all.** With nothing stored there is nothing to
-    /// duplicate, which is the whole risk: a device that advertises `1` while its own ifTable calls
-    /// the port `Gi0/1` would otherwise gain a phantom beside the real row. Should such a device
-    /// later be walked properly, the authoritative-walk prune in `create_with_children` removes
-    /// anything the walk did not report, so even that case heals itself.
+    /// **Only while the host has no walked port**, meaning no live row with an `if_index`. A walked
+    /// row is the device describing itself, and an advertisement beside it risks a phantom: a
+    /// device that advertises `1` while its own ifTable calls the port `Gi0/1`. Rows this function
+    /// (or far-end minting) wrote carry no `if_index`, so they do not stop a later pass adding a
+    /// port a new neighbour names.
+    ///
+    /// Deduplicated per host by port name, or by MAC for a port advertised only by MAC, both within
+    /// the pass and against rows already stored. That makes repeat passes idempotent, and keeps a
+    /// second insert off the live `(host_id, if_name)` unique index.
+    ///
+    /// Should the device later be walked properly, the walk updates each synthesised row whose
+    /// `if_name` it reports, and the authoritative-walk prune in `create_with_children` removes the
+    /// rest, however many there are.
     ///
     /// Distinct from the minting path, which builds these for a host that did not exist. Here the
-    /// host is real and already resolved; only its port is missing.
+    /// host is real and already resolved; only its ports are missing.
+    ///
+    /// Returns how many ports it recorded, so the caller knows whether another pass has something
+    /// new to bind.
     async fn record_advertised_far_end_ports(
         &self,
         network_id: Uuid,
         advertised: Vec<(Uuid, Option<String>, Option<String>)>,
-    ) {
-        let mut seen: HashSet<Uuid> = HashSet::new();
+    ) -> usize {
+        let mut recorded_count = 0;
+        let mut by_host: HashMap<Uuid, AdvertisedPorts> = HashMap::new();
         for (host_id, name, mac) in advertised {
-            if !seen.insert(host_id) {
-                continue;
+            let mac = mac.as_deref().and_then(|m| m.parse::<MacAddress>().ok());
+            if name.is_some() || mac.is_some() {
+                by_host.entry(host_id).or_default().push((name, mac));
             }
+        }
 
-            let existing = self
+        for (host_id, ports) in by_host {
+            let existing = match self
                 .interface_service
                 .get_all(StorableFilter::<Interface>::new_from_host_ids(&[host_id]).live())
-                .await;
-            match existing {
-                Ok(rows) if rows.is_empty() => {}
-                // Anything already stored describes this device better than an advertisement does.
-                Ok(_) => continue,
+                .await
+            {
+                Ok(rows) => rows,
                 Err(e) => {
                     tracing::warn!(
                         host_id = %host_id,
@@ -655,44 +702,70 @@ impl HostService {
                     );
                     continue;
                 }
+            };
+            // The device has described itself, which beats any advertisement about it.
+            if existing.iter().any(|row| row.base.if_index.is_some()) {
+                continue;
             }
 
-            let mac_address = mac.as_deref().and_then(|m| m.parse::<MacAddress>().ok());
-            let descr = match (&name, &mac_address) {
-                (Some(name), _) => name.clone(),
-                (None, Some(mac)) => mac.to_string(),
-                (None, None) => continue,
-            };
+            let mut recorded: HashSet<AdvertisedPortKey> = existing
+                .iter()
+                .filter_map(|row| {
+                    AdvertisedPortKey::of(
+                        row.base.if_name.as_deref(),
+                        mac_of(&row.base.mac_address),
+                    )
+                })
+                .collect();
 
-            let interface = Interface::new(InterfaceBase {
-                network_id,
-                host_id,
-                if_descr: Some(descr),
-                if_name: name,
-                // The port id a neighbour advertised for itself. Announced on a link anything
-                // could have spoken on, not something we asked the far end for.
-                mac_address: mac_address
-                    .map(|m| MacEvidence::new(MacEvidenceValue(m), AttributeSource::LldpChassisId)),
-                ..Default::default()
-            });
+            for (name, mac_address) in ports {
+                let Some(key) = AdvertisedPortKey::of(name.as_deref(), mac_address) else {
+                    continue;
+                };
+                let descr = match &key {
+                    AdvertisedPortKey::Name(name) => name.clone(),
+                    AdvertisedPortKey::Mac(mac) => mac.to_string(),
+                };
+                if !recorded.insert(key) {
+                    continue;
+                }
 
-            match self
-                .interface_service
-                .create(interface, AuthenticatedEntity::System)
-                .await
-            {
-                Ok(created) => tracing::info!(
-                    host_id = %host_id,
-                    port = %created.base.if_descr.as_deref().unwrap_or("?"),
-                    "Recorded the port a neighbour named for a device that describes none itself"
-                ),
-                Err(e) => tracing::warn!(
-                    host_id = %host_id,
-                    error = %e,
-                    "Could not record the port a neighbour named for a far end"
-                ),
+                let interface = Interface::new(InterfaceBase {
+                    network_id,
+                    host_id,
+                    if_descr: Some(descr),
+                    if_name: name,
+                    // The port id a neighbour advertised for itself. Announced on a link anything
+                    // could have spoken on, not something we asked the far end for.
+                    mac_address: mac_address.map(|m| {
+                        MacEvidence::new(MacEvidenceValue(m), AttributeSource::LldpChassisId)
+                    }),
+                    ..Default::default()
+                });
+
+                match self
+                    .interface_service
+                    .create(interface, AuthenticatedEntity::System)
+                    .await
+                {
+                    Ok(created) => {
+                        recorded_count += 1;
+                        tracing::info!(
+                            host_id = %host_id,
+                            port = %created.base.if_descr.as_deref().unwrap_or("?"),
+                            "Recorded the port a neighbour named for a device that describes none itself"
+                        )
+                    }
+                    Err(e) => tracing::warn!(
+                        host_id = %host_id,
+                        error = %e,
+                        "Could not record the port a neighbour named for a far end"
+                    ),
+                }
             }
         }
+
+        recorded_count
     }
 
     /// Read this network's identity columns once, for the pass to resolve against.

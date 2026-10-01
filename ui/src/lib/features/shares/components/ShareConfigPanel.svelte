@@ -106,9 +106,7 @@
 
 	// For embed code display
 	let themeParam = $derived(shareTheme === 'default' ? undefined : shareTheme) as
-		| 'light'
-		| 'dark'
-		| undefined;
+		'light' | 'dark' | undefined;
 
 	// All available views as SimpleOption items
 	const allViewOptions: SimpleOption[] = viewsJson.map((v) => ({

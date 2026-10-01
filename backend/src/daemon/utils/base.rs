@@ -3,7 +3,7 @@ use crate::server::interfaces::r#impl::base::{
     IfAdminStatus, IfOperStatus, Interface, InterfaceBase, if_type,
 };
 use crate::server::ip_addresses::r#impl::base::{
-    IPAddress, IPAddressBase, MacEvidence, MacEvidenceValue, mac_of,
+    IPAddress, IPAddressBase, MacEvidence, MacEvidenceValue, is_unset_mac, mac_of,
 };
 use crate::server::shared::attribution::AttributeSource;
 use crate::server::subnets::r#impl::base::Subnet;
@@ -188,10 +188,10 @@ fn nic_to_interface(
 
 /// A NIC's MAC, or `None` for the all-zero placeholder several platforms report.
 fn nic_mac(iface: &pnet::datalink::NetworkInterface) -> Option<MacAddress> {
-    match iface.mac {
-        Some(mac) if !mac.octets().iter().all(|o| *o == 0) => Some(MacAddress::new(mac.octets())),
-        _ => None,
-    }
+    iface
+        .mac
+        .map(|mac| MacAddress::new(mac.octets()))
+        .filter(|mac| !is_unset_mac(mac))
 }
 
 /// Cross-platform system utilities trait
@@ -970,5 +970,19 @@ mod tests {
             IpNetwork::V4(v4) => assert_eq!(v4.prefix(), 8),
             _ => panic!("Expected V4"),
         }
+    }
+
+    /// Listing this host's NICs is the first thing every poll does. On Windows it used to call into
+    /// the delay-loaded packet.dll, so on a host without Npcap on the DLL search path this call
+    /// killed the whole process (0xC06D007E), taking the test binary with it. Run it on a Windows
+    /// host both with and without Npcap.
+    #[cfg(windows)]
+    #[test]
+    fn own_nics_are_listed_whether_or_not_npcap_is_installed() {
+        let nics = filtered_own_nics(&[]);
+        assert!(
+            nics.iter().any(|nic| !nic.ips.is_empty()),
+            "expected at least one NIC with an address, got {nics:?}"
+        );
     }
 }

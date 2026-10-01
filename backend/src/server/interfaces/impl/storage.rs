@@ -538,6 +538,29 @@ mod tests {
         );
     }
 
+    /// A zero MAC an older daemon stored is no MAC: the next real reading replaces it even from
+    /// the same source, which `REFRESHABLE = false` would otherwise refuse.
+    #[test]
+    fn preserve_immutable_fields_replaces_a_stored_zero_mac_with_a_real_one() {
+        let existing = make_interface(5, Some("eth0"), Some("00:00:00:00:00:00"));
+        let real = make_interface(5, Some("eth0"), Some("aa:bb:cc:dd:ee:ff"));
+        let mut incoming = real.clone();
+
+        incoming.preserve_immutable_fields(&existing);
+
+        assert_eq!(incoming.base.mac_address, real.base.mac_address);
+    }
+
+    #[test]
+    fn preserve_immutable_fields_never_lets_a_zero_mac_displace_a_real_one() {
+        let existing = make_interface(5, Some("eth0"), Some("aa:bb:cc:dd:ee:ff"));
+        let mut incoming = make_interface(5, Some("eth0"), Some("00:00:00:00:00:00"));
+
+        incoming.preserve_immutable_fields(&existing);
+
+        assert_eq!(incoming.base.mac_address, existing.base.mac_address);
+    }
+
     #[test]
     fn preserve_immutable_fields_keeps_existing_iftable_fields_when_incoming_has_none_of_them() {
         // The shape a PROFINET DCP submission takes: matched onto an existing SNMP-walked row by

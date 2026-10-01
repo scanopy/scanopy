@@ -1767,7 +1767,7 @@
     "category": "Storage",
     "color": "Green",
     "description": "Open-source network attached storage system",
-    "discovery_pattern": "All of: (445/tcp is open, Endpoint response body from <ip>:80/ contains \"TrueNAS\")",
+    "discovery_pattern": "Any of: (Endpoint response body from <ip>:80/ contains \"main-page-title\", Endpoint response body from <ip>:443/ contains \"main-page-title\")",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/truenas.svg",
     "name": "TrueNAS"
@@ -2410,5 +2410,14 @@
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "DHCP Server"
+  },
+  {
+    "category": "RemoteAccess",
+    "color": "Amber",
+    "description": "Web-based Linux server administration console",
+    "discovery_pattern": "Endpoint response from <ip>:9090 has header \"set-cookie\" with value \"cockpit=\"",
+    "logo_needs_white_background": false,
+    "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/cockpit.svg",
+    "name": "Cockpit"
   }
 ]

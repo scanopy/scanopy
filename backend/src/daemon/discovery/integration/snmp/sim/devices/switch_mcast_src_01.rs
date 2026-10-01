@@ -135,6 +135,22 @@ mod tests {
         );
     }
 
+    /// Net-SNMP answers `ifPhysAddress` for `lo` with six zero bytes rather than an empty value.
+    /// That is the same "no hardware address" `router-gw-01`'s loopback reports empty, and must
+    /// read back the same way: stored as a MAC, it sorted every such host under
+    /// `00:00:00:00:00:00` and let a zero chassis id resolve to it.
+    #[tokio::test]
+    async fn its_zero_loopback_address_reads_as_no_address() {
+        let scan = harness::scan("switch-mcast-src-01").await;
+
+        assert_eq!(
+            scan.interface(1).if_phys_address,
+            None,
+            "an all-zero ifPhysAddress is not an address"
+        );
+        assert!(scan.interface(2).if_phys_address.is_some());
+    }
+
     /// The trio-wide property: scanning all three devices covers 6 LLDP records total (2 per
     /// port × 3 ports) — the direct characterization of GH #701's "only 2 of 3 edges render"
     /// report at the collection layer, independent of any one device's own count.

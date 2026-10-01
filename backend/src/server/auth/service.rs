@@ -591,7 +591,7 @@ impl AuthService {
                 AuthOperation::PasswordResetRequested {
                     email_and_token: EmailAndToken {
                         email: user.base.email,
-                        token,
+                        token: token.into(),
                     },
                 },
                 AuthenticatedEntity::Anonymous,
@@ -701,7 +701,7 @@ impl AuthService {
             .await?;
 
         Ok(EmailAndToken {
-            token,
+            token: token.into(),
             email: user.base.email.clone(),
         })
     }

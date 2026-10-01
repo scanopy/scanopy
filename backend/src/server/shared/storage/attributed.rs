@@ -28,10 +28,12 @@ pub trait AttributeColumn: AttributeValue {
 /// Handed out together so a `to_params` cannot name a column and bind somebody else's value to it.
 pub fn optional_params<T: AttributeColumn>(slot: &Option<Attributed<T>>) -> [SqlValue; 2] {
     match slot {
-        Some(carrier) => present_params(carrier),
+        Some(carrier) if !carrier.value().is_blank() => present_params(carrier),
         // The value is `NULL`, so its source says nothing. `Unspecified` rather than a source we
-        // would have to invent: there is no value here to have come from anywhere.
-        None => [
+        // would have to invent: there is no value here to have come from anywhere. A blank value
+        // lands here too: `read_optional` reads one back as `None`, so storing it would only
+        // leave a value in the column that SQL-side sorts and lookups still see.
+        _ => [
             T::value_param(None),
             SqlValue::AttributeSource(AttributeSource::Unspecified),
         ],
@@ -162,5 +164,29 @@ impl AttributeColumn for SubnetCidrValue {
     fn read_value(row: &PgRow) -> Result<Option<Self>> {
         let raw: String = row.try_get(Self::VALUE_KEY)?;
         Ok(Some(Self(serde_json::from_str(&raw)?)))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::server::ip_addresses::r#impl::base::MacEvidence;
+
+    /// A blank value is written exactly as an absent one, so the column holds nothing that
+    /// SQL-side sorts and MAC lookups would still see after `read_optional` has discarded it.
+    #[test]
+    fn a_blank_value_is_written_as_null() {
+        let zero = MacEvidence::new(
+            MacEvidenceValue(mac_address::MacAddress::new([0; 6])),
+            AttributeSource::ArpReply,
+        );
+
+        assert!(matches!(
+            optional_params(&Some(zero)),
+            [
+                SqlValue::OptionalMacAddress(None),
+                SqlValue::AttributeSource(AttributeSource::Unspecified)
+            ]
+        ));
     }
 }

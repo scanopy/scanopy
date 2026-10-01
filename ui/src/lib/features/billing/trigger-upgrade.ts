@@ -2,7 +2,7 @@ import { queryClient, queryKeys } from '$lib/api/query-client';
 import type { PublicServerConfig } from '$lib/shared/stores/config-query';
 import { trackEvent } from '$lib/shared/utils/analytics';
 import { openModal } from '$lib/shared/stores/modal-registry';
-import { upgradeContext, reopenSettingsAfterBilling } from '$lib/features/billing/stores';
+import { reopenSettingsAfterBilling } from '$lib/features/billing/stores';
 import type { UpgradeFeature } from '$lib/shared/stores/metadata';
 import type { Organization } from '$lib/features/organizations/types';
 import { pushError } from '$lib/shared/stores/feedback';
@@ -38,7 +38,7 @@ export type PaywallSurface =
 export type PaywallGateType = 'limit_hit' | 'plan_required';
 
 export interface TriggerUpgradeOptions {
-	/** Feature context for recommended plan selection. Null/undefined = generic upgrade. */
+	/** Feature the upgrade CTA gates, for analytics. Null/undefined = generic upgrade. */
 	feature?: UpgradeFeature | null;
 	/** Source identifier for analytics (e.g., 'sidebar', 'export_modal'). */
 	source: string;
@@ -54,7 +54,7 @@ export interface TriggerUpgradeOptions {
 
 /**
  * Single entry point for all upgrade actions.
- * Cloud: opens billing modal with feature context.
+ * Cloud: opens the billing modal.
  * Self-hosted: opens pricing page in a new tab.
  */
 export function triggerUpgrade(options: TriggerUpgradeOptions): void {
@@ -97,7 +97,6 @@ export function triggerUpgrade(options: TriggerUpgradeOptions): void {
 	}
 
 	options.beforeModal?.();
-	upgradeContext.set(options.feature ? { feature: options.feature } : null);
 
 	if (options.reopenSettings) {
 		reopenSettingsAfterBilling.set(true);

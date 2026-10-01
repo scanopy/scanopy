@@ -234,7 +234,8 @@ function defaultRequestOptions(): components['schemas']['TopologyRequestOptions'
 		hide_entities: {},
 		hide_metadata_values: hideMetadataValues,
 		container_rules: containerRules,
-		element_rules: elementRules
+		element_rules: elementRules,
+		element_sort: {}
 	};
 }
 

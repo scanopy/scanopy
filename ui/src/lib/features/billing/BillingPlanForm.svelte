@@ -47,7 +47,6 @@
 		common_hosts,
 		common_monthly,
 		common_networks,
-		common_recommended,
 		common_seats,
 		common_unlimited,
 		common_yearly
@@ -92,7 +91,6 @@
 		/** Tab the Cloud / Self-Hosted toggle opens on (only used with showHosting). */
 		initialHosting?: PlanPickerHosting;
 		class?: string;
-		recommendedPlan?: string | null;
 		/** If true, user is a returning customer and should not see trial offers */
 		isReturningCustomer?: boolean;
 		/** If true, user is currently on an active trial */
@@ -117,7 +115,6 @@
 		class: className = '',
 		showHosting = false,
 		initialHosting = 'cloud',
-		recommendedPlan = null,
 		isReturningCustomer = false,
 		isCurrentlyTrialing = false,
 		currentPlanType = null,
@@ -249,8 +246,7 @@
 		}
 		const metadata = billingPlanHelpers.getMetadata(planType);
 		const features = metadata?.features as unknown as
-			| Record<string, boolean | string | number | null>
-			| undefined;
+			Record<string, boolean | string | number | null> | undefined;
 		return features?.[featureKey] ?? null;
 	}
 
@@ -404,13 +400,11 @@
 	function sortFeaturesByCategory(features: string[]): string[] {
 		const order = ['Discovery', 'Visualization', 'Integrations', 'Support', 'Enterprise'];
 		return [...features].sort((a, b) => {
-			// Coming-soon features sort to end
-			const soonA = isComingSoon(a) ? 1 : 0;
-			const soonB = isComingSoon(b) ? 1 : 0;
-			if (soonA !== soonB) return soonA - soonB;
 			const catA = order.indexOf(featureHelpers.getCategory(a));
 			const catB = order.indexOf(featureHelpers.getCategory(b));
-			return (catA === -1 ? 99 : catA) - (catB === -1 ? 99 : catB);
+			if (catA !== catB) return (catA === -1 ? 99 : catA) - (catB === -1 ? 99 : catB);
+			// Within a category, coming-soon features sort to the end
+			return (isComingSoon(a) ? 1 : 0) - (isComingSoon(b) ? 1 : 0);
 		});
 	}
 
@@ -462,7 +456,6 @@
 				{#each filteredPlans as plan (plan.type + plan.rate)}
 					{@const IconComponent = billingPlanHelpers.getIconComponent(plan.type)}
 					{@const colorHelper = billingPlanHelpers.getColorHelper(plan.type)}
-					{@const isRecommended = recommendedPlan === plan.type}
 					{@const description = billingPlanHelpers.getDescription(plan.type)}
 					{@const trial = hasTrial(plan)}
 					{@const metadata = billingPlanHelpers.getMetadata(plan.type)}
@@ -481,18 +474,7 @@
 							: incrementalFeatures
 					)}
 
-					<div
-						class="plan-card card card-static flex flex-col {isRecommended
-							? 'plan-card-recommended'
-							: ''}"
-					>
-						<!-- Recommended Badge -->
-						{#if isRecommended}
-							<div class="-mt-3 mb-1 flex justify-center">
-								<Tag label={common_recommended()} color="Yellow" />
-							</div>
-						{/if}
-
+					<div class="plan-card card card-static flex flex-col">
 						<!-- Plan Header -->
 						<div class="flex flex-col items-center gap-2 pb-4">
 							<div class="flex items-center gap-2">
@@ -731,7 +713,17 @@
 							{/if}
 
 							<ul class="space-y-1.5 {expandedFeatures.has(plan.type) ? '' : 'hidden sm:block'}">
-								{#each displayFeatures as featureKey (featureKey)}
+								{#each displayFeatures as featureKey, i (featureKey)}
+									{@const category = featureHelpers.getCategory(featureKey)}
+									{#if i === 0 || category !== featureHelpers.getCategory(displayFeatures[i - 1])}
+										<li
+											class="text-tertiary text-[10px] font-medium uppercase tracking-wider {i > 0
+												? 'mt-2'
+												: ''}"
+										>
+											{category}
+										</li>
+									{/if}
 									{@const comingSoon = isComingSoon(featureKey)}
 									<li class="flex items-start gap-2 text-sm">
 										<Check
@@ -869,11 +861,6 @@
 	.plan-card {
 		padding: 1.25rem;
 		position: relative;
-	}
-
-	.plan-card-recommended {
-		outline: 2px solid rgb(234 179 8);
-		outline-offset: -2px;
 	}
 
 	/* Stepper controls for pricing simulator */

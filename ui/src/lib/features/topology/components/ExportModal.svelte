@@ -214,16 +214,14 @@
 				if (isShareView && f.featureKey && !featureGates[f.featureKey]?.()) return false;
 				return true;
 			})
-			.map(
-				(f): SimpleOption => ({
-					value: f.value,
-					label: f.label,
-					description: f.description,
-					icon: f.icon,
-					disabled: f.featureKey ? !featureGates[f.featureKey]?.() : false,
-					tags: f.featureKey && !featureGates[f.featureKey]?.() ? upgradeTags : []
-				})
-			);
+			.map((f): SimpleOption => ({
+				value: f.value,
+				label: f.label,
+				description: f.description,
+				icon: f.icon,
+				disabled: f.featureKey ? !featureGates[f.featureKey]?.() : false,
+				tags: f.featureKey && !featureGates[f.featureKey]?.() ? upgradeTags : []
+			}));
 	});
 
 	let selectedFormatDef = $derived(allFormats.find((f) => f.value === selectedFormat));

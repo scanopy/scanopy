@@ -23,7 +23,7 @@ use mac_address::MacAddress;
 use uuid::Uuid;
 
 use super::is_virtual_router_mac;
-use crate::server::ip_addresses::r#impl::base::MacEvidence;
+use crate::server::ip_addresses::r#impl::base::{MacEvidence, is_unset_mac};
 use crate::server::shared::oui;
 
 /// What a MAC is worth as an identity anchor, judged on the value alone.
@@ -38,7 +38,8 @@ pub(crate) enum MacQuality {
     /// payload — which is all `ip_addresses_match` ever uses it for — and not stable enough to
     /// carry identity between scans.
     Weak,
-    /// Not a device address at all: a shared virtual-router MAC, or a group address.
+    /// Not a device address at all: a shared virtual-router MAC, a group address, or the all-zero
+    /// placeholder.
     Excluded,
 }
 
@@ -55,6 +56,12 @@ pub(crate) fn classify(mac: &MacAddress) -> MacQuality {
     // the same statement made specifically — several physical routers deliberately wearing one
     // address, which is the merge `is_virtual_router_mac` was written to prevent.
     if bytes[0] & 0x01 != 0 || is_virtual_router_mac(mac) {
+        return MacQuality::Excluded;
+    }
+
+    // The all-zero placeholder has the group and U/L bits clear and an OUI that resolves (to
+    // Xerox), so without this it would grade `Strong`, making every loopback that carries it one host.
+    if is_unset_mac(mac) {
         return MacQuality::Excluded;
     }
 
@@ -277,6 +284,7 @@ mod tests {
                 MacAddress::new([0x01, 0x00, 0x5e, 0x01, 0x02, 0x03]),
             ),
             ("broadcast", MacAddress::new([0xff; 6])),
+            ("all-zero placeholder", MacAddress::new([0; 6])),
         ] {
             assert_eq!(classify(&mac), MacQuality::Excluded, "{label}");
             let e = evidence(mac, AttributeSource::ArpReply);

@@ -194,8 +194,7 @@ export class LayoutGraph {
 		// Link parent-child container relationships
 		for (const container of graph.containers.values()) {
 			const parentId = (container.node as Record<string, unknown>).parent_container_id as
-				| string
-				| undefined;
+				string | undefined;
 			if (parentId) {
 				const parent = graph.containers.get(parentId);
 				if (parent) {

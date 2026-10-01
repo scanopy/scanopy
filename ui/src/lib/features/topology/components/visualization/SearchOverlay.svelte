@@ -29,8 +29,7 @@
 		topoStore
 			? $topoStore
 			: (topo.query?.data?.find((t) => t.id === $selectedTopologyId) as
-					| RenderableTopology
-					| undefined)
+					RenderableTopology | undefined)
 	);
 
 	let query = $state('');

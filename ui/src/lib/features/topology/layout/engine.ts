@@ -14,6 +14,11 @@ export interface LayoutInput {
 	expandedContainerSizes?: Map<string, { width: number; height: number }>;
 	elementNodeSizes?: Map<string, { x: number; y: number }>;
 	hiddenEdgeTypes?: string[];
+	/**
+	 * Keep every container's children in the order they appear in `nodes`, which the server has
+	 * already sorted. Off, the layout arranges them itself to fit each container compactly.
+	 */
+	preserveChildOrder?: boolean;
 }
 
 export interface LayoutResult {

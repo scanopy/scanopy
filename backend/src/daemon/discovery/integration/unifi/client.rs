@@ -22,6 +22,7 @@ use serde_json::json;
 
 use crate::daemon::discovery::service::warnings::AttemptOutcome;
 use crate::server::credentials::r#impl::mapping::{UnifiAuth, UnifiQueryCredential};
+use crate::server::shared::trusted_ca::TrustedCaBundle;
 
 use super::types::UnifiEnvelope;
 
@@ -87,13 +88,17 @@ impl UnifiClient {
         host: &str,
         credential: &UnifiQueryCredential,
         accept_invalid_certs: bool,
+        trusted_ca: Option<&TrustedCaBundle>,
     ) -> Result<Self, Error> {
-        let mut builder = Client::builder()
-            .connect_timeout(CONNECT_TIMEOUT)
-            .timeout(REQUEST_TIMEOUT)
-            .danger_accept_invalid_certs(accept_invalid_certs)
-            // Session auth rides a cookie; harmless for the API-key transport.
-            .cookie_store(true);
+        let mut builder = TrustedCaBundle::apply(
+            trusted_ca,
+            Client::builder()
+                .connect_timeout(CONNECT_TIMEOUT)
+                .timeout(REQUEST_TIMEOUT)
+                .danger_accept_invalid_certs(accept_invalid_certs)
+                // Session auth rides a cookie; harmless for the API-key transport.
+                .cookie_store(true),
+        );
 
         if let UnifiAuth::ApiKey { api_key } = &credential.auth {
             // Set as a default header so the key is never interpolated into a URL or a log line.

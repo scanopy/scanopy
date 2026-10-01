@@ -1,5 +1,13 @@
 <script lang="ts">
-	import { Bug, AlertTriangle, Lightbulb, LifeBuoy, BookOpen, Mail } from 'lucide-svelte';
+	import {
+		Bug,
+		AlertTriangle,
+		Lightbulb,
+		LifeBuoy,
+		BookOpen,
+		Mail,
+		CalendarCheck
+	} from 'lucide-svelte';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
 	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
 	import { VERSION } from '$lib/version';
@@ -10,6 +18,7 @@
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
 	import InfoRow from '$lib/shared/components/data/InfoRow.svelte';
+	import { BOOK_CALL_URL, supportEmailAddress } from './support';
 	import {
 		common_close,
 		common_email,
@@ -21,7 +30,10 @@
 		support_incorrectDetection,
 		support_incorrectDetectionDesc,
 		support_info,
+		support_onboardingCall,
+		support_onboardingCallDesc,
 		support_orgId,
+		support_priorityEmailDesc,
 		support_reportBug,
 		support_reportBugDesc,
 		support_requestFeature,
@@ -56,12 +68,10 @@
 	const organizationQuery = useOrganizationQuery();
 	let organization = $derived(organizationQuery.data);
 
-	let hasEmailSupport = $derived.by(() => {
-		if (!organization || !organization.plan) return false;
-
-		let features = billingPlans.getMetadata(organization.plan.type).features;
-		return features.email_support;
-	});
+	let planFeatures = $derived(
+		organization?.plan ? billingPlans.getMetadata(organization.plan.type).features : undefined
+	);
+	let supportEmail = $derived(supportEmailAddress(planFeatures));
 
 	let supportOptions = $derived.by(() => {
 		const options: SupportOption[] = [
@@ -102,13 +112,25 @@
 			}
 		];
 
-		if (hasEmailSupport) {
+		if (supportEmail) {
 			options.push({
 				title: common_email(),
-				description: support_emailDesc(),
-				url: 'mailto:support@scanopy.net',
+				description: planFeatures?.priority_support
+					? support_priorityEmailDesc()
+					: support_emailDesc(),
+				url: `mailto:${supportEmail}`,
 				color: 'Blue',
 				icon: Mail
+			});
+		}
+
+		if (planFeatures?.onboarding_call) {
+			options.push({
+				title: support_onboardingCall(),
+				description: support_onboardingCallDesc(),
+				url: BOOK_CALL_URL,
+				color: 'Teal',
+				icon: CalendarCheck
 			});
 		}
 

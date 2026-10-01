@@ -8,12 +8,15 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Request, State},
-    http::{HeaderMap, StatusCode},
+    http::HeaderMap,
     middleware::Next,
     response::{IntoResponse, Response},
 };
 
-use crate::{daemon::runtime::types::DaemonAppState, server::shared::api_key_common::hash_api_key};
+use crate::{
+    daemon::runtime::types::DaemonAppState,
+    server::shared::{api_key_common::hash_api_key, types::api::ApiError},
+};
 
 /// Extract Bearer token from Authorization header
 fn extract_bearer_token(headers: &HeaderMap) -> Option<&str> {
@@ -44,10 +47,7 @@ pub async fn server_auth_middleware(
         Some(t) => t,
         None => {
             tracing::debug!("Missing or invalid Authorization header");
-            return (
-                StatusCode::UNAUTHORIZED,
-                "Missing or invalid Authorization header",
-            )
+            return ApiError::unauthorized("Missing or invalid Authorization header".to_string())
                 .into_response();
         }
     };
@@ -57,11 +57,11 @@ pub async fn server_auth_middleware(
         Ok(Some(key)) => key,
         Ok(None) => {
             tracing::warn!("Daemon not configured with API key, rejecting request");
-            return (StatusCode::UNAUTHORIZED, "Daemon not configured").into_response();
+            return ApiError::unauthorized("Daemon not configured".to_string()).into_response();
         }
         Err(e) => {
             tracing::error!("Failed to get API key from config: {}", e);
-            return (StatusCode::INTERNAL_SERVER_ERROR, "Configuration error").into_response();
+            return ApiError::internal_error("Configuration error").into_response();
         }
     };
 
@@ -75,7 +75,7 @@ pub async fn server_auth_middleware(
              match this daemon's configured key. Re-provision/re-install this daemon so its key \
              matches the server."
         );
-        return (StatusCode::UNAUTHORIZED, "Invalid API key").into_response();
+        return ApiError::unauthorized("Invalid API key".to_string()).into_response();
     }
 
     // Authentication successful, proceed to handler

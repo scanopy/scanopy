@@ -145,30 +145,27 @@
 	// Queries
 	const tagsQuery = useTagsQuery();
 	// Paginated services with server-side pagination, ordering, and tag filtering
-	const servicesQuery = useServicesQuery(
-		(): ServicesQueryParams => ({
-			limit: pageSize,
-			offset: (currentPage - 1) * pageSize,
-			group_by: groupBy,
-			order_by: orderBy,
-			order_direction: orderDirection,
-			tag_ids: tagIds.length > 0 ? tagIds : undefined,
-			stale: stale ?? undefined,
-			search: search || undefined,
-			ports: ports.length > 0 ? ports : undefined,
-			exclude_categories:
-				excludeCategories.length > 0
-					? (excludeCategories as components['schemas']['ServiceCategory'][])
-					: undefined,
-			host_ids: filterHostIds.length > 0 ? filterHostIds : undefined,
-			network_ids: filterNetworkIds.length > 0 ? filterNetworkIds : undefined,
-			service_definitions:
-				filterServiceDefinitions.length > 0 ? filterServiceDefinitions : undefined,
-			virtualization_service_ids:
-				filterVirtualizationServiceIds.length > 0 ? filterVirtualizationServiceIds : undefined,
-			include_uncontainerized: filterIncludeUncontainerized || undefined
-		})
-	);
+	const servicesQuery = useServicesQuery((): ServicesQueryParams => ({
+		limit: pageSize,
+		offset: (currentPage - 1) * pageSize,
+		group_by: groupBy,
+		order_by: orderBy,
+		order_direction: orderDirection,
+		tag_ids: tagIds.length > 0 ? tagIds : undefined,
+		stale: stale ?? undefined,
+		search: search || undefined,
+		ports: ports.length > 0 ? ports : undefined,
+		exclude_categories:
+			excludeCategories.length > 0
+				? (excludeCategories as components['schemas']['ServiceCategory'][])
+				: undefined,
+		host_ids: filterHostIds.length > 0 ? filterHostIds : undefined,
+		network_ids: filterNetworkIds.length > 0 ? filterNetworkIds : undefined,
+		service_definitions: filterServiceDefinitions.length > 0 ? filterServiceDefinitions : undefined,
+		virtualization_service_ids:
+			filterVirtualizationServiceIds.length > 0 ? filterVirtualizationServiceIds : undefined,
+		include_uncontainerized: filterIncludeUncontainerized || undefined
+	}));
 	const networksQuery = useNetworksQuery();
 	const portsQuery = usePortsQuery();
 	// Option sources for the server-side filters. The lists below are the tab's

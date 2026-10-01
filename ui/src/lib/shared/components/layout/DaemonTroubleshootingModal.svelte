@@ -14,6 +14,6 @@
 
 <GenericModal title={daemons_troubleshootingTitle()} {isOpen} {onClose} size="xl">
 	<div class="p-6">
-		<SupportOptions isTroubleshooting={true} hasEmailSupport={false} />
+		<SupportOptions isTroubleshooting={true} />
 	</div>
 </GenericModal>

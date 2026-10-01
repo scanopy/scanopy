@@ -755,7 +755,8 @@ impl TopologyService {
 
         // Select builder by view and build nodes + edges
         let builder = super::view::builder_for_view(view);
-        let (all_nodes, mut all_edges) = builder.build(&ctx, &grouping);
+        let (mut all_nodes, mut all_edges) = builder.build(&ctx, &grouping);
+        super::child_order::order_children(&mut all_nodes, grouping.element_sort, &ctx);
 
         // Set per-view edge configuration and the view-independent relation identity
         for edge in &mut all_edges {

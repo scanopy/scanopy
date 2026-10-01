@@ -713,11 +713,11 @@ export function sampleViewerState(inputs: SampleInputs): ViewerSample {
 
 	const intersectsPane = Boolean(
 		bounds &&
-			paneRect &&
-			bounds.right > paneRect.left &&
-			bounds.left < paneRect.right &&
-			bounds.bottom > paneRect.top &&
-			bounds.top < paneRect.bottom
+		paneRect &&
+		bounds.right > paneRect.left &&
+		bounds.left < paneRect.right &&
+		bounds.bottom > paneRect.top &&
+		bounds.top < paneRect.bottom
 	);
 
 	const paneHidden = pane ? getComputedStyle(pane).visibility === 'hidden' : false;

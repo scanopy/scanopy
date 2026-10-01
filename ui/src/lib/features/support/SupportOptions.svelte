@@ -2,6 +2,9 @@
 	import { Bug, BookOpen, Mail } from 'lucide-svelte';
 	import { createColorHelper, type Color } from '$lib/shared/utils/styling';
 	import type { IconComponent } from '$lib/shared/utils/types';
+	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { billingPlans } from '$lib/shared/stores/metadata';
+	import { supportEmailAddress } from './support';
 	import {
 		common_email,
 		support_discordDesc,
@@ -19,13 +22,13 @@
 		icon: IconComponent | string;
 	};
 
-	let {
-		isTroubleshooting = false,
-		hasEmailSupport = false
-	}: {
-		isTroubleshooting?: boolean;
-		hasEmailSupport?: boolean;
-	} = $props();
+	let { isTroubleshooting = false }: { isTroubleshooting?: boolean } = $props();
+
+	const organizationQuery = useOrganizationQuery();
+	let supportEmail = $derived.by(() => {
+		const planType = organizationQuery.data?.plan?.type;
+		return supportEmailAddress(planType ? billingPlans.getMetadata(planType).features : undefined);
+	});
 
 	let options = $derived.by(() => {
 		if (isTroubleshooting) {
@@ -53,11 +56,11 @@
 				}
 			];
 
-			if (hasEmailSupport) {
+			if (supportEmail) {
 				items.push({
 					title: common_email(),
 					description: support_emailDesc(),
-					url: 'mailto:support@scanopy.net',
+					url: `mailto:${supportEmail}`,
 					color: 'Blue',
 					icon: Mail
 				});

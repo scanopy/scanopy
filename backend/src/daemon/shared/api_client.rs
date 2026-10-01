@@ -1,5 +1,6 @@
 use crate::daemon::shared::config::ConfigStore;
 use crate::daemon::shared::forward_compat::DaemonResponse;
+use crate::server::shared::trusted_ca::{TrustedCaBundle, is_untrusted_certificate};
 use crate::server::shared::types::api::{ApiErrorResponse, ApiResponse};
 use anyhow::{Error, bail};
 use reqwest::{Client, Method, RequestBuilder};
@@ -68,7 +69,7 @@ impl ConnectionError {
                 "Cause: server closed the connection unexpectedly. Fix: check server logs for errors."
             }
             Self::Tls { .. } => {
-                "Cause: self-signed or untrusted certificate. Fix: add --allow-self-signed-certs to the daemon command."
+                "Cause: the server's certificate is self-signed or signed by a CA the daemon doesn't trust. Fix: set --trusted-ca-bundle (SCANOPY_TRUSTED_CA_BUNDLE) to your CA's PEM file, or add --allow-self-signed-certs to the daemon command."
             }
             Self::DnsOrConnect { .. } => {
                 "Cause: hostname cannot be resolved or network unreachable. Fix: check the server URL hostname and DNS/network configuration."
@@ -98,12 +99,17 @@ impl DaemonApiClient {
                 let allow_self_signed_certs =
                     self.config_store.get_allow_self_signed_certs().await?;
 
-                Client::builder()
-                    .danger_accept_invalid_certs(allow_self_signed_certs)
-                    .connect_timeout(Duration::from_secs(10))
-                    .timeout(Duration::from_secs(30))
-                    .build()
-                    .map_err(|e| anyhow::anyhow!("Failed to build HTTP client: {}", e))
+                let trusted_ca = self.config_store.get_trusted_ca().await;
+
+                TrustedCaBundle::apply(
+                    trusted_ca.as_deref(),
+                    Client::builder()
+                        .danger_accept_invalid_certs(allow_self_signed_certs)
+                        .connect_timeout(Duration::from_secs(10))
+                        .timeout(Duration::from_secs(30)),
+                )
+                .build()
+                .map_err(|e| anyhow::anyhow!("Failed to build HTTP client: {}", e))
             })
             .await
     }
@@ -177,6 +183,14 @@ impl DaemonApiClient {
     fn classify_connection_error(err: &reqwest::Error, url: &str) -> ConnectionError {
         if err.is_timeout() {
             return ConnectionError::Timeout {
+                url: url.to_string(),
+            };
+        }
+
+        // rustls rejects the certificate inside an `io::Error` of kind InvalidData, which the
+        // io-kind match below would report as a DNS/network failure.
+        if is_untrusted_certificate(err) {
+            return ConnectionError::Tls {
                 url: url.to_string(),
             };
         }
@@ -351,5 +365,34 @@ mod tests {
         assert!(!envelope.is_success());
         assert_eq!(envelope.error(), Some("network is not on this daemon"));
         assert!(envelope.into_data().is_none());
+    }
+
+    /// A server certificate the daemon doesn't trust is reported as a TLS problem, not as
+    /// DNS/network, so startup logging points at the CA bundle. A refused connection keeps
+    /// its own classification.
+    #[tokio::test]
+    async fn untrusted_server_certificate_is_classified_as_tls() {
+        use crate::server::shared::trusted_ca::test_support::serve_test_tls;
+
+        let port = serve_test_tls().await;
+        let url = format!("https://localhost:{port}/");
+        let err = reqwest::Client::new().get(&url).send().await.unwrap_err();
+        assert!(matches!(
+            DaemonApiClient::classify_connection_error(&err, &url),
+            ConnectionError::Tls { .. }
+        ));
+
+        let closed = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let closed_url = format!("https://localhost:{}/", closed.local_addr().unwrap().port());
+        drop(closed);
+        let err = reqwest::Client::new()
+            .get(&closed_url)
+            .send()
+            .await
+            .unwrap_err();
+        assert!(matches!(
+            DaemonApiClient::classify_connection_error(&err, &closed_url),
+            ConnectionError::ConnectionRefused { .. }
+        ));
     }
 }

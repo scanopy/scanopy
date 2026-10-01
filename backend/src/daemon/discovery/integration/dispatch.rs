@@ -26,6 +26,7 @@ use crate::server::credentials::r#impl::types::CredentialAssignment;
 use crate::server::discovery::r#impl::types::HostNamingFallback;
 use crate::server::ports::r#impl::base::PortType;
 use crate::server::services::r#impl::patterns::ClientProbe;
+use crate::server::shared::trusted_ca::TrustedCaBundle;
 use crate::server::subnets::r#impl::base::Subnet;
 
 use super::{
@@ -204,6 +205,7 @@ pub struct IntegrationProbeResults {
 /// `skip_gate` bypasses `probe_gate_ports` — used for the daemon's own host
 /// (localhost) phase, which does no port scan and lets integrations self-probe.
 /// The network-scan phase passes `false` so the gate keeps the broad scan cheap.
+#[allow(clippy::too_many_arguments)]
 pub async fn probe_integrations(
     ip: IpAddr,
     credential_mappings: &[CredentialMapping<CredentialQueryPayload>],
@@ -212,6 +214,7 @@ pub async fn probe_integrations(
     cancel: &CancellationToken,
     utils: &PlatformDaemonUtils,
     accept_invalid_certs: bool,
+    trusted_ca: Option<&TrustedCaBundle>,
 ) -> Result<IntegrationProbeResults, Error> {
     let mut results = IntegrationProbeResults {
         client_responses: HashMap::new(),
@@ -373,6 +376,7 @@ pub async fn probe_integrations(
                         cancel,
                         utils,
                         accept_invalid_certs,
+                        trusted_ca,
                     },
                     discriminant,
                     applicable.user_assigned,
@@ -588,6 +592,7 @@ pub async fn execute_integrations(
             .get_accept_invalid_scan_certs()
             .await
             .unwrap_or(false);
+        let trusted_ca = params.ops.config_store.get_trusted_ca().await;
 
         let matched_services_snapshot = host_data.services.clone();
 
@@ -615,6 +620,7 @@ pub async fn execute_integrations(
             host_naming_fallback: params.host_naming_fallback,
             known_subnets: params.known_subnets,
             accept_invalid_certs,
+            trusted_ca: trusted_ca.as_deref(),
             scanning_subnet: params.scanning_subnet,
         };
 

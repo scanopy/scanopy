@@ -4,14 +4,16 @@ fn main() {
     println!("cargo:rerun-if-changed=assets/oui.csv");
     println!("cargo:rerun-if-changed=assets/domain-classification");
 
-    // Windows: delay-load the Npcap runtime (packet.dll) for the `daemon` binary. pnet links
-    // Packet.lib, which makes packet.dll a load-time import — so without Npcap installed the exe
-    // fails to even start (0xC0000135). Delay-loading defers that load to the first packet-capture
-    // call, so the daemon runs on a bare host and only needs Npcap when npcap-based ARP is actually
-    // used; the default scan path uses the SendARP fallback and never touches packet.dll.
-    // (wpcap.dll is not imported, so it needs no delay-load entry.)
+    // Windows: delay-load the Npcap runtime (packet.dll). pnet links Packet.lib, which makes
+    // packet.dll a load-time import, so without Npcap installed an exe fails to even start
+    // (0xC0000135). Delay-loading defers the load to the first Packet* call. A failed delay-load
+    // raises 0xC06D007E and kills the process, so every Packet* call must sit behind
+    // `pnet_datalink::winpcap::packet_dll_available()`. The vendored pnet_datalink does that in
+    // `channel()`, and its `interfaces()` makes no Packet* call at all.
+    // (wpcap.dll is not imported, so it needs no delay-load entry.) Applied to every linked target,
+    // not just the daemon, so Windows test binaries also start on a host without Npcap.
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
-        println!("cargo:rustc-link-arg-bin=daemon=/DELAYLOAD:packet.dll");
-        println!("cargo:rustc-link-arg-bin=daemon=delayimp.lib");
+        println!("cargo:rustc-link-arg=/DELAYLOAD:packet.dll");
+        println!("cargo:rustc-link-arg=delayimp.lib");
     }
 }

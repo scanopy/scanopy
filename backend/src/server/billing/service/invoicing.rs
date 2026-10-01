@@ -97,7 +97,8 @@ impl BillingService {
                         update.send(&self.stripe).await?
                     }
                     None => {
-                        CreateSubscription::new(customer_id.clone())
+                        CreateSubscription::new()
+                            .customer(customer_id.clone())
                             .items(vec![CreateSubscriptionItems {
                                 price: Some(base_price.id.to_string()),
                                 quantity: Some(1),
@@ -162,11 +163,15 @@ impl BillingService {
     /// period between now and then free and raises no invoice for it, so the
     /// customer is billed once, at `term_end`, for the year after that. They
     /// keep the payment terms they just proved good.
+    ///
+    /// The create carries `idempotency_key`, so a retried webhook whose first
+    /// attempt created the subscription gets that one back instead of a second.
     pub(crate) async fn resume_license_subscription(
         &self,
         organization: &Organization,
         plan: BillingPlan,
         term_end: DateTime<Utc>,
+        idempotency_key: IdempotencyKey,
     ) -> Result<stripe_billing::Subscription, Error> {
         let customer_id = organization
             .base
@@ -180,7 +185,8 @@ impl BillingService {
             .await?
             .ok_or_else(|| anyhow!("Could not find base price for {}", plan.name()))?;
 
-        Ok(CreateSubscription::new(customer_id)
+        Ok(CreateSubscription::new()
+            .customer(customer_id)
             .items(vec![CreateSubscriptionItems {
                 price: Some(base_price.id.to_string()),
                 quantity: Some(1),
@@ -191,6 +197,8 @@ impl BillingService {
             .billing_cycle_anchor(term_end.timestamp())
             .proration_behavior(CreateSubscriptionProrationBehavior::None)
             .metadata(subscription_metadata(organization.id, plan)?)
+            .customize()
+            .request_strategy(RequestStrategy::Idempotent(idempotency_key))
             .send(&self.stripe)
             .await?)
     }
@@ -337,6 +345,7 @@ impl BillingService {
             .await?
             .ok_or_else(|| refused("There is no open quote to download"))?;
 
+        self.stripe.acquire().await?;
         let response = self
             .files_http
             .get(format!("{STRIPE_FILES_BASE}/quotes/{}/pdf", quote.id))
@@ -890,7 +899,7 @@ const SELF_HOSTED_ONLY: &str = "Invoice billing is available on self-hosted plan
 /// webhook writes off what it finds here from a spawned task that holds the
 /// Stripe client but no service.
 pub(crate) async fn license_invoices(
-    stripe: &stripe::Client,
+    stripe: &RateLimitedStripe,
     customer_id: &CustomerId,
     status: InvoiceStatus,
 ) -> Result<Vec<stripe_billing::Invoice>, Error> {
@@ -923,7 +932,7 @@ pub(crate) async fn license_invoices(
 /// the customer's billing clock, which under a test clock is not the server's,
 /// so comparing against `Utc::now()` reads a different calendar.
 pub(crate) async fn write_off_unpaid_license_invoices(
-    stripe: &stripe::Client,
+    stripe: &RateLimitedStripe,
     organization_id: Uuid,
     customer_id: &CustomerId,
     as_of: DateTime<Utc>,
