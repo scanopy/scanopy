@@ -258,7 +258,7 @@ impl TypeMetadataProvider for Feature {
                 "Billing schedule and payment terms negotiated to fit your procurement process"
             }
             Feature::ProcurementDocuments => {
-                "W-9, NDAA Section 889 attestation, and a data processing agreement for vendor onboarding"
+                "W-9 and NDAA Section 889 attestation for vendor onboarding"
             }
             Feature::SignedSla => {
                 "A signed service level agreement with committed support response times"
