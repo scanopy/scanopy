@@ -558,29 +558,38 @@ impl BillingService {
         &self,
         organization: &Organization,
     ) -> Result<Subscription, Error> {
-        let customer_id = organization
-            .base
-            .stripe_customer_id
-            .clone()
-            .ok_or_else(|| anyhow!("No Stripe customer ID"))?;
+        if organization.base.stripe_customer_id.is_none() {
+            return Err(anyhow!("No Stripe customer ID"));
+        }
+        self.current_subscription(organization)
+            .await?
+            .ok_or_else(|| anyhow!("No active subscription found"))
+    }
+
+    /// As [`Self::find_current_subscription`], but an org without one is
+    /// `Ok(None)`, so a failure to ask Stripe is not mistaken for an answer.
+    pub(crate) async fn current_subscription(
+        &self,
+        organization: &Organization,
+    ) -> Result<Option<Subscription>, Error> {
+        let Some(customer_id) = organization.base.stripe_customer_id.clone() else {
+            return Ok(None);
+        };
 
         let subs = ListSubscription::new()
             .customer(CustomerId::from(customer_id))
             .send(&self.stripe)
             .await?;
 
-        subs.data
-            .into_iter()
-            .find(|s| {
-                matches!(
-                    s.status,
-                    SubscriptionStatus::Active
-                        | SubscriptionStatus::Trialing
-                        | SubscriptionStatus::Paused
-                        | SubscriptionStatus::PastDue
-                )
-            })
-            .ok_or_else(|| anyhow!("No active subscription found"))
+        Ok(subs.data.into_iter().find(|s| {
+            matches!(
+                s.status,
+                SubscriptionStatus::Active
+                    | SubscriptionStatus::Trialing
+                    | SubscriptionStatus::Paused
+                    | SubscriptionStatus::PastDue
+            )
+        }))
     }
 }
 
