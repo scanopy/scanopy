@@ -1,6 +1,12 @@
 <script lang="ts" module>
 	import { entities } from '$lib/shared/stores/metadata';
-	import { common_enabled, common_disabled, common_never } from '$lib/paraglide/messages';
+	import {
+		common_enabled,
+		common_disabled,
+		common_expiresOn,
+		common_never
+	} from '$lib/paraglide/messages';
+	import { formatDate } from '$lib/shared/utils/formatting';
 
 	// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 	export interface ShareDisplayContext {}
@@ -11,8 +17,7 @@
 		getDescription: (share: Share) => {
 			const status = share.is_enabled ? common_enabled() : common_disabled();
 			if (share.expires_at) {
-				const expiry = new Date(share.expires_at).toLocaleDateString();
-				return `${status} · Expires ${expiry}`;
+				return `${status} · ${common_expiresOn({ date: formatDate(share.expires_at) })}`;
 			}
 			return `${status} · ${common_never()}`;
 		},

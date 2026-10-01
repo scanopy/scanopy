@@ -38,7 +38,10 @@ use crate::server::{
         edges::{Edge, EdgeStyle},
         nodes::Node,
     },
-    users::r#impl::{email_settings::EmailSettings, permissions::UserOrgPermissions},
+    users::r#impl::{
+        display_settings::DisplaySettings, email_settings::EmailSettings,
+        permissions::UserOrgPermissions,
+    },
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -363,6 +366,7 @@ pub enum SqlValue {
     DiscoveryType(DiscoveryType),
     UserOrgPermissions(UserOrgPermissions),
     EmailSettings(EmailSettings),
+    DisplaySettings(DisplaySettings),
     OptionBillingPlan(Option<BillingPlan>),
     OptionBillingPlanStatus(Option<SubscriptionStatus>),
     BillingOperation(BillingOperation),
@@ -540,6 +544,15 @@ impl DbEnumContributor for AttributeSource {
 
         ClientProbe::contribute(out);
     }
+}
+
+/// `DisplaySettings` holds nested enums that nothing else reaches, but they stay out of the
+/// coexistence catalog on purpose. `User::from_row` falls back to `DisplaySettings::default()`
+/// when the stored JSON doesn't decode, so a binary that meets a variant it doesn't know shows
+/// default date formatting instead of failing to read the user. These are display preferences,
+/// so that fallback is the tolerated outcome; the gates exist for values whose loss matters.
+impl DbEnumContributor for DisplaySettings {
+    fn contribute(_: &mut std::collections::BTreeMap<&'static str, Vec<String>>) {}
 }
 
 // ServiceDefinition covers service metadata (Docker, nginx, etc.), not
@@ -736,6 +749,7 @@ impl SqlValue {
             SqlValueDiscriminants::DiscoveryType => DiscoveryType::contribute(out),
             SqlValueDiscriminants::UserOrgPermissions => UserOrgPermissions::contribute(out),
             SqlValueDiscriminants::EmailSettings => EmailSettings::contribute(out),
+            SqlValueDiscriminants::DisplaySettings => DisplaySettings::contribute(out),
             SqlValueDiscriminants::OptionBillingPlan => BillingPlan::contribute(out),
             SqlValueDiscriminants::OptionBillingPlanStatus => SubscriptionStatus::contribute(out),
             SqlValueDiscriminants::BillingOperation => BillingOperation::contribute(out),

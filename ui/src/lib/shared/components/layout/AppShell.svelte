@@ -16,6 +16,7 @@
 	import { resetTopologyOptions } from '$lib/features/topology/queries';
 	import { pushError, pushSuccess } from '$lib/shared/stores/feedback';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
+	import { displaySettings } from '$lib/shared/stores/display-settings.svelte';
 	import { isBillingPlanActive, isPaidSubscriptionActive } from '$lib/features/organizations/types';
 	import { getRoute } from '$lib/shared/utils/navigation';
 	import type { PostHog } from 'posthog-js';
@@ -44,6 +45,11 @@
 	let isAuthenticated = $derived(currentUser != null);
 	let isCheckingAuth = $derived(currentUserQuery.isPending);
 	let authCheckComplete = $derived(!currentUserQuery.isPending);
+
+	// Dates everywhere follow the signed-in user's display settings; defaults when signed out.
+	$effect(() => {
+		displaySettings.set(currentUser?.display_settings);
+	});
 
 	// TanStack Query for organization
 	const organizationQuery = useOrganizationQuery();

@@ -7,6 +7,8 @@
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
 	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
+	import { displaySettings, timeZoneOptions } from '$lib/shared/stores/display-settings.svelte';
+	import { weekdayOrder } from '$lib/shared/utils/date-format';
 	import {
 		common_fri,
 		common_mon,
@@ -62,12 +64,8 @@
 		() => common_sat()
 	];
 
-	let timezoneOptions = $derived(
-		Intl.supportedValuesOf('timeZone').map((tz) => ({
-			value: tz,
-			label: tz
-		}))
-	);
+	const timezoneOptions = timeZoneOptions();
+	let dayOrder = $derived(weekdayOrder(displaySettings.current));
 
 	function updateCronFromDayTime() {
 		if (formData.run_type.type !== 'Scheduled') return;
@@ -209,7 +207,7 @@
 							{discovery_scheduleDaysOfWeek()}
 						</span>
 						<div class="flex gap-1">
-							{#each [1, 2, 3, 4, 5, 6, 0] as dayIndex (dayIndex)}
+							{#each dayOrder as dayIndex (dayIndex)}
 								<button
 									type="button"
 									class="{isDaySelected(field, dayIndex)

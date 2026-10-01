@@ -1,5 +1,6 @@
 import * as m from '$lib/paraglide/messages';
 import type { components } from '$lib/api/schema';
+import { formatDate } from '$lib/shared/utils/formatting';
 
 type OrgBase = components['schemas']['OrganizationBase'];
 
@@ -24,11 +25,7 @@ type OrgBase = components['schemas']['OrganizationBase'];
  */
 export function renewalLabel(org: OrgBase | undefined | null): string | null {
 	if (!org?.next_renewal_at) return null;
-	const formatted = new Date(org.next_renewal_at).toLocaleDateString('en-US', {
-		year: 'numeric',
-		month: 'short',
-		day: 'numeric'
-	});
+	const formatted = formatDate(org.next_renewal_at);
 	switch (org.plan_status) {
 		case 'active':
 			return m.billing_nextRenewalOn({ date: formatted });

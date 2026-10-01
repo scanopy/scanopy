@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatLongDate } from '$lib/shared/utils/formatting';
 	/**
 	 * BillingPlanForm Component
 	 *
@@ -126,12 +127,7 @@
 
 	function firstInvoiceCaption(plan: BillingPlan): string {
 		const ms = Date.now() + plan.trial_days * 24 * 60 * 60 * 1000;
-		const dateStr = new Date(ms).toLocaleDateString(undefined, {
-			month: 'long',
-			day: 'numeric',
-			year: 'numeric'
-		});
-		return billing_firstInvoiceOn({ date: dateStr });
+		return billing_firstInvoiceOn({ date: formatLongDate(new Date(ms)) });
 	}
 
 	type BillingPeriod = 'monthly' | 'yearly';

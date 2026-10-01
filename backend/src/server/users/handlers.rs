@@ -279,6 +279,12 @@ pub async fn update_user(
     request.base.oidc_subject = existing.base.oidc_subject.clone();
     request.base.oidc_linked_at = existing.base.oidc_linked_at;
 
+    if !request.base.display_settings.has_valid_time_zone() {
+        return Err(ApiError::bad_request(
+            "Invalid time zone. Use an IANA time zone like 'America/New_York'.",
+        ));
+    }
+
     let updated = service
         .update(&mut request, auth.into_entity())
         .await
@@ -366,6 +372,7 @@ async fn admin_update_user(
     request.base.oidc_subject = existing.base.oidc_subject.clone();
     request.base.oidc_linked_at = existing.base.oidc_linked_at;
     request.base.email_settings = existing.base.email_settings.clone();
+    request.base.display_settings = existing.base.display_settings.clone();
 
     // Capture network_ids before update (they're stored in junction table, not user record)
     let network_ids = request.base.network_ids.clone();

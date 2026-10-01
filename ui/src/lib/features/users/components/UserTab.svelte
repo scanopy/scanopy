@@ -3,7 +3,6 @@
 	import { networkItems } from '$lib/features/networks/columns';
 	import type { LabelledCardFieldItem } from '$lib/shared/components/data/types';
 	import { Edit, UserX, Trash2 } from 'lucide-svelte';
-	import { formatTimestamp } from '$lib/shared/utils/formatting';
 	import type { CardAction } from '$lib/shared/components/data/types';
 	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
@@ -358,7 +357,7 @@
 			label: common_expires(),
 			type: 'date',
 			sortable: true,
-			getValue: (item) => (isUser(item) ? '' : formatTimestamp(item.data.expires_at)),
+			getValue: (item) => (isUser(item) ? '' : item.data.expires_at),
 			display: { hiddenByDefault: true }
 		}
 	];

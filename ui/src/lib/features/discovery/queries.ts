@@ -2,6 +2,7 @@
  * TanStack Query hooks for Discovery
  */
 
+import { effectiveTimeZone } from '$lib/shared/stores/display-settings.svelte';
 import {
 	createQuery,
 	createMutation,
@@ -272,7 +273,7 @@ export function createEmptyDiscoveryFormData(daemon: Daemon | null): Discovery {
 			cron_schedule: '0 0 0 * * 0',
 			last_run: null,
 			enabled: true,
-			timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+			timezone: effectiveTimeZone()
 		},
 		name: '',
 		daemon_id: daemon ? daemon.id : uuidv4Sentinel,

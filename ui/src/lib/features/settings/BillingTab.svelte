@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatLongDate } from '$lib/shared/utils/formatting';
 	import { CreditCard } from 'lucide-svelte';
 	import ProgressTrack from '$lib/shared/components/data/ProgressTrack.svelte';
 	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
@@ -406,12 +407,7 @@
 	let statusBanner = $derived.by(() => {
 		if (!org) return null;
 		if (isTrialing && !hasPaymentMethod) {
-			const date =
-				trialEndDate?.toLocaleDateString(undefined, {
-					month: 'long',
-					day: 'numeric',
-					year: 'numeric'
-				}) ?? '';
+			const date = trialEndDate ? formatLongDate(trialEndDate) : '';
 			// A licensed org's trial ends in a dead license key, not a downgraded cloud
 			// account, so it gets the license wording.
 			return {
@@ -702,13 +698,7 @@
 										</p>
 										{#if isTrialing && trialEndDate}
 											<p class="text-secondary mt-1 text-xs">
-												{settings_billing_trialEndsOn({
-													date: trialEndDate.toLocaleDateString(undefined, {
-														month: 'long',
-														day: 'numeric',
-														year: 'numeric'
-													})
-												})}
+												{settings_billing_trialEndsOn({ date: formatLongDate(trialEndDate) })}
 											</p>
 										{:else if currentPlanRenewalLine}
 											<p class="text-secondary mt-1 text-xs">{currentPlanRenewalLine}</p>

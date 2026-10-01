@@ -6,6 +6,7 @@
  * `plan.base_cents`.
  */
 import { billingPlans } from '$lib/shared/stores/metadata';
+import { formatLongDate } from '$lib/shared/utils/formatting';
 import type { BillingRate } from './types';
 import type { Organization } from '$lib/features/organizations/types';
 
@@ -31,11 +32,7 @@ export function saveOfferDiscount(org: Organization | null | undefined): SaveOff
 	return {
 		percentOff: percent,
 		rate: org.plan?.rate ?? 'Month',
-		expiresAt: expiresAt.toLocaleDateString(undefined, {
-			month: 'long',
-			day: 'numeric',
-			year: 'numeric'
-		})
+		expiresAt: formatLongDate(expiresAt)
 	};
 }
 
