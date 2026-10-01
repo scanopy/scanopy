@@ -298,7 +298,7 @@ async fn a_resume_created_but_not_recorded_is_finished() {
     let (state, _container) = test_state_with_email_dir(None).await;
     let (case, billing) = LicenseResumeCase::new(&state).await;
     case.subscriptions
-        .answer(list_of(&[case.resumed_subscription.clone()]));
+        .answer(list_of(std::slice::from_ref(&case.resumed_subscription)));
     let mut events = billing_events(&state);
 
     try_deliver(&billing, INVOICE_PAID_DAHLIA).await.unwrap();
