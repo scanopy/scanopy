@@ -68,7 +68,6 @@
 		isFirstDaemon?: boolean;
 		connectionStatus?: DaemonConnectionStatus;
 		onViewDiscovery?: () => void;
-		supportEmail?: string | null;
 		onAdvanced?: (() => void) | null;
 		daemonMode?: DaemonMode;
 		daemonName?: string;
@@ -95,7 +94,6 @@
 		isFirstDaemon = false,
 		connectionStatus = 'idle',
 		onViewDiscovery,
-		supportEmail = null,
 		onAdvanced = null,
 		daemonMode = 'daemon_poll',
 		daemonName = 'scanopy-daemon',
@@ -365,7 +363,6 @@
 					{daemonName}
 					{selectedOS}
 					{linuxMethod}
-					{supportEmail}
 					{logFilePath}
 					onHealthCheck={handleHealthCheck}
 					{isCheckingHealth}

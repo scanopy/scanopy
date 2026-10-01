@@ -33,8 +33,6 @@
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { useTestReachabilityMutation } from '../../queries';
-	import { billingPlans } from '$lib/shared/stores/metadata';
-	import { supportEmailAddress } from '$lib/features/support/support';
 	import { getVisibleFieldIds } from '../../config';
 	import {
 		buildDefaultValues,
@@ -111,11 +109,6 @@
 	// Snapshot: tracks whether wizard was opened as first-daemon flow.
 	// Prevents reactivity from flipping showWaitingUI when FirstDaemonRegistered appears.
 	let startedAsFirstDaemon = $state(false);
-	let supportEmail = $derived(
-		supportEmailAddress(
-			org?.plan?.type ? billingPlans.getMetadata(org.plan.type).features : undefined
-		)
-	);
 
 	// Email install command
 	let hasEmail = $derived(configQuery.data?.has_email_service ?? false);
@@ -798,7 +791,6 @@
 							isFirstDaemon={startedAsFirstDaemon}
 							{connectionStatus}
 							onViewDiscovery={handleViewDiscovery}
-							{supportEmail}
 							onAdvanced={() => (showAdvanced = true)}
 							artifacts={installArtifacts}
 							daemonMode={(formValues.mode as DaemonMode) ?? 'daemon_poll'}
