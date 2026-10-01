@@ -181,6 +181,11 @@ API: `POST /api/v1/credentials` with `Authorization: Bearer <api key>`. The gene
 `{"mode": "Inline", "value": "..."}`. The `credential_type` fields are the `SshKey` and
 `SshPassword` variants of `components["schemas"]["CredentialType"]`.
 
+`make ssh-lab-deploy` installs every case script on the VM as
+`/usr/local/lib/scanopy-lab/<case>.sh`, so the default script mode, a file on the scanned host,
+names it by path. `daemon_os` is the OS of the daemon that reads the key (your Mac: `Unix`);
+`target_os` is the scanned host's (the lab VM: `Unix`).
+
 ```sh
 SCANOPY_URL="<server url>"
 SCANOPY_API_KEY="<api key>"
@@ -192,16 +197,18 @@ jq -n \
   --arg name "ssh-lab ${CASE} (key)" \
   --arg org "$ORG_ID" \
   --arg host "$HOST_ID" \
+  --arg script "/usr/local/lib/scanopy-lab/${CASE}.sh" \
   --rawfile key ~/.config/scanopy-lab/ssh/id_ed25519 \
-  --rawfile script "tools/ssh/scripts/${CASE}.sh" \
   '{
      name: $name,
      organization_id: $org,
+     daemon_os: "Unix",
      credential_type: {
        type: "SshKey",
        username: "scanopy-ssh",
        private_key: {mode: "Inline", value: $key},
-       script: $script,
+       script: {mode: "HostFile", path: $script},
+       target_os: "Unix",
        timeout_seconds: 60
      },
      assigned_network_ids: [],
@@ -211,8 +218,15 @@ jq -n \
 curl -sS -X POST "$SCANOPY_URL/api/v1/credentials" \
   -H "Authorization: Bearer $SCANOPY_API_KEY" \
   -H "Content-Type: application/json" \
-  --data-binary @-
+  --data-binary 10437 10437
 ```
+
+The other two script modes, for the script-source tests:
+
+- Text stored on the credential: `--rawfile script_text "tools/ssh/scripts/${CASE}.sh"` and
+  `script: {mode: "Inline", value: $script_text}`.
+- A file on the daemon's machine (the Mac): `script: {mode: "DaemonFile", path: "<absolute path
+  to tools/ssh/scripts/${CASE}.sh in this checkout>"}`. A path starting with `~` is refused.
 
 For the `password` target, swap the `credential_type` for:
 
@@ -221,13 +235,16 @@ credential_type: {
   type: "SshPassword",
   username: "scanopy-ssh",
   password: {mode: "Inline", value: $password},
-  script: $script,
+  script: {mode: "HostFile", path: $script},
+  target_os: "Unix",
   timeout_seconds: 60
 }
 ```
 
 with `--rawfile password ~/.config/scanopy-lab/ssh/password` in place of `--rawfile key ...`.
-The password file ends without a newline, so `--rawfile` passes it unchanged.
+The password file ends without a newline, so `--rawfile` passes it unchanged. In the UI, paste the
+file's contents into Password with "Enter value"; a file path there is read on the daemon's
+machine, so it has to be absolute.
 
 ## Manage services
 

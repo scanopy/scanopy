@@ -88,6 +88,13 @@ HOSTS=(${SSH_HOSTS[@]})
 EOF
 install -m 755 "$SCRIPT_DIR/lab-network-up.sh" /usr/local/bin/ssh-lab-network-up.sh
 
+# The case scripts, installed on the VM so a credential can name one as "File on scanned host"
+# (/usr/local/lib/scanopy-lab/<case>.sh) instead of carrying its text.
+install -d -m 755 /usr/local/lib/scanopy-lab
+for script in "$SCRIPT_DIR"/scripts/*.sh; do
+    install -m 755 "$script" "/usr/local/lib/scanopy-lab/$(basename "$script")"
+done
+
 cat > /etc/sysctl.d/60-ssh-lab-arp.conf << 'EOF'
 # One macvlan per SSH lab target on a single segment. Without this the parent interface answers
 # ARP for every one of them. Written by tools/ssh/setup.sh.
