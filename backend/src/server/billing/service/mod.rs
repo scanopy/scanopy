@@ -63,7 +63,9 @@ use stripe_checkout::{
     CheckoutSession, CheckoutSessionBillingAddressCollection, CheckoutSessionMode,
 };
 use stripe_client::RateLimitedStripe;
-use stripe_client_core::{RequestBuilder, StripeMethod, StripeRequest};
+use stripe_client_core::{
+    IdempotencyKey, RequestBuilder, RequestStrategy, StripeMethod, StripeRequest,
+};
 use stripe_core::customer::CreateCustomer;
 use stripe_core::customer::DeleteCustomer;
 use stripe_core::customer::DeleteDiscountCustomer;

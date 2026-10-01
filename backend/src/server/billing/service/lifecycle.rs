@@ -688,6 +688,11 @@ impl BillingService {
         Ok("Discount applied to your subscription.".to_string())
     }
 
+    /// Webhook: an invoice was paid.
+    ///
+    /// Every Stripe call is made before the first event is published. The
+    /// events send email, and a failure after them would have Stripe redeliver
+    /// this and send it again.
     pub(crate) async fn handle_invoice_paid(
         &self,
         invoice: stripe_billing::Invoice,
@@ -696,6 +701,8 @@ impl BillingService {
             tracing::debug!("No org found for invoice.paid — ignoring");
             return Ok(());
         };
+
+        let resume = self.prepare_license_resume(&organization, &invoice).await?;
 
         let was_past_due = organization.base.plan_status == Some(PlanStatus::PastDue);
 
@@ -747,32 +754,53 @@ impl BillingService {
             ))
             .await?;
 
-        self.resume_lapsed_license(&organization, &invoice).await?;
+        // After `PaymentSucceeded`, which sets the licence date the invoice
+        // carried: this replaces it with the date the resume runs to.
+        if let Some(LicenseResume {
+            plan,
+            resumed_through,
+            subscription,
+        }) = resume
+        {
+            self.event_bus
+                .publish(Event::new(
+                    OrgScope {
+                        organization_id: organization.id,
+                    },
+                    BillingOperation::LicenseResumed {
+                        plan,
+                        resumed_through,
+                        next_renewal_at: next_renewal_from_subscription(&subscription),
+                    },
+                    AuthenticatedEntity::System,
+                ))
+                .await?;
+        }
 
         Ok(())
     }
 
-    /// Bring back an organization that lapsed for non-payment and has now
-    /// settled the invoice we wrote off.
+    /// The subscription that brings back an organization that lapsed for
+    /// non-payment and has now settled the invoice we wrote off.
     ///
-    /// Publishing `PaymentSucceeded` above restored the licence date the
-    /// invoice itself carried, which is enough for a customer who was only
-    /// past due. A lapsed one also needs its plan back and a subscription to
-    /// renew on, and the date is wrong for anyone who settled after the term
-    /// had run out. Silent no-op for every other kind of payment.
-    async fn resume_lapsed_license(
+    /// `PaymentSucceeded` restores the licence date the invoice itself carried,
+    /// which is enough for a customer who was only past due. A lapsed one also
+    /// needs its plan back and a subscription to renew on, and the date is
+    /// wrong for anyone who settled after the term had run out. `None` for
+    /// every other kind of payment.
+    async fn prepare_license_resume(
         &self,
         organization: &Organization,
         invoice: &stripe_billing::Invoice,
-    ) -> Result<(), Error> {
+    ) -> Result<Option<LicenseResume>, Error> {
         let snapshot = BillingInvoice::from(invoice);
         let (Some(original_term_end), Some(plan)) =
             (snapshot.license_paid_through(), organization.base.plan)
         else {
-            return Ok(());
+            return Ok(None);
         };
         if !organization.is_lapsed() {
-            return Ok(());
+            return Ok(None);
         }
         // Only an invoice we gave up on reopens a lapsed organization. Both
         // timestamps are Stripe's, on the invoice it just told us was paid.
@@ -780,19 +808,8 @@ impl BillingService {
             invoice.status_transitions.marked_uncollectible_at,
             invoice.status_transitions.paid_at,
         ) else {
-            return Ok(());
+            return Ok(None);
         };
-        // `invoice.paid` is redelivered, and nothing upstream dedupes it. The
-        // subscriber writes only on a difference, so a repeat is harmless
-        // there, but a second subscription would not be.
-        if self.find_current_subscription(organization).await.is_ok() {
-            tracing::debug!(
-                organization_id = %organization.id,
-                "Licence payment arrived for an org that already has a subscription — nothing to resume"
-            );
-            return Ok(());
-        }
-
         let Some(resumed_through) = resumed_term_end(
             original_term_end,
             ts_to_chrono(written_off_at),
@@ -803,11 +820,39 @@ impl BillingService {
                 invoice_id = %snapshot.stripe_invoice_id,
                 "Settled a written-off invoice whose term had already run out; debt cleared, licence not resumed"
             );
-            return Ok(());
+            return Ok(None);
         };
 
+        // `invoice.paid` is redelivered, and nothing upstream dedupes it. A
+        // second subscription must not be created. The subscription this
+        // resume creates is anchored at `resumed_through`, so finding one
+        // means an earlier delivery created it and was not recorded: finish
+        // recording it. Any other live subscription leaves nothing to resume.
+        if let Some(existing) = self.current_subscription(organization).await? {
+            if existing.billing_cycle_anchor == resumed_through.timestamp() {
+                tracing::info!(
+                    organization_id = %organization.id,
+                    subscription_id = %existing.id,
+                    "Found the resumed licence's subscription from an earlier delivery"
+                );
+                return Ok(Some(LicenseResume {
+                    plan,
+                    resumed_through,
+                    subscription: existing,
+                }));
+            }
+            tracing::debug!(
+                organization_id = %organization.id,
+                "Licence payment arrived for an org that already has a subscription — nothing to resume"
+            );
+            return Ok(None);
+        }
+
+        let idempotency_key =
+            IdempotencyKey::new(format!("resume-license-{}", snapshot.stripe_invoice_id))
+                .map_err(|e| anyhow!("Invalid idempotency key: {e:?}"))?;
         let subscription = self
-            .resume_license_subscription(organization, plan, resumed_through)
+            .resume_license_subscription(organization, plan, resumed_through, idempotency_key)
             .await?;
 
         tracing::info!(
@@ -817,20 +862,17 @@ impl BillingService {
             resumed_through = %resumed_through,
             "Resumed a lapsed licence: the written-off invoice was settled"
         );
-
-        self.event_bus
-            .publish(Event::new(
-                OrgScope {
-                    organization_id: organization.id,
-                },
-                BillingOperation::LicenseResumed {
-                    plan,
-                    resumed_through,
-                    next_renewal_at: next_renewal_from_subscription(&subscription),
-                },
-                AuthenticatedEntity::System,
-            ))
-            .await?;
-        Ok(())
+        Ok(Some(LicenseResume {
+            plan,
+            resumed_through,
+            subscription,
+        }))
     }
+}
+
+/// A lapsed licence brought back by settling its written-off invoice.
+struct LicenseResume {
+    plan: BillingPlan,
+    resumed_through: DateTime<Utc>,
+    subscription: Subscription,
 }

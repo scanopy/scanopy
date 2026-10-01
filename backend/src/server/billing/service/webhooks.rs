@@ -877,51 +877,36 @@ impl BillingService {
 
         let free_plan = get_free_plan();
 
-        // --- Async phase: side effects that don't need to block the webhook response ---
-
-        let sub_id = sub.id.to_string();
-        let user_service = Arc::clone(&self.user_service);
-        let event_bus = Arc::clone(&self.event_bus);
-        let stripe = self.stripe.clone();
-
-        tokio::spawn(async move {
-            if let Err(e) = Self::process_subscription_deleted_side_effects(
-                org_id,
-                sub_id,
-                customer_id,
-                was_trialing,
-                had_active_discount,
-                free_plan,
-                Some(cancelled_plan),
-                stripe_feedback,
-                stripe_reason,
-                internal_reason,
-                cancel_comment,
-                sub.ended_at
-                    .or(sub.canceled_at)
-                    .or(sub.cancel_at)
-                    .unwrap_or_else(|| Utc::now().timestamp()),
-                mrr_amount_cents,
-                tenure_days,
-                license_key_type,
-                user_service,
-                event_bus,
-                stripe,
-            )
-            .await
-            {
-                tracing::error!(
-                    organization_id = %org_id,
-                    error = %e,
-                    "Failed to process subscription deletion side effects"
-                );
-            }
-        });
-
-        Ok(())
+        // Inline, so a failure answers the webhook with an error and Stripe
+        // redelivers it. Publishing comes last, so a redelivery after a failure
+        // sends no email twice.
+        Self::process_subscription_deleted_side_effects(
+            org_id,
+            sub.id.to_string(),
+            customer_id,
+            was_trialing,
+            had_active_discount,
+            free_plan,
+            Some(cancelled_plan),
+            stripe_feedback,
+            stripe_reason,
+            internal_reason,
+            cancel_comment,
+            sub.ended_at
+                .or(sub.canceled_at)
+                .or(sub.cancel_at)
+                .unwrap_or_else(|| Utc::now().timestamp()),
+            mrr_amount_cents,
+            tenure_days,
+            license_key_type,
+            Arc::clone(&self.user_service),
+            Arc::clone(&self.event_bus),
+            self.stripe.clone(),
+        )
+        .await
     }
 
-    /// Async side effects after subscription deletion: guard 2 (revert if needed),
+    /// Side effects of a subscription deletion: guard 2 (revert if needed),
     /// plan restriction enforcement, event publishing, and emails. Invite
     /// revocation runs separately via `InviteService::Subscriber<BillingOperation>`
     /// triggered by the `SubscriptionCancelled` event published below.

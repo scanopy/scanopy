@@ -163,11 +163,15 @@ impl BillingService {
     /// period between now and then free and raises no invoice for it, so the
     /// customer is billed once, at `term_end`, for the year after that. They
     /// keep the payment terms they just proved good.
+    ///
+    /// The create carries `idempotency_key`, so a retried webhook whose first
+    /// attempt created the subscription gets that one back instead of a second.
     pub(crate) async fn resume_license_subscription(
         &self,
         organization: &Organization,
         plan: BillingPlan,
         term_end: DateTime<Utc>,
+        idempotency_key: IdempotencyKey,
     ) -> Result<stripe_billing::Subscription, Error> {
         let customer_id = organization
             .base
@@ -193,6 +197,8 @@ impl BillingService {
             .billing_cycle_anchor(term_end.timestamp())
             .proration_behavior(CreateSubscriptionProrationBehavior::None)
             .metadata(subscription_metadata(organization.id, plan)?)
+            .customize()
+            .request_strategy(RequestStrategy::Idempotent(idempotency_key))
             .send(&self.stripe)
             .await?)
     }
