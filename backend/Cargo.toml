@@ -258,7 +258,7 @@ bollard = { version = "0.20.2", features = ["ssl"] }
 httparse = "1.10.1"
 async-stream = "0.3.6"
 serial_test = "3.2.0"
-tower-sessions = "0.14.0"
+tower-sessions = "0.15.0"
 tower-sessions-core = "0.14.0"
 tower-sessions-memory-store = "0.14.0"
 argon2 = "0.5.3"
