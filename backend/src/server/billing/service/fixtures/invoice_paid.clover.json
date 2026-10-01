@@ -1,0 +1,172 @@
+{
+  "id": "evt_1ULZRuAkcpHEg5IAs1KwIfOo",
+  "object": "event",
+  "api_version": "2025-11-17.clover",
+  "created": 1790820618,
+  "data": {
+    "object": {
+      "id": "in_1ULZRtAkcpHEg5IATS8EybqB",
+      "object": "invoice",
+      "account_country": "US",
+      "account_name": "Scanopy",
+      "account_tax_ids": null,
+      "amount_due": 0,
+      "amount_overpaid": 0,
+      "amount_paid": 0,
+      "amount_remaining": 0,
+      "amount_shipping": 0,
+      "application": null,
+      "attempt_count": 0,
+      "attempted": true,
+      "auto_advance": false,
+      "automatic_tax": {
+        "disabled_reason": null,
+        "enabled": false,
+        "liability": null,
+        "provider": null,
+        "status": null
+      },
+      "automatically_finalizes_at": null,
+      "billing_reason": "subscription_create",
+      "collection_method": "charge_automatically",
+      "created": 1790820617,
+      "currency": "usd",
+      "custom_fields": null,
+      "customer": "cus_VMI18gjRBujIOD",
+      "customer_account": null,
+      "customer_address": null,
+      "customer_email": "customer@example.com",
+      "customer_name": null,
+      "customer_phone": null,
+      "customer_shipping": null,
+      "customer_tax_exempt": "none",
+      "customer_tax_ids": [],
+      "default_payment_method": null,
+      "default_source": null,
+      "default_tax_rates": [],
+      "description": null,
+      "discounts": [],
+      "due_date": null,
+      "effective_at": 1790820617,
+      "ending_balance": 0,
+      "footer": null,
+      "from_invoice": null,
+      "hosted_invoice_url": "https://invoice.stripe.com/i/redacted",
+      "invoice_pdf": "https://invoice.stripe.com/i/redacted",
+      "issuer": {
+        "type": "self"
+      },
+      "last_finalization_error": null,
+      "latest_revision": null,
+      "lines": {
+        "object": "list",
+        "data": [
+          {
+            "id": "il_1ULZRtAkcpHEg5IArXh46Mnq",
+            "object": "line_item",
+            "amount": 0,
+            "currency": "usd",
+            "description": "Free trial for 1 × Pro",
+            "discount_amounts": [],
+            "discountable": true,
+            "discounts": [],
+            "invoice": "in_1ULZRtAkcpHEg5IATS8EybqB",
+            "livemode": false,
+            "metadata": {
+              "organization_id": "758bc122-2c76-459e-83c6-e05267c016c2",
+              "plan": "{\"type\":\"Pro\",\"base_cents\":95988,\"rate\":\"Year\",\"trial_days\":14,\"seat_cents\":null,\"network_cents\":24000,\"host_cents\":null,\"included_seats\":1,\"included_networks\":3,\"included_hosts\":null,\"included_orgs\":null}"
+            },
+            "parent": {
+              "invoice_item_details": null,
+              "license_fee_subscription_details": null,
+              "subscription_item_details": {
+                "invoice_item": null,
+                "proration": false,
+                "proration_details": {
+                  "credited_items": null
+                },
+                "subscription": "sub_1ULZRtAkcpHEg5IAGeVo9uIn",
+                "subscription_item": "si_VMI1A7zNm4EHNP"
+              },
+              "type": "subscription_item_details"
+            },
+            "period": {
+              "end": 1792030217,
+              "start": 1790820617
+            },
+            "pretax_credit_amounts": [],
+            "pricing": {
+              "price_details": {
+                "price": "price_1UIY51AkcpHEg5IAQUmhJmFA",
+                "product": "pro"
+              },
+              "type": "price_details",
+              "unit_amount_decimal": "0"
+            },
+            "quantity": 1,
+            "quantity_decimal": "1",
+            "subtotal": 0,
+            "taxes": []
+          }
+        ],
+        "has_more": false,
+        "total_count": 1,
+        "url": "/v1/invoices/in_1ULZRtAkcpHEg5IATS8EybqB/lines"
+      },
+      "livemode": false,
+      "metadata": {},
+      "next_payment_attempt": null,
+      "number": "JOAVYTR0-0001",
+      "on_behalf_of": null,
+      "parent": {
+        "quote_details": null,
+        "subscription_details": {
+          "metadata": {
+            "organization_id": "758bc122-2c76-459e-83c6-e05267c016c2",
+            "plan": "{\"type\":\"Pro\",\"base_cents\":95988,\"rate\":\"Year\",\"trial_days\":14,\"seat_cents\":null,\"network_cents\":24000,\"host_cents\":null,\"included_seats\":1,\"included_networks\":3,\"included_hosts\":null,\"included_orgs\":null}"
+          },
+          "subscription": "sub_1ULZRtAkcpHEg5IAGeVo9uIn"
+        },
+        "type": "subscription_details"
+      },
+      "payment_settings": {
+        "default_mandate": null,
+        "payment_method_options": null,
+        "payment_method_types": null
+      },
+      "period_end": 1790820617,
+      "period_start": 1790820617,
+      "post_payment_credit_notes_amount": 0,
+      "pre_payment_credit_notes_amount": 0,
+      "receipt_number": null,
+      "rendering": null,
+      "shipping_cost": null,
+      "shipping_details": null,
+      "starting_balance": 0,
+      "statement_descriptor": null,
+      "status": "paid",
+      "status_transitions": {
+        "finalized_at": 1790820617,
+        "marked_uncollectible_at": null,
+        "paid_at": 1790820617,
+        "voided_at": null
+      },
+      "subtotal": 0,
+      "subtotal_excluding_tax": 0,
+      "test_clock": null,
+      "total": 0,
+      "total_discount_amounts": [],
+      "total_excluding_tax": 0,
+      "total_pretax_credit_amounts": [],
+      "total_taxes": [],
+      "webhooks_delivered_at": null
+    }
+  },
+  "livemode": false,
+  "pending_webhooks": 0,
+  "request": {
+    "id": "req_XIjADTNAsY9rVH",
+    "idempotency_key": "c7985779-e5c1-4f65-985a-9793b9119f70"
+  },
+  "type": "invoice.paid"
+}

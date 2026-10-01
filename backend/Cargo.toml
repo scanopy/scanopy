@@ -270,6 +270,7 @@ time = "0.3.47"
 tower-sessions-sqlx-store = { version = "0.15", features = ["postgres"] }
 sha2 = "0.10.9"
 hex = "0.4.3"
+hmac = "0.12"
 tokio-cron-scheduler = "0.15.1"
 axum-macros = "0.5.0"
 openidconnect = { version = "4.0.1", default-features = false, features = ["reqwest", "rustls-tls"] }
@@ -286,7 +287,6 @@ async-stripe-product = { version = "1.0.0-rc.8", default-features = false,featur
 async-stripe-billing = { version = "1.0.0-rc.8", default-features = false,features = ["plan", "subscription", "invoice", "quote", "tax_id", "deserialize", "serialize", "billing_portal_session"] }
 async-stripe-checkout = { version = "1.0.0-rc.8", default-features = false,features = ["checkout_session"] }
 async-stripe-types = { version = "1.0.0-rc.8", default-features = false }
-async-stripe-webhook = { version = "1.0.0-rc.8", default-features = false }
 moka = { version = "0.12.11", features = ["future"] }
 nanoid = "0.4.0"
 serde_with = "3.15.1"

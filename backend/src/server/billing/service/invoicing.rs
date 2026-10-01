@@ -339,6 +339,7 @@ impl BillingService {
             .await?
             .ok_or_else(|| refused("There is no open quote to download"))?;
 
+        self.stripe.acquire().await?;
         let response = self
             .files_http
             .get(format!("{STRIPE_FILES_BASE}/quotes/{}/pdf", quote.id))
@@ -892,7 +893,7 @@ const SELF_HOSTED_ONLY: &str = "Invoice billing is available on self-hosted plan
 /// webhook writes off what it finds here from a spawned task that holds the
 /// Stripe client but no service.
 pub(crate) async fn license_invoices(
-    stripe: &stripe::Client,
+    stripe: &RateLimitedStripe,
     customer_id: &CustomerId,
     status: InvoiceStatus,
 ) -> Result<Vec<stripe_billing::Invoice>, Error> {
@@ -925,7 +926,7 @@ pub(crate) async fn license_invoices(
 /// the customer's billing clock, which under a test clock is not the server's,
 /// so comparing against `Utc::now()` reads a different calendar.
 pub(crate) async fn write_off_unpaid_license_invoices(
-    stripe: &stripe::Client,
+    stripe: &RateLimitedStripe,
     organization_id: Uuid,
     customer_id: &CustomerId,
     as_of: DateTime<Utc>,
