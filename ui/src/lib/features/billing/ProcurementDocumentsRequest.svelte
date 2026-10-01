@@ -46,7 +46,6 @@
 </script>
 
 <form
-	class="mt-3"
 	onsubmit={(e) => {
 		e.preventDefault();
 		form.handleSubmit();
