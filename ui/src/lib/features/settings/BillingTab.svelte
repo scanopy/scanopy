@@ -26,7 +26,7 @@
 	import { renewalLabel } from '$lib/features/billing/renewal';
 	import { discountedPrice, saveOfferDiscount } from '$lib/features/billing/pricing';
 	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
-	import { billingMailto } from '$lib/features/support/support';
+	import ProcurementDocumentsRequest from '$lib/features/billing/ProcurementDocumentsRequest.svelte';
 	import { useDashboardQuery } from '$lib/features/home/queries';
 	import {
 		common_atLimit,
@@ -48,9 +48,6 @@
 		settings_billing_downgrade_pending,
 		settings_billing_paymentAndInvoices,
 		settings_billing_needHelp,
-		settings_billing_procurementDocuments,
-		settings_billing_procurementDocumentsBody,
-		settings_billing_procurementDocumentsSubject,
 		settings_billing_pastDue,
 		settings_billing_cancelSubscription,
 		settings_billing_per,
@@ -230,16 +227,6 @@
 	let isFree = $derived(billingPlans.getMetadata(org?.plan?.type ?? null).is_free === true);
 	let hasProcurementDocuments = $derived(
 		billingPlans.getMetadata(org?.plan?.type ?? null).features?.procurement_documents === true
-	);
-	let procurementDocumentsMailto = $derived(
-		billingMailto(
-			settings_billing_procurementDocumentsSubject({ orgName: org?.name ?? '' }),
-			settings_billing_procurementDocumentsBody({
-				orgName: org?.name ?? '',
-				orgId: org?.id ?? '',
-				planName: billingPlans.getName(org?.plan?.type ?? null)
-			})
-		)
 	);
 
 	// Plan-status shorthands used across the banner + CTA section.
@@ -825,11 +812,11 @@
 						{settings_billing_billingQuestions()}
 					</p>
 					{#if hasProcurementDocuments}
-						<p class="text-secondary mt-2 text-sm">
-							<a href={procurementDocumentsMailto} class="text-link hover:underline"
-								>{settings_billing_procurementDocuments()}</a
-							>
-						</p>
+						<ProcurementDocumentsRequest
+							orgName={org.name}
+							orgId={org.id}
+							planName={billingPlans.getName(org.plan?.type ?? null)}
+						/>
 					{/if}
 				</InfoCard>
 			</div>
