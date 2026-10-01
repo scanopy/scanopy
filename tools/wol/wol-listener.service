@@ -1,0 +1,20 @@
+# Scanopy lab Wake-on-LAN listener. Installed on the Proxmox node by tools/wol/provision.sh.
+# Extra arguments (for example --dry-run, --port 7, --map-file) go in WOL_LISTENER_ARGS in
+# /etc/default/wol-listener.
+[Unit]
+Description=Scanopy lab Wake-on-LAN listener (magic packet to qm start)
+After=network-online.target pve-cluster.service
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+Environment=WOL_LISTENER_ARGS=
+EnvironmentFile=-/etc/default/wol-listener
+ExecStart=/usr/bin/python3 -u /usr/local/lib/scanopy-lab/wol-listener.py $WOL_LISTENER_ARGS
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
