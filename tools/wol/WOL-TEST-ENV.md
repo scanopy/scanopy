@@ -22,8 +22,9 @@ logs every packet (source, size, target MAC, SecureOn password if present), find
 | paused in memory (`qm suspend`) | `qm resume` | not a sleep state; handled so a paused VM does not look broken |
 | running | nothing, logs "already running" | an awake host |
 
-Repeat packets for a VM woken in the last 30 s are logged and ignored, so the daemon's three
-packets produce one `qm start`.
+Packets are handled one at a time and each reads the VM's state first, so the daemon's three
+packets produce one `qm start` and two "already running" lines. There is no time-based repeat
+suppression: a 30-second cooldown made a wake right after an earlier one look like a lost packet.
 
 The listener is written from the AMD Magic Packet format (6 bytes of `0xFF`, then the target MAC
 16 times, then an optional 6-byte SecureOn password), independently of Scanopy's sender. It also
@@ -45,22 +46,22 @@ credential's.
 
 ### Path 1: Mac daemon through the relay
 
-The daemon under test runs on the Mac (`en0`, `192.168.4.0/22`). The lab segment is a separate
-L2 network reached over a routed link (see `tools/dcp/DCP-TEST-ENV.md`), so a broadcast sent from
-the Mac never reaches it. Set the credential's `broadcast_address` to the node's address on the
-lab bridge (`PROXMOX_LAB_IP`). The daemon then sends the packet as unicast UDP to the node, the
+The daemon under test runs on the Mac (`en0`, `192.168.4.0/22`). Set the credential's
+`broadcast_address` to the node's address on the lab bridge (`PROXMOX_LAB_IP`, 192.168.4.135). The daemon then sends the packet as unicast UDP to the node, the
 listener receives it directly, and the VM starts.
 
 This covers the relay addressing, the packet format and the wait loop against a real boot delay.
 
-### Path 2: daemon inside the lab, directed broadcast
+### Path 2: directed broadcast, no override
 
-A second daemon runs in a VM on the same bridge as the target, and the credential has no
-`broadcast_address`. The daemon sends to the target subnet's directed broadcast, which goes out
+The credential has no `broadcast_address`. Verified 2026-10-01: the Mac and the node share an L2
+segment (both on `192.168.4.0/22`), and a packet the Mac sent to `192.168.7.255` reached the
+listener and started the VM, so the Mac daemon covers this path too. A lab daemon VM is only needed
+if that changes. The daemon sends to the target subnet's directed broadcast, which goes out
 as an Ethernet broadcast on the bridge, and the listener receives it on the node's bridge
 address. This needs the node to hold an address in the target's subnet on `LAB_BRIDGE`.
 
-`tools/wol/provision.sh daemon-vm` clones `scanopy-wol-daemon` from the same template. Install
+If it does, `tools/wol/provision.sh daemon-vm` clones `scanopy-wol-daemon` from the same template. Install
 a Scanopy daemon in it the usual way and point it at the same server.
 
 This covers the directed-broadcast address computation and the default path with no override.
@@ -184,7 +185,7 @@ Expected:
 - Three log lines one second apart from the daemon's address (path 2) or the Mac's (path 1),
   `form=standard` and 102 bytes, or `form=secureon` and 108 bytes with the configured password.
   `mac=` is the target's MAC and `vm=` its VMID.
-- The first line is followed by `qm start`; the next two by `woken 1s ago, ignoring repeat`.
+- The first line is followed by `qm start`; the next two by `already running, nothing to do`.
 - The daemon reports the host awake within `wait_seconds`.
 
 Failure cases worth running:

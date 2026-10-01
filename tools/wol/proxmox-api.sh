@@ -96,11 +96,14 @@ pve_wait_task() {
 }
 
 # VMID of the VM with this name in the lab pool, or nothing.
+#
+# `pool` is null for a token without Pool.Audit, which PVEVMAdmin does not include. Such a token
+# only sees VMs it holds rights on, which is the pool's members, so a null pool still means ours.
 find_vmid() {
     local name="$1"
     pve GET /cluster/resources type=vm |
         jq -r --arg n "$name" --arg p "$LAB_POOL" \
-            '[.data[] | select(.name == $n and .pool == $p) | .vmid][0] // empty'
+            '[.data[] | select(.name == $n and (.pool == $p or .pool == null)) | .vmid][0] // empty'
 }
 
 # The MAC of a VM's net0, lowercase.

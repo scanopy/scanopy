@@ -245,12 +245,6 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     source.add_argument("--pool", default="scanopy-lab", help="Proxmox pool to map MACs from")
     source.add_argument("--map-file", help="static '<mac> <vmid>' map instead of the pool")
     p.add_argument("--dry-run", action="store_true", help="log what would be started, start nothing")
-    p.add_argument(
-        "--cooldown",
-        type=float,
-        default=30.0,
-        help="seconds to ignore repeat packets for a VM just woken (default 30)",
-    )
     args = p.parse_args(argv)
     args.port = args.port or [9]
     return args
@@ -271,7 +265,6 @@ def main(argv: list[str]) -> int:
         sel.register(sock, selectors.EVENT_READ)
         log.info("listening on udp %s:%d%s", args.bind, port, " (dry run)" if args.dry_run else "")
 
-    last_woken: dict[int, float] = {}
     while True:
         for key, _ in sel.select():
             sock = key.fileobj
@@ -297,11 +290,9 @@ def main(argv: list[str]) -> int:
                 )
                 if vmid is None:
                     continue
-                now = time.monotonic()
-                if now - last_woken.get(vmid, -args.cooldown) < args.cooldown:
-                    log.info("vm %s: woken %.0fs ago, ignoring repeat", vmid, now - last_woken[vmid])
-                    continue
-                last_woken[vmid] = now
+                # No time-based repeat suppression: packets are handled one at a time and `wake` reads
+                # the VM's state first, so the daemon's second and third packets find it running and do
+                # nothing, while a packet after a later shutdown still starts it.
                 wake(vmid, args.dry_run)
 
 
