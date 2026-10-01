@@ -1,44 +1,52 @@
 //! Stripe webhook ingestion and subscription/payment-method event handlers.
 use super::*;
 use crate::server::billing::service::invoicing::write_off_unpaid_license_invoices;
-use stripe_shared::SubscriptionCollectionMethod;
+use crate::server::billing::service::webhook_envelope::{StripeEnvelope, verify_signature};
+use stripe::StripeError;
+use stripe_billing::Invoice;
+use stripe_billing::invoice::RetrieveInvoice;
+use stripe_shared::{InvoiceStatus, SubscriptionCollectionMethod};
 
 impl BillingService {
-    /// Handle webhook events
+    /// Handle a webhook delivery.
+    ///
+    /// The delivery is a notification: its object is fetched from Stripe in
+    /// our own API version rather than read from the payload, which is in the
+    /// endpoint's (see `webhook_envelope`). The fetch also means each handler
+    /// sees the object as it is now, so a delivery arriving late or out of
+    /// order cannot apply an older state over a newer one.
     pub async fn handle_webhook(&self, payload: &str, signature: &str) -> Result<(), Error> {
-        let event = Webhook::construct_event(payload, signature, &self.webhook_secret)?;
+        verify_signature(
+            payload,
+            signature,
+            &self.webhook_secret,
+            Utc::now().timestamp(),
+        )?;
+        let event = StripeEnvelope::parse(payload)?;
 
         tracing::debug!(
             event_type = ?event.type_,
             event_id = %event.id,
+            event_api_version = ?event.api_version,
+            sdk_api_version = %stripe_shared::version::VERSION,
             "Received Stripe webhook"
         );
 
         match event.type_ {
             EventType::CustomerSubscriptionCreated | EventType::CustomerSubscriptionUpdated => {
-                let sub = match event.data.object {
-                    EventObject::CustomerSubscriptionCreated(sub) => Some(sub),
-                    EventObject::CustomerSubscriptionUpdated(sub) => Some(sub),
-                    _ => None,
-                };
-
-                if let Some(sub) = sub {
-                    self.handle_subscription_update(*sub).await?;
+                if let Some(sub) = self.fetch_subscription(&event).await? {
+                    self.handle_subscription_update(sub, event.carries_cancellation_feedback)
+                        .await?;
                 }
             }
             EventType::CustomerSubscriptionTrialWillEnd => {
-                if let EventObject::CustomerSubscriptionTrialWillEnd(sub) = event.data.object {
-                    self.handle_trial_will_end(*sub, event.created).await?;
+                if let Some(sub) = self.fetch_subscription(&event).await? {
+                    self.handle_trial_will_end(sub, event.created).await?;
                 }
             }
             EventType::CustomerSubscriptionPaused | EventType::CustomerSubscriptionDeleted => {
-                let sub = match event.data.object {
-                    EventObject::CustomerSubscriptionDeleted(sub) => Some(sub),
-                    EventObject::CustomerSubscriptionPaused(sub) => Some(sub),
-                    _ => None,
-                };
-                if let Some(sub) = sub {
-                    self.handle_subscription_deleted(*sub).await?;
+                if let Some(sub) = self.fetch_subscription(&event).await? {
+                    self.handle_subscription_deleted(sub).await?;
                 }
             }
             // CheckoutSessionCompleted intentionally unhandled. Stripe fires it
@@ -48,56 +56,41 @@ impl BillingService {
             // per single user action. payment_method.attached is the canonical
             // signal and is handled below.
             EventType::PaymentMethodAttached => {
-                if let EventObject::PaymentMethodAttached(pm) = event.data.object
-                    && let Some(customer) = pm.customer.as_ref()
-                {
-                    self.handle_payment_method_attached(
-                        customer.id().to_string(),
-                        pm.id.to_string(),
-                    )
-                    .await?;
-                }
-            }
-            EventType::PaymentMethodDetached => {
-                // The PaymentMethod.customer field is null after detachment —
-                // extract the previous customer ID from the raw event payload.
-                if let EventObject::PaymentMethodDetached(_) = event.data.object {
-                    let raw: serde_json::Value = serde_json::from_str(payload)?;
-                    if let Some(customer_id) = raw
-                        .get("data")
-                        .and_then(|d| d.get("previous_attributes"))
-                        .and_then(|pa| pa.get("customer"))
-                        .and_then(|c| c.as_str())
-                    {
-                        self.handle_payment_method_detached(customer_id.to_string())
-                            .await?;
-                    }
-                }
-            }
-            EventType::InvoicePaymentFailed => {
-                if let EventObject::InvoicePaymentFailed(invoice) = event.data.object {
-                    self.handle_invoice_payment_failed(*invoice).await?;
-                }
-            }
-            EventType::InvoicePaymentActionRequired => {
-                if let EventObject::InvoicePaymentActionRequired(invoice) = event.data.object {
-                    self.handle_invoice_payment_action_required(*invoice)
+                if let Some(customer) = event.customer {
+                    self.handle_payment_method_attached(customer, event.object_id)
                         .await?;
                 }
             }
+            EventType::PaymentMethodDetached => {
+                // The PaymentMethod.customer field is null after detachment;
+                // the event's previous attributes name the former customer.
+                if let Some(customer_id) = event.previous_customer {
+                    self.handle_payment_method_detached(customer_id).await?;
+                }
+            }
+            EventType::InvoicePaymentFailed => {
+                if let Some(invoice) = self.fetch_invoice(&event).await? {
+                    self.handle_invoice_payment_failed(invoice).await?;
+                }
+            }
+            EventType::InvoicePaymentActionRequired => {
+                if let Some(invoice) = self.fetch_invoice(&event).await? {
+                    self.handle_invoice_payment_action_required(invoice).await?;
+                }
+            }
             EventType::InvoicePaid => {
-                if let EventObject::InvoicePaid(invoice) = event.data.object {
-                    self.handle_invoice_paid(*invoice).await?;
+                if let Some(invoice) = self.fetch_invoice(&event).await? {
+                    self.handle_invoice_paid(invoice).await?;
                 }
             }
             EventType::InvoiceCreated => {
-                if let EventObject::InvoiceCreated(invoice) = event.data.object {
-                    self.handle_invoice_created(*invoice).await?;
+                if let Some(invoice) = self.fetch_invoice(&event).await? {
+                    self.handle_invoice_created(invoice).await?;
                 }
             }
             EventType::InvoiceFinalizationFailed => {
-                if let EventObject::InvoiceFinalizationFailed(invoice) = event.data.object {
-                    self.handle_invoice_finalization_failed(*invoice).await?;
+                if let Some(invoice) = self.fetch_invoice(&event).await? {
+                    self.handle_invoice_finalization_failed(invoice).await?;
                 }
             }
             // `invoice.overdue` intentionally unhandled. Stripe only sends it
@@ -106,18 +99,21 @@ impl BillingService {
             // configuring one costs more than it gives. A sent invoice going
             // unpaid is read from the subscription instead, below.
             EventType::InvoiceFinalized => {
-                if let EventObject::InvoiceFinalized(invoice) = event.data.object {
-                    self.handle_invoice_finalized(*invoice).await?;
+                if let Some(invoice) = self.fetch_invoice(&event).await? {
+                    self.handle_invoice_finalized(invoice).await?;
                 }
             }
             EventType::InvoiceVoided | EventType::InvoiceMarkedUncollectible => {
-                let invoice = match event.data.object {
-                    EventObject::InvoiceVoided(invoice) => Some(invoice),
-                    EventObject::InvoiceMarkedUncollectible(invoice) => Some(invoice),
-                    _ => None,
-                };
-                if let Some(invoice) = invoice {
-                    self.handle_invoice_voided(*invoice).await?;
+                // A written-off invoice can be paid afterwards. If it has been
+                // by now, taking back its licence period would undo the
+                // payment that `invoice.paid` reports.
+                if let Some(invoice) = self.fetch_invoice(&event).await?
+                    && matches!(
+                        invoice.status,
+                        Some(InvoiceStatus::Void | InvoiceStatus::Uncollectible)
+                    )
+                {
+                    self.handle_invoice_voided(invoice).await?;
                 }
             }
             _ => {
@@ -131,7 +127,35 @@ impl BillingService {
         Ok(())
     }
 
-    async fn handle_subscription_update(&self, sub: Subscription) -> Result<(), Error> {
+    /// The event's subscription as Stripe holds it now. Stripe keeps cancelled
+    /// subscriptions, so `None` is a rare case.
+    async fn fetch_subscription(
+        &self,
+        event: &StripeEnvelope,
+    ) -> Result<Option<Subscription>, Error> {
+        let fetched = RetrieveSubscription::new(event.object_id.as_str())
+            .send(&self.stripe)
+            .await;
+        still_exists(event, fetched)
+    }
+
+    /// The event's invoice as Stripe holds it now. Only a deleted draft is
+    /// gone.
+    async fn fetch_invoice(&self, event: &StripeEnvelope) -> Result<Option<Invoice>, Error> {
+        let fetched = RetrieveInvoice::new(event.object_id.as_str())
+            .send(&self.stripe)
+            .await;
+        still_exists(event, fetched)
+    }
+
+    /// `feedback_in_event` is whether this event, rather than the
+    /// subscription as fetched, carried the customer's cancellation feedback.
+    /// See `StripeEnvelope::carries_cancellation_feedback`.
+    async fn handle_subscription_update(
+        &self,
+        sub: Subscription,
+        feedback_in_event: bool,
+    ) -> Result<(), Error> {
         tracing::debug!(
             subscription_id = %sub.id,
             subscription_status = ?sub.status,
@@ -215,7 +239,8 @@ impl BillingService {
         if let Some(period_end_ts) = sub.cancel_at {
             let (stripe_feedback, comment, stripe_reason) =
                 extract_cancellation_details(sub.cancellation_details.as_ref());
-            let has_user_feedback = stripe_feedback.is_some() || comment.is_some();
+            let has_user_feedback =
+                feedback_in_event && (stripe_feedback.is_some() || comment.is_some());
 
             if prior_status != Some(PlanStatus::PendingCancellation) {
                 // First cancel-scheduled webhook — emit CancellationInitiated.
@@ -471,9 +496,8 @@ impl BillingService {
         }
 
         // Resumed arm — pause_collection cleared. `was_early` degrades to
-        // `false` from the webhook because async-stripe-webhook doesn't
-        // surface Stripe's `previous_attributes` field through the current
-        // SDK plumbing, so we can't distinguish a user-clicked resume from
+        // `false` from the webhook because nothing here distinguishes the two
+        // paths that clear `pause_collection`: we can't tell a user-clicked resume from
         // a scheduled auto-resume. The signal remains useful: "this org
         // resumed."
         //
@@ -618,15 +642,13 @@ impl BillingService {
         // subscription just started, describes a countdown that already ran
         // out.
         //
-        // Read the subscription rather than this notice. The payload carries it
-        // as it stood *before* the update: on a converting trial its
-        // `trial_end` is still the original date, its `collection_method` is
-        // still `charge_automatically` and its status is still `trialing`, so
-        // nothing in the event separates the two cases. Our own update returned
-        // before Stripe queued this, so a fresh read already has the new values.
-        let current = RetrieveSubscription::new(&sub.id)
-            .send(&self.stripe)
-            .await?;
+        // `sub` is the subscription as fetched, not as this notice recorded it.
+        // The notice's copy is the subscription before the update: on a
+        // converting trial its `trial_end` is still the original date, its
+        // `collection_method` still `charge_automatically` and its status still
+        // `trialing`, so nothing in it separates the two cases. Our own update
+        // returned before Stripe queued this, so the fetch has the new values.
+        let current = &sub;
 
         if current.trial_end.is_some_and(|end| end <= event_created) {
             tracing::info!(
@@ -803,6 +825,19 @@ impl BillingService {
             return Ok(());
         }
 
+        // `sub` is fetched when the webhook is handled, not when it was sent.
+        // A subscription paused for a missing card and resumed since then is
+        // live again, and lapsing the org for it now would be wrong.
+        if is_live(&sub.status) {
+            tracing::info!(
+                organization_id = %org_id,
+                subscription_id = %sub.id,
+                subscription_status = ?sub.status,
+                "Subscription is live again, not a lapse"
+            );
+            return Ok(());
+        }
+
         // --- Snapshot prior subscription state, then publish the cancellation
         // event. The lapse (plan kept, plan_status = Cancelled) is owned by the
         // `SubscriptionCancelled` arm of the org billing subscriber (single
@@ -909,7 +944,7 @@ impl BillingService {
         license_key_type: Option<LicenseKeyType>,
         user_service: Arc<UserService>,
         event_bus: Arc<EventBus>,
-        stripe: stripe::Client,
+        stripe: RateLimitedStripe,
     ) -> Result<(), Error> {
         // Guard 2: If org has another active subscription, revert the downgrade
         if let Some(customer_id) = &customer_id {
@@ -1024,6 +1059,38 @@ impl BillingService {
 
         Ok(())
     }
+}
+
+/// The fetched object, or `None` when Stripe no longer has it. Answering the
+/// delivery then stops Stripe retrying an event nothing can act on.
+fn still_exists<T>(
+    event: &StripeEnvelope,
+    fetched: Result<T, StripeError>,
+) -> Result<Option<T>, Error> {
+    match fetched {
+        Ok(object) => Ok(Some(object)),
+        Err(StripeError::Stripe(_, 404)) => {
+            tracing::info!(
+                event_id = %event.id,
+                event_type = ?event.type_,
+                object_id = %event.object_id,
+                "Stripe no longer has this event's object; nothing to do"
+            );
+            Ok(None)
+        }
+        Err(e) => Err(e.into()),
+    }
+}
+
+/// Whether Stripe is still collecting on a subscription in this status.
+fn is_live(status: &SubscriptionStatus) -> bool {
+    matches!(
+        status,
+        SubscriptionStatus::Active
+            | SubscriptionStatus::Trialing
+            | SubscriptionStatus::PastDue
+            | SubscriptionStatus::Incomplete
+    )
 }
 
 /// Whether this subscription update is an organization arriving on a paid

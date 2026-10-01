@@ -415,6 +415,10 @@ refresh-vendored-data:
 	backend/scripts/refresh-vendored-data.sh
 	@echo "✅ Vendored data refreshed. Rebuild to embed new data."
 
+# Forwards events in the account's default API version, as the live endpoint
+# receives them. The server reads only the event envelope and fetches each
+# object in its own version, so any version works; add --latest to see the
+# newest shape.
 stripe-webhook:
 	stripe listen --forward-to http://localhost:60072/api/billing/webhooks
 
