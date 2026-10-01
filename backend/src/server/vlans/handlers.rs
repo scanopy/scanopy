@@ -238,6 +238,22 @@ pub struct VlanDiscoveryRequest {
     pub vlans: Vec<VlanDiscoveryItem>,
 }
 
+/// Upper bound on VLANs in one discovery submission: the 802.1Q ID space (1-4094).
+const MAX_VLANS_PER_DISCOVERY: usize = 4094;
+
+impl VlanDiscoveryRequest {
+    fn validate(&self) -> Result<(), ApiError> {
+        if self.vlans.len() > MAX_VLANS_PER_DISCOVERY {
+            return Err(ApiError::bad_request(&format!(
+                "A discovery submission can contain at most {} VLANs, got {}",
+                MAX_VLANS_PER_DISCOVERY,
+                self.vlans.len()
+            )));
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct VlanDiscoveryItem {
     /// 802.1Q VLAN ID.
@@ -281,6 +297,8 @@ pub async fn discovery_upsert_vlans(
     auth: Authorized<IsDaemon>,
     Json(request): Json<VlanDiscoveryRequest>,
 ) -> ApiResult<Json<ApiResponse<VlanDiscoveryResponse>>> {
+    request.validate()?;
+
     // Daemons don't carry org_id directly — resolve from the network
     let network = state
         .services
@@ -329,4 +347,35 @@ pub async fn discovery_upsert_vlans(
     Ok(Json(ApiResponse::success(VlanDiscoveryResponse {
         vlans: response_items,
     })))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::StatusCode;
+
+    fn request_with(count: usize) -> VlanDiscoveryRequest {
+        VlanDiscoveryRequest {
+            network_id: Uuid::new_v4(),
+            vlans: (0..count)
+                .map(|i| VlanDiscoveryItem {
+                    vlan_number: (i % MAX_VLANS_PER_DISCOVERY) as u16 + 1,
+                    name: String::new(),
+                })
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn discovery_request_at_bound_is_accepted() {
+        assert!(request_with(MAX_VLANS_PER_DISCOVERY).validate().is_ok());
+    }
+
+    #[test]
+    fn discovery_request_over_bound_is_rejected() {
+        let err = request_with(MAX_VLANS_PER_DISCOVERY + 1)
+            .validate()
+            .unwrap_err();
+        assert_eq!(err.status, StatusCode::BAD_REQUEST);
+    }
 }

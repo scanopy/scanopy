@@ -541,6 +541,19 @@ pub async fn create_credential(
     Ok(response)
 }
 
+/// Upper bound on credentials in one bulk create. Each one is a sequential DB write.
+const MAX_BULK_CREATE_CREDENTIALS: usize = 100;
+
+fn check_bulk_create_size(len: usize) -> Result<(), ApiError> {
+    if len > MAX_BULK_CREATE_CREDENTIALS {
+        return Err(ApiError::bad_request(&format!(
+            "Bulk create accepts at most {} credentials, got {}",
+            MAX_BULK_CREATE_CREDENTIALS, len
+        )));
+    }
+    Ok(())
+}
+
 /// Bulk create Credentials
 ///
 /// Creates multiple credentials in one request. Validation is atomic — if any
@@ -565,6 +578,7 @@ async fn bulk_create_credentials(
     if credentials.is_empty() {
         return Ok(Json(ApiResponse::success(vec![])));
     }
+    check_bulk_create_size(credentials.len())?;
 
     // This path calls credential_service.create directly (bypassing the generic
     // create_handler's validate_create_access), so enforce tenancy here: force
@@ -610,4 +624,21 @@ async fn bulk_create_credentials(
     }
 
     Ok(Json(ApiResponse::success(created)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::StatusCode;
+
+    #[test]
+    fn bulk_create_at_bound_is_accepted() {
+        assert!(check_bulk_create_size(MAX_BULK_CREATE_CREDENTIALS).is_ok());
+    }
+
+    #[test]
+    fn bulk_create_over_bound_is_rejected() {
+        let err = check_bulk_create_size(MAX_BULK_CREATE_CREDENTIALS + 1).unwrap_err();
+        assert_eq!(err.status, StatusCode::BAD_REQUEST);
+    }
 }
