@@ -138,6 +138,7 @@ jobs:
           # sync — add a line here when a docs page starts consuming one.
           cp ui/src/lib/data/permissions.json website/src/lib/fixtures/
           cp ui/src/lib/data/scan-settings.json website/src/lib/fixtures/
+          cp ui/src/lib/data/ssh-script-fields.json website/src/lib/fixtures/
           cp ui/src/lib/data/element-rule-types.json website/src/lib/fixtures/
           cp ui/src/lib/data/views.json website/src/lib/fixtures/
           cp ui/src/lib/data/warning-codes.json website/src/lib/fixtures/

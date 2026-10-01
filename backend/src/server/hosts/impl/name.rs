@@ -202,7 +202,8 @@ pub fn is_identifier_copy(source: AttributeSource) -> bool {
         | S::CipVendorId
         | S::LldpChassisId
         | S::ForwardingTable
-        | S::ArpReply => false,
+        | S::ArpReply
+        | S::SshScript => false,
     }
 }
 

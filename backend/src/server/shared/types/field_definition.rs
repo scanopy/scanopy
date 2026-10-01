@@ -89,6 +89,10 @@ pub enum InlineFormat {
     PemPrivateKey,
     /// PEM-encoded certificate (public, non-secret)
     PemCertificate,
+    /// SSH private key: OpenSSH format (`ssh-keygen`'s default) or PKCS#8 / RSA / EC PEM.
+    SshPrivateKey,
+    /// Six bytes written as a MAC address (e.g. a Wake-on-LAN SecureOn password).
+    MacAddress,
 }
 
 /// PEM block tag — the label between `-----BEGIN` and `-----`.
@@ -98,6 +102,7 @@ pub enum PemTag {
     PrivateKey,
     RsaPrivateKey,
     EcPrivateKey,
+    OpensshPrivateKey,
 }
 
 impl PemTag {
@@ -107,6 +112,7 @@ impl PemTag {
             Self::PrivateKey => "PRIVATE KEY",
             Self::RsaPrivateKey => "RSA PRIVATE KEY",
             Self::EcPrivateKey => "EC PRIVATE KEY",
+            Self::OpensshPrivateKey => "OPENSSH PRIVATE KEY",
         }
     }
 }
@@ -115,9 +121,15 @@ impl InlineFormat {
     /// PEM tags accepted by this format, or empty for non-PEM formats.
     pub fn allowed_pem_tags(&self) -> &'static [PemTag] {
         match self {
-            Self::Plain => &[],
+            Self::Plain | Self::MacAddress => &[],
             Self::PemCertificate => &[PemTag::Certificate],
             Self::PemPrivateKey => &[
+                PemTag::PrivateKey,
+                PemTag::RsaPrivateKey,
+                PemTag::EcPrivateKey,
+            ],
+            Self::SshPrivateKey => &[
+                PemTag::OpensshPrivateKey,
                 PemTag::PrivateKey,
                 PemTag::RsaPrivateKey,
                 PemTag::EcPrivateKey,
@@ -128,6 +140,16 @@ impl InlineFormat {
     /// Validate a resolved value matches the expected format.
     /// Returns Ok(()) for Plain format (no validation needed).
     pub fn validate(&self, value: &str, field_name: &str) -> Result<(), Error> {
+        if let Self::MacAddress = self {
+            let trimmed = value.trim();
+            if !trimmed.is_empty() && trimmed.parse::<mac_address::MacAddress>().is_err() {
+                crate::bail_validation!(
+                    "{} must be six bytes written as a MAC address, e.g. 01:23:45:67:89:ab",
+                    field_name
+                );
+            }
+            return Ok(());
+        }
         let tags = self.allowed_pem_tags();
         if tags.is_empty() {
             return Ok(());

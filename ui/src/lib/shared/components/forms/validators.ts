@@ -1,5 +1,6 @@
 import pkg from 'ipaddr.js';
 import { validate } from 'email-validator';
+import { credentials_invalidSshPrivateKey } from '$lib/paraglide/messages';
 
 const { isValid, isValidCIDR, parse, parseCIDR } = pkg;
 
@@ -187,6 +188,16 @@ export function pemCertificate(value: FormValue): string | undefined {
 		return 'Invalid PEM certificate format. Must start with "-----BEGIN CERTIFICATE-----" and end with "-----END CERTIFICATE-----"';
 	}
 	return undefined;
+}
+
+/** SSH private key validator: OpenSSH format (ssh-keygen's default) or a PEM private key. */
+export function sshPrivateKey(value: FormValue): string | undefined {
+	if (!value || typeof value !== 'string') return undefined;
+	const trimmed = value.trim();
+	if (!trimmed) return undefined;
+	const envelope =
+		/^-----BEGIN (OPENSSH |RSA |EC )?PRIVATE KEY-----[\s\S]*-----END (OPENSSH |RSA |EC )?PRIVATE KEY-----$/;
+	return envelope.test(trimmed) ? undefined : credentials_invalidSshPrivateKey();
 }
 
 /** PEM private key format validator */

@@ -226,6 +226,9 @@ pub struct DiscoveryUpdatePayload {
     /// land as `Unknown` carrying that text instead of failing the whole payload.
     #[serde(default, deserialize_with = "deserialize_warnings")]
     pub warnings: Vec<DiscoveryWarning>,
+    /// What each SSH credential's script did, one entry per host it ran on. Old servers ignore it.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ssh_script_runs: Vec<crate::server::credentials::r#impl::types::ssh_script::SshScriptRun>,
     /// When the run started.
     pub started_at: Option<DateTime<Utc>>,
     /// When the run finished. `null` while it is still going.
@@ -306,6 +309,7 @@ impl DiscoveryUpdatePayload {
             discovery_type,
             error: None,
             warnings: Vec::new(),
+            ssh_script_runs: Vec::new(),
             started_at: None,
             finished_at: None,
             hosts_discovered: None,
@@ -332,6 +336,7 @@ impl DiscoveryUpdatePayload {
             progress: update.progress,
             error: update.error,
             warnings: update.warnings,
+            ssh_script_runs: update.ssh_script_runs,
             started_at: info.started_at,
             finished_at: update.finished_at,
             hosts_discovered: None,

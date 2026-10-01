@@ -3426,7 +3426,7 @@ export interface components {
          * @description API metadata included in all responses
          * @example {
          *       "api_version": 1,
-         *       "server_version": "0.17.17"
+         *       "server_version": "0.17.19"
          *     }
          */
         ApiMeta: {
@@ -3437,7 +3437,7 @@ export interface components {
             api_version: number;
             /**
              * @description Server version (semver)
-             * @example 0.17.17
+             * @example 0.17.19
              */
             server_version: string;
         };
@@ -3466,19 +3466,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-09-24T19:14:03.242120Z",
+             *       "created_at": "2026-10-01T20:55:16.690446Z",
              *       "first_discovery_id": null,
-             *       "id": "e7ec1bd2-6bb9-4718-932c-50d6e76df6b3",
+             *       "id": "547f1be5-2023-49c2-aa65-2dda2980d4a8",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-09-24T19:14:03.242120Z",
+             *       "last_seen_at": "2026-10-01T20:55:16.690446Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-09-24T19:14:03.242120Z",
-             *       "valid_from": "2026-09-24T19:14:03.242120Z",
+             *       "updated_at": "2026-10-01T20:55:16.690446Z",
+             *       "valid_from": "2026-10-01T20:55:16.690446Z",
              *       "valid_to": null
              *     }
              */
@@ -4119,6 +4119,8 @@ export interface components {
                  * @description The discovery run this update belongs to.
                  */
                 session_id: string;
+                /** @description What each SSH credential's script did, one entry per host it ran on. Old servers ignore it. */
+                ssh_script_runs?: components["schemas"]["SshScriptRun"][];
                 /**
                  * Format: date-time
                  * @description When the run started.
@@ -4296,19 +4298,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-09-24T19:14:03.225590Z",
+             *               "created_at": "2026-10-01T20:55:16.668293Z",
              *               "first_discovery_id": null,
-             *               "id": "1c696637-29c7-4289-b74d-ec327b7abd9e",
+             *               "id": "d0d1c39d-2e3a-4e44-acf7-7ed7389c9020",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-09-24T19:14:03.225590Z",
+             *               "last_seen_at": "2026-10-01T20:55:16.668293Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-09-24T19:14:03.225590Z",
-             *               "valid_from": "2026-09-24T19:14:03.225590Z",
+             *               "updated_at": "2026-10-01T20:55:16.668293Z",
+             *               "valid_from": "2026-10-01T20:55:16.668293Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4322,7 +4324,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Ghost",
+             *           "service_definition": "cAdvisor",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5235,19 +5237,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-09-24T19:14:03.238254Z",
+             *           "created_at": "2026-10-01T20:55:16.685677Z",
              *           "first_discovery_id": null,
-             *           "id": "fa8df057-c370-4429-8896-e68b999c25e4",
+             *           "id": "28b3e6eb-80c9-4119-9c20-b2258f63b6c1",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-09-24T19:14:03.238254Z",
+             *           "last_seen_at": "2026-10-01T20:55:16.685677Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-09-24T19:14:03.238254Z",
-             *           "valid_from": "2026-09-24T19:14:03.238254Z",
+             *           "updated_at": "2026-10-01T20:55:16.685677Z",
+             *           "valid_from": "2026-10-01T20:55:16.685677Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5261,7 +5263,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Ghost",
+             *       "service_definition": "cAdvisor",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6070,6 +6072,8 @@ export interface components {
                  * @description The discovery run this update belongs to.
                  */
                 session_id: string;
+                /** @description What each SSH credential's script did, one entry per host it ran on. Old servers ignore it. */
+                ssh_script_runs?: components["schemas"]["SshScriptRun"][];
                 /**
                  * Format: date-time
                  * @description When the run started.
@@ -6278,7 +6282,7 @@ export interface components {
          *     that do carry a [`ClientProbe`] keep it under their own name, `{"Probe":"Snmp"}`, which tells them
          *     apart from each other and from every bare name.
          */
-        AttributeSource: "Unspecified" | "OwnAddress" | "ServiceMatch" | "LldpNeighbourAddress" | "CipVendorId" | "DnsSdInstanceName" | "DnsSdHostname" | "LldpChassisId" | "ReverseDns" | "ForwardingTable" | "ArpReply" | "DaemonSelfReport" | "ProfinetDcp" | {
+        AttributeSource: "Unspecified" | "OwnAddress" | "ServiceMatch" | "LldpNeighbourAddress" | "CipVendorId" | "DnsSdInstanceName" | "DnsSdHostname" | "LldpChassisId" | "ReverseDns" | "ForwardingTable" | "ArpReply" | "DaemonSelfReport" | "ProfinetDcp" | "SshScript" | {
             /** @description A value the thing emitted about itself, over whatever transport [`ClientProbe`] names. */
             Probe: components["schemas"]["ClientProbe"];
         } | {
@@ -6327,19 +6331,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-09-24T19:14:03.225946Z",
+         *       "created_at": "2026-10-01T20:55:16.668834Z",
          *       "first_discovery_id": null,
-         *       "id": "2bb8d016-50fe-460c-8650-8aabdebb9e45",
+         *       "id": "bc100ae5-bf50-4c88-bb9b-170f5fc61c82",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-09-24T19:14:03.225946Z",
+         *       "last_seen_at": "2026-10-01T20:55:16.668834Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-09-24T19:14:03.225946Z",
-         *       "valid_from": "2026-09-24T19:14:03.225946Z",
+         *       "updated_at": "2026-10-01T20:55:16.668834Z",
+         *       "valid_from": "2026-10-01T20:55:16.668834Z",
          *       "valid_to": null
          *     }
          */
@@ -6665,7 +6669,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Ghost",
+         *           "service_definition": "cAdvisor",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -6873,7 +6877,7 @@ export interface components {
         /** @enum {string} */
         CredentialOrderField: "created_at" | "name" | "updated_at";
         /** @enum {string} */
-        CredentialQueryPayloadDiscriminants: "Snmp" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiController" | "InstantOn" | "Gnmi" | "Unknown";
+        CredentialQueryPayloadDiscriminants: "Snmp" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiController" | "InstantOn" | "Gnmi" | "Ssh" | "WakeOnLan" | "Unknown";
         /**
          * @description Release maturity of a credential type's integration.
          *
@@ -7007,9 +7011,57 @@ export interface components {
             type: "InstantOnAccount";
             /** @description Portal account email address. */
             username: string;
+        } | {
+            /**
+             * @description Require this host key (OpenSSH `SHA256:…` fingerprint). Blank ⇒ the daemon pins the
+             *     first key it sees per address and port, and refuses a changed one.
+             */
+            host_key_fingerprint?: string | null;
+            password: components["schemas"]["SecretValue"];
+            /** Format: int32 */
+            port?: number;
+            script: string;
+            /** Format: int32 */
+            timeout_seconds?: number;
+            /** @enum {string} */
+            type: "SshPassword";
+            username: string;
+        } | {
+            /** @description Require this host key (OpenSSH `SHA256:…` fingerprint). Blank ⇒ trust on first use. */
+            host_key_fingerprint?: string | null;
+            passphrase?: null | components["schemas"]["SecretValue"];
+            /** Format: int32 */
+            port?: number;
+            private_key: components["schemas"]["SecretValue"];
+            script: string;
+            /** Format: int32 */
+            timeout_seconds?: number;
+            /** @enum {string} */
+            type: "SshKey";
+            username: string;
+        } | {
+            /**
+             * @description Send here instead of the target subnet's directed broadcast (router relay address, WoL
+             *     relay device, or `255.255.255.255`).
+             * @example 192.168.1.1
+             */
+            broadcast_address?: string | null;
+            /**
+             * Format: int32
+             * @description UDP port for the magic packet.
+             */
+            port?: number;
+            secure_on_password?: null | components["schemas"]["SecretValue"];
+            /** @enum {string} */
+            type: "WakeOnLan";
+            /**
+             * Format: int32
+             * @description How long to wait for the woken hosts to answer before the sweep starts.
+             */
+            wait_seconds?: number;
         };
         /** @enum {string} */
-        CredentialTypeDiscriminants: "SnmpV1" | "SnmpV2c" | "SnmpV3" | "Gnmi" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiApiKey" | "UnifiLocalAdmin" | "InstantOnAccount";
+        CredentialTypeDiscriminants: "SnmpV1" | "SnmpV2c" | "SnmpV3" | "Gnmi" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiApiKey" | "UnifiLocalAdmin" | "InstantOnAccount" | "SshPassword" | "SshKey" | "WakeOnLan";
         Daemon: components["schemas"]["DaemonBase"] & {
             /**
              * Format: date-time
@@ -7748,6 +7800,8 @@ export interface components {
              * @description The discovery run this update belongs to.
              */
             session_id: string;
+            /** @description What each SSH credential's script did, one entry per host it ran on. Old servers ignore it. */
+            ssh_script_runs?: components["schemas"]["SshScriptRun"][];
             /**
              * Format: date-time
              * @description When the run started.
@@ -8910,19 +8964,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-09-24T19:14:03.225197Z",
+         *               "created_at": "2026-10-01T20:55:16.667690Z",
          *               "first_discovery_id": null,
-         *               "id": "e271facf-b772-44ca-ac07-4d6924eae892",
+         *               "id": "ec97b43e-3bf2-4c9f-a017-8cfe4a6ad723",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-09-24T19:14:03.225197Z",
+         *               "last_seen_at": "2026-10-01T20:55:16.667690Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-09-24T19:14:03.225197Z",
-         *               "valid_from": "2026-09-24T19:14:03.225197Z",
+         *               "updated_at": "2026-10-01T20:55:16.667690Z",
+         *               "valid_from": "2026-10-01T20:55:16.667690Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8936,7 +8990,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Ghost",
+         *           "service_definition": "cAdvisor",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -9348,7 +9402,7 @@ export interface components {
          * @description Format hint for inline values in `PathOrInline` and `SecretPathOrInline` fields.
          * @enum {string}
          */
-        InlineFormat: "plain" | "pemprivatekey" | "pemcertificate";
+        InlineFormat: "plain" | "pemprivatekey" | "pemcertificate" | "sshprivatekey" | "macaddress";
         /**
          * @description Visual grouping metadata for inlined entities.
          *     Entities sharing the same `group_id` are rendered together in the element card.
@@ -10467,7 +10521,7 @@ export interface components {
          *         "offset": 0,
          *         "total_count": 142
          *       },
-         *       "server_version": "0.17.17"
+         *       "server_version": "0.17.19"
          *     }
          */
         PaginatedApiMeta: {
@@ -10480,7 +10534,7 @@ export interface components {
             pagination: components["schemas"]["PaginationMeta"];
             /**
              * @description Server version (semver)
-             * @example 0.17.17
+             * @example 0.17.19
              */
             server_version: string;
         };
@@ -11932,19 +11986,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-09-24T19:14:03.225835Z",
+         *           "created_at": "2026-10-01T20:55:16.668668Z",
          *           "first_discovery_id": null,
-         *           "id": "abfccf29-7330-439d-967c-2839250843a9",
+         *           "id": "2a0f3347-98ae-4dae-b887-77d826812d31",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-09-24T19:14:03.225835Z",
+         *           "last_seen_at": "2026-10-01T20:55:16.668668Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-09-24T19:14:03.225835Z",
-         *           "valid_from": "2026-09-24T19:14:03.225835Z",
+         *           "updated_at": "2026-10-01T20:55:16.668668Z",
+         *           "valid_from": "2026-10-01T20:55:16.668668Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -11958,7 +12012,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Ghost",
+         *       "service_definition": "cAdvisor",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12304,6 +12358,41 @@ export interface components {
          * @enum {string}
          */
         SnmpWalkGroup: "Lldp" | "Cdp" | "Interfaces" | "BridgePortNumbering" | "BridgeForwarding" | "VlanMembership" | "ArpTable" | "DeviceInventory" | "IpAddresses" | "LldpLocalPorts" | "VlanNames";
+        /**
+         * @description How one script run ended.
+         * @enum {string}
+         */
+        SshScriptOutcome: "Applied" | "NonZeroExit" | "TimedOut" | "InvalidOutput" | "OutputTooLarge" | "HostKeyMismatch" | "AuthenticationFailed" | "ConnectionFailed" | "Unknown";
+        /** @description What one SSH script did on one host, carried on the run's results. */
+        SshScriptRun: {
+            /** @description Keys whose values were applied, as paths (`model`, `interfaces[].mac`). */
+            applied_keys?: string[];
+            /**
+             * Format: uuid
+             * @description The SSH credential that ran it.
+             */
+            credential_id?: string | null;
+            /** @description The end of stderr, or the parse error, capped at [`MAX_STDERR_EXCERPT_BYTES`]. */
+            detail?: string | null;
+            /**
+             * Format: int64
+             * @description How long the script ran, in milliseconds.
+             */
+            duration_ms: number;
+            /**
+             * Format: int32
+             * @description The script's exit status, when it exited.
+             */
+            exit_code?: number | null;
+            /** @description The address the script ran at. */
+            ip: string;
+            outcome: components["schemas"]["SshScriptOutcome"];
+            /**
+             * @description Keys that were present and not applied, as paths (`interfaces[0].vlan`): keys the
+             *     contract does not know, and values that did not parse.
+             */
+            rejected_keys?: string[];
+        };
         /**
          * @example {
          *       "cidr": "192.168.1.0/24",
@@ -12684,7 +12773,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "ef33c042-4e4c-49f0-9d8b-f538261249a5",
+             *           "id": "e14270f0-537a-47b9-a68f-aa593f2dfede",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -12694,23 +12783,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "f7e01566-f5a1-4a71-9b71-4f0d0a76a910",
+             *           "id": "e7f8bbf6-5b92-43c8-a036-1fc5b5033f27",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "e706dee1-71fa-45ce-8037-7c29366d0cdf",
+             *           "id": "22af915b-6262-4777-9a1a-416f91024eaf",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "e818705e-eabd-463f-a810-74ca94201b7b",
+             *           "id": "8d7c6478-a7bc-4a3d-af31-6846c26b53e9",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "f7e01566-f5a1-4a71-9b71-4f0d0a76a910",
+             *           "id": "e7f8bbf6-5b92-43c8-a036-1fc5b5033f27",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -12723,19 +12812,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "adccf4fd-9123-4faa-8717-d3c416d3cb0e",
+             *         "id": "cdac202f-1660-4e00-aad3-2bf8efbf2d44",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "c70e855a-2149-4710-90f0-cae3242c2370",
+             *         "id": "0a652751-3aae-4aa7-8239-9c9e5f8c50ed",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "d1502cbc-415d-4489-ac11-893fcfc4988f",
+             *         "id": "dfa66be6-3b44-40e4-8771-2ce0a39cfc58",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "12759015-ab6e-49ec-b955-245bc15111bc",
+             *         "id": "8ade80c3-bebb-4166-a594-ac7679de5db6",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -12753,7 +12842,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "c79ec540-8681-46f3-be86-29110a9dbc37",
+             *         "id": "88175856-b4f7-48b3-abd9-fcdedc6ddca9",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -12762,15 +12851,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "63167866-20e8-4562-8322-cf6b47961038",
+             *         "id": "f0f46390-6296-4de3-b201-de83eaebc789",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "1356a30f-3087-4dff-8929-f9a9b3234a04",
+             *         "id": "0d01cba1-43ed-4c4a-8879-839b26e35cad",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "5a00a22a-d464-4e2d-9fda-91863d500750",
+             *         "id": "d2d34dd8-098e-42bc-ad84-cca3db8a83f5",
              *         "rule": "ByStack"
              *       }
              *     ]

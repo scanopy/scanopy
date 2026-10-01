@@ -451,6 +451,21 @@ pub(crate) async fn insert_demo_data(
         .create_many(&all_bindings, entity.clone())
         .await?;
 
+    // 5.7. Host-credential assignments (depend on hosts + credentials). `create_many` writes the
+    // host row only; `credential_assignments` lives in the `host_credentials` junction, which
+    // nothing above writes. Without this the demo's host-pinned credentials (pfSense's SNMP
+    // override, the Docker proxy, SSH inventory, Wake-on-LAN) were silently dropped.
+    for host in all_hosts
+        .iter()
+        .filter(|h| !h.base.credential_assignments.is_empty())
+    {
+        services
+            .credential_service
+            .set_host_credentials(&host.id, &host.base.credential_assignments)
+            .await
+            .map_err(|e| ApiError::internal_error(&e.to_string()))?;
+    }
+
     // 6. Daemons (depends on hosts, networks, subnets)
     services
         .daemon_service

@@ -691,6 +691,7 @@ impl DiscoveryOps {
             progress: 0,
             error: None,
             warnings: Vec::new(),
+            ssh_script_runs: Vec::new(),
             finished_at: None,
             reason: None,
         })
@@ -762,6 +763,11 @@ impl DiscoveryOps {
         }
 
         truncate_warnings(&mut warnings);
+        let ssh_script_runs = session
+            .ssh_script_runs
+            .lock()
+            .map(|r| r.clone())
+            .unwrap_or_default();
 
         let warning_count = warnings.len();
         let terminal_update = terminal_update(
@@ -769,6 +775,7 @@ impl DiscoveryOps {
             cancel.is_cancelled(),
             final_progress,
             warnings,
+            ssh_script_runs,
             Utc::now(),
         );
         match terminal_update.phase {
@@ -962,6 +969,18 @@ impl DiscoveryOps {
             && let Ok(mut buffer) = session.credential_issues.lock()
         {
             buffer.extend(issues.iter().cloned());
+        }
+    }
+
+    /// Record what one SSH script did on one host, whether it succeeded or not.
+    pub async fn record_ssh_script_run(
+        &self,
+        run: crate::server::credentials::r#impl::types::ssh_script::SshScriptRun,
+    ) {
+        if let Ok(session) = self.get_session().await
+            && let Ok(mut runs) = session.ssh_script_runs.lock()
+        {
+            runs.push(run);
         }
     }
 
@@ -1599,6 +1618,7 @@ fn terminal_update(
     cancelled: bool,
     progress: u8,
     warnings: Vec<DiscoveryWarning>,
+    ssh_script_runs: Vec<crate::server::credentials::r#impl::types::ssh_script::SshScriptRun>,
     now: chrono::DateTime<Utc>,
 ) -> DiscoverySessionUpdate {
     let (phase, progress, error, reason) = match result {
@@ -1625,6 +1645,7 @@ fn terminal_update(
         progress,
         error,
         warnings,
+        ssh_script_runs,
         finished_at: Some(now),
         reason,
     }
@@ -1672,7 +1693,14 @@ mod terminal_update_tests {
         // A session cancelled and then wedged is exactly what the watchdog ends. Reporting it
         // as cancelled would say the cancel worked.
         for cancelled in [false, true] {
-            let update = terminal_update(&watchdog_abort(), cancelled, 99, Vec::new(), Utc::now());
+            let update = terminal_update(
+                &watchdog_abort(),
+                cancelled,
+                99,
+                Vec::new(),
+                Vec::new(),
+                Utc::now(),
+            );
 
             assert_eq!(update.phase, DiscoveryPhase::Failed);
             assert_eq!(
@@ -1689,6 +1717,7 @@ mod terminal_update_tests {
             &Err(anyhow!("connection reset")),
             false,
             40,
+            Vec::new(),
             Vec::new(),
             Utc::now(),
         );

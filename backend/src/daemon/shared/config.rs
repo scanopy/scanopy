@@ -622,6 +622,11 @@ pub struct AppConfig {
     /// Set to true after the first self-report completes
     #[serde(default)]
     pub has_self_reported: bool,
+    /// SSH host keys pinned on first use, keyed by `ip:port`, as OpenSSH `SHA256:` fingerprints.
+    /// The SSH integration refuses a host whose key no longer matches; deleting the entry re-trusts
+    /// it on the next scan.
+    #[serde(default)]
+    pub ssh_known_host_keys: std::collections::BTreeMap<String, String>,
     /// Resolved on-disk path of this config, computed once by [`AppConfig::load`]. Runtime-only
     /// (never serialized): the daemon and installer use it instead of re-deriving the path, so the
     /// `--config-dir` override is honored consistently by both the write and read sides.
@@ -693,6 +698,7 @@ impl Default for AppConfig {
             capabilities: LegacyCapabilities::default(),
             integration_targets: Vec::new(),
             has_self_reported: false,
+            ssh_known_host_keys: std::collections::BTreeMap::new(),
             config_path: None,
             trusted_ca: None,
         }
@@ -1284,6 +1290,28 @@ impl ConfigStore {
     pub async fn set_has_self_reported(&self) -> Result<()> {
         let mut config = self.config.write().await;
         config.has_self_reported = true;
+        self.save(&config.clone()).await
+    }
+
+    pub async fn ssh_known_host_key(&self, endpoint: &str) -> Option<String> {
+        self.config
+            .read()
+            .await
+            .ssh_known_host_keys
+            .get(endpoint)
+            .cloned()
+    }
+
+    /// Pin a host key the first time it is seen. Keeps an existing pin: replacing one is a
+    /// person's decision, made by deleting the entry.
+    pub async fn pin_ssh_host_key(&self, endpoint: &str, fingerprint: &str) -> Result<()> {
+        let mut config = self.config.write().await;
+        if config.ssh_known_host_keys.contains_key(endpoint) {
+            return Ok(());
+        }
+        config
+            .ssh_known_host_keys
+            .insert(endpoint.to_string(), fingerprint.to_string());
         self.save(&config.clone()).await
     }
 }

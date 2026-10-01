@@ -625,6 +625,7 @@ impl CredentialService {
                             // Legacy pre-v0.15.0 path, serving daemons that predate host-aware
                             // grouping — they get the per-address rule they have always had.
                             host_id: None,
+                            mac_address: None,
                         }));
                         break;
                     }
@@ -984,6 +985,8 @@ pub(crate) fn apply_host_assignment(
             // The device these addresses belong to, so the daemon can tell a multi-homed host's
             // addresses apart from unrelated ones.
             host_id: Some(host_id),
+            // What Wake-on-LAN addresses: a sleeping host answers to no IP.
+            mac_address: i.base.mac_address.as_ref().map(|m| m.value().0),
         }));
 }
 
@@ -1007,6 +1010,7 @@ fn push_unique_override(
             // An integration target names addresses directly; there is no host behind it to
             // group its siblings by.
             host_id: None,
+            mac_address: None,
         });
     }
 }
@@ -1337,6 +1341,7 @@ mod integration_target_tests {
                 credential: specific.to_query_payload(),
                 credential_id: host_id,
                 host_id: None,
+                mac_address: None,
             });
 
         let dispatched = order_mappings_for_dispatch(map);
@@ -1390,6 +1395,7 @@ mod integration_target_tests {
             credential: specific.to_query_payload(),
             credential_id: host_id,
             host_id: None,
+            mac_address: None,
         });
 
         let dispatched = order_mappings_for_dispatch(map);
@@ -1532,6 +1538,56 @@ mod integration_target_tests {
         // And the device it came from rides along, so the daemon can tell a multi-homed host's
         // addresses apart from unrelated ones.
         assert_eq!(overrides[0].host_id, Some(host_id));
+    }
+
+    /// Wake-on-LAN addresses a sleeping host by MAC, and the daemon holds no host records to
+    /// look one up in: each address's MAC has to travel on its own override, and an address the
+    /// server holds no MAC for has to say so rather than borrow its sibling's.
+    #[test]
+    fn a_host_assignment_carries_each_addresss_own_mac() {
+        use crate::server::ip_addresses::r#impl::base::{MacEvidence, MacEvidenceValue};
+        use crate::server::shared::attribution::AttributeSource;
+
+        let cred_id = Uuid::new_v4();
+        let host_id = Uuid::new_v4();
+        let cred = credential(
+            cred_id,
+            CredentialTypeDiscriminants::WakeOnLan.to_credential_type(),
+        );
+        let assignment = CredentialAssignment {
+            credential_id: cred_id,
+            ip_address_ids: None,
+        };
+        let mac: mac_address::MacAddress = "3c:ec:ef:12:34:56".parse().unwrap();
+        let mut with_mac = ip_address(Uuid::new_v4(), host_id, "10.0.0.4".parse().unwrap());
+        with_mac.base.mac_address = Some(MacEvidence::new(
+            MacEvidenceValue(mac),
+            AttributeSource::ArpReply,
+        ));
+        let without_mac = ip_address(Uuid::new_v4(), host_id, "10.0.0.5".parse().unwrap());
+
+        let mut map: Mappings = Mappings::new();
+        apply_host_assignment(
+            &mut map,
+            host_id,
+            &assignment,
+            &cred,
+            &[with_mac, without_mac],
+        );
+
+        let mut macs: Vec<(IpAddr, Option<mac_address::MacAddress>)> = only(&map)
+            .ip_overrides
+            .iter()
+            .map(|o| (o.ip, o.mac_address))
+            .collect();
+        macs.sort();
+        assert_eq!(
+            macs,
+            vec![
+                ("10.0.0.4".parse().unwrap(), Some(mac)),
+                ("10.0.0.5".parse().unwrap(), None),
+            ]
+        );
     }
 
     /// A second `Network` target of the same credential type must not displace the first — the

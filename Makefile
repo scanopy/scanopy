@@ -1,4 +1,4 @@
-.PHONY: daemon-build daemon-rebuild daemon-dev daemon-fix-perms help build test test-unit clean format lint lint-migrations generate-schema generate-messages generate-fixtures refresh-vendored-data seed-dev set-plan-community set-plan-starter set-plan-pro set-plan-team set-plan-business set-plan-enterprise test-plan test-merge test-results install-dev-mac install-dev-linux install-dev-windows snmp-seed-credentials snmp-fixtures snmp-deploy snmp-verify snmp-status dcp-start dcp-stop dcp-verify dcp-status docker-proxy-up docker-proxy-up-tls docker-proxy-down docker-proxy-status podman-proxy-up podman-proxy-up-tls podman-proxy-down podman-proxy-status podman-workload-up podman-workload-down unifi-status unifi-capture issue-license daemon-clean daemon-purge daemon-logs daemon-restart daemon-config
+.PHONY: daemon-build daemon-rebuild daemon-dev daemon-fix-perms help build test test-unit clean format lint lint-migrations generate-schema generate-messages generate-fixtures refresh-vendored-data seed-dev set-plan-community set-plan-starter set-plan-pro set-plan-team set-plan-business set-plan-enterprise test-plan test-merge test-results install-dev-mac install-dev-linux install-dev-windows snmp-seed-credentials snmp-fixtures snmp-deploy snmp-verify snmp-status ssh-lab-deploy ssh-lab-verify ssh-lab-status ssh-lab-rotate-hostkey wol-lab-provision wol-lab-listener wol-lab-sleep wol-lab-hibernate wol-lab-verify wol-lab-status wol-lab-log dcp-start dcp-stop dcp-verify dcp-status docker-proxy-up docker-proxy-up-tls docker-proxy-down docker-proxy-status podman-proxy-up podman-proxy-up-tls podman-proxy-down podman-proxy-status podman-workload-up podman-workload-down unifi-status unifi-capture issue-license daemon-clean daemon-purge daemon-logs daemon-restart daemon-config
 
 DAYS ?= 365
 PLAN ?= standard
@@ -82,6 +82,17 @@ help:
 	@echo "  make snmp-deploy     - Generate, push to the test VM, rebuild every agent, then verify"
 	@echo "  make snmp-verify     - Query the SNMP test hosts and check sysName (see tools/snmp/SNMP-TEST-ENV.md)"
 	@echo "  make snmp-status     - Ping the SNMP test hosts to check reachability"
+	@echo "  make ssh-lab-deploy  - Push the SSH credential lab to the test VM, rebuild every target, then verify"
+	@echo "  make ssh-lab-verify  - Run each SSH case script against its target (see tools/ssh/SSH-TEST-ENV.md)"
+	@echo "  make ssh-lab-status  - Check SSH lab links, addresses, units and the port-22 redirect"
+	@echo "  make ssh-lab-rotate-hostkey IP=<ip> - Replace one SSH target's host key"
+	@echo "  make wol-lab-provision - Clone the WoL target VM and install the listener (see tools/wol/WOL-TEST-ENV.md)"
+	@echo "  make wol-lab-listener  - Reinstall the WoL listener on the Proxmox node"
+	@echo "  make wol-lab-sleep     - Shut the WoL target VM down"
+	@echo "  make wol-lab-hibernate - Hibernate the WoL target VM to disk"
+	@echo "  make wol-lab-verify ADDR=<addr> - Send a magic packet from this Mac and wait for the VM"
+	@echo "  make wol-lab-status    - WoL target VM state and listener health"
+	@echo "  make wol-lab-log       - Last 50 WoL listener log lines"
 	@echo "  make dcp-start       - Launch the local PROFINET DCP sim (see tools/dcp/DCP-TEST-ENV.md)"
 	@echo "  make dcp-stop        - Stop the local DCP sim"
 	@echo "  make dcp-verify      - Send one real DCP Identify request and confirm it answers"
@@ -572,6 +583,40 @@ snmp-verify:
 
 snmp-status:
 	tools/snmp/snmp-test-env.sh status
+
+ssh-lab-deploy:
+	tools/ssh/ssh-test-env.sh deploy
+	@$(MAKE) ssh-lab-verify
+
+ssh-lab-verify:
+	tools/ssh/ssh-test-env.sh verify
+
+ssh-lab-status:
+	tools/ssh/ssh-test-env.sh status
+
+ssh-lab-rotate-hostkey:
+	tools/ssh/ssh-test-env.sh rotate-hostkey $(IP)
+
+wol-lab-provision:
+	tools/wol/provision.sh all
+
+wol-lab-listener:
+	tools/wol/provision.sh listener
+
+wol-lab-sleep:
+	tools/wol/wol-test-env.sh sleep
+
+wol-lab-hibernate:
+	tools/wol/wol-test-env.sh sleep --hibernate
+
+wol-lab-verify:
+	tools/wol/wol-test-env.sh verify $(ADDR) $(PORT)
+
+wol-lab-status:
+	tools/wol/wol-test-env.sh status
+
+wol-lab-log:
+	tools/wol/wol-test-env.sh listener-log
 
 dcp-start:
 	tools/dcp/dcp-test-env.sh start
