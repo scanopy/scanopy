@@ -4,7 +4,7 @@
 		getLabel: (key) => key.name,
 		getDescription: (key) =>
 			key.last_used
-				? common_lastUsedAgo({ time: formatTimestamp(key.last_used) })
+				? common_lastUsedAgo({ time: formatRelativeTime(key.last_used) })
 				: common_neverUsed(),
 		getIcon: () => entities.getIconComponent('DaemonApiKey'),
 		getIconColor: () => entities.getColorHelper('DaemonApiKey').icon,
@@ -22,7 +22,7 @@
 	import type { EntityDisplayComponent } from '../types';
 	import type { DaemonApiKey } from '$lib/features/daemon_api_keys/types/base';
 	import { entities } from '$lib/shared/stores/metadata';
-	import { formatTimestamp } from '$lib/shared/utils/formatting';
+	import { formatRelativeTime } from '$lib/shared/utils/formatting';
 	import {
 		common_disabled,
 		common_enabled,

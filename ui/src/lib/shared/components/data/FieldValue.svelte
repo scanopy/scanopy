@@ -3,7 +3,7 @@
 	import EntityTag from './EntityTag.svelte';
 	import { MAX_ITEMS_IN_CELL, type CardFieldItem } from './types';
 	import { getFieldValue } from './controls/fieldValues';
-	import { formatDateNumeric } from '$lib/shared/utils/formatting';
+	import { formatDate, formatRelativeTime } from '$lib/shared/utils/formatting';
 	import type { EntityColumn } from './table/columns';
 	import { common_moreItems, common_no, common_none, common_yes } from '$lib/paraglide/messages';
 
@@ -34,12 +34,14 @@
 	let visible = $derived(items === null ? [] : showAll ? items : items.slice(0, MAX_ITEMS_IN_CELL));
 	let overflow = $derived(items === null ? 0 : items.length - visible.length);
 
-	/** Dates arrive as ISO strings; render them compactly in the viewer's locale. */
+	/** Dates arrive as ISO strings and render in the user's chosen date format. */
 	function formatValue(raw: Exclude<ReturnType<typeof getFieldValue>, string[]>): string {
 		if (raw === null || raw === undefined || raw === '') return '';
-		if (raw instanceof Date) return formatDateNumeric(raw);
+		if (raw instanceof Date) return formatDate(raw);
 		if (typeof raw === 'boolean') return raw ? common_yes() : common_no();
-		if (column.field.type === 'date') return formatDateNumeric(raw);
+		if (column.field.type === 'date') {
+			return column.field.display?.recency ? formatRelativeTime(raw) : formatDate(raw);
+		}
 		return raw;
 	}
 

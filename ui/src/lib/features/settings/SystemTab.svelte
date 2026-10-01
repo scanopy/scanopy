@@ -10,10 +10,11 @@
 	} from '$lib/shared/stores/display-settings.svelte';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useUpdateSelfMutation } from '$lib/features/users/queries';
-	import { formatRelativeTime, formatTimestamp } from '$lib/shared/utils/formatting';
+	import { formatDate, formatRelativeTime, formatTimestamp } from '$lib/shared/utils/formatting';
 	import { pushSuccess } from '$lib/shared/stores/feedback';
 	import SelectInput from '$lib/shared/components/forms/input/SelectInput.svelte';
 	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
+	import InfoCard from '$lib/shared/components/data/InfoCard.svelte';
 	import type { components } from '$lib/api/schema';
 	import {
 		common_browserDefault,
@@ -143,16 +144,16 @@
 		void form.handleSubmit();
 	}
 
-	// A fixed sample, so the preview shows both a full timestamp and a recent-activity time.
+	// A fixed sample, so the preview shows each form a date takes in the app: a table date, a
+	// full timestamp and a recent-activity time.
 	const previewNow = new Date();
 	const previewRecent = new Date(previewNow.getTime() - 3 * 60 * 60 * 1000);
 </script>
 
 <div class="flex h-full flex-col gap-6 overflow-y-auto p-6">
-	<div>
-		<h3 class="text-primary text-sm font-semibold">{common_theme()}</h3>
-		<p class="text-tertiary mt-1 text-sm">{settings_system_themeDesc()}</p>
-		<div class="mt-2 flex gap-2">
+	<InfoCard title={common_theme()}>
+		<p class="text-tertiary text-sm">{settings_system_themeDesc()}</p>
+		<div class="flex gap-2">
 			{#each options as option (option.id)}
 				<button
 					type="button"
@@ -167,18 +168,18 @@
 				</button>
 			{/each}
 		</div>
-	</div>
+	</InfoCard>
 
-	<div>
-		<h3 class="text-primary text-sm font-semibold">{settings_system_dateAndTime()}</h3>
-		<p class="text-tertiary mt-1 text-sm">{settings_system_dateAndTimeDesc()}</p>
-		<p class="text-secondary mt-2 text-sm">
+	<InfoCard title={settings_system_dateAndTime()}>
+		<p class="text-tertiary text-sm">{settings_system_dateAndTimeDesc()}</p>
+		<p class="text-secondary text-sm">
 			{settings_system_preview({
+				date: formatDate(previewNow),
 				timestamp: formatTimestamp(previewNow),
 				relative: formatRelativeTime(previewRecent)
 			})}
 		</p>
-		<div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 			<form.Field name="date_order" listeners={{ onChange: onSettingChange }}>
 				{#snippet children(field)}
 					<SelectInput
@@ -225,7 +226,7 @@
 				{/snippet}
 			</form.Field>
 		</div>
-	</div>
+	</InfoCard>
 
 	<div class="mt-auto flex flex-col gap-1">
 		<p class="text-tertiary text-xs">{settings_system_copyright({ year: copyrightYear })}</p>

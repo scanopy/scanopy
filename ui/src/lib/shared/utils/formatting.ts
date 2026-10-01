@@ -82,16 +82,6 @@ export function formatLongDate(value: string | Date, timeZone?: string): string 
 	return formatDateTime(value, { date: 'long', timeZone }, displaySettings.current);
 }
 
-/**
- * Compact numeric date, e.g. `8/3/26`.
- *
- * For dense lists where a date is one column among many and "Aug 3, 2026" or a
- * full timestamp costs more width than the extra precision is worth.
- */
-export function formatDateNumeric(timestamp: string | Date): string {
-	return formatDateTime(timestamp, { date: 'numeric' }, displaySettings.current);
-}
-
 // Truncate ID for display (show first 8 characters + ellipsis if longer than 12)
 export function formatId(id: string): string {
 	if (id.length <= 12) {
