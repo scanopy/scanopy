@@ -817,7 +817,6 @@
 							orgId={org.id}
 							planName={billingPlans.getName(org.plan?.type ?? null)}
 						/>
-
 					{/if}
 				</InfoCard>
 			</div>
