@@ -4,7 +4,7 @@
 	import { triggerUpgrade } from '$lib/features/billing/trigger-upgrade';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { hasLicensedPlan, isPlanLapsed } from '$lib/features/organizations/types';
-	import { billingPlans, planStatuses } from '$lib/shared/stores/metadata';
+	import { billingPlans, features, planStatuses } from '$lib/shared/stores/metadata';
 	import { canPay, isMissingPaymentMethod } from '$lib/shared/utils/trial';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import { trackEvent, trackOncePerSession } from '$lib/shared/utils/analytics';
@@ -811,14 +811,17 @@
 						>
 						{settings_billing_billingQuestions()}
 					</p>
-					{#if hasProcurementDocuments}
+				</InfoCard>
+
+				{#if hasProcurementDocuments}
+					<InfoCard title={features.getName('procurement_documents')}>
 						<ProcurementDocumentsRequest
 							orgName={org.name}
 							orgId={org.id}
 							planName={billingPlans.getName(org.plan?.type ?? null)}
 						/>
-					{/if}
-				</InfoCard>
+					</InfoCard>
+				{/if}
 			</div>
 		{:else}
 			<div class="text-secondary py-8 text-center">
