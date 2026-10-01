@@ -624,6 +624,7 @@ impl DiscoveryService {
                 if let Some(discovery_id) = parent_discovery_id
                     && let Err(e) = self.finalize_successful_scan(&discovery_id).await
                 {
+                    record_finish_error(DiscoveryFinishStep::FinalizeScan);
                     tracing::error!(
                         "Failed to finalize successful scan for discovery {}: {}",
                         discovery_id,
@@ -634,6 +635,7 @@ impl DiscoveryService {
 
             // Save to database
             if let Err(e) = self.discovery_storage.create(&historical_discovery).await {
+                record_finish_error(DiscoveryFinishStep::HistoryRecord);
                 tracing::error!(
                     "Failed to create historical discovery record for session {}: {}",
                     session.session_id,
@@ -893,6 +895,25 @@ impl DiscoveryService {
             }
         }
     }
+}
+
+/// A write that records a finished session, for `scanopy_discovery_finish_errors_total{step}`.
+#[derive(Debug, Clone, Copy, strum::IntoStaticStr)]
+#[strum(serialize_all = "snake_case")]
+pub(super) enum DiscoveryFinishStep {
+    /// Bumping `scan_count` and consuming the one-shot integration targets.
+    FinalizeScan,
+    /// The historical discovery row: the run's record, and the `Created` event the digest and
+    /// discovery-FK subscribers read.
+    HistoryRecord,
+}
+
+/// A finished session the server failed to record. The session has already left the maps and its
+/// tombstone ignores a re-sent update, so nothing retries it; the write's data is held only in
+/// memory and is lost.
+pub(super) fn record_finish_error(step: DiscoveryFinishStep) {
+    let step: &'static str = step.into();
+    metrics::counter!("scanopy_discovery_finish_errors_total", "step" => step).increment(1);
 }
 
 /// Wall-clock time from start to end of a session that ended, by terminal reason. A session that

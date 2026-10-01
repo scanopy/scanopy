@@ -524,10 +524,11 @@ impl NonRetryable {
     }
 }
 
-/// Attempts per delivery, including the first, and the waits between them. Short, because the
+/// First wait between attempts of a failing subscriber (doubling after). Short, because the
 /// inline path runs inside HTTP requests, Stripe webhooks among them.
-const SUBSCRIBER_RETRY_BACKOFF: [Duration; 2] =
-    [Duration::from_millis(200), Duration::from_secs(1)];
+const SUBSCRIBER_RETRY_MIN_DELAY: Duration = Duration::from_millis(200);
+/// Retries after the first attempt.
+const SUBSCRIBER_RETRY_TIMES: usize = 2;
 
 /// How a delivery that hit an error ended. The `outcome` label of
 /// `scanopy_event_subscriber_errors_total`.
@@ -564,23 +565,40 @@ async fn handle_with_retry<Op: Operation>(
     events: Vec<Event<Op>>,
 ) {
     use crate::server::metrics::subscriber::record_subscriber_error;
+    use backon::{ExponentialBuilder, Retryable};
 
-    let mut backoff = SUBSCRIBER_RETRY_BACKOFF.iter();
-    let mut attempt = 1;
-    loop {
-        let Err(e) = subscriber.handle(events.clone()).await else {
-            if attempt > 1 {
-                record_subscriber_error(name, SubscriberErrorOutcome::Recovered, 1);
-                tracing::warn!(
-                    subscriber = name,
-                    attempts = attempt,
-                    "Typed subscriber recovered after retry"
-                );
-            }
-            return;
-        };
+    let mut retries = 0usize;
+    let result = (|| subscriber.handle(events.clone()))
+        .retry(
+            ExponentialBuilder::default()
+                .with_min_delay(SUBSCRIBER_RETRY_MIN_DELAY)
+                .with_max_times(SUBSCRIBER_RETRY_TIMES),
+        )
+        .when(|e| !not_retryable(e))
+        .notify(|e, delay| {
+            retries += 1;
+            tracing::debug!(
+                subscriber = name,
+                retry = retries,
+                retry_in_ms = delay.as_millis() as u64,
+                error = format!("{e:#}"),
+                "Typed subscriber failed; retrying"
+            );
+        })
+        .await;
+    let attempts = retries + 1;
 
-        if not_retryable(&e) {
+    match result {
+        Ok(()) if retries > 0 => {
+            record_subscriber_error(name, SubscriberErrorOutcome::Recovered, 1);
+            tracing::warn!(
+                subscriber = name,
+                attempts,
+                "Typed subscriber recovered after retry"
+            );
+        }
+        Ok(()) => {}
+        Err(e) if not_retryable(&e) => {
             let failed = e
                 .chain()
                 .find_map(|c| c.downcast_ref::<NonRetryable>())
@@ -591,27 +609,16 @@ async fn handle_with_retry<Op: Operation>(
                 error = format!("{e:#}"),
                 "Typed subscriber failed; not retried"
             );
-            return;
         }
-
-        let Some(wait) = backoff.next() else {
+        Err(e) => {
             record_subscriber_error(name, SubscriberErrorOutcome::Exhausted, 1);
             tracing::error!(
                 subscriber = name,
-                attempts = attempt,
+                attempts,
                 error = format!("{e:#}"),
                 "Typed subscriber failed after retries"
             );
-            return;
-        };
-        tracing::debug!(
-            subscriber = name,
-            attempt,
-            error = format!("{e:#}"),
-            "Typed subscriber failed; retrying"
-        );
-        tokio::time::sleep(*wait).await;
-        attempt += 1;
+        }
     }
 }
 

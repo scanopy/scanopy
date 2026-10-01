@@ -2,11 +2,10 @@
 use super::*;
 use tokio_cron_scheduler::JobSchedulerError;
 
-/// Delays between boot-time scheduling attempts; one attempt more than entries.
-const SCHEDULE_RETRY_BACKOFF: [std::time::Duration; 2] = [
-    std::time::Duration::from_millis(500),
-    std::time::Duration::from_secs(2),
-];
+/// First wait between boot-time scheduling attempts (doubling after).
+const SCHEDULE_RETRY_MIN_DELAY: std::time::Duration = std::time::Duration::from_millis(500);
+/// Retries after the first attempt.
+const SCHEDULE_RETRY_TIMES: usize = 2;
 
 /// Whether a [`DiscoveryService::schedule_discovery`] error comes from a cron
 /// expression that can never parse. Every other error (scheduler timeout,
@@ -48,7 +47,7 @@ impl DiscoveryService {
                     discovery_id = %discovery.id,
                     error = %e,
                     "Failed to schedule discovery after {} attempts; left enabled",
-                    SCHEDULE_RETRY_BACKOFF.len() + 1
+                    SCHEDULE_RETRY_TIMES + 1
                 );
                 unscheduled_count += 1;
                 continue;
@@ -95,25 +94,24 @@ impl DiscoveryService {
         self: &Arc<Self>,
         discovery: &Discovery,
     ) -> Result<Uuid> {
-        let mut backoff = SCHEDULE_RETRY_BACKOFF.iter();
-        loop {
-            match Self::schedule_discovery(self, discovery).await {
-                Ok(job_id) => return Ok(job_id),
-                Err(e) if is_invalid_schedule(&e) => return Err(e),
-                Err(e) => {
-                    let Some(delay) = backoff.next() else {
-                        return Err(e);
-                    };
-                    tracing::warn!(
-                        discovery_id = %discovery.id,
-                        error = %e,
-                        retry_in_ms = delay.as_millis() as u64,
-                        "Failed to schedule discovery; retrying"
-                    );
-                    tokio::time::sleep(*delay).await;
-                }
-            }
-        }
+        use backon::{ExponentialBuilder, Retryable};
+
+        (|| Self::schedule_discovery(self, discovery))
+            .retry(
+                ExponentialBuilder::default()
+                    .with_min_delay(SCHEDULE_RETRY_MIN_DELAY)
+                    .with_max_times(SCHEDULE_RETRY_TIMES),
+            )
+            .when(|e| !is_invalid_schedule(e))
+            .notify(|e, delay| {
+                tracing::warn!(
+                    discovery_id = %discovery.id,
+                    error = %e,
+                    retry_in_ms = delay.as_millis() as u64,
+                    "Failed to schedule discovery; retrying"
+                );
+            })
+            .await
     }
 
     /// Schedule a single discovery
