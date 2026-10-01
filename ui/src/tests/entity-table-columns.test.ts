@@ -9,7 +9,6 @@ import {
 	type ColumnState
 } from '$lib/shared/components/data/table/columns';
 import { defineFields, getFieldKey, type FieldConfig } from '$lib/shared/components/data/types';
-import { formatDateNumeric } from '$lib/shared/utils/formatting';
 
 interface Row {
 	name: string;
@@ -177,23 +176,5 @@ describe('visibleColumns', () => {
 		state.visibility.name = false;
 
 		expect(visibleColumns(columns, state).map((c) => c.id)).not.toContain('name');
-	});
-});
-
-describe('formatDateNumeric', () => {
-	it('renders a compact numeric date', () => {
-		// A date column sits among many, so it is formatted for width rather than
-		// for prose: 8/3/26, not "August 3, 2026" or a full timestamp.
-		expect(formatDateNumeric('2026-08-03T14:32:00Z')).toBe('8/3/26');
-	});
-
-	it('accepts a Date as well as an ISO string', () => {
-		expect(formatDateNumeric(new Date('2026-08-03T00:00:00'))).toBe(
-			formatDateNumeric('2026-08-03T00:00:00')
-		);
-	});
-
-	it('passes an unparseable value through rather than showing Invalid Date', () => {
-		expect(formatDateNumeric('not a date')).toBe('not a date');
 	});
 });

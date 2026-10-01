@@ -165,6 +165,12 @@ export interface DisplayConfig<T> {
 	 * "Healthy" where the table's separate computation said "Active".
 	 */
 	statusTag?: boolean;
+	/**
+	 * This date is when something last happened (last seen, last used), so it renders as
+	 * recent activity: `3h ago`, or the full timestamp when the user turned relative times off.
+	 * Other date fields render as a compact date.
+	 */
+	recency?: boolean;
 }
 
 /**

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { components } from '$lib/api/schema';
-import { formatDateTime, formatRelative, weekdayOrder } from '$lib/shared/utils/date-format';
+import {
+	formatDateTime,
+	formatRelative,
+	formatTimeOfDay,
+	weekdayOrder
+} from '$lib/shared/utils/date-format';
 import { DEFAULT_DISPLAY_SETTINGS } from '$lib/shared/stores/display-settings.svelte';
 
 type DisplaySettings = components['schemas']['DisplaySettings'];
@@ -16,13 +21,10 @@ const UTC = { time_zone: 'UTC' };
 
 describe('formatDateTime: date order', () => {
 	it.each([
-		['iso', 'numeric', '2026-10-08'],
 		['iso', 'short', '2026-10-08'],
 		['iso', 'long', '2026-10-08'],
-		['day_first', 'numeric', '08/10/2026'],
 		['day_first', 'short', '8 Oct 2026'],
 		['day_first', 'long', '8 October 2026'],
-		['month_first', 'numeric', '10/08/2026'],
 		['month_first', 'short', 'Oct 8, 2026'],
 		['month_first', 'long', 'October 8, 2026']
 	] as const)('%s / %s', (date_order, style, expected) => {
@@ -36,7 +38,6 @@ describe('formatDateTime: date order', () => {
 		const date = new Date(INSTANT);
 		const s = settings({ time_zone: tz });
 		const styles = {
-			numeric: { year: '2-digit', month: 'numeric', day: 'numeric' },
 			short: { year: 'numeric', month: 'short', day: 'numeric' },
 			long: { year: 'numeric', month: 'long', day: 'numeric' }
 		} as const;
@@ -127,7 +128,7 @@ describe('formatDateTime: time zone', () => {
 describe('formatDateTime: invalid input', () => {
 	it('returns unparseable input unchanged', () => {
 		expect(formatDateTime('not a date', { date: 'short' }, settings())).toBe('not a date');
-		expect(formatDateTime('', { date: 'numeric' }, settings())).toBe('');
+		expect(formatDateTime('', { date: 'short' }, settings())).toBe('');
 	});
 });
 
@@ -158,6 +159,17 @@ describe('formatRelative', () => {
 		expect(formatRelative(ago(5 * MIN), s, now, 'en')).toBe(
 			formatDateTime(ago(5 * MIN), { date: 'short', time: true }, s, 'en')
 		);
+	});
+});
+
+describe('formatTimeOfDay', () => {
+	it('follows the clock setting and ignores the user time zone', () => {
+		const zoned = { time_zone: 'Asia/Tokyo' };
+		expect(formatTimeOfDay(15, 5, settings({ clock: 'twenty_four_hour', ...zoned }))).toBe('15:05');
+		expect(formatTimeOfDay(15, 5, settings({ clock: 'twelve_hour', ...zoned }))).toMatch(
+			/^03:05\s?PM$/i
+		);
+		expect(formatTimeOfDay(0, 0, settings({ clock: 'twenty_four_hour' }))).toBe('00:00');
 	});
 });
 

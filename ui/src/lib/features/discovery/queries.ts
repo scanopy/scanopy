@@ -2,7 +2,8 @@
  * TanStack Query hooks for Discovery
  */
 
-import { effectiveTimeZone } from '$lib/shared/stores/display-settings.svelte';
+import { displaySettings, effectiveTimeZone } from '$lib/shared/stores/display-settings.svelte';
+import { formatTimeOfDay, weekdayOrder } from '$lib/shared/utils/date-format';
 import {
 	createQuery,
 	createMutation,
@@ -388,27 +389,43 @@ export function parseDayTimeCronSchedule(
 }
 
 /**
- * Format a schedule for display on cards.
- * Returns a human-readable string like "Mon, Wed, Fri at 03:00 (America/New_York)"
+ * Format a schedule for display, e.g. "Mon, Wed, Fri at 03:00 (America/New_York)". The time stays
+ * in the schedule's own zone, since that is when it runs; the clock and the day order follow the
+ * user's display settings.
  */
-export function formatScheduleDisplay(cron: string, timezone: string | null | undefined): string {
+export function formatScheduleDisplay(
+	cron: string,
+	timezone: string | null | undefined,
+	settings: components['schemas']['DisplaySettings'] = displaySettings.current
+): string {
 	const tz = timezone || 'UTC';
 	const parsed = parseDayTimeCronSchedule(cron);
 
 	if (parsed) {
-		const time = `${String(parsed.hour).padStart(2, '0')}:${String(parsed.minute).padStart(2, '0')}`;
+		const time = formatTimeOfDay(parsed.hour, parsed.minute, settings);
 		if (parsed.daysOfWeek.length === 7) {
-			return `Daily at ${time} (${tz})`;
+			return m.discovery_scheduleDaily({ time, timezone: tz });
 		}
-		const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-		const days = parsed.daysOfWeek.map((d) => dayNames[d]).join(', ');
-		return `${days} at ${time} (${tz})`;
+		const dayNames = [
+			m.common_sun,
+			m.common_mon,
+			m.common_tue,
+			m.common_wed,
+			m.common_thu,
+			m.common_fri,
+			m.common_sat
+		];
+		const days = weekdayOrder(settings)
+			.filter((d) => parsed.daysOfWeek.includes(d))
+			.map((d) => dayNames[d]())
+			.join(', ');
+		return m.discovery_scheduleOnDays({ days, time, timezone: tz });
 	}
 
 	// Fallback: try legacy hours format
 	const hours = parseCronToHours(cron);
 	if (hours !== null) {
-		return `Every ${hours} Hours`;
+		return m.discovery_scheduleEveryHours({ hours });
 	}
 
 	// Raw cron fallback

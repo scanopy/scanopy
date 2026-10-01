@@ -4,8 +4,8 @@ import { common_justNow } from '$lib/paraglide/messages';
 
 type DisplaySettings = components['schemas']['DisplaySettings'];
 
-/** How much room a date gets: `8/3/26`, `Aug 3, 2026` or `August 3, 2026` in en-US. */
-export type DateStyle = 'numeric' | 'short' | 'long';
+/** How much room a date gets: `Aug 3, 2026` or `August 3, 2026` in en-US. */
+export type DateStyle = 'short' | 'long';
 
 export interface DateFormatOptions {
 	date: DateStyle;
@@ -20,7 +20,6 @@ export interface DateFormatOptions {
 }
 
 const BROWSER_DATE_OPTIONS: Record<DateStyle, Intl.DateTimeFormatOptions> = {
-	numeric: { year: '2-digit', month: 'numeric', day: 'numeric' },
 	short: { year: 'numeric', month: 'short', day: 'numeric' },
 	long: { year: 'numeric', month: 'long', day: 'numeric' }
 };
@@ -64,11 +63,11 @@ function datePart(
 		return date.toLocaleDateString(undefined, { ...BROWSER_DATE_OPTIONS[style], timeZone });
 	}
 
-	const numeric = settings.date_order === 'iso' || style === 'numeric';
+	const iso = settings.date_order === 'iso';
 	const parts = new Intl.DateTimeFormat(locale, {
 		year: 'numeric',
-		month: numeric ? '2-digit' : style,
-		day: numeric ? '2-digit' : 'numeric',
+		month: iso ? '2-digit' : style,
+		day: iso ? '2-digit' : 'numeric',
 		timeZone
 	}).formatToParts(date);
 	const part = (type: Intl.DateTimeFormatPartTypes) =>
@@ -79,9 +78,9 @@ function datePart(
 		case 'iso':
 			return `${year}-${month}-${day}`;
 		case 'day_first':
-			return numeric ? `${day}/${month}/${year}` : `${day} ${month} ${year}`;
+			return `${day} ${month} ${year}`;
 		case 'month_first':
-			return numeric ? `${month}/${day}/${year}` : `${month} ${day}, ${year}`;
+			return `${month} ${day}, ${year}`;
 	}
 }
 
@@ -92,6 +91,14 @@ function timePart(date: Date, settings: DisplaySettings, timeZone: string | unde
 		hourCycle: hourCycle(settings),
 		timeZone
 	});
+}
+
+/**
+ * A wall-clock time with no date or zone attached (a schedule's "03:00"), in the user's clock.
+ * Rendered on a fixed UTC date so neither the viewer's nor the user's zone shifts it.
+ */
+export function formatTimeOfDay(hour: number, minute: number, settings: DisplaySettings): string {
+	return timePart(new Date(Date.UTC(2000, 0, 1, hour, minute)), settings, 'UTC');
 }
 
 /**

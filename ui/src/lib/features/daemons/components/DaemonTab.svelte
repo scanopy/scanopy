@@ -301,7 +301,11 @@
 						networksData.find((n) => n.id == item.network_id)?.name || common_unknownNetwork(),
 					display: { order: 3, getItems: (item) => networkItems(item.network_id, networksData) }
 				},
-				last_seen: { label: daemons_lastSeen(), type: 'date', display: { order: 2 } },
+				last_seen: {
+					label: daemons_lastSeen(),
+					type: 'date',
+					display: { order: 2, recency: true }
+				},
 				created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
 				updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } }
 			},
