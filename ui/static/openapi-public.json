@@ -19125,6 +19125,20 @@
           }
         }
       },
+      "CredentialIntegration": {
+        "type": "string",
+        "description": "The integration a credential type connects to: one per associated service, shared by all of\nthat service's transports (SNMP v1/v2c/v3 are three transports of the `Snmp` integration).\n\nThe single source of the type → integration mapping\n([`CredentialTypeDiscriminants::integration`]); the associated service, category, fallback\nicon, discovery text and docs guide all derive from it. The id is an identifier-safe code name\nrather than the service's display name, so it can key `meta_credential_integrations_*`\nmessages.",
+        "enum": [
+          "Snmp",
+          "Gnmi",
+          "Docker",
+          "Podman",
+          "UnifiController",
+          "InstantOn",
+          "Ssh",
+          "WakeOnLan"
+        ]
+      },
       "CredentialOrderField": {
         "type": "string",
         "enum": [

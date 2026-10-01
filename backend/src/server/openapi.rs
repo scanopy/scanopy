@@ -17,7 +17,7 @@ use crate::server::bindings::r#impl::base::Binding;
 use crate::server::credentials::handlers::CredentialOrderField;
 use crate::server::credentials::r#impl::base::Credential;
 use crate::server::credentials::r#impl::types::{
-    CredentialStability, CredentialTypeDiscriminants, UpstreamSupport,
+    CredentialIntegration, CredentialStability, CredentialTypeDiscriminants, UpstreamSupport,
 };
 use crate::server::daemon_api_keys::r#impl::base::DaemonApiKey;
 use crate::server::daemons::handlers::DaemonOrderField;
@@ -118,6 +118,10 @@ pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
         // `CredentialStability` does and for the same reason — and it is a *separate* axis: an
         // integration can be `Stable` and still ride an undocumented endpoint, as UniFi is.
         UpstreamSupport,
+        // The integration a credential type belongs to. Travels inside `TypeMetadata.metadata` like
+        // `CredentialStability`, and keys `credential-integrations.json`; the picker types its
+        // grouping key from here.
+        CredentialIntegration,
         // Referenced by the install-command query parameter, so it needs a registered schema.
         InstallCommandKind,
         // Referenced by the credential-list `?type` filter, which utoipa collects from

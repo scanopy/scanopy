@@ -42,6 +42,7 @@ export const MESSAGES_FILE = join(PROJECT_ROOT, 'messages/en.json');
  */
 export const COVERED_FIXTURES = [
 	{ file: 'credential-types.json', key: 'credential_types', kind: 'credentialTypes' },
+	{ file: 'credential-integrations.json', key: 'credential_integrations', kind: 'typeMetadata' },
 	// billing-plans.json is a strict subset of billing-plans-all.json; both resolve
 	// through the billing_plans namespace.
 	{ file: 'billing-plans-all.json', key: 'billing_plans', kind: 'typeMetadata' },

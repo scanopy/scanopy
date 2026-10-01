@@ -22,9 +22,11 @@ pub mod unifi;
 pub mod wake_on_lan;
 
 mod fields;
+mod integration;
 mod metadata;
 mod secrets;
 
+pub use integration::CredentialIntegration;
 pub use metadata::{
     CredentialAssignment, CredentialCategory, CredentialHostAssignment, CredentialStability,
     UpstreamSupport,
@@ -517,22 +519,9 @@ impl CredentialType {
     }
 
     pub fn credential_category(&self) -> CredentialCategory {
-        match self {
-            Self::SnmpV1 { .. } | Self::SnmpV2c { .. } | Self::SnmpV3 { .. } => {
-                CredentialCategory::NetworkMonitoring
-            }
-            Self::Gnmi { .. } => CredentialCategory::NetworkMonitoring,
-            Self::DockerProxy { .. }
-            | Self::DockerSocket { .. }
-            | Self::PodmanProxy { .. }
-            | Self::PodmanSocket { .. } => CredentialCategory::ContainerVirtualization,
-            Self::UnifiApiKey { .. }
-            | Self::UnifiLocalAdmin { .. }
-            | Self::InstantOnAccount { .. } => CredentialCategory::NetworkController,
-            Self::SshPassword { .. } | Self::SshKey { .. } | Self::WakeOnLan { .. } => {
-                CredentialCategory::HostManagement
-            }
-        }
+        CredentialTypeDiscriminants::from(self)
+            .integration()
+            .credential_category()
     }
 
     /// Where this credential type can be applied: the daemon's own host, specific
@@ -712,30 +701,9 @@ impl CredentialType {
     /// Every credential type maps to exactly one service — used for logo display,
     /// metadata enrichment, and Phase 2 integration dispatch.
     pub fn associated_service(&self) -> Box<dyn ServiceDefinition> {
-        match self {
-            Self::SnmpV1 { .. } | Self::SnmpV2c { .. } | Self::SnmpV3 { .. } => {
-                Box::new(crate::server::services::definitions::snmp::Snmp)
-            }
-            Self::Gnmi { .. } => Box::new(crate::server::services::definitions::gnmi::Gnmi),
-            Self::DockerProxy { .. } | Self::DockerSocket { .. } => {
-                Box::new(crate::server::services::definitions::docker_daemon::Docker)
-            }
-            Self::PodmanProxy { .. } | Self::PodmanSocket { .. } => {
-                Box::new(crate::server::services::definitions::podman::Podman)
-            }
-            Self::UnifiApiKey { .. } | Self::UnifiLocalAdmin { .. } => {
-                Box::new(crate::server::services::definitions::unifi_controller::UnifiController)
-            }
-            Self::InstantOnAccount { .. } => {
-                Box::new(crate::server::services::definitions::instant_on::InstantOn)
-            }
-            Self::SshPassword { .. } | Self::SshKey { .. } => {
-                Box::new(crate::server::services::definitions::ssh::Ssh)
-            }
-            Self::WakeOnLan { .. } => {
-                Box::new(crate::server::services::definitions::wake_on_lan::WakeOnLan)
-            }
-        }
+        CredentialTypeDiscriminants::from(self)
+            .integration()
+            .service()
     }
 
     /// Convert to wire format payload for daemon transmission.

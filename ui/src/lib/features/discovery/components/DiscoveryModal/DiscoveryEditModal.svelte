@@ -127,9 +127,9 @@
 	let furthestReached = $state(0);
 	let pendingCredentials = $state<PendingCredential[]>([]);
 	let credentialsStep: ReturnType<typeof CredentialsStep> | undefined = $state();
-	// The discovery modal always opens on the credential wizard; the Integrations-grid
-	// type picker is skipped (it couldn't advance in edit mode, and the wizard's own
-	// type dropdown adds any credential type, sockets included).
+	// The discovery modal always opens on the credential wizard. When creating, the wizard's
+	// "Add integration" returns to the integration picker and Next advances back. Edit mode has
+	// no Next, so there the wizard keeps its type dropdown, which adds any type, sockets included.
 	let credentialSubStep = $state<'typeSelect' | 'wizard'>('wizard');
 	let credentialIds = $state<string[]>([]);
 	const allCredentialsQuery = useCredentialsQuery();
@@ -836,6 +836,7 @@
 						fixedCapabilityTypeIds={daemonHostCredentialTypeIds}
 						daemonVersion={daemon?.version ?? null}
 						daemonName={daemon?.name ?? null}
+						canReturnToTypeSelect={!isEditing}
 					/>
 				</div>
 			{/if}
