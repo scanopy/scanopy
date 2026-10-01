@@ -1,9 +1,9 @@
-<script lang="ts">
+<script lang="ts" generics="T extends string">
 	import FormField from './FormField.svelte';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 
 	interface RadioOption {
-		value: string;
+		value: T;
 		label: string;
 		helpText?: string;
 	}
@@ -15,9 +15,26 @@
 		options: RadioOption[];
 		required?: boolean;
 		disabled?: boolean;
+		/** The selected value, when the caller keeps it in its own `$state`. TanStack's
+		 *  `field.state.value` is not tracked by Svelte 5, so a value set programmatically
+		 *  would not re-render; passing it here makes the caller's state drive `checked`. */
+		value?: T;
+		/** Called with the chosen value, after the form field is updated. */
+		onChange?: (value: T) => void;
 	}
 
-	let { label, field, id, options, required = false, disabled = false }: Props = $props();
+	let {
+		label,
+		field,
+		id,
+		options,
+		required = false,
+		disabled = false,
+		value,
+		onChange
+	}: Props = $props();
+
+	let selected = $derived(value !== undefined ? value : field.state.value);
 </script>
 
 <div class:disabled>
@@ -30,9 +47,12 @@
 							type="radio"
 							name={id}
 							value={option.value}
-							checked={field.state.value === option.value}
+							checked={selected === option.value}
 							{disabled}
-							onchange={() => field.handleChange(option.value)}
+							onchange={() => {
+								field.handleChange(option.value);
+								onChange?.(option.value);
+							}}
 							class="checkbox-card h-4 w-4 disabled:cursor-not-allowed disabled:opacity-50"
 						/>
 						<span class="text-primary text-sm">{option.label}</span>

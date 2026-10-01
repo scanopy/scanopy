@@ -228,6 +228,7 @@ impl SqlValue {
             Self::IpCidr(v) => Bound::Text(PgText::owned(serde_json::to_string(v)?)),
             Self::ServiceDefinition(v) => Bound::Text(PgText::owned(serde_json::to_string(v)?)),
             Self::DaemonMode(v) => Bound::Text(PgText::owned(serde_json::to_string(v)?)),
+            Self::OsFamily(v) => Bound::Text(PgText::owned(serde_json::to_string(v)?)),
             Self::OptionBillingPlanStatus(v) => {
                 Bound::Text(PgText::owned(serde_json::to_string(v)?))
             }

@@ -10,7 +10,7 @@
 //! for that address. The packet goes to the directed broadcast of the address's subnet unless the
 //! credential names another destination, and then the daemon waits for the addresses to answer.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::time::Duration;
 
@@ -27,6 +27,7 @@ use crate::server::credentials::r#impl::mapping::{
     CredentialMapping, CredentialQueryPayload, CredentialQueryPayloadDiscriminants,
     WakeOnLanQueryCredential,
 };
+use crate::server::credentials::r#impl::run_results::WakeOnLanResult;
 use crate::server::subnets::r#impl::base::Subnet;
 
 /// Packets per target. UDP broadcast is unacknowledged and a switch can drop one on a port that is
@@ -142,9 +143,31 @@ pub async fn wake(
         .max()
         .unwrap_or_default();
     let pending: Vec<IpAddr> = sent.iter().map(|t| t.ip).collect();
-    let still_down = wait_for(&pending, wait, ops, cancel).await;
+    let woke_after = wait_for(&pending, wait, ops, cancel).await;
 
-    for target in sent.iter().filter(|t| still_down.contains(&t.ip)) {
+    // Every target gets a result, woken or not: the run's Credentials tab shows both.
+    for target in &targets {
+        let was_sent = sent.iter().any(|s| std::ptr::eq(*s, target));
+        let result = match woke_after.get(&target.ip) {
+            Some(after) => WakeOnLanResult {
+                ip: target.ip,
+                woke: true,
+                waited_ms: u64::try_from(after.as_millis()).unwrap_or(u64::MAX),
+            },
+            None => WakeOnLanResult {
+                ip: target.ip,
+                woke: false,
+                waited_ms: if was_sent {
+                    u64::try_from(wait.as_millis()).unwrap_or(u64::MAX)
+                } else {
+                    0
+                },
+            },
+        };
+        ops.record_wake_on_lan(target.credential_id, result).await;
+    }
+
+    for target in sent.iter().filter(|t| !woke_after.contains_key(&t.ip)) {
         issues.push(issue(
             target,
             AttemptOutcome::TimedOut,
@@ -236,15 +259,18 @@ async fn send(
     }
 }
 
-/// Poll until every address answers or `wait` runs out. Returns the addresses still down.
+/// Poll until every address answers or `wait` runs out. Returns each address that answered and how
+/// long after the packets it did.
 async fn wait_for(
     pending: &[IpAddr],
     wait: Duration,
     ops: &DiscoveryOps,
     cancel: &CancellationToken,
-) -> HashSet<IpAddr> {
+) -> HashMap<IpAddr, Duration> {
     let mut down: HashSet<IpAddr> = pending.iter().copied().collect();
-    let deadline = tokio::time::Instant::now() + wait;
+    let mut woke_after = HashMap::new();
+    let started = tokio::time::Instant::now();
+    let deadline = started + wait;
     while !down.is_empty() && !cancel.is_cancelled() {
         let checks = down
             .iter()
@@ -253,6 +279,7 @@ async fn wait_for(
             if awake {
                 tracing::info!(%ip, "Woken host is answering");
                 down.remove(&ip);
+                woke_after.insert(ip, started.elapsed());
             }
         }
         if down.is_empty() || tokio::time::Instant::now() + POLL_INTERVAL > deadline {
@@ -265,7 +292,7 @@ async fn wait_for(
             _ = cancel.cancelled() => break,
         }
     }
-    down
+    woke_after
 }
 
 async fn is_awake(ip: IpAddr) -> bool {

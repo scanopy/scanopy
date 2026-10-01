@@ -187,6 +187,12 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
         crate::server::credentials::r#impl::types::ssh_script::ssh_script_fields();
     write_fixture(&ssh_script_fields, output_dir, "ssh-script-fields.json");
 
+    // The OS a credential's files and scripts are for: picker labels and file-path placeholders.
+    let os_families: Vec<_> = crate::server::credentials::r#impl::types::OsFamily::iter()
+        .map(|os| os.metadata())
+        .collect();
+    write_fixture(&os_families, output_dir, "os-families.json");
+
     let container_rule_types: Vec<TypeMetadata> =
         ContainerRule::iter().map(|r| r.to_metadata()).collect();
     write_fixture(

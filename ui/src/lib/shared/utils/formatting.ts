@@ -58,6 +58,11 @@ export function formatDurationHuman(totalSeconds: number): string {
 	return parts.join(', ');
 }
 
+/** A short measured interval in seconds to one decimal place: `4.2s`. */
+export function formatMillisAsSeconds(ms: number): string {
+	return `${(ms / 1000).toFixed(1)}s`;
+}
+
 export function formatTimestamp(timestamp: string): string {
 	try {
 		const date = new Date(timestamp);

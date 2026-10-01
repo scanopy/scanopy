@@ -19,7 +19,7 @@ pub use resolvable::*;
 // Re-export type-specific types so external imports don't break
 pub use super::types::container_proxy::ContainerProxyQueryCredential;
 pub use super::types::instant_on::InstantOnQueryCredential;
-pub use super::types::ssh::{SshAuth, SshQueryCredential};
+pub use super::types::ssh::{ScriptSource, SshAuth, SshQueryCredential};
 pub use super::types::unifi::{UnifiAuth, UnifiQueryCredential};
 pub use super::types::wake_on_lan::WakeOnLanQueryCredential;
 
@@ -30,7 +30,7 @@ pub use super::types::wake_on_lan::WakeOnLanQueryCredential;
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash, Default)]
 pub struct ContainerSocketQueryCredential {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub socket_path: Option<String>,
+    pub socket_path: Option<super::types::paths::DaemonSocket>,
 }
 /// gNMI query credential the daemon dials with. Username/password travel as gRPC metadata;
 /// the password uses the same [`ResolvableSecret`] resolution SNMP communities do.
@@ -70,6 +70,11 @@ pub struct CredentialMapping<T> {
     /// "public" fallback, which has no stored row behind it.
     #[serde(default)]
     pub default_credential_id: Option<Uuid>,
+    /// The OS the credential's files and sockets were declared for. A daemon on another OS drops
+    /// the mapping and warns, rather than reading a path written for a different OS. `Unix` from
+    /// an older server, which is what every credential path was before this existed.
+    #[serde(default)]
+    pub daemon_os: super::types::paths::OsFamily,
     #[serde(default)]
     pub ip_overrides: Vec<IpOverride<T>>,
 }
@@ -341,6 +346,49 @@ impl CredentialQueryPayload {
         }
     }
 
+    /// Whether this credential reads anything off the daemon's own machine: a file-backed secret
+    /// or value, a daemon-side script, or a socket path. Those are what `daemon_os` describes, so
+    /// only these credentials are checked against the daemon's OS. Exhaustive, so a new payload
+    /// cannot skip the question.
+    pub fn reads_daemon_paths(&self) -> bool {
+        let secret = |s: &ResolvableSecret| matches!(s, ResolvableSecret::FilePath { .. });
+        let value = |v: &ResolvableValue| matches!(v, ResolvableValue::FilePath { .. });
+        match self {
+            Self::Snmp(s) => {
+                secret(&s.community)
+                    || s.v3
+                        .as_ref()
+                        .is_some_and(|v3| secret(&v3.auth_password) || secret(&v3.priv_password))
+            }
+            Self::DockerProxy(d) | Self::PodmanProxy(d) => {
+                d.ssl_cert.as_ref().is_some_and(value)
+                    || d.ssl_key.as_ref().is_some_and(secret)
+                    || d.ssl_chain.as_ref().is_some_and(value)
+            }
+            Self::DockerSocket(c) | Self::PodmanSocket(c) => {
+                c.socket_path.as_ref().is_some_and(|s| !s.is_blank())
+            }
+            Self::UnifiController(u) => match &u.auth {
+                UnifiAuth::ApiKey { api_key } => secret(api_key),
+                UnifiAuth::LocalAdmin { password, .. } => secret(password),
+            },
+            Self::InstantOn(i) => secret(&i.password),
+            Self::Gnmi(g) => secret(&g.password),
+            Self::Ssh(s) => {
+                matches!(s.script, ScriptSource::DaemonFile { .. })
+                    || match &s.auth {
+                        SshAuth::Password { password } => secret(password),
+                        SshAuth::PrivateKey {
+                            private_key,
+                            passphrase,
+                        } => secret(private_key) || passphrase.as_ref().is_some_and(secret),
+                    }
+            }
+            Self::WakeOnLan(w) => w.secure_on_password.as_ref().is_some_and(secret),
+            Self::Unknown => false,
+        }
+    }
+
     pub fn discovery_label(&self) -> &'static str {
         match self {
             Self::Snmp(_) => "SNMP queries",
@@ -529,7 +577,11 @@ impl CredentialQueryPayload {
                         }
                     }
                 };
-                Ok(Self::Ssh(SshQueryCredential { auth, ..s.clone() }))
+                Ok(Self::Ssh(SshQueryCredential {
+                    auth,
+                    script: s.script.resolve_daemon_file()?,
+                    ..s.clone()
+                }))
             }
             Self::WakeOnLan(w) => {
                 let secure_on_password = w

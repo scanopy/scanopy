@@ -7,7 +7,6 @@
 	import InlineDanger from '$lib/shared/components/feedback/InlineDanger.svelte';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
-	import SshScriptRuns from './SshScriptRuns.svelte';
 	import type { DiscoveryUpdatePayload } from '../../types/api';
 	import { formatDuration, formatTimestamp } from '$lib/shared/utils/formatting';
 	import { useSubnetsQuery, getSubnetById } from '$lib/features/subnets/queries';
@@ -220,9 +219,5 @@
 		<InfoCard title={discovery_selfReportDetails()}>
 			<InfoRow label={common_hostId()} mono>{payload.discovery_type.host_id}</InfoRow>
 		</InfoCard>
-	{/if}
-
-	{#if payload.ssh_script_runs && payload.ssh_script_runs.length > 0}
-		<SshScriptRuns runs={payload.ssh_script_runs} />
 	{/if}
 </div>

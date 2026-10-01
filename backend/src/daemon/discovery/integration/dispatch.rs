@@ -631,12 +631,18 @@ pub async fn execute_integrations(
             scanning_subnet: params.scanning_subnet,
         };
 
-        if let Err(e) =
+        let executed =
             execute_with_progress_reporting(integration.as_ref(), &ctx, host_data, || async {
                 let _ = params.ops.heartbeat().await;
             })
-            .await
+            .await;
+        if executed.is_ok()
+            && let Some(id) = cred_id
         {
+            // The run's per-credential results count the hosts a stored credential collected from.
+            params.ops.record_collected(*id, discriminant).await;
+        }
+        if let Err(e) = executed {
             // A failed integration execute means a matched service (e.g. a Docker/Podman
             // daemon) produced no child services — the user-visible "unclaimed open ports,
             // no services" symptom. Surface it at warn so the underlying error (often a

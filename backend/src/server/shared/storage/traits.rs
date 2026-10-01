@@ -24,6 +24,7 @@ use crate::server::topology::types::views::TopologyView;
 use crate::server::vlans::r#impl::base::Vlan;
 use crate::server::{
     billing::types::base::BillingPlan,
+    credentials::r#impl::types::OsFamily,
     daemons::r#impl::base::DaemonMode,
     discovery::r#impl::types::{DiscoveryType, RunType},
     hosts::r#impl::{base::Host, virtualization::HostVirtualization},
@@ -369,6 +370,7 @@ pub enum SqlValue {
     AuthenticatedEntity(AuthenticatedEntity),
     EdgeStyle(EdgeStyle),
     DaemonMode(DaemonMode),
+    OsFamily(OsFamily),
     Nodes(std::collections::HashMap<TopologyView, Vec<Node>>),
     Edges(std::collections::HashMap<TopologyView, Vec<Edge>>),
     TopologyOptions(TopologyOptions),
@@ -601,6 +603,7 @@ impl_db_enum_contributor_via_variant_names!(
     BillingPlan,
     EdgeStyle,
     DaemonMode,
+    OsFamily,
     CredentialType,
     LldpChassisId,
     LldpPortId,
@@ -742,6 +745,7 @@ impl SqlValue {
             SqlValueDiscriminants::AuthenticatedEntity => AuthenticatedEntity::contribute(out),
             SqlValueDiscriminants::EdgeStyle => EdgeStyle::contribute(out),
             SqlValueDiscriminants::DaemonMode => DaemonMode::contribute(out),
+            SqlValueDiscriminants::OsFamily => OsFamily::contribute(out),
             SqlValueDiscriminants::Nodes => Node::contribute(out),
             SqlValueDiscriminants::Edges => Edge::contribute(out),
             SqlValueDiscriminants::TopologyOptions => TopologyOptions::contribute(out),

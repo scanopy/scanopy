@@ -390,8 +390,6 @@ pub struct SshScriptRun {
     /// The address the script ran at.
     #[schema(value_type = String)]
     pub ip: std::net::IpAddr,
-    /// The SSH credential that ran it.
-    pub credential_id: Option<uuid::Uuid>,
     pub outcome: SshScriptOutcome,
     /// The script's exit status, when it exited.
     pub exit_code: Option<u32>,

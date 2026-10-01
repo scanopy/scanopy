@@ -90,6 +90,9 @@ export const COVERED_FIXTURES = [
 	// Keyed by the credential-query discriminant a warning carries, which credential-types.json
 	// cannot resolve — it is keyed by CredentialType.
 	{ file: 'discovery-integrations.json', key: 'discovery_integrations', kind: 'typeMetadata' },
+	// The OS a credential's daemon runs, named in the credential form's picker and in the
+	// CredentialDaemonOsMismatch warning. `example_file_path` is a path, not copy.
+	{ file: 'os-families.json', key: 'os_families', kind: 'typeMetadata' },
 	{
 		file: 'malformed-neighbour-consequences.json',
 		key: 'malformed_neighbour_consequences',
@@ -104,11 +107,15 @@ export const COVERED_FIXTURES = [
  * @property {string} [placeholder]
  * @property {string} [help_text]
  * @property {{ value: string, label: string }[]} [options]
+ * @property {{ field: string, value: string, placeholder: string }[] | null} [placeholder_by]
  */
 
 /**
  * Build the meta_* keys for one field definition under the given prefix.
  * Mirrors the runtime lookup in ui/src/lib/i18n/metadata.ts.
+ *
+ * A dependent placeholder is keyed by the field it depends on as well as that field's value, so
+ * two dependencies sharing a value (`daemon_os` and `target_os` both `Windows`) stay apart.
  *
  * @param {string} prefix
  * @param {FieldDefinitionJson} field
@@ -119,6 +126,12 @@ function fieldMessages(prefix, field) {
 	const messages = {};
 	if (field.label) messages[`${prefix}_${field.id}_label`] = field.label;
 	if (field.placeholder) messages[`${prefix}_${field.id}_placeholder`] = field.placeholder;
+	for (const dependent of field.placeholder_by ?? []) {
+		if (dependent.placeholder) {
+			messages[`${prefix}_${field.id}_placeholderBy_${dependent.field}_${dependent.value}`] =
+				dependent.placeholder;
+		}
+	}
 	if (field.help_text) messages[`${prefix}_${field.id}_helpText`] = field.help_text;
 	for (const option of field.options ?? []) {
 		if (option.label) {
@@ -153,6 +166,11 @@ export function buildMetaMessages(dataDir = DATA_DIR) {
 				}
 			}
 		}
+	}
+	// The message format reads `\\` as one backslash, so a Windows path copied through verbatim
+	// loses one from every doubled pair (`\\.\pipe\docker_engine` compiled to `\.\pipe\…`).
+	for (const [key, value] of Object.entries(messages)) {
+		messages[key] = value.replaceAll('\\', '\\\\');
 	}
 	return messages;
 }

@@ -70,7 +70,7 @@ pub enum SecretValue {
     #[schema(title = "FilePath")]
     FilePath {
         /// Path to a file on the daemon host holding the secret.
-        path: String,
+        path: super::paths::DaemonPath,
     },
 }
 
@@ -111,7 +111,7 @@ pub enum FileOrInline {
     #[schema(title = "FilePath")]
     FilePath {
         /// Path to a file on the daemon host holding the value.
-        path: String,
+        path: super::paths::DaemonPath,
     },
 }
 
@@ -126,7 +126,7 @@ where
     let opt = Option::<FileOrInline>::deserialize(deserializer)?;
     Ok(opt.and_then(|v| match &v {
         FileOrInline::Inline { value } if value.trim().is_empty() => None,
-        FileOrInline::FilePath { path } if path.trim().is_empty() => None,
+        FileOrInline::FilePath { path } if path.is_blank() => None,
         _ => Some(v),
     }))
 }
@@ -141,7 +141,7 @@ where
     let opt = Option::<SecretValue>::deserialize(deserializer)?;
     Ok(opt.and_then(|v| match &v {
         SecretValue::Inline { value } if value.expose_secret().trim().is_empty() => None,
-        SecretValue::FilePath { path } if path.trim().is_empty() => None,
+        SecretValue::FilePath { path } if path.is_blank() => None,
         _ => Some(v),
     }))
 }

@@ -19,6 +19,7 @@ import type { EntityDiscriminants } from '$lib/api/entities';
 import claimSources from '$lib/data/claim-sources.json';
 import discoveryIntegrations from '$lib/data/discovery-integrations.json';
 import malformedNeighbourConsequences from '$lib/data/malformed-neighbour-consequences.json';
+import osFamilies from '$lib/data/os-families.json';
 import snmpWalkGroups from '$lib/data/snmp-walk-groups.json';
 import warningCodes from '$lib/data/warning-codes.json';
 import warningRemedies from '$lib/data/warning-remedies.json';
@@ -189,6 +190,9 @@ const consequence = (id: string) =>
  */
 const integration = (id: string) => nameOf(discoveryIntegrations, 'discovery_integrations', id);
 
+/** An `OsFamily`'s display name ("Linux, macOS, BSD", "Windows"). */
+const osFamily = (id: string) => nameOf(osFamilies, 'os_families', id);
+
 /**
  * Join as a localized list, capped, saying how many were left out.
  *
@@ -308,6 +312,13 @@ const WARNING_PARAMS = {
 	CredentialCollectionTimedOut: attemptParams,
 	CredentialUnreachable: attemptParams,
 	CredentialTimedOut: attemptParams,
+	// The two OS slots identify the statement: a credential declared for Windows and skipped by a
+	// Unix daemon is a different sentence from the reverse.
+	CredentialDaemonOsMismatch: (w) => ({
+		credential: integration(w[0].integration),
+		declared: osFamily(w[0].declared),
+		actual: osFamily(w[0].actual)
+	}),
 
 	// One warning per subnet, so the first is the only one — unlike the address-scoped codes above,
 	// which the daemon raises per host and the UI folds together here.
@@ -726,14 +737,28 @@ const NEEDS_ATTENTION_REMEDY = 'FixInScanopy';
  * Lives here rather than in the component so it can be tested: everything in `WarningReport.svelte`
  * is reachable only by mounting it, and there are no component tests in this suite.
  */
-export function credentialIdsOf(entry: WarningEntry): string[] {
-	return [
-		...new Set(
-			entry.warnings.flatMap((w) =>
-				'credential_id' in w && w.credential_id ? [w.credential_id] : []
-			)
-		)
-	];
+export function credentialIdsOf(entry: Pick<WarningEntry, 'warnings'>): string[] {
+	return [...new Set(entry.warnings.flatMap(credentialIdOf))];
+}
+
+/** The stored credential one warning names, as a zero- or one-element list. */
+function credentialIdOf(w: DiscoveryWarning): string[] {
+	return 'credential_id' in w && w.credential_id ? [w.credential_id] : [];
+}
+
+/**
+ * How many of a run's warnings name each stored credential.
+ *
+ * Counts occurrences, not rows: a credential rejected on three hosts has three warnings, which is
+ * the figure the Issues tab's sentences add up to. Warnings without a credential id are not
+ * counted anywhere.
+ */
+export function warningCountsByCredential(warnings: DiscoveryWarning[]): Map<string, number> {
+	const counts = new Map<string, number>();
+	for (const id of warnings.flatMap(credentialIdOf)) {
+		counts.set(id, (counts.get(id) ?? 0) + 1);
+	}
+	return counts;
 }
 
 /**

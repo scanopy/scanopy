@@ -210,6 +210,7 @@
 			emptyMessage={credentials_assignHostEmpty()}
 			allowReorder={false}
 			options={availableHosts}
+			showSearch={true}
 			getOptionContext={(h) => ({ disabledReason: hostBlockReason(h.id) })}
 			items={selectedHosts}
 			optionDisplayComponent={HostDisplay}
@@ -259,6 +260,7 @@
 			emptyMessage={credentials_assignDaemonHostEmpty()}
 			allowReorder={false}
 			options={availableDaemonHosts}
+			showSearch={true}
 			getOptionContext={(h) => ({ disabledReason: hostBlockReason(h.id) })}
 			items={selectedHosts}
 			optionDisplayComponent={HostDisplay}

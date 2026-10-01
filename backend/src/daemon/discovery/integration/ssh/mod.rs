@@ -105,7 +105,6 @@ impl DiscoveryIntegration for SshIntegration {
 
         let mut run = SshScriptRun {
             ip: ctx.ip,
-            credential_id: ctx.credential_id,
             outcome: SshScriptOutcome::Applied,
             exit_code: None,
             applied_keys: Vec::new(),
@@ -114,7 +113,9 @@ impl DiscoveryIntegration for SshIntegration {
             duration_ms: 0,
         };
         let result = self.run(ctx, cred, &observed, host_data, &mut run).await;
-        ctx.ops.record_ssh_script_run(run).await;
+        if let Some(id) = ctx.credential_id {
+            ctx.ops.record_ssh_script_run(id, run).await;
+        }
         result
     }
 }
@@ -151,13 +152,26 @@ impl SshIntegration {
             }
         };
 
+        // A script file on the daemon's own disk that cannot be read is our configuration, not the
+        // host: report it before connecting.
+        let command = match cred.script.command(cred.target_os) {
+            Ok(c) => c,
+            Err(e) => {
+                run.outcome = SshScriptOutcome::ConnectionFailed;
+                run.detail = Some(e.to_string());
+                return Err(IntegrationFailure::with_outcome(
+                    AttemptOutcome::Malformed,
+                    e.to_string(),
+                ));
+            }
+        };
         let script = client::run_script(
             ctx.ip,
             cred.port,
             observed,
             &cred.username,
             &cred.auth,
-            &cred.script,
+            &command,
             script_timeout(cred),
         )
         .await;

@@ -826,7 +826,7 @@ mod unreadable_credential_tests {
 
     fn missing_file() -> ResolvableSecret {
         ResolvableSecret::FilePath {
-            path: "/nonexistent/scanopy-test/community".to_string(),
+            path: "/nonexistent/scanopy-test/community".into(),
         }
     }
 

@@ -15574,19 +15574,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-01T20:55:16.690446Z",
+              "created_at": "2026-10-01T23:28:32.504836Z",
               "first_discovery_id": null,
-              "id": "547f1be5-2023-49c2-aa65-2dda2980d4a8",
+              "id": "c7fca1e2-4c9f-461b-9d11-5f3a5d3da602",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-01T20:55:16.690446Z",
+              "last_seen_at": "2026-10-01T23:28:32.504836Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-01T20:55:16.690446Z",
-              "valid_from": "2026-10-01T20:55:16.690446Z",
+              "updated_at": "2026-10-01T23:28:32.504836Z",
+              "valid_from": "2026-10-01T23:28:32.504836Z",
               "valid_to": null
             }
           },
@@ -16544,6 +16544,13 @@
               "progress"
             ],
             "properties": {
+              "credential_results": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CredentialRunResult"
+                },
+                "description": "What each stored credential did in this run, one entry per credential. Results, not\nproblems: those are `warnings`. Old servers ignore it."
+              },
               "daemon_id": {
                 "type": "string",
                 "format": "uuid",
@@ -16650,13 +16657,6 @@
                 "type": "string",
                 "format": "uuid",
                 "description": "The discovery run this update belongs to."
-              },
-              "ssh_script_runs": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/SshScriptRun"
-                },
-                "description": "What each SSH credential's script did, one entry per host it ran on. Old servers ignore it."
               },
               "started_at": {
                 "type": [
@@ -17165,19 +17165,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-01T20:55:16.668293Z",
+                      "created_at": "2026-10-01T23:28:32.479194Z",
                       "first_discovery_id": null,
-                      "id": "d0d1c39d-2e3a-4e44-acf7-7ed7389c9020",
+                      "id": "32421b91-f28a-4dad-8aea-fed6fca169c8",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-01T20:55:16.668293Z",
+                      "last_seen_at": "2026-10-01T23:28:32.479194Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-01T20:55:16.668293Z",
-                      "valid_from": "2026-10-01T20:55:16.668293Z",
+                      "updated_at": "2026-10-01T23:28:32.479194Z",
+                      "valid_from": "2026-10-01T23:28:32.479194Z",
                       "valid_to": null
                     }
                   ],
@@ -17191,7 +17191,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "cAdvisor",
+                  "service_definition": "Vaultwarden",
                   "source": {
                     "type": "Manual"
                   },
@@ -18589,19 +18589,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-01T20:55:16.685677Z",
+                  "created_at": "2026-10-01T23:28:32.499185Z",
                   "first_discovery_id": null,
-                  "id": "28b3e6eb-80c9-4119-9c20-b2258f63b6c1",
+                  "id": "478a481d-8a15-42f6-b9e5-41dc3421a674",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-01T20:55:16.685677Z",
+                  "last_seen_at": "2026-10-01T23:28:32.499185Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-01T20:55:16.685677Z",
-                  "valid_from": "2026-10-01T20:55:16.685677Z",
+                  "updated_at": "2026-10-01T23:28:32.499185Z",
+                  "valid_from": "2026-10-01T23:28:32.499185Z",
                   "valid_to": null
                 }
               ],
@@ -18615,7 +18615,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "cAdvisor",
+              "service_definition": "Vaultwarden",
               "source": {
                 "type": "Manual"
               },
@@ -20062,6 +20062,13 @@
                 "progress"
               ],
               "properties": {
+                "credential_results": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CredentialRunResult"
+                  },
+                  "description": "What each stored credential did in this run, one entry per credential. Results, not\nproblems: those are `warnings`. Old servers ignore it."
+                },
                 "daemon_id": {
                   "type": "string",
                   "format": "uuid",
@@ -20168,13 +20175,6 @@
                   "type": "string",
                   "format": "uuid",
                   "description": "The discovery run this update belongs to."
-                },
-                "ssh_script_runs": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SshScriptRun"
-                  },
-                  "description": "What each SSH credential's script did, one entry per host it ran on. Old servers ignore it."
                 },
                 "started_at": {
                   "type": [
@@ -20985,19 +20985,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-01T20:55:16.668834Z",
+          "created_at": "2026-10-01T23:28:32.479921Z",
           "first_discovery_id": null,
-          "id": "bc100ae5-bf50-4c88-bb9b-170f5fc61c82",
+          "id": "8a5712f3-770a-4048-8cd4-43d478b52dd4",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-01T20:55:16.668834Z",
+          "last_seen_at": "2026-10-01T23:28:32.479921Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-01T20:55:16.668834Z",
-          "valid_from": "2026-10-01T20:55:16.668834Z",
+          "updated_at": "2026-10-01T23:28:32.479921Z",
+          "valid_from": "2026-10-01T23:28:32.479921Z",
           "valid_to": null
         }
       },
@@ -21705,7 +21705,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "cAdvisor",
+              "service_definition": "Vaultwarden",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -21972,6 +21972,10 @@
             "$ref": "#/components/schemas/CredentialType",
             "description": "Protocol this credential authenticates with, and its settings."
           },
+          "daemon_os": {
+            "$ref": "#/components/schemas/OsFamily",
+            "description": "The OS of the daemons that will read this credential's files and sockets. Paths are\nvalidated for it, and a daemon on another OS skips the credential with a warning."
+          },
           "host_assignments": {
             "type": "array",
             "items": {
@@ -22047,6 +22051,109 @@
           "WakeOnLan",
           "Unknown"
         ]
+      },
+      "CredentialRunOutcome": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "Collected",
+            "description": "An integration that collects from a host: how many hosts it collected from.",
+            "required": [
+              "hosts",
+              "type"
+            ],
+            "properties": {
+              "hosts": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Collected"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "SshScript",
+            "description": "One entry per host the script ran on.",
+            "required": [
+              "runs",
+              "type"
+            ],
+            "properties": {
+              "runs": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SshScriptRun"
+                }
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "SshScript"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "WakeOnLan",
+            "description": "One entry per address the daemon tried to wake.",
+            "required": [
+              "hosts",
+              "type"
+            ],
+            "properties": {
+              "hosts": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WakeOnLanResult"
+                }
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "WakeOnLan"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "An outcome from a newer daemon than this server.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Unknown"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "CredentialRunResult": {
+        "type": "object",
+        "required": [
+          "credential_id",
+          "outcome"
+        ],
+        "properties": {
+          "credential_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/CredentialRunOutcome"
+          }
+        }
       },
       "CredentialStability": {
         "type": "string",
@@ -22259,11 +22366,15 @@
             ],
             "properties": {
               "socket_path": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "Path to the Docker socket. Blank lets the daemon auto-detect it."
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DaemonSocket",
+                    "description": "Path to the Docker socket. Blank lets the daemon auto-detect it."
+                  }
+                ]
               },
               "type": {
                 "type": "string",
@@ -22344,11 +22455,15 @@
             ],
             "properties": {
               "socket_path": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "Path to the Podman socket. Blank lets the daemon auto-detect it."
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DaemonSocket",
+                    "description": "Path to the Podman socket. Blank lets the daemon auto-detect it."
+                  }
+                ]
               },
               "type": {
                 "type": "string",
@@ -22485,7 +22600,11 @@
                 "minimum": 0
               },
               "script": {
-                "type": "string"
+                "$ref": "#/components/schemas/ScriptSource"
+              },
+              "target_os": {
+                "$ref": "#/components/schemas/OsFamily",
+                "description": "The scanned host's OS: decides how a host-file path is validated and the shell the\nscript runs in."
               },
               "timeout_seconds": {
                 "type": "integer",
@@ -22540,7 +22659,11 @@
                 "$ref": "#/components/schemas/SecretValue"
               },
               "script": {
-                "type": "string"
+                "$ref": "#/components/schemas/ScriptSource"
+              },
+              "target_os": {
+                "$ref": "#/components/schemas/OsFamily",
+                "description": "The scanned host's OS: decides how a host-file path is validated and the shell the\nscript runs in."
               },
               "timeout_seconds": {
                 "type": "integer",
@@ -22927,6 +23050,10 @@
           "freebsd"
         ]
       },
+      "DaemonPath": {
+        "type": "string",
+        "description": "A file on the daemon's own machine, read by the daemon at scan time."
+      },
       "DaemonPromptAction": {
         "type": "string",
         "description": "Which daemon-prompt CTA the user chose.",
@@ -23084,6 +23211,10 @@
           }
         ],
         "description": "Daemon response for UI including computed version status"
+      },
+      "DaemonSocket": {
+        "type": "string",
+        "description": "A container runtime's API socket on the daemon: a Unix socket, or a Windows named pipe.\n\nHanded to bollard's `connect_with_socket`, which strips a `unix://` or `npipe://` scheme and\nopens a Unix socket or a named pipe for the OS it runs on."
       },
       "DaemonStartupRequest": {
         "type": "object",
@@ -23512,6 +23643,26 @@
           "RequestPath",
           "HubAndSpoke"
         ]
+      },
+      "DependentPlaceholder": {
+        "type": "object",
+        "description": "A placeholder that applies while `field` holds `value`.",
+        "required": [
+          "field",
+          "value",
+          "placeholder"
+        ],
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "placeholder": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
       },
       "DeploymentType": {
         "type": "string",
@@ -23947,6 +24098,13 @@
           "progress"
         ],
         "properties": {
+          "credential_results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CredentialRunResult"
+            },
+            "description": "What each stored credential did in this run, one entry per credential. Results, not\nproblems: those are `warnings`. Old servers ignore it."
+          },
           "daemon_id": {
             "type": "string",
             "format": "uuid",
@@ -24053,13 +24211,6 @@
             "type": "string",
             "format": "uuid",
             "description": "The discovery run this update belongs to."
-          },
-          "ssh_script_runs": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SshScriptRun"
-            },
-            "description": "What each SSH credential's script did, one entry per host it ran on. Old servers ignore it."
           },
           "started_at": {
             "type": [
@@ -24810,6 +24961,45 @@
                 ],
                 "format": "uuid",
                 "description": "The stored credential bound to that address. See [`CredentialAttempt::credential_id`]."
+              },
+              "integration": {
+                "$ref": "#/components/schemas/CredentialQueryPayloadDiscriminants"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "CredentialDaemonOsMismatch",
+            "description": "The credential's files or sockets were declared for one OS and this daemon runs another, so\nit was not used here.",
+            "required": [
+              "integration",
+              "credential_id",
+              "declared",
+              "actual",
+              "code"
+            ],
+            "properties": {
+              "actual": {
+                "$ref": "#/components/schemas/OsFamily",
+                "description": "The OS this daemon runs."
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "CredentialDaemonOsMismatch"
+                ]
+              },
+              "credential_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The stored credential. See [`CredentialAttempt::credential_id`]."
+              },
+              "declared": {
+                "$ref": "#/components/schemas/OsFamily",
+                "description": "The OS the credential's paths were declared for."
               },
               "integration": {
                 "$ref": "#/components/schemas/CredentialQueryPayloadDiscriminants"
@@ -26482,6 +26672,16 @@
             ],
             "description": "Placeholder text for the input."
           },
+          "placeholder_by": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/DependentPlaceholder"
+            },
+            "description": "Placeholders that replace `placeholder` while another field holds a given value, e.g. a\nWindows path once the OS picker says Windows. `field` is a sibling field id, or `daemon_os`\nfor the credential's own daemon OS."
+          },
           "secret": {
             "type": "boolean",
             "description": "Whether the value is a secret, so it is masked and never echoed back."
@@ -26497,9 +26697,11 @@
           "number",
           "boolean",
           "select",
+          "radio",
           "port",
           "secretpathorinline",
-          "pathorinline"
+          "pathorinline",
+          "scriptsource"
         ]
       },
       "FileOrInline": {
@@ -26539,7 +26741,7 @@
                 ]
               },
               "path": {
-                "type": "string",
+                "$ref": "#/components/schemas/DaemonPath",
                 "description": "Path to a file on the daemon host holding the value."
               }
             }
@@ -26985,6 +27187,10 @@
           "mac_address"
         ]
       },
+      "HostPath": {
+        "type": "string",
+        "description": "A file on the scanned host, executed there over SSH. Never read by the daemon."
+      },
       "HostResponse": {
         "type": "object",
         "description": "Response type for host endpoints.\nIncludes children (ip_addresses, ports, services, interfaces).",
@@ -27412,19 +27618,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-01T20:55:16.667690Z",
+                  "created_at": "2026-10-01T23:28:32.478399Z",
                   "first_discovery_id": null,
-                  "id": "ec97b43e-3bf2-4c9f-a017-8cfe4a6ad723",
+                  "id": "fb86d421-daaf-4536-b90a-90d644fc0508",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-01T20:55:16.667690Z",
+                  "last_seen_at": "2026-10-01T23:28:32.478399Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-01T20:55:16.667690Z",
-                  "valid_from": "2026-10-01T20:55:16.667690Z",
+                  "updated_at": "2026-10-01T23:28:32.478399Z",
+                  "valid_from": "2026-10-01T23:28:32.478399Z",
                   "valid_to": null
                 }
               ],
@@ -27438,7 +27644,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "cAdvisor",
+              "service_definition": "Vaultwarden",
               "source": {
                 "type": "Manual"
               },
@@ -30316,6 +30522,14 @@
           }
         }
       },
+      "OsFamily": {
+        "type": "string",
+        "description": "The OS family of a machine a credential's paths live on. Paths, sockets and the shell a script\nruns in all follow from it.",
+        "enum": [
+          "Unix",
+          "Windows"
+        ]
+      },
       "PaginatedApiMeta": {
         "type": "object",
         "description": "API metadata for paginated list responses (pagination is always present)",
@@ -31127,19 +31341,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-01T20:55:16.654845Z",
+                        "created_at": "2026-10-01T23:28:32.465736Z",
                         "first_discovery_id": null,
-                        "id": "a97ff51e-3ece-48c6-8539-63d5efa0716d",
+                        "id": "704fbcd3-023c-41ec-b4dc-859d441468c7",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-01T20:55:16.654845Z",
+                        "last_seen_at": "2026-10-01T23:28:32.465736Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-01T20:55:16.654845Z",
-                        "valid_from": "2026-10-01T20:55:16.654845Z",
+                        "updated_at": "2026-10-01T23:28:32.465736Z",
+                        "valid_from": "2026-10-01T23:28:32.465736Z",
                         "valid_to": null
                       }
                     ],
@@ -31153,7 +31367,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "cAdvisor",
+                    "service_definition": "Vaultwarden",
                     "source": {
                       "type": "Manual"
                     },
@@ -31296,19 +31510,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-01T20:55:16.684837Z",
+                    "created_at": "2026-10-01T23:28:32.498198Z",
                     "first_discovery_id": null,
-                    "id": "0bdfacbe-e54f-4179-9d91-bc78d5aea4f9",
+                    "id": "cdb9772f-971d-49ec-b88b-2624294d3582",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-01T20:55:16.684837Z",
+                    "last_seen_at": "2026-10-01T23:28:32.498198Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-01T20:55:16.684837Z",
-                    "valid_from": "2026-10-01T20:55:16.684837Z",
+                    "updated_at": "2026-10-01T23:28:32.498198Z",
+                    "valid_from": "2026-10-01T23:28:32.498198Z",
                     "valid_to": null
                   }
                 ],
@@ -31322,7 +31536,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "cAdvisor",
+                "service_definition": "Vaultwarden",
                 "source": {
                   "type": "Manual"
                 },
@@ -33284,6 +33498,71 @@
           }
         }
       },
+      "ScriptSource": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "HostFile",
+            "description": "An executable already on each scanned host. Nothing but the path is stored in Scanopy.",
+            "required": [
+              "path",
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "HostFile"
+                ]
+              },
+              "path": {
+                "$ref": "#/components/schemas/HostPath"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "DaemonFile",
+            "description": "A script file on the daemon's machine; the daemon reads it and runs its text.",
+            "required": [
+              "path",
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "DaemonFile"
+                ]
+              },
+              "path": {
+                "$ref": "#/components/schemas/DaemonPath"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Inline",
+            "description": "The script text, stored on the credential.",
+            "required": [
+              "value",
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "Inline"
+                ]
+              },
+              "value": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "description": "Where an SSH credential's script comes from. One type for the stored credential and the wire:\nboth sides hold the same typed paths, so there is nothing to translate."
+      },
       "SecretValue": {
         "oneOf": [
           {
@@ -33321,7 +33600,7 @@
                 ]
               },
               "path": {
-                "type": "string",
+                "$ref": "#/components/schemas/DaemonPath",
                 "description": "Path to a file on the daemon host holding the secret."
               }
             }
@@ -33457,19 +33736,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-01T20:55:16.668668Z",
+              "created_at": "2026-10-01T23:28:32.479703Z",
               "first_discovery_id": null,
-              "id": "2a0f3347-98ae-4dae-b887-77d826812d31",
+              "id": "25732912-7295-430d-9752-31654279aece",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-01T20:55:16.668668Z",
+              "last_seen_at": "2026-10-01T23:28:32.479703Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-01T20:55:16.668668Z",
-              "valid_from": "2026-10-01T20:55:16.668668Z",
+              "updated_at": "2026-10-01T23:28:32.479703Z",
+              "valid_from": "2026-10-01T23:28:32.479703Z",
               "valid_to": null
             }
           ],
@@ -33483,7 +33762,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "cAdvisor",
+          "service_definition": "Vaultwarden",
           "source": {
             "type": "Manual"
           },
@@ -34145,14 +34424,6 @@
               "type": "string"
             },
             "description": "Keys whose values were applied, as paths (`model`, `interfaces[].mac`)."
-          },
-          "credential_id": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uuid",
-            "description": "The SSH credential that ran it."
           },
           "detail": {
             "type": [
@@ -34928,7 +35199,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "e14270f0-537a-47b9-a68f-aa593f2dfede",
+                  "id": "80edadbb-9c29-4c66-a034-9e9d618fbc85",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -34938,23 +35209,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "e7f8bbf6-5b92-43c8-a036-1fc5b5033f27",
+                  "id": "a4576895-dbab-432b-ad74-dd7a51adab42",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "22af915b-6262-4777-9a1a-416f91024eaf",
+                  "id": "3bfefac7-89f9-445f-ab60-cfbfe179d488",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "8d7c6478-a7bc-4a3d-af31-6846c26b53e9",
+                  "id": "a786c120-9baf-41b4-b945-1ee5f09120c8",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "e7f8bbf6-5b92-43c8-a036-1fc5b5033f27",
+                  "id": "a4576895-dbab-432b-ad74-dd7a51adab42",
                   "rule": "ByHost"
                 }
               ]
@@ -34984,19 +35255,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "cdac202f-1660-4e00-aad3-2bf8efbf2d44",
+                "id": "d7afc067-bbb8-44da-8ffc-51364cbc08e0",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "0a652751-3aae-4aa7-8239-9c9e5f8c50ed",
+                "id": "8d34d3c5-3f32-4584-a4b7-44596e9c5117",
                 "rule": "ByVLAN"
               },
               {
-                "id": "dfa66be6-3b44-40e4-8771-2ce0a39cfc58",
+                "id": "eb7ca269-bd1e-4b6c-b031-1e7bf806c850",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "8ade80c3-bebb-4166-a594-ac7679de5db6",
+                "id": "d8c1c7e7-4f5b-4ade-a8e4-bfb8b545052e",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -35014,7 +35285,7 @@
                 }
               },
               {
-                "id": "88175856-b4f7-48b3-abd9-fcdedc6ddca9",
+                "id": "5fc211ad-b89e-4d34-8d7c-e5228d2f1a2b",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -35023,15 +35294,15 @@
                 }
               },
               {
-                "id": "f0f46390-6296-4de3-b201-de83eaebc789",
+                "id": "84f2990c-dd63-434e-b83f-fa6e133e0c7d",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "0d01cba1-43ed-4c4a-8879-839b26e35cad",
+                "id": "0a8c58fc-8c80-4dae-8ff1-defc104feb27",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "d2d34dd8-098e-42bc-ad84-cca3db8a83f5",
+                "id": "0598dfce-4c28-4ba9-bf2f-b7024ffd6f7b",
                 "rule": "ByStack"
               }
             ]
@@ -36037,6 +36308,29 @@
           "vlan_number",
           "updated_at"
         ]
+      },
+      "WakeOnLanResult": {
+        "type": "object",
+        "description": "Whether one address woke.",
+        "required": [
+          "ip",
+          "woke",
+          "waited_ms"
+        ],
+        "properties": {
+          "ip": {
+            "type": "string"
+          },
+          "waited_ms": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How long after the packets the address answered, or how long the daemon waited for it.",
+            "minimum": 0
+          },
+          "woke": {
+            "type": "boolean"
+          }
+        }
       }
     },
     "securitySchemes": {

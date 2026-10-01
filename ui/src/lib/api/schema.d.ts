@@ -3466,19 +3466,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-01T20:55:16.690446Z",
+             *       "created_at": "2026-10-01T23:28:32.504836Z",
              *       "first_discovery_id": null,
-             *       "id": "547f1be5-2023-49c2-aa65-2dda2980d4a8",
+             *       "id": "c7fca1e2-4c9f-461b-9d11-5f3a5d3da602",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-01T20:55:16.690446Z",
+             *       "last_seen_at": "2026-10-01T23:28:32.504836Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-10-01T20:55:16.690446Z",
-             *       "valid_from": "2026-10-01T20:55:16.690446Z",
+             *       "updated_at": "2026-10-01T23:28:32.504836Z",
+             *       "valid_from": "2026-10-01T23:28:32.504836Z",
              *       "valid_to": null
              *     }
              */
@@ -4061,6 +4061,11 @@ export interface components {
             /** @description Progress update from daemon to server during discovery */
             data?: {
                 /**
+                 * @description What each stored credential did in this run, one entry per credential. Results, not
+                 *     problems: those are `warnings`. Old servers ignore it.
+                 */
+                credential_results?: components["schemas"]["CredentialRunResult"][];
+                /**
                  * Format: uuid
                  * @description The daemon this entity refers to.
                  */
@@ -4119,8 +4124,6 @@ export interface components {
                  * @description The discovery run this update belongs to.
                  */
                 session_id: string;
-                /** @description What each SSH credential's script did, one entry per host it ran on. Old servers ignore it. */
-                ssh_script_runs?: components["schemas"]["SshScriptRun"][];
                 /**
                  * Format: date-time
                  * @description When the run started.
@@ -4298,19 +4301,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-01T20:55:16.668293Z",
+             *               "created_at": "2026-10-01T23:28:32.479194Z",
              *               "first_discovery_id": null,
-             *               "id": "d0d1c39d-2e3a-4e44-acf7-7ed7389c9020",
+             *               "id": "32421b91-f28a-4dad-8aea-fed6fca169c8",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-01T20:55:16.668293Z",
+             *               "last_seen_at": "2026-10-01T23:28:32.479194Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-10-01T20:55:16.668293Z",
-             *               "valid_from": "2026-10-01T20:55:16.668293Z",
+             *               "updated_at": "2026-10-01T23:28:32.479194Z",
+             *               "valid_from": "2026-10-01T23:28:32.479194Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4324,7 +4327,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "cAdvisor",
+             *           "service_definition": "Vaultwarden",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5237,19 +5240,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-01T20:55:16.685677Z",
+             *           "created_at": "2026-10-01T23:28:32.499185Z",
              *           "first_discovery_id": null,
-             *           "id": "28b3e6eb-80c9-4119-9c20-b2258f63b6c1",
+             *           "id": "478a481d-8a15-42f6-b9e5-41dc3421a674",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-01T20:55:16.685677Z",
+             *           "last_seen_at": "2026-10-01T23:28:32.499185Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-10-01T20:55:16.685677Z",
-             *           "valid_from": "2026-10-01T20:55:16.685677Z",
+             *           "updated_at": "2026-10-01T23:28:32.499185Z",
+             *           "valid_from": "2026-10-01T23:28:32.499185Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5263,7 +5266,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "cAdvisor",
+             *       "service_definition": "Vaultwarden",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6014,6 +6017,11 @@ export interface components {
             /** @description The result payload. Omitted on failure. */
             data?: {
                 /**
+                 * @description What each stored credential did in this run, one entry per credential. Results, not
+                 *     problems: those are `warnings`. Old servers ignore it.
+                 */
+                credential_results?: components["schemas"]["CredentialRunResult"][];
+                /**
                  * Format: uuid
                  * @description The daemon this entity refers to.
                  */
@@ -6072,8 +6080,6 @@ export interface components {
                  * @description The discovery run this update belongs to.
                  */
                 session_id: string;
-                /** @description What each SSH credential's script did, one entry per host it ran on. Old servers ignore it. */
-                ssh_script_runs?: components["schemas"]["SshScriptRun"][];
                 /**
                  * Format: date-time
                  * @description When the run started.
@@ -6331,19 +6337,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-01T20:55:16.668834Z",
+         *       "created_at": "2026-10-01T23:28:32.479921Z",
          *       "first_discovery_id": null,
-         *       "id": "bc100ae5-bf50-4c88-bb9b-170f5fc61c82",
+         *       "id": "8a5712f3-770a-4048-8cd4-43d478b52dd4",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-01T20:55:16.668834Z",
+         *       "last_seen_at": "2026-10-01T23:28:32.479921Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-10-01T20:55:16.668834Z",
-         *       "valid_from": "2026-10-01T20:55:16.668834Z",
+         *       "updated_at": "2026-10-01T23:28:32.479921Z",
+         *       "valid_from": "2026-10-01T23:28:32.479921Z",
          *       "valid_to": null
          *     }
          */
@@ -6669,7 +6675,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "cAdvisor",
+         *           "service_definition": "Vaultwarden",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -6846,6 +6852,11 @@ export interface components {
             /** @description Protocol this credential authenticates with, and its settings. */
             credential_type: components["schemas"]["CredentialType"];
             /**
+             * @description The OS of the daemons that will read this credential's files and sockets. Paths are
+             *     validated for it, and a daemon on another OS skips the credential with a warning.
+             */
+            daemon_os?: components["schemas"]["OsFamily"];
+            /**
              * @description Hosts this credential is assigned to (PerHost scope), with optional IP scoping.
              *     Hydrated from the `host_credentials` junction table.
              */
@@ -6878,6 +6889,28 @@ export interface components {
         CredentialOrderField: "created_at" | "name" | "updated_at";
         /** @enum {string} */
         CredentialQueryPayloadDiscriminants: "Snmp" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiController" | "InstantOn" | "Gnmi" | "Ssh" | "WakeOnLan" | "Unknown";
+        CredentialRunOutcome: {
+            /** Format: int32 */
+            hosts: number;
+            /** @enum {string} */
+            type: "Collected";
+        } | {
+            runs: components["schemas"]["SshScriptRun"][];
+            /** @enum {string} */
+            type: "SshScript";
+        } | {
+            hosts: components["schemas"]["WakeOnLanResult"][];
+            /** @enum {string} */
+            type: "WakeOnLan";
+        } | {
+            /** @enum {string} */
+            type: "Unknown";
+        };
+        CredentialRunResult: {
+            /** Format: uuid */
+            credential_id: string;
+            outcome: components["schemas"]["CredentialRunOutcome"];
+        };
         /**
          * @description Release maturity of a credential type's integration.
          *
@@ -6954,8 +6987,7 @@ export interface components {
             /** @enum {string} */
             type: "DockerProxy";
         } | {
-            /** @description Path to the Docker socket. Blank lets the daemon auto-detect it. */
-            socket_path?: string | null;
+            socket_path?: null | components["schemas"]["DaemonSocket"];
             /** @enum {string} */
             type: "DockerSocket";
         } | {
@@ -6972,8 +7004,7 @@ export interface components {
             /** @enum {string} */
             type: "PodmanProxy";
         } | {
-            /** @description Path to the Podman socket. Blank lets the daemon auto-detect it. */
-            socket_path?: string | null;
+            socket_path?: null | components["schemas"]["DaemonSocket"];
             /** @enum {string} */
             type: "PodmanSocket";
         } | {
@@ -7020,7 +7051,12 @@ export interface components {
             password: components["schemas"]["SecretValue"];
             /** Format: int32 */
             port?: number;
-            script: string;
+            script: components["schemas"]["ScriptSource"];
+            /**
+             * @description The scanned host's OS: decides how a host-file path is validated and the shell the
+             *     script runs in.
+             */
+            target_os?: components["schemas"]["OsFamily"];
             /** Format: int32 */
             timeout_seconds?: number;
             /** @enum {string} */
@@ -7033,7 +7069,12 @@ export interface components {
             /** Format: int32 */
             port?: number;
             private_key: components["schemas"]["SecretValue"];
-            script: string;
+            script: components["schemas"]["ScriptSource"];
+            /**
+             * @description The scanned host's OS: decides how a host-file path is validated and the shell the
+             *     script runs in.
+             */
+            target_os?: components["schemas"]["OsFamily"];
             /** Format: int32 */
             timeout_seconds?: number;
             /** @enum {string} */
@@ -7236,6 +7277,8 @@ export interface components {
          * @enum {string}
          */
         DaemonOs: "linux" | "macos" | "windows" | "freebsd";
+        /** @description A file on the daemon's own machine, read by the daemon at scan time. */
+        DaemonPath: string;
         /**
          * @description Which daemon-prompt CTA the user chose.
          * @enum {string}
@@ -7327,6 +7370,13 @@ export interface components {
             /** @description Computed version status including health and warnings */
             version_status: components["schemas"]["DaemonVersionStatus"];
         };
+        /**
+         * @description A container runtime's API socket on the daemon: a Unix socket, or a Windows named pipe.
+         *
+         *     Handed to bollard's `connect_with_socket`, which strips a `unix://` or `npipe://` scheme and
+         *     opens a Unix socket or a named pipe for the OS it runs on.
+         */
+        DaemonSocket: string;
         /** @description Sent by daemon on startup to report version */
         DaemonStartupRequest: {
             /** @description Daemon software version (semver format) */
@@ -7528,6 +7578,12 @@ export interface components {
         DependencyOrderField: "created_at" | "name" | "dependency_type" | "updated_at" | "network_id";
         /** @enum {string} */
         DependencyType: "RequestPath" | "HubAndSpoke";
+        /** @description A placeholder that applies while `field` holds `value`. */
+        DependentPlaceholder: {
+            field: string;
+            placeholder: string;
+            value: string;
+        };
         /** @enum {string} */
         DeploymentType: "cloud" | "commercial" | "community";
         /**
@@ -7742,6 +7798,11 @@ export interface components {
         /** @description Progress update from daemon to server during discovery */
         DiscoveryUpdatePayload: {
             /**
+             * @description What each stored credential did in this run, one entry per credential. Results, not
+             *     problems: those are `warnings`. Old servers ignore it.
+             */
+            credential_results?: components["schemas"]["CredentialRunResult"][];
+            /**
              * Format: uuid
              * @description The daemon this entity refers to.
              */
@@ -7800,8 +7861,6 @@ export interface components {
              * @description The discovery run this update belongs to.
              */
             session_id: string;
-            /** @description What each SSH credential's script did, one entry per host it ran on. Old servers ignore it. */
-            ssh_script_runs?: components["schemas"]["SshScriptRun"][];
             /**
              * Format: date-time
              * @description When the run started.
@@ -8037,6 +8096,19 @@ export interface components {
              * @description The stored credential bound to that address. See [`CredentialAttempt::credential_id`].
              */
             credential_id: string | null;
+            integration: components["schemas"]["CredentialQueryPayloadDiscriminants"];
+        } | {
+            /** @description The OS this daemon runs. */
+            actual: components["schemas"]["OsFamily"];
+            /** @enum {string} */
+            code: "CredentialDaemonOsMismatch";
+            /**
+             * Format: uuid
+             * @description The stored credential. See [`CredentialAttempt::credential_id`].
+             */
+            credential_id: string | null;
+            /** @description The OS the credential's paths were declared for. */
+            declared: components["schemas"]["OsFamily"];
             integration: components["schemas"]["CredentialQueryPayloadDiscriminants"];
         } | {
             /** @description The address the credential is bound to. */
@@ -8617,6 +8689,12 @@ export interface components {
             options?: components["schemas"]["SelectOption"][] | null;
             /** @description Placeholder text for the input. */
             placeholder?: string | null;
+            /**
+             * @description Placeholders that replace `placeholder` while another field holds a given value, e.g. a
+             *     Windows path once the OS picker says Windows. `field` is a sibling field id, or `daemon_os`
+             *     for the credential's own daemon OS.
+             */
+            placeholder_by?: components["schemas"]["DependentPlaceholder"][] | null;
             /** @description Whether the value is a secret, so it is masked and never echoed back. */
             secret: boolean;
         };
@@ -8627,7 +8705,7 @@ export interface components {
          *     pick a renderer and a validator. Adding a variant means teaching the frontend about it.
          * @enum {string}
          */
-        FieldType: "string" | "text" | "number" | "boolean" | "select" | "port" | "secretpathorinline" | "pathorinline";
+        FieldType: "string" | "text" | "number" | "boolean" | "select" | "radio" | "port" | "secretpathorinline" | "pathorinline" | "scriptsource";
         /** @description Non-secret value that can be inline content or a file path on daemon host. */
         FileOrInline: {
             /** @enum {string} */
@@ -8638,7 +8716,7 @@ export interface components {
             /** @enum {string} */
             mode: "FilePath";
             /** @description Path to a file on the daemon host holding the value. */
-            path: string;
+            path: components["schemas"]["DaemonPath"];
         };
         /**
          * @description Request to finalize a client-confirmed SetupIntent (set the collected card
@@ -8841,6 +8919,8 @@ export interface components {
          * @enum {string}
          */
         HostOrderField: "created_at" | "name" | "hostname" | "updated_at" | "virtualized_by" | "network_id" | "interface_ip" | "last_seen_at" | "mac_address";
+        /** @description A file on the scanned host, executed there over SSH. Never read by the daemon. */
+        HostPath: string;
         /**
          * @description Response type for host endpoints.
          *     Includes children (ip_addresses, ports, services, interfaces).
@@ -8964,19 +9044,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-01T20:55:16.667690Z",
+         *               "created_at": "2026-10-01T23:28:32.478399Z",
          *               "first_discovery_id": null,
-         *               "id": "ec97b43e-3bf2-4c9f-a017-8cfe4a6ad723",
+         *               "id": "fb86d421-daaf-4536-b90a-90d644fc0508",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-01T20:55:16.667690Z",
+         *               "last_seen_at": "2026-10-01T23:28:32.478399Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-10-01T20:55:16.667690Z",
-         *               "valid_from": "2026-10-01T20:55:16.667690Z",
+         *               "updated_at": "2026-10-01T23:28:32.478399Z",
+         *               "valid_from": "2026-10-01T23:28:32.478399Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -8990,7 +9070,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "cAdvisor",
+         *           "service_definition": "Vaultwarden",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -10512,6 +10592,12 @@ export interface components {
             use_case?: components["schemas"]["UseCase"];
         };
         /**
+         * @description The OS family of a machine a credential's paths live on. Paths, sockets and the shell a script
+         *     runs in all follow from it.
+         * @enum {string}
+         */
+        OsFamily: "Unix" | "Windows";
+        /**
          * @description API metadata for paginated list responses (pagination is always present)
          * @example {
          *       "api_version": 1,
@@ -11951,6 +12037,23 @@ export interface components {
             /** @description VLANs touched by this discovery. */
             vlan_ids?: string[];
         };
+        /**
+         * @description Where an SSH credential's script comes from. One type for the stored credential and the wire:
+         *     both sides hold the same typed paths, so there is nothing to translate.
+         */
+        ScriptSource: {
+            /** @enum {string} */
+            mode: "HostFile";
+            path: components["schemas"]["HostPath"];
+        } | {
+            /** @enum {string} */
+            mode: "DaemonFile";
+            path: components["schemas"]["DaemonPath"];
+        } | {
+            /** @enum {string} */
+            mode: "Inline";
+            value: string;
+        };
         /** @description Secret value that can be either inline content or a file path on the daemon host. */
         SecretValue: {
             /** @enum {string} */
@@ -11961,7 +12064,7 @@ export interface components {
             /** @enum {string} */
             mode: "FilePath";
             /** @description Path to a file on the daemon host holding the secret. */
-            path: string;
+            path: components["schemas"]["DaemonPath"];
         };
         /**
          * @description A single choice for a `Select` field. `value` is the wire value (serialized enum variant, e.g.
@@ -11986,19 +12089,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-01T20:55:16.668668Z",
+         *           "created_at": "2026-10-01T23:28:32.479703Z",
          *           "first_discovery_id": null,
-         *           "id": "2a0f3347-98ae-4dae-b887-77d826812d31",
+         *           "id": "25732912-7295-430d-9752-31654279aece",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-01T20:55:16.668668Z",
+         *           "last_seen_at": "2026-10-01T23:28:32.479703Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-10-01T20:55:16.668668Z",
-         *           "valid_from": "2026-10-01T20:55:16.668668Z",
+         *           "updated_at": "2026-10-01T23:28:32.479703Z",
+         *           "valid_from": "2026-10-01T23:28:32.479703Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12012,7 +12115,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "cAdvisor",
+         *       "service_definition": "Vaultwarden",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12367,11 +12470,6 @@ export interface components {
         SshScriptRun: {
             /** @description Keys whose values were applied, as paths (`model`, `interfaces[].mac`). */
             applied_keys?: string[];
-            /**
-             * Format: uuid
-             * @description The SSH credential that ran it.
-             */
-            credential_id?: string | null;
             /** @description The end of stderr, or the parse error, capped at [`MAX_STDERR_EXCERPT_BYTES`]. */
             detail?: string | null;
             /**
@@ -12773,7 +12871,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "e14270f0-537a-47b9-a68f-aa593f2dfede",
+             *           "id": "80edadbb-9c29-4c66-a034-9e9d618fbc85",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -12783,23 +12881,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "e7f8bbf6-5b92-43c8-a036-1fc5b5033f27",
+             *           "id": "a4576895-dbab-432b-ad74-dd7a51adab42",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "22af915b-6262-4777-9a1a-416f91024eaf",
+             *           "id": "3bfefac7-89f9-445f-ab60-cfbfe179d488",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "8d7c6478-a7bc-4a3d-af31-6846c26b53e9",
+             *           "id": "a786c120-9baf-41b4-b945-1ee5f09120c8",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "e7f8bbf6-5b92-43c8-a036-1fc5b5033f27",
+             *           "id": "a4576895-dbab-432b-ad74-dd7a51adab42",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -12812,19 +12910,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "cdac202f-1660-4e00-aad3-2bf8efbf2d44",
+             *         "id": "d7afc067-bbb8-44da-8ffc-51364cbc08e0",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "0a652751-3aae-4aa7-8239-9c9e5f8c50ed",
+             *         "id": "8d34d3c5-3f32-4584-a4b7-44596e9c5117",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "dfa66be6-3b44-40e4-8771-2ce0a39cfc58",
+             *         "id": "eb7ca269-bd1e-4b6c-b031-1e7bf806c850",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "8ade80c3-bebb-4166-a594-ac7679de5db6",
+             *         "id": "d8c1c7e7-4f5b-4ade-a8e4-bfb8b545052e",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -12842,7 +12940,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "88175856-b4f7-48b3-abd9-fcdedc6ddca9",
+             *         "id": "5fc211ad-b89e-4d34-8d7c-e5228d2f1a2b",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -12851,15 +12949,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "f0f46390-6296-4de3-b201-de83eaebc789",
+             *         "id": "84f2990c-dd63-434e-b83f-fa6e133e0c7d",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "0d01cba1-43ed-4c4a-8879-839b26e35cad",
+             *         "id": "0a8c58fc-8c80-4dae-8ff1-defc104feb27",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "d2d34dd8-098e-42bc-ad84-cca3db8a83f5",
+             *         "id": "0598dfce-4c28-4ba9-bf2f-b7024ffd6f7b",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -13376,6 +13474,16 @@ export interface components {
         };
         /** @enum {string} */
         VlanOrderField: "created_at" | "name" | "vlan_number" | "updated_at";
+        /** @description Whether one address woke. */
+        WakeOnLanResult: {
+            ip: string;
+            /**
+             * Format: int64
+             * @description How long after the packets the address answered, or how long the daemon waited for it.
+             */
+            waited_ms: number;
+            woke: boolean;
+        };
     };
     responses: never;
     parameters: never;

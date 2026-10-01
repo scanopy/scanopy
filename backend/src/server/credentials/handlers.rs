@@ -358,8 +358,7 @@ async fn update_credential(
 ) -> ApiResult<Json<ApiResponse<Credential>>> {
     entity
         .base
-        .credential_type
-        .validate()
+        .validate_settings()
         .map_err(|e| ApiError::bad_request(&e.to_string()))?;
 
     let assigned_network_ids = entity.base.assigned_network_ids.clone();
@@ -578,8 +577,7 @@ async fn bulk_create_credentials(
     for credential in &credentials {
         credential
             .base
-            .credential_type
-            .validate()
+            .validate_settings()
             .map_err(|e| ApiError::bad_request(&e.to_string()))?;
         enforce_supported_targets(&state, credential, &network_ids).await?;
     }

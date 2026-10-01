@@ -3,9 +3,11 @@
 
 use serde::{Deserialize, Serialize};
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use tempfile::NamedTempFile;
 use utoipa::ToSchema;
+
+use crate::server::credentials::r#impl::types::paths::DaemonPath;
 
 /// A credential field that could not be turned into the value the wire needs.
 ///
@@ -20,7 +22,8 @@ use utoipa::ToSchema;
 /// wants a path is our disk, not the operator's credential, and telling them to re-enter it would
 /// send them to fix something that is not broken.
 ///
-/// `Display` reproduces the previous message verbatim, so daemon logs are unchanged.
+/// `Display` reproduces the previous message verbatim, so daemon logs are unchanged. Built by
+/// [`DaemonPath::read`].
 #[derive(Debug, thiserror::Error)]
 #[error("Failed to read {field} from {path} for {label}: {source}")]
 pub struct UnresolvableCredential {
@@ -31,19 +34,6 @@ pub struct UnresolvableCredential {
     /// Which credential type asked, e.g. `SNMP`.
     pub label: String,
     pub source: std::io::Error,
-}
-
-impl UnresolvableCredential {
-    fn read(field: &str, path: &str, label: &str) -> Result<String, anyhow::Error> {
-        std::fs::read_to_string(path).map_err(|source| {
-            anyhow::Error::new(Self {
-                field: field.to_string(),
-                path: path.to_string(),
-                label: label.to_string(),
-                source,
-            })
-        })
-    }
 }
 
 /// Whether this error is a credential field we could not read, wherever in the chain it sits.
@@ -62,7 +52,7 @@ pub fn is_unresolvable_credential(error: &anyhow::Error) -> bool {
 #[serde(tag = "mode")]
 pub enum ResolvableValue {
     Value { value: String },
-    FilePath { path: String },
+    FilePath { path: DaemonPath },
 }
 
 /// Secret value — inline or file path. Daemon wraps resolved value in Secret<String>.
@@ -76,7 +66,7 @@ pub enum ResolvableValue {
 #[serde(tag = "mode")]
 pub enum ResolvableSecret {
     Value { value: String },
-    FilePath { path: String },
+    FilePath { path: DaemonPath },
 }
 
 /// Redacts the secret rather than deriving `Debug`, so *holding* one of these is enough to be
@@ -109,7 +99,7 @@ impl<'de> Deserialize<'de> for ResolvableSecret {
                 #[serde(tag = "mode")]
                 enum Tagged {
                     Value { value: String },
-                    FilePath { path: String },
+                    FilePath { path: DaemonPath },
                 }
                 let tagged: Tagged =
                     serde_json::from_value(value).map_err(serde::de::Error::custom)?;
@@ -125,28 +115,68 @@ impl<'de> Deserialize<'de> for ResolvableSecret {
     }
 }
 
+// The two enums differ only in whether the value is a secret: what gets logged, and whether the
+// resolved text is wrapped. Everything that touches a path or a temp file is here, once.
+
+/// Read a file-backed value, logging the path but never the contents.
+fn read_logged(
+    path: &DaemonPath,
+    field: &str,
+    label: &str,
+    secret: bool,
+) -> Result<String, anyhow::Error> {
+    let shown = if secret { " (********)" } else { "" };
+    tracing::info!("Read {}{} from {} for {}", field, shown, path, label);
+    path.read(field, label)
+}
+
+/// Hand a client library that wants a path one: the file itself, or the inline value written to a
+/// temp file the caller keeps alive.
+fn to_path(
+    inline: Option<&str>,
+    path: Option<&DaemonPath>,
+    field: &str,
+    label: &str,
+) -> Result<(PathBuf, Option<NamedTempFile>), anyhow::Error> {
+    if let Some(path) = path {
+        return Ok((path.as_path().to_path_buf(), None));
+    }
+    let value = inline.unwrap_or_default();
+    let mut tmp = NamedTempFile::new().map_err(|e| {
+        anyhow::anyhow!(
+            "Failed to create temp file for {} ({}): {}",
+            field,
+            label,
+            e
+        )
+    })?;
+    tmp.write_all(value.as_bytes()).map_err(|e| {
+        anyhow::anyhow!(
+            "Failed to write {} to temp file for {}: {}",
+            field,
+            label,
+            e
+        )
+    })?;
+    tmp.flush()?;
+    let path = tmp.path().to_path_buf();
+    Ok((path, Some(tmp)))
+}
+
 impl ResolvableValue {
     /// Resolve to a string value. FilePath variant reads from disk.
     pub fn resolve(&self, field_name: &str, label: &str) -> Result<String, anyhow::Error> {
         match self {
             Self::Value { value } => Ok(value.clone()),
-            Self::FilePath { path } => {
-                tracing::info!("Read {} from {} for {}", field_name, path, label);
-                UnresolvableCredential::read(field_name, path, label)
-            }
+            Self::FilePath { path } => read_logged(path, field_name, label, false),
         }
     }
 
     /// Read FilePath from disk and return Value. Value variants pass through.
     pub fn resolve_to_value(&self, field_name: &str, label: &str) -> Result<Self, anyhow::Error> {
-        match self {
-            Self::Value { .. } => Ok(self.clone()),
-            Self::FilePath { path } => {
-                tracing::info!("Read {} from {} for {}", field_name, path, label);
-                let contents = UnresolvableCredential::read(field_name, path, label)?;
-                Ok(Self::Value { value: contents })
-            }
-        }
+        Ok(Self::Value {
+            value: self.resolve(field_name, label)?,
+        })
     }
 
     /// Resolve to a filesystem path. FilePath returns the path directly.
@@ -157,28 +187,8 @@ impl ResolvableValue {
         label: &str,
     ) -> Result<(PathBuf, Option<NamedTempFile>), anyhow::Error> {
         match self {
-            Self::FilePath { path } => Ok((PathBuf::from(path), None)),
-            Self::Value { value } => {
-                let mut tmp = NamedTempFile::new().map_err(|e| {
-                    anyhow::anyhow!(
-                        "Failed to create temp file for {} ({}): {}",
-                        field_name,
-                        label,
-                        e
-                    )
-                })?;
-                tmp.write_all(value.as_bytes()).map_err(|e| {
-                    anyhow::anyhow!(
-                        "Failed to write {} to temp file for {}: {}",
-                        field_name,
-                        label,
-                        e
-                    )
-                })?;
-                tmp.flush()?;
-                let path = tmp.path().to_path_buf();
-                Ok((path, Some(tmp)))
-            }
+            Self::Value { value } => to_path(Some(value), None, field_name, label),
+            Self::FilePath { path } => to_path(None, Some(path), field_name, label),
         }
     }
 }
@@ -193,9 +203,7 @@ impl ResolvableSecret {
         match self {
             Self::Value { value } => Ok(redact::Secret::from(value.clone())),
             Self::FilePath { path } => {
-                tracing::info!("Read {} (********) from {} for {}", field_name, path, label);
-                let contents = UnresolvableCredential::read(field_name, path, label)?;
-                Ok(redact::Secret::from(contents))
+                read_logged(path, field_name, label, true).map(redact::Secret::from)
             }
         }
     }
@@ -204,11 +212,9 @@ impl ResolvableSecret {
     pub fn resolve_to_value(&self, field_name: &str, label: &str) -> Result<Self, anyhow::Error> {
         match self {
             Self::Value { .. } => Ok(self.clone()),
-            Self::FilePath { path } => {
-                tracing::info!("Read {} (********) from {} for {}", field_name, path, label);
-                let contents = UnresolvableCredential::read(field_name, path, label)?;
-                Ok(Self::Value { value: contents })
-            }
+            Self::FilePath { path } => Ok(Self::Value {
+                value: read_logged(path, field_name, label, true)?,
+            }),
         }
     }
 
@@ -220,28 +226,8 @@ impl ResolvableSecret {
         label: &str,
     ) -> Result<(PathBuf, Option<NamedTempFile>), anyhow::Error> {
         match self {
-            Self::FilePath { path } => Ok((PathBuf::from(path), None)),
-            Self::Value { value } => {
-                let mut tmp = NamedTempFile::new().map_err(|e| {
-                    anyhow::anyhow!(
-                        "Failed to create temp file for {} ({}): {}",
-                        field_name,
-                        label,
-                        e
-                    )
-                })?;
-                tmp.write_all(value.as_bytes()).map_err(|e| {
-                    anyhow::anyhow!(
-                        "Failed to write {} to temp file for {}: {}",
-                        field_name,
-                        label,
-                        e
-                    )
-                })?;
-                tmp.flush()?;
-                let path = tmp.path().to_path_buf();
-                Ok((path, Some(tmp)))
-            }
+            Self::Value { value } => to_path(Some(value), None, field_name, label),
+            Self::FilePath { path } => to_path(None, Some(path), field_name, label),
         }
     }
 }
@@ -273,6 +259,14 @@ impl BannerFieldValue {
     pub fn is_failed(&self) -> bool {
         matches!(self, Self::FileFailed(_))
     }
+
+    fn for_path(path: &DaemonPath) -> Self {
+        if path.exists() {
+            Self::FileOk(path.to_string())
+        } else {
+            Self::FileFailed(path.to_string())
+        }
+    }
 }
 
 impl std::fmt::Display for BannerFieldValue {
@@ -297,13 +291,7 @@ impl ResolvableValue {
                     BannerFieldValue::Plain(value.clone())
                 }
             }
-            Self::FilePath { path } => {
-                if Path::new(path).exists() {
-                    BannerFieldValue::FileOk(path.clone())
-                } else {
-                    BannerFieldValue::FileFailed(path.clone())
-                }
-            }
+            Self::FilePath { path } => BannerFieldValue::for_path(path),
         }
     }
 }
@@ -312,13 +300,7 @@ impl ResolvableSecret {
     pub fn banner_value(&self) -> BannerFieldValue {
         match self {
             Self::Value { value } => BannerFieldValue::RedactedInline(value.len()),
-            Self::FilePath { path } => {
-                if Path::new(path).exists() {
-                    BannerFieldValue::FileOk(path.clone())
-                } else {
-                    BannerFieldValue::FileFailed(path.clone())
-                }
-            }
+            Self::FilePath { path } => BannerFieldValue::for_path(path),
         }
     }
 }
