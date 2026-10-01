@@ -53,8 +53,8 @@
 		"svelte": "$svelte",
 		"protobufjs": "7.6.4",
 		"@protobufjs/utf8": "1.1.1",
-		"dompurify": "^3.4.13",
-		"fast-uri": "^3.1.5",
+		"dompurify": "^3.4.16",
+		"fast-uri": "^3.1.8",
 		"js-cookie": "3.0.8",
 		"js-yaml": "^4.3.1",
 		"kysely": "0.28.17",
@@ -65,7 +65,7 @@
 		},
 		"eslint": {
 			"minimatch": {
-				"brace-expansion": "^5.0.9"
+				"brace-expansion": "^5.0.12"
 			}
 		},
 		"@redocly/openapi-core": {
