@@ -12,6 +12,7 @@
 	import { buildStripeAppearance } from '$lib/shared/billing/stripe-appearance';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
+	import type { PaymentFormFailure } from '$lib/shared/billing/setup-payment';
 	import {
 		common_cancel,
 		common_continue,
@@ -27,6 +28,7 @@
 		submitLabel = common_continue(),
 		onSuccess,
 		onCancel = undefined,
+		onConfirmFailed = undefined,
 		altAction = null
 	}: {
 		/** Client secret from a backend-created SetupIntent. */
@@ -43,6 +45,11 @@
 		 */
 		onSuccess: (setupIntentId: string) => void | Promise<void>;
 		onCancel?: () => void;
+		/**
+		 * Called when Stripe declines or errors on confirming the SetupIntent,
+		 * or confirms it into a status other than `succeeded`.
+		 */
+		onConfirmFailed?: (failure: PaymentFormFailure) => void;
 		/**
 		 * A different way to pay, offered as a text link under the element.
 		 * Stripe's own tabs cover card and bank; anything Stripe does not
@@ -138,6 +145,11 @@
 		});
 
 		if (error) {
+			onConfirmFailed?.({
+				error_type: error.type,
+				error_code: error.code ?? null,
+				decline_code: error.decline_code ?? null
+			});
 			errorMessage = error.message ?? billing_cardError();
 			busy = false;
 			return;
@@ -154,6 +166,11 @@
 			return;
 		}
 
+		onConfirmFailed?.({
+			error_type: 'unexpected_status',
+			error_code: setupIntent?.status ?? null,
+			decline_code: null
+		});
 		errorMessage = billing_cardError();
 		busy = false;
 	}

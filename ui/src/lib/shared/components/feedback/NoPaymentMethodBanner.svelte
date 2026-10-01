@@ -49,7 +49,7 @@
 	});
 
 	function handleCta() {
-		startSetupPayment({ org, source: 'trial_banner', trialDaysLeft });
+		startSetupPayment({ org, source: 'no_payment_banner', trialDaysLeft });
 	}
 </script>
 

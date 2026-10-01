@@ -526,6 +526,7 @@ impl<Op: Operation> TypedSubscriberState<Op> {
                         p.drain(..).collect()
                     };
                     if let Err(e) = subscriber_clone.handle(drained).await {
+                        crate::server::metrics::subscriber::record_subscriber_error(name);
                         tracing::error!(
                             subscriber = name,
                             error = %e,
@@ -546,6 +547,7 @@ impl<Op: Operation> TypedSubscriberState<Op> {
     async fn add_event(&self, event: Event<Op>) {
         if self.subscriber.debounce_window_ms() == 0 {
             if let Err(e) = self.subscriber.handle(vec![event]).await {
+                crate::server::metrics::subscriber::record_subscriber_error(self.name);
                 tracing::error!(
                     subscriber = self.name,
                     error = %e,
@@ -606,5 +608,58 @@ impl<Op: Operation> TypedChannel<Op> {
 
     pub fn subscribe_channel(&self) -> broadcast::Receiver<Event<Op>> {
         self.sender.subscribe()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::server::shared::events::types::OnboardingOperation;
+
+    struct FailingSubscriber;
+
+    #[async_trait::async_trait]
+    impl Subscriber<OnboardingOperation> for FailingSubscriber {
+        fn filter(&self) -> EventFilter<OnboardingOperation> {
+            EventFilter::all()
+        }
+        async fn handle(&self, _: Vec<Event<OnboardingOperation>>) -> anyhow::Result<()> {
+            anyhow::bail!("org write failed")
+        }
+    }
+
+    /// A subscriber error is otherwise only a log line, and the publisher carries on; the counter
+    /// is what surfaces it in Grafana.
+    #[tokio::test(flavor = "current_thread")]
+    async fn failing_subscriber_increments_error_counter() {
+        let recorder = crate::server::metrics::prometheus_builder().build_recorder();
+        let handle = recorder.handle();
+        let _guard = metrics::set_default_local_recorder(&recorder);
+
+        let channel = TypedChannel::<OnboardingOperation>::new();
+        channel
+            .register(
+                Arc::new(FailingSubscriber),
+                "failing_subscriber:onboarding_operation",
+            )
+            .await;
+        channel
+            .publish(Event::new(
+                OrgScope {
+                    organization_id: Uuid::new_v4(),
+                },
+                OnboardingOperation::OnboardingModalCompleted,
+                AuthenticatedEntity::System,
+            ))
+            .await
+            .expect("publish carries on past a failing subscriber");
+
+        let rendered = handle.render();
+        assert!(
+            rendered.contains(
+                r#"scanopy_event_subscriber_errors_total{subscriber="failing_subscriber",event_type="onboarding_operation"} 1"#
+            ),
+            "{rendered}"
+        );
     }
 }

@@ -22,6 +22,9 @@ pub const PLAN_PICKER: &str = "{base_url}/?modal=billing-plan&{utm}";
 /// Settings → Billing: payment method, invoices, subscription state.
 pub const SETTINGS_BILLING: &str = "{base_url}/?modal=settings&tab=billing&{utm}";
 
+/// The add-payment-method dialog, opened over the app.
+pub const ADD_PAYMENT_METHOD: &str = "{base_url}/?modal=payment-method&{utm}";
+
 /// Settings → License: the license key of an org on a self-hosted plan.
 pub const SETTINGS_LICENSE: &str = "{base_url}/?modal=settings&tab=license&{utm}";
 

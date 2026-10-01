@@ -472,7 +472,10 @@ impl Subscriber<BillingOperation> for EmailService {
                             plan.features().onboarding_call,
                         )
                         .await?;
-                    } else {
+                    } else if !is_trialing {
+                        // A cloud trial gets `trial_started` instead; "your
+                        // subscription is active" arrives as `trial_converted`
+                        // once a card is charged.
                         self.send_checkout_completed_email(org_owner, plan.name())
                             .await?;
                     }

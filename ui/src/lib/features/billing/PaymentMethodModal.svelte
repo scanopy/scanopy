@@ -19,13 +19,20 @@
 	import { reopenSettingsTabAfterPayment } from '$lib/features/billing/stores';
 	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
 	import { billingPlans } from '$lib/shared/stores/metadata';
-	import { pushSuccess } from '$lib/shared/stores/feedback';
+	import { pushInfo, pushSuccess } from '$lib/shared/stores/feedback';
+	import {
+		apiFailure,
+		trackPaymentFormFailed,
+		type PaymentFormFailure,
+		type PaymentFormSource
+	} from '$lib/shared/billing/setup-payment';
 	import {
 		common_save,
 		billing_addPaymentMethod,
 		billing_invoice_quoteCreated,
 		billing_invoice_sent,
 		billing_paymentMethodAdded,
+		billing_paymentMethodPending,
 		billing_payByInvoice,
 		billing_invoice_termsUnavailable,
 		billing_invoice_termsUnavailableSettled,
@@ -36,9 +43,11 @@
 
 	// Single global instance opened by any "Add/Update payment method" nudge via
 	// openModal('payment-method'). A plan picked by an org with no live
-	// subscription rides along in `entityData.plan`.
+	// subscription rides along in `entityData.plan`, and the surface that opened
+	// it in `entityData.source` (absent after a reload mid-flow).
 	let isOpen = $derived($modalState.name === 'payment-method');
 	let pendingPlan = $derived(($modalState.entityData?.plan as BillingPlan | undefined) ?? null);
+	let source = $derived(($modalState.entityData?.source as PaymentFormSource | undefined) ?? null);
 
 	const setupIntentMutation = useCreateSetupIntentMutation();
 	const finalizeMutation = useFinalizePaymentMethodMutation();
@@ -90,6 +99,9 @@
 	// close). Naming it again puts the registry and the URL back on what is
 	// visible, whichever way this dialog ends.
 	function closeAndReturn() {
+		// A SetupIntent is single-use. The next open fetches a fresh one rather
+		// than remounting the form on one that may already have succeeded.
+		clientSecret = null;
 		const tab = $reopenSettingsTabAfterPayment;
 		closeModal();
 		if (tab) {
@@ -107,17 +119,33 @@
 		if (clientSecret != null) return;
 		try {
 			clientSecret = await setupIntentMutation.mutateAsync();
-		} catch {
+		} catch (err) {
+			trackPaymentFormFailed('setup_intent', source, apiFailure(err));
 			// setup-intent error is toasted by the mutation; close the empty dialog
 			closeAndReturn();
 		}
+	}
+
+	function handleConfirmFailed(failure: PaymentFormFailure) {
+		trackPaymentFormFailed('confirm', source, failure);
 	}
 
 	async function handleCardSuccess(setupIntentId: string) {
 		// Read before the await: the registry can move on while the card is
 		// finalizing, and the plan this dialog was opened for must not go with it.
 		const plan = pendingPlan;
-		await finalizeMutation.mutateAsync(setupIntentId);
+		try {
+			await finalizeMutation.mutateAsync(setupIntentId);
+		} catch (err) {
+			// The mutation toasts the failure. The SetupIntent has already
+			// succeeded and cannot be confirmed again, so a retry needs a fresh
+			// one: clearing the secret swaps the form for the spinner, and the
+			// new secret mounts a new form.
+			trackPaymentFormFailed('finalize', source, apiFailure(err));
+			clientSecret = null;
+			void loadCardForm();
+			return;
+		}
 
 		// Buying a plan: the card is now on file, so the backend creates the
 		// subscription in place. It only returns a URL when Stripe still needs
@@ -145,8 +173,14 @@
 		closeAndReturn();
 		// Converge once the webhook/finalize records the new payment method, then
 		// confirm to the user (mirrors the other billing flows' success cadence).
-		await waitForOrgUpdate((o) => o.has_payment_method ?? false);
-		pushSuccess(billing_paymentMethodAdded());
+		// Polling can run out before the org shows the card: say it was saved,
+		// not that it was added.
+		const recorded = await waitForOrgUpdate((o) => o.has_payment_method ?? false);
+		if (recorded) {
+			pushSuccess(billing_paymentMethodAdded());
+		} else {
+			pushInfo(billing_paymentMethodPending());
+		}
 	}
 
 	function handleInvoiceDone(mode: InvoiceBillingMode) {
@@ -198,6 +232,7 @@
 			email={userEmail}
 			submitLabel={common_save()}
 			onSuccess={handleCardSuccess}
+			onConfirmFailed={handleConfirmFailed}
 			onCancel={closeAndReturn}
 			altAction={payOutstandingUrl
 				? {

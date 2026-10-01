@@ -81,10 +81,10 @@ impl Email for TrialEnding<'_> {
             days = self.days_into_trial,
         );
 
-        let cta_label = if self.has_payment {
-            "View Billing"
+        let (cta_href, cta_label) = if self.has_payment {
+            (links::SETTINGS_BILLING, "View Billing")
         } else {
-            "Add Payment Method"
+            (links::ADD_PAYMENT_METHOD, "Add Payment Method")
         };
 
         Body::new()
@@ -95,7 +95,7 @@ impl Email for TrialEnding<'_> {
                     .subheading("Here's what Scanopy found during your trial")
                     .raw(&recap_table),
             )
-            .cta(links::SETTINGS_BILLING, cta_label)
+            .cta(cta_href, cta_label)
             .render()
     }
 }

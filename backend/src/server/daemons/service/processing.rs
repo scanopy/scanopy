@@ -667,9 +667,10 @@ impl DaemonService {
         )
         .await;
 
-        // Unlabelled: this is one pass per completed session, and a network or session label would
-        // make the series unbounded for a number whose whole use is the distribution.
-        metrics::histogram!("lldp_resolution_duration_seconds")
+        // Labelled by protocol only: this is one pass per completed session, and a network or
+        // session label would make the series unbounded for a number whose whole use is the
+        // distribution.
+        metrics::histogram!("scanopy_link_resolution_duration_seconds", "protocol" => "lldp")
             .record(started.elapsed().as_secs_f64());
 
         match outcome {
@@ -733,7 +734,7 @@ impl DaemonService {
         )
         .await;
 
-        metrics::histogram!("fdb_resolution_duration_seconds")
+        metrics::histogram!("scanopy_link_resolution_duration_seconds", "protocol" => "fdb")
             .record(fdb_started.elapsed().as_secs_f64());
 
         match fdb_outcome {
