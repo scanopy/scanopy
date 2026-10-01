@@ -250,7 +250,7 @@ pub struct BillingPlanFeatures {
     pub invoice_billing: bool,
     /// Billing schedule and payment terms negotiated per contract.
     pub custom_billing: bool,
-    /// W-9, NDAA 889 attestation, and DPA supplied for vendor onboarding.
+    /// W-9 and NDAA 889 attestation supplied for vendor onboarding.
     pub procurement_documents: bool,
     /// Signed service level agreement.
     pub signed_sla: bool,

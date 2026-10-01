@@ -3,8 +3,10 @@ import type { BillingPlanFeatures } from '$lib/shared/stores/metadata';
 /** Booking page for demos and plan onboarding calls. */
 export const BOOK_CALL_URL = 'https://cal.com/mferrandiz/scanopy-demo';
 
-export const PROCUREMENT_DOCUMENTS_MAILTO =
-	'mailto:billing@scanopy.net?subject=Procurement%20documents%20request';
+/** A mailto link to billing@ with the subject and body filled in. */
+export function billingMailto(subject: string, body: string): string {
+	return `mailto:billing@scanopy.net?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
 
 /**
  * The support address a plan's email card sends to, or `null` when the plan
