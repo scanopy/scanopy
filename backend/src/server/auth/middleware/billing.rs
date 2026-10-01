@@ -25,7 +25,7 @@ use crate::server::{
 use axum::{
     body::Body,
     extract::{FromRequestParts, State},
-    http::{Method, Request, StatusCode},
+    http::{Method, Request},
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -133,7 +133,7 @@ pub async fn require_billing_for_users(
     }
     match organization.base.plan_status {
         Some(_) => next.run(request).await,
-        None => billing_error_response("Active billing plan required. Please select a plan."),
+        None => ApiError::billing_required().into_response(),
     }
 }
 
@@ -157,18 +157,4 @@ fn settings_route(method: &Method, path: &str) -> bool {
         Method::DELETE => single_entity(ORGANIZATIONS),
         _ => false,
     }
-}
-
-fn billing_error_response(message: &str) -> Response {
-    (
-        StatusCode::PAYMENT_REQUIRED,
-        axum::Json(serde_json::json!({
-            "success": false,
-            "error": {
-                "code": 402,
-                "message": message
-            }
-        })),
-    )
-        .into_response()
 }
