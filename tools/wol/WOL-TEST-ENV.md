@@ -96,8 +96,42 @@ These need Maya once. Everything after this is scripted.
    - On Proxmox VE 8 and later, grant use of the bridge:
      `pveum acl modify /sdn/zones/localnetwork/<LAB_BRIDGE> --users scanopy-lab@pve --tokens 'scanopy-lab@pve!wol' --roles PVESDNUser`
 
-3. **Template.** A cloud-init template VM with one network device (`net0`) and ACPI on (the
-   default), so `sleep` can shut it down cleanly. Its id is `TEMPLATE_VMID`.
+3. **Template.** `provision.sh` clones a cloud-init template VM to make the WoL target. It needs
+   one network device (`net0`, the MAC the listener matches), ACPI on (the default, so `sleep`
+   shuts it down cleanly), and a cloud-init drive (so the clone gets its address). Its id is
+   `TEMPLATE_VMID`. An existing Debian or Ubuntu cloud-init template with one NIC works as is.
+
+   To make one, first find two names on the node:
+
+   - **VM storage** (`<storage>` below): where VM disks live. The same storage gets
+     `PVEDatastoreUser` in step 2. Run `pvesm status --content images`
+     and pick an `active` one; `local-lvm` on a default install, `local-zfs` on a ZFS install. In
+     the UI: Datacenter > Storage, any entry whose Content includes "Disk image".
+   - **Lab bridge** (`<bridge>` below, also `LAB_BRIDGE` in step 4): the bridge the SNMP lab VM
+     sits on, so the target shares its segment. Run `qm list` to get that VM's id, then
+     `qm config <id> | grep ^net` and read `bridge=` (e.g. `vmbr0`). In the UI: the VM >
+     Hardware > Network Device. `ip -br addr show type bridge` lists every bridge with the node's
+     own address on it; the node's address on the lab bridge is `PROXMOX_LAB_IP` in step 4. If the
+     node has none there, the relay path (path 1) has nothing to send to; add one before testing it.
+
+   Then, as root on the node (Debian 12, id 9000):
+
+   ```sh
+   cd /var/lib/vz/template/iso
+   wget https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2
+
+   qm create 9000 --name debian12-cloud --memory 1024 --cores 1 \
+     --net0 virtio,bridge=<bridge> --scsihw virtio-scsi-pci
+   qm importdisk 9000 debian-12-genericcloud-amd64.qcow2 <storage>
+   qm set 9000 --scsi0 <storage>:vm-9000-disk-0 --boot order=scsi0
+   qm set 9000 --ide2 <storage>:cloudinit --serial0 socket --vga serial0
+   qm set 9000 --ciuser debian --sshkeys ~/.ssh/authorized_keys
+   qm template 9000
+   ```
+
+   `qm importdisk` prints the disk's real name on its last line; on directory storage (`local`)
+   it is `<storage>:9000/vm-9000-disk-0.raw`, so use that in the `--scsi0` line. If 9000 is
+   taken, `pvesh get /cluster/nextid` gives a free id.
 
 4. **Settings file.** `~/.config/scanopy-lab/proxmox.env`, outside the repo since it holds the
    token secret, `chmod 600`:
