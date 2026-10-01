@@ -16,7 +16,10 @@ use utoipa::ToSchema;
 pub mod container_proxy;
 pub mod instant_on;
 pub mod snmp;
+pub mod ssh;
+pub mod ssh_script;
 pub mod unifi;
+pub mod wake_on_lan;
 
 mod fields;
 mod metadata;
@@ -38,7 +41,11 @@ pub use secrets::{
 pub use snmp::{SnmpV3AuthProtocol, SnmpV3PrivProtocol, SnmpVersion};
 
 pub use instant_on::InstantOnQueryCredential;
+pub use ssh::{SshAuth, SshQueryCredential, default_ssh_port, default_ssh_timeout_seconds};
 pub use unifi::{UnifiAuth, UnifiQueryCredential, default_unifi_port, default_unifi_site};
+pub use wake_on_lan::{
+    WakeOnLanQueryCredential, default_wake_on_lan_port, default_wake_on_lan_wait_seconds,
+};
 
 fn default_docker_port() -> u16 {
     PortType::Docker.number()
@@ -251,6 +258,66 @@ pub enum CredentialType {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         site: Option<String>,
     },
+    /// SSH with a password. The daemon runs `script` on the host; the script's stdout is one JSON
+    /// object whose keys (`SshScriptField`) fill existing host and interface fields.
+    #[schema(title = "SshPassword")]
+    SshPassword {
+        #[serde(default = "default_ssh_port")]
+        port: u16,
+        username: String,
+        password: SecretValue,
+        script: String,
+        #[serde(default = "default_ssh_timeout_seconds")]
+        timeout_seconds: u32,
+        /// Require this host key (OpenSSH `SHA256:…` fingerprint). Blank ⇒ the daemon pins the
+        /// first key it sees per address and port, and refuses a changed one.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        host_key_fingerprint: Option<String>,
+    },
+    /// SSH with a private key (optionally passphrase-protected). Same script contract as
+    /// [`CredentialType::SshPassword`].
+    #[schema(title = "SshKey")]
+    SshKey {
+        #[serde(default = "default_ssh_port")]
+        port: u16,
+        username: String,
+        private_key: SecretValue,
+        #[serde(
+            default,
+            skip_serializing_if = "Option::is_none",
+            deserialize_with = "deserialize_optional_secret_value"
+        )]
+        passphrase: Option<SecretValue>,
+        script: String,
+        #[serde(default = "default_ssh_timeout_seconds")]
+        timeout_seconds: u32,
+        /// Require this host key (OpenSSH `SHA256:…` fingerprint). Blank ⇒ trust on first use.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        host_key_fingerprint: Option<String>,
+    },
+    /// Wake-on-LAN: the daemon wakes the assigned hosts by MAC before the sweep, so a host that
+    /// sleeps between scans is awake to be discovered.
+    #[schema(title = "WakeOnLan")]
+    WakeOnLan {
+        /// UDP port for the magic packet.
+        #[serde(default = "default_wake_on_lan_port")]
+        port: u16,
+        /// How long to wait for the woken hosts to answer before the sweep starts.
+        #[serde(default = "default_wake_on_lan_wait_seconds")]
+        wait_seconds: u32,
+        /// Send here instead of the target subnet's directed broadcast (router relay address, WoL
+        /// relay device, or `255.255.255.255`).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[schema(value_type = Option<String>, example = "192.168.1.1")]
+        broadcast_address: Option<std::net::IpAddr>,
+        /// SecureOn password, six bytes written as a MAC address. Only for NICs that require one.
+        #[serde(
+            default,
+            skip_serializing_if = "Option::is_none",
+            deserialize_with = "deserialize_optional_secret_value"
+        )]
+        secure_on_password: Option<SecretValue>,
+    },
 }
 
 /// Convert a stored `SecretValue` into a daemon-bound `ResolvableSecret`,
@@ -377,6 +444,53 @@ impl CredentialType {
                     *password = existing_password.clone();
                 }
             }
+            (
+                Self::SshPassword { password, .. },
+                Self::SshPassword {
+                    password: existing_password,
+                    ..
+                },
+            ) => {
+                if password.is_redacted_sentinel() {
+                    *password = existing_password.clone();
+                }
+            }
+            (
+                Self::SshKey {
+                    private_key,
+                    passphrase,
+                    ..
+                },
+                Self::SshKey {
+                    private_key: existing_key,
+                    passphrase: existing_passphrase,
+                    ..
+                },
+            ) => {
+                if private_key.is_redacted_sentinel() {
+                    *private_key = existing_key.clone();
+                }
+                if let Some(p) = passphrase
+                    && p.is_redacted_sentinel()
+                {
+                    *passphrase = existing_passphrase.clone();
+                }
+            }
+            (
+                Self::WakeOnLan {
+                    secure_on_password, ..
+                },
+                Self::WakeOnLan {
+                    secure_on_password: existing_password,
+                    ..
+                },
+            ) => {
+                if let Some(p) = secure_on_password
+                    && p.is_redacted_sentinel()
+                {
+                    *secure_on_password = existing_password.clone();
+                }
+            }
             // Every remaining arm is "nothing to merge": either the variant holds no secret, or
             // the credential's type was changed in this edit so there is no prior secret of the
             // same shape to restore.
@@ -395,7 +509,10 @@ impl CredentialType {
             | (Self::Gnmi { .. }, _)
             | (Self::UnifiApiKey { .. }, _)
             | (Self::UnifiLocalAdmin { .. }, _)
-            | (Self::InstantOnAccount { .. }, _) => {}
+            | (Self::InstantOnAccount { .. }, _)
+            | (Self::SshPassword { .. }, _)
+            | (Self::SshKey { .. }, _)
+            | (Self::WakeOnLan { .. }, _) => {}
         }
     }
 
@@ -412,6 +529,9 @@ impl CredentialType {
             Self::UnifiApiKey { .. }
             | Self::UnifiLocalAdmin { .. }
             | Self::InstantOnAccount { .. } => CredentialCategory::NetworkController,
+            Self::SshPassword { .. } | Self::SshKey { .. } | Self::WakeOnLan { .. } => {
+                CredentialCategory::HostManagement
+            }
         }
     }
 
@@ -445,6 +565,14 @@ impl CredentialType {
             // `DaemonHost` is wrong here even though it is right for a self-hosted controller.
             // Not `Network` either, for the same reason as UniFi.
             Self::InstantOnAccount { .. } => vec![Target::Hosts],
+            // A login, like SNMP: the same account and script can serve a fleet, so a network
+            // assignment is a reasonable way to apply it.
+            Self::SshPassword { .. } | Self::SshKey { .. } => {
+                vec![Target::Hosts, Target::Network]
+            }
+            // Named hosts only. A network assignment would wake every device on the subnet the
+            // server holds a MAC for, which nobody asking to wake a NAS intends.
+            Self::WakeOnLan { .. } => vec![Target::Hosts],
         }
     }
 
@@ -481,6 +609,11 @@ impl CredentialType {
             // Try-many like SNMP: two gNMI credentials (Arista on 6030, ArcOS on 9339) must be
             // broadcastable on one network, which `true` would forbid.
             Self::Gnmi { .. } => false,
+            // Try-many: two SSH credentials (different accounts, different scripts) on one host
+            // are both meaningful, and network-wide SSH must stay broadcastable.
+            Self::SshPassword { .. } | Self::SshKey { .. } => false,
+            // Two WoL credentials on one host only send two packets; nothing to forbid.
+            Self::WakeOnLan { .. } => false,
         }
     }
 
@@ -538,6 +671,25 @@ impl CredentialType {
                     _ => None,
                 }
             }
+            Self::SshPassword { password, .. } => match field_id {
+                "password" => inline_secret(password),
+                _ => None,
+            },
+            Self::SshKey {
+                private_key,
+                passphrase,
+                ..
+            } => match field_id {
+                "private_key" => inline_secret(private_key),
+                "passphrase" => inline_secret(passphrase.as_ref()?),
+                _ => None,
+            },
+            Self::WakeOnLan {
+                secure_on_password, ..
+            } => match field_id {
+                "secure_on_password" => inline_secret(secure_on_password.as_ref()?),
+                _ => None,
+            },
             Self::DockerSocket { .. } | Self::PodmanSocket { .. } => None,
         }
     }
@@ -576,6 +728,12 @@ impl CredentialType {
             }
             Self::InstantOnAccount { .. } => {
                 Box::new(crate::server::services::definitions::instant_on::InstantOn)
+            }
+            Self::SshPassword { .. } | Self::SshKey { .. } => {
+                Box::new(crate::server::services::definitions::ssh::Ssh)
+            }
+            Self::WakeOnLan { .. } => {
+                Box::new(crate::server::services::definitions::wake_on_lan::WakeOnLan)
             }
         }
     }
@@ -700,8 +858,65 @@ impl CredentialType {
                 // sending an empty string the client would then have to treat as a wildcard.
                 site: site.as_ref().filter(|s| !s.trim().is_empty()).cloned(),
             }),
+            CredentialType::SshPassword {
+                port,
+                username,
+                password,
+                script,
+                timeout_seconds,
+                host_key_fingerprint,
+            } => CredentialQueryPayload::Ssh(SshQueryCredential {
+                port: *port,
+                username: username.clone(),
+                auth: SshAuth::Password {
+                    password: secret_to_resolvable(password),
+                },
+                script: script.clone(),
+                timeout_seconds: *timeout_seconds,
+                host_key_fingerprint: non_blank(host_key_fingerprint),
+            }),
+            CredentialType::SshKey {
+                port,
+                username,
+                private_key,
+                passphrase,
+                script,
+                timeout_seconds,
+                host_key_fingerprint,
+            } => CredentialQueryPayload::Ssh(SshQueryCredential {
+                port: *port,
+                username: username.clone(),
+                auth: SshAuth::PrivateKey {
+                    private_key: secret_to_resolvable(private_key),
+                    passphrase: passphrase.as_ref().map(secret_to_resolvable),
+                },
+                script: script.clone(),
+                timeout_seconds: *timeout_seconds,
+                host_key_fingerprint: non_blank(host_key_fingerprint),
+            }),
+            CredentialType::WakeOnLan {
+                port,
+                wait_seconds,
+                broadcast_address,
+                secure_on_password,
+            } => CredentialQueryPayload::WakeOnLan(WakeOnLanQueryCredential {
+                port: *port,
+                wait_seconds: *wait_seconds,
+                broadcast_address: *broadcast_address,
+                secure_on_password: secure_on_password.as_ref().map(secret_to_resolvable),
+            }),
         }
     }
+}
+
+/// A blank optional text field means "not set"; normalise it to `None` so the daemon never has to
+/// treat an empty string as a wildcard.
+fn non_blank(value: &Option<String>) -> Option<String> {
+    value
+        .as_ref()
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
 }
 
 /// Build a container-runtime proxy query credential from the shared
@@ -817,6 +1032,50 @@ mod tests {
         } else {
             panic!("Expected Snmp variant");
         }
+    }
+
+    /// An SSH key credential carries two secrets, one optional. Editing the script must not
+    /// destroy either, and an edit that sets the passphrase must keep the new value.
+    #[test]
+    fn merge_redacted_secrets_restores_ssh_key_and_passphrase_independently() {
+        let inline = |v: &str| SecretValue::Inline {
+            value: secrecy::SecretString::from(v.to_string()),
+        };
+        let ssh_key = |key: &str, passphrase: Option<&str>| CredentialType::SshKey {
+            port: 22,
+            username: "scanopy".into(),
+            private_key: inline(key),
+            passphrase: passphrase.map(inline),
+            script: "true".into(),
+            timeout_seconds: 60,
+            host_key_fingerprint: None,
+        };
+        let secrets = |ct: &CredentialType| match ct {
+            CredentialType::SshKey {
+                private_key,
+                passphrase,
+                ..
+            } => (
+                inline_secret(private_key),
+                passphrase.as_ref().and_then(inline_secret),
+            ),
+            _ => panic!("Expected SshKey"),
+        };
+        let existing = ssh_key("KEY", Some("PASS"));
+
+        let mut both_redacted = ssh_key(REDACTED_SECRET_SENTINEL, Some(REDACTED_SECRET_SENTINEL));
+        both_redacted.merge_redacted_secrets(&existing);
+        assert_eq!(
+            secrets(&both_redacted),
+            (Some("KEY".into()), Some("PASS".into()))
+        );
+
+        let mut new_passphrase = ssh_key(REDACTED_SECRET_SENTINEL, Some("NEW"));
+        new_passphrase.merge_redacted_secrets(&existing);
+        assert_eq!(
+            secrets(&new_passphrase),
+            (Some("KEY".into()), Some("NEW".into()))
+        );
     }
 
     #[test]

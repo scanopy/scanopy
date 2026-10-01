@@ -254,6 +254,23 @@ impl DiscoveryRunner {
             tracing::error!(error = %e, "Localhost integration phase failed, continuing");
         }
 
+        // Wake hosts that sleep between scans, so the sweep below can find them. After the
+        // daemon-host phase because the subnets it creates are where a target's directed
+        // broadcast is computed from.
+        let wake_subnets: Vec<Subnet> = self
+            .known_subnets
+            .iter()
+            .chain(created_subnets)
+            .cloned()
+            .collect();
+        crate::daemon::discovery::wake_on_lan::wake(
+            ops,
+            &self.credential_mappings,
+            &wake_subnets,
+            cancel,
+        )
+        .await;
+
         ops.report_progress(100).await?;
 
         if cancel.is_cancelled() {

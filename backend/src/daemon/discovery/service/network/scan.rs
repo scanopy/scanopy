@@ -2290,6 +2290,7 @@ mod tests {
                 credential: CredentialQueryPayload::default(), // Snmp
                 credential_id: Uuid::new_v4(),
                 host_id: None,
+                mac_address: None,
             }],
             ..Default::default()
         }
@@ -2394,6 +2395,7 @@ mod tests {
                     credential: CredentialQueryPayload::default(), // Snmp
                     credential_id: cred,
                     host_id: Some(host),
+                    mac_address: None,
                 })
                 .collect(),
             ..Default::default()

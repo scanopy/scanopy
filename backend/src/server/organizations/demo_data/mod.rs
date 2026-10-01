@@ -427,6 +427,39 @@ fn with_snmp(
     (host, ip_address)
 }
 
+/// Wraps a `create_host()` result to add what the "Linux Inventory" SSH credential's script
+/// reports: OS and hardware identity, attributed to the script as a real scan would.
+fn with_ssh_inventory(
+    (mut host, ip_address): (Host, IPAddress),
+    sys_descr: &str,
+    manufacturer: &str,
+    model: &str,
+    serial_number: &str,
+    firmware_revision: &str,
+    software_revision: &str,
+) -> (Host, IPAddress) {
+    let source = AttributeSource::SshScript;
+    host.base.sys_descr = Some(Attributed::new(HostSysDescrValue(sys_descr.into()), source));
+    host.base.manufacturer = Some(Attributed::new(
+        HostManufacturerValue(manufacturer.into()),
+        source,
+    ));
+    host.base.model = Some(Attributed::new(HostModelValue(model.into()), source));
+    host.base.serial_number = Some(Attributed::new(
+        HostSerialNumberValue(serial_number.into()),
+        source,
+    ));
+    host.base.firmware_revision = Some(Attributed::new(
+        HostFirmwareRevisionValue(firmware_revision.into()),
+        source,
+    ));
+    host.base.software_revision = Some(Attributed::new(
+        HostSoftwareRevisionValue(software_revision.into()),
+        source,
+    ));
+    (host, ip_address)
+}
+
 /// Wraps a `create_host()` result to set the MAC address on the IP address.
 fn with_mac((host, mut ip_address): (Host, IPAddress), mac: [u8; 6]) -> (Host, IPAddress) {
     ip_address.base.mac_address = Some(MacEvidence::new(

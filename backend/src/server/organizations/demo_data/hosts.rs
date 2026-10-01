@@ -133,6 +133,14 @@ pub(super) fn generate_hosts_and_services(
         .iter()
         .find(|c| c.base.name == "Docker TLS Proxy")
         .map(|c| c.id);
+    let linux_inventory_cred = credentials
+        .iter()
+        .find(|c| c.base.name == "Linux Inventory")
+        .map(|c| c.id);
+    let backup_wake_cred = credentials
+        .iter()
+        .find(|c| c.base.name == "Backup NAS Wake")
+        .map(|c| c.id);
 
     let critical_tag = find_tag("Critical");
     let production_tag = find_tag("Production");
@@ -915,22 +923,30 @@ pub(super) fn generate_hosts_and_services(
         });
     }
 
-    // 14. Jenkins CI
-    result.push(host_with_services!(
-        with_mac(
-            create_host(
-                "jenkins-ci",
-                Some("jenkins.acme.local"),
-                Some("Jenkins CI/CD server"),
-                hq,
-                hq_servers,
-                Ipv4Addr::new(10, 0, 20, 30),
-                production_tag.into_iter().collect(),
-                None,
-                None,
-                now
+    // 14. Jenkins CI — inventoried by the "Linux Inventory" SSH credential's script
+    let mut jenkins = host_with_services!(
+        with_ssh_inventory(
+            with_mac(
+                create_host(
+                    "jenkins-ci",
+                    Some("jenkins.acme.local"),
+                    Some("Jenkins CI/CD server"),
+                    hq,
+                    hq_servers,
+                    Ipv4Addr::new(10, 0, 20, 30),
+                    production_tag.into_iter().collect(),
+                    None,
+                    None,
+                    now
+                ),
+                [0xf8, 0xbc, 0x12, 0x20, 0x14, 0x01],
             ),
-            [0xf8, 0xbc, 0x12, 0x20, 0x14, 0x01],
+            "Ubuntu 24.04.1 LTS 6.8.0-45-generic",
+            "Dell Inc.",
+            "PowerEdge R250",
+            "7QX2KT3",
+            "1.11.2",
+            "24.04",
         ),
         now,
         (
@@ -939,7 +955,16 @@ pub(super) fn generate_hosts_and_services(
             Some(PortType::Http8080),
             [production_tag, devops_tag].into_iter().flatten().collect()
         ),
-    ));
+        ("SSH", "SSH", Some(PortType::Ssh), vec![]),
+    );
+    jenkins.host.base.credential_assignments = linux_inventory_cred
+        .into_iter()
+        .map(|id| CredentialAssignment {
+            credential_id: id,
+            ip_address_ids: None,
+        })
+        .collect();
+    result.push(jenkins);
 
     // 15. WireGuard VPN
     result.push(host_with_services!(
@@ -1074,8 +1099,8 @@ pub(super) fn generate_hosts_and_services(
         });
     }
 
-    // 18. Synology Backup
-    result.push(host_with_services!(
+    // 18. Synology Backup — powered on weekly for backups; Wake-on-LAN wakes it before the scan
+    let mut synology = host_with_services!(
         with_snmp(
             with_mac(
                 create_host(
@@ -1108,7 +1133,15 @@ pub(super) fn generate_hosts_and_services(
             Some(PortType::Https),
             [backup_tag, storage_tag].into_iter().flatten().collect()
         ),
-    ));
+    );
+    synology.host.base.credential_assignments = backup_wake_cred
+        .into_iter()
+        .map(|id| CredentialAssignment {
+            credential_id: id,
+            ip_address_ids: None,
+        })
+        .collect();
+    result.push(synology);
 
     // -- Office LAN (10.0.10.x) --
 

@@ -18,6 +18,7 @@ pub mod gnmi;
 pub mod instant_on;
 pub mod podman;
 pub mod snmp;
+pub mod ssh;
 pub mod unifi;
 
 use std::any::Any;
@@ -427,6 +428,10 @@ impl IntegrationRegistry {
             CredentialQueryPayloadDiscriminants::InstantOn => {
                 Box::new(instant_on::InstantOnIntegration)
             }
+            CredentialQueryPayloadDiscriminants::Ssh => Box::new(ssh::SshIntegration),
+            // Not a per-host integration: the wake step runs before the sweep, on hosts that are
+            // asleep (`discovery::wake_on_lan`). Dispatch suppresses it before asking here.
+            CredentialQueryPayloadDiscriminants::WakeOnLan => return None,
             CredentialQueryPayloadDiscriminants::Unknown => return None,
         })
     }

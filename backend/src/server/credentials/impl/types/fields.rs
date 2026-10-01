@@ -285,8 +285,217 @@ impl CredentialType {
                     group: Some("Scope"),
                 },
             ],
+            Self::SshPassword {
+                port: _,
+                username: _,
+                password: _,
+                script: _,
+                timeout_seconds: _,
+                host_key_fingerprint: _,
+            } => ssh_field_definitions(vec![FieldDefinition {
+                id: "password",
+                label: "Password",
+                field_type: FieldType::SecretPathOrInline,
+                placeholder: None,
+                secret: true,
+                optional: false,
+                help_text: Some(
+                    "Password for that account. The server must allow password authentication.",
+                ),
+                options: None,
+                default_value: None,
+                inline_format: Some(InlineFormat::Plain),
+                group: Some("Authentication"),
+            }]),
+            Self::SshKey {
+                port: _,
+                username: _,
+                private_key: _,
+                passphrase: _,
+                script: _,
+                timeout_seconds: _,
+                host_key_fingerprint: _,
+            } => ssh_field_definitions(vec![
+                FieldDefinition {
+                    id: "private_key",
+                    label: "Private Key",
+                    field_type: FieldType::SecretPathOrInline,
+                    placeholder: None,
+                    secret: true,
+                    optional: false,
+                    help_text: Some(
+                        "OpenSSH (ssh-keygen's default) or PEM private key whose public key is in the account's authorized_keys.",
+                    ),
+                    options: None,
+                    default_value: None,
+                    inline_format: Some(InlineFormat::SshPrivateKey),
+                    group: Some("Authentication"),
+                },
+                FieldDefinition {
+                    id: "passphrase",
+                    label: "Key Passphrase",
+                    field_type: FieldType::SecretPathOrInline,
+                    placeholder: None,
+                    secret: true,
+                    optional: true,
+                    help_text: Some("Only if the private key is encrypted."),
+                    options: None,
+                    default_value: None,
+                    inline_format: Some(InlineFormat::Plain),
+                    group: Some("Authentication"),
+                },
+            ]),
+            Self::WakeOnLan {
+                port: _,
+                wait_seconds: _,
+                broadcast_address: _,
+                secure_on_password: _,
+            } => vec![
+                FieldDefinition {
+                    id: "port",
+                    label: "UDP Port",
+                    field_type: FieldType::Port,
+                    placeholder: Some("9"),
+                    secret: false,
+                    optional: true,
+                    help_text: Some(
+                        "Most network cards accept the packet on any port. Change it only if a router relay rule listens on another port, commonly 7.",
+                    ),
+                    options: None,
+                    default_value: Some("9"),
+                    inline_format: None,
+                    group: Some("Delivery"),
+                },
+                FieldDefinition {
+                    id: "broadcast_address",
+                    label: "Broadcast Address",
+                    field_type: FieldType::String,
+                    placeholder: Some("(host's subnet broadcast)"),
+                    secret: false,
+                    optional: true,
+                    help_text: Some(
+                        "Leave blank to send to the broadcast address of each host's subnet, which reaches it when the daemon is on the same network segment or the router forwards directed broadcasts. Otherwise enter where to send it instead: a router address with a relay rule, a Wake-on-LAN relay device, or 255.255.255.255.",
+                    ),
+                    options: None,
+                    default_value: None,
+                    inline_format: None,
+                    group: Some("Delivery"),
+                },
+                FieldDefinition {
+                    id: "wait_seconds",
+                    label: "Wait (seconds)",
+                    field_type: FieldType::Number,
+                    placeholder: Some("90"),
+                    secret: false,
+                    optional: true,
+                    help_text: Some(
+                        "How long to wait for the hosts to come up before the scan starts. Allow for disks spinning up and services starting.",
+                    ),
+                    options: None,
+                    default_value: Some("90"),
+                    inline_format: None,
+                    group: Some("Delivery"),
+                },
+                FieldDefinition {
+                    id: "secure_on_password",
+                    label: "SecureOn Password",
+                    field_type: FieldType::SecretPathOrInline,
+                    placeholder: Some("01:23:45:67:89:ab"),
+                    secret: true,
+                    optional: true,
+                    help_text: Some(
+                        "Only for network cards configured to require one. Six bytes written as a MAC address.",
+                    ),
+                    options: None,
+                    default_value: None,
+                    inline_format: Some(InlineFormat::MacAddress),
+                    group: Some("Delivery"),
+                },
+            ],
         }
     }
+}
+
+/// Fields shared by both SSH transports, around the transport's own auth fields: connection
+/// first, then auth, then the script and how it is trusted and bounded.
+fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefinition> {
+    let mut fields = vec![
+        FieldDefinition {
+            id: "port",
+            label: "SSH Port",
+            field_type: FieldType::Port,
+            placeholder: Some("22"),
+            secret: false,
+            optional: true,
+            help_text: None,
+            options: None,
+            default_value: Some("22"),
+            inline_format: None,
+            group: Some("Connection"),
+        },
+        FieldDefinition {
+            id: "username",
+            label: "Username",
+            field_type: FieldType::String,
+            placeholder: Some("scanopy"),
+            secret: false,
+            optional: false,
+            help_text: Some(
+                "Account the script runs as. Use a dedicated account with only the access the script needs.",
+            ),
+            options: None,
+            default_value: None,
+            inline_format: None,
+            group: Some("Authentication"),
+        },
+    ];
+    fields.extend(auth_fields);
+    fields.extend([
+        FieldDefinition {
+            id: "script",
+            label: "Script",
+            field_type: FieldType::Text,
+            placeholder: Some("#!/bin/sh\nprintf '{\"model\": \"%s\"}' \"$(cat /sys/class/dmi/id/product_name)\""),
+            secret: false,
+            optional: false,
+            help_text: Some(
+                "Runs on the host at each scan. It must print one JSON object whose keys are host fields, such as hostname, model or serial_number, and optionally an interfaces list. See the SSH integration guide for every key.",
+            ),
+            options: None,
+            default_value: None,
+            inline_format: None,
+            group: Some("Script"),
+        },
+        FieldDefinition {
+            id: "timeout_seconds",
+            label: "Timeout (seconds)",
+            field_type: FieldType::Number,
+            placeholder: Some("60"),
+            secret: false,
+            optional: true,
+            help_text: Some("The script is stopped and the run reports a failure after this long."),
+            options: None,
+            default_value: Some("60"),
+            inline_format: None,
+            group: Some("Script"),
+        },
+        FieldDefinition {
+            id: "host_key_fingerprint",
+            label: "Host Key Fingerprint",
+            field_type: FieldType::String,
+            placeholder: Some("SHA256:…"),
+            secret: false,
+            optional: true,
+            help_text: Some(
+                "Leave blank to trust the key each host presents the first time and refuse it if it later changes. Enter a fingerprint (ssh-keygen -lf) to require that key instead.",
+            ),
+            options: None,
+            default_value: None,
+            inline_format: None,
+            group: Some("Script"),
+        },
+    ]);
+    fields
 }
 
 /// Connection fields shared by both UniFi transports. Only the auth fields differ, so the

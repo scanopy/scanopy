@@ -181,6 +181,12 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
     let scan_settings_fields = ScanSettings::field_definitions();
     write_fixture(&scan_settings_fields, output_dir, "scan-settings.json");
 
+    // The SSH script contract: every key a script may print and the host field it fills. Rendered
+    // by the website's SSH integration guide, so the docs table is the parser's own list.
+    let ssh_script_fields =
+        crate::server::credentials::r#impl::types::ssh_script::ssh_script_fields();
+    write_fixture(&ssh_script_fields, output_dir, "ssh-script-fields.json");
+
     let container_rule_types: Vec<TypeMetadata> =
         ContainerRule::iter().map(|r| r.to_metadata()).collect();
     write_fixture(

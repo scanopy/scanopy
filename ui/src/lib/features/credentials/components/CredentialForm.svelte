@@ -7,6 +7,8 @@
 		port,
 		pemCertificate,
 		pemPrivateKey,
+		sshPrivateKey,
+		macAddress,
 		ipAddressFormat
 	} from '$lib/shared/components/forms/validators';
 	import SegmentedControl from '$lib/shared/components/forms/SegmentedControl.svelte';
@@ -366,10 +368,11 @@
 		await submitForm(form);
 	}
 
-	// Field types whose value is numeric on the wire. `port` is here because a port is declared
-	// as one now rather than being a `string` that happened to look like a number.
+	// Field types whose value is numeric on the wire. `string` is deliberately absent: ports used
+	// to be strings that happened to look like numbers, and coercing every string sent a numeric
+	// username or site name as a number the server then refused.
 	function submitsAsNumber(fieldType: FieldType): boolean {
-		return fieldType === 'string' || fieldType === 'port';
+		return fieldType === 'number' || fieldType === 'port';
 	}
 
 	/** Build a CredentialType from current fieldValues. */
@@ -660,6 +663,12 @@
 			}
 			if (field.inline_format === 'pemcertificate') {
 				return pemCertificate(effectiveValue);
+			}
+			if (field.inline_format === 'sshprivatekey' && effectiveValue !== '********') {
+				return sshPrivateKey(effectiveValue);
+			}
+			if (field.inline_format === 'macaddress' && effectiveValue !== '********') {
+				return macAddress(effectiveValue);
 			}
 			return undefined;
 		};
@@ -956,7 +965,7 @@
 							<p class="text-muted text-xs">
 								{credentials_secretStoredInDatabase()}
 							</p>
-							{#if field.inline_format === 'pemprivatekey' || !field.inline_format}
+							{#if field.inline_format === 'pemprivatekey' || field.inline_format === 'sshprivatekey' || !field.inline_format}
 								<div class="relative">
 									<textarea
 										id={field.id}
@@ -1032,7 +1041,8 @@
 									formField.handleChange(target.value);
 								}}
 								onblur={() => formField.handleBlur()}
-								placeholder={field.inline_format === 'pemprivatekey'
+								placeholder={field.inline_format === 'pemprivatekey' ||
+								field.inline_format === 'sshprivatekey'
 									? '/path/to/key.pem'
 									: '/path/to/secret'}
 								class="input-field text-primary w-full rounded-md px-3 py-2 text-sm"
@@ -1137,7 +1147,7 @@
 						}}
 						onblur={() => formField.handleBlur()}
 						placeholder={field.placeholder ?? ''}
-						rows={4}
+						rows={8}
 						class="input-field text-primary w-full rounded-md px-3 py-2 font-mono text-sm"
 						class:password-field={isSecret}
 						class:input-field-error={formField.state.meta.errors?.length > 0}

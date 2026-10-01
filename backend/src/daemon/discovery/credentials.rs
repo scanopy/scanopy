@@ -171,6 +171,7 @@ mod tests {
             credential: snmp(community),
             credential_id,
             host_id: None,
+            mac_address: None,
         }
     }
 

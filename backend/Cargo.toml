@@ -1,6 +1,6 @@
 [package]
 name = "scanopy-server"
-version = "0.17.18"
+version = "0.17.19"
 edition = "2024"
 description = "Scanopy HTTP API server"
 
@@ -180,13 +180,16 @@ onc-rpc = { version = "0.3", default-features = false }
 # Both crates are already compiled in via reqwest, so this declaration adds no new code.
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
+# SSH client for the SSH credential integration. `default-features = false` + `ring` for the same
+# reason as rustls above: russh defaults to `aws-lc-rs`, which is banned.
+russh = { version = "0.63", default-features = false, features = ["ring", "rsa", "flate2"] }
 # Reads the subject out of the captured certificate. Chosen over `x509-parser`, which wants
 # `asn1-rs ^0.7` against the 0.6 vendored by snmp2 and would add a second asn1-rs and a third nom;
 # this builds on `der`/`spki`/`const-oid`, already in the tree.
 x509-cert = { version = "0.3", default-features = false, features = ["std"] }
 pem = "3"
 webpki-roots = "0.25"
-base64ct = "=1.6.0"
+base64ct = "1.8"
 jsonwebtoken = { version = "10", default-features = false, features = ["rust_crypto", "use_pem"] }
 
 # === Configuration and Logging ===

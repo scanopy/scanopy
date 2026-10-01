@@ -282,6 +282,13 @@ pub async fn probe_integrations(
             disposition: Disposition::Unresolved,
         });
 
+        if discriminant == CredentialQueryPayloadDiscriminants::WakeOnLan {
+            // Already done by the time a host reaches the deep scan: the wake step runs before
+            // the sweep and reports its own outcome.
+            ledger[entry].disposition =
+                Disposition::Suppressed("Wake-on-LAN runs before the sweep, not per host");
+            continue;
+        }
         let Some(integration) = IntegrationRegistry::get(discriminant) else {
             tracing::warn!(integration = ?discriminant, "Skipping unrecognized credential type from newer server");
             // A credential type this daemon cannot run. The server blocks configuring one, so

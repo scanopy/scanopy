@@ -183,6 +183,11 @@ pub struct DiscoverySession {
     pub(super) equal_reach_integrations: Arc<std::sync::Mutex<Vec<EqualReachIntegrations>>>,
     /// IP-targeted credentials that produced nothing, and why.
     pub(super) credential_issues: Arc<std::sync::Mutex<Vec<CredentialIssue>>>,
+    /// What each SSH script did. Not warnings: a successful run is recorded too, so the run
+    /// shows which fields each script filled.
+    pub(super) ssh_script_runs: Arc<
+        std::sync::Mutex<Vec<crate::server::credentials::r#impl::types::ssh_script::SshScriptRun>>,
+    >,
 }
 
 impl DiscoverySession {
@@ -208,6 +213,7 @@ impl DiscoverySession {
             vlan_recording_failures: Arc::new(std::sync::Mutex::new(Vec::new())),
             equal_reach_integrations: Arc::new(std::sync::Mutex::new(Vec::new())),
             credential_issues: Arc::new(std::sync::Mutex::new(Vec::new())),
+            ssh_script_runs: Arc::new(std::sync::Mutex::new(Vec::new())),
         }
     }
 

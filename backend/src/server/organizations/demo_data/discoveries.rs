@@ -2,6 +2,7 @@ use super::*;
 use crate::daemon::discovery::types::base::DiscoveryTerminalReason;
 use crate::daemon::discovery::types::warnings::{ClaimSource, DiscoveryWarning, SnmpWalkGroup};
 use crate::server::credentials::r#impl::mapping::CredentialQueryPayloadDiscriminants;
+use crate::server::credentials::r#impl::types::ssh_script::{SshScriptOutcome, SshScriptRun};
 
 // ============================================================================
 // Discoveries
@@ -36,6 +37,10 @@ pub(super) fn generate_discoveries(
         .find(|c| c.base.name == "Default SNMPv2c")
         .unwrap()
         .id;
+    let linux_inventory_cred_id = credentials
+        .iter()
+        .find(|c| c.base.name == "Linux Inventory")
+        .map(|c| c.id);
     let network_devices_cred_id = credentials
         .iter()
         .find(|c| c.base.name == "Network Devices")
@@ -119,6 +124,7 @@ pub(super) fn generate_discoveries(
                         progress: 100,
                         error: None,
                         warnings: Vec::new(),
+                        ssh_script_runs: Vec::new(),
                         started_at: Some(three_weeks_ago),
                         finished_at: Some(three_weeks_ago + Duration::minutes(12)),
                         hosts_discovered: None,
@@ -187,6 +193,27 @@ pub(super) fn generate_discoveries(
                                 group: SnmpWalkGroup::BridgePortNumbering,
                             },
                         ],
+                        // The "Linux Inventory" script on jenkins-ci, as a successful run records it.
+                        ssh_script_runs: vec![SshScriptRun {
+                            ip: IpAddr::V4(Ipv4Addr::new(10, 0, 20, 30)),
+                            credential_id: linux_inventory_cred_id,
+                            outcome: SshScriptOutcome::Applied,
+                            exit_code: Some(0),
+                            applied_keys: [
+                                "hostname",
+                                "sys_descr",
+                                "manufacturer",
+                                "model",
+                                "serial_number",
+                                "firmware_revision",
+                                "software_revision",
+                            ]
+                            .map(String::from)
+                            .to_vec(),
+                            rejected_keys: Vec::new(),
+                            detail: None,
+                            duration_ms: 412,
+                        }],
                         started_at: Some(one_week_ago),
                         finished_at: Some(one_week_ago + Duration::minutes(8)),
                         hosts_discovered: None,

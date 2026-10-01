@@ -19,7 +19,8 @@ use crate::server::{
 
 use super::{
     CredentialType, CredentialTypeDiscriminants, SecretValue, default_docker_port,
-    default_gnmi_port, default_unifi_port, default_unifi_site,
+    default_gnmi_port, default_ssh_port, default_ssh_timeout_seconds, default_unifi_port,
+    default_unifi_site, default_wake_on_lan_port, default_wake_on_lan_wait_seconds,
 };
 
 /// Category grouping for credential types.
@@ -36,6 +37,10 @@ pub enum CredentialCategory {
     /// for polling protocols — a controller is an API that reports someone else's devices.
     #[strum(serialize = "Network Controllers")]
     NetworkController,
+    /// Access to the host itself: logging in to run a script (SSH), or powering it on
+    /// (Wake-on-LAN).
+    #[strum(serialize = "Host Management")]
+    HostManagement,
 }
 
 /// Release maturity of a credential type's integration.
@@ -183,6 +188,33 @@ impl CredentialTypeDiscriminants {
                 },
                 site: None,
             },
+            Self::SshPassword => CredentialType::SshPassword {
+                port: default_ssh_port(),
+                username: String::new(),
+                password: SecretValue::Inline {
+                    value: SecretString::from(String::new()),
+                },
+                script: String::new(),
+                timeout_seconds: default_ssh_timeout_seconds(),
+                host_key_fingerprint: None,
+            },
+            Self::SshKey => CredentialType::SshKey {
+                port: default_ssh_port(),
+                username: String::new(),
+                private_key: SecretValue::Inline {
+                    value: SecretString::from(String::new()),
+                },
+                passphrase: None,
+                script: String::new(),
+                timeout_seconds: default_ssh_timeout_seconds(),
+                host_key_fingerprint: None,
+            },
+            Self::WakeOnLan => CredentialType::WakeOnLan {
+                port: default_wake_on_lan_port(),
+                wait_seconds: default_wake_on_lan_wait_seconds(),
+                broadcast_address: None,
+                secure_on_password: None,
+            },
         }
     }
 
@@ -198,7 +230,11 @@ impl CredentialTypeDiscriminants {
             | Self::DockerProxy
             | Self::DockerSocket
             | Self::PodmanProxy
-            | Self::PodmanSocket => UpstreamSupport::Vendor,
+            | Self::PodmanSocket
+            // Standard protocols: SSH (RFC 4253) and the AMD Magic Packet format.
+            | Self::SshPassword
+            | Self::SshKey
+            | Self::WakeOnLan => UpstreamSupport::Vendor,
             // Both UniFi transports read `/proxy/network/api/s/<site>/stat/device`, the legacy
             // Network API, not Ubiquiti's documented Integration API (`.../integration/v1/...`,
             // added with v9 API keys). Undocumented regardless of which transport authenticates.
@@ -234,6 +270,8 @@ impl EntityMetadataProvider for CredentialTypeDiscriminants {
             Self::UnifiApiKey | Self::UnifiLocalAdmin | Self::InstantOnAccount => {
                 Concept::L2.icon()
             }
+            Self::SshPassword | Self::SshKey => Icon::SquareTerminal,
+            Self::WakeOnLan => Icon::Power,
         }
     }
 }
@@ -253,6 +291,9 @@ impl CredentialTypeDiscriminants {
             Self::UnifiApiKey => "UniFi API Key",
             Self::UnifiLocalAdmin => "UniFi Local Admin",
             Self::InstantOnAccount => "Instant On Portal Account",
+            Self::SshPassword => "SSH Password",
+            Self::SshKey => "SSH Key",
+            Self::WakeOnLan => "Wake-on-LAN",
         }
     }
 
@@ -305,6 +346,10 @@ impl CredentialTypeDiscriminants {
             Self::InstantOnAccount => {
                 "Discover Instant On switches, access points and gateways, their ports, the uplinks between them, and the MACs attached to each port."
             }
+            Self::SshPassword | Self::SshKey => {
+                "Run your own script on a host and record the system details and interfaces it reports."
+            }
+            Self::WakeOnLan => "Wake sleeping hosts before a scan so they are discovered.",
         }
     }
 
@@ -328,6 +373,8 @@ impl CredentialTypeDiscriminants {
             Self::UnifiApiKey | Self::UnifiLocalAdmin => "/docs/guides/integrations/unifi/",
             Self::InstantOnAccount => "/docs/guides/integrations/instant-on/",
             Self::Gnmi => "/docs/guides/integrations/gnmi/",
+            Self::SshPassword | Self::SshKey => "/docs/guides/integrations/ssh/",
+            Self::WakeOnLan => "/docs/guides/integrations/wake-on-lan/",
         }
     }
 
@@ -356,6 +403,11 @@ impl CredentialTypeDiscriminants {
             Self::InstantOnAccount => {
                 "Connects to the Instant On cloud portal with a site account."
             }
+            Self::SshPassword => "Connects over SSH with a username and password.",
+            Self::SshKey => "Connects over SSH with a private key.",
+            Self::WakeOnLan => {
+                "Sends a magic packet over UDP. The daemon must be on the host's network segment, or the router must forward directed broadcasts or relay the packet."
+            }
         }
     }
 
@@ -371,6 +423,9 @@ impl CredentialTypeDiscriminants {
             Self::UnifiApiKey => "API Key",
             Self::UnifiLocalAdmin => "Local Admin",
             Self::InstantOnAccount => "Portal Account",
+            Self::SshPassword => "Password",
+            Self::SshKey => "Key",
+            Self::WakeOnLan => "Magic Packet",
         }
     }
 
@@ -415,6 +470,9 @@ impl CredentialTypeDiscriminants {
             Self::Gnmi => semver::Version::new(0, 17, 16),
             // Instant On ships in 0.17.11.
             Self::InstantOnAccount => semver::Version::new(0, 17, 11),
+            // SSH and Wake-on-LAN ship in 0.17.19. Daemons from 0.17.3 would parse them to
+            // `Unknown` and skip them; the floor keeps them off older daemons entirely.
+            Self::SshPassword | Self::SshKey | Self::WakeOnLan => semver::Version::new(0, 17, 19),
         }
     }
 
@@ -440,6 +498,8 @@ impl CredentialTypeDiscriminants {
             // New and validated against one operator's 1960s only; the field shape may still move
             // once other Instant On models' payloads are seen.
             Self::InstantOnAccount => CredentialStability::Beta,
+            // New; the script contract and host-key handling may still move.
+            Self::SshPassword | Self::SshKey | Self::WakeOnLan => CredentialStability::Beta,
         }
     }
 
