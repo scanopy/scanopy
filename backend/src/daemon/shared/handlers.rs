@@ -13,7 +13,7 @@ use crate::{
             api::{FirstContactRequest, LegacyCapabilities},
             base::DaemonMode,
         },
-        shared::types::api::{ApiResponse, ApiResult},
+        shared::types::api::{ApiJson, ApiResponse, ApiResult},
     },
 };
 use axum::{
@@ -79,7 +79,7 @@ async fn get_health() -> ApiResult<Json<ApiResponse<String>>> {
 
 async fn initialize(
     State(state): State<Arc<DaemonAppState>>,
-    Json(request): Json<InitializeDaemonRequest>,
+    ApiJson(request): ApiJson<InitializeDaemonRequest>,
 ) -> ApiResult<Json<ApiResponse<String>>> {
     // Check if daemon is already initialized (once-only guard)
     // Prevents re-initialization attacks - if both network_id and api_key are set,
@@ -128,7 +128,7 @@ async fn get_status(
 /// Returns daemon status (same as GET /api/status) to avoid extra round-trip.
 async fn handle_first_contact(
     State(state): State<Arc<DaemonAppState>>,
-    Json(request): Json<FirstContactRequest>,
+    ApiJson(request): ApiJson<FirstContactRequest>,
 ) -> ApiResult<Json<ApiResponse<DaemonStatus>>> {
     let current_id = state.config.get_id().await.unwrap_or_default();
 
@@ -241,7 +241,7 @@ async fn get_discovery_poll(
 /// the discovery service clears the buffer at session boundaries.
 async fn receive_created_entities(
     State(state): State<Arc<DaemonAppState>>,
-    Json(payload): Json<CreatedEntitiesPayload>,
+    ApiJson(payload): ApiJson<CreatedEntitiesPayload>,
 ) -> ApiResult<Json<ApiResponse<String>>> {
     let buffer = state.services.daemon_state.entity_buffer();
 

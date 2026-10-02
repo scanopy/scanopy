@@ -15,6 +15,7 @@ import planStatusesJson from '$lib/data/plan-statuses.json';
 import featuresJson from '$lib/data/features.json';
 import permissionsJson from '$lib/data/permissions.json';
 import credentialTypesJson from '$lib/data/credential-types.json';
+import credentialIntegrationsJson from '$lib/data/credential-integrations.json';
 import conceptsJson from '$lib/data/concepts.json';
 import containerTypesJson from '$lib/data/container-types.json';
 import viewsJson from '$lib/data/views.json';
@@ -65,6 +66,14 @@ export interface CredentialTypeMetadata {
 	single_endpoint_per_host?: boolean;
 	/** Name of the associated ServiceDefinition (e.g. "SNMP", "Docker") */
 	associated_service?: string;
+	/** The integration this type is a transport of; keys `credentialIntegrations`. */
+	integration?: components['schemas']['CredentialIntegration'];
+	/** How this type connects, without its integration's discovery text (shown under an
+	 *  integration row). Translated via `metaTransportNote`. */
+	transport_note?: string;
+	/** Which fields depend on the daemon's and the scanned host's OS, computed by the backend; the
+	 *  form places each OS picker from it. */
+	os_fields?: components['schemas']['CredentialOsFields'];
 	/** Minimum daemon version (semver) that can receive this credential type. The
 	 *  discovery credential picker compares the selected daemon's `version` against
 	 *  this to disable too-new types (and to build the requirement tooltip). */
@@ -102,6 +111,7 @@ export interface MetadataRegistry {
 	permissions: TypeMetadata[];
 	concepts: EntityMetadata[];
 	credential_types: TypeMetadata[];
+	credential_integrations: TypeMetadata[];
 	container_types: TypeMetadata[];
 	views: TypeMetadata[];
 	service_categories: TypeMetadata[];
@@ -262,6 +272,7 @@ export const metadata = writable<MetadataRegistry>({
 	permissions: permissionsJson,
 	concepts: conceptsJson,
 	credential_types: credentialTypesJson,
+	credential_integrations: credentialIntegrationsJson,
 	container_types: containerTypesJson,
 	views: viewsJson,
 	service_categories: serviceCategoriesJson,
@@ -476,6 +487,19 @@ export const credentialTypes = createTypeMetadataHelpers<
 	'credential_types',
 	CredentialTypeMetadata
 >('credential_types');
+export interface CredentialIntegrationMetadata {
+	/** Guide for this integration, root-relative and trailing-slashed. */
+	docs_path?: string;
+	/** Service name the logo is named after (e.g. "UniFi Controller"). */
+	associated_service?: string;
+	has_logo?: boolean;
+	logo_ext?: string;
+	logo_needs_white_background?: boolean;
+}
+export const credentialIntegrations = createTypeMetadataHelpers<
+	'credential_integrations',
+	CredentialIntegrationMetadata
+>('credential_integrations');
 export const containerTypes = createTypeMetadataHelpers<'container_types', ContainerTypeMetadata>(
 	'container_types'
 );

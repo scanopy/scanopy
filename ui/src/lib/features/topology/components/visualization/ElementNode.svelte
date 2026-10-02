@@ -15,13 +15,13 @@
 
 	const networksQuery = useNetworksQuery();
 	import type { TopologyNode, ElementRenderData, RenderableTopology } from '../../types/base';
-	import { resolveElementNode } from '../../resolvers';
+	import { elementEntity, resolveElementNode } from '../../resolvers';
 	import { buildElementRender } from '../../element-render-data';
 	import { getTopologyIndex } from '../../entity-index';
 	import type { Writable } from 'svelte/store';
 	import { formatPort } from '$lib/shared/utils/formatting';
 	import {
-		FILTER_VALUE_EXTRACTORS,
+		matchesHoveredMetadata,
 		expandedPortNodeIds,
 		toggleExpandedPorts,
 		UNTAGGED_SENTINEL
@@ -302,29 +302,28 @@
 			color: string;
 		} | null => {
 			if (!currentHoveredMetadata || !resolved) return null;
-			const { entityType, filterType, valueId, color } = currentHoveredMetadata;
-			const extractor = FILTER_VALUE_EXTRACTORS[entityType]?.[filterType];
-			if (!extractor) return null;
+			const hovered = currentHoveredMetadata;
+			const { entityType, color } = hovered;
 
+			// The card's own entity when the hovered filter is on its type — any element type,
+			// through the same `elementEntity` its stale pill reads.
 			const elType = nodeRenderData?.elementType;
-			let cardEntity: unknown | null = null;
+			let cardEntity: { network_id?: string } | undefined;
 			if (elType === entityType) {
-				if (entityType === 'Host') cardEntity = resolved.host ?? null;
-				else if (entityType === 'Service') cardEntity = resolved.services[0] ?? null;
+				cardEntity = elementEntity(resolved);
 			} else if (entityType === 'Host' && (elType === 'IPAddress' || elType === 'Interface')) {
-				cardEntity = resolved.host ?? null;
+				cardEntity = resolved.host;
 			}
 			if (
 				cardEntity &&
-				extractor(cardEntity, { network: networkFor(cardEntity as { network_id?: string }) }) ===
-					valueId
+				matchesHoveredMetadata(cardEntity, hovered, networkFor(cardEntity), topology)
 			) {
 				return { mode: 'element', color };
 			}
 
 			if (entityType === 'Service' && nodeRenderData?.services?.length) {
 				for (const service of nodeRenderData.services) {
-					if (extractor(service, { network: networkFor(service) }) === valueId)
+					if (matchesHoveredMetadata(service, hovered, networkFor(service), topology))
 						return { mode: 'inline', color };
 				}
 			}
@@ -511,12 +510,13 @@
 							if (metadataHoverContext?.mode !== 'inline') return '';
 							if (!currentHoveredMetadata || currentHoveredMetadata.entityType !== 'Service')
 								return '';
-							const extractor =
-								FILTER_VALUE_EXTRACTORS['Service']?.[currentHoveredMetadata.filterType];
-							if (!extractor) return '';
 							if (
-								extractor(service, { network: networkFor(service) }) !==
-								currentHoveredMetadata.valueId
+								!matchesHoveredMetadata(
+									service,
+									currentHoveredMetadata,
+									networkFor(service),
+									topology
+								)
 							)
 								return '';
 							const ch = createColorHelper(

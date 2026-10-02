@@ -11,6 +11,7 @@ use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::lock::{self, DEFAULT_LOCK_TIMEOUT, LockKey};
 use crate::server::shared::storage::traits::Entity;
+use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::api::{
     ApiError, ApiErrorResponse, ApiResponse, ApiResult, EmptyApiResponse,
 };
@@ -107,7 +108,7 @@ async fn validate_ip_address_consistency(
 async fn create_ip_address(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(mut ip_address): Json<IPAddress>,
+    ApiJson(mut ip_address): ApiJson<IPAddress>,
 ) -> ApiResult<Json<ApiResponse<IPAddress>>> {
     validate_ip_address_consistency(&state, &ip_address).await?;
 
@@ -134,7 +135,7 @@ async fn create_ip_address(
         .map_err(|e| ApiError::internal_error(&e.to_string()))?;
     ip_address.base.position = next_position;
 
-    let response = create_handler::<IPAddress>(State(state), auth, Json(ip_address)).await;
+    let response = create_handler::<IPAddress>(State(state), auth, ApiJson(ip_address)).await;
     lock_guard
         .release()
         .await
@@ -161,7 +162,7 @@ async fn update_ip_address(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
     path: Path<Uuid>,
-    Json(ip_address): Json<IPAddress>,
+    ApiJson(ip_address): ApiJson<IPAddress>,
 ) -> ApiResult<Json<ApiResponse<IPAddress>>> {
     validate_ip_address_consistency(&state, &ip_address).await?;
 
@@ -172,7 +173,7 @@ async fn update_ip_address(
         .validate_position_for_update(&path, &ip_address.base.host_id, ip_address.base.position)
         .await?;
 
-    update_handler::<IPAddress>(State(state), auth, path, Json(ip_address)).await
+    update_handler::<IPAddress>(State(state), auth, path, ApiJson(ip_address)).await
 }
 
 /// Delete an IP address
@@ -248,7 +249,7 @@ pub async fn delete_ip_address(
 async fn bulk_delete_ip_addresses(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(ids): Json<Vec<Uuid>>,
+    ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>> {
     if ids.is_empty() {
         return Err(ApiError::bulk_empty());

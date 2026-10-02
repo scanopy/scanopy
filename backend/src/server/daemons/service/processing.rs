@@ -515,6 +515,7 @@ impl DaemonService {
             is_unreachable: false,
             standby: false,
             standby_cleared_at: None,
+            os: None,
         });
 
         daemon.id = effective_daemon_id;
@@ -667,9 +668,10 @@ impl DaemonService {
         )
         .await;
 
-        // Unlabelled: this is one pass per completed session, and a network or session label would
-        // make the series unbounded for a number whose whole use is the distribution.
-        metrics::histogram!("lldp_resolution_duration_seconds")
+        // Labelled by protocol only: this is one pass per completed session, and a network or
+        // session label would make the series unbounded for a number whose whole use is the
+        // distribution.
+        metrics::histogram!("scanopy_link_resolution_duration_seconds", "protocol" => "lldp")
             .record(started.elapsed().as_secs_f64());
 
         match outcome {
@@ -733,7 +735,7 @@ impl DaemonService {
         )
         .await;
 
-        metrics::histogram!("fdb_resolution_duration_seconds")
+        metrics::histogram!("scanopy_link_resolution_duration_seconds", "protocol" => "fdb")
             .record(fdb_started.elapsed().as_secs_f64());
 
         match fdb_outcome {
@@ -835,7 +837,7 @@ impl DaemonService {
         let mut subnet_failures = 0;
         let mut limit_event_emitted = false;
         let mut billing_limit_reached: Option<(u64, Uuid)> = None;
-        let mut first_host_error: Option<String> = None;
+        let mut first_host_error: Option<ApiError> = None;
 
         // One ScanContext per batch — every host's children share the same
         // scan_time so per-scan diff queries see consistent timestamps
@@ -875,13 +877,6 @@ impl DaemonService {
                 Err(e) => {
                     host_failures += 1;
 
-                    // Retain the first failure so the synchronous single-host
-                    // discovery handler can surface the real cause (multi-host
-                    // batches still continue past it).
-                    if first_host_error.is_none() {
-                        first_host_error = Some(e.to_string());
-                    }
-
                     // Emit billing event once when host limit is hit
                     if !limit_event_emitted
                         && e.to_string().contains("Host limit reached")
@@ -911,8 +906,16 @@ impl DaemonService {
                         pending_id = %pending_id,
                         host_name = %host_name,
                         error = %e,
-                        "Failed to process discovered host - skipping (daemon will retry or timeout)"
+                        "Failed to process discovered host - skipping"
                     );
+
+                    // Retain the first failure so the synchronous single-host
+                    // discovery handler can answer with its real cause and status: a
+                    // refusal is a 4xx, which the daemon does not resend. Multi-host
+                    // batches still continue past it.
+                    if first_host_error.is_none() {
+                        first_host_error = Some(ApiError::from(e));
+                    }
                 }
             }
         }

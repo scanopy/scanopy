@@ -9,6 +9,8 @@
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 	import SelectNetwork from '$lib/features/networks/components/SelectNetwork.svelte';
 	import RadioGroup from '$lib/shared/components/forms/input/RadioGroup.svelte';
+	import OsSelector from '../../OsSelector.svelte';
+	import type { DaemonOS } from '../../../utils';
 	import { fieldDefs } from '../../../config';
 	import {
 		common_name,
@@ -25,7 +27,9 @@
 		daemons_docsPollingModeLinkText,
 		daemons_httpDaemonUrlWarning,
 		daemons_configureReachabilityFailed,
-		daemons_portReachable
+		daemons_portReachable,
+		daemons_osHelp,
+		daemons_osLocked
 	} from '$lib/paraglide/messages';
 
 	interface Props {
@@ -40,6 +44,12 @@
 		isFirstDaemon?: boolean;
 		onReachabilityChange?: (reachable: boolean | null) => void;
 		reachabilityResult?: { reachable: boolean; error?: string } | null;
+		/** The OS the daemon will run on. Chosen here because the integrations set up next read
+		 *  files on that machine, and their paths are written for its OS. */
+		selectedOS: DaemonOS;
+		onOsSelect: (os: DaemonOS) => void;
+		/** Fixed once integrations were created for the chosen OS. */
+		osLocked?: boolean;
 	}
 
 	let {
@@ -51,7 +61,10 @@
 		identityLocked,
 		isFirstDaemon = false,
 		onReachabilityChange,
-		reachabilityResult = $bindable(null)
+		reachabilityResult = $bindable(null),
+		selectedOS,
+		onOsSelect,
+		osLocked = false
 	}: Props = $props();
 
 	// Get validators for a field
@@ -212,4 +225,9 @@
 			{/if}
 		{/if}
 	{/if}
+
+	<div class="space-y-2">
+		<OsSelector {selectedOS} {onOsSelect} showMethods={false} osDisabled={osLocked} />
+		<p class="text-muted text-xs">{osLocked ? daemons_osLocked() : daemons_osHelp()}</p>
+	</div>
 </div>

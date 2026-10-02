@@ -6,17 +6,24 @@
 	let {
 		tabs = [],
 		activeTab = '',
-		onTabClick
+		onTabClick,
+		inline = false
 	}: {
 		tabs: ModalTab[];
 		activeTab: string;
 		onTabClick: (tabId: string) => void;
+		/** Sits in the modal's title row: smaller circles with the label beside each one.
+		 *  Otherwise its own row, labels under the circles. */
+		inline?: boolean;
 	} = $props();
 
 	let activeIndex = $derived(tabs.findIndex((t) => t.id === activeTab));
 </script>
 
-<nav class="flex w-full items-start pb-4 pt-4" aria-label={common_progressSteps()}>
+<nav
+	class={inline ? 'flex flex-1 items-center' : 'flex w-full items-start pb-4 pt-4'}
+	aria-label={common_progressSteps()}
+>
 	{#each tabs as tab, i (tab.id)}
 		{@const isCompleted = i < activeIndex && !tab.disabled}
 		{@const isCurrent = tab.id === activeTab}
@@ -24,7 +31,7 @@
 
 		<!-- Connecting line before this step (not for first) -->
 		{#if i > 0}
-			<div class="mt-4 flex-1 px-1">
+			<div class={inline ? 'min-w-3 flex-1 px-2' : 'mt-4 flex-1 px-1'}>
 				<div
 					class="h-0.5 {i <= activeIndex ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}"
 				></div>
@@ -35,14 +42,17 @@
 		<button
 			type="button"
 			onclick={() => isClickable && onTabClick(tab.id)}
-			class="flex flex-col items-center gap-1.5 {isClickable ? 'cursor-pointer' : 'cursor-default'}"
+			class="flex items-center {inline
+				? 'shrink-0 flex-row gap-1.5'
+				: 'flex-col gap-1.5'} {isClickable ? 'cursor-pointer' : 'cursor-default'}"
 			aria-current={isCurrent ? 'step' : undefined}
 			aria-disabled={tab.disabled ? 'true' : undefined}
 			tabindex={isClickable ? 0 : -1}
 		>
 			<!-- Circle -->
 			<div
-				class="flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-colors
+				class="flex items-center justify-center rounded-full font-semibold transition-colors
+				{inline ? 'h-6 w-6 text-xs' : 'h-8 w-8 text-sm'}
 				{isCurrent
 					? 'bg-blue-600 text-white'
 					: isCompleted
@@ -52,7 +62,7 @@
 							: 'bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}"
 			>
 				{#if isCompleted}
-					<Check class="h-4 w-4" />
+					<Check class={inline ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
 				{:else}
 					{i + 1}
 				{/if}

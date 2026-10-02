@@ -339,7 +339,11 @@
 				last_seen_at: {
 					label: common_lastSeen(),
 					type: 'date',
-					display: { order: 1, getItems: lastSeenItems(() => networksData, 'Subnet') }
+					display: {
+						recency: true,
+						order: 1,
+						getItems: lastSeenItems(() => networksData, 'Subnet')
+					}
 				}
 			},
 			[

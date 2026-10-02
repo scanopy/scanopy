@@ -4,6 +4,9 @@
 //! Captures product analytics: emits PostHog `capture` events keyed on
 //! distinct_id (user_id when known, else organization_id), updates person
 //! properties (plan, status), and groups events under the org.
+//!
+//! Each handler sends its whole debounced batch and reports failed sends as `NonRetryable`: a
+//! re-run would capture the events that already went through a second time.
 
 use crate::{
     daemon::discovery::types::{
@@ -17,7 +20,7 @@ use crate::{
         shared::{
             events::{
                 registry::SubscriberRegistration,
-                traits::{EntityEventFilter, Event, EventFilter, Subscriber},
+                traits::{EntityEventFilter, Event, EventFilter, NonRetryable, Subscriber},
                 types::{
                     AnalyticsOperation, AnalyticsOperationDiscriminants, AuthOperation,
                     AuthOperationDiscriminants, BillingOperation, EntityOperation,
@@ -142,6 +145,7 @@ impl Subscriber<EntityOperation> for PosthogService {
     async fn handle(&self, events: Vec<Event<EntityOperation>>) -> Result<(), Error> {
         use strum::IntoDiscriminant;
 
+        let mut failures = Vec::new();
         for event in events {
             if event.flags.suppress_logs {
                 continue;
@@ -183,9 +187,9 @@ impl Subscriber<EntityOperation> for PosthogService {
             }
 
             inject_org_group(&mut props);
-            self.capture(&event_name, &distinct_id, props).await;
+            failures.extend(self.capture(&event_name, &distinct_id, props).await.err());
         }
-        Ok(())
+        NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
     }
 
     fn debounce_window_ms(&self) -> u64 {
@@ -201,6 +205,7 @@ impl Subscriber<AuthOperation> for PosthogService {
     }
 
     async fn handle(&self, events: Vec<Event<AuthOperation>>) -> Result<(), Error> {
+        let mut failures = Vec::new();
         for event in events {
             if event.flags.suppress_logs {
                 continue;
@@ -217,9 +222,9 @@ impl Subscriber<AuthOperation> for PosthogService {
             }
 
             inject_org_group(&mut props);
-            self.capture("login", &distinct_id, props).await;
+            failures.extend(self.capture("login", &distinct_id, props).await.err());
         }
-        Ok(())
+        NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
     }
 
     fn debounce_window_ms(&self) -> u64 {
@@ -241,6 +246,7 @@ impl Subscriber<BillingOperation> for PosthogService {
     }
 
     async fn handle(&self, events: Vec<Event<BillingOperation>>) -> Result<(), Error> {
+        let mut failures = Vec::new();
         for event in events {
             if event.flags.suppress_logs {
                 continue;
@@ -267,36 +273,25 @@ impl Subscriber<BillingOperation> for PosthogService {
                 serde_json::to_value(&event.operation).unwrap_or(serde_json::Value::Null);
 
             inject_org_group(&mut props);
-            self.capture(&event_name, &distinct_id, props).await;
+            failures.extend(self.capture(&event_name, &distinct_id, props).await.err());
 
-            // Update person and group properties. Use the *resulting* plan so a
-            // downgrade-to-Free (cancellation / unconverted trial) labels the
-            // person/org as Free, not the outgoing paid plan that `plan()`
-            // carries.
-            let plan_name: serde_json::Value = event
-                .operation
-                .resulting_plan_name()
-                .map(|n| json!(n))
-                .unwrap_or(json!(null));
+            // Update person and group properties from the plan the org lands
+            // on. Events that carry no plan (payment method, invoice, discount
+            // events and the like) leave `plan_type` as it is rather than
+            // nulling it.
+            let Some(plan_name) = event.operation.resulting_plan_name() else {
+                continue;
+            };
 
-            self.identify(
-                &distinct_id,
-                json!({
-                    "plan_type": plan_name,
-                }),
-            )
-            .await;
-
-            self.group_identify(
-                "organization",
-                &org_id_str,
-                json!({
-                    "plan_type": plan_name,
-                }),
-            )
-            .await;
+            let person = json!({ "plan_type": plan_name });
+            failures.extend(self.identify(&distinct_id, person.clone()).await.err());
+            failures.extend(
+                self.group_identify("organization", &org_id_str, person)
+                    .await
+                    .err(),
+            );
         }
-        Ok(())
+        NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
     }
 
     fn debounce_window_ms(&self) -> u64 {
@@ -337,6 +332,7 @@ impl Subscriber<OnboardingOperation> for PosthogService {
     }
 
     async fn handle(&self, events: Vec<Event<OnboardingOperation>>) -> Result<(), Error> {
+        let mut failures = Vec::new();
         for event in events {
             if event.flags.suppress_logs {
                 continue;
@@ -362,7 +358,7 @@ impl Subscriber<OnboardingOperation> for PosthogService {
                 serde_json::to_value(&event.operation).unwrap_or(serde_json::Value::Null);
 
             inject_org_group(&mut props);
-            self.capture(&event_name, &distinct_id, props).await;
+            failures.extend(self.capture(&event_name, &distinct_id, props).await.err());
 
             if let OnboardingOperation::OrgCreated {
                 org_name,
@@ -373,30 +369,27 @@ impl Subscriber<OnboardingOperation> for PosthogService {
             {
                 let plan_type = json!(plan.name());
 
-                self.identify(
-                    &distinct_id,
-                    json!({
-                        "plan_type": plan_type,
-                        "organization_id": &org_id_str,
-                        "use_case": use_case,
-                    }),
-                )
-                .await;
+                let person = json!({
+                    "plan_type": plan_type,
+                    "organization_id": &org_id_str,
+                    "use_case": use_case,
+                });
+                failures.extend(self.identify(&distinct_id, person).await.err());
 
-                self.group_identify(
-                    "organization",
-                    &org_id_str,
-                    json!({
-                        "plan_type": plan_type,
-                        "name": org_name,
-                        "use_case": use_case,
-                        "created_at": event.timestamp.to_rfc3339(),
-                    }),
-                )
-                .await;
+                let group = json!({
+                    "plan_type": plan_type,
+                    "name": org_name,
+                    "use_case": use_case,
+                    "created_at": event.timestamp.to_rfc3339(),
+                });
+                failures.extend(
+                    self.group_identify("organization", &org_id_str, group)
+                        .await
+                        .err(),
+                );
             }
         }
-        Ok(())
+        NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
     }
 
     fn debounce_window_ms(&self) -> u64 {
@@ -418,6 +411,7 @@ impl Subscriber<AnalyticsOperation> for PosthogService {
     }
 
     async fn handle(&self, events: Vec<Event<AnalyticsOperation>>) -> Result<(), Error> {
+        let mut failures = Vec::new();
         for event in events {
             if event.flags.suppress_logs {
                 continue;
@@ -448,9 +442,9 @@ impl Subscriber<AnalyticsOperation> for PosthogService {
             }
 
             inject_org_group(&mut props);
-            self.capture(&event_name, &distinct_id, props).await;
+            failures.extend(self.capture(&event_name, &distinct_id, props).await.err());
         }
-        Ok(())
+        NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
     }
 
     fn debounce_window_ms(&self) -> u64 {
@@ -474,6 +468,7 @@ impl Subscriber<DiscoveryPhase> for PosthogService {
     }
 
     async fn handle(&self, events: Vec<Event<DiscoveryPhase>>) -> Result<(), Error> {
+        let mut failures = Vec::new();
         for event in events {
             if event.flags.suppress_logs {
                 continue;
@@ -521,9 +516,9 @@ impl Subscriber<DiscoveryPhase> for PosthogService {
             }
 
             inject_org_group(&mut props);
-            self.capture(event_name, &distinct_id, props).await;
+            failures.extend(self.capture(event_name, &distinct_id, props).await.err());
         }
-        Ok(())
+        NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
     }
 
     fn debounce_window_ms(&self) -> u64 {
@@ -558,6 +553,7 @@ impl Subscriber<DiscoveryWarningCode> for PosthogService {
         let mut grouped: BTreeMap<(Uuid, DiscoveryWarningCode, Option<String>), Grouped> =
             BTreeMap::new();
 
+        let mut failures = Vec::new();
         for event in events {
             if event.flags.suppress_logs {
                 continue;
@@ -599,9 +595,13 @@ impl Subscriber<DiscoveryWarningCode> for PosthogService {
             }
 
             inject_org_group(&mut props);
-            self.capture("discovery_warning", &distinct_id, props).await;
+            failures.extend(
+                self.capture("discovery_warning", &distinct_id, props)
+                    .await
+                    .err(),
+            );
         }
-        Ok(())
+        NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
     }
 
     fn debounce_window_ms(&self) -> u64 {

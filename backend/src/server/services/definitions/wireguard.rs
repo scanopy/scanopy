@@ -30,7 +30,7 @@ impl ServiceDefinition for Wireguard {
     /// recorded today.
     ///
     /// What would work is a `wg`-prefixed interface in the SNMP `ifTable`, which is evidence of a
-    /// different kind from anything this pattern language expresses.
+    /// different type from anything this pattern language expresses.
     fn discovery_pattern(&self) -> Pattern<'_> {
         Pattern::None
     }

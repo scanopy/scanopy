@@ -10,7 +10,9 @@ use crate::server::billing::types::base::{BillingPlan, CancelReason, PlanStatus,
 use crate::server::billing::types::features::Feature;
 use crate::server::credentials::r#impl::integrations::all_integrations;
 use crate::server::credentials::r#impl::mapping::CredentialQueryPayloadDiscriminants;
-use crate::server::credentials::r#impl::types::CredentialTypeDiscriminants;
+use crate::server::credentials::r#impl::types::{
+    CredentialIntegration, CredentialTypeDiscriminants,
+};
 use crate::server::dependencies::r#impl::types::DependencyType;
 use crate::server::discovery::r#impl::scan_settings::ScanSettings;
 use crate::server::discovery::r#impl::types::DiscoveryType;
@@ -123,6 +125,12 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
     let claim_sources: Vec<TypeMetadata> = ClaimSource::iter().map(|c| c.to_metadata()).collect();
     write_fixture(&claim_sources, output_dir, "claim-sources.json");
 
+    // Install OS → credential OS family, for the create-daemon modal and the daemon OS gate.
+    let daemon_os: Vec<TypeMetadata> = crate::server::daemons::r#impl::base::DaemonOs::iter()
+        .map(|o| o.to_metadata())
+        .collect();
+    write_fixture(&daemon_os, output_dir, "daemon-os.json");
+
     // Keyed by `CredentialQueryPayloadDiscriminants`, which is what a coded warning carries.
     // Neither `integrations.json` (keyed by display name) nor `credential-types.json` (keyed by
     // `CredentialType`) can resolve those eight values.
@@ -172,6 +180,17 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
         .collect();
     write_fixture(&credential_types, output_dir, "credential-types.json");
 
+    // The integration each credential type belongs to (`metadata.integration` on a type), for
+    // the app's integration-first credential picker.
+    let credential_integrations: Vec<TypeMetadata> = CredentialIntegration::iter()
+        .map(|i| i.to_metadata())
+        .collect();
+    write_fixture(
+        &credential_integrations,
+        output_dir,
+        "credential-integrations.json",
+    );
+
     // Integrations: a service joined with the credential transports that target
     // it and one canonical discovery description (for the website integrations
     // page). Synced like service-definitions.json.
@@ -180,6 +199,18 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
 
     let scan_settings_fields = ScanSettings::field_definitions();
     write_fixture(&scan_settings_fields, output_dir, "scan-settings.json");
+
+    // The SSH script contract: every key a script may print and the host field it fills. Rendered
+    // by the website's SSH integration guide, so the docs table is the parser's own list.
+    let ssh_script_fields =
+        crate::server::credentials::r#impl::types::ssh_script::ssh_script_fields();
+    write_fixture(&ssh_script_fields, output_dir, "ssh-script-fields.json");
+
+    // The OS a credential's files and scripts are for: picker labels and file-path placeholders.
+    let os_families: Vec<_> = crate::server::credentials::r#impl::types::OsFamily::iter()
+        .map(|os| os.metadata())
+        .collect();
+    write_fixture(&os_families, output_dir, "os-families.json");
 
     let container_rule_types: Vec<TypeMetadata> =
         ContainerRule::iter().map(|r| r.to_metadata()).collect();

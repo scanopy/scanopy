@@ -1,4 +1,6 @@
 import type { Port } from '$lib/features/hosts/types/base';
+import { displaySettings } from '$lib/shared/stores/display-settings.svelte';
+import { formatDateTime, formatRelative } from './date-format';
 
 /**
  * Lowercase a string while preserving runs of 2+ consecutive uppercase letters
@@ -58,64 +60,31 @@ export function formatDurationHuman(totalSeconds: number): string {
 	return parts.join(', ');
 }
 
-export function formatTimestamp(timestamp: string): string {
-	try {
-		const date = new Date(timestamp);
-		return date.toLocaleString('en-US', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit',
-			hour12: false
-		});
-	} catch {
-		return timestamp; // Fallback to raw string if parsing fails
-	}
+/** A short measured interval in seconds to one decimal place: `4.2s`. */
+export function formatMillisAsSeconds(ms: number): string {
+	return `${(ms / 1000).toFixed(1)}s`;
 }
 
-/** Date only (no time), e.g. "Jun 21, 2026". */
-export function formatDate(timestamp: string): string {
-	try {
-		return new Date(timestamp).toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric'
-		});
-	} catch {
-		return timestamp;
-	}
+// Date helpers. Each one is a style preset over `formatDateTime`, which applies the user's
+// display settings (date order, clock, time zone), so every displayed date follows them.
+
+/** Date and time, e.g. `Jun 21, 2026, 03:45 PM`. */
+export function formatTimestamp(timestamp: string | Date): string {
+	return formatDateTime(timestamp, { date: 'short', time: true }, displaySettings.current);
+}
+
+/** Date only (no time), e.g. `Jun 21, 2026`. */
+export function formatDate(timestamp: string | Date): string {
+	return formatDateTime(timestamp, { date: 'short' }, displaySettings.current);
 }
 
 /**
- * Long date in the viewer's locale, e.g. `October 8, 2026`. Pass
- * `timeZone: 'UTC'` for a date-only string (`2026-10-08`), which `Date`
- * parses as UTC midnight and would otherwise show a day early west of UTC.
+ * Long date, e.g. `October 8, 2026`. Pass `timeZone: 'UTC'` for a date-only string
+ * (`2026-10-08`), which `Date` parses as UTC midnight and would otherwise show a day early west
+ * of UTC.
  */
 export function formatLongDate(value: string | Date, timeZone?: string): string {
-	return new Date(value).toLocaleDateString(undefined, {
-		month: 'long',
-		day: 'numeric',
-		year: 'numeric',
-		timeZone
-	});
-}
-
-/**
- * Compact numeric date, e.g. `8/3/26`.
- *
- * For dense lists where a date is one column among many and "Aug 3, 2026" or a
- * full timestamp costs more width than the extra precision is worth.
- */
-export function formatDateNumeric(timestamp: string | Date): string {
-	const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
-	if (Number.isNaN(date.getTime())) return String(timestamp);
-
-	return date.toLocaleDateString(undefined, {
-		year: '2-digit',
-		month: 'numeric',
-		day: 'numeric'
-	});
+	return formatDateTime(value, { date: 'long', timeZone }, displaySettings.current);
 }
 
 // Truncate ID for display (show first 8 characters + ellipsis if longer than 12)
@@ -125,17 +94,9 @@ export function formatId(id: string): string {
 	}
 	return `${id.substring(0, 8)}...`;
 }
-export function formatRelativeTime(timestamp: string): string {
-	const now = Date.now();
-	const then = new Date(timestamp).getTime();
-	const diff = Math.max(0, now - then);
-	const minutes = Math.floor(diff / 60000);
-	if (minutes < 1) return 'just now';
-	if (minutes < 60) return `${minutes}m ago`;
-	const hours = Math.floor(minutes / 60);
-	if (hours < 24) return `${hours}h ago`;
-	const days = Math.floor(hours / 24);
-	return `${days}d ago`;
+/** How long ago, e.g. `5m ago`, or the full timestamp when the user turned relative times off. */
+export function formatRelativeTime(timestamp: string | Date): string {
+	return formatRelative(timestamp, displaySettings.current);
 }
 
 export function formatPort(port: Port): string {

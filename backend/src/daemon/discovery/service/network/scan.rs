@@ -3,7 +3,9 @@ use super::dcp;
 use super::icmp;
 use super::mdns;
 use crate::daemon::discovery::service::ops::DiscoveryOps;
-use crate::daemon::discovery::service::warnings::{CredentialIssue, CredentialIssueReason};
+use crate::daemon::discovery::service::warnings::{
+    AttemptOutcome, CredentialIssue, CredentialIssueReason,
+};
 use crate::daemon::discovery::types::base::DiscoveryCriticalError;
 use crate::daemon::discovery::types::warnings::DiscoveryWarning;
 use crate::daemon::utils::app_probe::{ProbeContext, scan_app_probes};
@@ -1645,6 +1647,7 @@ impl NetworkScan {
             utils,
             accept_invalid_certs,
             trusted_ca.as_deref(),
+            &ops.config_store,
         )
         .await?;
         open_ports.extend(probe_results.additional_ports.iter());
@@ -2215,7 +2218,18 @@ pub(crate) fn unanswered_credential_targets(
         .map(|o| CredentialIssue {
             integration: (&o.credential).into(),
             ip: o.ip,
-            reason: CredentialIssueReason::TargetNotResponding,
+            reason: match o.credential {
+                // Wake-on-LAN did run, before the sweep. The scan not finding the host is its
+                // failure, so "not tried" would send the operator to the wrong place.
+                CredentialQueryPayload::WakeOnLan(_) => CredentialIssueReason::Attempted {
+                    outcome: AttemptOutcome::TimedOut,
+                    message: "the scan did not find the host after the wake step; check that the \
+                              packet reaches its network segment, that Wake-on-LAN is enabled on \
+                              the host, and that Wait (seconds) covers its boot time"
+                        .to_string(),
+                },
+                _ => CredentialIssueReason::TargetNotResponding,
+            },
             credential_id: (o.credential_id != Uuid::nil()).then_some(o.credential_id),
         })
         .collect()
@@ -2224,6 +2238,7 @@ pub(crate) fn unanswered_credential_targets(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::server::credentials::r#impl::mapping::CredentialQueryPayloadDiscriminants;
     use crate::server::shared::attribution::AttributeSource;
     use crate::server::shared::storage::traits::Storable;
     use crate::server::subnets::r#impl::base::SubnetBase;
@@ -2290,6 +2305,7 @@ mod tests {
                 credential: CredentialQueryPayload::default(), // Snmp
                 credential_id: Uuid::new_v4(),
                 host_id: None,
+                mac_address: None,
             }],
             ..Default::default()
         }
@@ -2345,6 +2361,35 @@ mod tests {
         assert_eq!(issues[0].reason, CredentialIssueReason::TargetNotResponding);
     }
 
+    /// The scan's liveness checks are what tell whether Wake-on-LAN worked, so a target the scan
+    /// never found is reported as a failed wake rather than an untried credential.
+    #[test]
+    fn a_wake_on_lan_target_that_never_answered_is_reported() {
+        let subnets = [subnet("192.168.4.0/22")];
+        let mut mapping = mapping_targeting("192.168.4.141");
+        mapping.ip_overrides[0].credential = CredentialQueryPayload::WakeOnLan(
+            crate::server::credentials::r#impl::mapping::WakeOnLanQueryCredential {
+                port: 9,
+                wait_seconds: 90,
+                broadcast_address: None,
+                secure_on_password: None,
+            },
+        );
+        let issues = unanswered_credential_targets(&[mapping], &subnets, None, &HashSet::new());
+        assert_eq!(issues.len(), 1);
+        assert_eq!(
+            issues[0].integration,
+            CredentialQueryPayloadDiscriminants::WakeOnLan
+        );
+        assert!(matches!(
+            issues[0].reason,
+            CredentialIssueReason::Attempted {
+                outcome: AttemptOutcome::TimedOut,
+                ..
+            }
+        ));
+    }
+
     #[test]
     fn an_address_that_answered_is_not_reported() {
         let subnets = [subnet("192.168.4.0/22")];
@@ -2394,6 +2439,7 @@ mod tests {
                     credential: CredentialQueryPayload::default(), // Snmp
                     credential_id: cred,
                     host_id: Some(host),
+                    mac_address: None,
                 })
                 .collect(),
             ..Default::default()

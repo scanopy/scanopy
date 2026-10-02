@@ -271,7 +271,7 @@ mod tests {
     }
 
     /// A guessed name yields to every identifier and outranks only the address. Walked for each
-    /// kind of guess a host can hold, because each reaches `name` by a different path.
+    /// type of guess a host can hold, because each reaches `name` by a different path.
     #[test]
     fn a_guessed_name_yields_to_the_identifiers_and_beats_only_the_address() {
         let addresses = [crate::server::shared::types::examples::ip_address()];

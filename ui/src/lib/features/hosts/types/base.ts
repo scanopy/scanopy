@@ -16,6 +16,8 @@ import type { components } from '$lib/api/schema';
  */
 export type Host = components['schemas']['Host'] &
 	Pick<components['schemas']['HostResponse'], 'display_name' | 'display_name_rung' | 'name_ladder'>;
+/** A host with its addresses, as the summary and picker queries return it. */
+export type HostWithAddresses = Host & Pick<components['schemas']['HostResponse'], 'ip_addresses'>;
 export type HostNameRung = components['schemas']['HostNameRung'];
 export type HostNameLadderEntry = components['schemas']['HostNameLadderEntry'];
 export type HostVirtualization = components['schemas']['HostVirtualization'];

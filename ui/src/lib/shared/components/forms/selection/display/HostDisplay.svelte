@@ -1,11 +1,13 @@
 <script lang="ts" context="module">
-	import type { Host, Interface, Port, Service } from '$lib/features/hosts/types/base';
+	import type { Host, Interface, IPAddress, Port, Service } from '$lib/features/hosts/types/base';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 	import { entities, serviceDefinitions } from '$lib/shared/stores/metadata';
 	import { entityRef } from '$lib/shared/components/data/types';
 
 	// Context provides the host's children (interfaces, ports, services)
 	export interface HostDisplayContext {
+		/** The host's addresses, shown under its name. Filtered by `host_id` like `services`. */
+		ipAddresses?: IPAddress[];
 		interfaces?: Interface[];
 		ports?: Port[];
 		services?: Service[];
@@ -27,11 +29,19 @@
 		getDisabled: (_host, context) => !!context?.disabledReason,
 		getDisabledReason: (_host, context) => context?.disabledReason ?? null,
 		getLabel: (host) => hostDisplayName(host),
-		// Empty rather than a placeholder: the label is already the best identifier this host has,
-		// and once the ladder has fallen through to the hostname, repeating it underneath says
-		// nothing. A picker row with one line is the correct rendering of a host with one name.
-		getDescription: (host) =>
-			host.hostname && host.hostname !== hostDisplayName(host) ? host.hostname : '',
+		// The hostname and addresses, each only when it isn't already the label: once the ladder
+		// has fallen through to the hostname or an address, repeating it underneath says nothing. A
+		// picker row with one line is the correct rendering of a host with one identifier.
+		getDescription: (host, context) => {
+			const label = hostDisplayName(host);
+			const addresses = (context?.ipAddresses ?? [])
+				.filter((ip) => ip.host_id === host.id)
+				.sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+				.map((ip) => ip.ip_address);
+			return [host.hostname, ...addresses]
+				.filter((value): value is string => !!value && value !== label)
+				.join(', ');
+		},
 		getIcon: (host, context) => {
 			const services = context?.services?.filter((s) => s.host_id == host.id) ?? [];
 			const firstService = services.length > 0 ? services[0] : null;

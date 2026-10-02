@@ -417,7 +417,7 @@ mod tests {
     fn community_value(cred: &SnmpQueryCredential) -> &str {
         match &cred.community {
             ResolvableSecret::Value { value } => value,
-            ResolvableSecret::FilePath { path } => path,
+            ResolvableSecret::FilePath { path } => path.as_str(),
         }
     }
 
@@ -469,6 +469,7 @@ mod tests {
                 credential: cred("override-community"),
                 credential_id: cred_id,
                 host_id: None,
+                mac_address: None,
             }],
             ..Default::default()
         };
@@ -502,6 +503,7 @@ mod tests {
                 credential: cred("public"),
                 credential_id: Uuid::nil(),
                 host_id: None,
+                mac_address: None,
             }],
             ..Default::default()
         };
@@ -523,6 +525,7 @@ mod tests {
                 credential: cred("secret"),
                 credential_id: Uuid::nil(),
                 host_id: None,
+                mac_address: None,
             }],
             ..Default::default()
         };

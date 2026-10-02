@@ -11,7 +11,7 @@ use crate::{
             CredentialMapping, CredentialQueryPayload, IntegrationTarget,
         },
         daemons::r#impl::{
-            base::{Daemon, DaemonBase, DaemonMode},
+            base::{Daemon, DaemonBase, DaemonMode, DaemonOs},
             version::{DaemonVersionStatus, DeprecationSeverity, DeprecationWarning},
         },
         discovery::r#impl::types::DiscoveryType,
@@ -211,7 +211,7 @@ pub struct DiscoveryUpdatePayload {
     pub network_id: Uuid,
     /// Which stage of the run is in progress.
     pub phase: DiscoveryPhase,
-    /// What kind of discovery is running.
+    /// What type of discovery is running.
     pub discovery_type: DiscoveryType,
     /// Completion of the current phase, from 0 to 1.
     pub progress: u8,
@@ -226,6 +226,18 @@ pub struct DiscoveryUpdatePayload {
     /// land as `Unknown` carrying that text instead of failing the whole payload.
     #[serde(default, deserialize_with = "deserialize_warnings")]
     pub warnings: Vec<DiscoveryWarning>,
+    /// What each stored credential did in this run, one entry per credential. Results, not
+    /// problems: those are `warnings`. Old servers ignore it.
+    ///
+    /// Read per entry, like `warnings`: an outcome shape from a newer daemon becomes `Unknown`
+    /// for that credential instead of failing the terminal payload.
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        deserialize_with = "crate::server::credentials::r#impl::run_results::deserialize_credential_results"
+    )]
+    pub credential_results:
+        Vec<crate::server::credentials::r#impl::run_results::CredentialRunResult>,
     /// When the run started.
     pub started_at: Option<DateTime<Utc>>,
     /// When the run finished. `null` while it is still going.
@@ -255,7 +267,12 @@ pub struct DiscoveryUpdatePayload {
     pub scanned: Option<ScannedEntityIds>,
     /// Why the run ended. Set on terminal payloads; absent on runs recorded before it existed.
     /// A daemon may send one of the reasons only it can know; the server assigns every other.
-    #[serde(default)]
+    /// A reason this server doesn't know reads as `None`, and the server assigns one from the
+    /// phase.
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::deserialize_lenient_option"
+    )]
     pub reason: Option<DiscoveryTerminalReason>,
     /// When the server last heard about this run. Stamped by the server at terminal.
     #[serde(default)]
@@ -306,6 +323,7 @@ impl DiscoveryUpdatePayload {
             discovery_type,
             error: None,
             warnings: Vec::new(),
+            credential_results: Vec::new(),
             started_at: None,
             finished_at: None,
             hosts_discovered: None,
@@ -332,6 +350,7 @@ impl DiscoveryUpdatePayload {
             progress: update.progress,
             error: update.error,
             warnings: update.warnings,
+            credential_results: update.credential_results,
             started_at: info.started_at,
             finished_at: update.finished_at,
             hosts_discovered: None,
@@ -491,6 +510,11 @@ pub struct ProvisionDaemonRequest {
     /// discovery run. References only — never secret material. Empty by default.
     #[serde(default)]
     pub seed_credential_refs: Vec<IntegrationTarget>,
+    /// The operating system picked in the create-daemon modal. Recorded on the daemon so a
+    /// credential set up for another OS's file paths can be refused for it. Ignored when
+    /// `daemon_id` is set.
+    #[serde(default)]
+    pub os: Option<DaemonOs>,
     /// Mint a fresh 1:1 key for this existing daemon instead of creating a new record,
     /// keeping its host, discovery jobs and history. Used to give a legacy daemon (no bound
     /// key) a dedicated one. When set, `name`/`network_id`/`mode`/`url` are ignored — those
@@ -588,6 +612,74 @@ mod scanned_payload_tests {
             .insert("field_from_a_newer_daemon".into(), serde_json::json!(true));
 
         assert!(serde_json::from_value::<DiscoveryUpdatePayload>(json).is_ok());
+    }
+
+    /// A daemon can change a credential outcome's shape ahead of its server. The final report is
+    /// the only payload carrying `credential_results`, so one unreadable entry must not cost the
+    /// run its terminal phase.
+    #[test]
+    fn a_final_report_with_an_unreadable_credential_result_keeps_the_rest() {
+        let (collected, missing_field, extra_field) =
+            (Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4());
+        let mut terminal = payload_with_scanned(None);
+        terminal.phase = DiscoveryPhase::Complete;
+        terminal.progress = 100;
+        let mut json = serde_json::to_value(terminal).unwrap();
+        json.as_object_mut().unwrap().insert(
+            "credential_results".into(),
+            serde_json::json!([
+                { "credential_id": collected, "outcome": { "type": "Collected", "hosts": 3 } },
+                { "credential_id": missing_field,
+                  "outcome": { "type": "WakeOnLan", "hosts": [{ "ip": "10.0.40.21" }] } },
+                { "credential_id": extra_field,
+                  "outcome": { "type": "WakeOnLan",
+                               "hosts": [{ "ip": "10.0.40.22", "woke": true, "waited_ms": 900 }] } },
+                { "outcome": { "type": "Collected", "hosts": 1 } }
+            ]),
+        );
+
+        let parsed: DiscoveryUpdatePayload = serde_json::from_value(json).unwrap();
+
+        use crate::server::credentials::r#impl::run_results::{
+            CredentialRunOutcome, CredentialRunResult, WakeOnLanResult,
+        };
+        assert_eq!(parsed.phase, DiscoveryPhase::Complete);
+        assert_eq!(parsed.progress, 100);
+        assert_eq!(
+            parsed.credential_results,
+            vec![
+                CredentialRunResult {
+                    credential_id: collected,
+                    outcome: CredentialRunOutcome::Collected { hosts: 3 },
+                },
+                CredentialRunResult {
+                    credential_id: missing_field,
+                    outcome: CredentialRunOutcome::Unknown,
+                },
+                CredentialRunResult {
+                    credential_id: extra_field,
+                    outcome: CredentialRunOutcome::WakeOnLan {
+                        hosts: vec![WakeOnLanResult {
+                            ip: "10.0.40.22".parse().unwrap(),
+                            woke: true,
+                        }],
+                    },
+                },
+            ]
+        );
+    }
+
+    /// A terminal reason added in a newer daemon reads as no reason; the server assigns one.
+    #[test]
+    fn an_unknown_terminal_reason_reads_as_none() {
+        let mut json = serde_json::to_value(payload_with_scanned(None)).unwrap();
+        json.as_object_mut()
+            .unwrap()
+            .insert("reason".into(), serde_json::json!("ReasonFromANewerDaemon"));
+
+        let parsed: DiscoveryUpdatePayload = serde_json::from_value(json).unwrap();
+
+        assert_eq!(parsed.reason, None);
     }
 
     /// An old server sends no subnets with the work. The daemon must still accept the request:

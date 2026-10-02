@@ -16,6 +16,7 @@ use crate::server::shared::handlers::traits::{
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::{Entity, Storable};
+use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::api::{
     ApiError, ApiErrorResponse, EmptyApiResponse, PaginatedApiResponse,
 };
@@ -354,13 +355,13 @@ async fn update_credential(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Admin>,
     Path(id): Path<Uuid>,
-    Json(entity): Json<Credential>,
+    ApiJson(mut entity): ApiJson<Credential>,
 ) -> ApiResult<Json<ApiResponse<Credential>>> {
     entity
         .base
-        .credential_type
-        .validate()
+        .validate_settings()
         .map_err(|e| ApiError::bad_request(&e.to_string()))?;
+    entity.base.clear_unused_daemon_os();
 
     let assigned_network_ids = entity.base.assigned_network_ids.clone();
     let host_assignments = entity.base.host_assignments.clone();
@@ -373,7 +374,7 @@ async fn update_credential(
         State(state.clone()),
         auth.into_permission::<crate::server::auth::middleware::permissions::Member>(),
         Path(id),
-        Json(entity),
+        ApiJson(entity),
     )
     .await?;
 
@@ -433,7 +434,7 @@ async fn delete_credential(
 async fn bulk_delete_credentials(
     state: State<Arc<AppState>>,
     auth: Authorized<Admin>,
-    ids: Json<Vec<Uuid>>,
+    ids: ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>> {
     bulk_delete_handler::<Credential>(
         state,
@@ -511,7 +512,7 @@ async fn get_all_credentials(
 pub async fn create_credential(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Admin>,
-    Json(credential): Json<Credential>,
+    ApiJson(credential): ApiJson<Credential>,
 ) -> ApiResult<Json<ApiResponse<Credential>>> {
     let assigned_network_ids = credential.base.assigned_network_ids.clone();
     let host_assignments = credential.base.host_assignments.clone();
@@ -523,7 +524,7 @@ pub async fn create_credential(
     let mut response = create_handler::<Credential>(
         State(state.clone()),
         auth.into_permission::<crate::server::auth::middleware::permissions::Member>(),
-        Json(credential),
+        ApiJson(credential),
     )
     .await?;
 
@@ -539,6 +540,19 @@ pub async fn create_credential(
     }
 
     Ok(response)
+}
+
+/// Upper bound on credentials in one bulk create. Each one is a sequential DB write.
+const MAX_BULK_CREATE_CREDENTIALS: usize = 100;
+
+fn check_bulk_create_size(len: usize) -> Result<(), ApiError> {
+    if len > MAX_BULK_CREATE_CREDENTIALS {
+        return Err(ApiError::bad_request(&format!(
+            "Bulk create accepts at most {} credentials, got {}",
+            MAX_BULK_CREATE_CREDENTIALS, len
+        )));
+    }
+    Ok(())
 }
 
 /// Bulk create Credentials
@@ -560,11 +574,12 @@ pub async fn create_credential(
 async fn bulk_create_credentials(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Admin>,
-    Json(credentials): Json<Vec<Credential>>,
+    ApiJson(credentials): ApiJson<Vec<Credential>>,
 ) -> ApiResult<Json<ApiResponse<Vec<Credential>>>> {
     if credentials.is_empty() {
         return Ok(Json(ApiResponse::success(vec![])));
     }
+    check_bulk_create_size(credentials.len())?;
 
     // This path calls credential_service.create directly (bypassing the generic
     // create_handler's validate_create_access), so enforce tenancy here: force
@@ -578,8 +593,7 @@ async fn bulk_create_credentials(
     for credential in &credentials {
         credential
             .base
-            .credential_type
-            .validate()
+            .validate_settings()
             .map_err(|e| ApiError::bad_request(&e.to_string()))?;
         enforce_supported_targets(&state, credential, &network_ids).await?;
     }
@@ -610,4 +624,21 @@ async fn bulk_create_credentials(
     }
 
     Ok(Json(ApiResponse::success(created)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::StatusCode;
+
+    #[test]
+    fn bulk_create_at_bound_is_accepted() {
+        assert!(check_bulk_create_size(MAX_BULK_CREATE_CREDENTIALS).is_ok());
+    }
+
+    #[test]
+    fn bulk_create_over_bound_is_rejected() {
+        let err = check_bulk_create_size(MAX_BULK_CREATE_CREDENTIALS + 1).unwrap_err();
+        assert_eq!(err.status, StatusCode::BAD_REQUEST);
+    }
 }

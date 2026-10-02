@@ -30,7 +30,7 @@ use crate::server::{
     hosts::service::HostService,
     networks::{r#impl::Network, service::NetworkService},
     organizations::{
-        r#impl::base::{LimitNotificationLevel, Organization},
+        r#impl::base::{LimitNotificationLevel, OrgNotifications, Organization},
         service::OrganizationService,
     },
     services::service::ServiceService,
@@ -61,10 +61,38 @@ pub struct TrialRecapMetrics {
 /// and dispatched once the org owner has been resolved.
 struct PendingLimitEmail {
     reached: bool,
-    limit_type: &'static str,
     count: u64,
     limit: u64,
     has_overage: bool,
+}
+
+/// One limit whose stored notification level moves, plus the email that
+/// announces an upward crossing. `email` is `None` for a drop back below the
+/// threshold or when emails are suppressed.
+struct LimitLevelChange {
+    limit_type: &'static str,
+    level: LimitNotificationLevel,
+    email: Option<PendingLimitEmail>,
+}
+
+impl LimitLevelChange {
+    /// Stores the new level in `notifications` when `send` succeeded (a change
+    /// with no email passes `Ok`). A failed send leaves the old level, so the
+    /// next entity change that crosses the threshold retries the email.
+    /// Returns whether `notifications` changed.
+    fn record(&self, notifications: &mut OrgNotifications, send: &Result<()>) -> bool {
+        if send.is_err() {
+            return false;
+        }
+        let stored = match self.limit_type {
+            "hosts" => &mut notifications.hosts,
+            "networks" => &mut notifications.networks,
+            "seats" => &mut notifications.seats,
+            _ => return false,
+        };
+        *stored = self.level.clone();
+        true
+    }
 }
 
 /// Email service: builds the right [`Email`] for each event and hands it to
@@ -900,9 +928,8 @@ impl EmailService {
             return Ok(());
         }
         let plan_name = plan.to_string();
-        let mut notifications = org.base.notifications.clone();
-        let mut changed = false;
-        let mut emails_to_send: Vec<PendingLimitEmail> = Vec::new();
+        let notifications = org.base.notifications.clone();
+        let mut changes: Vec<LimitLevelChange> = Vec::new();
 
         // Check each limit type
         struct LimitCheck {
@@ -960,87 +987,110 @@ impl EmailService {
 
             let threshold_80 = (limit as f64 * 0.8) as u64;
             let new_level = if check.count >= limit {
-                if check.level != LimitNotificationLevel::Reached {
-                    emails_to_send.push(PendingLimitEmail {
-                        reached: true,
-                        limit_type: check.limit_type,
-                        count: check.count,
-                        limit,
-                        has_overage: check.has_overage,
-                    });
-                }
                 LimitNotificationLevel::Reached
             } else if check.count >= threshold_80 {
-                if check.level != LimitNotificationLevel::Approaching {
-                    emails_to_send.push(PendingLimitEmail {
-                        reached: false,
-                        limit_type: check.limit_type,
-                        count: check.count,
-                        limit,
-                        has_overage: check.has_overage,
-                    });
-                }
                 LimitNotificationLevel::Approaching
             } else {
                 LimitNotificationLevel::None
             };
 
             if new_level != check.level {
-                changed = true;
-                match check.limit_type {
-                    "hosts" => notifications.hosts = new_level,
-                    "networks" => notifications.networks = new_level,
-                    "seats" => notifications.seats = new_level,
-                    _ => {}
-                }
+                // Any move into Approaching or Reached announces itself.
+                let email =
+                    (!suppress_emails && new_level != LimitNotificationLevel::None).then(|| {
+                        PendingLimitEmail {
+                            reached: new_level == LimitNotificationLevel::Reached,
+                            count: check.count,
+                            limit,
+                            has_overage: check.has_overage,
+                        }
+                    });
+                changes.push(LimitLevelChange {
+                    limit_type: check.limit_type,
+                    level: new_level,
+                    email,
+                });
             }
         }
 
-        if !suppress_emails
-            && !emails_to_send.is_empty()
-            && let Ok(owner_email) = self.get_owner_email(&org_id).await
-        {
-            for pending in emails_to_send {
-                let result = if pending.reached {
-                    self.dispatch(
-                        owner_email.clone(),
-                        &PlanLimitReached {
-                            first_name: None,
-                            limit_type: pending.limit_type,
-                            current_count: pending.count,
-                            limit: pending.limit,
-                            plan_name: &plan_name,
-                            has_overage: pending.has_overage,
-                        },
-                    )
+        if changes.is_empty() {
+            return Ok(());
+        }
+
+        // The owner is resolved on the first pending send. A failed lookup
+        // fails every pending send, so those limits keep their old level.
+        let owner_email = tokio::sync::OnceCell::new();
+        let mut stored = notifications;
+        let mut changed = false;
+        let mut failed = 0usize;
+        for change in &changes {
+            let send = match &change.email {
+                None => Ok(()),
+                Some(pending) => match owner_email
+                    .get_or_init(|| async {
+                        self.get_owner_email(&org_id)
+                            .await
+                            .map_err(|e| format!("{e:#}"))
+                    })
                     .await
-                } else {
-                    self.dispatch(
-                        owner_email.clone(),
-                        &PlanLimitApproaching {
-                            first_name: None,
-                            limit_type: pending.limit_type,
-                            current_count: pending.count,
-                            limit: pending.limit,
-                            plan_name: &plan_name,
-                            has_overage: pending.has_overage,
-                        },
-                    )
-                    .await
-                };
-                if let Err(e) = result {
-                    tracing::warn!(error = %e, "Failed to send plan limit email");
-                }
+                {
+                    Err(e) => Err(anyhow::anyhow!("Owner email lookup failed: {e}")),
+                    Ok(owner) => {
+                        if pending.reached {
+                            self.dispatch(
+                                owner.clone(),
+                                &PlanLimitReached {
+                                    first_name: None,
+                                    limit_type: change.limit_type,
+                                    current_count: pending.count,
+                                    limit: pending.limit,
+                                    plan_name: &plan_name,
+                                    has_overage: pending.has_overage,
+                                },
+                            )
+                            .await
+                        } else {
+                            self.dispatch(
+                                owner.clone(),
+                                &PlanLimitApproaching {
+                                    first_name: None,
+                                    limit_type: change.limit_type,
+                                    current_count: pending.count,
+                                    limit: pending.limit,
+                                    plan_name: &plan_name,
+                                    has_overage: pending.has_overage,
+                                },
+                            )
+                            .await
+                        }
+                    }
+                },
+            };
+            if let Err(e) = &send {
+                failed += 1;
+                tracing::warn!(
+                    organization_id = %org_id,
+                    limit_type = change.limit_type,
+                    error = %e,
+                    "Failed to send plan limit email; level left unchanged for retry"
+                );
             }
+            changed |= change.record(&mut stored, &send);
         }
 
         if changed {
-            org.base.notifications = notifications;
+            org.base.notifications = stored;
             self.organization_service
                 .update(&mut org, AuthenticatedEntity::System)
                 .await?;
         }
 
+        if failed > 0 {
+            anyhow::bail!(
+                "{failed} of {} plan limit emails failed to send",
+                changes.iter().filter(|c| c.email.is_some()).count()
+            );
+        }
         Ok(())
     }
 
@@ -1185,18 +1235,25 @@ impl EmailService {
                 .push(daemon);
         }
 
-        // Ascending floor order, so if a send fails partway through an org's
-        // groups the ratchet is left at the highest floor actually emailed and
-        // the rest are retried on the next boot.
+        // Ascending floor order. Once a group fails, that org's higher floors
+        // are skipped this sweep: emailing them would raise the ratchet past
+        // the failed floor and it would never be retried. The ratchet stays at
+        // the highest floor every recipient received, and the next boot
+        // retries from there.
         let mut groups: Vec<_> = by_org_floor.into_iter().collect();
         groups.sort_by(|((_, a_floor), _), ((_, b_floor), _)| a_floor.cmp(b_floor));
 
+        let mut failed_orgs: HashSet<Uuid> = HashSet::new();
         for ((org_id, floor), (effective_on, affected)) in groups {
+            if failed_orgs.contains(&org_id) {
+                continue;
+            }
             let sunset_display = effective_on.format("%B %-d, %Y").to_string();
             if let Err(e) = self
                 .announce_org_sunset(org_id, &affected, &floor, &sunset_display)
                 .await
             {
+                failed_orgs.insert(org_id);
                 tracing::warn!(org_id = %org_id, error = %e, "Failed to send daemon sunset notification");
             }
         }
@@ -1257,17 +1314,30 @@ impl EmailService {
             }
         }
 
-        for to in recipients {
+        let mut failed = 0usize;
+        for to in &recipients {
             if let Err(e) = self
-                .send_daemon_sunset_email(to, &daemon_names, sunset_display)
+                .send_daemon_sunset_email(to.clone(), &daemon_names, sunset_display)
                 .await
             {
+                failed += 1;
                 tracing::warn!(org_id = %org_id, error = %e, "Failed to dispatch daemon sunset email");
             }
         }
 
-        // Advance the ratchet so subsequent boots don't re-send for this floor
-        // (or any lower one). Monotonic: it only ever moves up.
+        // Any failed recipient leaves the ratchet where it was, so the next
+        // boot sweep retries this floor. Recipients who already received it
+        // get it again then.
+        if failed > 0 {
+            anyhow::bail!(
+                "{failed} of {} daemon sunset emails failed to send; floor {floor} not recorded",
+                recipients.len()
+            );
+        }
+
+        // Every recipient was emailed: advance the ratchet so subsequent boots
+        // don't re-send for this floor (or any lower one). Monotonic: it only
+        // ever moves up.
         org.base.notifications.sunset_notified_floor = Some(floor.clone());
         self.organization_service
             .update(&mut org, AuthenticatedEntity::System)
@@ -1358,4 +1428,32 @@ fn format_invoice_period(
         start.format("%b %-d, %Y"),
         end.format("%b %-d, %Y")
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn change(limit_type: &'static str, level: LimitNotificationLevel) -> LimitLevelChange {
+        LimitLevelChange {
+            limit_type,
+            level,
+            email: None,
+        }
+    }
+
+    #[test]
+    fn limit_level_advances_only_when_its_send_succeeded() {
+        let mut notifications = OrgNotifications::default();
+        let sent = change("hosts", LimitNotificationLevel::Reached);
+        let failed = change("networks", LimitNotificationLevel::Approaching);
+
+        assert!(sent.record(&mut notifications, &Ok(())));
+        assert!(!failed.record(&mut notifications, &Err(anyhow::anyhow!("smtp down"))));
+
+        assert_eq!(notifications.hosts, LimitNotificationLevel::Reached);
+        // The failed limit keeps its old level, so the next crossing retries.
+        assert_eq!(notifications.networks, LimitNotificationLevel::None);
+        assert_eq!(notifications.seats, LimitNotificationLevel::None);
+    }
 }

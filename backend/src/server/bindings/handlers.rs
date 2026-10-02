@@ -1,3 +1,4 @@
+use crate::server::shared::types::api::ApiJson;
 use axum::Json;
 use axum::extract::{Path, State};
 use std::sync::Arc;
@@ -151,7 +152,7 @@ async fn validate_no_binding_type_conflict(
 async fn create_binding(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(binding): Json<Binding>,
+    ApiJson(binding): ApiJson<Binding>,
 ) -> ApiResult<Json<ApiResponse<Binding>>> {
     // Guard tenancy before the supersede-delete below runs against a
     // caller-supplied network_id (create_handler only validates access at the
@@ -194,7 +195,7 @@ async fn create_binding(
         }
     }
 
-    create_handler::<Binding>(State(state), auth, Json(binding)).await
+    create_handler::<Binding>(State(state), auth, ApiJson(binding)).await
 }
 
 /// Update a Binding
@@ -222,14 +223,14 @@ async fn update_binding(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
     path: Path<Uuid>,
-    Json(binding): Json<Binding>,
+    ApiJson(binding): ApiJson<Binding>,
 ) -> ApiResult<Json<ApiResponse<Binding>>> {
     // Guard tenancy before the conflict scan reads by the caller-supplied
     // network_id (update_handler validates access afterward).
     validate_network_access(Some(binding.network_id()), &auth.network_ids(), "access")?;
 
     validate_no_binding_type_conflict(&state, &binding, Some(*path)).await?;
-    update_handler::<Binding>(State(state), auth, path, Json(binding)).await
+    update_handler::<Binding>(State(state), auth, path, ApiJson(binding)).await
 }
 
 pub fn create_router() -> OpenApiRouter<Arc<AppState>> {

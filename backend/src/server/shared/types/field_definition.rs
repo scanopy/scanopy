@@ -19,6 +19,9 @@ pub enum FieldType {
     Boolean,
     /// Fixed choice from `options`.
     Select,
+    /// Fixed choice from `options`, every option shown at once. For a short list where seeing the
+    /// alternatives is part of choosing, such as the shell an SSH script runs in.
+    Radio,
     /// TCP/UDP port. Distinct from `Number` because it carries a 1-65535 range the frontend
     /// validator enforces — and because declaring it is what stops the form guessing "is this a
     /// port?" from the field's label.
@@ -27,6 +30,8 @@ pub enum FieldType {
     SecretPathOrInline,
     /// Non-secret value supplied either inline or as a path to a file the daemon reads.
     PathOrInline,
+    /// An SSH script: a file on the scanned host, a file on the daemon, or text entered here.
+    ScriptSource,
 }
 
 /// Definition of a form field for dynamic UI rendering.
@@ -46,6 +51,11 @@ pub struct FieldDefinition {
     /// Placeholder text for the input.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub placeholder: Option<&'static str>,
+    /// Placeholders that replace `placeholder` while another field holds a given value, e.g. a
+    /// Windows path once the OS picker says Windows. `field` is a sibling field id, or `daemon_os`
+    /// for the credential's own daemon OS.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub placeholder_by: Option<&'static [DependentPlaceholder]>,
     /// Whether the value is a secret, so it is masked and never echoed back.
     pub secret: bool,
     /// Whether the field may be left empty.
@@ -67,6 +77,22 @@ pub struct FieldDefinition {
     /// Grouping label used to section a long form.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub group: Option<&'static str>,
+    /// For a field that can be read from a file on the daemon: an example file name, which the
+    /// form joins to the Daemon OS's example directory for the path placeholder.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_name: Option<&'static str>,
+}
+
+/// A placeholder that applies while `depends_on` holds `value`.
+#[derive(Debug, Clone, Copy, Serialize, ToSchema)]
+pub struct DependentPlaceholder {
+    /// Id of the form field this placeholder depends on (or `daemon_os` for the credential's
+    /// Daemon OS).
+    pub depends_on: &'static str,
+    /// Value that field must hold for this placeholder to apply.
+    pub value: &'static str,
+    /// Placeholder shown while it does.
+    pub placeholder: &'static str,
 }
 
 /// A single choice for a `Select` field. `value` is the wire value (serialized enum variant, e.g.
@@ -89,6 +115,10 @@ pub enum InlineFormat {
     PemPrivateKey,
     /// PEM-encoded certificate (public, non-secret)
     PemCertificate,
+    /// SSH private key: OpenSSH format (`ssh-keygen`'s default) or PKCS#8 / RSA / EC PEM.
+    SshPrivateKey,
+    /// Six bytes written as a MAC address (e.g. a Wake-on-LAN SecureOn password).
+    MacAddress,
 }
 
 /// PEM block tag — the label between `-----BEGIN` and `-----`.
@@ -98,6 +128,7 @@ pub enum PemTag {
     PrivateKey,
     RsaPrivateKey,
     EcPrivateKey,
+    OpensshPrivateKey,
 }
 
 impl PemTag {
@@ -107,6 +138,7 @@ impl PemTag {
             Self::PrivateKey => "PRIVATE KEY",
             Self::RsaPrivateKey => "RSA PRIVATE KEY",
             Self::EcPrivateKey => "EC PRIVATE KEY",
+            Self::OpensshPrivateKey => "OPENSSH PRIVATE KEY",
         }
     }
 }
@@ -115,9 +147,15 @@ impl InlineFormat {
     /// PEM tags accepted by this format, or empty for non-PEM formats.
     pub fn allowed_pem_tags(&self) -> &'static [PemTag] {
         match self {
-            Self::Plain => &[],
+            Self::Plain | Self::MacAddress => &[],
             Self::PemCertificate => &[PemTag::Certificate],
             Self::PemPrivateKey => &[
+                PemTag::PrivateKey,
+                PemTag::RsaPrivateKey,
+                PemTag::EcPrivateKey,
+            ],
+            Self::SshPrivateKey => &[
+                PemTag::OpensshPrivateKey,
                 PemTag::PrivateKey,
                 PemTag::RsaPrivateKey,
                 PemTag::EcPrivateKey,
@@ -128,6 +166,16 @@ impl InlineFormat {
     /// Validate a resolved value matches the expected format.
     /// Returns Ok(()) for Plain format (no validation needed).
     pub fn validate(&self, value: &str, field_name: &str) -> Result<(), Error> {
+        if let Self::MacAddress = self {
+            let trimmed = value.trim();
+            if !trimmed.is_empty() && trimmed.parse::<mac_address::MacAddress>().is_err() {
+                crate::bail_validation!(
+                    "{} must be six bytes written as a MAC address, e.g. 01:23:45:67:89:ab",
+                    field_name
+                );
+            }
+            return Ok(());
+        }
         let tags = self.allowed_pem_tags();
         if tags.is_empty() {
             return Ok(());

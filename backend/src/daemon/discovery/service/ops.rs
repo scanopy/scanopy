@@ -1,4 +1,4 @@
-//! Shared discovery operations used by both the pipeline and integrations.
+//! S                o.record_wake_on_lan(result);ared discovery operations used by both the pipeline and integrations.
 //!
 //! `DiscoveryOps` provides entity creation, service matching, and progress reporting
 //! without requiring `DiscoveryRunner` or its associated traits.
@@ -24,11 +24,16 @@ use crate::{
             },
             types::warnings::DiscoveryWarning,
         },
-        shared::{api_client::DaemonApiClient, config::ConfigStore},
+        shared::{
+            api_client::{DaemonApiClient, ServerResponseError},
+            config::ConfigStore,
+        },
     },
     server::{
         credentials::r#impl::{
-            mapping::CredentialQueryPayloadDiscriminants, types::CredentialAssignment,
+            mapping::CredentialQueryPayloadDiscriminants,
+            run_results::{CredentialRunOutcome, CredentialRunResult},
+            types::CredentialAssignment,
         },
         daemons::r#impl::{
             api::{DaemonDiscoveryRequest, DiscoveryUpdatePayload},
@@ -79,6 +84,27 @@ use crate::daemon::discovery::integration::{InterfaceSource, InterfaceViewScope}
 
 /// Default number of retries for entity creation during discovery.
 const ENTITY_CREATION_MAX_RETRIES: usize = 5;
+
+/// Retry schedule for a run's final report: about 4 minutes of waiting in all, so a report that
+/// gets through late still lands inside the server's 5-minute stall window.
+const TERMINAL_REPORT_BACKOFF: ExponentialBuilder = ExponentialBuilder::new()
+    .with_min_delay(Duration::from_secs(1))
+    .with_max_delay(Duration::from_secs(30))
+    .with_total_delay(Some(Duration::from_secs(240)))
+    .without_max_times();
+
+/// Send a run's final report until it lands or `backoff` runs out. A 4xx stops at once: the
+/// server refused this body, and sending it again gets the same answer.
+async fn send_terminal_report<F, Fut>(send: F, backoff: ExponentialBuilder) -> Result<(), Error>
+where
+    F: FnMut() -> Fut,
+    Fut: std::future::Future<Output = Result<(), Error>>,
+{
+    send.retry(backoff)
+        .when(|e| !ServerResponseError::is_rejection(e))
+        .notify(|e, dur| tracing::warn!("Retrying the final discovery report after {dur:?}: {e}"))
+        .await
+}
 
 /// Timeout for waiting for server confirmation in ServerPoll mode.
 const SERVER_POLL_CONFIRMATION_TIMEOUT: Duration = Duration::from_secs(120);
@@ -691,6 +717,7 @@ impl DiscoveryOps {
             progress: 0,
             error: None,
             warnings: Vec::new(),
+            credential_results: Vec::new(),
             finished_at: None,
             reason: None,
         })
@@ -722,7 +749,7 @@ impl DiscoveryOps {
             .load(std::sync::atomic::Ordering::Relaxed);
 
         // Non-fatal findings accumulated during the run (e.g. hit the time limit), plus one coded
-        // warning per occurrence for each kind that fires per host — see
+        // warning per occurrence for each type that fires per host — see
         // `crate::daemon::discovery::service::warnings` for why those are recorded typed and coded
         // here rather than pushed as sentences when they happen.
         let mut warnings = session
@@ -762,6 +789,18 @@ impl DiscoveryOps {
         }
 
         truncate_warnings(&mut warnings);
+        let credential_results = session
+            .credential_results
+            .lock()
+            .map(|r| {
+                r.iter()
+                    .map(|(id, outcome)| CredentialRunResult {
+                        credential_id: *id,
+                        outcome: outcome.clone(),
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
 
         let warning_count = warnings.len();
         let terminal_update = terminal_update(
@@ -769,6 +808,7 @@ impl DiscoveryOps {
             cancel.is_cancelled(),
             final_progress,
             warnings,
+            credential_results,
             Utc::now(),
         );
         match terminal_update.phase {
@@ -880,8 +920,28 @@ impl DiscoveryOps {
             payload.estimated_remaining_secs = Some(estimate);
         }
 
-        // Progress updates are non-critical - log errors but don't fail discovery
-        self.post_session_update(&session, &payload).await;
+        // The terminal report is the run's outcome: without it the server's stall sweep records
+        // the run as failed, so it is retried. ServerPoll servers also collect it from
+        // `terminal_payload`. Progress updates are best-effort; the next one supersedes a lost one.
+        let retry_terminal = payload.phase.is_terminal()
+            && self.config_store.get_mode().await? == DaemonMode::DaemonPoll;
+        if retry_terminal {
+            if let Err(e) = send_terminal_report(
+                || self.post_session_update(&session, &payload),
+                TERMINAL_REPORT_BACKOFF,
+            )
+            .await
+            {
+                tracing::error!(
+                    session_id = %session.info.session_id,
+                    phase = %payload.phase,
+                    error = %e,
+                    "The run's final report did not reach the server; the server will record the run as stalled"
+                );
+            }
+        } else {
+            let _ = self.post_session_update(&session, &payload).await;
+        }
 
         Ok(())
     }
@@ -963,6 +1023,68 @@ impl DiscoveryOps {
         {
             buffer.extend(issues.iter().cloned());
         }
+    }
+
+    /// Apply `f` to a credential's run outcome, creating the empty outcome for its type first.
+    async fn with_credential_result(
+        &self,
+        credential_id: uuid::Uuid,
+        integration: CredentialQueryPayloadDiscriminants,
+        f: impl FnOnce(&mut CredentialRunOutcome),
+    ) {
+        if let Ok(session) = self.get_session().await
+            && let Ok(mut results) = session.credential_results.lock()
+        {
+            f(results
+                .entry(credential_id)
+                .or_insert_with(|| CredentialRunOutcome::empty_for(integration)));
+        }
+    }
+
+    /// A credential collected from one more host.
+    pub async fn record_collected(
+        &self,
+        credential_id: uuid::Uuid,
+        integration: CredentialQueryPayloadDiscriminants,
+    ) {
+        self.with_credential_result(credential_id, integration, |o| {
+            if let CredentialRunOutcome::Collected { hosts } = o {
+                *hosts += 1;
+            }
+        })
+        .await;
+    }
+
+    /// Record what one SSH script did on one host, whether it succeeded or not.
+    pub async fn record_ssh_script_run(
+        &self,
+        credential_id: uuid::Uuid,
+        run: crate::server::credentials::r#impl::types::ssh_script::SshScriptRun,
+    ) {
+        self.with_credential_result(
+            credential_id,
+            CredentialQueryPayloadDiscriminants::Ssh,
+            |o| {
+                if let CredentialRunOutcome::SshScript { runs } = o {
+                    runs.push(run);
+                }
+            },
+        )
+        .await;
+    }
+
+    /// Record whether one address woke. See [`CredentialRunOutcome::record_wake_on_lan`].
+    pub async fn record_wake_on_lan(
+        &self,
+        credential_id: uuid::Uuid,
+        result: crate::server::credentials::r#impl::run_results::WakeOnLanResult,
+    ) {
+        self.with_credential_result(
+            credential_id,
+            CredentialQueryPayloadDiscriminants::WakeOnLan,
+            |o| o.record_wake_on_lan(result),
+        )
+        .await;
     }
 
     /// Record LLDP neighbours whose local port could not be matched to an interface.
@@ -1108,7 +1230,7 @@ impl DiscoveryOps {
                 payload.estimated_remaining_secs = Some(estimate);
             }
 
-            self.post_session_update(&session, &payload).await;
+            let _ = self.post_session_update(&session, &payload).await;
         }
 
         Ok(())
@@ -1120,15 +1242,15 @@ impl DiscoveryOps {
         &self,
         session: &super::base::DiscoverySession,
         payload: &DiscoveryUpdatePayload,
-    ) {
+    ) -> Result<(), Error> {
         use std::sync::atomic::Ordering;
 
         let path = format!("/api/v1/discovery/{}/update", session.info.session_id);
-        match self
+        let result = self
             .api_client
             .post_no_data(&path, payload, "Failed to report discovery update")
-            .await
-        {
+            .await;
+        match &result {
             Err(e) => {
                 let failures = session
                     .consecutive_report_failures
@@ -1155,6 +1277,7 @@ impl DiscoveryOps {
                 }
             }
         }
+        result
     }
 
     /// Create a host with its children.
@@ -1211,7 +1334,10 @@ impl DiscoveryOps {
                         .with_max_delay(Duration::from_secs(30))
                         .with_max_times(ENTITY_CREATION_MAX_RETRIES),
                 )
-                .when(|e| e.downcast_ref::<ApiErrorResponse>().is_none())
+                .when(|e| {
+                    e.downcast_ref::<ApiErrorResponse>().is_none()
+                        && !ServerResponseError::is_rejection(e)
+                })
                 .notify(|e, dur| tracing::warn!("Retrying host creation after {:?}: {}", dur, e))
                 .await?;
 
@@ -1592,13 +1718,14 @@ pub enum DiscoveryAbort {
 /// The terminal update a run reports, from how it ended.
 ///
 /// A watchdog abort is a failure with its own reason whatever the session's token says: the
-/// session may well have been cancelled first and never reacted, which is the kind of wedge the
+/// session may well have been cancelled first and never reacted, which is the wedge the
 /// watchdog exists for.
 fn terminal_update(
     result: &Result<(), Error>,
     cancelled: bool,
     progress: u8,
     warnings: Vec<DiscoveryWarning>,
+    credential_results: Vec<CredentialRunResult>,
     now: chrono::DateTime<Utc>,
 ) -> DiscoverySessionUpdate {
     let (phase, progress, error, reason) = match result {
@@ -1625,6 +1752,7 @@ fn terminal_update(
         progress,
         error,
         warnings,
+        credential_results,
         finished_at: Some(now),
         reason,
     }
@@ -1672,7 +1800,14 @@ mod terminal_update_tests {
         // A session cancelled and then wedged is exactly what the watchdog ends. Reporting it
         // as cancelled would say the cancel worked.
         for cancelled in [false, true] {
-            let update = terminal_update(&watchdog_abort(), cancelled, 99, Vec::new(), Utc::now());
+            let update = terminal_update(
+                &watchdog_abort(),
+                cancelled,
+                99,
+                Vec::new(),
+                Vec::new(),
+                Utc::now(),
+            );
 
             assert_eq!(update.phase, DiscoveryPhase::Failed);
             assert_eq!(
@@ -1690,6 +1825,7 @@ mod terminal_update_tests {
             false,
             40,
             Vec::new(),
+            Vec::new(),
             Utc::now(),
         );
 
@@ -1705,6 +1841,67 @@ mod tests {
     use crate::server::shared::attribution;
     use tokio::sync::Mutex;
     use tokio::time::Instant;
+
+    fn fast_backoff() -> ExponentialBuilder {
+        ExponentialBuilder::new()
+            .with_min_delay(Duration::from_millis(1))
+            .with_max_delay(Duration::from_millis(1))
+            .with_max_times(10)
+    }
+
+    fn server_error(status: u16) -> Error {
+        use crate::daemon::shared::api_client::ServerResponseErrorType;
+        let status = reqwest::StatusCode::from_u16(status).unwrap();
+        Error::new(ServerResponseError {
+            context: "Failed to report discovery update".into(),
+            status,
+            message: None,
+            r#type: if status.is_client_error() {
+                ServerResponseErrorType::Rejected
+            } else {
+                ServerResponseErrorType::ServerFault
+            },
+        })
+    }
+
+    /// A final report that fails to send goes again, and stops once the server takes it.
+    #[tokio::test]
+    async fn the_final_report_is_resent_until_the_server_takes_it() {
+        let attempts = std::sync::atomic::AtomicUsize::new(0);
+
+        let result = send_terminal_report(
+            || async {
+                match attempts.fetch_add(1, std::sync::atomic::Ordering::SeqCst) {
+                    0 => Err(anyhow!("connection reset")),
+                    1 => Err(server_error(503)),
+                    _ => Ok(()),
+                }
+            },
+            fast_backoff(),
+        )
+        .await;
+
+        assert!(result.is_ok());
+        assert_eq!(attempts.load(std::sync::atomic::Ordering::SeqCst), 3);
+    }
+
+    /// The server refusing the body is final: the same body gets the same answer.
+    #[tokio::test]
+    async fn a_rejected_final_report_is_not_resent() {
+        let attempts = std::sync::atomic::AtomicUsize::new(0);
+
+        let result = send_terminal_report(
+            || async {
+                attempts.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                Err::<(), _>(server_error(422))
+            },
+            fast_backoff(),
+        )
+        .await;
+
+        assert!(result.is_err());
+        assert_eq!(attempts.load(std::sync::atomic::Ordering::SeqCst), 1);
+    }
 
     fn empty_host_data() -> HostData {
         use crate::server::hosts::r#impl::base::{Host, HostBase};
@@ -1755,7 +1952,7 @@ mod tests {
 
     /// The positive control for the attribute path: what an integration read reaches the host.
     ///
-    /// Worth pinning on its own because the failure it guards against is different in kind from
+    /// Worth pinning on its own because the failure it guards against is a different type from
     /// the one below — a scan that stops delivering a model at all is not the same bug as one
     /// that delivers the wrong source's model.
     #[test]

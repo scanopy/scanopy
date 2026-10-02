@@ -39,6 +39,7 @@ use crate::server::organizations::service::SwitchKeyTypeError;
 use crate::server::shared::events::traits::{Event, OrgScope, Subscriber};
 use crate::server::shared::events::types::BillingOperation;
 use crate::server::shared::services::traits::CrudService;
+use crate::server::shared::types::api::ApiJson;
 use crate::server::users::r#impl::permissions::UserOrgPermissions;
 
 /// App state on a fresh database, billing enforced, signing with the test key.
@@ -110,7 +111,7 @@ fn whole_seconds_from_now(days: i64) -> DateTime<Utc> {
 }
 
 async fn request_entitlement(state: &Arc<AppState>, key: String) -> Result<String, StatusCode> {
-    get_entitlement(State(state.clone()), Json(EntitlementRequest { key }))
+    get_entitlement(State(state.clone()), ApiJson(EntitlementRequest { key }))
         .await
         .map(|Json(response)| response.into_data().unwrap().entitlement)
         .map_err(|error| error.status)

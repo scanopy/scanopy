@@ -7,6 +7,7 @@ use crate::server::shared::handlers::traits::{
 use crate::server::shared::services::traits::{CrudService, EventBusService};
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::{Entity, Storable};
+use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::api::PaginatedApiResponse;
 use crate::server::topology::types::base::{Topology, TopologyBase};
 use crate::server::{
@@ -125,6 +126,7 @@ async fn get_by_id_network(
     post,
     path = "",
     tag = Network::ENTITY_NAME_PLURAL,
+    request_body = Network,
     responses(
         (status = 200, description = "Network created", body = ApiResponse<Network>),
     ),
@@ -134,7 +136,7 @@ async fn create_network(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Admin>,
     RequireFeature { .. }: RequireFeature<CreateNetworkFeature>,
-    Json(network): Json<Network>,
+    ApiJson(network): ApiJson<Network>,
 ) -> ApiResult<Json<ApiResponse<Network>>> {
     let entity = auth.entity.clone();
     let organization_id = auth.organization_id();
@@ -154,7 +156,7 @@ async fn create_network(
     let response = create_handler::<Network>(
         State(state.clone()),
         auth.into_permission::<Member>(),
-        Json(network),
+        ApiJson(network),
     )
     .await?;
 
@@ -241,7 +243,7 @@ async fn update_network(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Admin>,
     Path(id): Path<Uuid>,
-    Json(network): Json<Network>,
+    ApiJson(network): ApiJson<Network>,
 ) -> ApiResult<Json<ApiResponse<Network>>> {
     let credential_ids = network.base.credential_ids.clone();
 
@@ -260,7 +262,7 @@ async fn update_network(
         State(state.clone()),
         auth.into_permission::<Member>(),
         Path(id),
-        Json(network),
+        ApiJson(network),
     )
     .await?;
 
@@ -334,7 +336,7 @@ async fn delete_network(
 async fn bulk_delete_networks(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Admin>,
-    json: Json<Vec<Uuid>>,
+    json: ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>> {
     let organization_id = auth
         .organization_id()
@@ -348,7 +350,7 @@ async fn bulk_delete_networks(
         .unwrap_or_default()
         .len();
 
-    if json.len() >= network_count {
+    if json.0.len() >= network_count {
         return Err(ApiError::entity_delete_forbidden::<Network>(Some(
             "Organizations must have at least one network.",
         )));

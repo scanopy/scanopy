@@ -13,6 +13,8 @@
 
 use std::sync::Arc;
 
+use crate::server::shared::types::api::ApiJson;
+
 use axum::extract::State;
 use axum::response::Json;
 use chrono::Utc;
@@ -81,7 +83,7 @@ async fn create_snapshot(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
     RequireFeature { .. }: RequireFeature<TakeSnapshotFeature>,
-    Json(req): Json<CreateSnapshotRequest>,
+    ApiJson(req): ApiJson<CreateSnapshotRequest>,
 ) -> ApiResult<Json<ApiResponse<Snapshot>>> {
     // Tenant isolation: require the network to be in the caller's set.
     let network_ids = auth.network_ids();

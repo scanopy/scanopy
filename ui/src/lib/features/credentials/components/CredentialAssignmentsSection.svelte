@@ -2,26 +2,34 @@
 	import { SlidersHorizontal } from 'lucide-svelte';
 	import type { components } from '$lib/api/schema';
 	import type { Network } from '$lib/features/networks/types';
-	import type { Host, IPAddress } from '$lib/features/hosts/types/base';
+	import type { HostWithAddresses, IPAddress } from '$lib/features/hosts/types/base';
 	import { useNetworksQuery } from '$lib/features/networks/queries';
-	import { useHostsQuery } from '$lib/features/hosts/queries';
+	import { useHostSummariesQuery } from '$lib/features/hosts/queries';
+	import {
+		hostDisplayContext,
+		useHostPicker,
+		useHostServices
+	} from '$lib/features/hosts/host-picker.svelte';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
 	import { useCredentialsQuery } from '$lib/features/credentials/queries';
 	import {
 		claimedIntegrationsForHost,
 		daemonHostBlockReason
 	} from '$lib/features/credentials/utils/daemonHostBlocking';
-	import { useIPAddressesQuery } from '$lib/features/ip-addresses/queries';
 	import { useSubnetsQuery } from '$lib/features/subnets/queries';
 	import { credentialTypes } from '$lib/shared/stores/metadata';
 	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
 	import { NetworkDisplay } from '$lib/shared/components/forms/selection/display/NetworkDisplay.svelte';
-	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	import {
+		HostDisplay,
+		type HostDisplayContext
+	} from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
 	import {
 		IPAddressDisplay,
 		type IPAddressDisplayContext
 	} from '$lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
 	import {
+		common_alreadyAdded,
 		common_hosts,
 		common_networks,
 		credentials_assignNetworkEmpty,
@@ -60,20 +68,12 @@
 	let supportsDaemonHostOnly = $derived(targets.includes('DaemonHost') && !supportsPerHost);
 
 	const networksQuery = useNetworksQuery();
-	// Still the full nested query, deliberately. The per-host IP-scoping rows
-	// (`hostIpAddresses`, `getScopedInterfaces`) read the ip-addresses cache, which
-	// has no fetcher of its own and is populated as a side effect of *this* query.
-	// A credential can be assigned to hosts on any network, and
-	// `GET /api/v1/ip-addresses` takes only a single `host_id` — no `ids` — so
-	// there is no bounded direct replacement today.
-	//
-	// Fixing that properly means the deferred child-cache re-architecture plus an
-	// `ids` param on that endpoint (see
-	// planned-work/child-cache-rearchitecture.md). This surface is lazy — it only
-	// mounts inside the credential modal's assignments tab — so it no longer costs
-	// anything on page load.
-	const hostsQuery = useHostsQuery({ limit: 0 });
-	const ipAddressesQuery = useIPAddressesQuery();
+	// The add-dropdown pages through every host the user can see, searched on the server. The
+	// assigned hosts are fetched by id, and their addresses come with them, which is what the
+	// per-host IP-scoping rows read. This used to be `useHostsQuery({ limit: 0 })`, every host in
+	// the organisation with all its children, because the ip-addresses cache was the only source
+	// of a host's addresses.
+	const hostPicker = useHostPicker(() => ({ enabled: supportsPerHost }));
 	const subnetsQuery = useSubnetsQuery();
 	const daemonsQuery = useDaemonsQuery();
 	const credentialsQuery = useCredentialsQuery();
@@ -90,16 +90,42 @@
 		);
 	}
 
+	/** Why a host can't be added: it already is, or its integration is claimed elsewhere. */
+	function hostOptionDisabledReason(hostId: string): string | null {
+		if (hostAssignments.some((a) => a.host_id === hostId)) return common_alreadyAdded();
+		return hostBlockReason(hostId);
+	}
+
 	let allNetworks = $derived(networksQuery.data ?? []);
-	let allHosts = $derived(hostsQuery.data?.items ?? []);
 	let daemonHostIds = $derived((daemonsQuery.data ?? []).map((d) => d.host_id));
-	let availableDaemonHosts = $derived(
-		allHosts.filter(
-			(h) => daemonHostIds.includes(h.id) && !hostAssignments.some((a) => a.host_id === h.id)
-		)
-	);
-	let allIpAddresses = $derived(ipAddressesQuery.data ?? []);
 	let subnets = $derived(subnetsQuery.data ?? []);
+
+	// One daemon per host at most, so this list is bounded and stays client-side.
+	const daemonHostsQuery = useHostSummariesQuery(() => ({ ids: daemonHostIds }));
+	let daemonHosts = $derived(daemonHostsQuery.data?.items ?? []);
+	let availableDaemonHosts = $derived(
+		daemonHosts.filter((h) => !hostAssignments.some((a) => a.host_id === h.id))
+	);
+
+	const assignedHostsQuery = useHostSummariesQuery(() => ({
+		ids: hostAssignments.map((a) => a.host_id)
+	}));
+	// A host picked from the dropdown is shown at once, before the by-id query refetches.
+	let pickedHosts = $state<HostWithAddresses[]>([]);
+	let knownHosts = $derived.by(() => {
+		const byId: Record<string, HostWithAddresses> = {};
+		for (const host of [...daemonHosts, ...pickedHosts, ...(assignedHostsQuery.data?.items ?? [])])
+			byId[host.id] = host;
+		return Object.values(byId);
+	});
+	let allIpAddresses = $derived(knownHosts.flatMap((h) => h.ip_addresses));
+
+	// The assigned and daemon hosts' rows; the add-dropdown's rows come from `hostPicker.context`.
+	const knownHostServices = useHostServices(() => knownHosts.map((h) => h.id));
+
+	function hostContext(extra: HostDisplayContext = {}) {
+		return hostDisplayContext(allIpAddresses, knownHostServices.services, extra);
+	}
 
 	// --- Networks (Broadcast) ---
 	let selectedNetworks = $derived(
@@ -122,12 +148,8 @@
 	// --- Hosts (PerHost), with per-host IP scoping via row expansion ---
 	let selectedHosts = $derived(
 		hostAssignments
-			.map((a) => allHosts.find((h) => h.id === a.host_id))
-			.filter((h): h is Host => h != null)
-	);
-
-	let availableHosts = $derived(
-		allHosts.filter((h) => !hostAssignments.some((a) => a.host_id === h.id))
+			.map((a) => knownHosts.find((h) => h.id === a.host_id))
+			.filter((h): h is HostWithAddresses => h != null)
 	);
 
 	// Which host row is expanded to show its IP-address scope (by host id)
@@ -139,6 +161,8 @@
 
 	function addHost(id: string) {
 		if (!hostAssignments.some((a) => a.host_id === id)) {
+			const picked = [...hostPicker.options, ...daemonHosts].find((h) => h.id === id);
+			if (picked) pickedHosts = [...pickedHosts, picked];
 			hostAssignments = [...hostAssignments, { host_id: id, ip_address_ids: null }];
 		}
 	}
@@ -209,9 +233,16 @@
 			placeholder={credentials_assignHostPlaceholder()}
 			emptyMessage={credentials_assignHostEmpty()}
 			allowReorder={false}
-			options={availableHosts}
-			getOptionContext={(h) => ({ disabledReason: hostBlockReason(h.id) })}
+			options={hostPicker.options}
+			showSearch={true}
+			onSearchChange={hostPicker.onSearchChange}
+			onLoadMore={hostPicker.onLoadMore}
+			hasMore={hostPicker.hasMore}
+			loading={hostPicker.loading}
+			getOptionContext={(h) =>
+				hostPicker.context({ disabledReason: hostOptionDisabledReason(h.id) })}
 			items={selectedHosts}
+			getItemContext={() => hostContext()}
 			optionDisplayComponent={HostDisplay}
 			itemDisplayComponent={HostDisplay}
 			itemClickAction="edit"
@@ -259,8 +290,10 @@
 			emptyMessage={credentials_assignDaemonHostEmpty()}
 			allowReorder={false}
 			options={availableDaemonHosts}
-			getOptionContext={(h) => ({ disabledReason: hostBlockReason(h.id) })}
+			showSearch={true}
+			getOptionContext={(h) => hostContext({ disabledReason: hostBlockReason(h.id) })}
 			items={selectedHosts}
+			getItemContext={() => hostContext()}
 			optionDisplayComponent={HostDisplay}
 			itemDisplayComponent={HostDisplay}
 			onAdd={addHost}

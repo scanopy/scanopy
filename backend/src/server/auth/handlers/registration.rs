@@ -3,6 +3,7 @@ use super::*;
 use crate::server::auth::email_domain::{DomainCheck, check_email_domain};
 use crate::server::auth::r#impl::api::CheckEmailResponse;
 use crate::server::openapi::tags as api_tags;
+use crate::server::shared::types::api::ApiJson;
 
 #[utoipa::path(
     post,
@@ -16,7 +17,7 @@ use crate::server::openapi::tags as api_tags;
 )]
 pub(crate) async fn check_email(
     State(state): State<Arc<AppState>>,
-    Json(request): Json<CheckEmailRequest>,
+    ApiJson(request): ApiJson<CheckEmailRequest>,
 ) -> ApiResult<Json<ApiResponse<CheckEmailResponse>>> {
     // A genuine refusal, unlike a taken address: this deployment does not do
     // password registration at all, so there is no question to answer.
@@ -58,7 +59,7 @@ pub(crate) async fn register(
     ClientIp(ip): ClientIp,
     user_agent: Option<TypedHeader<UserAgent>>,
     session: Session,
-    Json(request): Json<RegisterRequest>,
+    ApiJson(request): ApiJson<RegisterRequest>,
 ) -> ApiResult<Json<ApiResponse<User>>> {
     // Block registration on dedicated demo domain
     if is_demo_only_host(&host) {
@@ -232,7 +233,7 @@ pub(crate) async fn register(
 )]
 pub(crate) async fn setup(
     session: Session,
-    Json(request): Json<SetupRequest>,
+    ApiJson(request): ApiJson<SetupRequest>,
 ) -> ApiResult<Json<ApiResponse<SetupResponse>>> {
     // Validate request
     if request.organization_name.trim().is_empty() {
@@ -296,7 +297,7 @@ pub async fn clear_pending_setup(session: &Session) {
 )]
 pub(crate) async fn onboarding_step(
     session: Session,
-    Json(request): Json<OnboardingStepRequest>,
+    ApiJson(request): ApiJson<OnboardingStepRequest>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     session
         .insert("onboarding_step", request.step)
@@ -423,6 +424,8 @@ pub(crate) async fn apply_pending_setup(
                     url: None,
                     seed_credential_refs: Vec::new(),
                     daemon_id: None,
+                    // The integrated daemon ships in the Linux server image.
+                    os: Some(DaemonOs::Linux),
                 },
                 None,
                 auth_entity.clone(),

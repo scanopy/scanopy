@@ -195,15 +195,22 @@ impl BillingService {
     /// only writer for this. Returns `Ok(Some(cents))` on apply, `Ok(None)`
     /// when there's nothing to credit (metadata missing, item missing, or
     /// computed amount is zero/negative).
+    ///
+    /// `resumed_at` is the webhook event's `created` time, which stays the same
+    /// across redeliveries. Stripe rejects an idempotency key reused with
+    /// different parameters, so timing the credit from `Utc::now()` would turn
+    /// a redelivery after a lost response into a permanent failure instead of
+    /// a replay of the first credit.
     pub(crate) async fn apply_pause_credit_if_due(
         &self,
         sub: &Subscription,
         organization: &Organization,
+        resumed_at: DateTime<Utc>,
     ) -> Result<Option<i64>, Error> {
         let Some(PauseCredit {
             credit_cents,
             actual_paused_secs,
-        }) = compute_pause_credit(sub, organization)
+        }) = compute_pause_credit(sub, organization, resumed_at)
         else {
             return Ok(None);
         };
@@ -222,12 +229,24 @@ impl BillingService {
         // days" — matching the dollars).
         let days_label = actual_paused_secs / 86_400;
 
+        // One credit per pause: `scanopy_paused_at` is set once per pause and
+        // `compute_pause_credit` returned `None` above if it was missing. The
+        // webhook redelivers after a failure, and this key stops a credit that
+        // landed in Stripe (response lost) from posting again.
+        let paused_at = StripeSubscriptionMetadata::from_stripe(&sub.metadata)
+            .scanopy_paused_at
+            .ok_or_else(|| anyhow!("Pause credit computed without scanopy_paused_at"))?;
+        let idempotency_key = IdempotencyKey::new(format!("pause-credit-{}-{paused_at}", sub.id))
+            .map_err(|e| anyhow!("Invalid idempotency key: {e:?}"))?;
+
         CreateCustomerCustomerBalanceTransaction::new(
             stripe_shared::CustomerId::from(customer_id),
             -credit_cents,
             stripe_types::Currency::USD,
         )
         .description(format!("Pause credit ({} days)", days_label))
+        .customize()
+        .request_strategy(RequestStrategy::Idempotent(idempotency_key))
         .send(&self.stripe)
         .await
         .map_err(|e| anyhow!("Stripe rejected pause-credit balance transaction: {e}"))?;
@@ -787,7 +806,7 @@ impl BillingService {
     /// which is enough for a customer who was only past due. A lapsed one also
     /// needs its plan back and a subscription to renew on, and the date is
     /// wrong for anyone who settled after the term had run out. `None` for
-    /// every other kind of payment.
+    /// every other type of payment.
     async fn prepare_license_resume(
         &self,
         organization: &Organization,

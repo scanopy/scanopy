@@ -17,12 +17,13 @@ use crate::server::bindings::r#impl::base::Binding;
 use crate::server::credentials::handlers::CredentialOrderField;
 use crate::server::credentials::r#impl::base::Credential;
 use crate::server::credentials::r#impl::types::{
-    CredentialStability, CredentialTypeDiscriminants, UpstreamSupport,
+    CredentialIntegration, CredentialOsFields, CredentialStability, CredentialTypeDiscriminants,
+    UpstreamSupport,
 };
 use crate::server::daemon_api_keys::r#impl::base::DaemonApiKey;
 use crate::server::daemons::handlers::DaemonOrderField;
 use crate::server::daemons::r#impl::base::Daemon;
-use crate::server::daemons::r#impl::install_artifacts::InstallCommandKind;
+use crate::server::daemons::r#impl::install_artifacts::InstallCommandType;
 use crate::server::dependencies::handlers::DependencyOrderField;
 use crate::server::dependencies::r#impl::base::Dependency;
 use crate::server::discovery::handlers::DiscoveryOrderField;
@@ -118,8 +119,15 @@ pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
         // `CredentialStability` does and for the same reason — and it is a *separate* axis: an
         // integration can be `Stable` and still ride an undocumented endpoint, as UniFi is.
         UpstreamSupport,
+        // The integration a credential type belongs to. Travels inside `TypeMetadata.metadata` like
+        // `CredentialStability`, and keys `credential-integrations.json`; the picker types its
+        // grouping key from here.
+        CredentialIntegration,
+        // Which credential fields depend on which declared OS. Travels inside `TypeMetadata.metadata`
+        // like `CredentialIntegration`; the form types its picker placement from here.
+        CredentialOsFields,
         // Referenced by the install-command query parameter, so it needs a registered schema.
-        InstallCommandKind,
+        InstallCommandType,
         // Referenced by the credential-list `?type` filter, which utoipa collects from
         // `IntoParams` without registering the schema it points at.
         CredentialTypeDiscriminants,

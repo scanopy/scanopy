@@ -20,7 +20,7 @@ use crate::server::{
         entities::{Entity, EntityDiscriminants},
         events::{
             registry::SubscriberRegistration,
-            traits::{EntityEventFilter, Event, EventFilter, Subscriber},
+            traits::{EntityEventFilter, Event, EventFilter, NonRetryable, Subscriber},
             types::{
                 AuthOperation, AuthOperationDiscriminants, BillingOperation,
                 BillingOperationDiscriminants, EntityOperation, EntityOperationDiscriminants,
@@ -83,18 +83,18 @@ impl Subscriber<BillingOperation> for EmailService {
     async fn handle(&self, events: Vec<Event<BillingOperation>>) -> Result<(), Error> {
         for event in events {
             // The filter narrows to discriminants that produce email; safe to
-            // load the owner email up front.
-            let org_owner = match self.get_owner_email(&event.scope.organization_id).await {
-                Ok(email) => email,
-                Err(e) => {
-                    tracing::warn!(
-                        organization_id = %event.scope.organization_id,
-                        error = %e,
-                        "Failed to resolve org owner email; skipping email for this event",
-                    );
-                    continue;
-                }
-            };
+            // load the owner email up front. A failure here is a plain `Err` the bus retries:
+            // nothing has been sent yet, because with no debounce window the bus hands this
+            // subscriber exactly one event per call.
+            let org_owner = self
+                .get_owner_email(&event.scope.organization_id)
+                .await
+                .map_err(|e| {
+                    e.context(format!(
+                        "resolve owner email for org {}",
+                        event.scope.organization_id
+                    ))
+                })?;
 
             match event.operation {
                 BillingOperation::TrialStarted {
@@ -472,7 +472,10 @@ impl Subscriber<BillingOperation> for EmailService {
                             plan.features().onboarding_call,
                         )
                         .await?;
-                    } else {
+                    } else if !is_trialing {
+                        // A cloud trial gets `trial_started` instead; "your
+                        // subscription is active" arrives as `trial_converted`
+                        // once a card is charged.
                         self.send_checkout_completed_email(org_owner, plan.name())
                             .await?;
                     }
@@ -601,7 +604,13 @@ impl Subscriber<EntityOperation> for EmailService {
         ]))
     }
 
+    /// With no debounce window the bus passes one event per call, so a plain `Err` re-runs only
+    /// that event. `check_plan_limits` sends emails and writes the notification level, so its
+    /// failure is `NonRetryable`. For an org deletion it runs with emails suppressed and only
+    /// recomputes the same level, so retrying a failed org-deleted email is safe.
     async fn handle(&self, events: Vec<Event<EntityOperation>>) -> Result<(), Error> {
+        let mut plan_limit_failures = Vec::new();
+        let mut send_failure = None;
         for event in events {
             let org_id = if let Some(org_id) = event.scope.organization_id() {
                 Some(org_id)
@@ -619,11 +628,8 @@ impl Subscriber<EntityOperation> for EmailService {
                     .check_plan_limits(org_id, event.operation == EntityOperation::Deleted)
                     .await
             {
-                tracing::warn!(
-                    organization_id = %org_id,
-                    error = %e,
-                    "Failed to check plan limits"
-                );
+                plan_limit_failures
+                    .push(anyhow::anyhow!("check plan limits for org {org_id}: {e:#}"));
             }
 
             // Org-deleted confirmation email to the initiator. Skipped for
@@ -633,13 +639,17 @@ impl Subscriber<EntityOperation> for EmailService {
                 && let AuthenticatedEntity::User { email, .. } = &event.authentication
                 && let Err(e) = self.send_organization_deleted_email(email.clone()).await
             {
-                tracing::warn!(
-                    error = %e,
-                    "Failed to send organization-deleted email",
-                );
+                send_failure.get_or_insert(e.context("send organization-deleted email"));
             }
         }
-        Ok(())
+        if !plan_limit_failures.is_empty() {
+            if let Some(e) = send_failure {
+                plan_limit_failures.push(anyhow::anyhow!("{e:#}"));
+            }
+            return NonRetryable::from_failures(plan_limit_failures)
+                .map_or(Ok(()), |e| Err(e.into()));
+        }
+        send_failure.map_or(Ok(()), Err)
     }
 }
 inventory::submit!(SubscriberRegistration::new::<EmailService, EntityOperation>());
@@ -652,6 +662,8 @@ impl Subscriber<OnboardingOperation> for EmailService {
         ])
     }
 
+    /// One send per event, and with no debounce window the bus passes one event per call, so a
+    /// failure is a plain `Err` the bus retries.
     async fn handle(&self, events: Vec<Event<OnboardingOperation>>) -> Result<(), Error> {
         for event in events {
             let org_id = event.scope.organization_id;
@@ -659,15 +671,10 @@ impl Subscriber<OnboardingOperation> for EmailService {
                 daemon_name,
                 network_name,
             } = &event.operation
-                && let Err(e) = self
-                    .send_discovery_guide_for_org(org_id, daemon_name, network_name)
-                    .await
             {
-                tracing::warn!(
-                    organization_id = %org_id,
-                    error = %e,
-                    "Failed to send discovery guide email"
-                );
+                self.send_discovery_guide_for_org(org_id, daemon_name, network_name)
+                    .await
+                    .map_err(|e| e.context(format!("send discovery guide for org {org_id}")))?;
             }
         }
         Ok(())
@@ -685,6 +692,7 @@ impl Subscriber<DiscoveryDigestOperation> for EmailService {
     }
 
     async fn handle(&self, events: Vec<Event<DiscoveryDigestOperation>>) -> Result<(), Error> {
+        let mut failures = Vec::new();
         for event in events {
             let DiscoveryDigestOperation::Computed { payload } = event.operation;
             if !payload.has_changes() {
@@ -699,6 +707,7 @@ impl Subscriber<DiscoveryDigestOperation> for EmailService {
             {
                 continue;
             }
+            // Send to every recipient; a re-run would mail the ones that already got it.
             for recipient in &payload.recipients {
                 if !recipient.discovery_digest_enabled {
                     continue;
@@ -707,16 +716,15 @@ impl Subscriber<DiscoveryDigestOperation> for EmailService {
                     .send_discovery_digest_email(recipient.email.clone(), &payload)
                     .await
                 {
-                    tracing::warn!(
-                        user_id = %recipient.user_id,
-                        session_id = %payload.session_id,
-                        error = %e,
-                        "Failed to send discovery digest email",
-                    );
+                    failures.push(anyhow::anyhow!(
+                        "discovery digest for session {} to user {}: {e:#}",
+                        payload.session_id,
+                        recipient.user_id
+                    ));
                 }
             }
         }
-        Ok(())
+        NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
     }
 }
 inventory::submit!(SubscriberRegistration::new::<

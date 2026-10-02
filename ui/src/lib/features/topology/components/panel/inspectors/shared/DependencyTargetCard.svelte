@@ -57,7 +57,7 @@
 	let memberMode = $derived(formValues.memberMode);
 
 	let host = $derived(
-		target.kind === 'service'
+		target.type === 'service'
 			? topology.hosts.find(
 					(h) => h.id === topology.services.find((s) => s.id === target.serviceId)?.host_id
 				)
@@ -65,7 +65,7 @@
 	);
 
 	let candidates = $derived(
-		target.kind === 'service'
+		target.type === 'service'
 			? []
 			: target.candidateServiceIds
 					.map((id) => topology.services.find((s) => s.id === id))
@@ -73,7 +73,7 @@
 	);
 
 	let resolvedServiceId = $derived.by((): string | null => {
-		if (target.kind === 'service') return target.serviceId;
+		if (target.type === 'service') return target.serviceId;
 		if (candidates.length === 0) return null;
 		if (candidates.length === 1) return candidates[0].id;
 		return formValues.picks[target.elementId] ?? candidates[0].id;
@@ -83,11 +83,11 @@
 		resolvedServiceId ? topology.services.find((s) => s.id === resolvedServiceId) : undefined
 	);
 
-	let ipAddressIdFilter = $derived(target.kind === 'ipAddress' ? target.ipAddressId : null);
+	let ipAddressIdFilter = $derived(target.type === 'ipAddress' ? target.ipAddressId : null);
 
 	// Seed default pick for multi-candidate targets so a service resolves on first render.
 	$effect(() => {
-		if (target.kind === 'service') return;
+		if (target.type === 'service') return;
 		if (candidates.length <= 1) return;
 		if (formValues.picks[target.elementId]) return;
 		form.setFieldValue(`picks.${target.elementId}`, candidates[0].id);
@@ -105,13 +105,13 @@
 			: entities.getColorHelper('Service').color;
 	}
 
-	let hasPicker = $derived(target.kind !== 'service' && candidates.length > 1);
+	let hasPicker = $derived(target.type !== 'service' && candidates.length > 1);
 
 	// Host / IPAddress targets with zero candidate services are invalid members —
 	// the card surfaces an inline error, and InspectorMultiSelect blocks submit.
-	let hasNoServices = $derived(target.kind !== 'service' && candidates.length === 0);
+	let hasNoServices = $derived(target.type !== 'service' && candidates.length === 0);
 	let noServicesLabel = $derived(
-		target.kind === 'ipAddress' ? target.label : host ? hostDisplayName(host) : ''
+		target.type === 'ipAddress' ? target.label : host ? hostDisplayName(host) : ''
 	);
 
 	let serviceOptions = $derived<EntityTagOption[]>(

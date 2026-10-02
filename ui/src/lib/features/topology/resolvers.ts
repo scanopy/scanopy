@@ -3,6 +3,7 @@ import type { RenderableTopology, TopologyNode } from './types/base';
 import { entities } from '$lib/shared/stores/metadata';
 import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 import { getTopologyIndex, type ContainerContents } from './entity-index';
+import type { FreshnessSubject } from '$lib/shared/utils/freshness';
 
 /**
  * Where each entity type's instances live on a Topology.
@@ -201,16 +202,16 @@ function resolveContainerTags(
 // Dependencies are a Services/Bindings concept; L2 Interface elements and non-Host
 // containers (Subnet, Application) are filtered out at resolution time.
 export type DependencyTarget =
-	| { kind: 'service'; serviceId: string; elementId: string; label: string; hostName: string }
+	| { type: 'service'; serviceId: string; elementId: string; label: string; hostName: string }
 	| {
-			kind: 'host';
+			type: 'host';
 			hostId: string;
 			candidateServiceIds: string[];
 			elementId: string;
 			label: string;
 	  }
 	| {
-			kind: 'ipAddress';
+			type: 'ipAddress';
 			hostId: string;
 			ipAddressId: string;
 			candidateServiceIds: string[];
@@ -252,7 +253,7 @@ export function resolveDependencyTargets(
 				.filter((s) => s.host_id === entityId)
 				.map((s) => s.id);
 			targets.push({
-				kind: 'host',
+				type: 'host',
 				hostId: entityId,
 				candidateServiceIds,
 				elementId: node.id,
@@ -272,7 +273,7 @@ export function resolveDependencyTargets(
 			if (!service) continue;
 			const host = topology.hosts.find((h) => h.id === service.host_id);
 			targets.push({
-				kind: 'service',
+				type: 'service',
 				serviceId: node.id,
 				elementId: node.id,
 				label: service.name,
@@ -290,7 +291,7 @@ export function resolveDependencyTargets(
 				.filter((s) => s.host_id === hostId)
 				.map((s) => s.id);
 			targets.push({
-				kind: 'host',
+				type: 'host',
 				hostId,
 				candidateServiceIds,
 				elementId: node.id,
@@ -308,7 +309,7 @@ export function resolveDependencyTargets(
 					resolved.ipAddress.ip_address
 				: resolved.ipAddressId;
 			targets.push({
-				kind: 'ipAddress',
+				type: 'ipAddress',
 				hostId: resolved.hostId,
 				ipAddressId: resolved.ipAddressId,
 				candidateServiceIds,
@@ -607,4 +608,39 @@ export function resolveContainerNode(
 ): ContainerRenderContext {
 	if (node.node_type !== 'Container') throw new Error(`Expected Container, got ${node.node_type}`);
 	return resolveContainer(nodeId, node, topology);
+}
+
+/** An entity a topology node stands for, as the filter extractors and freshness helpers read it. */
+export type NodeEntity = FreshnessSubject & { id: string; network_id?: string };
+
+/**
+ * The entity an element card depicts: its service, address or interface, and otherwise its host.
+ * One owner for the card's stale pill and its filter-hover match, so the two cannot disagree.
+ */
+export function elementEntity(resolved: ElementRenderContext): NodeEntity | undefined {
+	switch (resolved.elementType) {
+		case 'Service':
+			return resolved.services[0] ?? resolved.host;
+		case 'IPAddress':
+			return resolved.ipAddress ?? resolved.host;
+		case 'Interface':
+			return resolved.snmpInterface ?? resolved.host;
+		default:
+			return resolved.host;
+	}
+}
+
+/**
+ * The entity a container stands for (a host box, a subnet box), found by its `container_type`
+ * and `entity_id`. Grouping containers (categories, tags, stacks) have no entity collection and
+ * resolve to `undefined`.
+ */
+export function containerEntity(
+	node: TopologyNode,
+	topology: RenderableTopology
+): NodeEntity | undefined {
+	if (node.node_type !== 'Container' || !node.container_type) return undefined;
+	const entityId = node.entity_id ?? node.id;
+	return entityCollection(topology, node.container_type)?.find((e) => e.id === entityId) as
+		NodeEntity | undefined;
 }

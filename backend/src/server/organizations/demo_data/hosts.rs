@@ -133,6 +133,14 @@ pub(super) fn generate_hosts_and_services(
         .iter()
         .find(|c| c.base.name == "Docker TLS Proxy")
         .map(|c| c.id);
+    let linux_inventory_cred = credentials
+        .iter()
+        .find(|c| c.base.name == "Linux Inventory")
+        .map(|c| c.id);
+    let backup_wake_cred = credentials
+        .iter()
+        .find(|c| c.base.name == "Backup NAS Wake")
+        .map(|c| c.id);
 
     let critical_tag = find_tag("Critical");
     let production_tag = find_tag("Production");
@@ -915,22 +923,30 @@ pub(super) fn generate_hosts_and_services(
         });
     }
 
-    // 14. Jenkins CI
-    result.push(host_with_services!(
-        with_mac(
-            create_host(
-                "jenkins-ci",
-                Some("jenkins.acme.local"),
-                Some("Jenkins CI/CD server"),
-                hq,
-                hq_servers,
-                Ipv4Addr::new(10, 0, 20, 30),
-                production_tag.into_iter().collect(),
-                None,
-                None,
-                now
+    // 14. Jenkins CI — inventoried by the "Linux Inventory" SSH credential's script
+    let mut jenkins = host_with_services!(
+        with_ssh_inventory(
+            with_mac(
+                create_host(
+                    "jenkins-ci",
+                    Some("jenkins.acme.local"),
+                    Some("Jenkins CI/CD server"),
+                    hq,
+                    hq_servers,
+                    Ipv4Addr::new(10, 0, 20, 30),
+                    production_tag.into_iter().collect(),
+                    None,
+                    None,
+                    now
+                ),
+                [0xf8, 0xbc, 0x12, 0x20, 0x14, 0x01],
             ),
-            [0xf8, 0xbc, 0x12, 0x20, 0x14, 0x01],
+            "Ubuntu 24.04.1 LTS 6.8.0-45-generic",
+            "Dell Inc.",
+            "PowerEdge R250",
+            "7QX2KT3",
+            "1.11.2",
+            "24.04",
         ),
         now,
         (
@@ -939,7 +955,16 @@ pub(super) fn generate_hosts_and_services(
             Some(PortType::Http8080),
             [production_tag, devops_tag].into_iter().flatten().collect()
         ),
-    ));
+        ("SSH", "SSH", Some(PortType::Ssh), vec![]),
+    );
+    jenkins.host.base.credential_assignments = linux_inventory_cred
+        .into_iter()
+        .map(|id| CredentialAssignment {
+            credential_id: id,
+            ip_address_ids: None,
+        })
+        .collect();
+    result.push(jenkins);
 
     // 15. WireGuard VPN
     result.push(host_with_services!(
@@ -1074,8 +1099,8 @@ pub(super) fn generate_hosts_and_services(
         });
     }
 
-    // 18. Synology Backup
-    result.push(host_with_services!(
+    // 18. Synology Backup — powered on weekly for backups; Wake-on-LAN wakes it before the scan
+    let mut synology = host_with_services!(
         with_snmp(
             with_mac(
                 create_host(
@@ -1108,7 +1133,15 @@ pub(super) fn generate_hosts_and_services(
             Some(PortType::Https),
             [backup_tag, storage_tag].into_iter().flatten().collect()
         ),
-    ));
+    );
+    synology.host.base.credential_assignments = backup_wake_cred
+        .into_iter()
+        .map(|id| CredentialAssignment {
+            credential_id: id,
+            ip_address_ids: None,
+        })
+        .collect();
+    result.push(synology);
 
     // -- Office LAN (10.0.10.x) --
 
@@ -1154,11 +1187,17 @@ pub(super) fn generate_hosts_and_services(
             [0xf8, 0xbc, 0x12, 0x10, mac_last, 0x01],
         );
         let host = if name.is_empty() { unnamed(host) } else { host };
-        result.push(host_with_services!(
+        let hws = host_with_services!(
             host,
             now,
             ("Workstation", "Workstation", Some(PortType::Rdp), vec![]),
-        ));
+        );
+        // The accounting workstation was retired and never came back on the LAN.
+        result.push(if name == "ws-accounting-01" {
+            gone_quiet(hws, now - Duration::days(1000), now - Duration::days(380))
+        } else {
+            hws
+        });
     }
 
     // -- IoT (10.0.30.x) --
@@ -1261,40 +1300,45 @@ pub(super) fn generate_hosts_and_services(
         ),
     ));
 
-    // 26. HP Printer. Never named in Scanopy, so it is titled by the sysName it reports.
-    result.push(host_with_services!(
-        unnamed(with_snmp(
-            with_mac(
-                create_host(
-                    "printer-hp-main",
-                    None,
-                    Some("HP LaserJet Pro"),
-                    hq,
-                    hq_iot,
-                    Ipv4Addr::new(10, 0, 30, 50),
-                    iot_tag.into_iter().collect(),
-                    None,
-                    None,
-                    now,
+    // 26. HP Printer. Never named in Scanopy, so it is titled by the sysName it reports. Unplugged
+    // when the copy room got a replacement; it has not answered a scan since.
+    result.push(gone_quiet(
+        host_with_services!(
+            unnamed(with_snmp(
+                with_mac(
+                    create_host(
+                        "printer-hp-main",
+                        None,
+                        Some("HP LaserJet Pro"),
+                        hq,
+                        hq_iot,
+                        Ipv4Addr::new(10, 0, 30, 50),
+                        iot_tag.into_iter().collect(),
+                        None,
+                        None,
+                        now,
+                    ),
+                    [0x3c, 0xd9, 0x2b, 0x30, 0x26, 0x01],
                 ),
-                [0x3c, 0xd9, 0x2b, 0x30, 0x26, 0x01],
+                Some("HP LaserJet Pro MFP M428fdw, Firmware 20230809"),
+                Some("1.3.6.1.4.1.11.2.3.9.1"),
+                Some("HQ Floor 1, Copy Room"),
+                Some("helpdesk@acme-corp.com"),
+                None,
+                Some("HP"),
+                Some("LaserJet Pro MFP M428fdw"),
+                Some("CNBRK1F0X8"),
+            )),
+            now,
+            (
+                "HP Printer",
+                "HP Printer",
+                Some(PortType::Ipp),
+                iot_tag.into_iter().collect()
             ),
-            Some("HP LaserJet Pro MFP M428fdw, Firmware 20230809"),
-            Some("1.3.6.1.4.1.11.2.3.9.1"),
-            Some("HQ Floor 1, Copy Room"),
-            Some("helpdesk@acme-corp.com"),
-            None,
-            Some("HP"),
-            Some("LaserJet Pro MFP M428fdw"),
-            Some("CNBRK1F0X8"),
-        )),
-        now,
-        (
-            "HP Printer",
-            "HP Printer",
-            Some(PortType::Ipp),
-            iot_tag.into_iter().collect()
         ),
+        now - Duration::days(1100),
+        now - Duration::days(430),
     ));
 
     // 27. Camera Entrance
@@ -2360,30 +2404,35 @@ pub(super) fn generate_hosts_and_services(
         });
     }
 
-    // 17. InfluxDB
-    result.push(host_with_services!(
-        with_mac(
-            create_host(
-                "influxdb-metrics",
-                Some("influxdb.dc.acme.io"),
-                Some("InfluxDB metrics store"),
-                dc,
-                dc_storage,
-                Ipv4Addr::new(172, 16, 20, 31),
-                database_tag.into_iter().chain(monitoring_tag).collect(),
-                None,
-                None,
-                now
+    // 17. InfluxDB. Decommissioned after metrics moved to Prometheus; it has not answered a scan
+    // since.
+    result.push(gone_quiet(
+        host_with_services!(
+            with_mac(
+                create_host(
+                    "influxdb-metrics",
+                    Some("influxdb.dc.acme.io"),
+                    Some("InfluxDB metrics store"),
+                    dc,
+                    dc_storage,
+                    Ipv4Addr::new(172, 16, 20, 31),
+                    database_tag.into_iter().chain(monitoring_tag).collect(),
+                    None,
+                    None,
+                    now
+                ),
+                [0xf8, 0xbc, 0x12, 0xdc, 0x17, 0x01],
             ),
-            [0xf8, 0xbc, 0x12, 0xdc, 0x17, 0x01],
+            now,
+            (
+                "InfluxDB",
+                "InfluxDB",
+                Some(PortType::InfluxDb),
+                database_tag.into_iter().collect()
+            ),
         ),
-        now,
-        (
-            "InfluxDB",
-            "InfluxDB",
-            Some(PortType::InfluxDb),
-            database_tag.into_iter().collect()
-        ),
+        now - Duration::days(900),
+        now - Duration::days(410),
     ));
 
     // -- VPN Tunnel (10.8.0.x) --

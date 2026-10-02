@@ -190,6 +190,12 @@
 
 	// OS selection
 	let selectedOS: DaemonOS = $state(detectOS());
+	// Chosen on the Configure step: the integrations created next take its OS as their daemon OS,
+	// and the Install step shows that OS's commands without offering a different one.
+	function handleOsSelect(os: DaemonOS) {
+		selectedOS = os;
+		trackEvent('daemon_install_os_selected', { os });
+	}
 	let linuxMethod = $state<'binary' | 'docker'>('binary');
 	let windowsMethod = $state<'exe' | 'msi'>('exe');
 	let isDockerInstall = $derived(selectedOS === 'linux' && linuxMethod === 'docker');
@@ -424,7 +430,8 @@
 				network_id: selectedNetworkId,
 				mode,
 				url: isServerPoll ? constructDaemonUrl(daemonUrlBase, daemonPort) : null,
-				seed_credential_refs: seedCredentialRefs
+				seed_credential_refs: seedCredentialRefs,
+				os: selectedOS
 			});
 			keyState = result.daemon_api_key;
 			provisionedDaemonId = result.daemon.id;
@@ -726,7 +733,7 @@
 	{isOpen}
 	{title}
 	{name}
-	size="full"
+	size="max"
 	fixedHeight={true}
 	onClose={handleOnClose}
 	onOpen={handleOpen}
@@ -752,6 +759,8 @@
 				bind:credentialIds
 				bind:subStep={credentialSubStep}
 				bind:selectedTypeIds={selectedCredentialTypeIds}
+				daemonOs={selectedOS}
+				daemonName={String(formValues.name ?? '')}
 			/>
 		{:else}
 			<div class="flex-1 overflow-auto p-4 sm:p-6">
@@ -759,6 +768,9 @@
 					{#if activeTab === 'configure'}
 						<ConfigureStep
 							{form}
+							{selectedOS}
+							onOsSelect={handleOsSelect}
+							osLocked={credentialIds.length > 0}
 							{formValues}
 							{selectedNetworkId}
 							onNetworkChange={(id) => (selectedNetworkId = id)}

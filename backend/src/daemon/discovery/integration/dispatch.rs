@@ -18,6 +18,7 @@ use crate::daemon::discovery::service::ops::{DiscoveryOps, HostData};
 use crate::daemon::discovery::service::warnings::{
     AttemptOutcome, CredentialIssue, CredentialIssueReason, issue_for_attempt,
 };
+use crate::daemon::shared::config::ConfigStore;
 use crate::daemon::utils::base::PlatformDaemonUtils;
 use crate::server::credentials::r#impl::mapping::{
     CredentialMapping, CredentialQueryPayload, CredentialQueryPayloadDiscriminants,
@@ -25,7 +26,7 @@ use crate::server::credentials::r#impl::mapping::{
 use crate::server::credentials::r#impl::types::CredentialAssignment;
 use crate::server::discovery::r#impl::types::HostNamingFallback;
 use crate::server::ports::r#impl::base::PortType;
-use crate::server::services::r#impl::patterns::ClientProbe;
+use crate::server::services::r#impl::patterns::{ClientProbe, Pattern};
 use crate::server::shared::trusted_ca::TrustedCaBundle;
 use crate::server::subnets::r#impl::base::Subnet;
 
@@ -215,6 +216,7 @@ pub async fn probe_integrations(
     utils: &PlatformDaemonUtils,
     accept_invalid_certs: bool,
     trusted_ca: Option<&TrustedCaBundle>,
+    config_store: &ConfigStore,
 ) -> Result<IntegrationProbeResults, Error> {
     let mut results = IntegrationProbeResults {
         client_responses: HashMap::new(),
@@ -377,6 +379,7 @@ pub async fn probe_integrations(
                         utils,
                         accept_invalid_certs,
                         trusted_ca,
+                        config_store,
                     },
                     discriminant,
                     applicable.user_assigned,
@@ -422,6 +425,10 @@ pub async fn probe_integrations(
     let mut winners = Vec::new();
     for (entry, winner, failures, disposition) in outcomes {
         ledger[entry].disposition = disposition;
+        // Reported even when another credential of the same integration worked here: each
+        // credential is its own mapping, and a host-assigned credential that cannot log in where
+        // it is assigned is worth knowing, under its own row. Network defaults never reach this
+        // list (`attempt_credential` keeps their failures quiet).
         results.credential_issues.extend(failures);
         winners.push(winner);
     }
@@ -443,7 +450,9 @@ pub async fn probe_integrations(
                 results.additional_ports.push(*port);
             }
         }
-        results.client_responses.insert(client_probe, ports);
+        if let Some(client_probe) = client_probe {
+            results.client_responses.insert(client_probe, ports);
+        }
         if let Some(handle) = handle {
             results.probe_handles.insert(discriminant, handle);
         }
@@ -549,10 +558,13 @@ pub async fn execute_integrations(
         let associated_service = cred_type_discriminant
             .to_credential_type()
             .associated_service();
-        let service_matched = host_data
-            .services
-            .iter()
-            .any(|s| s.base.service_definition.id() == associated_service.id());
+        // A service that can never be matched (`Pattern::None`, Wake-on-LAN) has nothing to gate
+        // on: its probe succeeding is the whole finding.
+        let service_matched = matches!(associated_service.discovery_pattern(), Pattern::None)
+            || host_data
+                .services
+                .iter()
+                .any(|s| s.base.service_definition.id() == associated_service.id());
 
         if !service_matched {
             // The credential authenticated and the collection never ran, which reads to an
@@ -624,12 +636,18 @@ pub async fn execute_integrations(
             scanning_subnet: params.scanning_subnet,
         };
 
-        if let Err(e) =
+        let executed =
             execute_with_progress_reporting(integration.as_ref(), &ctx, host_data, || async {
                 let _ = params.ops.heartbeat().await;
             })
-            .await
+            .await;
+        if executed.is_ok()
+            && let Some(id) = cred_id
         {
+            // The run's per-credential results count the hosts a stored credential collected from.
+            params.ops.record_collected(*id, discriminant).await;
+        }
+        if let Err(e) = executed {
             // A failed integration execute means a matched service (e.g. a Docker/Podman
             // daemon) produced no child services — the user-visible "unclaimed open ports,
             // no services" symptom. Surface it at warn so the underlying error (often a
@@ -685,7 +703,7 @@ pub async fn execute_integrations(
 /// credential probed over the daemon's own loopback address earns an assignment
 /// on the daemon host and so keeps scanning containers on every later scan.
 ///
-/// Two kinds are deliberately excluded:
+/// Two types are deliberately excluded:
 /// - **SNMP**, which records its own assignments in `SnmpIntegration::execute`.
 /// - **Network defaults** (`None` id), which are network-wide by definition and
 ///   must not be pinned to whichever host happened to answer them.
@@ -828,7 +846,7 @@ mod tests {
         assert_eq!(assignments[0].ip_address_ids, Some(vec![loopback_ip_id]));
     }
 
-    /// Two kinds must never be promoted here: SNMP records its own assignments inside
+    /// Two types must never be promoted here: SNMP records its own assignments inside
     /// `SnmpIntegration::execute`, and a network default (`None` id) is network-wide by
     /// definition — pinning it to whichever host answered would turn a broadcast credential
     /// into a host-scoped one.

@@ -24,7 +24,8 @@ use crate::server::topology::types::views::TopologyView;
 use crate::server::vlans::r#impl::base::Vlan;
 use crate::server::{
     billing::types::base::BillingPlan,
-    daemons::r#impl::base::DaemonMode,
+    credentials::r#impl::types::OsFamily,
+    daemons::r#impl::base::{DaemonMode, DaemonOs},
     discovery::r#impl::types::{DiscoveryType, RunType},
     hosts::r#impl::{base::Host, virtualization::HostVirtualization},
     interfaces::r#impl::base::Interface,
@@ -38,7 +39,10 @@ use crate::server::{
         edges::{Edge, EdgeStyle},
         nodes::Node,
     },
-    users::r#impl::{email_settings::EmailSettings, permissions::UserOrgPermissions},
+    users::r#impl::{
+        display_settings::DisplaySettings, email_settings::EmailSettings,
+        permissions::UserOrgPermissions,
+    },
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -363,12 +367,15 @@ pub enum SqlValue {
     DiscoveryType(DiscoveryType),
     UserOrgPermissions(UserOrgPermissions),
     EmailSettings(EmailSettings),
+    DisplaySettings(DisplaySettings),
     OptionBillingPlan(Option<BillingPlan>),
     OptionBillingPlanStatus(Option<SubscriptionStatus>),
     BillingOperation(BillingOperation),
     AuthenticatedEntity(AuthenticatedEntity),
     EdgeStyle(EdgeStyle),
     DaemonMode(DaemonMode),
+    OptionalOsFamily(Option<OsFamily>),
+    OptionalDaemonOs(Option<DaemonOs>),
     Nodes(std::collections::HashMap<TopologyView, Vec<Node>>),
     Edges(std::collections::HashMap<TopologyView, Vec<Edge>>),
     TopologyOptions(TopologyOptions),
@@ -542,6 +549,15 @@ impl DbEnumContributor for AttributeSource {
     }
 }
 
+/// `DisplaySettings` holds nested enums that nothing else reaches, but they stay out of the
+/// coexistence catalog on purpose. `User::from_row` falls back to `DisplaySettings::default()`
+/// when the stored JSON doesn't decode, so a binary that meets a variant it doesn't know shows
+/// default date formatting instead of failing to read the user. These are display preferences,
+/// so that fallback is the tolerated outcome; the gates exist for values whose loss matters.
+impl DbEnumContributor for DisplaySettings {
+    fn contribute(_: &mut std::collections::BTreeMap<&'static str, Vec<String>>) {}
+}
+
 // ServiceDefinition covers service metadata (Docker, nginx, etc.), not
 // DB-persisted discriminants — out of scope for this catalog.
 impl DbEnumContributor for Box<dyn ServiceDefinition> {
@@ -601,6 +617,8 @@ impl_db_enum_contributor_via_variant_names!(
     BillingPlan,
     EdgeStyle,
     DaemonMode,
+    OsFamily,
+    DaemonOs,
     CredentialType,
     LldpChassisId,
     LldpPortId,
@@ -680,8 +698,8 @@ impl SqlValue {
     /// For each `SqlValue` variant, contribute the DB-backed enum variant
     /// names reachable through its wrapped type. Exhaustive match on
     /// `SqlValueDiscriminants` forces every variant to be covered.
-    fn dispatch_kind(
-        kind: SqlValueDiscriminants,
+    fn dispatch_type(
+        sql_type: SqlValueDiscriminants,
         out: &mut std::collections::BTreeMap<&'static str, Vec<String>>,
     ) {
         use crate::server::lldp::{LldpChassisId, LldpPortId};
@@ -689,7 +707,7 @@ impl SqlValue {
         use TopologyView;
         use Vlan;
 
-        match kind {
+        match sql_type {
             SqlValueDiscriminants::Uuid
             | SqlValueDiscriminants::OptionalUuid
             | SqlValueDiscriminants::UuidArray
@@ -736,12 +754,15 @@ impl SqlValue {
             SqlValueDiscriminants::DiscoveryType => DiscoveryType::contribute(out),
             SqlValueDiscriminants::UserOrgPermissions => UserOrgPermissions::contribute(out),
             SqlValueDiscriminants::EmailSettings => EmailSettings::contribute(out),
+            SqlValueDiscriminants::DisplaySettings => DisplaySettings::contribute(out),
             SqlValueDiscriminants::OptionBillingPlan => BillingPlan::contribute(out),
             SqlValueDiscriminants::OptionBillingPlanStatus => SubscriptionStatus::contribute(out),
             SqlValueDiscriminants::BillingOperation => BillingOperation::contribute(out),
             SqlValueDiscriminants::AuthenticatedEntity => AuthenticatedEntity::contribute(out),
             SqlValueDiscriminants::EdgeStyle => EdgeStyle::contribute(out),
             SqlValueDiscriminants::DaemonMode => DaemonMode::contribute(out),
+            SqlValueDiscriminants::OptionalOsFamily => OsFamily::contribute(out),
+            SqlValueDiscriminants::OptionalDaemonOs => DaemonOs::contribute(out),
             SqlValueDiscriminants::Nodes => Node::contribute(out),
             SqlValueDiscriminants::Edges => Edge::contribute(out),
             SqlValueDiscriminants::TopologyOptions => TopologyOptions::contribute(out),
@@ -772,8 +793,8 @@ impl SqlValue {
     pub fn collect_all_db_enum_variants() -> std::collections::BTreeMap<&'static str, Vec<String>> {
         use strum::IntoEnumIterator;
         let mut out = std::collections::BTreeMap::new();
-        for kind in SqlValueDiscriminants::iter() {
-            Self::dispatch_kind(kind, &mut out);
+        for sql_type in SqlValueDiscriminants::iter() {
+            Self::dispatch_type(sql_type, &mut out);
         }
         out
     }

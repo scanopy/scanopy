@@ -32,7 +32,6 @@ use crate::server::shared::events::types::EventLogLevel;
 /// the guess was too wide — and it is the only one that moves addresses, because the corrected range
 /// no longer covers everything filed in it.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, EnumDiscriminants)]
-#[strum_discriminants(name(SubnetCorrectionKind))]
 #[strum_discriminants(derive(Hash, AsRefStr, Serialize, Deserialize))]
 pub enum SubnetCorrection {
     /// The reading agreed with the assumed range exactly; only the confidence changed.

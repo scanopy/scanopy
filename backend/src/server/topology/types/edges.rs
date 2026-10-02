@@ -310,7 +310,7 @@ impl EdgeType {
     }
 
     /// The identity of the relation this edge stands for, or `None` when the edge is one of
-    /// several interchangeable connections of its kind.
+    /// several interchangeable connections of its type.
     ///
     /// Two edges sharing a relation key are one thing drawn twice: safe for the canvas to merge
     /// into a single line, and a click on either means both. Two edges *without* a shared key

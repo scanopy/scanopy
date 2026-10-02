@@ -7,7 +7,80 @@ use axum_client_ip::ClientIp;
 use reqwest::header;
 use std::{sync::Arc, time::Instant};
 
-use crate::server::{auth::middleware::auth::AuthenticatedEntity, config::AppState};
+use crate::server::{
+    auth::middleware::{
+        auth::AuthenticatedEntity,
+        permissions::{ExternalServiceType, Grafana, Prometheus},
+    },
+    config::AppState,
+};
+
+/// The caller label for HTTP metrics. An external service names itself in the
+/// `X-Service-Name` header, so only the services the server knows keep their
+/// name; anything else is `external_service:other`.
+fn metric_entity_type(entity: Option<&AuthenticatedEntity>) -> String {
+    match entity {
+        None => "anonymous".to_string(),
+        Some(AuthenticatedEntity::ExternalService { name }) => {
+            let known = [Prometheus::required_name(), Grafana::required_name()]
+                .into_iter()
+                .flatten()
+                .find(|known| *known == name.as_str());
+            format!("external_service:{}", known.unwrap_or("other"))
+        }
+        Some(e) => e.entity_name(),
+    }
+}
+
+/// The daemon version label: the client-supplied `X-Daemon-Version` reduced to
+/// `major.minor`, so it takes one value per release line. A missing or
+/// unparseable header is `none`; a version newer than this server is `unknown`,
+/// which stops a spoofed header from minting new values.
+fn daemon_version_label(raw: Option<&str>) -> String {
+    let Some(version) = raw.and_then(|v| semver::Version::parse(v).ok()) else {
+        return "none".to_string();
+    };
+    let server = semver::Version::parse(crate::server::openapi::SERVER_VERSION)
+        .expect("CARGO_PKG_VERSION is semver");
+    if (version.major, version.minor) > (server.major, server.minor) {
+        return "unknown".to_string();
+    }
+    format!("{}.{}", version.major, version.minor)
+}
+
+/// Holds one `http_requests_in_flight` increment and gives it back on drop, so a
+/// request whose future is dropped (client disconnect) or panics still
+/// decrements the gauge.
+struct InFlightGuard {
+    entity_type: String,
+    method: String,
+}
+
+impl InFlightGuard {
+    fn new(entity_type: String, method: String) -> Self {
+        metrics::gauge!(
+            "http_requests_in_flight",
+            "entity_type" => entity_type.clone(),
+            "method" => method.clone()
+        )
+        .increment(1.0);
+        Self {
+            entity_type,
+            method,
+        }
+    }
+}
+
+impl Drop for InFlightGuard {
+    fn drop(&mut self) {
+        metrics::gauge!(
+            "http_requests_in_flight",
+            "entity_type" => self.entity_type.clone(),
+            "method" => self.method.clone()
+        )
+        .decrement(1.0);
+    }
+}
 
 /// Normalizes a path for metrics labels to prevent high cardinality.
 fn normalize_path_for_metrics(path: &str) -> String {
@@ -53,6 +126,7 @@ pub async fn request_logging_middleware(
         .await
         .ok();
 
+    let entity_type_str = metric_entity_type(entity.as_ref());
     let (entity_type, entity_id, daemon_version_raw) = entity
         .map(|e| {
             (
@@ -63,15 +137,9 @@ pub async fn request_logging_middleware(
         })
         .unwrap_or(("anonymous".to_string(), None, None));
 
-    // Bounded daemon-version label: reduce the (client-supplied) X-Daemon-Version
-    // to `major.minor` so cardinality is capped at the finite set of release lines
-    // (a garbage or spoofed header collapses to "none"). Lets us see the installed
-    // base's version distribution from live traffic, not just the DB.
-    let daemon_version_label = daemon_version_raw
-        .as_deref()
-        .and_then(|v| semver::Version::parse(v).ok())
-        .map(|v| format!("{}.{}", v.major, v.minor))
-        .unwrap_or_else(|| "none".to_string());
+    // Lets us see the installed base's version distribution from live traffic,
+    // not just the DB.
+    let daemon_version_label = daemon_version_label(daemon_version_raw.as_deref());
 
     // Capture request size (approximate from Content-Length header)
     let request_size = parts
@@ -83,16 +151,10 @@ pub async fn request_logging_middleware(
 
     let request = Request::from_parts(parts, body);
 
-    // Track in-flight requests (BEFORE processing)
-    metrics::gauge!(
-        "http_requests_in_flight",
-        "entity_type" => entity_type.clone(),
-        "method" => method.to_string()
-    )
-    .increment(1.0);
-
     // Process request
+    let in_flight = InFlightGuard::new(entity_type_str.clone(), method.to_string());
     let response = next.run(request).await;
+    drop(in_flight);
 
     // Capture response info
     let duration = start.elapsed();
@@ -113,14 +175,6 @@ pub async fn request_logging_middleware(
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.parse::<u64>().ok())
         .unwrap_or(0);
-
-    // Track in-flight requests (AFTER processing - decrement)
-    metrics::gauge!(
-        "http_requests_in_flight",
-        "entity_type" => entity_type.clone(),
-        "method" => method.to_string()
-    )
-    .decrement(1.0);
 
     // Log the request
     tracing::debug!(
@@ -146,7 +200,6 @@ pub async fn request_logging_middleware(
         5 => "5xx",
         _ => "other",
     };
-    let entity_type_str = entity_type.to_string();
 
     // Record metrics.
     // `status` keeps the coarse class (dashboards/alerts filter on it); `status_code`
@@ -197,6 +250,63 @@ pub async fn request_logging_middleware(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn external_service_label_is_bounded_to_known_services() {
+        let service = |name: &str| AuthenticatedEntity::ExternalService {
+            name: name.to_string(),
+        };
+        assert_eq!(
+            metric_entity_type(Some(&service("prometheus"))),
+            "external_service:prometheus"
+        );
+        assert_eq!(
+            metric_entity_type(Some(&service("anything-a-caller-sends"))),
+            "external_service:other"
+        );
+    }
+
+    #[test]
+    fn daemon_version_label_rejects_versions_newer_than_the_server() {
+        let server = semver::Version::parse(crate::server::openapi::SERVER_VERSION).unwrap();
+        let current = format!("{}.{}.0", server.major, server.minor);
+        assert_eq!(
+            daemon_version_label(Some(&current)),
+            format!("{}.{}", server.major, server.minor)
+        );
+        assert_eq!(
+            daemon_version_label(Some(&format!("{}.{}.0", server.major, server.minor + 1))),
+            "unknown"
+        );
+        assert_eq!(daemon_version_label(Some("999.0.0")), "unknown");
+        assert_eq!(daemon_version_label(Some("not-a-version")), "none");
+    }
+
+    /// A request future dropped mid-flight (client disconnect) must not leave the gauge raised.
+    #[test]
+    fn in_flight_gauge_returns_to_zero_when_the_request_is_dropped() {
+        let recorder = crate::server::metrics::prometheus_builder().build_recorder();
+        let handle = recorder.handle();
+        metrics::with_local_recorder(&recorder, || {
+            let future = async {
+                let _guard = InFlightGuard::new("user".to_string(), "GET".to_string());
+                std::future::pending::<()>().await;
+            };
+            let mut future = Box::pin(future);
+            let waker = std::task::Waker::noop();
+            let _ = future
+                .as_mut()
+                .poll(&mut std::task::Context::from_waker(waker));
+            drop(future);
+        });
+        assert!(
+            handle
+                .render()
+                .contains(r#"http_requests_in_flight{entity_type="user",method="GET"} 0"#),
+            "{}",
+            handle.render()
+        );
+    }
 
     #[test]
     fn test_normalize_path_sveltekit_immutable() {

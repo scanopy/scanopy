@@ -1,6 +1,7 @@
 //! Login, logout, and current-user session handlers.
 use super::*;
 use crate::server::openapi::tags as api_tags;
+use crate::server::shared::types::api::ApiJson;
 
 #[utoipa::path(
     post,
@@ -19,7 +20,7 @@ pub(crate) async fn login(
     Host(host): Host,
     user_agent: Option<TypedHeader<UserAgent>>,
     session: Session,
-    Json(request): Json<LoginRequest>,
+    ApiJson(request): ApiJson<LoginRequest>,
 ) -> ApiResult<Json<ApiResponse<User>>> {
     if state.config.disable_password_login {
         return Err(ApiError::coded(

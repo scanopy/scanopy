@@ -7,7 +7,7 @@ use crate::server::{
         handlers::query::FilterQueryExtractor,
         services::traits::{CrudService, EventBusService},
         storage::{filter::StorableFilter, traits::Entity},
-        types::api::{ApiError, ApiResponse, ApiResult, PaginatedApiResponse},
+        types::api::{ApiError, ApiJson, ApiResponse, ApiResult, PaginatedApiResponse},
         types::entities::EntitySource,
         validation::{
             validate_bulk_delete_access, validate_create_access, validate_delete_access,
@@ -74,7 +74,7 @@ where
 pub async fn create_handler<T>(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(mut entity): Json<T>,
+    ApiJson(mut entity): ApiJson<T>,
 ) -> ApiResult<Json<ApiResponse<T>>>
 where
     T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
@@ -242,7 +242,7 @@ pub async fn update_handler<T>(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
     Path(id): Path<Uuid>,
-    Json(mut entity): Json<T>,
+    ApiJson(mut entity): ApiJson<T>,
 ) -> ApiResult<Json<ApiResponse<T>>>
 where
     T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
@@ -387,7 +387,7 @@ where
 pub async fn bulk_delete_handler<T>(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(ids): Json<Vec<Uuid>>,
+    ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>>
 where
     T: CrudHandlers + 'static,

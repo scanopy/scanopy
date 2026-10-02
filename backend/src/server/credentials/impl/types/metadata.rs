@@ -8,18 +8,17 @@ use uuid::Uuid;
 
 use crate::server::{
     services::r#impl::definitions::{ServiceDefinition, ServiceDefinitionExt},
-    shared::{
-        concepts::Concept,
-        types::{
-            Color, Icon,
-            metadata::{EntityMetadataProvider, HasId, MetadataProvider, TypeMetadata},
-        },
+    shared::types::{
+        Color, Icon,
+        metadata::{EntityMetadataProvider, HasId, MetadataProvider, TypeMetadata},
     },
 };
 
 use super::{
-    CredentialType, CredentialTypeDiscriminants, SecretValue, default_docker_port,
-    default_gnmi_port, default_unifi_port, default_unifi_site,
+    CredentialType, CredentialTypeDiscriminants, OsFamily, ScriptSource, SecretValue,
+    default_docker_port, default_gnmi_port, default_ssh_port, default_ssh_timeout_seconds,
+    default_unifi_port, default_unifi_site, default_wake_on_lan_port,
+    default_wake_on_lan_wait_seconds,
 };
 
 /// Category grouping for credential types.
@@ -36,6 +35,10 @@ pub enum CredentialCategory {
     /// for polling protocols — a controller is an API that reports someone else's devices.
     #[strum(serialize = "Network Controllers")]
     NetworkController,
+    /// Access to the host itself: logging in to run a script (SSH), or powering it on
+    /// (Wake-on-LAN).
+    #[strum(serialize = "Host Management")]
+    HostManagement,
 }
 
 /// Release maturity of a credential type's integration.
@@ -183,6 +186,41 @@ impl CredentialTypeDiscriminants {
                 },
                 site: None,
             },
+            Self::SshPassword => CredentialType::SshPassword {
+                port: default_ssh_port(),
+                username: String::new(),
+                password: SecretValue::Inline {
+                    value: SecretString::from(String::new()),
+                },
+                // The form opens on the default mode: a file already on the scanned host.
+                script: ScriptSource::HostFile {
+                    path: String::new().into(),
+                },
+                target_os: OsFamily::Unix,
+                timeout_seconds: default_ssh_timeout_seconds(),
+                host_key_fingerprint: None,
+            },
+            Self::SshKey => CredentialType::SshKey {
+                port: default_ssh_port(),
+                username: String::new(),
+                private_key: SecretValue::Inline {
+                    value: SecretString::from(String::new()),
+                },
+                passphrase: None,
+                // The form opens on the default mode: a file already on the scanned host.
+                script: ScriptSource::HostFile {
+                    path: String::new().into(),
+                },
+                target_os: OsFamily::Unix,
+                timeout_seconds: default_ssh_timeout_seconds(),
+                host_key_fingerprint: None,
+            },
+            Self::WakeOnLan => CredentialType::WakeOnLan {
+                port: default_wake_on_lan_port(),
+                wait_seconds: default_wake_on_lan_wait_seconds(),
+                broadcast_address: None,
+                secure_on_password: None,
+            },
         }
     }
 
@@ -198,7 +236,11 @@ impl CredentialTypeDiscriminants {
             | Self::DockerProxy
             | Self::DockerSocket
             | Self::PodmanProxy
-            | Self::PodmanSocket => UpstreamSupport::Vendor,
+            | Self::PodmanSocket
+            // Standard protocols: SSH (RFC 4253) and the AMD Magic Packet format.
+            | Self::SshPassword
+            | Self::SshKey
+            | Self::WakeOnLan => UpstreamSupport::Vendor,
             // Both UniFi transports read `/proxy/network/api/s/<site>/stat/device`, the legacy
             // Network API, not Ubiquiti's documented Integration API (`.../integration/v1/...`,
             // added with v9 API keys). Undocumented regardless of which transport authenticates.
@@ -218,23 +260,10 @@ impl HasId for CredentialTypeDiscriminants {
 
 impl EntityMetadataProvider for CredentialTypeDiscriminants {
     fn color(&self) -> Color {
-        // Derive color from associated service's category
-        let service = self.to_credential_type().associated_service();
-        ServiceDefinition::category(&*service).color()
+        self.integration().color()
     }
     fn icon(&self) -> Icon {
-        // Fallback icon when the service logo is unavailable
-        match self {
-            Self::SnmpV1 | Self::SnmpV2c | Self::SnmpV3 => Concept::SNMP.icon(),
-            Self::Gnmi => Concept::L2.icon(),
-            Self::DockerProxy | Self::DockerSocket | Self::PodmanProxy | Self::PodmanSocket => {
-                Concept::Containerization.icon()
-            }
-            // Fallback only — the service logo is what normally renders.
-            Self::UnifiApiKey | Self::UnifiLocalAdmin | Self::InstantOnAccount => {
-                Concept::L2.icon()
-            }
-        }
+        self.integration().icon()
     }
 }
 
@@ -253,91 +282,19 @@ impl CredentialTypeDiscriminants {
             Self::UnifiApiKey => "UniFi API Key",
             Self::UnifiLocalAdmin => "UniFi Local Admin",
             Self::InstantOnAccount => "Instant On Portal Account",
-        }
-    }
-
-    /// Canonical "what's discovered" for the integration this credential targets.
-    /// One arm per associated service, shared by all of that service's transports,
-    /// so the text has a single source of truth. The per-transport credential
-    /// description ([`full_description`](Self::full_description)) and the
-    /// `integrations` fixture both derive from this. Exhaustive (no wildcard): a
-    /// new credential variant cannot compile until it declares its integration's
-    /// discovery text.
-    ///
-    /// # Writing these
-    ///
-    /// A credential description answers exactly two questions, and nothing else:
-    /// **what it discovers** (here) and **how it connects**
-    /// ([`transport_note`](Self::transport_note)). Every arm in both functions reads the same
-    /// way, because they are rendered side by side in the credential picker and a longer one
-    /// does not look more capable — it looks like the odd one out.
-    ///
-    /// Three things that do not belong:
-    ///
-    /// - **Setup instructions.** Which account to create, what role it needs, whether MFA has to
-    ///   be off — that is field help text, next to the field it applies to
-    ///   ([`field_definitions`](super::CredentialType::field_definitions)). Repeating it here
-    ///   makes the picker a wall of prose the user has to read before they can even choose.
-    /// - **What the integration does *not* do.** "Without enabling SNMP", "no agent required",
-    ///   "does not modify anything" — an absence is not a capability, and it invites the reader
-    ///   to wonder what else it might not do. State what it collects.
-    /// - **Selling points.** The picker is for someone who has already decided to connect this
-    ///   thing and now needs to know what they will get and what it will ask them for.
-    ///
-    /// A compatibility caveat *is* allowed in the transport note when it changes which option
-    /// the user can pick — UniFi's "requires UniFi OS; the legacy Network Application does not
-    /// support API keys" is the model, because it decides between two transports.
-    pub(crate) fn integration_discovers(&self) -> &'static str {
-        match self {
-            Self::SnmpV1 | Self::SnmpV2c | Self::SnmpV3 => {
-                "Discover a host's interfaces, system details, and CDP/LLDP neighbors."
-            }
-            Self::Gnmi => "Discover a host's interfaces and LLDP neighbors over gNMI (OpenConfig).",
-            Self::DockerProxy | Self::DockerSocket => {
-                "Discover Docker containers and the services they expose."
-            }
-            Self::PodmanProxy | Self::PodmanSocket => {
-                "Discover Podman containers and the services they expose."
-            }
-            Self::UnifiApiKey | Self::UnifiLocalAdmin => {
-                "Discover UniFi-managed switches, access points and gateways, their ports, and the LLDP neighbors and uplinks the controller sees."
-            }
-            Self::InstantOnAccount => {
-                "Discover Instant On switches, access points and gateways, their ports, the uplinks between them, and the MACs attached to each port."
-            }
-        }
-    }
-
-    /// Path to the documentation guide for the integration this credential targets, relative to
-    /// the site root and with a trailing slash. One arm per associated service, like
-    /// [`integration_discovers`](Self::integration_discovers), because a guide documents the
-    /// integration rather than one of its transports.
-    ///
-    /// Exhaustive (no wildcard): a new credential variant cannot compile until its integration has
-    /// a guide to point at. The website's `check-integration-guides.mjs` asserts each path resolves
-    /// to the guide whose `integration` frontmatter names this service, so the two declarations
-    /// cannot drift apart.
-    ///
-    /// A path rather than a URL: the website consumes it root-relative, and the app composes it
-    /// onto the public docs base itself.
-    pub fn integration_docs_path(&self) -> &'static str {
-        match self {
-            Self::SnmpV1 | Self::SnmpV2c | Self::SnmpV3 => "/docs/guides/integrations/snmp/",
-            Self::DockerProxy | Self::DockerSocket => "/docs/guides/integrations/docker/",
-            Self::PodmanProxy | Self::PodmanSocket => "/docs/guides/integrations/podman/",
-            Self::UnifiApiKey | Self::UnifiLocalAdmin => "/docs/guides/integrations/unifi/",
-            Self::InstantOnAccount => "/docs/guides/integrations/instant-on/",
-            Self::Gnmi => "/docs/guides/integrations/gnmi/",
+            Self::SshPassword => "SSH Password",
+            Self::SshKey => "SSH Key",
+            Self::WakeOnLan => "Wake-on-LAN",
         }
     }
 
     /// Transport-specific note appended after the canonical discovery text. This is
     /// the only per-transport prose; the shared "what's discovered" stem lives in
-    /// [`integration_discovers`](Self::integration_discovers).
+    /// [`CredentialIntegration::discovers`](super::CredentialIntegration::discovers).
     ///
     /// One sentence saying **how it connects**, plus a compatibility caveat only when that
     /// caveat decides which transport the user should pick. See the writing guidance on
-    /// [`integration_discovers`](Self::integration_discovers) — in particular, credential setup
+    /// [`CredentialIntegration::discovers`](super::CredentialIntegration::discovers) — in particular, credential setup
     /// belongs in field help text, not here.
     pub(crate) fn transport_note(&self) -> &'static str {
         match self {
@@ -356,6 +313,11 @@ impl CredentialTypeDiscriminants {
             Self::InstantOnAccount => {
                 "Connects to the Instant On cloud portal with a site account."
             }
+            Self::SshPassword => "Connects over SSH with a username and password.",
+            Self::SshKey => "Connects over SSH with a private key.",
+            Self::WakeOnLan => {
+                "Sends a magic packet over UDP. The daemon must be on the host's network segment, or the router must forward directed broadcasts or relay the packet."
+            }
         }
     }
 
@@ -371,6 +333,9 @@ impl CredentialTypeDiscriminants {
             Self::UnifiApiKey => "API Key",
             Self::UnifiLocalAdmin => "Local Admin",
             Self::InstantOnAccount => "Portal Account",
+            Self::SshPassword => "Password",
+            Self::SshKey => "Key",
+            Self::WakeOnLan => "Magic Packet",
         }
     }
 
@@ -378,11 +343,15 @@ impl CredentialTypeDiscriminants {
     /// the canonical discovery text plus the transport note. Derived, never
     /// hand-written per transport, so the two cannot drift.
     pub(crate) fn full_description(&self) -> String {
-        format!("{} {}", self.integration_discovers(), self.transport_note())
+        format!(
+            "{} {}",
+            self.integration().discovers(),
+            self.transport_note()
+        )
     }
 
     fn category_str(&self) -> &'static str {
-        self.to_credential_type().credential_category().into()
+        self.integration().credential_category().into()
     }
 
     /// Minimum daemon version that can safely receive credential mappings of this
@@ -415,6 +384,9 @@ impl CredentialTypeDiscriminants {
             Self::Gnmi => semver::Version::new(0, 17, 16),
             // Instant On ships in 0.17.11.
             Self::InstantOnAccount => semver::Version::new(0, 17, 11),
+            // SSH and Wake-on-LAN ship in 0.17.19. Daemons from 0.17.3 would parse them to
+            // `Unknown` and skip them; the floor keeps them off older daemons entirely.
+            Self::SshPassword | Self::SshKey | Self::WakeOnLan => semver::Version::new(0, 17, 19),
         }
     }
 
@@ -440,6 +412,8 @@ impl CredentialTypeDiscriminants {
             // New and validated against one operator's 1960s only; the field shape may still move
             // once other Instant On models' payloads are seen.
             Self::InstantOnAccount => CredentialStability::Beta,
+            // New; the script contract and host-key handling may still move.
+            Self::SshPassword | Self::SshKey | Self::WakeOnLan => CredentialStability::Beta,
         }
     }
 
@@ -456,19 +430,12 @@ impl CredentialTypeDiscriminants {
 
     fn metadata_json(&self) -> serde_json::Value {
         let ct = self.to_credential_type();
-        let service = ct.associated_service();
-        let url = service.logo_url();
-        let logo_ext = if url.is_empty() || url.starts_with('/') {
-            ""
-        } else {
-            url.rsplit('.')
-                .next()
-                .and_then(|e| e.split('?').next())
-                .filter(|e| matches!(*e, "svg" | "png" | "webp"))
-                .unwrap_or("svg")
-        };
+        let integration = self.integration();
+        let service = integration.service();
         serde_json::json!({
             "fields": ct.field_definitions(),
+            // Which fields depend on the daemon's and the scanned host's OS, for placing the pickers.
+            "os_fields": ct.os_fields(),
             // The frontend derives "daemon-host-only" (former `is_local_auto`) from `targets`.
             "targets": ct.targets(),
             "requires_config": ct.requires_config(),
@@ -483,10 +450,16 @@ impl CredentialTypeDiscriminants {
             "upstream_support": self.upstream_support(),
             // Guide for this credential's integration, path-only. The form links it for every
             // type rather than the two it used to hardcode.
-            "docs_path": self.integration_docs_path(),
+            "docs_path": integration.docs_path(),
+            // Keys `credential-integrations.json`; the picker groups types on it.
+            "integration": integration,
+            // How this transport connects, without the integration's discovery text. The picker
+            // shows it under an integration row that already carries that text; standalone
+            // surfaces (the type dropdown) use the full `description`.
+            "transport_note": self.transport_note(),
             "associated_service": ServiceDefinition::name(&*service),
             "has_logo": service.has_logo(),
-            "logo_ext": logo_ext,
+            "logo_ext": integration.logo_ext(),
             "logo_needs_white_background": service.logo_needs_white_background(),
         })
     }

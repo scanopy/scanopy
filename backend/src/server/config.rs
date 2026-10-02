@@ -588,7 +588,7 @@ pub async fn get_public_config(State(state): State<Arc<AppState>>) -> impl IntoR
         Some(svc) => svc.entitlement_at().await,
         None => None,
     };
-    let license_status = current_license.as_ref().map(|s| s.kind());
+    let license_status = current_license.as_ref().map(|s| s.discriminant());
     let license_expiry = current_license.as_ref().and_then(|s| s.expiry_date());
     let license_intended_expiry = current_license
         .as_ref()

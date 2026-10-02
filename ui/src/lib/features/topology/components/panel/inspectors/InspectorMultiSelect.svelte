@@ -479,7 +479,7 @@
 		(() => {
 			if (!topology) return [];
 			if (editingDependency) {
-				// Edit mode: one service-kind target per dep member, no host/IP disambiguation.
+				// Edit mode: one service-type target per dep member, no host/IP disambiguation.
 				const members = editingDependency.members;
 				const serviceIds: string[] =
 					members.type === 'Services'
@@ -496,7 +496,7 @@
 						const svc = topology.services.find((s) => s.id === sid);
 						const host = svc ? topology.hosts.find((h) => h.id === svc.host_id) : undefined;
 						return {
-							kind: 'service',
+							type: 'service',
 							serviceId: sid,
 							elementId: sid,
 							label: svc?.name ?? '',
@@ -509,7 +509,7 @@
 	);
 
 	function removeTarget(target: DependencyTarget) {
-		if (editingDependency && target.kind === 'service') {
+		if (editingDependency && target.type === 'service') {
 			removedServiceIds.add(target.serviceId);
 		}
 		// Also drop the node from the canvas selection so the highlight goes away —
@@ -546,7 +546,7 @@
 
 	function buildInitialFormValues(): DepFormValues {
 		if (editingDependency) {
-			// In edit mode, each dep member maps to a service-kind target whose
+			// In edit mode, each dep member maps to a service-type target whose
 			// elementId equals its serviceId — so seeding bindings by serviceId is
 			// equivalent to seeding by elementId here.
 			const bindingsSeed: Record<string, string> = {};
@@ -652,7 +652,7 @@
 			const out: ResolvedService[] = [];
 			const picksMap = formValues.picks;
 			for (const target of depTargets) {
-				if (target.kind === 'service') {
+				if (target.type === 'service') {
 					out.push({
 						elementId: target.elementId,
 						serviceId: target.serviceId,
@@ -667,7 +667,7 @@
 					out.push({
 						elementId: target.elementId,
 						serviceId: picked,
-						ipAddressIdFilter: target.kind === 'ipAddress' ? target.ipAddressId : null
+						ipAddressIdFilter: target.type === 'ipAddress' ? target.ipAddressId : null
 					});
 				}
 			}
@@ -716,7 +716,7 @@
 	// Any host / IPAddress target with zero candidate services is invalid — its
 	// card shows an inline error and submit is blocked until the user removes it.
 	let hasTargetWithoutServices = $derived(
-		depTargets.some((t) => t.kind !== 'service' && t.candidateServiceIds.length === 0)
+		depTargets.some((t) => t.type !== 'service' && t.candidateServiceIds.length === 0)
 	);
 
 	let canCreate = $derived.by(() => {
@@ -1074,7 +1074,7 @@
 						{#each depTargets as target, targetIdx (target.elementId)}
 							{@const flatIndex = depTargets
 								.slice(0, targetIdx)
-								.filter((t) => t.kind === 'service' || t.candidateServiceIds.length > 0).length}
+								.filter((t) => t.type === 'service' || t.candidateServiceIds.length > 0).length}
 							{#if depType === 'HubAndSpoke' && targetIdx === 0}
 								<span class="text-tertiary block text-xs font-semibold uppercase"
 									>{common_hub()}</span

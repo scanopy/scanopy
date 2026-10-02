@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { formatDateNumeric } from '$lib/shared/utils/formatting';
 	import { Edit, Trash2 } from 'lucide-svelte';
 	import type { CardAction } from '$lib/shared/components/data/types';
 	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
@@ -212,21 +211,25 @@
 			label: common_lastUsed(),
 			type: 'date',
 			sortable: true,
-			getValue: (key) => key.last_used ?? null
+			getValue: (key) => key.last_used ?? null,
+			display: { recency: true }
 		},
 		{
 			key: 'expires_at',
 			label: common_expires(),
-			type: 'string',
+			type: 'date',
 			sortable: true,
-			// Expired reads as a state, not a date — the date has stopped being
-			// the useful part once it has passed. Same rule the card used.
-			getValue: (key) =>
-				key.expires_at
-					? new Date(key.expires_at) < new Date()
-						? common_expired()
-						: formatDateNumeric(key.expires_at)
-					: common_never()
+			getValue: (key) => key.expires_at ?? null,
+			display: {
+				// Expired reads as a state, not a date — the date has stopped being the useful
+				// part once it has passed. Returning undefined shows the date itself.
+				getItems: (key) =>
+					!key.expires_at
+						? [{ id: 'never', label: common_never(), color: 'Gray' }]
+						: new Date(key.expires_at) < new Date()
+							? [{ id: 'expired', label: common_expired(), color: 'Red' }]
+							: undefined
+			}
 		},
 		{
 			key: 'tags',

@@ -14,6 +14,7 @@ use crate::server::shared::handlers::traits::create_handler;
 use crate::server::shared::services::traits::{CrudService, EventBusService};
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::{Entity, Storable, Storage};
+use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::api::{ApiError, ApiErrorResponse, PaginatedApiResponse};
 use crate::server::tags::r#impl::base::Tag;
 use crate::server::{
@@ -214,7 +215,7 @@ async fn get_all_tags(
 pub async fn create_tag(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Admin>,
-    Json(tag): Json<Tag>,
+    ApiJson(tag): ApiJson<Tag>,
 ) -> ApiResult<Json<ApiResponse<Tag>>> {
     let organization_id = auth
         .organization_id()
@@ -234,7 +235,7 @@ pub async fn create_tag(
     let response = create_handler::<Tag>(
         State(state.clone()),
         auth.into_permission::<Member>(),
-        Json(tag),
+        ApiJson(tag),
     )
     .await?;
 
@@ -476,7 +477,7 @@ pub struct SetTagsRequest {
 pub async fn bulk_add_tag(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(request): Json<BulkTagRequest>,
+    ApiJson(request): ApiJson<BulkTagRequest>,
 ) -> ApiResult<Json<ApiResponse<BulkTagResponse>>> {
     // Validate entity type is taggable
     if !request.entity_type.is_taggable() {
@@ -544,7 +545,7 @@ pub async fn bulk_add_tag(
 pub async fn bulk_remove_tag(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(request): Json<BulkTagRequest>,
+    ApiJson(request): ApiJson<BulkTagRequest>,
 ) -> ApiResult<Json<ApiResponse<BulkTagResponse>>> {
     // Validate entity type is taggable
     if !request.entity_type.is_taggable() {
@@ -607,7 +608,7 @@ pub async fn bulk_remove_tag(
 pub async fn set_entity_tags(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(request): Json<SetTagsRequest>,
+    ApiJson(request): ApiJson<SetTagsRequest>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     // Validate entity type is taggable
     if !request.entity_type.is_taggable() {

@@ -2,6 +2,10 @@ use super::*;
 use crate::daemon::discovery::types::base::DiscoveryTerminalReason;
 use crate::daemon::discovery::types::warnings::{ClaimSource, DiscoveryWarning, SnmpWalkGroup};
 use crate::server::credentials::r#impl::mapping::CredentialQueryPayloadDiscriminants;
+use crate::server::credentials::r#impl::run_results::{
+    CredentialRunOutcome, CredentialRunResult, WakeOnLanResult,
+};
+use crate::server::credentials::r#impl::types::ssh_script::{SshScriptOutcome, SshScriptRun};
 
 // ============================================================================
 // Discoveries
@@ -34,6 +38,16 @@ pub(super) fn generate_discoveries(
     let default_snmp_cred_id = credentials
         .iter()
         .find(|c| c.base.name == "Default SNMPv2c")
+        .unwrap()
+        .id;
+    let linux_inventory_cred_id = credentials
+        .iter()
+        .find(|c| c.base.name == "Linux Inventory")
+        .unwrap()
+        .id;
+    let backup_wake_cred_id = credentials
+        .iter()
+        .find(|c| c.base.name == "Backup NAS Wake")
         .unwrap()
         .id;
     let network_devices_cred_id = credentials
@@ -119,6 +133,7 @@ pub(super) fn generate_discoveries(
                         progress: 100,
                         error: None,
                         warnings: Vec::new(),
+                        credential_results: Vec::new(),
                         started_at: Some(three_weeks_ago),
                         finished_at: Some(three_weeks_ago + Duration::minutes(12)),
                         hosts_discovered: None,
@@ -185,6 +200,47 @@ pub(super) fn generate_discoveries(
                             DiscoveryWarning::SnmpWalkUnsupported {
                                 address: IpAddr::V4(Ipv4Addr::new(10, 0, 1, 1)),
                                 group: SnmpWalkGroup::BridgePortNumbering,
+                            },
+                        ],
+                        // What each credential produced: SNMP collected from the network devices,
+                        // the inventory script ran on jenkins-ci, and the backup NAS woke for the scan.
+                        credential_results: vec![
+                            CredentialRunResult {
+                                credential_id: network_devices_cred_id,
+                                outcome: CredentialRunOutcome::Collected { hosts: 9 },
+                            },
+                            CredentialRunResult {
+                                credential_id: linux_inventory_cred_id,
+                                outcome: CredentialRunOutcome::SshScript {
+                                    runs: vec![SshScriptRun {
+                                        ip: IpAddr::V4(Ipv4Addr::new(10, 0, 20, 30)),
+                                        outcome: SshScriptOutcome::Applied,
+                                        exit_code: Some(0),
+                                        applied_keys: [
+                                            "hostname",
+                                            "sys_descr",
+                                            "manufacturer",
+                                            "model",
+                                            "serial_number",
+                                            "firmware_revision",
+                                            "software_revision",
+                                        ]
+                                        .map(String::from)
+                                        .to_vec(),
+                                        rejected_keys: Vec::new(),
+                                        detail: None,
+                                        duration_ms: 412,
+                                    }],
+                                },
+                            },
+                            CredentialRunResult {
+                                credential_id: backup_wake_cred_id,
+                                outcome: CredentialRunOutcome::WakeOnLan {
+                                    hosts: vec![WakeOnLanResult {
+                                        ip: IpAddr::V4(Ipv4Addr::new(10, 0, 40, 21)),
+                                        woke: true,
+                                    }],
+                                },
                             },
                         ],
                         started_at: Some(one_week_ago),

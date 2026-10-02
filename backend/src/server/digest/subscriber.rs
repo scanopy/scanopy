@@ -13,7 +13,7 @@ use crate::server::daemons::r#impl::api::ScannedEntityIds;
 use crate::server::digest::service::DiscoveryDigestService;
 use crate::server::shared::entities::{Entity, EntityDiscriminants};
 use crate::server::shared::events::registry::SubscriberRegistration;
-use crate::server::shared::events::traits::{EntityEventFilter, Event, Subscriber};
+use crate::server::shared::events::traits::{EntityEventFilter, Event, NonRetryable, Subscriber};
 use crate::server::shared::events::types::{EntityOperation, EntityOperationDiscriminants};
 
 #[async_trait]
@@ -26,6 +26,7 @@ impl Subscriber<EntityOperation> for DiscoveryDigestService {
     }
 
     async fn handle(&self, events: Vec<Event<EntityOperation>>) -> anyhow::Result<()> {
+        let mut failures = Vec::new();
         for event in events {
             let Entity::Discovery(discovery) = event.scope.entity_type() else {
                 continue;
@@ -51,14 +52,15 @@ impl Subscriber<EntityOperation> for DiscoveryDigestService {
             let empty = ScannedEntityIds::default();
             let scanned = results.scanned.as_ref().unwrap_or(&empty);
             if let Err(e) = self.compute_and_publish(results, scanned).await {
-                tracing::warn!(
-                    session_id = %results.session_id,
-                    error = %e,
-                    "Failed to compute discovery digest",
-                );
+                failures.push(anyhow::anyhow!(
+                    "discovery digest for session {}: {e:#}",
+                    results.session_id
+                ));
             }
         }
-        Ok(())
+        // `compute_and_publish` may have published the digest event (and so sent its emails)
+        // before failing; a re-run would send them again.
+        NonRetryable::from_failures(failures).map_or(Ok(()), |e| Err(e.into()))
     }
 }
 

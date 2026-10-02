@@ -32,7 +32,7 @@ pub struct DiscoveryRunner {
     pub manager: Arc<DaemonDiscoverySessionManager>,
     /// The type this run was dispatched as, echoed back verbatim on every
     /// progress update. Kept whole rather than reconstructed, so the server's
-    /// stored session keeps the kind it started with.
+    /// stored session keeps the type it started with.
     pub discovery_type: DiscoveryType,
     pub host_id: Uuid,
     pub subnet_ids: Option<Vec<Uuid>>,
@@ -183,6 +183,16 @@ pub struct DiscoverySession {
     pub(super) equal_reach_integrations: Arc<std::sync::Mutex<Vec<EqualReachIntegrations>>>,
     /// IP-targeted credentials that produced nothing, and why.
     pub(super) credential_issues: Arc<std::sync::Mutex<Vec<CredentialIssue>>>,
+    /// What each stored credential did, keyed by credential. Not warnings: successes are recorded
+    /// too, so the run shows what every credential produced.
+    pub(super) credential_results: Arc<
+        std::sync::Mutex<
+            std::collections::BTreeMap<
+                uuid::Uuid,
+                crate::server::credentials::r#impl::run_results::CredentialRunOutcome,
+            >,
+        >,
+    >,
 }
 
 impl DiscoverySession {
@@ -208,6 +218,7 @@ impl DiscoverySession {
             vlan_recording_failures: Arc::new(std::sync::Mutex::new(Vec::new())),
             equal_reach_integrations: Arc::new(std::sync::Mutex::new(Vec::new())),
             credential_issues: Arc::new(std::sync::Mutex::new(Vec::new())),
+            credential_results: Arc::new(std::sync::Mutex::new(Default::default())),
         }
     }
 

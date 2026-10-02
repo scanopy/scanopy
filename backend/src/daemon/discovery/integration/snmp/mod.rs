@@ -196,7 +196,7 @@ impl DiscoveryIntegration for SnmpIntegration {
             match port_outcome {
                 SnmpProbeOutcome::Answered(detected_port) => {
                     return Ok(ProbeSuccess {
-                        client_probe: ClientProbe::Snmp,
+                        client_probe: Some(ClientProbe::Snmp),
                         ports: vec![PortType::new_udp(detected_port)],
                         handle: Some(Box::new(SnmpProbeHandle {
                             credential: snmp_cred.clone(),
@@ -337,7 +337,7 @@ impl DiscoveryIntegration for SnmpIntegration {
         checkpoint.commit(host_data);
 
         // Record an incomplete walk on the session rather than leaving it to debug logs, keeping
-        // which kind it was: a short interface list means interfaces are genuinely missing, while
+        // which type it was: a short interface list means interfaces are genuinely missing, while
         // a short attribute column only means some fields are blank. Reporting the second as
         // possible data loss sends operators hunting for interfaces that were never absent.
         // Rendered to one line per run at finalize — one paragraph per device drowns the

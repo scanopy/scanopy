@@ -30,7 +30,8 @@ use crate::server::{
 };
 use anyhow::Error;
 use async_trait::async_trait;
-use std::collections::{BTreeMap, HashSet};
+use chrono::{DateTime, Utc};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::net::{IpAddr, Ipv4Addr};
 use std::sync::{Arc, OnceLock};
 use strum::IntoDiscriminant;
@@ -151,10 +152,11 @@ impl CrudService<Credential> for CredentialService {
 
     async fn create(
         &self,
-        entity: Credential,
+        mut entity: Credential,
         authentication: AuthenticatedEntity,
     ) -> Result<Credential, Error> {
-        entity.base.credential_type.validate()?;
+        entity.base.validate_settings()?;
+        entity.base.clear_unused_daemon_os();
 
         let created = self.create_base(entity, authentication.clone()).await?;
 
@@ -625,6 +627,7 @@ impl CredentialService {
                             // Legacy pre-v0.15.0 path, serving daemons that predate host-aware
                             // grouping — they get the per-address rule they have always had.
                             host_id: None,
+                            mac_address: None,
                         }));
                         break;
                     }
@@ -640,6 +643,7 @@ impl CredentialService {
         );
 
         Ok(SnmpCredentialMapping {
+            daemon_os: Default::default(),
             default_credential: network_snmp_credential,
             // Legacy pre-v0.15.0 path: this mapping is built per network rather than per
             // credential, so there is no single id for its default to carry, and the daemons it
@@ -708,14 +712,19 @@ impl CredentialService {
         // BTreeMap so the emitted order is stable across runs, and keyed the same way the source
         // rows are ordered (`credential_id ASC`).
         let mut mappings_by_credential: BTreeMap<Uuid, TypedCredentialMapping> = BTreeMap::new();
+        // When each credential was created, for the oldest-wins order `order_mappings_for_dispatch`
+        // applies between credentials of one integration.
+        let mut created_at: HashMap<Uuid, DateTime<Utc>> = HashMap::new();
 
         for cred_id in &network_cred_ids {
             if let Some(cred) = self.get_by_id(cred_id).await?
                 && owned_by_network_org(&cred)
             {
+                created_at.insert(cred.id, cred.created_at);
                 let cred_type = &cred.base.credential_type;
-                mapping_for(&mut mappings_by_credential, cred.id, cred_type).default_credential =
-                    Some(cred_type.to_query_payload());
+                let mapping = mapping_for(&mut mappings_by_credential, cred.id, cred_type);
+                mapping.default_credential = Some(cred_type.to_query_payload());
+                mapping.daemon_os = cred.base.daemon_os;
             }
         }
 
@@ -729,6 +738,7 @@ impl CredentialService {
                     if let Some(cred) = self.get_by_id(&assignment.credential_id).await?
                         && owned_by_network_org(&cred)
                     {
+                        created_at.insert(cred.id, cred.created_at);
                         apply_host_assignment(
                             &mut mappings_by_credential,
                             host.id,
@@ -753,11 +763,15 @@ impl CredentialService {
                 );
                 continue;
             };
+            created_at.insert(cred.id, cred.created_at);
             apply_integration_target(
                 &mut mappings_by_credential,
                 target,
                 &cred.base.credential_type,
             );
+            if let Some(typed) = mappings_by_credential.get_mut(&cred.id) {
+                typed.mapping.daemon_os = cred.base.daemon_os;
+            }
         }
 
         // Version gate: never dispatch a credential mapping the target daemon can't
@@ -768,7 +782,10 @@ impl CredentialService {
         // installed base of already-released daemons that predate `serde(other)`.
         retain_daemon_compatible(&mut mappings_by_credential, daemon_version);
 
-        Ok(order_mappings_for_dispatch(mappings_by_credential))
+        Ok(order_mappings_for_dispatch(
+            mappings_by_credential,
+            &created_at,
+        ))
     }
 }
 
@@ -787,6 +804,7 @@ impl TypedCredentialMapping {
         Self {
             discriminant,
             mapping: CredentialMapping {
+                daemon_os: Default::default(),
                 default_credential: None,
                 // Stamped from the accumulator key in `order_mappings_for_dispatch`, which is the
                 // one place that knows which credential this mapping belongs to.
@@ -853,12 +871,26 @@ pub(crate) fn retain_daemon_compatible(
 /// into one-per-credential would have flipped that precedence and started attributing hosts to a
 /// network-wide credential instead of the specific one assigned to them.
 ///
-/// Ties are broken by credential id (the `BTreeMap` order), so dispatch order is reproducible
-/// between scans rather than depending on hash iteration.
+/// Within each tier the oldest credential goes last, so of two equally specific credentials that
+/// both work, the one created first is used. A credential missing from `created_at` counts as the
+/// newest, and the credential id breaks an exact tie, so the order is the same on every scan.
 fn order_mappings_for_dispatch(
     mappings: BTreeMap<Uuid, TypedCredentialMapping>,
+    created_at: &HashMap<Uuid, DateTime<Utc>>,
 ) -> Vec<CredentialMapping<CredentialQueryPayload>> {
-    let (broadcast_only, with_overrides): (Vec<_>, Vec<_>) = mappings
+    let mut ordered: Vec<(Uuid, TypedCredentialMapping)> = mappings.into_iter().collect();
+    // Newest first. `Option` orders `None` before `Some`, so reversing the comparison would put an
+    // unknown creation time last; compare it explicitly to keep it first.
+    ordered.sort_by(|(a_id, _), (b_id, _)| {
+        match (created_at.get(a_id), created_at.get(b_id)) {
+            (None, None) => std::cmp::Ordering::Equal,
+            (None, Some(_)) => std::cmp::Ordering::Less,
+            (Some(_), None) => std::cmp::Ordering::Greater,
+            (Some(a), Some(b)) => b.cmp(a),
+        }
+        .then_with(|| a_id.cmp(b_id))
+    });
+    let (broadcast_only, with_overrides): (Vec<_>, Vec<_>) = ordered
         .into_iter()
         .map(|(credential_id, typed)| {
             // The key is the credential this whole mapping belongs to, and dropping it here is
@@ -953,6 +985,7 @@ pub(crate) fn apply_host_assignment(
     let cred_type = &credential.base.credential_type;
     let payload = cred_type.to_query_payload();
     let mapping = mapping_for(mappings_by_credential, credential.id, cred_type);
+    mapping.daemon_os = credential.base.daemon_os;
 
     let relevant_interfaces = ip_addresses.iter().filter(|i| {
         if i.base.host_id != host_id {
@@ -984,6 +1017,8 @@ pub(crate) fn apply_host_assignment(
             // The device these addresses belong to, so the daemon can tell a multi-homed host's
             // addresses apart from unrelated ones.
             host_id: Some(host_id),
+            // What Wake-on-LAN addresses: a sleeping host answers to no IP.
+            mac_address: i.base.mac_address.as_ref().map(|m| m.value().0),
         }));
 }
 
@@ -1007,6 +1042,7 @@ fn push_unique_override(
             // An integration target names addresses directly; there is no host behind it to
             // group its siblings by.
             host_id: None,
+            mac_address: None,
         });
     }
 }
@@ -1272,7 +1308,7 @@ mod integration_target_tests {
         }
 
         assert_eq!(map.len(), 2, "both credentials must survive");
-        let dispatched = order_mappings_for_dispatch(map);
+        let dispatched = order_mappings_for_dispatch(map, &HashMap::new());
         let communities: Vec<String> = dispatched
             .iter()
             .filter_map(|m| m.default_credential.as_ref())
@@ -1300,7 +1336,7 @@ mod integration_target_tests {
                 Some(cred_type.to_query_payload());
         }
 
-        let dispatched = order_mappings_for_dispatch(map);
+        let dispatched = order_mappings_for_dispatch(map, &HashMap::new());
 
         // Paired against the community, not just asserted non-None: two defaults of the same type
         // are exactly the case address alone cannot tell apart, so an id on the wrong mapping
@@ -1337,9 +1373,10 @@ mod integration_target_tests {
                 credential: specific.to_query_payload(),
                 credential_id: host_id,
                 host_id: None,
+                mac_address: None,
             });
 
-        let dispatched = order_mappings_for_dispatch(map);
+        let dispatched = order_mappings_for_dispatch(map, &HashMap::new());
 
         assert_eq!(dispatched.len(), 1);
         assert_eq!(dispatched[0].default_credential_id, None);
@@ -1390,9 +1427,10 @@ mod integration_target_tests {
             credential: specific.to_query_payload(),
             credential_id: host_id,
             host_id: None,
+            mac_address: None,
         });
 
-        let dispatched = order_mappings_for_dispatch(map);
+        let dispatched = order_mappings_for_dispatch(map, &HashMap::new());
         assert!(
             dispatched[0].ip_overrides.is_empty(),
             "the broadcast-only mapping must be probed first"
@@ -1402,6 +1440,42 @@ mod integration_target_tests {
             "host-specific",
             "the host-specific credential must be probed last so it wins the merge"
         );
+    }
+
+    /// Of two host-assigned credentials of one integration that both work, the one created first
+    /// is used, whichever has the lower id.
+    #[test]
+    fn the_oldest_of_equally_specific_credentials_is_probed_last() {
+        for (older_id, newer_id) in [
+            (Uuid::from_u128(1), Uuid::from_u128(2)),
+            (Uuid::from_u128(2), Uuid::from_u128(1)),
+        ] {
+            let mut map: Mappings = Mappings::new();
+            let mut created_at = HashMap::new();
+            for (id, community, created) in [
+                (older_id, "older", Utc::now() - chrono::Duration::days(1)),
+                (newer_id, "newer", Utc::now()),
+            ] {
+                let cred = snmp_v2c(community);
+                mapping_for(&mut map, id, &cred)
+                    .ip_overrides
+                    .push(IpOverride {
+                        ip: "10.0.0.5".parse().unwrap(),
+                        credential: cred.to_query_payload(),
+                        credential_id: id,
+                        host_id: None,
+                        mac_address: None,
+                    });
+                created_at.insert(id, created);
+            }
+
+            let dispatched = order_mappings_for_dispatch(map, &created_at);
+            assert_eq!(
+                payload_community(&dispatched[1].ip_overrides[0].credential),
+                "older",
+                "the older credential must be probed last so it wins the merge"
+            );
+        }
     }
 
     fn credential(id: Uuid, credential_type: CredentialType) -> Credential {
@@ -1532,6 +1606,56 @@ mod integration_target_tests {
         // And the device it came from rides along, so the daemon can tell a multi-homed host's
         // addresses apart from unrelated ones.
         assert_eq!(overrides[0].host_id, Some(host_id));
+    }
+
+    /// Wake-on-LAN addresses a sleeping host by MAC, and the daemon holds no host records to
+    /// look one up in: each address's MAC has to travel on its own override, and an address the
+    /// server holds no MAC for has to say so rather than borrow its sibling's.
+    #[test]
+    fn a_host_assignment_carries_each_addresss_own_mac() {
+        use crate::server::ip_addresses::r#impl::base::{MacEvidence, MacEvidenceValue};
+        use crate::server::shared::attribution::AttributeSource;
+
+        let cred_id = Uuid::new_v4();
+        let host_id = Uuid::new_v4();
+        let cred = credential(
+            cred_id,
+            CredentialTypeDiscriminants::WakeOnLan.to_credential_type(),
+        );
+        let assignment = CredentialAssignment {
+            credential_id: cred_id,
+            ip_address_ids: None,
+        };
+        let mac: mac_address::MacAddress = "3c:ec:ef:12:34:56".parse().unwrap();
+        let mut with_mac = ip_address(Uuid::new_v4(), host_id, "10.0.0.4".parse().unwrap());
+        with_mac.base.mac_address = Some(MacEvidence::new(
+            MacEvidenceValue(mac),
+            AttributeSource::ArpReply,
+        ));
+        let without_mac = ip_address(Uuid::new_v4(), host_id, "10.0.0.5".parse().unwrap());
+
+        let mut map: Mappings = Mappings::new();
+        apply_host_assignment(
+            &mut map,
+            host_id,
+            &assignment,
+            &cred,
+            &[with_mac, without_mac],
+        );
+
+        let mut macs: Vec<(IpAddr, Option<mac_address::MacAddress>)> = only(&map)
+            .ip_overrides
+            .iter()
+            .map(|o| (o.ip, o.mac_address))
+            .collect();
+        macs.sort();
+        assert_eq!(
+            macs,
+            vec![
+                ("10.0.0.4".parse().unwrap(), Some(mac)),
+                ("10.0.0.5".parse().unwrap(), None),
+            ]
+        );
     }
 
     /// A second `Network` target of the same credential type must not displace the first — the

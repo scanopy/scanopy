@@ -7,6 +7,7 @@ use crate::server::shared::handlers::query::{FilterQueryExtractor, NoFilterQuery
 use crate::server::shared::handlers::traits::{BulkDeleteResponse, CrudHandlers, delete_handler};
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::Entity;
+use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::api::{
     ApiError, ApiErrorResponse, EmptyApiResponse, PaginatedApiResponse,
 };
@@ -247,7 +248,7 @@ pub async fn update_user(
     State(state): State<Arc<AppState>>,
     auth: Authorized<IsUser>,
     Path(id): Path<Uuid>,
-    Json(mut request): Json<User>,
+    ApiJson(mut request): ApiJson<User>,
 ) -> ApiResult<Json<ApiResponse<User>>> {
     let auth_user_id = auth.require_user_id()?;
     if auth_user_id != id {
@@ -279,6 +280,12 @@ pub async fn update_user(
     request.base.oidc_subject = existing.base.oidc_subject.clone();
     request.base.oidc_linked_at = existing.base.oidc_linked_at;
 
+    if !request.base.display_settings.has_valid_time_zone() {
+        return Err(ApiError::bad_request(
+            "Invalid time zone. Use an IANA time zone like 'America/New_York'.",
+        ));
+    }
+
     let updated = service
         .update(&mut request, auth.into_entity())
         .await
@@ -305,7 +312,7 @@ async fn admin_update_user(
     State(state): State<Arc<AppState>>,
     auth: Authorized<RequireVerified<Admin>>,
     Path(id): Path<Uuid>,
-    Json(mut request): Json<User>,
+    ApiJson(mut request): ApiJson<User>,
 ) -> ApiResult<Json<ApiResponse<User>>> {
     let admin_user_id = auth.user_id().ok_or_else(ApiError::user_required)?;
 
@@ -366,6 +373,7 @@ async fn admin_update_user(
     request.base.oidc_subject = existing.base.oidc_subject.clone();
     request.base.oidc_linked_at = existing.base.oidc_linked_at;
     request.base.email_settings = existing.base.email_settings.clone();
+    request.base.display_settings = existing.base.display_settings.clone();
 
     // Capture network_ids before update (they're stored in junction table, not user record)
     let network_ids = request.base.network_ids.clone();
@@ -401,7 +409,7 @@ async fn admin_update_user(
 pub async fn bulk_delete_users(
     State(state): State<Arc<AppState>>,
     auth: Authorized<RequireVerified<Admin>>,
-    Json(ids): Json<Vec<Uuid>>,
+    ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>> {
     use crate::server::shared::handlers::traits::bulk_delete_handler;
 
@@ -444,7 +452,7 @@ pub async fn bulk_delete_users(
     bulk_delete_handler::<User>(
         axum::extract::State(state),
         auth.into_permission::<Member>(),
-        axum::extract::Json(ids),
+        ApiJson(ids),
     )
     .await
 }

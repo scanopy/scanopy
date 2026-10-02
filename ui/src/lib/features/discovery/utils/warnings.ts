@@ -19,11 +19,13 @@ import type { EntityDiscriminants } from '$lib/api/entities';
 import claimSources from '$lib/data/claim-sources.json';
 import discoveryIntegrations from '$lib/data/discovery-integrations.json';
 import malformedNeighbourConsequences from '$lib/data/malformed-neighbour-consequences.json';
+import osFamilies from '$lib/data/os-families.json';
 import snmpWalkGroups from '$lib/data/snmp-walk-groups.json';
 import warningCodes from '$lib/data/warning-codes.json';
 import warningRemedies from '$lib/data/warning-remedies.json';
 import { metaDescription, metaDescriptionWith, metaName } from '$lib/i18n/metadata';
 import { toColor, type Color } from '$lib/shared/utils/styling';
+import { osLabel } from '$lib/features/daemons/utils';
 import {
 	common_andNMore,
 	common_host,
@@ -31,6 +33,7 @@ import {
 	common_unknown,
 	common_unknownEntity,
 	discovery_warningNoFurtherDetail,
+	discovery_warningUnknownDaemon,
 	discovery_warningAtAddress,
 	discovery_warningInferredFrom,
 	discovery_warningSeenBy,
@@ -138,6 +141,9 @@ type WarningOf<C extends DiscoveryWarningCode> = Extract<DiscoveryWarning, { cod
  */
 export type HostNameLookup = (hostId: string) => string | null | undefined;
 
+/** What a sentence needs beyond its warnings: the run's daemon, named by the mismatch warning. */
+type ParamContext = { daemonName: string };
+
 /**
  * Resolve any entity a warning names to its display name, or `undefined` when it cannot be.
  *
@@ -187,7 +193,11 @@ const consequence = (id: string) =>
  * `DockerProxy` resolved there by coincidence while `Snmp`, `UnifiController` and `InstantOn` fell
  * through and rendered as their raw discriminants.
  */
-const integration = (id: string) => nameOf(discoveryIntegrations, 'discovery_integrations', id);
+export const integration = (id: string) =>
+	nameOf(discoveryIntegrations, 'discovery_integrations', id);
+
+/** An `OsFamily`'s display name ("Linux, macOS, BSD", "Windows"). */
+const osFamily = (id: string) => nameOf(osFamilies, 'os_families', id);
 
 /**
  * Join as a localized list, capped, saying how many were left out.
@@ -308,6 +318,15 @@ const WARNING_PARAMS = {
 	CredentialCollectionTimedOut: attemptParams,
 	CredentialUnreachable: attemptParams,
 	CredentialTimedOut: attemptParams,
+	// The two OS slots identify the statement: a credential declared for Windows and skipped by a
+	// Unix daemon is a different sentence from the reverse.
+	CredentialDaemonOsMismatch: (w, { daemonName }) => ({
+		credential: integration(w[0].integration),
+		declared: osFamily(w[0].declared),
+		daemon: daemonName,
+		// The daemon's own OS where it sent one; runs recorded before that name its family.
+		actual: w[0].actual_os ? osLabel(w[0].actual_os) : osFamily(w[0].actual)
+	}),
 
 	// One warning per subnet, so the first is the only one — unlike the address-scoped codes above,
 	// which the daemon raises per host and the UI folds together here.
@@ -362,7 +381,7 @@ const WARNING_PARAMS = {
 	// warnings were coded at all. Rendered one per occurrence, so this only ever sees one.
 	Unknown: (w) => ({ detail: w[0].detail })
 } satisfies {
-	[C in DiscoveryWarningCode]: (warnings: WarningOf<C>[], hostName: HostNameLookup) => Params;
+	[C in DiscoveryWarningCode]: (warnings: WarningOf<C>[], context: ParamContext) => Params;
 };
 
 /**
@@ -439,7 +458,7 @@ function attemptParams(
  * host whose name has not loaded yet, or one deleted since the scan, then reads exactly as it did
  * before names were resolved at all.
  *
- * The address is the segment that says which kind of gap this is. A far end that published one and
+ * The address is the segment that says which type of gap this is. A far end that published one and
  * still matched nothing is a device on a range this network has not scanned, which an operator can
  * act on; one that published none cannot be placed however much gets scanned. Reading the two apart
  * used to cost a round trip to whoever reported the scan.
@@ -574,13 +593,13 @@ const AGGREGATING_SLOTS = new Set([
 function bucketByStatement(
 	code: DiscoveryWarningCode,
 	group_: DiscoveryWarning[],
-	hostName: HostNameLookup
+	context: ParamContext
 ): DiscoveryWarning[][] {
-	const build = WARNING_PARAMS[code] as (w: DiscoveryWarning[], lookup: HostNameLookup) => Params;
+	const build = WARNING_PARAMS[code] as (w: DiscoveryWarning[], context: ParamContext) => Params;
 	const buckets = new Map<string, DiscoveryWarning[]>();
 
 	for (const warning of group_) {
-		const params = build([warning], hostName);
+		const params = build([warning], context);
 		const identity = Object.entries(params)
 			.filter(([slot]) => !AGGREGATING_SLOTS.has(slot))
 			.sort(([a], [b]) => a.localeCompare(b));
@@ -631,14 +650,15 @@ function examplesOf(group_: DiscoveryWarning[], hostName: HostNameLookup): Warni
 function renderStatements(
 	code: DiscoveryWarningCode,
 	group_: DiscoveryWarning[],
-	hostName: HostNameLookup
+	hostName: HostNameLookup,
+	context: ParamContext
 ): WarningStatement[] {
-	const build = WARNING_PARAMS[code] as (w: DiscoveryWarning[], lookup: HostNameLookup) => Params;
+	const build = WARNING_PARAMS[code] as (w: DiscoveryWarning[], context: ParamContext) => Params;
 	const fallback = warningCodes.find((c) => c.id === code)?.description;
 	if (!fallback) return [];
 
-	return bucketByStatement(code, group_, hostName).map((bucket) => ({
-		sentence: metaDescriptionWith('warning_codes', code, build(bucket, hostName), fallback),
+	return bucketByStatement(code, group_, context).map((bucket) => ({
+		sentence: metaDescriptionWith('warning_codes', code, build(bucket, context), fallback),
 		examples: examplesOf(bucket, hostName)
 	}));
 }
@@ -726,14 +746,35 @@ const NEEDS_ATTENTION_REMEDY = 'FixInScanopy';
  * Lives here rather than in the component so it can be tested: everything in `WarningReport.svelte`
  * is reachable only by mounting it, and there are no component tests in this suite.
  */
-export function credentialIdsOf(entry: WarningEntry): string[] {
-	return [
-		...new Set(
-			entry.warnings.flatMap((w) =>
-				'credential_id' in w && w.credential_id ? [w.credential_id] : []
-			)
-		)
-	];
+export function credentialIdsOf(entry: Pick<WarningEntry, 'warnings'>): string[] {
+	return [...new Set(entry.warnings.flatMap(credentialIdOf))];
+}
+
+/** The stored credential one warning names, as a zero- or one-element list. */
+function credentialIdOf(w: DiscoveryWarning): string[] {
+	return 'credential_id' in w && w.credential_id ? [w.credential_id] : [];
+}
+
+/**
+ * Whether a warning belongs on the run's Credentials tab rather than its Scan tab, as the
+ * backend files its code (`concerns_credential`). Each warning appears on exactly one of the two.
+ */
+export function isCredentialWarning(w: DiscoveryWarning): boolean {
+	return warningCodes.find((c) => c.id === w.code)?.metadata?.concerns_credential === true;
+}
+
+/**
+ * How many of a run's warnings name each stored credential.
+ *
+ * Counts occurrences, not rows: a credential rejected on three hosts has three warnings. Warnings
+ * without a credential id are not counted anywhere.
+ */
+export function warningCountsByCredential(warnings: DiscoveryWarning[]): Map<string, number> {
+	const counts = new Map<string, number>();
+	for (const id of warnings.flatMap(credentialIdOf)) {
+		counts.set(id, (counts.get(id) ?? 0) + 1);
+	}
+	return counts;
 }
 
 /**
@@ -754,8 +795,10 @@ export function credentialIdsOf(entry: WarningEntry): string[] {
  */
 export function buildWarningReport(
 	warnings: DiscoveryWarning[],
-	nameOfEntity: EntityNameLookup = NO_ENTITY_NAMES
+	nameOfEntity: EntityNameLookup = NO_ENTITY_NAMES,
+	daemonName: string | null = null
 ): WarningSection[] {
+	const context: ParamContext = { daemonName: daemonName ?? discovery_warningUnknownDaemon() };
 	// The example and sentence builders below only ever name hosts, so they keep taking the
 	// narrower lookup rather than every one of them growing an entity-type argument it would
 	// always pass the same value for.
@@ -783,7 +826,7 @@ export function buildWarningReport(
 			color: toColor(meta.color),
 			icon: meta.icon,
 			subjects: subjectsOf(group_, nameOfEntity),
-			details: renderStatements(code, group_, hostName),
+			details: renderStatements(code, group_, hostName, context),
 			warnings: group_
 		});
 	}

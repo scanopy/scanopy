@@ -158,6 +158,23 @@ pub(crate) fn identity_permits_minting(
     payload_macs(ip_addresses, interfaces).iter().any(may_mint)
 }
 
+/// Refuse a payload whose identity can't mint a host, as a validation error: the refusal is about
+/// the payload, so it answers 400, and a daemon doesn't send the same host again.
+pub(crate) fn require_minting_identity(
+    host: &crate::server::hosts::r#impl::base::Host,
+    ip_addresses: &[crate::server::ip_addresses::r#impl::base::IPAddress],
+    interfaces: &[crate::server::interfaces::r#impl::base::Interface],
+) -> Result<(), crate::server::shared::types::api::ValidationError> {
+    if identity_permits_minting(host, ip_addresses, interfaces) {
+        return Ok(());
+    }
+    Err(crate::server::shared::types::api::ValidationError::new(
+        "Refusing to create a host identified only by a MAC address that cannot anchor \
+         one. Minting needs a vendor-assigned unicast address read from the device \
+         itself; this payload carries neither that nor an IP address or chassis id.",
+    ))
+}
+
 /// Every MAC this payload offers as an identity, whichever child row carries it.
 ///
 /// A device reached by an address puts its MAC on an `ip_addresses` row; one known only at the
@@ -381,5 +398,31 @@ mod tests {
             ),
             None
         );
+    }
+
+    /// A host known only by a MAC that can't anchor it is refused as a bad payload, a 400, not
+    /// as a server fault: the daemon reads a 5xx as the server's problem, and the payload won't
+    /// change on its own.
+    #[test]
+    fn a_host_known_only_by_an_unanchorable_mac_is_refused_with_a_4xx() {
+        use crate::server::hosts::r#impl::base::{Host, HostBase};
+        use crate::server::interfaces::r#impl::base::{Interface, InterfaceBase};
+        use crate::server::shared::types::api::ApiError;
+
+        let interface_with = |mac: MacAddress| {
+            Interface::new(InterfaceBase {
+                mac_address: Some(evidence(mac, AttributeSource::ArpReply)),
+                ..Default::default()
+            })
+        };
+        let host = Host::new(HostBase::default());
+
+        let weak = MacAddress::new([0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x03]);
+        let refusal = require_minting_identity(&host, &[], &[interface_with(weak)])
+            .expect_err("a locally administered MAC cannot mint");
+        let api_error = ApiError::from(anyhow::Error::from(refusal));
+        assert!(api_error.status.is_client_error());
+
+        assert!(require_minting_identity(&host, &[], &[interface_with(burned_in())]).is_ok());
     }
 }

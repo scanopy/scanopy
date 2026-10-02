@@ -7,6 +7,8 @@
 		port,
 		pemCertificate,
 		pemPrivateKey,
+		sshPrivateKey,
+		macAddress,
 		ipAddressFormat
 	} from '$lib/shared/components/forms/validators';
 	import SegmentedControl from '$lib/shared/components/forms/SegmentedControl.svelte';
@@ -25,17 +27,43 @@
 	import { translateFieldDefinitions } from '$lib/i18n/metadata';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
+	import TextArea from '$lib/shared/components/forms/input/TextArea.svelte';
+	import RadioGroup from '$lib/shared/components/forms/input/RadioGroup.svelte';
 	import type { FieldDefinition, FieldType } from '$lib/shared/stores/metadata';
 	import { Eye, EyeOff } from 'lucide-svelte';
 	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
 	import { docsUrl } from '$lib/shared/utils/docs';
 	import {
+		DAEMON_OS_FIELD,
+		filePathPlaceholder,
+		osFamilyOptions,
+		resolvePlaceholder,
+		type OsFamily
+	} from '../utils/placeholders';
+	import {
+		defaultFieldValue,
+		parseScriptSource,
+		scriptSourceText,
+		withScriptSourceMode,
+		withScriptSourceText,
+		type ScriptSource,
+		type ScriptSourceMode
+	} from '../utils/fieldValues';
+	import {
+		common_description,
 		common_name,
 		credentials_credentialType,
-		credentials_fileOnHost,
+		credentials_daemonOs,
+		credentials_daemonOsHelp,
+		credentials_fileOnDaemonHost,
+		credentials_fileOnScannedHost,
 		credentials_filePathReadByDaemon,
+		credentials_filePathRunByScannedHost,
+		credentials_scriptOutputDocs,
+		credentials_scriptOutputDocsLinkText,
 		common_enterValue,
 		credentials_ipExamplePlaceholder,
+		credentials_descriptionPlaceholder,
 		credentials_namePlaceholderExample,
 		credentials_secretStoredInDatabase,
 		credentials_typeImmutableWarning,
@@ -89,6 +117,17 @@
 			name?: string;
 		}) => void;
 		onTypeChange?: (typeId: string) => void;
+		/** The daemon OS when the caller already knows it, e.g. the create-daemon flow, which asks
+		 *  for the OS first. Overrides the credential's own and hides the Daemon OS picker. */
+		fixedDaemonOs?: OsFamily | null;
+		/** Standard mode only: which half to show. `identity` is name, description and type;
+		 *  `fields` is the type's own fields. The other half's fields unmount (so a step's
+		 *  validation reaches only what is on screen); this component stays mounted, so values and
+		 *  field modes survive stepping between them. */
+		section?: 'all' | 'identity' | 'fields';
+		/** Standard mode: what Enter does. A caller that steps through the form (the create flow)
+		 *  passes its Next; without one, Enter submits. */
+		onSubmitRequest?: () => void;
 	}
 
 	let {
@@ -106,7 +145,10 @@
 		targetIps,
 		scope,
 		onChange,
-		onTypeChange
+		onTypeChange,
+		fixedDaemonOs = null,
+		section = 'all',
+		onSubmitRequest
 	}: Props = $props();
 
 	const organizationQuery = useOrganizationQuery();
@@ -200,6 +242,21 @@
 	let fileFieldModes = $state<Record<string, 'inline' | 'filepath'>>({});
 	let secretFieldVisible = $state<Record<string, boolean>>({});
 
+	// The OS of the daemons that read this credential's files and sockets. Kept in `$state`
+	// because TanStack's field state does not drive Svelte 5 reactivity; callers assembling the
+	// Credential read it through `getDaemonOs()`.
+	let daemonOs = $state<OsFamily>('Unix');
+
+	/** The credential's `daemon_os`: set only when something is read on the daemon. */
+	export function getDaemonOs(): OsFamily | null {
+		return readsDaemonFiles ? daemonOs : null;
+	}
+
+	// A caller that fixed the daemon OS owns it: keep the placeholders and the submitted value on it.
+	$effect(() => {
+		if (fixedDaemonOs) daemonOs = fixedDaemonOs;
+	});
+
 	function getDefaultValues(): Credential {
 		if (credential) return { ...credential };
 		if (organization) return createDefaultCredential(organization.id);
@@ -216,7 +273,8 @@
 			const fieldDef = fieldMap.get(key);
 			if (
 				(fieldDef?.field_type === 'secretpathorinline' ||
-					fieldDef?.field_type === 'pathorinline') &&
+					fieldDef?.field_type === 'pathorinline' ||
+					fieldDef?.field_type === 'scriptsource') &&
 				val != null &&
 				typeof val === 'object'
 			) {
@@ -234,11 +292,7 @@
 		const fields: FieldDefinition[] = meta?.fields ?? [];
 		const values: Record<string, string> = {};
 		for (const field of fields) {
-			if (field.field_type === 'pathorinline') {
-				values[field.id] = JSON.stringify({ mode: 'Inline', value: '' });
-			} else {
-				values[field.id] = field.default_value ?? '';
-			}
+			values[field.id] = defaultFieldValue(field);
 		}
 		fieldValues = values;
 		syncFieldsToForm(typeId, 'selects');
@@ -249,7 +303,7 @@
 	// and reads `undefined` as empty, so seeding is what lets a value already on screen count
 	// as present.
 	//
-	// `'selects'` covers a new credential: a manually-rendered select must not force the user
+	// `'selects'` covers a new credential: a manually-rendered select or radio must not force the user
 	// to re-pick a default it is already showing, but every other field legitimately starts
 	// empty and must still fail its required check.
 	//
@@ -261,7 +315,8 @@
 	function syncFieldsToForm(typeId: string, which: 'all' | 'selects') {
 		const fields = credentialTypes.getMetadata(typeId)?.fields ?? [];
 		for (const field of fields) {
-			if (which === 'selects' && field.field_type !== 'select') continue;
+			if (which === 'selects' && field.field_type !== 'select' && field.field_type !== 'radio')
+				continue;
 			form.setFieldValue?.(fieldName(field.id), fieldValues[field.id] ?? field.default_value ?? '');
 		}
 	}
@@ -284,6 +339,7 @@
 		fileFieldModes = {};
 		secretFieldVisible = {};
 		targetMode = 'per_host';
+		daemonOs = fixedDaemonOs ?? credential?.daemon_os ?? 'Unix';
 
 		if (credential) {
 			selectedTypeId = credential.credential_type.type;
@@ -296,6 +352,8 @@
 					const sv = val as { mode: string };
 					const mode = sv.mode === 'FilePath' ? 'filepath' : 'inline';
 					const fieldDef = fieldMap.get(key);
+					// A script source carries its mode in its own value; see `getScriptSource`.
+					if (fieldDef?.field_type === 'scriptsource') continue;
 					if (fieldDef?.field_type === 'pathorinline') {
 						fileFieldModes[key] = mode;
 					} else {
@@ -363,13 +421,18 @@
 	}
 
 	async function handleSubmit() {
+		if (onSubmitRequest) {
+			onSubmitRequest();
+			return;
+		}
 		await submitForm(form);
 	}
 
-	// Field types whose value is numeric on the wire. `port` is here because a port is declared
-	// as one now rather than being a `string` that happened to look like a number.
+	// Field types whose value is numeric on the wire. `string` is deliberately absent: ports used
+	// to be strings that happened to look like numbers, and coercing every string sent a numeric
+	// username or site name as a number the server then refused.
 	function submitsAsNumber(fieldType: FieldType): boolean {
-		return fieldType === 'string' || fieldType === 'port';
+		return fieldType === 'number' || fieldType === 'port';
 	}
 
 	/** Build a CredentialType from current fieldValues. */
@@ -379,7 +442,10 @@
 
 		for (const field of fields) {
 			const value = fieldValues[field.id];
-			if (field.field_type === 'secretpathorinline' || field.field_type === 'pathorinline') {
+			if (field.field_type === 'scriptsource') {
+				const source = parseScriptSource(value);
+				typeObj[field.id] = field.optional && !scriptSourceText(source).trim() ? null : source;
+			} else if (field.field_type === 'secretpathorinline' || field.field_type === 'pathorinline') {
 				if (field.optional && (!value || value.trim() === '')) {
 					typeObj[field.id] = null;
 				} else {
@@ -538,6 +604,65 @@
 		onChange?.({ fieldValues: { ...fieldValues } });
 	}
 
+	// --- Script source helpers ---
+	// The mode lives inside the value ({mode, path} / {mode, value}), so unlike the
+	// path-or-inline fields there is no separate mode map to keep in step.
+	function getScriptSource(fieldId: string): ScriptSource {
+		return parseScriptSource(fieldValues[fieldId]);
+	}
+
+	function setScriptSource(fieldId: string, source: ScriptSource) {
+		fieldValues[fieldId] = JSON.stringify(source);
+		onChange?.({ fieldValues: { ...fieldValues } });
+	}
+
+	function scriptSourceOptions(): { value: ScriptSourceMode; label: string }[] {
+		return [
+			{ value: 'HostFile', label: credentials_fileOnScannedHost() },
+			{ value: 'DaemonFile', label: credentials_fileOnDaemonHost() },
+			{ value: 'Inline', label: common_enterValue() }
+		];
+	}
+
+	/** The field's placeholder for the values on screen now, `placeholder_by` applied. */
+	function placeholderFor(field: FieldDefinition): string {
+		return resolvePlaceholder(field, fieldValues, daemonOs);
+	}
+
+	/**
+	 * Whether anything on screen is read off the daemon's own machine: a file-mode secret or
+	 * value, a daemon-side script, or a filled-in field whose placeholder follows `daemon_os`
+	 * (the container sockets). Only then does the daemon OS mean anything, so only then is it
+	 * asked. Mirrors the backend's `reads_daemon_paths`.
+	 */
+	let readsDaemonFiles = $derived(
+		currentFields
+			.filter((field) => daemonOsDependents.includes(field.id))
+			.some((field) => {
+				switch (field.field_type) {
+					case 'secretpathorinline':
+						return getSecretFieldMode(field.id) === 'filepath';
+					case 'pathorinline':
+						return getFileFieldMode(field.id) === 'filepath';
+					case 'scriptsource':
+						return getScriptSource(field.id).mode === 'DaemonFile';
+					// A plain field the backend lists (a socket path) reads off the daemon once filled.
+					default:
+						return !!fieldValues[field.id]?.trim();
+				}
+			})
+	);
+
+	let showDaemonOsPicker = $derived(readsDaemonFiles && !fixedDaemonOs);
+
+	// Which fields depend on the Daemon OS, computed by the backend (`os_fields`). The picker sits
+	// with its field when exactly one depends on it, and above the first when several do; placement
+	// follows the fields that can depend on it, not the ones in a dependent mode now, so it does
+	// not jump as modes change. The Scanned Host OS is an ordinary field and stays where declared.
+	let daemonOsDependents = $derived(
+		credentialTypes.getMetadata(selectedTypeId)?.os_fields?.daemon ?? []
+	);
+
 	function syncTargets() {
 		const next = [...targetIpValues];
 		form.setFieldValue?.(`${fieldPrefix}targetIps`, next);
@@ -635,7 +760,9 @@
 		const validate = ({ value }: { value: string }) => {
 			// For path-or-inline fields, check the actual display value, not the JSON wrapper
 			let effectiveValue = value;
-			if (field.field_type === 'secretpathorinline' || field.field_type === 'pathorinline') {
+			if (field.field_type === 'scriptsource') {
+				effectiveValue = scriptSourceText(getScriptSource(field.id));
+			} else if (field.field_type === 'secretpathorinline' || field.field_type === 'pathorinline') {
 				if (field.field_type === 'secretpathorinline') {
 					effectiveValue = getSecretFieldDisplayValue(field.id);
 				} else {
@@ -660,6 +787,12 @@
 			}
 			if (field.inline_format === 'pemcertificate') {
 				return pemCertificate(effectiveValue);
+			}
+			if (field.inline_format === 'sshprivatekey' && effectiveValue !== '********') {
+				return sshPrivateKey(effectiveValue);
+			}
+			if (field.inline_format === 'macaddress' && effectiveValue !== '********') {
+				return macAddress(effectiveValue);
 			}
 			return undefined;
 		};
@@ -811,15 +944,11 @@
 				{#each fieldGroups as group (group.name ?? '_ungrouped')}
 					{#if group.name}
 						<InfoCard title={group.name}>
-							{#each group.fields as field (field.id)}
-								{@render fieldRenderer(field, field.secret)}
-							{/each}
+							{@render fieldList(group.fields)}
 						</InfoCard>
 					{:else if group.fields.length > 0}
 						<InfoCard title={null}>
-							{#each group.fields as field (field.id)}
-								{@render fieldRenderer(field, field.secret)}
-							{/each}
+							{@render fieldList(group.fields)}
 						</InfoCard>
 					{/if}
 				{/each}
@@ -835,73 +964,112 @@
 		}}
 		class="flex flex-col gap-4"
 	>
-		<!-- Standard mode: card wrapper for name/type, separate cards for fields -->
-		<div class="card card-static space-y-4 p-4">
-			{#if showName}
-				<form.Field
-					name={nameFieldName}
-					validators={{
-						onBlur: ({ value }: { value: string }) => required(value) || max(100)(value),
-						onSubmit: ({ value }: { value: string }) => required(value) || max(100)(value)
-					}}
-				>
-					{#snippet children(field: AnyFieldApi)}
-						<TextInput
-							label={common_name()}
-							id="credential-name"
-							{field}
-							placeholder={credentials_namePlaceholderExample()}
-							required
+		<!-- Standard mode: card wrapper for name/type, separate cards for fields. A caller showing one
+		     section unmounts the other's fields, so validation only reaches what is on screen; the
+		     values and modes live in this component and the form, and survive. -->
+		{#if section !== 'fields'}
+			<div class="card card-static space-y-4 p-4">
+				{#if showName}
+					<form.Field
+						name={nameFieldName}
+						validators={{
+							onBlur: ({ value }: { value: string }) => required(value) || max(100)(value),
+							onSubmit: ({ value }: { value: string }) => required(value) || max(100)(value)
+						}}
+					>
+						{#snippet children(field: AnyFieldApi)}
+							<TextInput
+								label={common_name()}
+								id="credential-name"
+								{field}
+								placeholder={credentials_namePlaceholderExample()}
+								required
+							/>
+						{/snippet}
+					</form.Field>
+
+					<form.Field
+						name="description"
+						validators={{
+							onBlur: ({ value }: { value: string | null }) => max(500)(value || '')
+						}}
+					>
+						{#snippet children(field: AnyFieldApi)}
+							<TextArea
+								label={common_description()}
+								id="credential-description"
+								{field}
+								placeholder={credentials_descriptionPlaceholder()}
+							/>
+						{/snippet}
+					</form.Field>
+				{/if}
+
+				{#if showTypeSelector}
+					<div class="space-y-2">
+						<RichSelect
+							label={credentials_credentialType()}
+							selectedValue={selectedTypeId}
+							options={typeOptions}
+							displayComponent={CredentialTypeDisplay}
+							showSearch={true}
+							disabled={isEditing}
+							onSelect={handleTypeChange}
 						/>
-					{/snippet}
-				</form.Field>
-			{/if}
+						{#if !isEditing}
+							<p class="text-muted mt-1 text-xs">{credentials_typeImmutableWarning()}</p>
+						{/if}
+					</div>
+				{/if}
 
-			{#if showTypeSelector}
-				<div class="space-y-2">
-					<RichSelect
-						label={credentials_credentialType()}
-						selectedValue={selectedTypeId}
-						options={typeOptions}
-						displayComponent={CredentialTypeDisplay}
-						disabled={isEditing}
-						onSelect={handleTypeChange}
+				{#if integrationDocsPath}
+					<DocsHint
+						text={credentials_docsIntegration()}
+						href={docsUrl(integrationDocsPath)}
+						linkText={credentials_docsIntegrationLinkText({ integration: integrationName })}
 					/>
-					{#if !isEditing}
-						<p class="text-muted mt-1 text-xs">{credentials_typeImmutableWarning()}</p>
-					{/if}
-				</div>
-			{/if}
+				{/if}
+			</div>
+		{/if}
 
-			{#if integrationDocsPath}
-				<DocsHint
-					text={credentials_docsIntegration()}
-					href={docsUrl(integrationDocsPath)}
-					linkText={credentials_docsIntegrationLinkText({ integration: integrationName })}
-				/>
-			{/if}
-		</div>
-
-		{#each fieldGroups as group (group.name ?? '_ungrouped')}
-			{#if group.name}
-				<InfoCard title={group.name}>
-					{#each group.fields as field (field.id)}
-						{@render fieldRenderer(field, field.secret)}
-					{/each}
-				</InfoCard>
-			{:else if group.fields.length > 0}
-				<div class="card card-static space-y-4 p-4">
-					{#each group.fields as field (field.id)}
-						{@render fieldRenderer(field, field.secret)}
-					{/each}
-				</div>
-			{/if}
-		{/each}
+		{#if section !== 'identity'}
+			{#each fieldGroups as group (group.name ?? '_ungrouped')}
+				{#if group.name}
+					<InfoCard title={group.name}>
+						{@render fieldList(group.fields)}
+					</InfoCard>
+				{:else if group.fields.length > 0}
+					<div class="card card-static space-y-4 p-4">
+						{@render fieldList(group.fields)}
+					</div>
+				{/if}
+			{/each}
+		{/if}
 
 		<!-- Hidden submit button for Enter-to-submit -->
 		<button type="submit" class="hidden" aria-hidden="true" tabindex={-1}></button>
 	</form>
 {/if}
+
+{#snippet daemonOsPicker()}
+	<form.Field name="{fieldPrefix}{DAEMON_OS_FIELD}">
+		{#snippet children(formField: AnyFieldApi)}
+			<div class="space-y-1">
+				<RadioGroup
+					label={credentials_daemonOs()}
+					id="{fieldPrefix}{DAEMON_OS_FIELD}"
+					field={formField}
+					options={osFamilyOptions()}
+					{disabled}
+					value={daemonOs}
+					onChange={(os) => (daemonOs = os)}
+					variant="inline"
+				/>
+				<p class="text-muted text-xs">{credentials_daemonOsHelp()}</p>
+			</div>
+		{/snippet}
+	</form.Field>
+{/snippet}
 
 {#snippet fieldRenderer(field: FieldDefinition, isSecret: boolean)}
 	{@const fName = fieldName(field.id)}
@@ -946,7 +1114,7 @@
 						<SegmentedControl
 							options={[
 								{ value: 'inline', label: common_enterValue() },
-								{ value: 'filepath', label: credentials_fileOnHost() }
+								{ value: 'filepath', label: credentials_fileOnDaemonHost() }
 							]}
 							selected={getSecretFieldMode(field.id)}
 							onchange={(v) => setSecretFieldMode(field.id, v as 'inline' | 'filepath')}
@@ -956,7 +1124,7 @@
 							<p class="text-muted text-xs">
 								{credentials_secretStoredInDatabase()}
 							</p>
-							{#if field.inline_format === 'pemprivatekey' || !field.inline_format}
+							{#if field.inline_format === 'pemprivatekey' || field.inline_format === 'sshprivatekey' || !field.inline_format}
 								<div class="relative">
 									<textarea
 										id={field.id}
@@ -967,7 +1135,7 @@
 											formField.handleChange(target.value);
 										}}
 										onblur={() => formField.handleBlur()}
-										placeholder={field.placeholder ?? '-----BEGIN PRIVATE KEY-----'}
+										placeholder={placeholderFor(field) || '-----BEGIN PRIVATE KEY-----'}
 										rows={4}
 										class="input-field text-primary w-full rounded-md px-3 py-2 pr-10 font-mono text-sm"
 										class:password-field={!secretFieldVisible[field.id]}
@@ -999,7 +1167,7 @@
 											formField.handleChange(target.value);
 										}}
 										onblur={() => formField.handleBlur()}
-										placeholder={field.placeholder ?? ''}
+										placeholder={placeholderFor(field)}
 										class="input-field text-primary w-full rounded-md px-3 py-2 pr-10 text-sm"
 										class:input-field-error={formField.state.meta.errors?.length > 0}
 									/>
@@ -1032,9 +1200,7 @@
 									formField.handleChange(target.value);
 								}}
 								onblur={() => formField.handleBlur()}
-								placeholder={field.inline_format === 'pemprivatekey'
-									? '/path/to/key.pem'
-									: '/path/to/secret'}
+								placeholder={filePathPlaceholder(field, daemonOs)}
 								class="input-field text-primary w-full rounded-md px-3 py-2 text-sm"
 								class:input-field-error={formField.state.meta.errors?.length > 0}
 							/>
@@ -1055,7 +1221,7 @@
 						<SegmentedControl
 							options={[
 								{ value: 'inline', label: common_enterValue() },
-								{ value: 'filepath', label: credentials_fileOnHost() }
+								{ value: 'filepath', label: credentials_fileOnDaemonHost() }
 							]}
 							selected={getFileFieldMode(field.id)}
 							onchange={(v) => setFileFieldMode(field.id, v as 'inline' | 'filepath')}
@@ -1075,7 +1241,7 @@
 										formField.handleChange(target.value);
 									}}
 									onblur={() => formField.handleBlur()}
-									placeholder={field.placeholder ?? ''}
+									placeholder={placeholderFor(field)}
 									rows={4}
 									class="input-field text-primary w-full rounded-md px-3 py-2 font-mono text-sm"
 									class:input-field-error={formField.state.meta.errors?.length > 0}
@@ -1091,7 +1257,7 @@
 										formField.handleChange(target.value);
 									}}
 									onblur={() => formField.handleBlur()}
-									placeholder={field.placeholder ?? ''}
+									placeholder={placeholderFor(field)}
 									class="input-field text-primary w-full rounded-md px-3 py-2 text-sm"
 									class:input-field-error={formField.state.meta.errors?.length > 0}
 								/>
@@ -1110,7 +1276,84 @@
 									formField.handleChange(target.value);
 								}}
 								onblur={() => formField.handleBlur()}
-								placeholder="/etc/docker/certs/cert.pem"
+								placeholder={filePathPlaceholder(field, daemonOs)}
+								class="input-field text-primary w-full rounded-md px-3 py-2 text-sm"
+								class:input-field-error={formField.state.meta.errors?.length > 0}
+							/>
+						{/if}
+					</div>
+				{/snippet}
+			</form.Field>
+		{:else if field.field_type === 'radio'}
+			<form.Field name={fName} validators={getFieldValidators(field)}>
+				{#snippet children(formField: AnyFieldApi)}
+					<RadioGroup
+						label={field.label}
+						id="{fieldPrefix}{field.id}"
+						field={formField}
+						options={field.options ?? []}
+						required={!field.optional}
+						{disabled}
+						value={fieldValues[field.id] ?? field.default_value ?? ''}
+						onChange={(v) => handleFieldValueChange(field.id, v)}
+						variant="inline"
+					/>
+				{/snippet}
+			</form.Field>
+		{:else if field.field_type === 'scriptsource'}
+			<form.Field name={fName} validators={getFieldValidators(field)}>
+				{#snippet children(formField: AnyFieldApi)}
+					{@const source = getScriptSource(field.id)}
+					<label for={field.id} class="text-secondary block text-sm font-medium">
+						{field.label}
+						{#if !field.optional}
+							<span class="text-red-400">*</span>
+						{/if}
+					</label>
+					<div class="space-y-2">
+						<SegmentedControl
+							options={scriptSourceOptions()}
+							selected={source.mode}
+							onchange={(v) =>
+								setScriptSource(field.id, withScriptSourceMode(source, v as ScriptSourceMode))}
+							size="sm"
+						/>
+						{#if source.mode === 'Inline'}
+							<p class="text-muted text-xs">
+								{credentials_secretStoredInDatabase()}
+							</p>
+							<textarea
+								id={field.id}
+								value={source.value}
+								oninput={(e) => {
+									const target = e.target as HTMLTextAreaElement;
+									setScriptSource(field.id, withScriptSourceText(source, target.value));
+									formField.handleChange(target.value);
+								}}
+								onblur={() => formField.handleBlur()}
+								rows={8}
+								class="input-field text-primary w-full rounded-md px-3 py-2 font-mono text-sm"
+								class:input-field-error={formField.state.meta.errors?.length > 0}
+							></textarea>
+						{:else}
+							<p class="text-muted text-xs">
+								{source.mode === 'DaemonFile'
+									? credentials_filePathReadByDaemon()
+									: credentials_filePathRunByScannedHost()}
+							</p>
+							<input
+								id={field.id}
+								type="text"
+								value={source.path}
+								oninput={(e) => {
+									const target = e.target as HTMLInputElement;
+									setScriptSource(field.id, withScriptSourceText(source, target.value));
+									formField.handleChange(target.value);
+								}}
+								onblur={() => formField.handleBlur()}
+								placeholder={source.mode === 'HostFile'
+									? placeholderFor(field)
+									: filePathPlaceholder(field, daemonOs)}
 								class="input-field text-primary w-full rounded-md px-3 py-2 text-sm"
 								class:input-field-error={formField.state.meta.errors?.length > 0}
 							/>
@@ -1136,8 +1379,8 @@
 							formField.handleChange(target.value);
 						}}
 						onblur={() => formField.handleBlur()}
-						placeholder={field.placeholder ?? ''}
-						rows={4}
+						placeholder={placeholderFor(field)}
+						rows={8}
 						class="input-field text-primary w-full rounded-md px-3 py-2 font-mono text-sm"
 						class:password-field={isSecret}
 						class:input-field-error={formField.state.meta.errors?.length > 0}
@@ -1163,7 +1406,7 @@
 							formField.handleChange(target.value);
 						}}
 						onblur={() => formField.handleBlur()}
-						placeholder={field.placeholder ?? ''}
+						placeholder={placeholderFor(field)}
 						class="input-field text-primary w-full rounded-md px-3 py-2 text-sm"
 						class:input-field-error={formField.state.meta.errors?.length > 0}
 					/>
@@ -1174,7 +1417,29 @@
 		{#if field.help_text}
 			<p class="text-muted text-xs">{field.help_text}</p>
 		{/if}
+		{#if field.field_type === 'scriptsource' && integrationDocsPath}
+			<DocsHint
+				text={credentials_scriptOutputDocs()}
+				href={docsUrl(`${integrationDocsPath}#what-gets-discovered`)}
+				linkText={credentials_scriptOutputDocsLinkText()}
+			/>
+		{/if}
+
+		<!-- An OS choice only this field depends on sits with it, under its value/path toggle. -->
+		{#if showDaemonOsPicker && daemonOsDependents.length === 1 && daemonOsDependents[0] === field.id}
+			<div class="pt-2">{@render daemonOsPicker()}</div>
+		{/if}
 	</div>
+{/snippet}
+
+{#snippet fieldList(fields: FieldDefinition[])}
+	{#each fields as field (field.id)}
+		<!-- An OS choice several fields depend on comes once, above the first of them. -->
+		{#if showDaemonOsPicker && daemonOsDependents.length > 1 && daemonOsDependents[0] === field.id}
+			{@render daemonOsPicker()}
+		{/if}
+		{@render fieldRenderer(field, field.secret)}
+	{/each}
 {/snippet}
 
 <style>

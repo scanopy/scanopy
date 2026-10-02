@@ -6,7 +6,7 @@
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
 	import type { Discovery } from '../../types/base';
 	import { discoveryFields, formatScheduleDisplay, cancellingSessions } from '../../queries';
-	import { formatTimestamp } from '$lib/shared/utils/formatting';
+	import { formatRelativeTime } from '$lib/shared/utils/formatting';
 	import SessionProgress from '../cards/SessionProgress.svelte';
 	import DiscoveryEstimation from '../DiscoveryEstimation.svelte';
 	import DiscoveryEditModal from '../DiscoveryModal/DiscoveryEditModal.svelte';
@@ -372,7 +372,7 @@
 			type: 'string',
 			getValue: (item) =>
 				item.run_type.type !== 'Historical' && item.run_type.last_run
-					? formatTimestamp(item.run_type.last_run)
+					? formatRelativeTime(item.run_type.last_run)
 					: common_never(),
 			display: { hiddenByDefault: true }
 		},

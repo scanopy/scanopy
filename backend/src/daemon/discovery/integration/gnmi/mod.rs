@@ -372,7 +372,7 @@ impl LldpModelProfile {
 
     /// The profile for a device, chosen from what it ADVERTISES rather than by trying one model
     /// and catching the failure — which would cost a wasted round trip per scan and still could
-    /// not tell "not served" from "served and empty", the silent kind of wrong.
+    /// not tell "not served" from "served and empty", a silently wrong answer.
     ///
     /// `None` is the device that advertises no LLDP model this collector knows, including one
     /// that advertises none at all. The caller falls back to [`OPENCONFIG_LLDP`] there, so a
@@ -555,7 +555,7 @@ impl DiscoveryIntegration for GnmiIntegration {
             .await
             .map_err(|e| ProbeFailure::rejected(e.to_string()))?;
         Ok(ProbeSuccess {
-            client_probe: ClientProbe::Gnmi,
+            client_probe: Some(ClientProbe::Gnmi),
             ports: vec![PortType::new_tcp(cred.port)],
             handle: Some(Box::new(handle_from(cred.clone(), models))),
         })

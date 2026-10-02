@@ -16,7 +16,7 @@ use crate::server::{
     daemon_api_keys::r#impl::base::{DaemonApiKey, DaemonApiKeyBase},
     daemons::r#impl::{
         api::DiscoveryUpdatePayload,
-        base::{Daemon, DaemonBase, DaemonMode},
+        base::{Daemon, DaemonBase, DaemonMode, DaemonOs},
     },
     dependencies::r#impl::{
         base::{Dependency, DependencyBase, DependencyMembers},
@@ -39,7 +39,7 @@ use crate::server::{
     },
     interfaces::r#impl::base::{IfAdminStatus, IfOperStatus, Interface, InterfaceBase},
     ip_addresses::r#impl::base::{IPAddress, IPAddressBase},
-    networks::r#impl::{DEFAULT_STALE_AFTER_HOURS, Network, NetworkBase},
+    networks::r#impl::{Network, NetworkBase},
     ports::r#impl::base::{Port, PortType},
     services::r#impl::patterns::ClientProbe,
     services::{
@@ -427,6 +427,39 @@ fn with_snmp(
     (host, ip_address)
 }
 
+/// Wraps a `create_host()` result to add what the "Linux Inventory" SSH credential's script
+/// reports: OS and hardware identity, attributed to the script as a real scan would.
+fn with_ssh_inventory(
+    (mut host, ip_address): (Host, IPAddress),
+    sys_descr: &str,
+    manufacturer: &str,
+    model: &str,
+    serial_number: &str,
+    firmware_revision: &str,
+    software_revision: &str,
+) -> (Host, IPAddress) {
+    let source = AttributeSource::SshScript;
+    host.base.sys_descr = Some(Attributed::new(HostSysDescrValue(sys_descr.into()), source));
+    host.base.manufacturer = Some(Attributed::new(
+        HostManufacturerValue(manufacturer.into()),
+        source,
+    ));
+    host.base.model = Some(Attributed::new(HostModelValue(model.into()), source));
+    host.base.serial_number = Some(Attributed::new(
+        HostSerialNumberValue(serial_number.into()),
+        source,
+    ));
+    host.base.firmware_revision = Some(Attributed::new(
+        HostFirmwareRevisionValue(firmware_revision.into()),
+        source,
+    ));
+    host.base.software_revision = Some(Attributed::new(
+        HostSoftwareRevisionValue(software_revision.into()),
+        source,
+    ));
+    (host, ip_address)
+}
+
 /// Wraps a `create_host()` result to set the MAC address on the IP address.
 fn with_mac((host, mut ip_address): (Host, IPAddress), mac: [u8; 6]) -> (Host, IPAddress) {
     ip_address.base.mac_address = Some(MacEvidence::new(
@@ -442,6 +475,39 @@ fn with_mac((host, mut ip_address): (Host, IPAddress), mac: [u8; 6]) -> (Host, I
 fn unnamed((mut host, ip_address): (Host, IPAddress)) -> (Host, IPAddress) {
     host.base.name = HostName::unnamed();
     (host, ip_address)
+}
+
+/// Turns a host into a discovered device that has since dropped off the network: first seen at
+/// `first_seen`, last answered a scan at `last_seen`. Its addresses, ports, services and bindings
+/// carry the same dates, so the whole host reads as stale. `last_seen` must fall outside the demo
+/// networks' staleness window.
+fn gone_quiet(
+    mut hws: HostWithServices,
+    first_seen: DateTime<Utc>,
+    last_seen: DateTime<Utc>,
+) -> HostWithServices {
+    let host = &mut hws.host;
+    host.base.source = EntitySource::Discovery;
+    (host.created_at, host.valid_from) = (first_seen, first_seen);
+    (host.updated_at, host.last_seen_at) = (last_seen, last_seen);
+    for ip in &mut hws.ip_addresses {
+        (ip.created_at, ip.valid_from) = (first_seen, first_seen);
+        (ip.updated_at, ip.last_seen_at) = (last_seen, last_seen);
+    }
+    for port in &mut hws.ports {
+        (port.created_at, port.valid_from) = (first_seen, first_seen);
+        (port.updated_at, port.last_seen_at) = (last_seen, last_seen);
+    }
+    for svc in &mut hws.services {
+        svc.base.source = EntitySource::Discovery;
+        (svc.created_at, svc.valid_from) = (first_seen, first_seen);
+        (svc.updated_at, svc.last_seen_at) = (last_seen, last_seen);
+        for binding in &mut svc.base.bindings {
+            (binding.created_at, binding.valid_from) = (first_seen, first_seen);
+            (binding.updated_at, binding.last_seen_at) = (last_seen, last_seen);
+        }
+    }
+    hws
 }
 
 /// Helper to create a service for a host.
@@ -633,7 +699,7 @@ use host_with_services;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
 
     #[test]
     fn subnet_vlan_records_are_derived_and_reference_valid_entities() {
@@ -677,6 +743,74 @@ mod tests {
                 .any(|s| s.base.cidr.source().method() == AttributeMethod::Inferred),
             "expected at least one subnet whose cidr_source is Inferred-tier (a provisional range)"
         );
+    }
+
+    /// Some demo hosts read as stale from the moment the org is created, and each one reads as
+    /// stale as a whole: its addresses, ports, services and bindings go stale with it, and no
+    /// child of a current host does.
+    #[test]
+    fn stale_demo_hosts_are_stale_together_with_their_children() {
+        use crate::server::shared::storage::snapshot::DiscoveryTracked;
+        use crate::server::shared::types::entities::EntityFreshness;
+
+        let demo = DemoData::generate(Uuid::new_v4(), Uuid::new_v4());
+        let now = Utc::now();
+        let cutoffs: HashMap<Uuid, DateTime<Utc>> = demo
+            .networks
+            .iter()
+            .map(|n| (n.id, n.stale_cutoff(now)))
+            .collect();
+
+        let mut stale_hosts = 0;
+        for hws in demo
+            .hosts_with_services
+            .iter()
+            .chain(&demo.recent_hosts_with_services)
+        {
+            let cutoff = cutoffs[&hws.host.base.network_id];
+            let host_freshness = hws.host.freshness(cutoff);
+            if host_freshness == EntityFreshness::Stale {
+                stale_hosts += 1;
+            }
+            let name = format!("{:?}", hws.host.base.name);
+
+            let mut children: Vec<(EntityFreshness, DateTime<Utc>, DateTime<Utc>)> = Vec::new();
+            children.extend(
+                hws.ip_addresses
+                    .iter()
+                    .map(|e| (e.freshness(cutoff), e.created_at, e.last_seen_at)),
+            );
+            children.extend(
+                hws.ports
+                    .iter()
+                    .map(|e| (e.freshness(cutoff), e.created_at, e.last_seen_at)),
+            );
+            for svc in &hws.services {
+                children.push((svc.freshness(cutoff), svc.created_at, svc.last_seen_at));
+                children.extend(
+                    svc.base
+                        .bindings
+                        .iter()
+                        .map(|e| (e.freshness(cutoff), e.created_at, e.last_seen_at)),
+                );
+            }
+
+            assert!(
+                hws.host.created_at <= hws.host.last_seen_at,
+                "{name}: last seen before it was created"
+            );
+            for (freshness, created_at, last_seen_at) in children {
+                assert_eq!(
+                    freshness, host_freshness,
+                    "{name}: a child's freshness differs from its host's"
+                );
+                assert!(
+                    created_at <= last_seen_at,
+                    "{name}: a child was last seen before it was created"
+                );
+            }
+        }
+        assert!(stale_hosts > 0, "expected at least one stale demo host");
     }
 
     #[test]

@@ -35,8 +35,12 @@ impl BillingService {
         match event.type_ {
             EventType::CustomerSubscriptionCreated | EventType::CustomerSubscriptionUpdated => {
                 if let Some(sub) = self.fetch_subscription(&event).await? {
-                    self.handle_subscription_update(sub, event.carries_cancellation_feedback)
-                        .await?;
+                    self.handle_subscription_update(
+                        sub,
+                        event.carries_cancellation_feedback,
+                        event.created,
+                    )
+                    .await?;
                 }
             }
             EventType::CustomerSubscriptionTrialWillEnd => {
@@ -56,8 +60,8 @@ impl BillingService {
             // per single user action. payment_method.attached is the canonical
             // signal and is handled below.
             EventType::PaymentMethodAttached => {
-                if let Some(customer) = event.customer {
-                    self.handle_payment_method_attached(customer, event.object_id)
+                if let Some(customer) = event.customer.clone() {
+                    self.handle_payment_method_attached(customer, event.object_id()?.to_string())
                         .await?;
                 }
             }
@@ -133,7 +137,7 @@ impl BillingService {
         &self,
         event: &StripeEnvelope,
     ) -> Result<Option<Subscription>, Error> {
-        let fetched = RetrieveSubscription::new(event.object_id.as_str())
+        let fetched = RetrieveSubscription::new(event.object_id()?)
             .send(&self.stripe)
             .await;
         still_exists(event, fetched)
@@ -142,7 +146,7 @@ impl BillingService {
     /// The event's invoice as Stripe holds it now. Only a deleted draft is
     /// gone.
     async fn fetch_invoice(&self, event: &StripeEnvelope) -> Result<Option<Invoice>, Error> {
-        let fetched = RetrieveInvoice::new(event.object_id.as_str())
+        let fetched = RetrieveInvoice::new(event.object_id()?)
             .send(&self.stripe)
             .await;
         still_exists(event, fetched)
@@ -150,11 +154,13 @@ impl BillingService {
 
     /// `feedback_in_event` is whether this event, rather than the
     /// subscription as fetched, carried the customer's cancellation feedback.
-    /// See `StripeEnvelope::carries_cancellation_feedback`.
+    /// See `StripeEnvelope::carries_cancellation_feedback`. `event_created` is
+    /// the event's unix timestamp, which redeliveries repeat.
     async fn handle_subscription_update(
         &self,
         sub: Subscription,
         feedback_in_event: bool,
+        event_created: i64,
     ) -> Result<(), Error> {
         tracing::debug!(
             subscription_id = %sub.id,
@@ -163,17 +169,13 @@ impl BillingService {
             "Processing subscription update"
         );
 
-        let org_id = sub
-            .metadata
-            .get("organization_id")
+        let identity = StripeSubscriptionMetadata::from_stripe(&sub.metadata);
+        let org_id = identity
+            .organization_id
             .ok_or_else(|| anyhow!("No organization_id in subscription metadata"))?;
-
-        let plan_str = sub
-            .metadata
-            .get("plan")
+        let plan = identity
+            .plan
             .ok_or_else(|| anyhow!("No plan in subscription metadata"))?;
-
-        let plan: BillingPlan = serde_json::from_str(plan_str)?;
 
         tracing::info!(
             organization_id = %org_id,
@@ -182,8 +184,6 @@ impl BillingService {
             subscription_id = %sub.id,
             "Subscription updated"
         );
-
-        let org_id = Uuid::parse_str(org_id)?;
 
         let organization = match self.organization_service.get_by_id(&org_id).await? {
             Some(org) => org,
@@ -503,24 +503,29 @@ impl BillingService {
         //
         // The Stripe sub's `current_period_end` is unchanged by the
         // pause→resume cycle (pause_collection doesn't move the cycle).
-        // For auto-resume (Stripe clearing pause_collection at resumes_at
-        // without the manual resume_subscription endpoint running), we
-        // apply the same prorated balance credit here. The credit call
-        // uses a sub-id-and-paused-at idempotency key so when the manual
-        // path's API call ALSO triggers this webhook arm, we don't
-        // double-credit.
+        // This arm is the only writer of the prorated pause credit, for both
+        // a manual resume and Stripe's scheduled auto-resume. A failed credit
+        // returns the error before `Resumed` is published, so the webhook
+        // answers non-2xx and Stripe redelivers: the org is still Paused, so
+        // this arm runs again. The balance transaction carries a
+        // `pause-credit-{sub_id}-{paused_at}` idempotency key and is timed from
+        // the event's `created`, so a redelivery after a credit that landed in
+        // Stripe but whose response was lost replays it instead of crediting
+        // twice.
         if prior_status == Some(PlanStatus::Paused)
             && sub.pause_collection.is_none()
             && let Some(owner) = owners.first()
         {
-            if let Err(e) = self.apply_pause_credit_if_due(&sub, &organization).await {
-                tracing::error!(
-                    organization_id = %org_id,
-                    subscription_id = %sub.id,
-                    error = %e,
-                    "Webhook resume: pause-credit apply failed",
-                );
-            }
+            let resumed_at = chrono::DateTime::<Utc>::from_timestamp(event_created, 0)
+                .ok_or_else(|| anyhow!("Invalid event timestamp {event_created}"))?;
+            self.apply_pause_credit_if_due(&sub, &organization, resumed_at)
+                .await
+                .map_err(|e| {
+                    e.context(format!(
+                        "Webhook resume: pause-credit apply failed for subscription {}",
+                        sub.id
+                    ))
+                })?;
 
             self.event_bus
                 .publish(Event::new(
@@ -806,11 +811,9 @@ impl BillingService {
     }
 
     async fn handle_subscription_deleted(&self, sub: Subscription) -> Result<(), Error> {
-        let org_id = sub
-            .metadata
-            .get("organization_id")
+        let org_id = StripeSubscriptionMetadata::from_stripe(&sub.metadata)
+            .organization_id
             .ok_or_else(|| anyhow!("No organization_id in subscription metadata"))?;
-        let org_id = Uuid::parse_str(org_id)?;
 
         // Guard: this handler is bound to both `customer.subscription.paused`
         // and `customer.subscription.deleted`. A paused sub is not deleted —
@@ -1058,7 +1061,7 @@ fn still_exists<T>(
             tracing::info!(
                 event_id = %event.id,
                 event_type = ?event.type_,
-                object_id = %event.object_id,
+                object_id = ?event.object_id,
                 "Stripe no longer has this event's object; nothing to do"
             );
             Ok(None)

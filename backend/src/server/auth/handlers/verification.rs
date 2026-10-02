@@ -1,6 +1,7 @@
 //! Email verification and resend handlers.
 use super::*;
 use crate::server::openapi::tags as api_tags;
+use crate::server::shared::types::api::ApiJson;
 
 #[utoipa::path(
     post,
@@ -17,7 +18,7 @@ pub(crate) async fn verify_email(
     ClientIp(ip): ClientIp,
     user_agent: Option<TypedHeader<UserAgent>>,
     session: Session,
-    Json(request): Json<VerifyEmailRequest>,
+    ApiJson(request): ApiJson<VerifyEmailRequest>,
 ) -> ApiResult<Json<ApiResponse<User>>> {
     let user_agent = user_agent.map(|u| u.to_string());
 
@@ -62,7 +63,7 @@ pub(crate) async fn resend_verification(
     State(state): State<Arc<AppState>>,
     ClientIp(ip): ClientIp,
     user_agent: Option<TypedHeader<UserAgent>>,
-    Json(request): Json<ResendVerificationRequest>,
+    ApiJson(request): ApiJson<ResendVerificationRequest>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let user_agent = user_agent.map(|u| u.to_string());
 

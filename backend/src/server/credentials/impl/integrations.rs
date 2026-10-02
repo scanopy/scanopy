@@ -122,11 +122,11 @@ pub fn all_integrations() -> Vec<Integration> {
             name: ServiceDefinition::name(&*service).to_string(),
             category: <&'static str>::from(ct.credential_category()).to_string(),
             has_logo: service.has_logo(),
-            logo_ext: logo_ext(service.logo_url()).to_string(),
+            logo_ext: disc.integration().logo_ext().to_string(),
             logo_slug: logo_slug(ServiceDefinition::name(&*service)),
             logo_needs_white_background: service.logo_needs_white_background(),
-            discovers: disc.integration_discovers().to_string(),
-            docs_path: disc.integration_docs_path().to_string(),
+            discovers: disc.integration().discovers().to_string(),
+            docs_path: disc.integration().docs_path().to_string(),
             summary: String::new(), // filled in after all transports are collected
             transports: vec![transport],
         });
@@ -159,20 +159,6 @@ fn join_oxford(items: &[String]) -> String {
         [a, b] => format!("{a} and {b}"),
         [rest @ .., last] => format!("{}, and {}", rest.join(", "), last),
     }
-}
-
-/// Derive a logo file extension from a logo URL, mirroring the logic used by the
-/// service/credential metadata. Empty for missing or locally-served (`/`-prefixed)
-/// logos.
-fn logo_ext(url: &str) -> &str {
-    if url.is_empty() || url.starts_with('/') {
-        return "";
-    }
-    url.rsplit('.')
-        .next()
-        .and_then(|e| e.split('?').next())
-        .filter(|e| matches!(*e, "svg" | "png" | "webp"))
-        .unwrap_or("svg")
 }
 
 #[cfg(test)]
@@ -279,12 +265,16 @@ mod tests {
     #[test]
     fn credential_description_derives_from_canonical_text() {
         for disc in CredentialTypeDiscriminants::iter() {
-            let expected = format!("{} {}", disc.integration_discovers(), disc.transport_note());
+            let expected = format!(
+                "{} {}",
+                disc.integration().discovers(),
+                disc.transport_note()
+            );
             assert_eq!(disc.full_description(), expected);
             // The shared stem must actually be the leading text.
             assert!(
                 disc.full_description()
-                    .starts_with(disc.integration_discovers())
+                    .starts_with(disc.integration().discovers())
             );
         }
     }

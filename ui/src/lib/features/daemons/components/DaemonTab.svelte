@@ -1,10 +1,13 @@
 <script lang="ts">
+	import { formatLongDate } from '$lib/shared/utils/formatting';
 	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 	import type { Daemon } from '$lib/features/daemons/types/base';
-	import { hasSunsetWarning, getDaemonStatusTag } from '$lib/features/daemons/utils';
+	import { hasSunsetWarning, getDaemonStatusTag, osLabel } from '$lib/features/daemons/utils';
+	import OsIcon from './OsIcon.svelte';
+	import { createColorHelper } from '$lib/shared/utils/styling';
 	import CreateDaemonModal from './CreateDaemonModal/CreateDaemonModal.svelte';
 	import { defineFields, type CardAction } from '$lib/shared/components/data/types';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
@@ -38,6 +41,7 @@
 	import { downloadCsv } from '$lib/shared/utils/csvExport';
 	import {
 		common_create,
+		common_operatingSystem,
 		common_confirmBulkDelete,
 		common_confirmDeleteName,
 		common_created,
@@ -104,12 +108,7 @@
 	let sunsetDateDisplay = $derived.by(() => {
 		const iso = daemonsData.find(hasSunsetWarning)?.version_status.sunset_date;
 		if (!iso) return null;
-		return new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric',
-			timeZone: 'UTC'
-		});
+		return formatLongDate(iso, 'UTC');
 	});
 	let networksData = $derived(networksQuery.data ?? []);
 	let subnetsData = $derived((subnetsQuery.data ?? []).filter(isUserManagedSubnet));
@@ -305,7 +304,11 @@
 						networksData.find((n) => n.id == item.network_id)?.name || common_unknownNetwork(),
 					display: { order: 3, getItems: (item) => networkItems(item.network_id, networksData) }
 				},
-				last_seen: { label: daemons_lastSeen(), type: 'date', display: { order: 2 } },
+				last_seen: {
+					label: daemons_lastSeen(),
+					type: 'date',
+					display: { order: 2, recency: true }
+				},
 				created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
 				updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } }
 			},
@@ -362,6 +365,16 @@
 							return [{ id: tag.label, label: tag.label, color: tag.color, icon: tag.icon }];
 						}
 					}
+				},
+				{
+					key: 'os',
+					label: common_operatingSystem(),
+					type: 'string',
+					searchable: true,
+					filterable: true,
+					groupable: true,
+					getValue: (daemon) => (daemon.os ? osLabel(daemon.os) : ''),
+					display: { order: 4.5, cell: osCell }
 				},
 				{
 					key: 'mode',
@@ -423,6 +436,21 @@
 		)
 	);
 </script>
+
+<!-- A gray Tag with the OS's own icon: Tag takes an icon component, and OsIcon needs its `os`. -->
+{#snippet osCell(daemon: Daemon)}
+	{#if daemon.os}
+		{@const gray = createColorHelper('Gray')}
+		<span
+			class="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium {gray.bg} {gray.text}"
+		>
+			<OsIcon os={daemon.os} class="h-4 w-4 flex-shrink-0" />
+			<span class="truncate">{osLabel(daemon.os)}</span>
+		</span>
+	{:else}
+		<span class="text-tertiary text-sm">—</span>
+	{/if}
+{/snippet}
 
 <div class="space-y-6">
 	<!-- Header -->

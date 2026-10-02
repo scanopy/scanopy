@@ -1,5 +1,7 @@
 import { fieldDefs } from './config';
 import type { components } from '$lib/api/schema';
+import daemonOsMetadata from '$lib/data/daemon-os.json';
+import osFamilies from '$lib/data/os-families.json';
 import type { Daemon } from './types/base';
 import type { FormValue } from '$lib/shared/components/forms/validators';
 import type { TagProps } from '$lib/shared/components/data/types';
@@ -8,6 +10,10 @@ import { getServerUrl } from '$lib/api/client';
 import { CircleHelp } from 'lucide-svelte';
 import {
 	common_deprecated,
+	common_freebsd,
+	common_linux,
+	common_macos,
+	common_windows,
 	common_healthy,
 	common_outdated,
 	common_standby,
@@ -331,5 +337,34 @@ export async function downloadDaemonMsi(filename: string): Promise<boolean> {
 	} catch {
 		window.open(WINDOWS_MSI_GITHUB_URL, '_blank');
 		return false;
+	}
+}
+
+type OsFamily = components['schemas']['OsFamily'];
+
+function isOsFamily(value: string): value is OsFamily {
+	return osFamilies.some((family) => family.id === value);
+}
+
+/**
+ * The credential-path OS family for a daemon OS, from the backend's `From<DaemonOs> for OsFamily`
+ * (`daemon-os.json`): Windows paths for a Windows daemon, Unix paths for every other.
+ */
+export function osFamilyOf(os: DaemonOS): OsFamily {
+	const family = daemonOsMetadata.find((entry) => entry.id === os)?.metadata.os_family;
+	return family && isOsFamily(family) ? family : 'Unix';
+}
+
+/** A daemon OS's display name ("macOS", "FreeBSD"), the one label every surface uses. */
+export function osLabel(os: DaemonOS): string {
+	switch (os) {
+		case 'linux':
+			return common_linux();
+		case 'macos':
+			return common_macos();
+		case 'windows':
+			return common_windows();
+		case 'freebsd':
+			return common_freebsd();
 	}
 }

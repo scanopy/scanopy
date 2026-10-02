@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { effectiveTimeZone } from '$lib/shared/stores/display-settings.svelte';
 	import { createForm } from '@tanstack/svelte-form';
 	import { submitForm, validateForm } from '$lib/shared/components/forms/form-context';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
@@ -20,6 +21,8 @@
 	import type { Discovery } from '../../types/base';
 	import DiscoveryHistoricalSummary from './DiscoveryHistoricalSummary.svelte';
 	import WarningReport from './WarningReport.svelte';
+	import CredentialResults from './CredentialResults.svelte';
+	import { isCredentialWarning } from '../../utils/warnings';
 	import { uuidv4Sentinel } from '$lib/shared/utils/formatting';
 	import { createEmptyDiscoveryFormData, parseDayTimeCronSchedule } from '../../queries';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
@@ -42,7 +45,6 @@
 		Calendar,
 		ArrowRight,
 		KeyRound,
-		TriangleAlert,
 		Copy
 	} from 'lucide-svelte';
 	import CredentialsStep, {
@@ -60,7 +62,7 @@
 		common_deleting,
 		common_details,
 		common_failedToCopy,
-		common_issues,
+		common_scan,
 		common_next,
 		common_saving,
 		common_schedule,
@@ -69,7 +71,7 @@
 		common_targets,
 		daemons_credentialWizardTargetRequired,
 		discovery_copyDiagnostics,
-		discovery_copyWarningData,
+		discovery_copyRunData,
 		discovery_couldNotGetNetworkId,
 		discovery_createDiscovery,
 		discovery_createScheduled,
@@ -141,17 +143,28 @@
 	let historicalResults = $derived(
 		discovery?.run_type.type === 'Historical' ? discovery.run_type.results : null
 	);
-	/** A run that failed or was cancelled: the Issues tab has its reason to show. */
+	/** A run that failed or was cancelled: the Scan tab has its reason to show. */
 	let endedBadly = $derived(
 		historicalResults?.phase === 'Failed' || historicalResults?.phase === 'Cancelled'
 	);
 	let historicalWarnings = $derived(
 		discovery?.run_type.type === 'Historical' ? (discovery.run_type.results.warnings ?? []) : []
 	);
+	// Each warning is on one of the two tabs, as the backend files its code.
+	let credentialWarningCount = $derived(historicalWarnings.filter(isCredentialWarning).length);
+	let scanWarningCount = $derived(historicalWarnings.length - credentialWarningCount);
 	let readOnly = $derived(formData.run_type.type == 'Historical');
 
+	let historicalCredentialResults = $derived(historicalResults?.credential_results ?? []);
+	/** Whether the copy button has anything to copy. */
+	let hasRunData = $derived(
+		historicalWarnings.length > 0 || historicalCredentialResults.length > 0
+	);
+
 	/**
-	 * Put the run's warnings on the clipboard as recorded, for pasting into an issue or a thread.
+	 * Put the run's warnings and credential results on the clipboard as recorded, for pasting into
+	 * an issue or a thread. Both tabs that show them copy the whole of both, so whichever tab the
+	 * reader is on, nothing the run recorded is left out.
 	 *
 	 * The rendered report is the wrong thing to share: its sentences are this build's copy in the
 	 * reader's locale, its rows merge occurrences the backend deliberately kept apart, and its
@@ -161,8 +174,14 @@
 	 * `copyText` falls back to a selection copy on plain-HTTP self-hosts, the deployment most
 	 * likely to be sharing warnings with us.
 	 */
-	async function copyWarningData() {
-		await copyToClipboard(JSON.stringify(historicalWarnings, null, 2));
+	async function copyRunData() {
+		await copyToClipboard(
+			JSON.stringify(
+				{ warnings: historicalWarnings, credential_results: historicalCredentialResults },
+				null,
+				2
+			)
+		);
 	}
 
 	/**
@@ -328,26 +347,36 @@
 		formData.discovery_type.type === 'Network' || formData.discovery_type.type === 'Unified'
 	);
 	let daemonSupportsUnified = $derived(!daemon || !isPreUnifiedDaemon(daemon));
-	let hasCredentialsTab = $derived(formData.discovery_type.type === 'Unified');
+	// The credential wizard. A historical run has a Credentials tab of its own, read-only.
+	let hasCredentialsTab = $derived(!isHistoricalRun && formData.discovery_type.type === 'Unified');
 	let hasScheduleTab = $derived(formData.run_type.type === 'Scheduled');
+	/** The wizard's Credentials tab is open: it lays itself out and scrolls internally. */
+	let wizardCredentialsActive = $derived(hasCredentialsTab && activeTab === 'credentials');
 
 	/**
-	 * A run has issues and it has details, and they are read for different reasons — "did this
-	 * need me" before "what did it do". Two tabs rather than the warnings stapled to the top of
-	 * the details, which is what made a run with fourteen of them unreadable.
+	 * A run has warnings and it has details, and they are read for different reasons — "did this
+	 * need me" before "what did it do". Separate tabs rather than the warnings stapled to the top
+	 * of the details, which is what made a run with fourteen of them unreadable.
 	 *
-	 * Issues holds everything that went wrong: the warnings, and for a run that failed or was
-	 * cancelled, why it ended. The tab carries no status dot. Landing on it already says the run
-	 * has something, and the count that says how many belongs on the row in scan history, where
-	 * runs are compared.
+	 * Each warning is on exactly one tab, as the backend files its code (`concerns_credential`).
+	 * Scan holds the scan's own, and for a run that failed or was cancelled, why it ended.
+	 * Credentials holds what each credential did together with its warnings. Both tabs show their
+	 * warning count the same way.
 	 */
 	let tabs: ModalTab[] = $derived(
 		isHistoricalRun
 			? [
 					{
-						id: 'issues',
-						label: common_issues(),
-						icon: TriangleAlert
+						id: 'scan',
+						label: common_scan(),
+						count: scanWarningCount,
+						icon: entities.getIconComponent('Discovery')
+					},
+					{
+						id: 'credentials',
+						label: common_credentials(),
+						icon: KeyRound,
+						count: credentialWarningCount
 					},
 					{ id: 'details', label: common_details(), icon: Info }
 				]
@@ -439,7 +468,7 @@
 		if (activeTab === 'performance' && !hasPerformanceTab) {
 			activeTab = hasDetectionTab ? 'detection' : hasTargetsTab ? 'targets' : 'details';
 		}
-		if (activeTab === 'credentials' && !hasCredentialsTab) {
+		if (activeTab === 'credentials' && !hasCredentialsTab && !isHistoricalRun) {
 			activeTab = 'details';
 		}
 	});
@@ -535,7 +564,7 @@
 			host_naming_fallback: 'BestService' as 'BestService' | 'Ip',
 			schedule_days_of_week: '0',
 			schedule_time: '00:00',
-			schedule_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+			schedule_timezone: effectiveTimeZone(),
 			schedule_cron: '0 0 0 * * 0'
 		},
 		onSubmit: async ({ value }) => {
@@ -604,9 +633,14 @@
 
 	function handleOpen() {
 		// A run with something wrong opens on it: its warnings, or the reason it did not finish.
-		// A clean one opens on its details. The Issues tab exists either way, so the modal does
+		// A clean one opens on its details. The Scan tab exists either way, so the modal does
 		// not change shape between runs.
-		activeTab = historicalWarnings.length > 0 || endedBadly ? 'issues' : 'details';
+		activeTab =
+			scanWarningCount > 0 || endedBadly
+				? 'scan'
+				: credentialWarningCount > 0
+					? 'credentials'
+					: 'details';
 		appliedJunctionFingerprint = '';
 		furthestReached = discovery ? Infinity : 0;
 		formData = getDefaultFormData();
@@ -655,7 +689,7 @@
 		let scheduleDaysOfWeek = '0';
 		let scheduleTime = '00:00';
 		let scheduleCron = '0 0 0 * * 0';
-		let scheduleTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+		let scheduleTimezone = effectiveTimeZone();
 
 		if (formData.run_type.type === 'Scheduled') {
 			scheduleCron = formData.run_type.cron_schedule;
@@ -761,14 +795,19 @@
 	>
 		<div
 			class="min-h-0 flex-1"
-			class:overflow-y-auto={activeTab !== 'credentials'}
-			class:flex={activeTab === 'credentials'}
-			class:flex-col={activeTab === 'credentials'}
+			class:overflow-y-auto={!wizardCredentialsActive}
+			class:flex={wizardCredentialsActive}
+			class:flex-col={wizardCredentialsActive}
 		>
 			{#if isHistoricalRun && discovery?.run_type.type === 'Historical'}
 				<div class="space-y-8 p-6">
-					{#if activeTab === 'issues'}
+					{#if activeTab === 'scan'}
 						<WarningReport payload={discovery.run_type.results} />
+					{:else if activeTab === 'credentials'}
+						<CredentialResults
+							payload={discovery.run_type.results}
+							daemonName={daemon?.name ?? null}
+						/>
 					{:else}
 						<DiscoveryHistoricalSummary payload={discovery.run_type.results} />
 					{/if}
@@ -835,6 +874,7 @@
 						fixedCapabilityTypeIds={daemonHostCredentialTypeIds}
 						daemonVersion={daemon?.version ?? null}
 						daemonName={daemon?.name ?? null}
+						daemonOs={daemon?.os ?? null}
 					/>
 				</div>
 			{/if}
@@ -861,17 +901,17 @@
 				<div class="flex items-center gap-3">
 					<!-- Beside Close rather than above the report: it acts on the whole run, not on
 					     any one row, and the footer is where a modal's whole-record actions live. -->
-					{#if activeTab === 'issues' && historicalWarnings.length > 0}
+					{#if (activeTab === 'scan' || activeTab === 'credentials') && hasRunData}
 						<button
 							type="button"
 							class="btn-secondary flex items-center gap-1"
-							onclick={copyWarningData}
+							onclick={copyRunData}
 						>
 							<Copy class="h-4 w-4" />
-							<span>{discovery_copyWarningData()}</span>
+							<span>{discovery_copyRunData()}</span>
 						</button>
 					{/if}
-					{#if activeTab === 'issues' && endedBadly}
+					{#if activeTab === 'scan' && endedBadly}
 						<button
 							type="button"
 							class="btn-secondary flex items-center gap-1"

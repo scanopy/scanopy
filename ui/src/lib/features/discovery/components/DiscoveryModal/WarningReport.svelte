@@ -58,6 +58,7 @@
 	import {
 		buildWarningReport,
 		credentialIdsOf,
+		isCredentialWarning,
 		type WarningEntry,
 		type WarningSubject
 	} from '../../utils/warnings';
@@ -68,7 +69,12 @@
 
 	let { payload }: Props = $props();
 
-	let warnings = $derived(payload.warnings ?? []);
+	// Credential warnings are shown with their credential on the Credentials tab, whose title counts
+	// them; this tab keeps the scan's own.
+	let warnings = $derived((payload.warnings ?? []).filter((w) => !isCredentialWarning(w)));
+	let credentialWarningCount = $derived(
+		(payload.warnings ?? []).filter(isCredentialWarning).length
+	);
 
 	/**
 	 * How the run ended, for a run that did not complete. This tab is where a reader looks for
@@ -284,9 +290,14 @@
 {/if}
 
 {#if sections.length === 0}
+	<!-- "Nothing needs you" is only true when the Credentials tab has nothing either. -->
 	<EmptyState
 		title={discovery_noWarnings()}
-		subtitle={outcome ? discovery_noWarningsBeforeStop() : discovery_noWarningsSubtitle()}
+		subtitle={outcome
+			? discovery_noWarningsBeforeStop()
+			: credentialWarningCount === 0
+				? discovery_noWarningsSubtitle()
+				: undefined}
 	/>
 {:else}
 	<div class="space-y-4" aria-label={common_warnings()}>

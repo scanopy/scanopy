@@ -25,7 +25,7 @@ import type { CardFieldItem, TagProps } from '$lib/shared/components/data/types'
 import type { EntityDiscriminants } from '$lib/api/entities';
 import { entities } from '$lib/shared/stores/metadata';
 import { toColor } from '$lib/shared/utils/styling';
-import { formatDateNumeric, formatRelativeTime } from '$lib/shared/utils/formatting';
+import { formatRelativeTime } from '$lib/shared/utils/formatting';
 import {
 	common_entityLastSeenAgo,
 	common_lastSeenAgo,
@@ -196,11 +196,12 @@ export function lastSeenLabel(entity: FreshnessSubject, entityTypeLabel?: string
  * window, so the column sat empty on every healthy row while the date beside it
  * said the same thing less precisely.
  *
- * So one column carries both: the plain date normally, and once a row has aged
- * out the same date inside an amber tag — "8/4/26 (Stale)" — so the column
- * reads consistently down its length and the date never disappears just because
- * a row went stale. Returning `undefined` (not `[]`) is what makes the cell fall
- * back to rendering the date.
+ * So one column carries both: the plain last-seen time normally, and once a row
+ * has aged out the same time inside an amber tag ("45d ago (Stale)", or the full
+ * timestamp when the user turned relative times off). The column reads
+ * consistently down its length, and the time stays visible after a row goes
+ * stale. Returning `undefined` (not `[]`) is what makes the cell fall back to
+ * rendering the time.
  *
  * `entityType` names the thing the verdict is about in the tag's tooltip, since
  * these lists sit side by side.
@@ -218,11 +219,10 @@ export function lastSeenItems<T extends FreshnessSubject & { network_id?: string
 		return [
 			{
 				id: 'stale',
-				label: common_staleWithDate({ date: formatDateNumeric(entity.last_seen_at) }),
+				label: common_staleWithDate({ date: formatRelativeTime(entity.last_seen_at) }),
 				color: tag.color,
 				icon: tag.icon,
-				// The relative time ("last seen 45d ago") is the part the absolute
-				// date doesn't give you at a glance.
+				// Names what went stale ("Host last seen 45d ago").
 				title: tag.title
 			}
 		];

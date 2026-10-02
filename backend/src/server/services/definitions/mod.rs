@@ -100,6 +100,7 @@ pub mod termix;
 pub mod tftp;
 pub mod unifi_gateway;
 pub mod unifi_switch;
+pub mod wake_on_lan;
 
 // NetworkAccess
 pub mod access_point;

@@ -12,6 +12,7 @@ use crate::server::shared::events::types::{
 use crate::server::shared::services::traits::{CrudService, EventBusService};
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::Entity;
+use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::api::ApiResponse;
 use crate::server::shared::types::api::ApiResult;
 use crate::server::shared::types::api::{ApiError, ApiErrorResponse, EmptyApiResponse};
@@ -54,7 +55,7 @@ async fn create_invite(
     State(state): State<Arc<AppState>>,
     auth: Authorized<RequireVerified<Admin>>,
     RequireFeature { plan, .. }: RequireFeature<InviteUsersFeature>,
-    Json(request): Json<CreateInviteRequest>,
+    ApiJson(request): ApiJson<CreateInviteRequest>,
 ) -> ApiResult<Json<ApiResponse<Invite>>> {
     let network_ids = auth.network_ids();
     let organization_id = auth

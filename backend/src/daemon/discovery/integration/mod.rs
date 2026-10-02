@@ -18,7 +18,9 @@ pub mod gnmi;
 pub mod instant_on;
 pub mod podman;
 pub mod snmp;
+pub mod ssh;
 pub mod unifi;
+pub mod wake_on_lan;
 
 use std::any::Any;
 use std::net::IpAddr;
@@ -30,6 +32,7 @@ use uuid::Uuid;
 
 use crate::{
     daemon::discovery::service::warnings::AttemptOutcome,
+    daemon::shared::config::ConfigStore,
     daemon::utils::base::PlatformDaemonUtils,
     server::{
         credentials::r#impl::mapping::{
@@ -346,12 +349,16 @@ pub struct ProbeContext<'a> {
     /// Extra CA roots from the daemon's `trusted_ca_bundle`, for controllers signed by a
     /// private CA. Mirrors [`IntegrationContext::trusted_ca`].
     pub trusted_ca: Option<&'a TrustedCaBundle>,
+    /// The daemon's config, for state an integration keeps between scans: SSH host-key pins.
+    pub config_store: &'a ConfigStore,
 }
 
 /// Successful probe — service responds with this credential.
 pub struct ProbeSuccess {
     /// What was detected. Feeds into `client_responses` for `Pattern::ClientResponse` matching.
-    pub client_probe: ClientProbe,
+    /// `None` when the probe proves something about the host but there is no service to identify:
+    /// Wake-on-LAN, whose probe succeeding means the host answered the scan.
+    pub client_probe: Option<ClientProbe>,
     /// Ports the probe was detected on.
     pub ports: Vec<PortType>,
     /// Opaque keep-alive state passed to `execute()`.
@@ -426,6 +433,10 @@ impl IntegrationRegistry {
             }
             CredentialQueryPayloadDiscriminants::InstantOn => {
                 Box::new(instant_on::InstantOnIntegration)
+            }
+            CredentialQueryPayloadDiscriminants::Ssh => Box::new(ssh::SshIntegration),
+            CredentialQueryPayloadDiscriminants::WakeOnLan => {
+                Box::new(wake_on_lan::WakeOnLanIntegration)
             }
             CredentialQueryPayloadDiscriminants::Unknown => return None,
         })

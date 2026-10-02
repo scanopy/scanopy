@@ -179,6 +179,11 @@ pub enum AttributeSource {
     /// TCP/UDP port (`every_client_probe_variant_has_a_producer` enforces that every variant has an
     /// `AppProbe` producer), and DCP is raw Ethernet with no port at all.
     ProfinetDcp,
+    /// A script the operator wrote, run on the host over SSH, printed it. Queried: we chose the
+    /// host, authenticated to it and read the answer from its own shell. Human-authored, because
+    /// the operator chose what the script reports, which is what puts it above the machine values
+    /// SNMP and LLDP emit about the same fields.
+    SshScript,
 
     /// A value the thing emitted about itself, over whatever transport [`ClientProbe`] names.
     #[schema(title = "Probe")]
@@ -209,7 +214,7 @@ impl AttributeSource {
 
             Self::ReverseDns | Self::ForwardingTable => M::Reported,
 
-            Self::ArpReply | Self::DaemonSelfReport => M::Queried,
+            Self::ArpReply | Self::DaemonSelfReport | Self::SshScript => M::Queried,
 
             // The protocol is the device's own, not a generic transport a MIB approximates —
             // same reasoning as `ClientProbe::method()`'s `Native` arms, just not delegated (see
@@ -228,7 +233,9 @@ impl AttributeSource {
     /// Exhaustive, so a new source cannot be added without saying whether a person authored it.
     pub fn authorship(&self) -> Authorship {
         match self {
-            Self::Manual | Self::Authored(_) | Self::DnsSdInstanceName => Authorship::Human,
+            Self::Manual | Self::Authored(_) | Self::DnsSdInstanceName | Self::SshScript => {
+                Authorship::Human
+            }
             Self::Unspecified
             | Self::OwnAddress
             | Self::ServiceMatch
@@ -303,6 +310,7 @@ impl AttributeSource {
                 AttributeSourceDiscriminants::ArpReply => vec![Self::ArpReply],
                 AttributeSourceDiscriminants::DaemonSelfReport => vec![Self::DaemonSelfReport],
                 AttributeSourceDiscriminants::ProfinetDcp => vec![Self::ProfinetDcp],
+                AttributeSourceDiscriminants::SshScript => vec![Self::SshScript],
                 AttributeSourceDiscriminants::Manual => vec![Self::Manual],
             })
             .collect()
@@ -357,6 +365,7 @@ impl AttributeSource {
             AttributeSourceDiscriminants::ArpReply => Self::ArpReply,
             AttributeSourceDiscriminants::DaemonSelfReport => Self::DaemonSelfReport,
             AttributeSourceDiscriminants::ProfinetDcp => Self::ProfinetDcp,
+            AttributeSourceDiscriminants::SshScript => Self::SshScript,
             AttributeSourceDiscriminants::Manual => Self::Manual,
         }
     }
@@ -467,6 +476,7 @@ impl TypeMetadataProvider for AttributeSourceDiscriminants {
             Self::ArpReply => "ARP",
             Self::DaemonSelfReport => "The daemon on this host",
             Self::ProfinetDcp => "PROFINET DCP",
+            Self::SshScript => "SSH script",
             Self::Probe => "{probe}",
             Self::Authored => "{probe}, set by a person",
             Self::Manual => "Entered in Scanopy",
@@ -496,6 +506,9 @@ impl TypeMetadataProvider for AttributeSourceDiscriminants {
             Self::ArpReply => "The host answered an ARP request for its address.",
             Self::DaemonSelfReport => "The Scanopy daemon running on this host read it locally.",
             Self::ProfinetDcp => "The device answered a PROFINET DCP identify request.",
+            Self::SshScript => {
+                "A script you configured on an SSH credential ran on the host and printed this."
+            }
             Self::Probe => "The device reported this about itself over {probe}.",
             Self::Authored => {
                 "A person set this on the device or its controller, and Scanopy read it over {probe}."

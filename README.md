@@ -16,7 +16,7 @@ Scanopy replaces manual network diagrams with a continuously maintained model of
 ![Daemon](https://img.shields.io/github/actions/workflow/status/scanopy/scanopy/daemon-ci.yml?label=daemon-ci&style=for-the-badge)  ![Server](https://img.shields.io/github/actions/workflow/status/scanopy/scanopy/server-ci.yml?label=server-ci&style=for-the-badge)  ![UI](https://img.shields.io/github/actions/workflow/status/scanopy/scanopy/ui-ci.yml?label=ui-ci&style=for-the-badge)<br>
 [![Discord](https://img.shields.io/discord/1432872786828726392?logo=discord&label=discord&labelColor=white&color=7289da&style=for-the-badge)](https://discord.gg/b7ffQr8AcZ) [![Translations](https://img.shields.io/weblate/progress/scanopy?style=for-the-badge&logo=weblate)](https://hosted.weblate.org/engage/scanopy/)
 
-> 💡 **Prefer not to self-host?** [Get a free trial](https://scanopy.net?utm_source=github&utm_medium=readme&utm_campaign=cloud_trial) of Scanopy Cloud
+> 🏢 **Running Scanopy for your business?** The [Commercial Edition](https://scanopy.net/commercial?utm_source=github&utm_medium=readme&utm_campaign=self_hosted_license) adds a commercial license, more networks and seats, Confluence export, and support, all on your own infrastructure.
 
 <table>
   <tr>
@@ -59,10 +59,16 @@ Scanopy replaces manual network diagrams with a continuously maintained model of
 - **MSPs**: Per-client documentation with shareable live views.
 - **Home labs**: Document your infrastructure without opening draw.io.
 
-## 📋 Licensing
-**Self-hosted ([AGPL-3.0](LICENSE.md)):** Free for all use. Requires source disclosure for network services and copyleft compliance.   
-**Self-hosted ([Commercial license](COMMERCIAL-LICENSE.md)):** For those who cannot comply with AGPL-3.0 terms. Contact licensing@scanopy.net  
-**Hosted Solution:** **[Scanopy Cloud](https://scanopy.net?utm_source=github&utm_medium=readme&utm_campaign=cloud_trial)** subscription for zero infrastructure management  
+## 📋 Editions and Licensing
+
+Every edition runs on your own infrastructure, so discovery data, topology and credentials stay inside your network.
+
+- **Community Edition ([AGPL-3.0](LICENSE.md)):** free and open source. AGPL-3.0 requires source disclosure for network services and copyleft compliance.
+- **Commercial Edition (Self-Hosted Standard, Self-Hosted Plus, Enterprise):** a commercial license for organizations that can't meet AGPL-3.0's terms or need more networks and seats. Adds Confluence export, invoice billing, procurement documents and support. Self-Hosted Plus adds multiple organizations, and Plus and Enterprise add offline license keys for air-gapped networks.
+
+**[Compare editions and get a commercial license](https://scanopy.net/commercial?utm_source=github&utm_medium=readme&utm_campaign=self_hosted_license)**, or email licensing@scanopy.net.
+
+Prefer not to run it yourself? [Scanopy Cloud](https://scanopy.net/pricing?utm_source=github&utm_medium=readme&utm_campaign=cloud_trial) runs the same engine as a hosted service.
 
 ## 🚀 Quick Start for Self Hosting
 
@@ -81,11 +87,11 @@ Use this [helper script](https://community-scripts.github.io/ProxmoxVE/scripts?i
 
 Available as an Unraid community app.
 
-> 💡 **Prefer not to self-host?** [Get a free trial](https://scanopy.net?utm_source=github&utm_medium=readme&utm_campaign=cloud_trial) of Scanopy Cloud
-
 ---
 
 Access the UI at `http://<your-server-ip>:60072`, create your account, and wait for the first discovery to complete.
+
+Have a commercial license? See [Deploying the Commercial Edition](https://scanopy.net/docs/self-hosted-server/commercial-deployment/?utm_source=github&utm_medium=readme&utm_campaign=docs).
 
 For detailed setup options and configuration, see the [Installation Guide](https://scanopy.net/docs/server-installation?utm_source=github&utm_medium=readme&utm_campaign=docs).
 

@@ -10,6 +10,7 @@
 		useDeleteCredentialMutation
 	} from '$lib/features/credentials/queries';
 	import { type Credential } from '$lib/features/credentials/types/base';
+	import type { DaemonOS } from '$lib/features/daemons/utils';
 	import CredentialTypeSelectStep from './CredentialTypeSelectStep.svelte';
 	import CredentialWizardStep, {
 		type PendingCredential as PendingCredentialType
@@ -44,6 +45,9 @@
 		daemonVersion?: string | null;
 		/** Name of that daemon, used in the version-requirement tooltip. */
 		daemonName?: string | null;
+		/** The daemon's OS when known (create-daemon flow, or a daemon created with one). New
+		 *  credentials take its OS family, and existing ones set up for another are blocked. */
+		daemonOs?: DaemonOS | null;
 	}
 
 	let {
@@ -56,7 +60,8 @@
 		localAutoMode = 'interactive',
 		fixedCapabilityTypeIds = [],
 		daemonVersion = null,
-		daemonName = null
+		daemonName = null,
+		daemonOs = null
 	}: Props = $props();
 
 	const bulkCreateCredentialsMutation = useBulkCreateCredentialsMutation();
@@ -167,6 +172,7 @@
 			{daemonVersion}
 			{daemonName}
 			onRemoveCredential={handleRemoveCredential}
+			{daemonOs}
 		/>
 	</div>
 {/if}

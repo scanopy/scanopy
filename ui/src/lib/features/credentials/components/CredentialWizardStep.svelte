@@ -13,6 +13,7 @@
 	import { credentialTypes, entities } from '$lib/shared/stores/metadata';
 	import type { TypedTypeMetadata, CredentialTypeMetadata } from '$lib/shared/stores/metadata';
 	import type { Credential, CredentialType } from '$lib/features/credentials/types/base';
+	import { osFamilyOf, type DaemonOS } from '$lib/features/daemons/utils';
 	import type { Host } from '$lib/features/hosts/types/base';
 	import {
 		createDefaultCredential,
@@ -21,7 +22,11 @@
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { useNetworksQuery } from '$lib/features/networks/queries';
 	import { useCredentialsQuery } from '$lib/features/credentials/queries';
-	import { daemonTooOldForCredential } from '$lib/features/credentials/utils/versionGate';
+	import {
+		daemonOsRefusal,
+		daemonTooOldForCredential
+	} from '$lib/features/credentials/utils/versionGate';
+	import { defaultFieldValue } from '$lib/features/credentials/utils/fieldValues';
 	import {
 		DAEMON_HOST_IP,
 		hasExplicitTarget
@@ -77,6 +82,10 @@
 		 *  type's `minimum_daemon_version`. Absent/null ⇒ no version gate. */
 		daemonVersion?: string | null;
 		daemonName?: string | null;
+		/** The daemon's OS when known (create-daemon flow, or a daemon created with one). New
+		 *  credentials take its OS family as their `daemon_os` and hide the Daemon OS picker;
+		 *  existing credentials set up for another family are blocked. */
+		daemonOs?: DaemonOS | null;
 	}
 
 	let {
@@ -87,8 +96,11 @@
 		descriptionLinkText,
 		claimedDaemonHostIntegrations = [],
 		daemonVersion = null,
-		daemonName = null
+		daemonName = null,
+		daemonOs = null
 	}: Props = $props();
+
+	let fixedDaemonOs = $derived(daemonOs ? osFamilyOf(daemonOs) : null);
 
 	// Query network and credential data for network-level credential display
 	const networksQuery = useNetworksQuery();
@@ -256,11 +268,7 @@
 		const fields = meta?.fields ?? [];
 		const values: Record<string, string> = {};
 		for (const field of fields) {
-			if (field.field_type === 'pathorinline') {
-				values[field.id] = JSON.stringify({ mode: 'Inline', value: '' });
-			} else {
-				values[field.id] = field.default_value ?? '';
-			}
+			values[field.id] = defaultFieldValue(field);
 		}
 		return values;
 	}
@@ -350,6 +358,8 @@
 	function handleAddExistingCredential(credentialId: string) {
 		const existing = credentialsQuery.data?.find((c) => c.id === credentialId);
 		if (!existing) return;
+		// The picker disables these; this holds for any other path in.
+		if (daemonOsRefusal(existing, daemonOs, daemonName)) return;
 		pendingCredentials = [
 			...pendingCredentials,
 			{
@@ -493,6 +503,9 @@
 					credential: {
 						...p.credential,
 						credential_type: credentialType,
+						// Set only when the credential reads something on the daemon; the form applies
+						// `fixedDaemonOs` itself. Without a form the server clears an unused one.
+						daemon_os: ref ? ref.getDaemonOs() : (fixedDaemonOs ?? p.credential.daemon_os),
 						// Broadcast: assign as a network default. Per-host: leave to target_ips.
 						assigned_network_ids: isBroadcast && networkId ? [networkId] : []
 					},
@@ -542,6 +555,7 @@
 				placeholder={daemons_credentialWizardSelectType()}
 				emptyMessage={daemons_credentialWizardEmpty()}
 				options={typeOptions}
+				showSearch={true}
 				getOptionContext={(option) => ({ disabledReason: dropdownDisabledReason(option) })}
 				itemClickAction="edit"
 				allowReorder={false}
@@ -550,6 +564,9 @@
 				itemDisplayComponent={CredentialDisplay}
 				primaryOptionsLabel={daemons_credentialWizardCreateNew()}
 				secondaryOptions={availableExistingCredentials}
+				getSecondaryOptionContext={(c) => ({
+					disabledReason: daemonOsRefusal(c, daemonOs, daemonName)
+				})}
 				secondaryOptionDisplayComponent={CredentialDisplay}
 				secondaryPlaceholder={daemons_credentialWizardSelectExisting()}
 				secondaryOptionsLabel={daemons_credentialWizardAddExisting()}
@@ -605,6 +622,7 @@
 							hideTargets={true}
 							fieldPrefix={`credentials[${index}].`}
 							fixedCredentialType={pending.credential.credential_type.type}
+							{fixedDaemonOs}
 							onChange={(data) => handleConfigChange(index, data)}
 						/>
 					{:else}
@@ -617,6 +635,7 @@
 							daemonHostUnavailable={daemonHostUnavailableFor(index)}
 							targetIps={pending.targetIps}
 							scope={pending.scope}
+							{fixedDaemonOs}
 							onChange={(data) => handleConfigChange(index, data)}
 						/>
 					{/if}

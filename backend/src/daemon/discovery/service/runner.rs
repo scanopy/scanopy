@@ -79,6 +79,7 @@ impl DiscoveryRunner {
         // Always try SNMP "public" community on all hosts.
         // Injected as a broadcast default — user-configured credentials (IP overrides) take priority.
         self.credential_mappings.push(CredentialMapping {
+            daemon_os: Default::default(),
             default_credential: Some(CredentialQueryPayload::Snmp(
                 crate::server::credentials::r#impl::mapping::SnmpQueryCredential::public_default(),
             )),
@@ -98,6 +99,19 @@ impl DiscoveryRunner {
             }
             ops.finish_session(Err(e), cancel).await?;
             return Ok(());
+        }
+
+        // A credential whose files or sockets were declared for another OS cannot work on this
+        // daemon. Drop it before any phase can try it, and say so once per credential.
+        let os_mismatches = crate::daemon::discovery::credentials::take_os_mismatches(
+            &mut self.credential_mappings,
+            crate::server::daemons::r#impl::base::DaemonOs::current(),
+        );
+        if !os_mismatches.is_empty()
+            && let Ok(session) = ops.get_session().await
+            && let Ok(mut warnings) = session.warnings.lock()
+        {
+            warnings.extend(os_mismatches);
         }
 
         let discovery_result = with_heartbeat(&ops, async {
@@ -254,6 +268,23 @@ impl DiscoveryRunner {
             tracing::error!(error = %e, "Localhost integration phase failed, continuing");
         }
 
+        // Wake hosts that sleep between scans, so the sweep below can find them. After the
+        // daemon-host phase because the subnets it creates are where a target's directed
+        // broadcast is computed from.
+        let wake_subnets: Vec<Subnet> = self
+            .known_subnets
+            .iter()
+            .chain(created_subnets)
+            .cloned()
+            .collect();
+        crate::daemon::discovery::wake_on_lan::wake(
+            ops,
+            &self.credential_mappings,
+            &wake_subnets,
+            cancel,
+        )
+        .await;
+
         ops.report_progress(100).await?;
 
         if cancel.is_cancelled() {
@@ -315,6 +346,7 @@ impl DiscoveryRunner {
             &self.service.utils,
             ops.config_store.get_accept_invalid_scan_certs().await?,
             trusted_ca.as_deref(),
+            &ops.config_store,
         )
         .await?;
 

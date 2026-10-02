@@ -14,7 +14,7 @@ jobs:
       contents: write
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.release.target_commitish }}
           fetch-depth: 0
@@ -116,7 +116,7 @@ jobs:
     outputs:
       deploy_mode: ${{ steps.deploy_mode.outputs.mode }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.release.target_commitish }}
 
@@ -310,7 +310,7 @@ jobs:
     needs: test-and-update-fixtures
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Pull latest changes
         run: |
@@ -329,7 +329,7 @@ jobs:
           name: ui-logos
           path: ui/static/logos/services/
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
 
@@ -371,7 +371,7 @@ jobs:
             binary: scanopy-server-linux-arm64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Pull latest changes
         run: |
@@ -450,7 +450,7 @@ jobs:
             use_cross: true
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Pull latest changes
         shell: bash
@@ -639,7 +639,7 @@ jobs:
             suffix: arm64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Pull latest changes
         run: |
@@ -664,7 +664,7 @@ jobs:
 
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}/server
           labels: |
@@ -703,7 +703,7 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Pull latest changes
         run: |
@@ -723,7 +723,7 @@ jobs:
           path: backend/
       
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
       
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -737,7 +737,7 @@ jobs:
 
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}/daemon
           labels: |
@@ -818,7 +818,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: dev
           fetch-depth: 0
@@ -897,7 +897,7 @@ jobs:
       SYFT_VERSION: v1.45.1
       TAG: ${{ github.event.release.tag_name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.release.tag_name }}
 

@@ -9,7 +9,7 @@
 //! Two rules shape the enum below.
 //!
 //! - **One code per claim.** Each variant is one arm of what used to be a renderer's `match` — one
-//!   statement about one kind of failure. Collapsing "credential rejected", "TLS failed" and
+//!   statement about one type of failure. Collapsing "credential rejected", "TLS failed" and
 //!   "unreachable" into one code would make the metric useless, because which of the three it was
 //!   is the entire question an operator asks.
 //! - **One warning per occurrence.** A warning names the single thing it is about and carries that
@@ -282,6 +282,23 @@ pub enum DiscoveryWarning {
         #[serde(default)]
         #[schema(required)]
         credential_id: Option<Uuid>,
+    },
+    /// The credential's files or sockets were declared for one OS and this daemon runs another, so
+    /// it was not used here.
+    #[schema(title = "CredentialDaemonOsMismatch")]
+    CredentialDaemonOsMismatch {
+        integration: CredentialQueryPayloadDiscriminants,
+        /// The stored credential. See [`CredentialAttempt::credential_id`].
+        #[serde(default)]
+        #[schema(required)]
+        credential_id: Option<Uuid>,
+        /// The OS the credential's paths were declared for.
+        declared: crate::server::credentials::r#impl::types::OsFamily,
+        /// The OS family this daemon runs.
+        actual: crate::server::credentials::r#impl::types::OsFamily,
+        /// The OS this daemon runs, to name it. Absent on runs recorded before it was sent.
+        #[serde(default)]
+        actual_os: Option<crate::server::daemons::r#impl::base::DaemonOs>,
     },
     /// The port the credential needs was not open, so it was never tried.
     #[schema(title = "CredentialGateClosed")]
@@ -590,17 +607,14 @@ pub struct UnresolvedPort {
     strum::AsRefStr,
     strum::EnumDiscriminants,
 )]
-#[strum_discriminants(
-    name(DiscoveryWarningCodeKind),
-    derive(
-        Hash,
-        EnumIter,
-        strum::Display,
-        strum::AsRefStr,
-        Serialize,
-        Deserialize
-    )
-)]
+#[strum_discriminants(derive(
+    Hash,
+    EnumIter,
+    strum::Display,
+    strum::AsRefStr,
+    Serialize,
+    Deserialize
+))]
 pub enum DiscoveryWarningCode {
     InterfaceSetCutShort,
     InterfaceDetailsCutShort,
@@ -628,6 +642,7 @@ pub enum DiscoveryWarningCode {
     EqualReachIntegrationsMerged,
     CredentialTargetNotScanned,
     CredentialTargetNotResponding,
+    CredentialDaemonOsMismatch,
     CredentialGateClosed,
     CredentialRejected,
     CredentialMalformed,
@@ -710,6 +725,9 @@ impl DiscoveryWarning {
             Self::CredentialTargetNotResponding { .. } => {
                 DiscoveryWarningCode::CredentialTargetNotResponding
             }
+            Self::CredentialDaemonOsMismatch { .. } => {
+                DiscoveryWarningCode::CredentialDaemonOsMismatch
+            }
             Self::CredentialGateClosed { .. } => DiscoveryWarningCode::CredentialGateClosed,
             Self::CredentialRejected(_) => DiscoveryWarningCode::CredentialRejected,
             Self::CredentialMalformed(_) => DiscoveryWarningCode::CredentialMalformed,
@@ -781,7 +799,8 @@ impl DiscoveryWarning {
 
             Self::CredentialTargetNotScanned { integration, .. }
             | Self::CredentialTargetNotResponding { integration, .. }
-            | Self::CredentialGateClosed { integration, .. } => Some(*integration),
+            | Self::CredentialGateClosed { integration, .. }
+            | Self::CredentialDaemonOsMismatch { integration, .. } => Some(*integration),
 
             Self::CredentialRejected(a)
             | Self::CredentialMalformed(a)

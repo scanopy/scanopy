@@ -228,6 +228,18 @@ impl SqlValue {
             Self::IpCidr(v) => Bound::Text(PgText::owned(serde_json::to_string(v)?)),
             Self::ServiceDefinition(v) => Bound::Text(PgText::owned(serde_json::to_string(v)?)),
             Self::DaemonMode(v) => Bound::Text(PgText::owned(serde_json::to_string(v)?)),
+            Self::OptionalOsFamily(v) => Bound::OptText(
+                v.as_ref()
+                    .map(serde_json::to_string)
+                    .transpose()?
+                    .map(PgText::owned),
+            ),
+            Self::OptionalDaemonOs(v) => Bound::OptText(
+                v.as_ref()
+                    .map(serde_json::to_string)
+                    .transpose()?
+                    .map(PgText::owned),
+            ),
             Self::OptionBillingPlanStatus(v) => {
                 Bound::Text(PgText::owned(serde_json::to_string(v)?))
             }
@@ -257,6 +269,7 @@ impl SqlValue {
             Self::DiscoveryType(v) => Bound::Json(PgJson::new(serde_json::to_value(v)?)),
             Self::IntegrationTargets(v) => Bound::Json(PgJson::new(serde_json::to_value(v)?)),
             Self::EmailSettings(v) => Bound::Json(PgJson::new(serde_json::to_value(v)?)),
+            Self::DisplaySettings(v) => Bound::Json(PgJson::new(serde_json::to_value(v)?)),
             Self::OptionBillingPlan(v) => Bound::Json(PgJson::new(serde_json::to_value(v)?)),
             Self::BillingOperation(v) => Bound::Json(PgJson::new(serde_json::to_value(v)?)),
             Self::AuthenticatedEntity(v) => Bound::Json(PgJson::new(serde_json::to_value(v)?)),

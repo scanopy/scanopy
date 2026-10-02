@@ -92,14 +92,14 @@ jobs:
             ghcr.io/${{ github.repository }}/daemon:${{ inputs.release_tag }}
 
       - name: Checkout scanopy repo (dev branch for latest fixtures)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: dev
           fetch-depth: 0
           fetch-tags: true
 
       - name: Checkout website repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: scanopy/website
           token: ${{ secrets.SYNC_FIXTURES_TO_WEBSITE_TOKEN }}
@@ -120,7 +120,7 @@ jobs:
         run: cd backend && cargo run --release --bin generate-fixtures
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'
@@ -138,6 +138,7 @@ jobs:
           # sync — add a line here when a docs page starts consuming one.
           cp ui/src/lib/data/permissions.json website/src/lib/fixtures/
           cp ui/src/lib/data/scan-settings.json website/src/lib/fixtures/
+          cp ui/src/lib/data/ssh-script-fields.json website/src/lib/fixtures/
           cp ui/src/lib/data/element-rule-types.json website/src/lib/fixtures/
           cp ui/src/lib/data/views.json website/src/lib/fixtures/
           cp ui/src/lib/data/warning-codes.json website/src/lib/fixtures/

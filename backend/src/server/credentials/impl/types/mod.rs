@@ -15,17 +15,25 @@ use utoipa::ToSchema;
 
 pub mod container_proxy;
 pub mod instant_on;
+pub mod paths;
 pub mod snmp;
+pub mod ssh;
+pub mod ssh_script;
 pub mod unifi;
+pub mod wake_on_lan;
 
 mod fields;
+mod integration;
 mod metadata;
 mod secrets;
 
+pub use fields::{CredentialOsFields, DAEMON_OS_FIELD, TARGET_OS_FIELD};
+pub use integration::CredentialIntegration;
 pub use metadata::{
     CredentialAssignment, CredentialCategory, CredentialHostAssignment, CredentialStability,
     UpstreamSupport,
 };
+pub use paths::{CredentialPath, DaemonPath, DaemonSocket, HostPath, OsFamily};
 // `Target` is the strum-discriminant of `IntegrationTarget` (single source of truth for the
 // scope scheme); re-export it here so `CredentialType::targets()` and existing imports resolve.
 pub use super::mapping::Target;
@@ -38,7 +46,13 @@ pub use secrets::{
 pub use snmp::{SnmpV3AuthProtocol, SnmpV3PrivProtocol, SnmpVersion};
 
 pub use instant_on::InstantOnQueryCredential;
+pub use ssh::{
+    ScriptSource, SshAuth, SshQueryCredential, default_ssh_port, default_ssh_timeout_seconds,
+};
 pub use unifi::{UnifiAuth, UnifiQueryCredential, default_unifi_port, default_unifi_site};
+pub use wake_on_lan::{
+    WakeOnLanQueryCredential, default_wake_on_lan_port, default_wake_on_lan_wait_seconds,
+};
 
 fn default_docker_port() -> u16 {
     PortType::Docker.number()
@@ -158,7 +172,7 @@ pub enum CredentialType {
     DockerSocket {
         /// Path to the Docker socket. Blank lets the daemon auto-detect it.
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        socket_path: Option<String>,
+        socket_path: Option<DaemonSocket>,
     },
     /// Podman API proxy credentials. Podman exposes a Docker-compatible REST API,
     /// so the fields mirror `DockerProxy`. Target IP determined from host
@@ -201,7 +215,7 @@ pub enum CredentialType {
     PodmanSocket {
         /// Path to the Podman socket. Blank lets the daemon auto-detect it.
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        socket_path: Option<String>,
+        socket_path: Option<DaemonSocket>,
     },
     /// UniFi Network Application (controller) via an API key.
     ///
@@ -250,6 +264,80 @@ pub enum CredentialType {
         /// Restrict the fetch to one site by name. Blank ⇒ every site the account can see.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         site: Option<String>,
+    },
+    /// SSH with a password. The daemon runs `script` on the host; the script's stdout is one JSON
+    /// object whose keys (`SshScriptField`) fill existing host and interface fields.
+    #[schema(title = "SshPassword")]
+    SshPassword {
+        /// Port `sshd` listens on (default 22).
+        #[serde(default = "default_ssh_port")]
+        port: u16,
+        /// User the daemon logs in as.
+        username: String,
+        password: SecretValue,
+        /// The scanned host's OS: decides how a host-file path is validated and the shell the
+        /// script runs in.
+        #[serde(default)]
+        target_os: OsFamily,
+        script: ScriptSource,
+        /// How long the script may run before the daemon closes the channel, in seconds (default 60).
+        #[serde(default = "default_ssh_timeout_seconds")]
+        timeout_seconds: u32,
+        /// Require this host key (OpenSSH `SHA256:…` fingerprint). Blank ⇒ the daemon pins the
+        /// first key it sees per address and port, and refuses a changed one.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        host_key_fingerprint: Option<String>,
+    },
+    /// SSH with a private key (optionally passphrase-protected). Same script contract as
+    /// [`CredentialType::SshPassword`].
+    #[schema(title = "SshKey")]
+    SshKey {
+        /// Port `sshd` listens on (default 22).
+        #[serde(default = "default_ssh_port")]
+        port: u16,
+        /// User the daemon logs in as.
+        username: String,
+        private_key: SecretValue,
+        #[serde(
+            default,
+            skip_serializing_if = "Option::is_none",
+            deserialize_with = "deserialize_optional_secret_value"
+        )]
+        passphrase: Option<SecretValue>,
+        /// The scanned host's OS: decides how a host-file path is validated and the shell the
+        /// script runs in.
+        #[serde(default)]
+        target_os: OsFamily,
+        script: ScriptSource,
+        /// How long the script may run before the daemon closes the channel, in seconds (default 60).
+        #[serde(default = "default_ssh_timeout_seconds")]
+        timeout_seconds: u32,
+        /// Require this host key (OpenSSH `SHA256:…` fingerprint). Blank ⇒ trust on first use.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        host_key_fingerprint: Option<String>,
+    },
+    /// Wake-on-LAN: the daemon wakes the assigned hosts by MAC before the sweep, so a host that
+    /// sleeps between scans is awake to be discovered.
+    #[schema(title = "WakeOnLan")]
+    WakeOnLan {
+        /// UDP port for the magic packet.
+        #[serde(default = "default_wake_on_lan_port")]
+        port: u16,
+        /// How long to wait for the woken hosts to answer before the sweep starts.
+        #[serde(default = "default_wake_on_lan_wait_seconds")]
+        wait_seconds: u32,
+        /// Send here instead of the target subnet's directed broadcast (router relay address, WoL
+        /// relay device, or `255.255.255.255`).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[schema(value_type = Option<String>, example = "192.168.1.1")]
+        broadcast_address: Option<std::net::IpAddr>,
+        /// SecureOn password, six bytes written as a MAC address. Only for NICs that require one.
+        #[serde(
+            default,
+            skip_serializing_if = "Option::is_none",
+            deserialize_with = "deserialize_optional_secret_value"
+        )]
+        secure_on_password: Option<SecretValue>,
     },
 }
 
@@ -377,6 +465,53 @@ impl CredentialType {
                     *password = existing_password.clone();
                 }
             }
+            (
+                Self::SshPassword { password, .. },
+                Self::SshPassword {
+                    password: existing_password,
+                    ..
+                },
+            ) => {
+                if password.is_redacted_sentinel() {
+                    *password = existing_password.clone();
+                }
+            }
+            (
+                Self::SshKey {
+                    private_key,
+                    passphrase,
+                    ..
+                },
+                Self::SshKey {
+                    private_key: existing_key,
+                    passphrase: existing_passphrase,
+                    ..
+                },
+            ) => {
+                if private_key.is_redacted_sentinel() {
+                    *private_key = existing_key.clone();
+                }
+                if let Some(p) = passphrase
+                    && p.is_redacted_sentinel()
+                {
+                    *passphrase = existing_passphrase.clone();
+                }
+            }
+            (
+                Self::WakeOnLan {
+                    secure_on_password, ..
+                },
+                Self::WakeOnLan {
+                    secure_on_password: existing_password,
+                    ..
+                },
+            ) => {
+                if let Some(p) = secure_on_password
+                    && p.is_redacted_sentinel()
+                {
+                    *secure_on_password = existing_password.clone();
+                }
+            }
             // Every remaining arm is "nothing to merge": either the variant holds no secret, or
             // the credential's type was changed in this edit so there is no prior secret of the
             // same shape to restore.
@@ -395,24 +530,17 @@ impl CredentialType {
             | (Self::Gnmi { .. }, _)
             | (Self::UnifiApiKey { .. }, _)
             | (Self::UnifiLocalAdmin { .. }, _)
-            | (Self::InstantOnAccount { .. }, _) => {}
+            | (Self::InstantOnAccount { .. }, _)
+            | (Self::SshPassword { .. }, _)
+            | (Self::SshKey { .. }, _)
+            | (Self::WakeOnLan { .. }, _) => {}
         }
     }
 
     pub fn credential_category(&self) -> CredentialCategory {
-        match self {
-            Self::SnmpV1 { .. } | Self::SnmpV2c { .. } | Self::SnmpV3 { .. } => {
-                CredentialCategory::NetworkMonitoring
-            }
-            Self::Gnmi { .. } => CredentialCategory::NetworkMonitoring,
-            Self::DockerProxy { .. }
-            | Self::DockerSocket { .. }
-            | Self::PodmanProxy { .. }
-            | Self::PodmanSocket { .. } => CredentialCategory::ContainerVirtualization,
-            Self::UnifiApiKey { .. }
-            | Self::UnifiLocalAdmin { .. }
-            | Self::InstantOnAccount { .. } => CredentialCategory::NetworkController,
-        }
+        CredentialTypeDiscriminants::from(self)
+            .integration()
+            .credential_category()
     }
 
     /// Where this credential type can be applied: the daemon's own host, specific
@@ -445,6 +573,14 @@ impl CredentialType {
             // `DaemonHost` is wrong here even though it is right for a self-hosted controller.
             // Not `Network` either, for the same reason as UniFi.
             Self::InstantOnAccount { .. } => vec![Target::Hosts],
+            // A login, like SNMP: the same account and script can serve a fleet, so a network
+            // assignment is a reasonable way to apply it.
+            Self::SshPassword { .. } | Self::SshKey { .. } => {
+                vec![Target::Hosts, Target::Network]
+            }
+            // Named hosts only. A network assignment would wake every device on the subnet the
+            // server holds a MAC for, which nobody asking to wake a NAS intends.
+            Self::WakeOnLan { .. } => vec![Target::Hosts],
         }
     }
 
@@ -481,6 +617,11 @@ impl CredentialType {
             // Try-many like SNMP: two gNMI credentials (Arista on 6030, ArcOS on 9339) must be
             // broadcastable on one network, which `true` would forbid.
             Self::Gnmi { .. } => false,
+            // Try-many: two SSH credentials (different accounts, different scripts) on one host
+            // are both meaningful, and network-wide SSH must stay broadcastable.
+            Self::SshPassword { .. } | Self::SshKey { .. } => false,
+            // Two WoL credentials on one host only send two packets; nothing to forbid.
+            Self::WakeOnLan { .. } => false,
         }
     }
 
@@ -538,8 +679,172 @@ impl CredentialType {
                     _ => None,
                 }
             }
+            Self::SshPassword { password, .. } => match field_id {
+                "password" => inline_secret(password),
+                _ => None,
+            },
+            Self::SshKey {
+                private_key,
+                passphrase,
+                ..
+            } => match field_id {
+                "private_key" => inline_secret(private_key),
+                "passphrase" => inline_secret(passphrase.as_ref()?),
+                _ => None,
+            },
+            Self::WakeOnLan {
+                secure_on_password, ..
+            } => match field_id {
+                "secure_on_password" => inline_secret(secure_on_password.as_ref()?),
+                _ => None,
+            },
             Self::DockerSocket { .. } | Self::PodmanSocket { .. } => None,
         }
+    }
+
+    /// Every path this credential names, by field. Exhaustive with no wildcard: a new path-bearing
+    /// field cannot compile without saying which machine its path is on, so it cannot skip
+    /// [`Self::validate_paths`].
+    pub fn paths(&self) -> Vec<(&'static str, CredentialPath<'_>)> {
+        fn secret<'a>(
+            field: &'static str,
+            s: &'a SecretValue,
+        ) -> Option<(&'static str, CredentialPath<'a>)> {
+            match s {
+                SecretValue::FilePath { path } => Some((field, CredentialPath::Daemon(path))),
+                SecretValue::Inline { .. } => None,
+            }
+        }
+        fn value<'a>(
+            field: &'static str,
+            v: &'a FileOrInline,
+        ) -> Option<(&'static str, CredentialPath<'a>)> {
+            match v {
+                FileOrInline::FilePath { path } => Some((field, CredentialPath::Daemon(path))),
+                FileOrInline::Inline { .. } => None,
+            }
+        }
+        fn script(
+            s: &ScriptSource,
+            target_os: OsFamily,
+        ) -> Option<(&'static str, CredentialPath<'_>)> {
+            match s {
+                ScriptSource::HostFile { path } => {
+                    Some(("script", CredentialPath::Host(path, target_os)))
+                }
+                ScriptSource::DaemonFile { path } => Some(("script", CredentialPath::Daemon(path))),
+                ScriptSource::Inline { .. } => None,
+            }
+        }
+        let paths: Vec<Option<(&'static str, CredentialPath<'_>)>> = match self {
+            Self::SnmpV1 { community } | Self::SnmpV2c { community } => {
+                vec![secret("community", community)]
+            }
+            Self::SnmpV3 {
+                auth_password,
+                priv_password,
+                ..
+            } => vec![
+                secret("auth_password", auth_password),
+                secret("priv_password", priv_password),
+            ],
+            Self::Gnmi { password, .. }
+            | Self::UnifiLocalAdmin { password, .. }
+            | Self::InstantOnAccount { password, .. } => vec![secret("password", password)],
+            Self::UnifiApiKey { api_key, .. } => vec![secret("api_key", api_key)],
+            Self::DockerProxy {
+                ssl_cert,
+                ssl_key,
+                ssl_chain,
+                ..
+            }
+            | Self::PodmanProxy {
+                ssl_cert,
+                ssl_key,
+                ssl_chain,
+                ..
+            } => vec![
+                ssl_cert.as_ref().and_then(|v| value("ssl_cert", v)),
+                ssl_key.as_ref().and_then(|s| secret("ssl_key", s)),
+                ssl_chain.as_ref().and_then(|v| value("ssl_chain", v)),
+            ],
+            Self::DockerSocket { socket_path } | Self::PodmanSocket { socket_path } => {
+                vec![
+                    socket_path
+                        .as_ref()
+                        .filter(|s| !s.is_blank())
+                        .map(|s| ("socket_path", CredentialPath::Socket(s))),
+                ]
+            }
+            Self::SshPassword {
+                password,
+                script: source,
+                target_os,
+                ..
+            } => vec![secret("password", password), script(source, *target_os)],
+            Self::SshKey {
+                private_key,
+                passphrase,
+                script: source,
+                target_os,
+                ..
+            } => vec![
+                secret("private_key", private_key),
+                passphrase.as_ref().and_then(|s| secret("passphrase", s)),
+                script(source, *target_os),
+            ],
+            Self::WakeOnLan {
+                secure_on_password, ..
+            } => vec![
+                secure_on_password
+                    .as_ref()
+                    .and_then(|s| secret("secure_on_password", s)),
+            ],
+        };
+        paths.into_iter().flatten().collect()
+    }
+
+    /// Whether anything in this credential is read on the daemon: a file or a socket. Exactly the
+    /// credentials whose `daemon_os` means something.
+    pub fn reads_daemon_paths(&self) -> bool {
+        self.paths()
+            .iter()
+            .any(|(_, p)| matches!(p, CredentialPath::Daemon(_) | CredentialPath::Socket(_)))
+    }
+
+    /// Check every path for the OS of the machine that holds it: daemon-side paths for the
+    /// credential's `daemon_os`, an SSH host file for its `target_os`.
+    pub fn validate_paths(&self, daemon_os: OsFamily) -> Result<(), Error> {
+        let definitions = self.field_definitions();
+        let definition = |field: &str| definitions.iter().find(|d| d.id == field);
+        for (field, path) in self.paths() {
+            match path {
+                CredentialPath::Daemon(p) => p.validate(
+                    field,
+                    definition(field)
+                        .and_then(|d| d.file_name)
+                        .unwrap_or("file"),
+                    daemon_os,
+                )?,
+                CredentialPath::Socket(s) => s.validate(field, daemon_os)?,
+                // The example is the field's own placeholder for the scanned host's OS.
+                CredentialPath::Host(p, target_os) => {
+                    let example = definition(field)
+                        .map(|d| {
+                            d.placeholder_by
+                                .unwrap_or_default()
+                                .iter()
+                                .find(|by| by.value == <&str>::from(target_os))
+                                .map(|by| by.placeholder)
+                                .or(d.placeholder)
+                                .unwrap_or_default()
+                        })
+                        .unwrap_or_default();
+                    p.validate(field, example, target_os)?
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Validate inline field values using field_definitions() metadata.
@@ -560,24 +865,9 @@ impl CredentialType {
     /// Every credential type maps to exactly one service — used for logo display,
     /// metadata enrichment, and Phase 2 integration dispatch.
     pub fn associated_service(&self) -> Box<dyn ServiceDefinition> {
-        match self {
-            Self::SnmpV1 { .. } | Self::SnmpV2c { .. } | Self::SnmpV3 { .. } => {
-                Box::new(crate::server::services::definitions::snmp::Snmp)
-            }
-            Self::Gnmi { .. } => Box::new(crate::server::services::definitions::gnmi::Gnmi),
-            Self::DockerProxy { .. } | Self::DockerSocket { .. } => {
-                Box::new(crate::server::services::definitions::docker_daemon::Docker)
-            }
-            Self::PodmanProxy { .. } | Self::PodmanSocket { .. } => {
-                Box::new(crate::server::services::definitions::podman::Podman)
-            }
-            Self::UnifiApiKey { .. } | Self::UnifiLocalAdmin { .. } => {
-                Box::new(crate::server::services::definitions::unifi_controller::UnifiController)
-            }
-            Self::InstantOnAccount { .. } => {
-                Box::new(crate::server::services::definitions::instant_on::InstantOn)
-            }
-        }
+        CredentialTypeDiscriminants::from(self)
+            .integration()
+            .service()
     }
 
     /// Convert to wire format payload for daemon transmission.
@@ -700,8 +990,69 @@ impl CredentialType {
                 // sending an empty string the client would then have to treat as a wildcard.
                 site: site.as_ref().filter(|s| !s.trim().is_empty()).cloned(),
             }),
+            CredentialType::SshPassword {
+                port,
+                username,
+                password,
+                target_os,
+                script,
+                timeout_seconds,
+                host_key_fingerprint,
+            } => CredentialQueryPayload::Ssh(SshQueryCredential {
+                port: *port,
+                username: username.clone(),
+                auth: SshAuth::Password {
+                    password: secret_to_resolvable(password),
+                },
+                script: script.clone(),
+                target_os: *target_os,
+                timeout_seconds: *timeout_seconds,
+                host_key_fingerprint: non_blank(host_key_fingerprint),
+            }),
+            CredentialType::SshKey {
+                port,
+                username,
+                private_key,
+                passphrase,
+                target_os,
+                script,
+                timeout_seconds,
+                host_key_fingerprint,
+            } => CredentialQueryPayload::Ssh(SshQueryCredential {
+                port: *port,
+                username: username.clone(),
+                auth: SshAuth::PrivateKey {
+                    private_key: secret_to_resolvable(private_key),
+                    passphrase: passphrase.as_ref().map(secret_to_resolvable),
+                },
+                script: script.clone(),
+                target_os: *target_os,
+                timeout_seconds: *timeout_seconds,
+                host_key_fingerprint: non_blank(host_key_fingerprint),
+            }),
+            CredentialType::WakeOnLan {
+                port,
+                wait_seconds,
+                broadcast_address,
+                secure_on_password,
+            } => CredentialQueryPayload::WakeOnLan(WakeOnLanQueryCredential {
+                port: *port,
+                wait_seconds: *wait_seconds,
+                broadcast_address: *broadcast_address,
+                secure_on_password: secure_on_password.as_ref().map(secret_to_resolvable),
+            }),
         }
     }
+}
+
+/// A blank optional text field means "not set"; normalise it to `None` so the daemon never has to
+/// treat an empty string as a wildcard.
+fn non_blank(value: &Option<String>) -> Option<String> {
+    value
+        .as_ref()
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
 }
 
 /// Build a container-runtime proxy query credential from the shared
@@ -817,6 +1168,133 @@ mod tests {
         } else {
             panic!("Expected Snmp variant");
         }
+    }
+
+    /// Each path is checked against the OS of the machine that holds it: the key against the
+    /// credential's daemon OS, the host-file script against its target OS. A `~` path fails the
+    /// same way the GH test report's password file did, at save rather than at scan time.
+    #[test]
+    fn paths_are_validated_for_the_machine_that_holds_them() {
+        use crate::server::credentials::r#impl::base::CredentialBase;
+        let file = |p: &str| SecretValue::FilePath { path: p.into() };
+        let ssh = |key: &str, script: &str, target_os| CredentialType::SshKey {
+            port: 22,
+            username: "scanopy".into(),
+            private_key: file(key),
+            passphrase: None,
+            script: ScriptSource::HostFile {
+                path: script.into(),
+            },
+            target_os,
+            timeout_seconds: 60,
+            host_key_fingerprint: None,
+        };
+        let check = |credential_type, daemon_os: OsFamily| {
+            CredentialBase {
+                credential_type,
+                daemon_os: Some(daemon_os),
+                ..Default::default()
+            }
+            .validate_settings()
+        };
+
+        // A Linux daemon reading a key, running a script on a Windows host.
+        assert!(
+            check(
+                ssh("/etc/scanopy/key", r"C:\Scanopy\inv.ps1", OsFamily::Windows),
+                OsFamily::Unix
+            )
+            .is_ok()
+        );
+        // A Windows daemon reading a key, running a script on a Linux host.
+        assert!(
+            check(
+                ssh(
+                    r"C:\ProgramData\Scanopy\key",
+                    "/usr/local/bin/inv",
+                    OsFamily::Unix
+                ),
+                OsFamily::Windows
+            )
+            .is_ok()
+        );
+        assert!(
+            check(
+                ssh("~/.ssh/key", "/usr/local/bin/inv", OsFamily::Unix),
+                OsFamily::Unix
+            )
+            .is_err()
+        );
+        assert!(
+            check(
+                ssh(r"C:\key", "/usr/local/bin/inv", OsFamily::Unix),
+                OsFamily::Unix
+            )
+            .is_err()
+        );
+        assert!(
+            check(
+                ssh("/etc/key", "/usr/local/bin/inv", OsFamily::Windows),
+                OsFamily::Unix
+            )
+            .is_err()
+        );
+        assert!(
+            check(
+                CredentialType::DockerSocket {
+                    socket_path: Some(r"\\.\pipe\docker_engine".into()),
+                },
+                OsFamily::Unix
+            )
+            .is_err()
+        );
+    }
+
+    /// An SSH key credential carries two secrets, one optional. Editing the script must not
+    /// destroy either, and an edit that sets the passphrase must keep the new value.
+    #[test]
+    fn merge_redacted_secrets_restores_ssh_key_and_passphrase_independently() {
+        let inline = |v: &str| SecretValue::Inline {
+            value: secrecy::SecretString::from(v.to_string()),
+        };
+        let ssh_key = |key: &str, passphrase: Option<&str>| CredentialType::SshKey {
+            target_os: OsFamily::Unix,
+            port: 22,
+            username: "scanopy".into(),
+            private_key: inline(key),
+            passphrase: passphrase.map(inline),
+            script: ScriptSource::Inline {
+                value: "true".into(),
+            },
+            timeout_seconds: 60,
+            host_key_fingerprint: None,
+        };
+        let secrets = |ct: &CredentialType| match ct {
+            CredentialType::SshKey {
+                private_key,
+                passphrase,
+                ..
+            } => (
+                inline_secret(private_key),
+                passphrase.as_ref().and_then(inline_secret),
+            ),
+            _ => panic!("Expected SshKey"),
+        };
+        let existing = ssh_key("KEY", Some("PASS"));
+
+        let mut both_redacted = ssh_key(REDACTED_SECRET_SENTINEL, Some(REDACTED_SECRET_SENTINEL));
+        both_redacted.merge_redacted_secrets(&existing);
+        assert_eq!(
+            secrets(&both_redacted),
+            (Some("KEY".into()), Some("PASS".into()))
+        );
+
+        let mut new_passphrase = ssh_key(REDACTED_SECRET_SENTINEL, Some("NEW"));
+        new_passphrase.merge_redacted_secrets(&existing);
+        assert_eq!(
+            secrets(&new_passphrase),
+            (Some("KEY".into()), Some("NEW".into()))
+        );
     }
 
     #[test]
@@ -936,7 +1414,7 @@ mod tests {
         assert!(!real.is_redacted_sentinel());
 
         let filepath = SecretValue::FilePath {
-            path: REDACTED_SECRET_SENTINEL.to_string(),
+            path: REDACTED_SECRET_SENTINEL.into(),
         };
         assert!(!filepath.is_redacted_sentinel());
     }

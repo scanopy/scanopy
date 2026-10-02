@@ -120,7 +120,7 @@ impl LicenseStatus {
     }
 
     /// Data-free view of the status, as published by the public config endpoint.
-    pub fn kind(&self) -> LicenseStatusDiscriminants {
+    pub fn discriminant(&self) -> LicenseStatusDiscriminants {
         LicenseStatusDiscriminants::from(self)
     }
 

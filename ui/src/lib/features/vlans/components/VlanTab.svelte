@@ -129,7 +129,7 @@
 					label: common_lastSeen(),
 					type: 'date',
 					sortable: true,
-					display: { getItems: lastSeenItems(() => networksData, 'Vlan') }
+					display: { recency: true, getItems: lastSeenItems(() => networksData, 'Vlan') }
 				}
 			]
 		)

@@ -1,3 +1,4 @@
+use crate::server::shared::types::api::ApiJson;
 use crate::server::{
     auth::middleware::permissions::{Authorized, Member},
     config::AppState,
@@ -46,6 +47,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
     post,
     path = "",
     tag = DaemonApiKey::ENTITY_NAME_PLURAL,
+    request_body = DaemonApiKey,
     responses(
         (status = 200, description = "Daemon API key created", body = ApiResponse<DaemonApiKeyResponse>),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
@@ -57,7 +59,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 pub async fn create_daemon_api_key(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(mut api_key): Json<DaemonApiKey>,
+    ApiJson(mut api_key): ApiJson<DaemonApiKey>,
 ) -> ApiResult<Json<ApiResponse<DaemonApiKeyResponse>>> {
     let network_ids = auth.network_ids();
     let _ = auth
@@ -100,6 +102,7 @@ pub async fn create_daemon_api_key(
     path = "/{id}",
     tag = DaemonApiKey::ENTITY_NAME_PLURAL,
     params(("id" = Uuid, Path, description = "Daemon API key ID")),
+    request_body = DaemonApiKey,
     responses(
         (status = 200, description = "Daemon API key updated", body = ApiResponse<DaemonApiKey>),
         (status = 404, description = "Daemon API key not found", body = ApiErrorResponse),
@@ -110,7 +113,7 @@ pub async fn update_daemon_api_key(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
     Path(id): Path<Uuid>,
-    Json(mut request): Json<DaemonApiKey>,
+    ApiJson(mut request): ApiJson<DaemonApiKey>,
 ) -> ApiResult<Json<ApiResponse<DaemonApiKey>>> {
     let network_ids = auth.network_ids();
 
@@ -133,7 +136,8 @@ pub async fn update_daemon_api_key(
     let hashed_key = existing.base.key.clone();
 
     // Delegate to generic handler
-    let result = update_handler::<DaemonApiKey>(State(state), auth, Path(id), Json(request)).await;
+    let result =
+        update_handler::<DaemonApiKey>(State(state), auth, Path(id), ApiJson(request)).await;
     service.invalidate_resolution(&hashed_key).await;
     result
 }
@@ -265,7 +269,7 @@ pub async fn delete_daemon_api_key(
 pub async fn bulk_delete_daemon_api_keys(
     state: State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(ids): Json<Vec<Uuid>>,
+    ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>> {
     let filter = StorableFilter::<Daemon>::new_from_uuids_column("api_key_id", &ids);
     let daemons = state
@@ -293,5 +297,5 @@ pub async fn bulk_delete_daemon_api_keys(
         )));
     }
 
-    bulk_delete_handler::<DaemonApiKey>(state, auth, Json(ids)).await
+    bulk_delete_handler::<DaemonApiKey>(state, auth, ApiJson(ids)).await
 }

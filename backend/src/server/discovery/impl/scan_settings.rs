@@ -213,6 +213,7 @@ impl ScanSettings {
                 label: "Port Scan Rate",
                 field_type: FieldType::Number,
                 placeholder: Some("500"),
+                placeholder_by: None,
                 secret: false,
                 optional: true,
                 help_text: Some(
@@ -222,12 +223,14 @@ impl ScanSettings {
                 default_value: Some("500"),
                 inline_format: None,
                 group: Some("Port Scanning"),
+                file_name: None,
             },
             FieldDefinition {
                 id: "arp_rate_pps",
                 label: "ARP Scan Rate",
                 field_type: FieldType::Number,
                 placeholder: Some("50"),
+                placeholder_by: None,
                 secret: false,
                 optional: true,
                 help_text: Some(
@@ -237,12 +240,14 @@ impl ScanSettings {
                 default_value: Some("50"),
                 inline_format: None,
                 group: Some("ARP"),
+                file_name: None,
             },
             FieldDefinition {
                 id: "arp_retries",
                 label: "ARP Retries",
                 field_type: FieldType::Number,
                 placeholder: Some("2"),
+                placeholder_by: None,
                 secret: false,
                 optional: true,
                 help_text: Some(
@@ -252,12 +257,14 @@ impl ScanSettings {
                 default_value: Some("2"),
                 inline_format: None,
                 group: Some("ARP"),
+                file_name: None,
             },
             FieldDefinition {
                 id: "port_scan_batch_size",
                 label: "Port Scan Batch Size",
                 field_type: FieldType::Number,
                 placeholder: Some("200"),
+                placeholder_by: None,
                 secret: false,
                 optional: true,
                 help_text: Some("Ports scanned concurrently per host. Range: 16-1000."),
@@ -265,12 +272,14 @@ impl ScanSettings {
                 default_value: Some("200"),
                 inline_format: None,
                 group: Some("Port Scanning"),
+                file_name: None,
             },
             FieldDefinition {
                 id: "trust_port_only_detections",
                 label: "Trust Port-Only Detections",
                 field_type: FieldType::Boolean,
                 placeholder: None,
+                placeholder_by: None,
                 secret: false,
                 optional: false,
                 help_text: Some(
@@ -282,12 +291,14 @@ impl ScanSettings {
                 default_value: Some("false"),
                 inline_format: None,
                 group: Some("Detection"),
+                file_name: None,
             },
             FieldDefinition {
                 id: "probe_raw_socket_ports",
                 label: "Probe Raw Socket Ports",
                 field_type: FieldType::Boolean,
                 placeholder: None,
+                placeholder_by: None,
                 secret: false,
                 optional: false,
                 help_text: Some("Scan ports 9100-9107. May cause ghost printing on some printers."),
@@ -295,12 +306,14 @@ impl ScanSettings {
                 default_value: Some("false"),
                 inline_format: None,
                 group: Some("Detection"),
+                file_name: None,
             },
             FieldDefinition {
                 id: "arp_scan_cutoff",
                 label: "ARP Scan Cutoff",
                 field_type: FieldType::Number,
                 placeholder: Some("15"),
+                placeholder_by: None,
                 secret: false,
                 optional: true,
                 help_text: Some(
@@ -310,12 +323,14 @@ impl ScanSettings {
                 default_value: Some("15"),
                 inline_format: None,
                 group: Some("ARP"),
+                file_name: None,
             },
             FieldDefinition {
                 id: "use_npcap_arp",
                 label: "Use Npcap ARP (Windows)",
                 field_type: FieldType::Boolean,
                 placeholder: None,
+                placeholder_by: None,
                 secret: false,
                 optional: false,
                 help_text: Some(
@@ -325,12 +340,14 @@ impl ScanSettings {
                 default_value: Some("false"),
                 inline_format: None,
                 group: Some("ARP"),
+                file_name: None,
             },
             FieldDefinition {
                 id: "full_scan_interval",
                 label: "Full Scan Interval",
                 field_type: FieldType::Number,
                 placeholder: Some("3"),
+                placeholder_by: None,
                 secret: false,
                 optional: true,
                 help_text: Some(
@@ -340,12 +357,14 @@ impl ScanSettings {
                 default_value: Some("3"),
                 inline_format: None,
                 group: Some("Detection"),
+                file_name: None,
             },
             FieldDefinition {
                 id: "max_discovery_duration",
                 label: "Max Discovery Duration (seconds)",
                 field_type: FieldType::Number,
                 placeholder: Some("21600"),
+                placeholder_by: None,
                 secret: false,
                 optional: true,
                 help_text: Some(
@@ -355,6 +374,7 @@ impl ScanSettings {
                 default_value: Some("21600"),
                 inline_format: None,
                 group: Some("Detection"),
+                file_name: None,
             },
         ]
     }

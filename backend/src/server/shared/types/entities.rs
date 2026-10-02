@@ -230,7 +230,7 @@ mod forward_compat_tests {
 
     #[test]
     fn unknown_variant_degrades_to_unknown() {
-        // A source kind a newer server adds degrades to `Unknown` on an older
+        // A source type a newer server adds degrades to `Unknown` on an older
         // daemon instead of failing the entire response.
         let parsed: EntitySource =
             serde_json::from_value(serde_json::json!({ "type": "FutureSource" })).unwrap();

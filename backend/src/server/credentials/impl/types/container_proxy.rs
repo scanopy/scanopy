@@ -66,7 +66,7 @@ mod tests {
                 value: "cert-content".to_string(),
             }),
             ssl_key: Some(ResolvableSecret::FilePath {
-                path: "/nonexistent/key.pem".to_string(),
+                path: "/nonexistent/key.pem".into(),
             }),
             ssl_chain: None,
         });

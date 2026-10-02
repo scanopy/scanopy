@@ -500,7 +500,7 @@ export interface ViewerSample {
 	 */
 	edgesByType: Record<string, number>;
 	/**
-	 * The payload's resolved-adjacency rows (`neighbours`, GH #701) by kind: `Interface` is
+	 * The payload's resolved-adjacency rows (`neighbours`, GH #701) by type: `Interface` is
 	 * port-precise (draws a solid `PhysicalLink`), `Host` is device-level (a dashed `NeighborLink`).
 	 * `none` counts *interfaces* with zero rows of their own, since a port with no adjacency draws
 	 * nothing. Keyed by the backend's own discriminants.
@@ -514,7 +514,7 @@ export interface ViewerSample {
 	 * what the data supports, so "almost everything is dashed" can be attributed to resolution
 	 * rather than to rendering without a database.
 	 */
-	interfaceNeighborKinds: Record<NeighborKind | 'none', number>;
+	interfaceNeighborTypes: Record<NeighborType | 'none', number>;
 	blank: BlankReason;
 }
 
@@ -567,10 +567,10 @@ export interface DiagnosablePayload {
 	neighbours?: { interface_id?: string; neighbor?: components['schemas']['Neighbor'] | null }[];
 }
 
-type NeighborKind = components['schemas']['Neighbor']['type'];
+type NeighborType = components['schemas']['Neighbor']['type'];
 
 /** Every neighbour discriminant, plus the un-resolved case the column expresses as NULL. */
-const NEIGHBOR_KINDS = ['Interface', 'Host'] as const satisfies readonly NeighborKind[];
+const NEIGHBOR_TYPES = ['Interface', 'Host'] as const satisfies readonly NeighborType[];
 
 /** The payload summaries, and the payload they were taken from.
  *
@@ -587,27 +587,27 @@ const NEIGHBOR_KINDS = ['Interface', 'Host'] as const satisfies readonly Neighbo
 let payloadSummary: {
 	payload: DiagnosablePayload;
 	edgesByType: Record<string, number>;
-	interfaceNeighborKinds: ViewerSample['interfaceNeighborKinds'];
+	interfaceNeighborTypes: ViewerSample['interfaceNeighborTypes'];
 } | null = null;
 
-/** Edge-type and neighbour-kind counts for a payload, computed once per payload. */
+/** Edge-type and neighbour-type counts for a payload, computed once per payload. */
 export function summarisePayload(payload: DiagnosablePayload | null): {
 	edgesByType: Record<string, number>;
-	interfaceNeighborKinds: ViewerSample['interfaceNeighborKinds'];
+	interfaceNeighborTypes: ViewerSample['interfaceNeighborTypes'];
 } {
 	if (!payload) {
-		return { edgesByType: {}, interfaceNeighborKinds: { Interface: 0, Host: 0, none: 0 } };
+		return { edgesByType: {}, interfaceNeighborTypes: { Interface: 0, Host: 0, none: 0 } };
 	}
 	if (payloadSummary?.payload !== payload) {
 		payloadSummary = {
 			payload,
 			edgesByType: summariseEdgeTypes(payload),
-			interfaceNeighborKinds: summariseNeighborKinds(payload)
+			interfaceNeighborTypes: summariseNeighborTypes(payload)
 		};
 	}
 	return {
 		edgesByType: payloadSummary.edgesByType,
-		interfaceNeighborKinds: payloadSummary.interfaceNeighborKinds
+		interfaceNeighborTypes: payloadSummary.interfaceNeighborTypes
 	};
 }
 
@@ -624,14 +624,14 @@ function summariseEdgeTypes(payload: DiagnosablePayload | null): Record<string, 
 	return out;
 }
 
-function summariseNeighborKinds(
+function summariseNeighborTypes(
 	payload: DiagnosablePayload | null
-): ViewerSample['interfaceNeighborKinds'] {
-	const out: ViewerSample['interfaceNeighborKinds'] = { Interface: 0, Host: 0, none: 0 };
+): ViewerSample['interfaceNeighborTypes'] {
+	const out: ViewerSample['interfaceNeighborTypes'] = { Interface: 0, Host: 0, none: 0 };
 	const interfacesWithRows = new Set<string>();
 	for (const row of payload?.neighbours ?? []) {
-		const kind = row.neighbor?.type;
-		if (kind && NEIGHBOR_KINDS.includes(kind)) out[kind] += 1;
+		const neighborType = row.neighbor?.type;
+		if (neighborType && NEIGHBOR_TYPES.includes(neighborType)) out[neighborType] += 1;
 		if (row.interface_id) interfacesWithRows.add(row.interface_id);
 	}
 	for (const iface of payload?.interfaces ?? []) {
@@ -681,7 +681,7 @@ function readPane(container: HTMLElement | null): { el: HTMLElement | null; rect
  */
 export function sampleViewerState(inputs: SampleInputs): ViewerSample {
 	noteHeapSample();
-	const { edgesByType, interfaceNeighborKinds } = summarisePayload(inputs.payload());
+	const { edgesByType, interfaceNeighborTypes } = summarisePayload(inputs.payload());
 	const root: ParentNode = inputs.container ?? document;
 	const { el: pane, rect: paneRect } = readPane(inputs.container);
 	const viewport = root.querySelector('.svelte-flow__viewport') as HTMLElement | null;
@@ -782,7 +782,7 @@ export function sampleViewerState(inputs: SampleInputs): ViewerSample {
 			collapsedContainers: get(collapsedContainers).size
 		},
 		edgesByType,
-		interfaceNeighborKinds,
+		interfaceNeighborTypes,
 		blank
 	};
 }

@@ -46,7 +46,7 @@ impl Email for TrialStarted<'_> {
                     )
                     .paragraph(BILLING_DETAILS_TAGLINE),
             )
-            .cta(links::SETTINGS_BILLING, "Add Payment Method")
+            .cta(links::ADD_PAYMENT_METHOD, "Add Payment Method")
             .render()
     }
 }

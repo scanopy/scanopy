@@ -234,6 +234,7 @@ pub fn daemon(network_id: &Uuid, host_id: &Uuid) -> Daemon {
         is_unreachable: false,
         standby: false,
         standby_cleared_at: None,
+        os: None,
     })
 }
 

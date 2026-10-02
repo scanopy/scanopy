@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatLongDate } from '$lib/shared/utils/formatting';
 	import CodeContainer from '$lib/shared/components/data/CodeContainer.svelte';
 	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
 	import InlineDanger from '$lib/shared/components/feedback/InlineDanger.svelte';
@@ -63,6 +64,8 @@
 	// Unsupported). The UI renders the same date the sunset email uses; it never
 	// computes its own notion of "deprecated".
 	let sunsetDate = $derived(daemon.version_status.sunset_date ?? null);
+	// Date-only value: render in UTC so it shows the published day in every zone.
+	let sunsetDateDisplay = $derived(sunsetDate ? formatLongDate(sunsetDate, 'UTC') : '');
 	let isUnsupported = $derived(daemon.version_status.status === 'Unsupported');
 	let sunsetDaysRemaining = $derived.by(() => {
 		if (!sunsetDate) return 0;
@@ -70,8 +73,10 @@
 		return Math.max(0, Math.ceil(ms / 86_400_000));
 	});
 
-	// OS selection state
-	let selectedOS: DaemonOS = $state(detectOS());
+	// OS selection: the daemon's recorded OS when it has one, which also hides the OS picker;
+	// otherwise the user picks, starting from the browser's OS.
+	let pickedOS: DaemonOS = $state(detectOS());
+	let selectedOS = $derived<DaemonOS>(daemon.os ?? pickedOS);
 
 	type LinuxMethod = 'binary' | 'docker';
 	let linuxMethod: LinuxMethod = $state('binary');
@@ -105,7 +110,7 @@ docker compose up -d`;
 	let dockerComposeImageLine = $derived(`image: ghcr.io/scanopy/scanopy/daemon:v${VERSION}`);
 
 	function handleOsSelect(os: DaemonOS) {
-		selectedOS = os;
+		pickedOS = os;
 		trackEvent('daemon_upgrade_os_selected', { os });
 	}
 
@@ -132,12 +137,15 @@ docker compose up -d`;
 				{#if sunsetDate && isUnsupported}
 					<InlineDanger
 						title={daemons_sunsetUnsupportedTitle()}
-						body={daemons_sunsetUnsupportedBody({ date: sunsetDate })}
+						body={daemons_sunsetUnsupportedBody({ date: sunsetDateDisplay })}
 					/>
 				{:else if sunsetDate}
 					<InlineWarning
 						title={daemons_sunsetDeprecatedTitle()}
-						body={daemons_sunsetDeprecatedBody({ date: sunsetDate, days: sunsetDaysRemaining })}
+						body={daemons_sunsetDeprecatedBody({
+							date: sunsetDateDisplay,
+							days: sunsetDaysRemaining
+						})}
 					/>
 				{/if}
 
@@ -154,6 +162,7 @@ docker compose up -d`;
 				<OsSelector
 					{selectedOS}
 					onOsSelect={handleOsSelect}
+					showOs={!daemon.os}
 					{linuxMethod}
 					onLinuxMethodChange={(method) => (linuxMethod = method)}
 				>

@@ -54,7 +54,7 @@ pub fn value_type_name(value: &Value) -> &'static str {
         Value::NoSuchObject => "NoSuchObject",
         Value::NoSuchInstance => "NoSuchInstance",
         // The remaining variants are PDU shapes, not varbind values, so they cannot reach a
-        // column handler. Grouped rather than enumerated so adding a PDU kind upstream does not
+        // column handler. Grouped rather than enumerated so adding a PDU type upstream does not
         // churn a diagnostic helper that would never name it.
         _ => "Pdu",
     }

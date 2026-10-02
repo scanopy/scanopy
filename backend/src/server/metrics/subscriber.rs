@@ -58,6 +58,32 @@ fn record_event(category: &str, operation: impl std::fmt::Display) {
     .increment(1);
 }
 
+/// A subscriber delivery that hit an error, by how it ended (`traits.rs::handle_with_retry`).
+/// `recovered` means a retry applied it; `exhausted` and `not_retried` mean that subscriber's side
+/// of the event was never applied (an org field left unwritten, an email unsent). The publisher
+/// carries on either way, so a Stripe webhook still gets its 200 and is not redelivered; this
+/// counter is the alert.
+///
+/// `name` is the registry's `<service_snake>:<op_snake>` (`registry.rs`), split into two
+/// labels so failures can be summed per service or per event type. Both halves come from type
+/// names, so the label set is fixed at compile time. `count` is above 1 only for a
+/// `NonRetryable` report covering several failed events.
+pub(crate) fn record_subscriber_error(
+    name: &'static str,
+    outcome: crate::server::shared::events::traits::SubscriberErrorOutcome,
+    count: u64,
+) {
+    let (subscriber, event_type) = name.split_once(':').unwrap_or((name, "unknown"));
+    let outcome: &'static str = outcome.into();
+    metrics::counter!(
+        "scanopy_event_subscriber_errors_total",
+        "subscriber" => subscriber,
+        "event_type" => event_type,
+        "outcome" => outcome,
+    )
+    .increment(count);
+}
+
 /// Per-code, per-integration counter for discovery scan warnings.
 ///
 /// **One increment per warning, and a warning is one occurrence** — a failure mode affecting twelve
@@ -89,7 +115,7 @@ fn record_discovery_warning(code: DiscoveryWarningCode, integration: Option<impl
 pub(crate) fn record_discovery_terminal(phase: DiscoveryPhase, reason: DiscoveryTerminalReason) {
     metrics::counter!(
         "scanopy_discovery_terminal_total",
-        "phase" => phase.to_string(),
+        "phase" => phase.id(),
         "reason" => reason.id(),
     )
     .increment(1);
@@ -182,7 +208,9 @@ impl Subscriber<DiscoveryPhase> for MetricsService {
     }
     async fn handle(&self, events: Vec<Event<DiscoveryPhase>>) -> Result<(), Error> {
         for event in events {
-            record_event("discovery", event.operation);
+            // The phase id, not its Display: Display is UI copy, and a copy edit would rename
+            // the series.
+            record_event("discovery", event.operation.id());
             if event.operation.is_terminal()
                 && let Some(reason) = event.scope.reason
             {

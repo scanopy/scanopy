@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { formatTimestamp } from '$lib/shared/utils/formatting';
+	import { effectiveTimeZone } from '$lib/shared/stores/display-settings.svelte';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
 	import { required, max } from '$lib/shared/components/forms/validators';
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
@@ -100,7 +102,7 @@
 				cron_schedule: '0 0 0 * * 0',
 				last_run: null,
 				enabled: true,
-				timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+				timezone: effectiveTimeZone()
 			};
 		}
 	}
@@ -244,7 +246,7 @@
 					<p class="text-tertiary text-xs">{discovery_scanModeFirstLight()}</p>
 				{:else}
 					<p class="text-secondary text-sm">
-						{discovery_lastRun({ time: lastRun ? new Date(lastRun).toLocaleString() : '—' })}
+						{discovery_lastRun({ time: lastRun ? formatTimestamp(lastRun) : '—' })}
 					</p>
 					<p class="text-secondary text-sm">{discovery_scanCount({ count: String(scanCount) })}</p>
 					<p class="text-tertiary text-sm">

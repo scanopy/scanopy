@@ -125,7 +125,7 @@ impl<T: Storable> StorableFilter<T> {
     ///
     /// Matches entries that have exactly 1 learned MAC, no candidate row (raw LLDP/CDP evidence —
     /// FDB is lower-priority than protocol-based discovery), and no existing resolved row of
-    /// either kind.
+    /// either type.
     ///
     /// GH #701: `neighbor_interface_id`/`neighbor_host_id`/`lldp_chassis_id`/`cdp_device_id` moved
     /// off `interfaces` into `interface_neighbor_interfaces`/`interface_neighbor_hosts`/
@@ -151,7 +151,7 @@ impl<T: Storable> StorableFilter<T> {
             "NOT EXISTS (SELECT 1 FROM interface_neighbor_candidates \
              WHERE interface_neighbor_candidates.interface_id = {id_col})"
         ));
-        // No existing resolved row of either kind.
+        // No existing resolved row of either type.
         self.conditions.push(format!(
             "NOT EXISTS (SELECT 1 FROM interface_neighbor_interfaces \
              WHERE interface_neighbor_interfaces.interface_id = {id_col} \

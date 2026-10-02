@@ -114,7 +114,8 @@
     "PodmanSocket",
     "UnifiController",
     "InstantOn",
-    "Unknown"
+    "Unknown",
+    "Gnmi"
   ],
   "CredentialType": [
     "SnmpV2c",
@@ -126,7 +127,8 @@
     "PodmanSocket",
     "UnifiApiKey",
     "UnifiLocalAdmin",
-    "InstantOnAccount"
+    "InstantOnAccount",
+    "Gnmi"
   ],
   "DaemonMode": [
     "ServerPoll",
@@ -187,7 +189,11 @@
     "ProvisionalSubnetInferred",
     "NeighbourResolutionIncomplete",
     "FdbResolutionIncomplete",
-    "OutdatedDaemonFormat"
+    "OutdatedDaemonFormat",
+    "EqualReachIntegrationsMerged",
+    "DcpSweepTimedOut",
+    "IcmpSweepTimedOut",
+    "ReverseDnsTimedOut"
   ],
   "EdgeStyle": [
     "Straight",

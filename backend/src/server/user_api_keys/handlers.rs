@@ -2,6 +2,7 @@ use crate::server::shared::events::traits::{Event, OrgScope};
 use crate::server::shared::events::types::{OnboardingOperation, OnboardingOperationDiscriminants};
 use crate::server::shared::extractors::Query;
 use crate::server::shared::storage::traits::Entity;
+use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::validation::validate_network_ids_access;
 use crate::server::{
     auth::middleware::{
@@ -112,6 +113,7 @@ pub async fn get_all(
     path = "",
     tag = UserApiKey::ENTITY_NAME_PLURAL,
     operation_id = "create_user_api_key",
+    request_body = UserApiKey,
     responses(
         (status = 200, description = "API key created", body = ApiResponse<UserApiKeyResponse>),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
@@ -124,7 +126,7 @@ pub async fn create_user_api_key(
     State(state): State<Arc<AppState>>,
     auth: Authorized<RequireVerified<And<IsUser, Member>>>,
     _feature: RequireFeature<ApiKeyFeature>,
-    Json(mut api_key): Json<UserApiKey>,
+    ApiJson(mut api_key): ApiJson<UserApiKey>,
 ) -> ApiResult<Json<ApiResponse<UserApiKeyResponse>>> {
     let user_id = auth.require_user_id()?;
     let organization_id = auth.require_organization_id()?;
@@ -201,6 +203,7 @@ pub async fn create_user_api_key(
     tag = UserApiKey::ENTITY_NAME_PLURAL,
     operation_id = "update_user_api_key",
     params(("id" = Uuid, Path, description = "API key ID")),
+    request_body = UserApiKey,
     responses(
         (status = 200, description = "API key updated", body = ApiResponse<UserApiKey>),
         (status = 403, description = "Not authorized to update this key", body = ApiErrorResponse),
@@ -213,7 +216,7 @@ pub async fn update_user_api_key(
     auth: Authorized<RequireVerified<And<IsUser, Member>>>,
     _feature: RequireFeature<ApiKeyFeature>,
     Path(id): Path<Uuid>,
-    Json(mut request): Json<UserApiKey>,
+    ApiJson(mut request): ApiJson<UserApiKey>,
 ) -> ApiResult<Json<ApiResponse<UserApiKey>>> {
     let user_id = auth.require_user_id()?;
     let user_permissions = auth.require_permissions()?;
@@ -384,7 +387,7 @@ pub async fn bulk_delete(
     state: State<Arc<AppState>>,
     auth: Authorized<RequireVerified<And<IsUser, Member>>>,
     _feature: RequireFeature<ApiKeyFeature>,
-    Json(ids): Json<Vec<Uuid>>,
+    ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>> {
     let user_id = auth.user_id().unwrap_or(Uuid::nil());
     let service = &state.services.user_api_key_service;
@@ -399,9 +402,12 @@ pub async fn bulk_delete(
         }
     }
 
-    let result =
-        bulk_delete_handler::<UserApiKey>(state, auth.into_permission::<Member>(), Json(owned_ids))
-            .await?;
+    let result = bulk_delete_handler::<UserApiKey>(
+        state,
+        auth.into_permission::<Member>(),
+        ApiJson(owned_ids),
+    )
+    .await?;
 
     // Combine counts
     Ok(Json(ApiResponse::success(BulkDeleteResponse {

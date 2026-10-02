@@ -23,17 +23,18 @@ impl PosthogService {
         }
     }
 
+    /// Send an event, retrying twice. Returns the last error once the retries run out.
     pub async fn capture(
         &self,
         event_name: &str,
         distinct_id: &str,
         properties: serde_json::Value,
-    ) {
+    ) -> anyhow::Result<()> {
         let event_name_owned = event_name.to_string();
         let distinct_id_owned = distinct_id.to_string();
         let props_clone = properties.clone();
 
-        if let Err(e) = (|| async {
+        (|| async {
             let mut event = Event::new(&event_name_owned, &distinct_id_owned);
             if let Some(props) = props_clone.as_object() {
                 for (key, value) in props {
@@ -64,17 +65,19 @@ impl PosthogService {
                 .with_max_times(2),
         )
         .await
-        {
-            tracing::warn!(event = %event_name_owned, error = %e, "Failed to send event to PostHog");
-        }
+        .map_err(|e| anyhow::anyhow!("PostHog capture {event_name_owned}: {e}"))
     }
 
     /// Send a $identify event to set person properties in PostHog.
-    pub async fn identify(&self, distinct_id: &str, properties: serde_json::Value) {
+    pub async fn identify(
+        &self,
+        distinct_id: &str,
+        properties: serde_json::Value,
+    ) -> anyhow::Result<()> {
         let distinct_id_owned = distinct_id.to_string();
         let props_clone = properties.clone();
 
-        if let Err(e) = (|| async {
+        (|| async {
             let mut event = Event::new("$identify", &distinct_id_owned);
             event
                 .insert_prop("$set", &props_clone)
@@ -88,9 +91,7 @@ impl PosthogService {
                 .with_max_times(2),
         )
         .await
-        {
-            tracing::warn!(error = %e, "Failed to send $identify event to PostHog");
-        }
+        .map_err(|e| anyhow::anyhow!("PostHog $identify: {e}"))
     }
 
     /// Send a $groupidentify event to set group properties in PostHog.
@@ -99,12 +100,12 @@ impl PosthogService {
         group_type: &str,
         group_key: &str,
         properties: serde_json::Value,
-    ) {
+    ) -> anyhow::Result<()> {
         let group_type_owned = group_type.to_string();
         let group_key_owned = group_key.to_string();
         let props_clone = properties.clone();
 
-        if let Err(e) = (|| async {
+        (|| async {
             let distinct_id = format!("group:{}", group_key_owned);
             let mut event = Event::new("$groupidentify".to_string(), distinct_id);
             event
@@ -125,9 +126,9 @@ impl PosthogService {
                 .with_max_times(2),
         )
         .await
-        {
-            tracing::warn!(error = %e, "Failed to send $groupidentify event to PostHog");
-        }
+        .map_err(|e| {
+            anyhow::anyhow!("PostHog $groupidentify {group_type_owned}:{group_key_owned}: {e}")
+        })
     }
 
     pub async fn get_org_id_from_network(&self, network_id: &Uuid) -> Option<Uuid> {

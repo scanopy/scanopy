@@ -18,7 +18,7 @@ import {
  * A payload that reports how many times its collections were walked.
  *
  * GH #701: an interface's resolution is a `Vec` of rows on `neighbours` rather than a scalar
- * `neighbor` field, so `interfaces` here carries only ids and the resolved kind lives on the
+ * `neighbor` field, so `interfaces` here carries only ids and the resolved type lives on the
  * separate `neighbours` array, matched by `interface_id`.
  */
 function countingPayload(): { payload: DiagnosablePayload; reads: () => number } {
@@ -57,7 +57,7 @@ describe('summarisePayload', () => {
 		const summary = summarisePayload(payload);
 
 		expect(summary.edgesByType).toEqual({ PhysicalLink: 2, NeighborLink: 1 });
-		expect(summary.interfaceNeighborKinds).toEqual({ Interface: 1, Host: 1, none: 1 });
+		expect(summary.interfaceNeighborTypes).toEqual({ Interface: 1, Host: 1, none: 1 });
 	});
 
 	it('counts a port with several resolved rows in every bucket its rows fall into', () => {
@@ -75,7 +75,7 @@ describe('summarisePayload', () => {
 
 		const summary = summarisePayload(payload);
 
-		expect(summary.interfaceNeighborKinds).toEqual({ Interface: 1, Host: 1, none: 0 });
+		expect(summary.interfaceNeighborTypes).toEqual({ Interface: 1, Host: 1, none: 0 });
 	});
 
 	it('walks a payload once however many samples are taken from it', () => {
@@ -100,6 +100,6 @@ describe('summarisePayload', () => {
 		const summary = summarisePayload(null);
 
 		expect(summary.edgesByType).toEqual({});
-		expect(summary.interfaceNeighborKinds).toEqual({ Interface: 0, Host: 0, none: 0 });
+		expect(summary.interfaceNeighborTypes).toEqual({ Interface: 0, Host: 0, none: 0 });
 	});
 });

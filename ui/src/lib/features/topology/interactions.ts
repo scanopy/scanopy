@@ -386,7 +386,14 @@ export const FILTER_VALUE_EXTRACTORS: Record<string, Record<string, FilterValueE
 				: 'BareMetal',
 		Staleness: (h, ctx) => entityFreshness(h as FreshnessSubject, ctx.network)
 	},
+	IPAddress: {
+		Staleness: (ip, ctx) => entityFreshness(ip as FreshnessSubject, ctx.network)
+	},
+	Subnet: {
+		Staleness: (s, ctx) => entityFreshness(s as FreshnessSubject, ctx.network)
+	},
 	Interface: {
+		Staleness: (i, ctx) => entityFreshness(i as FreshnessSubject, ctx.network),
 		// Ids match `InterfaceLinkState` on the backend, which is what supplies the filter's
 		// values. A partial resolution (`Neighbor::Host` — the remote device known but not the
 		// port) counts as linked: it still draws an edge, so hiding it would break the diagram.
@@ -404,6 +411,23 @@ export const FILTER_VALUE_EXTRACTORS: Record<string, Record<string, FilterValueE
 		}
 	}
 };
+
+/**
+ * Whether `entity` carries the filter value being hovered in the options panel, judged by the
+ * same extractor the hide pass uses. `topology` is passed through because some values depend on
+ * other entities (LinkState reads the topology's neighbour rows).
+ */
+export function matchesHoveredMetadata(
+	entity: unknown,
+	hovered: HoveredMetadata,
+	network: Network | undefined,
+	topology: RenderableTopology | null | undefined
+): boolean {
+	if (!entity) return false;
+	const extract = FILTER_VALUE_EXTRACTORS[hovered.entityType]?.[hovered.filterType];
+	if (!extract) return false;
+	return extract(entity, { network, topology: topology ?? undefined }) === hovered.valueId;
+}
 
 /**
  * Which filter values are actually represented in the current topology, keyed
@@ -655,9 +679,22 @@ export function updateTagFilter(
 	// two ways: it *is* that entity, so its own id matches; or it is an element of that type
 	// related to it, for the types whose node id is some other entity's. Every pass above records
 	// entity ids and leaves this to decide what that means for the graph.
+	//
+	// A container stands for a hidden entity when its `container_type` names that entity's type
+	// and its `entity_id` is that entity (a Workloads/L2 host box, an L3 subnet box). Hiding it
+	// hides everything drawn inside it, as hiding a container by tag does.
+	const hiddenContainerIds = new Set<string>();
 	for (const node of topology.nodes) {
 		if (hiddenEntities.has(node.id)) {
 			hiddenNodeIds.add(node.id);
+			if (node.node_type === 'Container') hiddenContainerIds.add(node.id);
+			continue;
+		}
+		if (node.node_type === 'Container') {
+			const entityId = node.entity_id ?? node.id;
+			if (node.container_type && hiddenByType.get(node.container_type)?.has(entityId)) {
+				hiddenContainerIds.add(node.id);
+			}
 			continue;
 		}
 		if (node.node_type !== 'Element') continue;
@@ -666,6 +703,7 @@ export function updateTagFilter(
 			hiddenNodeIds.add(node.id);
 		}
 	}
+	hideContainersAndDescendants(hiddenContainerIds, topology.nodes, hiddenNodeIds);
 
 	tagHiddenNodeIds.set(hiddenNodeIds);
 	hiddenEntityIds.set(hiddenEntities);

@@ -10,7 +10,7 @@ import type { components } from '$lib/api/schema';
 import { pushSuccess } from '$lib/shared/stores/feedback';
 import { requireSuccess, unwrapData } from '$lib/api/query-helpers';
 import { useOrganizationQuery } from '$lib/features/organizations/queries';
-import { hasLicensedPlan } from '$lib/features/organizations/types';
+import { hasLicensedPlan, type Organization } from '$lib/features/organizations/types';
 import { useConfigQuery } from '$lib/shared/stores/config-query';
 
 type PauseDuration = components['schemas']['PauseDuration'];
@@ -100,6 +100,15 @@ export function useFinalizePaymentMethodMutation() {
 				})
 			);
 			return true;
+		},
+		onSuccess: () => {
+			// Finalize has confirmed with Stripe that the card is on the
+			// customer. The org row records it when the `payment_method.attached`
+			// webhook lands, so reflect it in the cache now and let the banners
+			// clear; the next refetch reads the server's own value.
+			queryClient.setQueryData<Organization>(queryKeys.organizations.current(), (old) =>
+				old && !old.has_payment_method ? { ...old, has_payment_method: true } : old
+			);
 		}
 	}));
 }

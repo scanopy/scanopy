@@ -12,6 +12,7 @@ use crate::server::shared::handlers::traits::{CrudHandlers, update_handler};
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::{Entity, Storable, Storage};
+use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::api::ApiResponse;
 use crate::server::shared::types::api::ApiResult;
 use crate::server::shared::types::api::{ApiError, ApiErrorResponse, EmptyApiResponse};
@@ -90,7 +91,7 @@ pub async fn update_org_name(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Owner>,
     Path(id): Path<Uuid>,
-    Json(name): Json<String>,
+    ApiJson(name): ApiJson<String>,
 ) -> ApiResult<Json<ApiResponse<Organization>>> {
     // Organization's scoping fields are both None, so the generic update_handler
     // below cannot enforce tenant ownership — check it explicitly here, matching
@@ -113,7 +114,7 @@ pub async fn update_org_name(
         axum::extract::State(state),
         auth.into_permission::<Member>(),
         axum::extract::Path(id),
-        axum::extract::Json(org),
+        ApiJson(org),
     )
     .await
 }
@@ -140,7 +141,7 @@ pub struct ProfileUpdateRequest {
 async fn update_profile(
     auth: Authorized<IsUser>,
     State(state): State<Arc<AppState>>,
-    Json(request): Json<ProfileUpdateRequest>,
+    ApiJson(request): ApiJson<ProfileUpdateRequest>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let org_id = auth.organization_id().unwrap();
     let authentication: AuthenticatedEntity = auth.into();
@@ -207,7 +208,7 @@ pub struct ReferralSourceRequest {
 async fn submit_referral_source(
     auth: Authorized<IsUser>,
     State(state): State<Arc<AppState>>,
-    Json(request): Json<ReferralSourceRequest>,
+    ApiJson(request): ApiJson<ReferralSourceRequest>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let org_id = auth.organization_id().unwrap();
     let authentication: AuthenticatedEntity = auth.into();
@@ -263,7 +264,7 @@ pub struct DaemonPromptResponseRequest {
 async fn daemon_prompt_response(
     auth: Authorized<Member>,
     State(state): State<Arc<AppState>>,
-    Json(request): Json<DaemonPromptResponseRequest>,
+    ApiJson(request): ApiJson<DaemonPromptResponseRequest>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let org_id = auth.organization_id().unwrap();
     let authentication: AuthenticatedEntity = auth.into();

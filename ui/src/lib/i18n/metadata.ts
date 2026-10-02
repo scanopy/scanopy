@@ -21,6 +21,7 @@ interface TranslatableField {
 	placeholder?: string | null;
 	help_text?: string | null;
 	options?: { value: string; label: string }[] | null;
+	placeholder_by?: { depends_on: string; value: string; placeholder: string }[] | null;
 }
 
 /**
@@ -110,6 +111,12 @@ export function metaDescription(fixtureKey: string, id: string | null, fallback:
 	return resolveMeta(`meta_${fixtureKey}_${id}_description`, fallback);
 }
 
+/** Resolve a credential type's translated transport note, falling back to the fixture string. */
+export function metaTransportNote(fixtureKey: string, id: string | null, fallback: string): string {
+	if (!id) return fallback;
+	return resolveMeta(`meta_${fixtureKey}_${id}_transportNote`, fallback);
+}
+
 /**
  * Resolve translated label/placeholder/help_text/option labels for field
  * definitions. `ownerId` namespaces nested fields (credential type id);
@@ -118,6 +125,7 @@ export function metaDescription(fixtureKey: string, id: string | null, fallback:
  * Key shape mirrors scripts/generate-meta-messages.js:
  *   meta_<fixtureKey>[_<ownerId>]_<fieldId>_label / _placeholder / _helpText
  *   meta_<fixtureKey>[_<ownerId>]_<fieldId>_option_<value>
+ *   meta_<fixtureKey>[_<ownerId>]_<fieldId>_placeholderBy_<dependsOnField>_<value>
  */
 export function translateFieldDefinitions<F extends TranslatableField>(
 	fixtureKey: string,
@@ -139,6 +147,13 @@ export function translateFieldDefinitions<F extends TranslatableField>(
 			options: field.options?.map((option) => ({
 				...option,
 				label: resolveMeta(`${prefix}_option_${option.value}`, option.label)
+			})),
+			placeholder_by: field.placeholder_by?.map((dependent) => ({
+				...dependent,
+				placeholder: resolveMeta(
+					`${prefix}_placeholderBy_${dependent.depends_on}_${dependent.value}`,
+					dependent.placeholder
+				)
 			}))
 		};
 	});

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Scanopy API",
-    "description": "\nNetwork topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.17\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.17\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.17.17)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **network(s)**:\n\n- You can only access entities within your organization\n- Network-level entities (hosts, services, etc.) are filtered to networks you have access to\n- Use `?network_id=<UUID>` to filter list endpoints to a specific network\n- API keys can be scoped to a subset of your accessible networks\n",
+    "description": "\nNetwork topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.19\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.19\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.17.19)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **network(s)**:\n\n- You can only access entities within your organization\n- Network-level entities (hosts, services, etc.) are filtered to networks you have access to\n- Use `?network_id=<UUID>` to filter list endpoints to a specific network\n- API keys can be scoped to a subset of your accessible networks\n",
     "license": {
       "name": "Dual (AGPL3.0, Commercial License Available)"
     },
@@ -4897,7 +4897,7 @@
             "description": "`install` (with the api-key placeholder) or `reconfigure` (credential-free).",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/InstallCommandKind"
+              "$ref": "#/components/schemas/InstallCommandType"
             }
           },
           {
@@ -6470,7 +6470,7 @@
           "Hosts"
         ],
         "summary": "List all hosts",
-        "description": "Returns all hosts the authenticated user has access to, with their\nip_addresses, ports, services and interfaces included — pass\n`include_children=false` to omit those and get a much smaller payload.\nSupports pagination via `limit` and `offset` query parameters, and ordering\nvia `group_by`, `order_by`, and `order_direction`.",
+        "description": "Returns all hosts the authenticated user has access to, with their\nip_addresses, ports, services and interfaces included — pass\n`include_children=false` to omit the ports, services and interfaces and get a\nmuch smaller payload.\nSupports pagination via `limit` and `offset` query parameters, and ordering\nvia `group_by`, `order_by`, and `order_direction`.",
         "operationId": "get_all_hosts",
         "parameters": [
           {
@@ -6711,7 +6711,7 @@
           {
             "name": "include_children",
             "in": "query",
-            "description": "`false` returns hosts with empty `ip_addresses`/`ports`/`services`/\n`interfaces`. The children dominate the payload, so callers that only need\nhost identity — name pickers, id→name lookups, counts — should pass\n`false`. Defaults to `true`, so existing callers are unaffected.",
+            "description": "`false` returns hosts with empty `ports`/`services`/`interfaces`.\n`ip_addresses` is always populated: the host's title can come from its\naddress. The children dominate the payload, so callers that only need\nhost identity — name pickers, id→name lookups, counts — should pass\n`false`. Defaults to `true`, so existing callers are unaffected.",
             "required": false,
             "schema": {
               "type": [
@@ -7154,7 +7154,7 @@
           {
             "name": "include_children",
             "in": "query",
-            "description": "`false` returns hosts with empty `ip_addresses`/`ports`/`services`/\n`interfaces`. The children dominate the payload, so callers that only need\nhost identity — name pickers, id→name lookups, counts — should pass\n`false`. Defaults to `true`, so existing callers are unaffected.",
+            "description": "`false` returns hosts with empty `ports`/`services`/`interfaces`.\n`ip_addresses` is always populated: the host's title can come from its\naddress. The children dominate the payload, so callers that only need\nhost identity — name pickers, id→name lookups, counts — should pass\n`false`. Defaults to `true`, so existing callers are unaffected.",
             "required": false,
             "schema": {
               "type": [
@@ -7433,7 +7433,7 @@
           {
             "name": "include_children",
             "in": "query",
-            "description": "`false` returns hosts with empty `ip_addresses`/`ports`/`services`/\n`interfaces`. The children dominate the payload, so callers that only need\nhost identity — name pickers, id→name lookups, counts — should pass\n`false`. Defaults to `true`, so existing callers are unaffected.",
+            "description": "`false` returns hosts with empty `ports`/`services`/`interfaces`.\n`ip_addresses` is always populated: the host's title can come from its\naddress. The children dominate the payload, so callers that only need\nhost identity — name pickers, id→name lookups, counts — should pass\n`false`. Defaults to `true`, so existing callers are unaffected.",
             "required": false,
             "schema": {
               "type": [
@@ -15437,12 +15437,12 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.17.17"
+            "example": "0.17.19"
           }
         },
         "example": {
           "api_version": 1,
-          "server_version": "0.17.17"
+          "server_version": "0.17.19"
         }
       },
       "ApiResponse": {
@@ -15574,19 +15574,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-09-24T19:14:03.242120Z",
+              "created_at": "2026-10-02T12:58:48.562150Z",
               "first_discovery_id": null,
-              "id": "e7ec1bd2-6bb9-4718-932c-50d6e76df6b3",
+              "id": "755b0dd3-8d4b-4aaf-9a1c-dd060a5cd9a1",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-24T19:14:03.242120Z",
+              "last_seen_at": "2026-10-02T12:58:48.562150Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-24T19:14:03.242120Z",
-              "valid_from": "2026-09-24T19:14:03.242120Z",
+              "updated_at": "2026-10-02T12:58:48.562150Z",
+              "valid_from": "2026-10-02T12:58:48.562150Z",
               "valid_to": null
             }
           },
@@ -16544,6 +16544,13 @@
               "progress"
             ],
             "properties": {
+              "credential_results": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CredentialRunResult"
+                },
+                "description": "What each stored credential did in this run, one entry per credential. Results, not\nproblems: those are `warnings`. Old servers ignore it.\n\nRead per entry, like `warnings`: an outcome shape from a newer daemon becomes `Unknown`\nfor that credential instead of failing the terminal payload."
+              },
               "daemon_id": {
                 "type": "string",
                 "format": "uuid",
@@ -16566,7 +16573,7 @@
               },
               "discovery_type": {
                 "$ref": "#/components/schemas/DiscoveryType",
-                "description": "What kind of discovery is running."
+                "description": "What type of discovery is running."
               },
               "error": {
                 "type": [
@@ -16631,7 +16638,7 @@
                   },
                   {
                     "$ref": "#/components/schemas/DiscoveryTerminalReason",
-                    "description": "Why the run ended. Set on terminal payloads; absent on runs recorded before it existed.\nA daemon may send one of the reasons only it can know; the server assigns every other."
+                    "description": "Why the run ended. Set on terminal payloads; absent on runs recorded before it existed.\nA daemon may send one of the reasons only it can know; the server assigns every other.\nA reason this server doesn't know reads as `None`, and the server assigns one from the\nphase."
                   }
                 ]
               },
@@ -17158,19 +17165,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-09-24T19:14:03.225590Z",
+                      "created_at": "2026-10-02T12:58:48.538570Z",
                       "first_discovery_id": null,
-                      "id": "1c696637-29c7-4289-b74d-ec327b7abd9e",
+                      "id": "4ff0e77a-55a5-4160-862a-798374ca464e",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-09-24T19:14:03.225590Z",
+                      "last_seen_at": "2026-10-02T12:58:48.538570Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-09-24T19:14:03.225590Z",
-                      "valid_from": "2026-09-24T19:14:03.225590Z",
+                      "updated_at": "2026-10-02T12:58:48.538570Z",
+                      "valid_from": "2026-10-02T12:58:48.538570Z",
                       "valid_to": null
                     }
                   ],
@@ -17184,7 +17191,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Ghost",
+                  "service_definition": "Tuya Smart",
                   "source": {
                     "type": "Manual"
                   },
@@ -18582,19 +18589,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-09-24T19:14:03.238254Z",
+                  "created_at": "2026-10-02T12:58:48.556453Z",
                   "first_discovery_id": null,
-                  "id": "fa8df057-c370-4429-8896-e68b999c25e4",
+                  "id": "d4fd1f77-7253-4fcd-9cf8-83f7b88a9a02",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-24T19:14:03.238254Z",
+                  "last_seen_at": "2026-10-02T12:58:48.556453Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-24T19:14:03.238254Z",
-                  "valid_from": "2026-09-24T19:14:03.238254Z",
+                  "updated_at": "2026-10-02T12:58:48.556453Z",
+                  "valid_from": "2026-10-02T12:58:48.556453Z",
                   "valid_to": null
                 }
               ],
@@ -18608,7 +18615,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Ghost",
+              "service_definition": "Tuya Smart",
               "source": {
                 "type": "Manual"
               },
@@ -19387,7 +19394,7 @@
                   },
                   "propertyNames": {
                     "type": "string",
-                    "description": "The kind of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
+                    "description": "The type of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
                     "enum": [
                       "Category",
                       "Virtualization",
@@ -20055,6 +20062,13 @@
                 "progress"
               ],
               "properties": {
+                "credential_results": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CredentialRunResult"
+                  },
+                  "description": "What each stored credential did in this run, one entry per credential. Results, not\nproblems: those are `warnings`. Old servers ignore it.\n\nRead per entry, like `warnings`: an outcome shape from a newer daemon becomes `Unknown`\nfor that credential instead of failing the terminal payload."
+                },
                 "daemon_id": {
                   "type": "string",
                   "format": "uuid",
@@ -20077,7 +20091,7 @@
                 },
                 "discovery_type": {
                   "$ref": "#/components/schemas/DiscoveryType",
-                  "description": "What kind of discovery is running."
+                  "description": "What type of discovery is running."
                 },
                 "error": {
                   "type": [
@@ -20142,7 +20156,7 @@
                     },
                     {
                       "$ref": "#/components/schemas/DiscoveryTerminalReason",
-                      "description": "Why the run ended. Set on terminal payloads; absent on runs recorded before it existed.\nA daemon may send one of the reasons only it can know; the server assigns every other."
+                      "description": "Why the run ended. Set on terminal payloads; absent on runs recorded before it existed.\nA daemon may send one of the reasons only it can know; the server assigns every other.\nA reason this server doesn't know reads as `None`, and the server assigns one from the\nphase."
                     }
                   ]
                 },
@@ -20590,6 +20604,13 @@
             ]
           },
           {
+            "type": "string",
+            "description": "A script the operator wrote, run on the host over SSH, printed it. Queried: we chose the\nhost, authenticated to it and read the answer from its own shell. Human-authored, because\nthe operator chose what the script reports, which is what puts it above the machine values\nSNMP and LLDP emit about the same fields.",
+            "enum": [
+              "SshScript"
+            ]
+          },
+          {
             "type": "object",
             "title": "Probe",
             "description": "A value the thing emitted about itself, over whatever transport [`ClientProbe`] names.",
@@ -20964,19 +20985,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-09-24T19:14:03.225946Z",
+          "created_at": "2026-10-02T12:58:48.538996Z",
           "first_discovery_id": null,
-          "id": "2bb8d016-50fe-460c-8650-8aabdebb9e45",
+          "id": "18931ccd-18d8-4769-ae01-9df30227ad18",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-09-24T19:14:03.225946Z",
+          "last_seen_at": "2026-10-02T12:58:48.538996Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-09-24T19:14:03.225946Z",
-          "valid_from": "2026-09-24T19:14:03.225946Z",
+          "updated_at": "2026-10-02T12:58:48.538996Z",
+          "valid_from": "2026-10-02T12:58:48.538996Z",
           "valid_to": null
         }
       },
@@ -21344,7 +21365,7 @@
       },
       "ClientProbe": {
         "type": "string",
-        "description": "Types of client probes that run before service matching.\nThe probe result (success/failure) is pre-computed; Pattern::ClientResponse\njust checks whether it succeeded.\n\nTwo kinds of producer fill this: the credentialed `DiscoveryIntegration`s, and the\nnon-credentialed [`AppProbe`](crate::daemon::utils::app_probe::AppProbe)s. Every variant needs\none — a variant nothing produces gives a service definition a pattern that can never match, and\n`every_client_probe_variant_has_a_producer` is what now says so.",
+        "description": "Types of client probes that run before service matching.\nThe probe result (success/failure) is pre-computed; Pattern::ClientResponse\njust checks whether it succeeded.\n\nTwo types of producer fill this: the credentialed `DiscoveryIntegration`s, and the\nnon-credentialed [`AppProbe`](crate::daemon::utils::app_probe::AppProbe)s. Every variant needs\none — a variant nothing produces gives a service definition a pattern that can never match, and\n`every_client_probe_variant_has_a_producer` is what now says so.",
         "enum": [
           "Docker",
           "Gnmi",
@@ -21387,6 +21408,14 @@
           "Bacula",
           "BeszelAgent",
           "H323"
+        ]
+      },
+      "ClockFormat": {
+        "type": "string",
+        "enum": [
+          "browser_default",
+          "twelve_hour",
+          "twenty_four_hour"
         ]
       },
       "Color": {
@@ -21684,7 +21713,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Ghost",
+              "service_definition": "Tuya Smart",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -21933,6 +21962,7 @@
         "required": [
           "organization_id",
           "name",
+          "description",
           "credential_type",
           "tags",
           "assigned_network_ids",
@@ -21950,6 +21980,24 @@
           "credential_type": {
             "$ref": "#/components/schemas/CredentialType",
             "description": "Protocol this credential authenticates with, and its settings."
+          },
+          "daemon_os": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OsFamily",
+                "description": "The OS of the daemons that will read this credential's files and sockets. Paths are\nvalidated for it, and a daemon on another OS cannot use the credential. Set exactly when\nthe credential reads something on the daemon; `None` otherwise."
+              }
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Free-text notes about the credential: what it is for, who owns it."
           },
           "host_assignments": {
             "type": "array",
@@ -22003,6 +22051,20 @@
           }
         }
       },
+      "CredentialIntegration": {
+        "type": "string",
+        "description": "The integration a credential type connects to: one per associated service, shared by all of\nthat service's transports (SNMP v1/v2c/v3 are three transports of the `Snmp` integration).\n\nThe single source of the type → integration mapping\n([`CredentialTypeDiscriminants::integration`]); the associated service, category, fallback\nicon, discovery text and docs guide all derive from it. The id is an identifier-safe code name\nrather than the service's display name, so it can key `meta_credential_integrations_*`\nmessages.",
+        "enum": [
+          "Snmp",
+          "Gnmi",
+          "Docker",
+          "Podman",
+          "UnifiController",
+          "InstantOn",
+          "Ssh",
+          "WakeOnLan"
+        ]
+      },
       "CredentialOrderField": {
         "type": "string",
         "enum": [
@@ -22010,6 +22072,22 @@
           "name",
           "updated_at"
         ]
+      },
+      "CredentialOsFields": {
+        "type": "object",
+        "description": "Which fields depend on the credential's Daemon OS. Computed from the field definitions, so the\nform places the Daemon OS picker without its own rule: with the one field that depends on it, or\nabove the first of several. The Scanned Host OS is an ordinary field of the SSH types and sits\nin its declared place, above Script, because it sets how the script runs as well as its path.",
+        "required": [
+          "daemon"
+        ],
+        "properties": {
+          "daemon": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Fields that can read a file or socket on the daemon, so depend on the credential's\n`daemon_os`: every file-or-value field, a script that can come from the daemon, and any\nfield whose placeholder follows `daemon_os`."
+          }
+        }
       },
       "CredentialQueryPayloadDiscriminants": {
         "type": "string",
@@ -22022,8 +22100,119 @@
           "UnifiController",
           "InstantOn",
           "Gnmi",
+          "Ssh",
+          "WakeOnLan",
           "Unknown"
         ]
+      },
+      "CredentialRunOutcome": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "Collected",
+            "description": "An integration that collects from a host: how many hosts it collected from.",
+            "required": [
+              "hosts",
+              "type"
+            ],
+            "properties": {
+              "hosts": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Number of hosts it collected from.",
+                "minimum": 0
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Collected"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "SshScript",
+            "description": "One entry per host the script ran on.",
+            "required": [
+              "runs",
+              "type"
+            ],
+            "properties": {
+              "runs": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SshScriptRun"
+                },
+                "description": "The script runs, one per host."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "SshScript"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "WakeOnLan",
+            "description": "One entry per address the daemon tried to wake.",
+            "required": [
+              "hosts",
+              "type"
+            ],
+            "properties": {
+              "hosts": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WakeOnLanResult"
+                },
+                "description": "The addresses woken or tried, one per address."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "WakeOnLan"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Unknown",
+            "description": "An outcome from a newer daemon than this server.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Unknown"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "CredentialRunResult": {
+        "type": "object",
+        "required": [
+          "credential_id",
+          "outcome"
+        ],
+        "properties": {
+          "credential_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The credential these results belong to."
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/CredentialRunOutcome",
+            "description": "What it did in this run."
+          }
+        }
       },
       "CredentialStability": {
         "type": "string",
@@ -22236,11 +22425,15 @@
             ],
             "properties": {
               "socket_path": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "Path to the Docker socket. Blank lets the daemon auto-detect it."
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DaemonSocket",
+                    "description": "Path to the Docker socket. Blank lets the daemon auto-detect it."
+                  }
+                ]
               },
               "type": {
                 "type": "string",
@@ -22321,11 +22514,15 @@
             ],
             "properties": {
               "socket_path": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "Path to the Podman socket. Blank lets the daemon auto-detect it."
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DaemonSocket",
+                    "description": "Path to the Podman socket. Blank lets the daemon auto-detect it."
+                  }
+                ]
               },
               "type": {
                 "type": "string",
@@ -22434,6 +22631,167 @@
                 "description": "Portal account email address."
               }
             }
+          },
+          {
+            "type": "object",
+            "title": "SshPassword",
+            "description": "SSH with a password. The daemon runs `script` on the host; the script's stdout is one JSON\nobject whose keys (`SshScriptField`) fill existing host and interface fields.",
+            "required": [
+              "username",
+              "password",
+              "script",
+              "type"
+            ],
+            "properties": {
+              "host_key_fingerprint": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Require this host key (OpenSSH `SHA256:…` fingerprint). Blank ⇒ the daemon pins the\nfirst key it sees per address and port, and refuses a changed one."
+              },
+              "password": {
+                "$ref": "#/components/schemas/SecretValue"
+              },
+              "port": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Port `sshd` listens on (default 22).",
+                "minimum": 0
+              },
+              "script": {
+                "$ref": "#/components/schemas/ScriptSource"
+              },
+              "target_os": {
+                "$ref": "#/components/schemas/OsFamily",
+                "description": "The scanned host's OS: decides how a host-file path is validated and the shell the\nscript runs in."
+              },
+              "timeout_seconds": {
+                "type": "integer",
+                "format": "int32",
+                "description": "How long the script may run before the daemon closes the channel, in seconds (default 60).",
+                "minimum": 0
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "SshPassword"
+                ]
+              },
+              "username": {
+                "type": "string",
+                "description": "User the daemon logs in as."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "SshKey",
+            "description": "SSH with a private key (optionally passphrase-protected). Same script contract as\n[`CredentialType::SshPassword`].",
+            "required": [
+              "username",
+              "private_key",
+              "script",
+              "type"
+            ],
+            "properties": {
+              "host_key_fingerprint": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Require this host key (OpenSSH `SHA256:…` fingerprint). Blank ⇒ trust on first use."
+              },
+              "passphrase": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SecretValue"
+                  }
+                ]
+              },
+              "port": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Port `sshd` listens on (default 22).",
+                "minimum": 0
+              },
+              "private_key": {
+                "$ref": "#/components/schemas/SecretValue"
+              },
+              "script": {
+                "$ref": "#/components/schemas/ScriptSource"
+              },
+              "target_os": {
+                "$ref": "#/components/schemas/OsFamily",
+                "description": "The scanned host's OS: decides how a host-file path is validated and the shell the\nscript runs in."
+              },
+              "timeout_seconds": {
+                "type": "integer",
+                "format": "int32",
+                "description": "How long the script may run before the daemon closes the channel, in seconds (default 60).",
+                "minimum": 0
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "SshKey"
+                ]
+              },
+              "username": {
+                "type": "string",
+                "description": "User the daemon logs in as."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "WakeOnLan",
+            "description": "Wake-on-LAN: the daemon wakes the assigned hosts by MAC before the sweep, so a host that\nsleeps between scans is awake to be discovered.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "broadcast_address": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Send here instead of the target subnet's directed broadcast (router relay address, WoL\nrelay device, or `255.255.255.255`).",
+                "example": "192.168.1.1"
+              },
+              "port": {
+                "type": "integer",
+                "format": "int32",
+                "description": "UDP port for the magic packet.",
+                "minimum": 0
+              },
+              "secure_on_password": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SecretValue",
+                    "description": "SecureOn password, six bytes written as a MAC address. Only for NICs that require one."
+                  }
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "WakeOnLan"
+                ]
+              },
+              "wait_seconds": {
+                "type": "integer",
+                "format": "int32",
+                "description": "How long to wait for the woken hosts to answer before the sweep starts.",
+                "minimum": 0
+              }
+            }
           }
         ],
         "description": "Universal credential type — tagged enum stored as JSONB.\nEach variant represents a different credential protocol/method."
@@ -22451,7 +22809,10 @@
           "PodmanSocket",
           "UnifiApiKey",
           "UnifiLocalAdmin",
-          "InstantOnAccount"
+          "InstantOnAccount",
+          "SshPassword",
+          "SshKey",
+          "WakeOnLan"
         ]
       },
       "Daemon": {
@@ -22616,7 +22977,8 @@
           "mode",
           "name",
           "tags",
-          "user_id"
+          "user_id",
+          "os"
         ],
         "properties": {
           "api_key_id": {
@@ -22657,6 +23019,17 @@
             "type": "string",
             "format": "uuid",
             "description": "The network this entity belongs to."
+          },
+          "os": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DaemonOs",
+                "description": "The operating system chosen when the daemon was created. Credentials set up for another\nOS's file paths cannot be used by it. `None` for daemons created before this was recorded."
+              }
+            ]
           },
           "standby": {
             "type": "boolean",
@@ -22746,13 +23119,17 @@
       },
       "DaemonOs": {
         "type": "string",
-        "description": "Operating system the install command was generated for.",
+        "description": "Operating system a daemon is installed on, as picked when it is created.",
         "enum": [
           "linux",
           "macos",
           "windows",
           "freebsd"
         ]
+      },
+      "DaemonPath": {
+        "type": "string",
+        "description": "A file on the daemon's own machine, read by the daemon at scan time."
       },
       "DaemonPromptAction": {
         "type": "string",
@@ -22912,6 +23289,10 @@
         ],
         "description": "Daemon response for UI including computed version status"
       },
+      "DaemonSocket": {
+        "type": "string",
+        "description": "A container runtime's API socket on the daemon: a Unix socket, or a Windows named pipe.\n\nHanded to bollard's `connect_with_socket`, which strips a `unix://` or `npipe://` scheme and\nopens a Unix socket or a named pipe for the OS it runs on."
+      },
       "DaemonStartupRequest": {
         "type": "object",
         "description": "Sent by daemon on startup to report version",
@@ -23054,6 +23435,15 @@
             "description": "The most recent discovery runs, newest first."
           }
         }
+      },
+      "DateOrder": {
+        "type": "string",
+        "enum": [
+          "browser_default",
+          "iso",
+          "day_first",
+          "month_first"
+        ]
       },
       "DemoPopulateStatus": {
         "oneOf": [
@@ -23227,7 +23617,7 @@
           },
           "dependency_type": {
             "$ref": "#/components/schemas/DependencyType",
-            "description": "What kind of relationship this dependency records."
+            "description": "What type of relationship this dependency records."
           },
           "description": {
             "type": [
@@ -23339,6 +23729,29 @@
           "RequestPath",
           "HubAndSpoke"
         ]
+      },
+      "DependentPlaceholder": {
+        "type": "object",
+        "description": "A placeholder that applies while `depends_on` holds `value`.",
+        "required": [
+          "depends_on",
+          "value",
+          "placeholder"
+        ],
+        "properties": {
+          "depends_on": {
+            "type": "string",
+            "description": "Id of the form field this placeholder depends on (or `daemon_os` for the credential's\nDaemon OS)."
+          },
+          "placeholder": {
+            "type": "string",
+            "description": "Placeholder shown while it does."
+          },
+          "value": {
+            "type": "string",
+            "description": "Value that field must hold for this placeholder to apply."
+          }
+        }
       },
       "DeploymentType": {
         "type": "string",
@@ -23774,6 +24187,13 @@
           "progress"
         ],
         "properties": {
+          "credential_results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CredentialRunResult"
+            },
+            "description": "What each stored credential did in this run, one entry per credential. Results, not\nproblems: those are `warnings`. Old servers ignore it.\n\nRead per entry, like `warnings`: an outcome shape from a newer daemon becomes `Unknown`\nfor that credential instead of failing the terminal payload."
+          },
           "daemon_id": {
             "type": "string",
             "format": "uuid",
@@ -23796,7 +24216,7 @@
           },
           "discovery_type": {
             "$ref": "#/components/schemas/DiscoveryType",
-            "description": "What kind of discovery is running."
+            "description": "What type of discovery is running."
           },
           "error": {
             "type": [
@@ -23861,7 +24281,7 @@
               },
               {
                 "$ref": "#/components/schemas/DiscoveryTerminalReason",
-                "description": "Why the run ended. Set on terminal payloads; absent on runs recorded before it existed.\nA daemon may send one of the reasons only it can know; the server assigns every other."
+                "description": "Why the run ended. Set on terminal payloads; absent on runs recorded before it existed.\nA daemon may send one of the reasons only it can know; the server assigns every other.\nA reason this server doesn't know reads as `None`, and the server assigns one from the\nphase."
               }
             ]
           },
@@ -24638,6 +25058,56 @@
           },
           {
             "type": "object",
+            "title": "CredentialDaemonOsMismatch",
+            "description": "The credential's files or sockets were declared for one OS and this daemon runs another, so\nit was not used here.",
+            "required": [
+              "integration",
+              "credential_id",
+              "declared",
+              "actual",
+              "code"
+            ],
+            "properties": {
+              "actual": {
+                "$ref": "#/components/schemas/OsFamily",
+                "description": "The OS family this daemon runs."
+              },
+              "actual_os": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DaemonOs",
+                    "description": "The OS this daemon runs, to name it. Absent on runs recorded before it was sent."
+                  }
+                ]
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "CredentialDaemonOsMismatch"
+                ]
+              },
+              "credential_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The stored credential. See [`CredentialAttempt::credential_id`]."
+              },
+              "declared": {
+                "$ref": "#/components/schemas/OsFamily",
+                "description": "The OS the credential's paths were declared for."
+              },
+              "integration": {
+                "$ref": "#/components/schemas/CredentialQueryPayloadDiscriminants"
+              }
+            }
+          },
+          {
+            "type": "object",
             "title": "CredentialGateClosed",
             "description": "The port the credential needs was not open, so it was never tried.",
             "required": [
@@ -25307,6 +25777,56 @@
           }
         ],
         "description": "A single non-fatal finding from one discovery run, about one device, neighbour, or the scan\nitself.\n\nSerialized with the code as the tag, so the generated TypeScript is a discriminated union the\nUI can switch on exhaustively. The derived `Deserialize` reads that shape; the leniency that\nkeeps historical records and pre-coded daemons working lives in [`deserialize_warnings`],\nwhich is applied at the one field that holds these."
+      },
+      "DisplaySettings": {
+        "type": "object",
+        "description": "Per-user display preferences for dates and times in the UI.\n\nStored as a JSONB blob with `#[serde(default)]` on the struct, so a stored\nobject missing a key (including the `{}` every existing row starts with)\nreads as that field's default. Every default reproduces the UI's\nbehaviour from before the setting existed.",
+        "properties": {
+          "clock": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ClockFormat",
+                "description": "12- or 24-hour clock for displayed times."
+              }
+            ],
+            "default": "browser_default"
+          },
+          "date_order": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DateOrder",
+                "description": "Order of day, month and year in displayed dates."
+              }
+            ],
+            "default": "browser_default"
+          },
+          "time_zone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "IANA time zone dates are shown in. `None` uses the browser's zone.",
+            "default": null
+          },
+          "timestamps": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TimestampStyle",
+                "description": "Whether recent events show as relative (\"3h ago\") or absolute times."
+              }
+            ],
+            "default": "relative"
+          },
+          "week_start": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WeekStart",
+                "description": "First day of the week in day pickers."
+              }
+            ],
+            "default": "monday"
+          }
+        }
       },
       "DockerInstall": {
         "type": "object",
@@ -26248,6 +26768,13 @@
             "$ref": "#/components/schemas/FieldType",
             "description": "How the field should be rendered and validated."
           },
+          "file_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "For a field that can be read from a file on the daemon: an example file name, which the\nform joins to the Daemon OS's example directory for the path placeholder."
+          },
           "group": {
             "type": [
               "string",
@@ -26302,6 +26829,16 @@
             ],
             "description": "Placeholder text for the input."
           },
+          "placeholder_by": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/DependentPlaceholder"
+            },
+            "description": "Placeholders that replace `placeholder` while another field holds a given value, e.g. a\nWindows path once the OS picker says Windows. `field` is a sibling field id, or `daemon_os`\nfor the credential's own daemon OS."
+          },
           "secret": {
             "type": "boolean",
             "description": "Whether the value is a secret, so it is masked and never echoed back."
@@ -26317,9 +26854,11 @@
           "number",
           "boolean",
           "select",
+          "radio",
           "port",
           "secretpathorinline",
-          "pathorinline"
+          "pathorinline",
+          "scriptsource"
         ]
       },
       "FileOrInline": {
@@ -26359,7 +26898,7 @@
                 ]
               },
               "path": {
-                "type": "string",
+                "$ref": "#/components/schemas/DaemonPath",
                 "description": "Path to a file on the daemon host holding the value."
               }
             }
@@ -26636,7 +27175,7 @@
                   },
                   {
                     "$ref": "#/components/schemas/HostVirtualization",
-                    "description": "How the host is virtualized, when it is a VM or container guest."
+                    "description": "How the host is virtualized, when it is a VM or container guest. A provider from a newer\ndaemon reads as `None` instead of rejecting the host."
                   }
                 ]
               },
@@ -26804,6 +27343,10 @@
           "last_seen_at",
           "mac_address"
         ]
+      },
+      "HostPath": {
+        "type": "string",
+        "description": "A file on the scanned host, executed there over SSH. Never read by the daemon."
       },
       "HostResponse": {
         "type": "object",
@@ -27232,19 +27775,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-09-24T19:14:03.225197Z",
+                  "created_at": "2026-10-02T12:58:48.538111Z",
                   "first_discovery_id": null,
-                  "id": "e271facf-b772-44ca-ac07-4d6924eae892",
+                  "id": "fd6159b4-b34f-4da3-b2dc-5c7a5c6fa7d4",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-09-24T19:14:03.225197Z",
+                  "last_seen_at": "2026-10-02T12:58:48.538111Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-09-24T19:14:03.225197Z",
-                  "valid_from": "2026-09-24T19:14:03.225197Z",
+                  "updated_at": "2026-10-02T12:58:48.538111Z",
+                  "valid_from": "2026-10-02T12:58:48.538111Z",
                   "valid_to": null
                 }
               ],
@@ -27258,7 +27801,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Ghost",
+              "service_definition": "Tuya Smart",
               "source": {
                 "type": "Manual"
               },
@@ -27863,7 +28406,9 @@
         "enum": [
           "plain",
           "pemprivatekey",
-          "pemcertificate"
+          "pemcertificate",
+          "sshprivatekey",
+          "macaddress"
         ]
       },
       "InlineGroup": {
@@ -27947,7 +28492,7 @@
           }
         }
       },
-      "InstallCommandKind": {
+      "InstallCommandType": {
         "type": "string",
         "description": "What the caller wants the command to do — the one axis that actually varies.\n\n`install` brings a daemon up (or re-keys a legacy one): it carries the api-key placeholder,\nfetches the binary, and spells out the connectivity + advanced config. `reconfigure` adjusts\nan already-installed daemon in place: no key, no fetch, just the server-held connectivity —\n`scanopy-daemon install` layers it over the existing `config.json`. There is no third case:\nre-asserting the record's (correct) values on an installed daemon is harmless, so a first\ninstall and a re-key are the same command.",
         "enum": [
@@ -30134,6 +30679,14 @@
           }
         }
       },
+      "OsFamily": {
+        "type": "string",
+        "description": "The OS family of a machine a credential's paths live on. Paths, sockets and the shell a script\nruns in all follow from it.",
+        "enum": [
+          "Unix",
+          "Windows"
+        ]
+      },
       "PaginatedApiMeta": {
         "type": "object",
         "description": "API metadata for paginated list responses (pagination is always present)",
@@ -30156,7 +30709,7 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.17.17"
+            "example": "0.17.19"
           }
         },
         "example": {
@@ -30167,7 +30720,7 @@
             "offset": 0,
             "total_count": 142
           },
-          "server_version": "0.17.17"
+          "server_version": "0.17.19"
         }
       },
       "PaginatedApiResponse_Credential": {
@@ -30945,19 +31498,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-09-24T19:14:03.209123Z",
+                        "created_at": "2026-10-02T12:58:48.529826Z",
                         "first_discovery_id": null,
-                        "id": "e8558093-dbb8-4758-bc33-f7191b767acc",
+                        "id": "a049a5cc-fefd-4cac-bcf8-28d6d82fe266",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-09-24T19:14:03.209123Z",
+                        "last_seen_at": "2026-10-02T12:58:48.529826Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-09-24T19:14:03.209123Z",
-                        "valid_from": "2026-09-24T19:14:03.209123Z",
+                        "updated_at": "2026-10-02T12:58:48.529826Z",
+                        "valid_from": "2026-10-02T12:58:48.529826Z",
                         "valid_to": null
                       }
                     ],
@@ -30971,7 +31524,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Ghost",
+                    "service_definition": "Tuya Smart",
                     "source": {
                       "type": "Manual"
                     },
@@ -31114,19 +31667,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-09-24T19:14:03.237558Z",
+                    "created_at": "2026-10-02T12:58:48.555466Z",
                     "first_discovery_id": null,
-                    "id": "c2607500-0182-4582-9eff-dba42e388d58",
+                    "id": "57250231-174f-44f0-8ab1-0f8d8362ac92",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-09-24T19:14:03.237558Z",
+                    "last_seen_at": "2026-10-02T12:58:48.555466Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-09-24T19:14:03.237558Z",
-                    "valid_from": "2026-09-24T19:14:03.237558Z",
+                    "updated_at": "2026-10-02T12:58:48.555466Z",
+                    "valid_from": "2026-10-02T12:58:48.555466Z",
                     "valid_to": null
                   }
                 ],
@@ -31140,7 +31693,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Ghost",
+                "service_definition": "Tuya Smart",
                 "source": {
                   "type": "Manual"
                 },
@@ -32316,6 +32869,17 @@
             "format": "uuid",
             "description": "Network this daemon will be associated with. Required unless `daemon_id` is set, in\nwhich case the existing record's network is kept."
           },
+          "os": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DaemonOs",
+                "description": "The operating system picked in the create-daemon modal. Recorded on the daemon so a\ncredential set up for another OS's file paths can be refused for it. Ignored when\n`daemon_id` is set."
+              }
+            ]
+          },
           "seed_credential_refs": {
             "type": "array",
             "items": {
@@ -33102,6 +33666,72 @@
           }
         }
       },
+      "ScriptSource": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "HostFile",
+            "description": "An executable already on each scanned host. Nothing but the path is stored in Scanopy.",
+            "required": [
+              "path",
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "HostFile"
+                ]
+              },
+              "path": {
+                "$ref": "#/components/schemas/HostPath"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "DaemonFile",
+            "description": "A script file on the daemon's machine; the daemon reads it and runs its text.",
+            "required": [
+              "path",
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "DaemonFile"
+                ]
+              },
+              "path": {
+                "$ref": "#/components/schemas/DaemonPath"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Inline",
+            "description": "The script text, stored on the credential.",
+            "required": [
+              "value",
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "Inline"
+                ]
+              },
+              "value": {
+                "type": "string",
+                "description": "The script text."
+              }
+            }
+          }
+        ],
+        "description": "Where an SSH credential's script comes from. One type for the stored credential and the wire:\nboth sides hold the same typed paths, so there is nothing to translate."
+      },
       "SecretValue": {
         "oneOf": [
           {
@@ -33139,7 +33769,7 @@
                 ]
               },
               "path": {
-                "type": "string",
+                "$ref": "#/components/schemas/DaemonPath",
                 "description": "Path to a file on the daemon host holding the secret."
               }
             }
@@ -33275,19 +33905,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-09-24T19:14:03.225835Z",
+              "created_at": "2026-10-02T12:58:48.538872Z",
               "first_discovery_id": null,
-              "id": "abfccf29-7330-439d-967c-2839250843a9",
+              "id": "d755d9cf-9d34-4736-9a49-466bb018855f",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-09-24T19:14:03.225835Z",
+              "last_seen_at": "2026-10-02T12:58:48.538872Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-09-24T19:14:03.225835Z",
-              "valid_from": "2026-09-24T19:14:03.225835Z",
+              "updated_at": "2026-10-02T12:58:48.538872Z",
+              "valid_from": "2026-10-02T12:58:48.538872Z",
               "valid_to": null
             }
           ],
@@ -33301,7 +33931,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Ghost",
+          "service_definition": "Tuya Smart",
           "source": {
             "type": "Manual"
           },
@@ -33933,6 +34563,75 @@
           "VlanNames"
         ]
       },
+      "SshScriptOutcome": {
+        "type": "string",
+        "description": "How one script run ended.",
+        "enum": [
+          "Applied",
+          "NonZeroExit",
+          "TimedOut",
+          "InvalidOutput",
+          "OutputTooLarge",
+          "HostKeyMismatch",
+          "AuthenticationFailed",
+          "ConnectionFailed",
+          "Unknown"
+        ]
+      },
+      "SshScriptRun": {
+        "type": "object",
+        "description": "What one SSH script did on one host, carried on the run's results.",
+        "required": [
+          "ip",
+          "outcome",
+          "duration_ms"
+        ],
+        "properties": {
+          "applied_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Keys whose values were applied, as paths (`model`, `interfaces[].mac`)."
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The end of stderr, or the parse error, capped at [`MAX_STDERR_EXCERPT_BYTES`]."
+          },
+          "duration_ms": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How long the script ran, in milliseconds.",
+            "minimum": 0
+          },
+          "exit_code": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "The script's exit status, when it exited.",
+            "minimum": 0
+          },
+          "ip": {
+            "type": "string",
+            "description": "The address the script ran at."
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/SshScriptOutcome"
+          },
+          "rejected_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Keys that were present and not applied, as paths (`interfaces[0].vlan`): keys the\ncontract does not know, and values that did not parse."
+          }
+        }
+      },
       "Subnet": {
         "allOf": [
           {
@@ -34077,7 +34776,7 @@
               },
               "subnet_type": {
                 "$ref": "#/components/schemas/SubnetType",
-                "description": "What kind of subnet this is — physical, virtual, container bridge, and so on."
+                "description": "What type of subnet this is — physical, virtual, container bridge, and so on."
               },
               "tags": {
                 "type": "array",
@@ -34328,6 +35027,13 @@
           }
         }
       },
+      "TimestampStyle": {
+        "type": "string",
+        "enum": [
+          "relative",
+          "absolute"
+        ]
+      },
       "Topology": {
         "allOf": [
           {
@@ -34456,7 +35162,7 @@
               },
               "propertyNames": {
                 "type": "string",
-                "description": "The kind of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
+                "description": "The type of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
                 "enum": [
                   "Category",
                   "Virtualization",
@@ -34669,7 +35375,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "ef33c042-4e4c-49f0-9d8b-f538261249a5",
+                  "id": "2ace4c98-2018-450f-8509-aef120243b43",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -34679,23 +35385,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "f7e01566-f5a1-4a71-9b71-4f0d0a76a910",
+                  "id": "a178580f-9a5d-4ee9-a0d7-300deba50d0a",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "e706dee1-71fa-45ce-8037-7c29366d0cdf",
+                  "id": "62666c60-a387-49ee-b99d-eb1128bcb00e",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "e818705e-eabd-463f-a810-74ca94201b7b",
+                  "id": "8379a56d-c564-45f2-82bf-1fb1284696ec",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "f7e01566-f5a1-4a71-9b71-4f0d0a76a910",
+                  "id": "a178580f-9a5d-4ee9-a0d7-300deba50d0a",
                   "rule": "ByHost"
                 }
               ]
@@ -34725,19 +35431,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "adccf4fd-9123-4faa-8717-d3c416d3cb0e",
+                "id": "0911d61d-a33d-4277-9bd6-6ee84e722911",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "c70e855a-2149-4710-90f0-cae3242c2370",
+                "id": "b0c6fbda-77bb-4408-9f2d-9ba9d1e69b2e",
                 "rule": "ByVLAN"
               },
               {
-                "id": "d1502cbc-415d-4489-ac11-893fcfc4988f",
+                "id": "e9186178-7c44-432d-8a7d-2f0e8a3977ee",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "12759015-ab6e-49ec-b955-245bc15111bc",
+                "id": "f6ce9aa5-e5e0-4e6a-a1de-e1de24b7a7c7",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -34755,7 +35461,7 @@
                 }
               },
               {
-                "id": "c79ec540-8681-46f3-be86-29110a9dbc37",
+                "id": "87a3af18-4aaf-444c-b41c-a1a2cbb8c82b",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -34764,15 +35470,15 @@
                 }
               },
               {
-                "id": "63167866-20e8-4562-8322-cf6b47961038",
+                "id": "27292996-d771-44dd-8aae-059de039895e",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "1356a30f-3087-4dff-8929-f9a9b3234a04",
+                "id": "d17e36ce-a6e3-4eed-bc47-a32dfc7fa023",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "5a00a22a-d464-4e2d-9fda-91863d500750",
+                "id": "4191a4ed-7a0a-4651-aa5c-3ac2d82aff16",
                 "rule": "ByStack"
               }
             ]
@@ -34866,7 +35572,7 @@
                 },
                 "propertyNames": {
                   "type": "string",
-                  "description": "The kind of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
+                  "description": "The type of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
                   "enum": [
                     "Category",
                     "Virtualization",
@@ -35398,6 +36104,10 @@
           "network_ids"
         ],
         "properties": {
+          "display_settings": {
+            "$ref": "#/components/schemas/DisplaySettings",
+            "description": "Per-user date and time display preferences"
+          },
           "email": {
             "type": "string",
             "format": "email",
@@ -35777,6 +36487,31 @@
           "name",
           "vlan_number",
           "updated_at"
+        ]
+      },
+      "WakeOnLanResult": {
+        "type": "object",
+        "description": "Whether one address woke: whether the scan found it after the magic packets went out.",
+        "required": [
+          "ip",
+          "woke"
+        ],
+        "properties": {
+          "ip": {
+            "type": "string",
+            "description": "The address the magic packets were sent for."
+          },
+          "woke": {
+            "type": "boolean",
+            "description": "Whether the scan found the address after the packets went out."
+          }
+        }
+      },
+      "WeekStart": {
+        "type": "string",
+        "enum": [
+          "monday",
+          "sunday"
         ]
       }
     },

@@ -4,9 +4,12 @@ use std::collections::HashMap;
 use std::net::IpAddr;
 use uuid::Uuid;
 
+use crate::daemon::discovery::types::warnings::DiscoveryWarning;
 use crate::server::credentials::r#impl::mapping::{
     CredentialMapping, CredentialQueryPayload, CredentialQueryPayloadDiscriminants,
 };
+use crate::server::credentials::r#impl::types::OsFamily;
+use crate::server::daemons::r#impl::base::DaemonOs;
 use crate::server::hosts::r#impl::base::Host;
 
 /// One credential to try at an address, and where it came from.
@@ -121,6 +124,46 @@ pub fn summarize_credential_assignments(
     by_type
 }
 
+/// Drop every mapping whose daemon-side files or sockets were declared for another OS, and return
+/// one warning per dropped credential.
+///
+/// A path written for Windows names nothing on a Linux daemon, and the reverse, so using the
+/// credential here could only fail at every address with a misleading read error. Credentials
+/// that read nothing off this machine are kept whatever their declaration.
+pub fn take_os_mismatches(
+    mappings: &mut Vec<CredentialMapping<CredentialQueryPayload>>,
+    actual_os: DaemonOs,
+) -> Vec<DiscoveryWarning> {
+    let actual = OsFamily::from(actual_os);
+    let mut warnings = Vec::new();
+    mappings.retain(|m| {
+        let Some(payload) = m
+            .default_credential
+            .as_ref()
+            .or_else(|| m.ip_overrides.first().map(|o| &o.credential))
+        else {
+            return true;
+        };
+        let Some(declared) = m.daemon_os else {
+            return true;
+        };
+        if declared == actual || !payload.reads_daemon_paths() {
+            return true;
+        }
+        warnings.push(DiscoveryWarning::CredentialDaemonOsMismatch {
+            integration: payload.into(),
+            credential_id: m
+                .default_credential_id
+                .or_else(|| m.ip_overrides.first().map(|o| o.credential_id)),
+            declared,
+            actual,
+            actual_os: Some(actual_os),
+        });
+        false
+    });
+    warnings
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -136,6 +179,51 @@ mod tests {
             },
             v3: None,
         })
+    }
+
+    /// A Windows daemon cannot read a path written for Unix, and the reverse. Only credentials that
+    /// read off the daemon are judged: an inline credential works whatever it declares.
+    #[test]
+    fn a_credential_with_paths_for_another_os_is_dropped_once_with_a_warning() {
+        let file_backed = CredentialQueryPayload::Snmp(SnmpQueryCredential {
+            version: SnmpVersion::V2c,
+            community: ResolvableSecret::FilePath {
+                path: "C:\\Scanopy\\community".into(),
+            },
+            v3: None,
+        });
+        let windows_file = Uuid::new_v4();
+        let windows_inline = Uuid::new_v4();
+        let mapping = |payload, id, os| CredentialMapping {
+            default_credential: Some(payload),
+            default_credential_id: Some(id),
+            daemon_os: os,
+            ip_overrides: vec![],
+        };
+        let mut mappings = vec![
+            mapping(file_backed.clone(), windows_file, Some(OsFamily::Windows)),
+            mapping(snmp("public"), windows_inline, Some(OsFamily::Windows)),
+            mapping(file_backed, Uuid::new_v4(), Some(OsFamily::Unix)),
+        ];
+
+        let warnings = take_os_mismatches(&mut mappings, DaemonOs::Linux);
+
+        assert_eq!(mappings.len(), 2);
+        assert!(
+            mappings
+                .iter()
+                .all(|m| m.default_credential_id != Some(windows_file))
+        );
+        assert_eq!(
+            warnings,
+            vec![DiscoveryWarning::CredentialDaemonOsMismatch {
+                integration: CredentialQueryPayloadDiscriminants::Snmp,
+                credential_id: Some(windows_file),
+                declared: OsFamily::Windows,
+                actual: OsFamily::Unix,
+                actual_os: Some(DaemonOs::Linux),
+            }]
+        );
     }
 
     fn snmp_community(payload: &CredentialQueryPayload) -> &str {
@@ -171,6 +259,7 @@ mod tests {
             credential: snmp(community),
             credential_id,
             host_id: None,
+            mac_address: None,
         }
     }
 
@@ -179,6 +268,7 @@ mod tests {
         let override_id = Uuid::new_v4();
         let default_id = Uuid::new_v4();
         let mapping = CredentialMapping {
+            daemon_os: Default::default(),
             default_credential: Some(snmp("netdefault")),
             default_credential_id: Some(default_id),
             ip_overrides: vec![over("10.0.0.5", "secret42", override_id)],
@@ -205,6 +295,7 @@ mod tests {
         let id_a = Uuid::new_v4();
         let id_b = Uuid::new_v4();
         let mapping = CredentialMapping {
+            daemon_os: Default::default(),
             default_credential: Some(snmp("netdefault")),
             default_credential_id: Some(Uuid::new_v4()),
             ip_overrides: vec![
@@ -248,6 +339,7 @@ mod tests {
     fn resolve_credentials_for_ip_default_only_when_no_matching_override() {
         let default_id = Uuid::new_v4();
         let mapping = CredentialMapping {
+            daemon_os: Default::default(),
             default_credential: Some(snmp("netdefault")),
             default_credential_id: Some(default_id),
             ip_overrides: vec![over("10.0.0.99", "other_host", Uuid::new_v4())],

@@ -48,10 +48,12 @@ import {
 export function createDefaultCredential(organization_id: string): Credential {
 	return {
 		name: '',
+		description: null,
 		credential_type: {
 			type: 'SnmpV2c',
 			community: { mode: 'Inline' as const, value: '' }
 		},
+		daemon_os: null,
 		organization_id,
 		tags: [],
 		assigned_network_ids: [],
