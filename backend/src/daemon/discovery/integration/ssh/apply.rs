@@ -8,6 +8,7 @@ use crate::daemon::discovery::service::ops::HostData;
 use crate::server::credentials::r#impl::types::ssh_script::{
     SshScriptField, SshScriptInterface, SshScriptOutput,
 };
+use crate::server::hosts::r#impl::os::HostOs;
 use crate::server::interfaces::r#impl::base::{Interface, InterfaceBase, InterfaceDataComplete};
 use crate::server::ip_addresses::r#impl::base::{MacEvidence, MacEvidenceValue};
 use crate::server::shared::attribution::AttributeSource;
@@ -38,6 +39,7 @@ pub fn apply(
         serial_number,
         firmware_revision,
         software_revision,
+        os,
         management_url,
         interfaces,
         unknown: _,
@@ -116,6 +118,18 @@ pub fn apply(
         {
             set(host_data, value, SOURCE);
             mark(field);
+        }
+    }
+
+    // An object rather than a string, so it is decoded here: an `os` that does not decode (an
+    // unknown family, a missing one) is reported invalid and the rest of the document still lands.
+    if let Some(os) = os.filter(|v| !v.is_null()) {
+        match serde_json::from_value::<HostOs>(os) {
+            Ok(os) => {
+                host_data.with_os(os, SOURCE);
+                mark(SshScriptField::Os);
+            }
+            Err(_) => invalid.push(SshScriptField::Os.path()),
         }
     }
 

@@ -18,7 +18,7 @@ use crate::{
     server::{
         daemons::r#impl::{
             api::{DiscoveryUpdatePayload, LegacyCapabilities},
-            base::DaemonMode,
+            base::{DaemonMode, DaemonOs},
         },
         hosts::r#impl::{api::DiscoveryHostRequest, api::HostResponse},
         subnets::r#impl::base::Subnet,
@@ -52,6 +52,13 @@ pub struct DaemonStatus {
     /// Both DaemonPoll and ServerPoll use this to avoid dispatching work to a busy daemon.
     #[serde(default = "default_true")]
     pub ready_for_work: bool,
+    /// The OS this daemon binary runs on. Absent from daemons up to 0.17.19.
+    #[serde(
+        default,
+        deserialize_with = "crate::server::daemons::r#impl::base::lenient_daemon_os",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub os: Option<DaemonOs>,
 }
 
 fn default_true() -> bool {
@@ -163,6 +170,7 @@ impl DaemonState {
             capabilities: LegacyCapabilities::default(),
             interfaced_subnets,
             ready_for_work,
+            os: Some(DaemonOs::current()),
         }
     }
 

@@ -4440,6 +4440,12 @@ export interface components {
                  * @description The network this entity belongs to.
                  */
                 network_id: string;
+                os: null | components["schemas"]["HostOs"];
+                /**
+                 * @description What produced the OS. Read-only, as above. A source whose method is `Inferred` matched the OS
+                 *     in a string the host emitted rather than reading it off the host.
+                 */
+                os_source?: components["schemas"]["AttributeSource"];
                 /** @description Open ports on this host. */
                 ports: components["schemas"]["Port"][];
                 /** @description ENTITY-MIB entPhysicalSerialNum — hardware serial number. Read-only, as above. */
@@ -6295,7 +6301,7 @@ export interface components {
          *     that do carry a [`ClientProbe`] keep it under their own name, `{"Probe":"Snmp"}`, which tells them
          *     apart from each other and from every bare name.
          */
-        AttributeSource: "Unspecified" | "OwnAddress" | "ServiceMatch" | "LldpNeighbourAddress" | "CipVendorId" | "DnsSdInstanceName" | "DnsSdHostname" | "LldpChassisId" | "ReverseDns" | "ForwardingTable" | "ArpReply" | "DaemonSelfReport" | "ProfinetDcp" | "SshScript" | {
+        AttributeSource: "Unspecified" | "OwnAddress" | "ServiceMatch" | "LldpNeighbourAddress" | "CipVendorId" | "SysDescrMatch" | "SysObjectIdMatch" | "LldpSysDescMatch" | "SshBannerMatch" | "HttpServerMatch" | "DnsSdDeviceInfoMatch" | "DnsSdInstanceName" | "DnsSdHostname" | "LldpChassisId" | "ReverseDns" | "ForwardingTable" | "ArpReply" | "DaemonSelfReport" | "ProfinetDcp" | "ContainerRuntimeInfo" | "SshScript" | {
             /** @description A value the thing emitted about itself, over whatever transport [`ClientProbe`] names. */
             Probe: components["schemas"]["ClientProbe"];
         } | {
@@ -7376,6 +7382,7 @@ export interface components {
              * @description The network this entity belongs to.
              */
             network_id: string;
+            os?: null | components["schemas"]["DaemonOs"];
             /**
              * @description URL is ignored by server - kept for backwards compat with old daemons.
              *     URL is only set via admin provisioning for ServerPoll daemons.
@@ -7438,6 +7445,7 @@ export interface components {
         DaemonStartupRequest: {
             /** @description Daemon software version (semver format) */
             daemon_version: string;
+            os?: null | components["schemas"]["DaemonOs"];
         };
         /** @description Lightweight daemon status for polling responses. */
         DaemonStatus: {
@@ -7453,6 +7461,7 @@ export interface components {
             mode: components["schemas"]["DaemonMode"];
             /** @description Name the daemon reports for itself. */
             name: string;
+            os?: null | components["schemas"]["DaemonOs"];
             /**
              * @description Whether the daemon can accept a new discovery session.
              *     Both DaemonPoll and ServerPoll use this to avoid dispatching work to a busy daemon.
@@ -7478,6 +7487,11 @@ export interface components {
              *     UI can render a countdown from the same value the email uses.
              */
             sunset_date?: string | null;
+            /**
+             * @description Whether this daemon reports its OS on every handshake. When it does, the daemon's `os` is
+             *     what it runs on; when it does not, `os` is the OS picked at creation, or absent.
+             */
+            supports_os_reporting?: boolean;
             /**
              * @description Whether this daemon can run a single-host rescan. Server-computed so the
              *     frontend never has to hardcode a version floor.
@@ -8931,7 +8945,7 @@ export interface components {
          *     Child entities (ip_addresses, ports, services) are stored in their own tables
          *     and queried by `host_id`. They are NOT stored on the host.
          */
-        HostBase: components["schemas"]["HostName"] & components["schemas"]["HostHostname"] & components["schemas"]["HostSysDescr"] & components["schemas"]["HostSysObjectId"] & components["schemas"]["HostSysLocation"] & components["schemas"]["HostSysContact"] & components["schemas"]["HostManagementUrl"] & components["schemas"]["HostChassisId"] & components["schemas"]["HostSysName"] & components["schemas"]["HostManufacturer"] & components["schemas"]["HostModel"] & components["schemas"]["HostSerialNumber"] & components["schemas"]["HostFirmwareRevision"] & components["schemas"]["HostSoftwareRevision"] & {
+        HostBase: components["schemas"]["HostName"] & components["schemas"]["HostHostname"] & components["schemas"]["HostSysDescr"] & components["schemas"]["HostSysObjectId"] & components["schemas"]["HostSysLocation"] & components["schemas"]["HostSysContact"] & components["schemas"]["HostManagementUrl"] & components["schemas"]["HostChassisId"] & components["schemas"]["HostSysName"] & components["schemas"]["HostManufacturer"] & components["schemas"]["HostModel"] & components["schemas"]["HostSerialNumber"] & components["schemas"]["HostFirmwareRevision"] & components["schemas"]["HostSoftwareRevision"] & components["schemas"]["HostOperatingSystem"] & {
             /** @description Credential assignments for this host (hydrated from junction table). */
             credential_assignments: components["schemas"]["CredentialAssignment"][];
             /** @description Free-text notes about the host. */
@@ -9011,11 +9025,55 @@ export interface components {
         HostNameRung: "Name" | "Hostname" | "SysName" | "ChassisId" | "Address";
         /** @enum {string} */
         HostNamingFallback: "Ip" | "BestService";
+        HostOperatingSystem: {
+            /** @description Operating system of a host, as one source read or inferred it. */
+            os?: {
+                /** @description Release codename, such as "noble". */
+                codename?: string | null;
+                /** @description Edition, such as "LTS" or "Datacenter". */
+                edition?: string | null;
+                /** @description The operating system family. */
+                family: components["schemas"]["HostOsFamily"];
+                /** @description Kernel release, such as "6.8.0-45-generic". */
+                kernel_version?: string | null;
+                /** @description Product or distribution, such as "Ubuntu", "Windows Server 2022" or "IOS-XE". */
+                name?: string | null;
+                /** @description Release, such as "24.04", "10.0.20348" or "15.2(4)M". */
+                version?: string | null;
+            };
+            os_source?: components["schemas"]["AttributeSource"];
+        };
         /**
          * @description Fields that hosts can be ordered/grouped by.
          * @enum {string}
          */
         HostOrderField: "created_at" | "name" | "hostname" | "updated_at" | "virtualized_by" | "network_id" | "interface_ip" | "last_seen_at" | "mac_address";
+        /** @description Operating system of a host, as one source read or inferred it. */
+        HostOs: {
+            /** @description Release codename, such as "noble". */
+            codename?: string | null;
+            /** @description Edition, such as "LTS" or "Datacenter". */
+            edition?: string | null;
+            /** @description The operating system family. */
+            family: components["schemas"]["HostOsFamily"];
+            /** @description Kernel release, such as "6.8.0-45-generic". */
+            kernel_version?: string | null;
+            /** @description Product or distribution, such as "Ubuntu", "Windows Server 2022" or "IOS-XE". */
+            name?: string | null;
+            /** @description Release, such as "24.04", "10.0.20348" or "15.2(4)M". */
+            version?: string | null;
+        };
+        /**
+         * @description Operating system family of a host.
+         *
+         *     No catch-all variant. A source that names something outside this list writes no OS at all, so
+         *     nothing downstream has to handle a family that says nothing. The list covers every OS family the
+         *     vendored Recog fingerprints name (`recog::tests::every_vendored_family_is_classified` keeps it
+         *     that way), plus every OS a daemon can report about its own host. Linux distributions are `Linux`
+         *     with the distribution as the name; variants exist for families, not distributions.
+         * @enum {string}
+         */
+        HostOsFamily: "Linux" | "Windows" | "MacOs" | "Ios" | "TvOs" | "AudioOs" | "FreeBsd" | "OpenBsd" | "NetBsd" | "Solaris" | "Aix" | "HpUx" | "Irix" | "Tru64" | "OpenVms" | "ZOs" | "IbmI" | "UnixWare" | "OpenServer" | "NetWare" | "PalmOs" | "Esxi" | "CiscoIos" | "CiscoIosXe" | "CiscoIosXr" | "CiscoNxOs" | "CiscoCatOs" | "CiscoAsa" | "CiscoFtd" | "Junos" | "ScreenOs" | "ArubaOs" | "Comware" | "ProCurve" | "AristaEos" | "RouterOs" | "HuaweiVrp" | "IronWare" | "BrocadeNetworkOs" | "BayRs" | "PanOs" | "FortiOs" | "SonicOs" | "GaiaOs" | "Ipso" | "DataOntap" | "Ecos";
         /** @description A file on the scanned host, executed there over SSH. Never read by the daemon. */
         HostPath: string;
         /**
@@ -9276,6 +9334,12 @@ export interface components {
              * @description The network this entity belongs to.
              */
             network_id: string;
+            os: null | components["schemas"]["HostOs"];
+            /**
+             * @description What produced the OS. Read-only, as above. A source whose method is `Inferred` matched the OS
+             *     in a string the host emitted rather than reading it off the host.
+             */
+            os_source?: components["schemas"]["AttributeSource"];
             /** @description Open ports on this host. */
             ports: components["schemas"]["Port"][];
             /** @description ENTITY-MIB entPhysicalSerialNum — hardware serial number. Read-only, as above. */
@@ -10956,6 +11020,12 @@ export interface components {
                  * @description The network this entity belongs to.
                  */
                 network_id: string;
+                os: null | components["schemas"]["HostOs"];
+                /**
+                 * @description What produced the OS. Read-only, as above. A source whose method is `Inferred` matched the OS
+                 *     in a string the host emitted rather than reading it off the host.
+                 */
+                os_source?: components["schemas"]["AttributeSource"];
                 /** @description Open ports on this host. */
                 ports: components["schemas"]["Port"][];
                 /** @description ENTITY-MIB entPhysicalSerialNum — hardware serial number. Read-only, as above. */

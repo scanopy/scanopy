@@ -152,6 +152,10 @@ impl HostService {
             );
         }
 
+        // An OS named in the SNMP system strings, matched here so every daemon version's SNMP
+        // hosts get one. Ranks below anything read off the host, which the payload may also carry.
+        host.base.match_os_from_system_strings();
+
         if let Some(ctx) = scan_ctx {
             use crate::server::shared::storage::snapshot::DiscoveryTracked;
             host.refresh_scan_timestamps(ctx.scan_time);

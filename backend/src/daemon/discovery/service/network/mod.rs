@@ -1,6 +1,7 @@
 pub mod arp;
 pub mod dcp;
 mod dns;
+mod emitted_os;
 pub mod icmp;
 pub mod mdns;
 mod scan;

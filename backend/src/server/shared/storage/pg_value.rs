@@ -307,6 +307,12 @@ impl SqlValue {
                 let _expose = crate::server::credentials::r#impl::types::ExposeSecretsGuard::new();
                 Bound::Json(PgJson::new(serde_json::to_value(v)?))
             }
+            // jsonb, `NULL` when the host has no OS: the value is a struct, not a bare name.
+            Self::OptionalHostOs(v) => Bound::OptJson(
+                v.as_ref()
+                    .map(|os| serde_json::to_value(os).map(PgJson::new))
+                    .transpose()?,
+            ),
             Self::OptionalLldpChassisId(v) => Bound::OptJson(
                 v.as_ref()
                     .map(|c| serde_json::to_value(c).map(PgJson::new))

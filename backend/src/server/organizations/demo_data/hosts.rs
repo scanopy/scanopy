@@ -548,6 +548,8 @@ pub(super) fn generate_hosts_and_services(
             Some("PowerEdge R740"),
             Some("DL7QX2B1PVE1"),
         );
+        // Proxmox VE 8 is Debian 12, and its OpenSSH package says so in the banner.
+        let (host, ip_address) = with_ssh_banner((host, ip_address), PROXMOX_SSH_BANNER);
         let ip_addresses = vec![ip_address];
         let mut ports = Vec::new();
         let mut services = Vec::new();
@@ -619,6 +621,7 @@ pub(super) fn generate_hosts_and_services(
             Some("AS-2124BT-HNTR"),
             Some("SMC2124B2PVE2"),
         );
+        let (host, ip_address) = with_ssh_banner((host, ip_address), PROXMOX_SSH_BANNER);
         let ip_addresses = vec![ip_address];
         let mut ports = Vec::new();
         let mut services = Vec::new();
@@ -847,6 +850,7 @@ pub(super) fn generate_hosts_and_services(
                 serial_number: None,
                 firmware_revision: None,
                 software_revision: None,
+                os: docker_engine_host_os(),
                 credential_assignments: docker_proxy_cred
                     .into_iter()
                     .map(|id| CredentialAssignment {
@@ -999,7 +1003,14 @@ pub(super) fn generate_hosts_and_services(
             "PowerEdge R250",
             "7QX2KT3",
             "1.11.2",
-            "24.04",
+            HostOs {
+                family: HostOsFamily::Linux,
+                name: Some("Ubuntu".to_string()),
+                version: Some("24.04.1".to_string()),
+                edition: Some("LTS".to_string()),
+                codename: Some("noble".to_string()),
+                kernel_version: Some("6.8.0-45-generic".to_string()),
+            },
         ),
         now,
         (
@@ -1660,6 +1671,7 @@ pub(super) fn generate_hosts_and_services(
                 serial_number: None,
                 firmware_revision: None,
                 software_revision: None,
+                os: None,
                 credential_assignments: vec![],
             },
         };
@@ -2200,6 +2212,7 @@ pub(super) fn generate_hosts_and_services(
                 serial_number: None,
                 firmware_revision: None,
                 software_revision: None,
+                os: docker_engine_host_os(),
                 credential_assignments: docker_proxy_cred
                     .into_iter()
                     .map(|id| CredentialAssignment {

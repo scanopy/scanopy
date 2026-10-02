@@ -11,7 +11,7 @@ use crate::server::daemons::r#impl::api::{
     DaemonDiscoveryRequest, DaemonRegistrationRequest, DaemonRegistrationResponse,
     DaemonStartupRequest, DiscoveryUpdatePayload, LegacyCapabilities, ServerCapabilities,
 };
-use crate::server::daemons::r#impl::base::Daemon;
+use crate::server::daemons::r#impl::base::{Daemon, DaemonOs};
 use crate::server::shared::types::api::{ApiError, ApiErrorResponse};
 use crate::server::shared::types::error_codes::ErrorCode;
 use anyhow::Result;
@@ -29,6 +29,10 @@ pub enum StartupOutcome {
     /// retryable. Distinct from AuthFailed so the process can exit non-zero with
     /// the prescriptive upgrade message instead of parking.
     VersionRejected(anyhow::Error),
+    /// The server refused this daemon because it runs on a different OS from the one it was
+    /// created for. Fatal and not retryable: the daemon has to be recreated for this OS, or
+    /// installed on the OS it was created for.
+    OsRejected(anyhow::Error),
 }
 use std::net::IpAddr;
 use std::sync::Arc;
@@ -128,6 +132,14 @@ impl DaemonRuntimeService {
         error
             .downcast_ref::<ApiErrorResponse>()
             .is_some_and(|e| e.matches_error(&ApiError::daemon_version_too_old("", "")))
+    }
+
+    /// Check if the error is the server refusing this daemon for running on a different OS from
+    /// the one it was created for. Terminal, like a version rejection.
+    fn is_os_mismatch_error(error: &anyhow::Error) -> bool {
+        error
+            .downcast_ref::<ApiErrorResponse>()
+            .is_some_and(|e| e.matches_error(&ApiError::daemon_os_mismatch("", "")))
     }
 
     /// Maximum consecutive poll failures before falling back to outer retry loop
@@ -237,6 +249,7 @@ impl DaemonRuntimeService {
                 capabilities: LegacyCapabilities::default(),
                 interfaced_subnets,
                 ready_for_work: !self.discovery_manager.is_discovery_running().await,
+                os: Some(DaemonOs::current()),
             };
 
             // Use backon for retry with exponential backoff
@@ -428,6 +441,9 @@ impl DaemonRuntimeService {
             Err(e) if Self::is_version_too_old_error(&e) => {
                 return Ok(StartupOutcome::VersionRejected(e));
             }
+            Err(e) if Self::is_os_mismatch_error(&e) => {
+                return Ok(StartupOutcome::OsRejected(e));
+            }
             Err(e)
                 if Self::is_registered_daemon_auth_error(&e)
                     || Self::is_unregistered_auth_error(&e) =>
@@ -455,6 +471,7 @@ impl DaemonRuntimeService {
             // Version rejection is terminal and gets its own outcome so the process
             // exits non-zero with the upgrade message rather than a generic reject.
             Err(e) if Self::is_version_too_old_error(&e) => Ok(StartupOutcome::VersionRejected(e)),
+            Err(e) if Self::is_os_mismatch_error(&e) => Ok(StartupOutcome::OsRejected(e)),
             // A definitive server response (any ApiErrorResponse — "must be provisioned",
             // key not active, demo mode) is terminal: the server is reachable
             // and answered, so retrying it as "unreachable" is wrong. Only transport failures
@@ -507,6 +524,7 @@ impl DaemonRuntimeService {
             user_id,
             version: Some(version.to_string()),
             integration_targets,
+            os: Some(DaemonOs::current()),
         };
 
         tracing::info!(target: LOG_TARGET, "Registering with server:");
@@ -660,6 +678,7 @@ impl DaemonRuntimeService {
 
         let request = DaemonStartupRequest {
             daemon_version: semver::Version::parse(env!("CARGO_PKG_VERSION"))?,
+            os: Some(DaemonOs::current()),
         };
 
         let result: Result<ServerCapabilities, _> = self

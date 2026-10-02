@@ -756,7 +756,7 @@ async fn daemon_startup(
     let capabilities = state
         .services
         .daemon_service
-        .process_startup(id, request.daemon_version, auth.into_entity())
+        .process_startup(id, request.daemon_version, request.os, auth.into_entity())
         .await?;
 
     Ok(Json(ApiResponse::success(capabilities)))
@@ -1016,6 +1016,7 @@ async fn receive_heartbeat(
         capabilities: LegacyCapabilities::default(),
         interfaced_subnets: Vec::new(),
         ready_for_work: true,
+        os: None, // Old daemons don't report their OS
     };
     state
         .services

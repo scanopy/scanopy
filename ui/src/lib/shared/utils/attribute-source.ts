@@ -10,6 +10,7 @@ import type { components } from '$lib/api/schema';
 import type { TagProps } from '$lib/shared/components/data/types';
 import { metaDescriptionWith, metaNameWith } from '$lib/i18n/metadata';
 import { attributeSources, clientProbes } from '$lib/shared/stores/metadata';
+import attributeMethods from '$lib/data/attribute-methods.json';
 
 /** Derived from the backend enum rather than restated, so a new source cannot drift out of sync. */
 export type AttributeSource = components['schemas']['AttributeSource'];
@@ -57,4 +58,24 @@ export function attributeSourceTag(source: AttributeSource): TagProps {
 		color: 'Gray',
 		title: attributeSourceDescription(source)
 	};
+}
+
+/**
+ * Every source that sits at the `Inferred` tier, as the backend groups them.
+ *
+ * Read from the metadata fixture rather than matched against a variant name: the tier a source
+ * belongs to is a backend decision, the same `AttributeSource::method()` the applier orders by.
+ * Keyed on the whole source, probe included, because `Probe(Snmp)` and `Probe(Docker)` sit at
+ * different tiers.
+ */
+const INFERRED_SOURCES: ReadonlySet<string> = new Set(
+	(
+		(attributeMethods.find((method) => method.id === 'Inferred')?.metadata?.sources ??
+			[]) as AttributeSource[]
+	).map(sourceKey)
+);
+
+/** Whether a value from this source was derived rather than read: a guess, not evidence. */
+export function isInferredSource(source: AttributeSource | null | undefined): boolean {
+	return source ? INFERRED_SOURCES.has(sourceKey(source)) : false;
 }

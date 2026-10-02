@@ -1,12 +1,13 @@
 use crate::server::credentials::r#impl::types::CredentialAssignment;
 use crate::server::hosts::r#impl::attributes::{
     HostChassisIdAttributed, HostFirmwareRevisionAttributed, HostHostnameAttributed,
-    HostManagementUrlAttributed, HostManufacturerAttributed, HostModelAttributed,
-    HostSerialNumberAttributed, HostSoftwareRevisionAttributed, HostSysContactAttributed,
-    HostSysDescrAttributed, HostSysLocationAttributed, HostSysNameAttributed,
-    HostSysObjectIdAttributed,
+    HostManagementUrlAttributed, HostManufacturerAttributed, HostModelAttributed, HostOsAttributed,
+    HostOsValue, HostSerialNumberAttributed, HostSoftwareRevisionAttributed,
+    HostSysContactAttributed, HostSysDescrAttributed, HostSysLocationAttributed,
+    HostSysNameAttributed, HostSysObjectIdAttributed,
 };
 use crate::server::hosts::r#impl::name::{HostName, HostNameSources};
+use crate::server::hosts::r#impl::os::recog::RecogDatabase;
 use crate::server::hosts::r#impl::virtualization::HostVirtualization;
 use crate::server::shared::attribution::{self, AttributeSource, Attributed};
 use crate::server::shared::entities::ChangeTriggersTopologyStaleness;
@@ -149,6 +150,11 @@ pub struct HostBase {
     #[serde(flatten, deserialize_with = "attribution::optional")]
     #[schema(value_type = HostSoftwareRevisionAttributed)]
     pub software_revision: Option<HostSoftwareRevisionAttributed>,
+    /// The host's operating system, from whichever source read or matched it. See
+    /// [`HostOsValue`](super::attributes::HostOsValue) for who writes it and how they rank.
+    #[serde(flatten, deserialize_with = "attribution::optional")]
+    #[schema(value_type = HostOsAttributed)]
+    pub os: Option<HostOsAttributed>,
     /// Credential assignments for this host (hydrated from junction table).
     #[serde(default)]
     #[schema(required)]
@@ -179,6 +185,7 @@ impl Default for HostBase {
             serial_number: None,
             firmware_revision: None,
             software_revision: None,
+            os: None,
             credential_assignments: Vec::new(),
         }
     }
@@ -306,6 +313,7 @@ impl HostBase {
             serial_number,
             firmware_revision,
             software_revision,
+            os,
         } = incoming;
 
         // A macro rather than a closure: each field is a different carrier type, so every call is
@@ -336,8 +344,39 @@ impl HostBase {
             serial_number,
             firmware_revision,
             software_revision,
+            os,
         );
         changed
+    }
+
+    /// Name an OS from the SNMP system strings this payload carries, matched against Recog.
+    ///
+    /// Matched on the server, so SNMP hosts reported by daemons that predate host OS get one from
+    /// their next scan. `sysObjectID` is tried first, because Recog matches it together with
+    /// `sysDescr` and those fingerprints name the Windows release; `sysDescr` alone covers the rest.
+    /// `Attributed::apply` keeps any stronger reading the payload already carries, such as an SSH
+    /// script's. Returns whether the OS changed.
+    pub fn match_os_from_system_strings(&mut self) -> bool {
+        let Some(descr) = self.sys_descr.as_ref().map(|d| d.value().0.clone()) else {
+            return false;
+        };
+        let by_object_id = self.sys_object_id.as_ref().and_then(|oid| {
+            let oid = oid.value().0.trim_start_matches('.');
+            RecogDatabase::SnmpSysObjectId
+                .os(&format!("{oid} {descr}"))
+                .map(|os| (os, AttributeSource::SysObjectIdMatch))
+        });
+        let matched = by_object_id.or_else(|| {
+            RecogDatabase::SnmpSysDescr
+                .os(&descr)
+                .map(|os| (os, AttributeSource::SysDescrMatch))
+        });
+        match matched {
+            Some((os, source)) => {
+                Attributed::apply(&mut self.os, Attributed::new(HostOsValue(os), source))
+            }
+            None => false,
+        }
     }
 
     /// Refuse a daemon payload's claim that a person typed this name into Scanopy, keeping the

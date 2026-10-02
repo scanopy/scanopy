@@ -147,6 +147,23 @@ pub enum AttributeSource {
     /// module doc gives: the variant names what was read, not how it arrived, and `"CIP vendor 1"`
     /// is our own construction rather than anything the device emitted.
     CipVendorId,
+    /// An operating system matched in SNMP `sysDescr` against a Recog fingerprint. The text is the
+    /// device's own, but the OS is our reading of it, so it ranks below anything read off the host.
+    SysDescrMatch,
+    /// An operating system implied by an SNMP `sysObjectID` a Recog fingerprint names. Inferred for
+    /// the same reason as [`Self::SysDescrMatch`].
+    SysObjectIdMatch,
+    /// An operating system matched in the system description an LLDP neighbour advertised for itself
+    /// (`lldpRemSysDesc`). Inferred for the same reason as [`Self::SysDescrMatch`].
+    LldpSysDescMatch,
+    /// An operating system matched in an SSH server's identification string, such as the
+    /// `Ubuntu-3ubuntu13` a distribution's OpenSSH package appends.
+    SshBannerMatch,
+    /// An operating system matched in an HTTP `Server` header, such as `Microsoft-IIS/10.0`.
+    HttpServerMatch,
+    /// An operating system matched in an mDNS `_device-info._tcp` record, such as a Mac's
+    /// `model=MacBookPro18,3`.
+    DnsSdDeviceInfoMatch,
 
     // --- Claims that arrive on the link without a directed exchange. ---
     /// A DNS-SD instance label — the Chromecast `fn=Living Room TV`, typed by a person during
@@ -179,6 +196,11 @@ pub enum AttributeSource {
     /// TCP/UDP port (`every_client_probe_variant_has_a_producer` enforces that every variant has an
     /// `AppProbe` producer), and DCP is raw Ethernet with no port at all.
     ProfinetDcp,
+    /// A container engine (Docker, Podman) reporting the machine it runs on, from its `info`
+    /// endpoint: the host OS, its release and kernel. `Native` for the reason [`Self::ProfinetDcp`]
+    /// is: the engine reads its own host, and that is what the answer means. A bare variant rather
+    /// than `Probe(Docker)`, which is the container listing; this is a different exchange.
+    ContainerRuntimeInfo,
     /// A script the operator wrote, run on the host over SSH, printed it. Queried: we chose the
     /// host, authenticated to it and read the answer from its own shell. Human-authored, because
     /// the operator chose what the script reports, which is what puts it above the machine values
@@ -208,7 +230,13 @@ impl AttributeSource {
             Self::OwnAddress
             | Self::ServiceMatch
             | Self::LldpNeighbourAddress
-            | Self::CipVendorId => M::Inferred,
+            | Self::CipVendorId
+            | Self::SysDescrMatch
+            | Self::SysObjectIdMatch
+            | Self::LldpSysDescMatch
+            | Self::SshBannerMatch
+            | Self::HttpServerMatch
+            | Self::DnsSdDeviceInfoMatch => M::Inferred,
 
             Self::DnsSdInstanceName | Self::DnsSdHostname | Self::LldpChassisId => M::Announced,
 
@@ -219,7 +247,7 @@ impl AttributeSource {
             // The protocol is the device's own, not a generic transport a MIB approximates —
             // same reasoning as `ClientProbe::method()`'s `Native` arms, just not delegated (see
             // the variant's own doc comment for why).
-            Self::ProfinetDcp => M::Native,
+            Self::ProfinetDcp | Self::ContainerRuntimeInfo => M::Native,
 
             // Delegated, not because probes are special, but so that adding a probe forces the
             // tier decision at the probe's own definition instead of here — where it would be easy
@@ -241,6 +269,12 @@ impl AttributeSource {
             | Self::ServiceMatch
             | Self::LldpNeighbourAddress
             | Self::CipVendorId
+            | Self::SysDescrMatch
+            | Self::SysObjectIdMatch
+            | Self::LldpSysDescMatch
+            | Self::SshBannerMatch
+            | Self::HttpServerMatch
+            | Self::DnsSdDeviceInfoMatch
             | Self::DnsSdHostname
             | Self::LldpChassisId
             | Self::ReverseDns
@@ -248,6 +282,7 @@ impl AttributeSource {
             | Self::ArpReply
             | Self::DaemonSelfReport
             | Self::ProfinetDcp
+            | Self::ContainerRuntimeInfo
             | Self::Probe(_) => Authorship::Machine,
         }
     }
@@ -302,6 +337,14 @@ impl AttributeSource {
                     vec![Self::LldpNeighbourAddress]
                 }
                 AttributeSourceDiscriminants::CipVendorId => vec![Self::CipVendorId],
+                AttributeSourceDiscriminants::SysDescrMatch => vec![Self::SysDescrMatch],
+                AttributeSourceDiscriminants::SysObjectIdMatch => vec![Self::SysObjectIdMatch],
+                AttributeSourceDiscriminants::LldpSysDescMatch => vec![Self::LldpSysDescMatch],
+                AttributeSourceDiscriminants::SshBannerMatch => vec![Self::SshBannerMatch],
+                AttributeSourceDiscriminants::HttpServerMatch => vec![Self::HttpServerMatch],
+                AttributeSourceDiscriminants::DnsSdDeviceInfoMatch => {
+                    vec![Self::DnsSdDeviceInfoMatch]
+                }
                 AttributeSourceDiscriminants::DnsSdInstanceName => vec![Self::DnsSdInstanceName],
                 AttributeSourceDiscriminants::DnsSdHostname => vec![Self::DnsSdHostname],
                 AttributeSourceDiscriminants::LldpChassisId => vec![Self::LldpChassisId],
@@ -310,6 +353,9 @@ impl AttributeSource {
                 AttributeSourceDiscriminants::ArpReply => vec![Self::ArpReply],
                 AttributeSourceDiscriminants::DaemonSelfReport => vec![Self::DaemonSelfReport],
                 AttributeSourceDiscriminants::ProfinetDcp => vec![Self::ProfinetDcp],
+                AttributeSourceDiscriminants::ContainerRuntimeInfo => {
+                    vec![Self::ContainerRuntimeInfo]
+                }
                 AttributeSourceDiscriminants::SshScript => vec![Self::SshScript],
                 AttributeSourceDiscriminants::Manual => vec![Self::Manual],
             })
@@ -357,6 +403,12 @@ impl AttributeSource {
             AttributeSourceDiscriminants::ServiceMatch => Self::ServiceMatch,
             AttributeSourceDiscriminants::LldpNeighbourAddress => Self::LldpNeighbourAddress,
             AttributeSourceDiscriminants::CipVendorId => Self::CipVendorId,
+            AttributeSourceDiscriminants::SysDescrMatch => Self::SysDescrMatch,
+            AttributeSourceDiscriminants::SysObjectIdMatch => Self::SysObjectIdMatch,
+            AttributeSourceDiscriminants::LldpSysDescMatch => Self::LldpSysDescMatch,
+            AttributeSourceDiscriminants::SshBannerMatch => Self::SshBannerMatch,
+            AttributeSourceDiscriminants::HttpServerMatch => Self::HttpServerMatch,
+            AttributeSourceDiscriminants::DnsSdDeviceInfoMatch => Self::DnsSdDeviceInfoMatch,
             AttributeSourceDiscriminants::DnsSdInstanceName => Self::DnsSdInstanceName,
             AttributeSourceDiscriminants::DnsSdHostname => Self::DnsSdHostname,
             AttributeSourceDiscriminants::LldpChassisId => Self::LldpChassisId,
@@ -365,6 +417,7 @@ impl AttributeSource {
             AttributeSourceDiscriminants::ArpReply => Self::ArpReply,
             AttributeSourceDiscriminants::DaemonSelfReport => Self::DaemonSelfReport,
             AttributeSourceDiscriminants::ProfinetDcp => Self::ProfinetDcp,
+            AttributeSourceDiscriminants::ContainerRuntimeInfo => Self::ContainerRuntimeInfo,
             AttributeSourceDiscriminants::SshScript => Self::SshScript,
             AttributeSourceDiscriminants::Manual => Self::Manual,
         }
@@ -468,6 +521,12 @@ impl TypeMetadataProvider for AttributeSourceDiscriminants {
             Self::ServiceMatch => "A detected service",
             Self::LldpNeighbourAddress => "An LLDP neighbour's address",
             Self::CipVendorId => "A CIP vendor ID",
+            Self::SysDescrMatch => "SNMP system description",
+            Self::SysObjectIdMatch => "SNMP system object ID",
+            Self::LldpSysDescMatch => "A neighbour's LLDP system description",
+            Self::SshBannerMatch => "SSH banner",
+            Self::HttpServerMatch => "HTTP server header",
+            Self::DnsSdDeviceInfoMatch => "mDNS device info",
             Self::DnsSdInstanceName => "mDNS name",
             Self::DnsSdHostname => "mDNS",
             Self::LldpChassisId => "LLDP",
@@ -476,6 +535,7 @@ impl TypeMetadataProvider for AttributeSourceDiscriminants {
             Self::ArpReply => "ARP",
             Self::DaemonSelfReport => "The daemon on this host",
             Self::ProfinetDcp => "PROFINET DCP",
+            Self::ContainerRuntimeInfo => "Container engine",
             Self::SshScript => "SSH script",
             Self::Probe => "{probe}",
             Self::Authored => "{probe}, set by a person",
@@ -494,6 +554,24 @@ impl TypeMetadataProvider for AttributeSourceDiscriminants {
             Self::CipVendorId => {
                 "Scanopy built this from the numeric vendor ID the device reported over CIP."
             }
+            Self::SysDescrMatch => {
+                "Scanopy recognised this in the system description the device reported over SNMP."
+            }
+            Self::SysObjectIdMatch => {
+                "Scanopy recognised this from the system object ID the device reported over SNMP."
+            }
+            Self::LldpSysDescMatch => {
+                "Scanopy recognised this in the system description the device advertised to its neighbours over LLDP."
+            }
+            Self::SshBannerMatch => {
+                "Scanopy recognised this in the identification string the host's SSH server sent."
+            }
+            Self::HttpServerMatch => {
+                "Scanopy recognised this in the Server header the host's web server sent."
+            }
+            Self::DnsSdDeviceInfoMatch => {
+                "Scanopy recognised this in the device-info record the host announced over mDNS."
+            }
             Self::DnsSdInstanceName => {
                 "The device announced this name over mDNS. A person usually sets it during setup."
             }
@@ -506,6 +584,9 @@ impl TypeMetadataProvider for AttributeSourceDiscriminants {
             Self::ArpReply => "The host answered an ARP request for its address.",
             Self::DaemonSelfReport => "The Scanopy daemon running on this host read it locally.",
             Self::ProfinetDcp => "The device answered a PROFINET DCP identify request.",
+            Self::ContainerRuntimeInfo => {
+                "The Docker or Podman engine on this host reported the machine it runs on."
+            }
             Self::SshScript => {
                 "A script you configured on an SSH credential ran on the host and printed this."
             }

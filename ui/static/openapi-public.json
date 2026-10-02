@@ -13854,6 +13854,7 @@
               "tags",
               "firmware_revision",
               "software_revision",
+              "os",
               "ip_addresses",
               "ports",
               "services",
@@ -14014,6 +14015,21 @@
                 "type": "string",
                 "format": "uuid",
                 "description": "The network this entity belongs to."
+              },
+              "os": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/HostOs",
+                    "description": "The host's operating system. Read-only: written by whichever source read or matched it.\nLenient, so a daemon tolerates a family added on a newer server."
+                  }
+                ]
+              },
+              "os_source": {
+                "$ref": "#/components/schemas/AttributeSource",
+                "description": "What produced the OS. Read-only, as above. A source whose method is `Inferred` matched the OS\nin a string the host emitted rather than reading it off the host."
               },
               "ports": {
                 "type": "array",
@@ -14243,6 +14259,8 @@
               ],
               "name_source": "Manual",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
+              "os": null,
+              "os_source": "Unspecified",
               "ports": [
                 {
                   "created_at": "2026-01-15T10:30:00Z",
@@ -17650,6 +17668,48 @@
           },
           {
             "type": "string",
+            "description": "An operating system matched in SNMP `sysDescr` against a Recog fingerprint. The text is the\ndevice's own, but the OS is our reading of it, so it ranks below anything read off the host.",
+            "enum": [
+              "SysDescrMatch"
+            ]
+          },
+          {
+            "type": "string",
+            "description": "An operating system implied by an SNMP `sysObjectID` a Recog fingerprint names. Inferred for\nthe same reason as [`Self::SysDescrMatch`].",
+            "enum": [
+              "SysObjectIdMatch"
+            ]
+          },
+          {
+            "type": "string",
+            "description": "An operating system matched in the system description an LLDP neighbour advertised for itself\n(`lldpRemSysDesc`). Inferred for the same reason as [`Self::SysDescrMatch`].",
+            "enum": [
+              "LldpSysDescMatch"
+            ]
+          },
+          {
+            "type": "string",
+            "description": "An operating system matched in an SSH server's identification string, such as the\n`Ubuntu-3ubuntu13` a distribution's OpenSSH package appends.",
+            "enum": [
+              "SshBannerMatch"
+            ]
+          },
+          {
+            "type": "string",
+            "description": "An operating system matched in an HTTP `Server` header, such as `Microsoft-IIS/10.0`.",
+            "enum": [
+              "HttpServerMatch"
+            ]
+          },
+          {
+            "type": "string",
+            "description": "An operating system matched in an mDNS `_device-info._tcp` record, such as a Mac's\n`model=MacBookPro18,3`.",
+            "enum": [
+              "DnsSdDeviceInfoMatch"
+            ]
+          },
+          {
+            "type": "string",
             "description": "A DNS-SD instance label — the Chromecast `fn=Living Room TV`, typed by a person during\ndevice setup.",
             "enum": [
               "DnsSdInstanceName"
@@ -17702,6 +17762,13 @@
             "description": "A PROFINET DCP Identify exchange: we sent the request and the transport correlated the\nreply to the station that sent it. `Native`, not merely `Queried` — like [`Self::Probe`]\nover [`ClientProbe::ModbusTcp`]/`EtherNetIp`/`OpcUa`, the protocol is the device's own\nrather than a generic MIB approximating it. A bare variant rather than `Probe(ClientProbe)`\non purpose: [`ClientProbe`] is scoped to application probes reached over an already-open\nTCP/UDP port (`every_client_probe_variant_has_a_producer` enforces that every variant has an\n`AppProbe` producer), and DCP is raw Ethernet with no port at all.",
             "enum": [
               "ProfinetDcp"
+            ]
+          },
+          {
+            "type": "string",
+            "description": "A container engine (Docker, Podman) reporting the machine it runs on, from its `info`\nendpoint: the host OS, its release and kernel. `Native` for the reason [`Self::ProfinetDcp`]\nis: the engine reads its own host, and that is what the answer means. A bare variant rather\nthan `Probe(Docker)`, which is the container listing; this is a different exchange.",
+            "enum": [
+              "ContainerRuntimeInfo"
             ]
           },
           {
@@ -20128,7 +20195,7 @@
               },
               {
                 "$ref": "#/components/schemas/DaemonOs",
-                "description": "The operating system chosen when the daemon was created. Credentials set up for another\nOS's file paths cannot be used by it. `None` for daemons created before this was recorded."
+                "description": "The operating system the daemon runs on. Picked when the daemon is created, then checked\nagainst what the daemon reports on every handshake once it is new enough to report (see\n`version_status.supports_os_reporting`); a daemon on another OS is refused. Credentials\nset up for another OS's file paths cannot be used by it. `None` for a daemon created\nbefore this was recorded that has not yet reported."
               }
             ]
           },
@@ -20292,6 +20359,17 @@
             "format": "uuid",
             "description": "The network this entity belongs to."
           },
+          "os": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DaemonOs",
+                "description": "The OS this daemon binary runs on. Absent from daemons up to 0.17.19."
+              }
+            ]
+          },
           "url": {
             "type": [
               "string",
@@ -20404,6 +20482,17 @@
           "daemon_version": {
             "type": "string",
             "description": "Daemon software version (semver format)"
+          },
+          "os": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DaemonOs",
+                "description": "The OS this daemon binary runs on. Absent from daemons up to 0.17.19."
+              }
+            ]
           }
         }
       },
@@ -20433,6 +20522,17 @@
           "name": {
             "type": "string",
             "description": "Name the daemon reports for itself."
+          },
+          "os": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DaemonOs",
+                "description": "The OS this daemon binary runs on. Absent from daemons up to 0.17.19."
+              }
+            ]
           },
           "ready_for_work": {
             "type": "boolean",
@@ -20475,6 +20575,10 @@
               "null"
             ],
             "description": "The date this daemon's version stops being supported, if a sunset is\nscheduled for it. Surfaced top-level (not only inside `warnings`) so the\nUI can render a countdown from the same value the email uses."
+          },
+          "supports_os_reporting": {
+            "type": "boolean",
+            "description": "Whether this daemon reports its OS on every handshake. When it does, the daemon's `os` is\nwhat it runs on; when it does not, `os` is the OS picked at creation, or absent."
           },
           "supports_targeted_rescan": {
             "type": "boolean",
@@ -24222,6 +24326,10 @@
             "description": "Software revision of the device as a whole — ENTITY-MIB `entPhysicalSoftwareRev`.\n\nIts own field rather than sharing `firmware_revision`, because RFC 4133 defines `.9` and\n`.10` as distinct objects: on a Cisco chassis they are the bootloader and the IOS version,\nand one column holding either with nothing recording which cannot tell them apart. Only\nENTITY-MIB writes it — every other source reports a single version, which is the firmware."
           },
           {
+            "$ref": "#/components/schemas/HostOperatingSystem",
+            "description": "The host's operating system, from whichever source read or matched it. See\n[`HostOsValue`](super::attributes::HostOsValue) for who writes it and how they rank."
+          },
+          {
             "type": "object",
             "required": [
               "network_id",
@@ -24430,6 +24538,62 @@
           "BestService"
         ]
       },
+      "HostOperatingSystem": {
+        "type": "object",
+        "properties": {
+          "os": {
+            "type": "object",
+            "description": "Operating system of a host, as one source read or inferred it.",
+            "required": [
+              "family"
+            ],
+            "properties": {
+              "codename": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Release codename, such as \"noble\"."
+              },
+              "edition": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Edition, such as \"LTS\" or \"Datacenter\"."
+              },
+              "family": {
+                "$ref": "#/components/schemas/HostOsFamily",
+                "description": "The operating system family."
+              },
+              "kernel_version": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Kernel release, such as \"6.8.0-45-generic\"."
+              },
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Product or distribution, such as \"Ubuntu\", \"Windows Server 2022\" or \"IOS-XE\"."
+              },
+              "version": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Release, such as \"24.04\", \"10.0.20348\" or \"15.2(4)M\"."
+              }
+            }
+          },
+          "os_source": {
+            "$ref": "#/components/schemas/AttributeSource"
+          }
+        }
+      },
       "HostOrderField": {
         "type": "string",
         "description": "Fields that hosts can be ordered/grouped by.",
@@ -24443,6 +24607,107 @@
           "interface_ip",
           "last_seen_at",
           "mac_address"
+        ]
+      },
+      "HostOs": {
+        "type": "object",
+        "description": "Operating system of a host, as one source read or inferred it.",
+        "required": [
+          "family"
+        ],
+        "properties": {
+          "codename": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Release codename, such as \"noble\"."
+          },
+          "edition": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Edition, such as \"LTS\" or \"Datacenter\"."
+          },
+          "family": {
+            "$ref": "#/components/schemas/HostOsFamily",
+            "description": "The operating system family."
+          },
+          "kernel_version": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Kernel release, such as \"6.8.0-45-generic\"."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Product or distribution, such as \"Ubuntu\", \"Windows Server 2022\" or \"IOS-XE\"."
+          },
+          "version": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Release, such as \"24.04\", \"10.0.20348\" or \"15.2(4)M\"."
+          }
+        }
+      },
+      "HostOsFamily": {
+        "type": "string",
+        "description": "Operating system family of a host.\n\nNo catch-all variant. A source that names something outside this list writes no OS at all, so\nnothing downstream has to handle a family that says nothing. The list covers every OS family the\nvendored Recog fingerprints name (`recog::tests::every_vendored_family_is_classified` keeps it\nthat way), plus every OS a daemon can report about its own host. Linux distributions are `Linux`\nwith the distribution as the name; variants exist for families, not distributions.",
+        "enum": [
+          "Linux",
+          "Windows",
+          "MacOs",
+          "Ios",
+          "TvOs",
+          "AudioOs",
+          "FreeBsd",
+          "OpenBsd",
+          "NetBsd",
+          "Solaris",
+          "Aix",
+          "HpUx",
+          "Irix",
+          "Tru64",
+          "OpenVms",
+          "ZOs",
+          "IbmI",
+          "UnixWare",
+          "OpenServer",
+          "NetWare",
+          "PalmOs",
+          "Esxi",
+          "CiscoIos",
+          "CiscoIosXe",
+          "CiscoIosXr",
+          "CiscoNxOs",
+          "CiscoCatOs",
+          "CiscoAsa",
+          "CiscoFtd",
+          "Junos",
+          "ScreenOs",
+          "ArubaOs",
+          "Comware",
+          "ProCurve",
+          "AristaEos",
+          "RouterOs",
+          "HuaweiVrp",
+          "IronWare",
+          "BrocadeNetworkOs",
+          "BayRs",
+          "PanOs",
+          "FortiOs",
+          "SonicOs",
+          "GaiaOs",
+          "Ipso",
+          "DataOntap",
+          "Ecos"
         ]
       },
       "HostPath": {
@@ -24464,6 +24729,7 @@
           "tags",
           "firmware_revision",
           "software_revision",
+          "os",
           "ip_addresses",
           "ports",
           "services",
@@ -24624,6 +24890,21 @@
             "type": "string",
             "format": "uuid",
             "description": "The network this entity belongs to."
+          },
+          "os": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/HostOs",
+                "description": "The host's operating system. Read-only: written by whichever source read or matched it.\nLenient, so a daemon tolerates a family added on a newer server."
+              }
+            ]
+          },
+          "os_source": {
+            "$ref": "#/components/schemas/AttributeSource",
+            "description": "What produced the OS. Read-only, as above. A source whose method is `Inferred` matched the OS\nin a string the host emitted rather than reading it off the host."
           },
           "ports": {
             "type": "array",
@@ -24853,6 +25134,8 @@
           ],
           "name_source": "Manual",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
+          "os": null,
+          "os_source": "Unspecified",
           "ports": [
             {
               "created_at": "2026-01-15T10:30:00Z",
@@ -28187,6 +28470,7 @@
                 "tags",
                 "firmware_revision",
                 "software_revision",
+                "os",
                 "ip_addresses",
                 "ports",
                 "services",
@@ -28347,6 +28631,21 @@
                   "type": "string",
                   "format": "uuid",
                   "description": "The network this entity belongs to."
+                },
+                "os": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/components/schemas/HostOs",
+                      "description": "The host's operating system. Read-only: written by whichever source read or matched it.\nLenient, so a daemon tolerates a family added on a newer server."
+                    }
+                  ]
+                },
+                "os_source": {
+                  "$ref": "#/components/schemas/AttributeSource",
+                  "description": "What produced the OS. Read-only, as above. A source whose method is `Inferred` matched the OS\nin a string the host emitted rather than reading it off the host."
                 },
                 "ports": {
                   "type": "array",
@@ -28576,6 +28875,8 @@
                 ],
                 "name_source": "Manual",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
+                "os": null,
+                "os_source": "Unspecified",
                 "ports": [
                   {
                     "created_at": "2026-01-15T10:30:00Z",

@@ -36,7 +36,7 @@
 	import ApiKeyFormFields from '$lib/features/daemon_api_keys/components/ApiKeyFormFields.svelte';
 	import { createApiKeyForm } from '$lib/features/daemon_api_keys/form';
 	import DaemonKeyAssociation from './DaemonKeyAssociation.svelte';
-	import { constructDaemonUrl, type DaemonOS } from '$lib/features/daemons/utils';
+	import { constructDaemonUrl, reportedDaemonOs, type DaemonOS } from '$lib/features/daemons/utils';
 	import { osInstallCommand } from '$lib/features/daemons/types/base';
 	import {
 		common_apiKey,
@@ -104,9 +104,11 @@
 		() => ({ purpose: 'reconfigure' }),
 		{ enabled: () => isOpen && daemon?.last_seen != null }
 	);
-	// The daemon's recorded OS when it has one, which also hides the OS picker.
-	let pickedSyncOs = $state<DaemonOS>('linux');
-	let syncOs = $derived<DaemonOS>(daemon?.os ?? pickedSyncOs);
+	// The OS the daemon reported, which also hides the OS picker; otherwise the user picks,
+	// starting from the OS picked at creation.
+	let reportedSyncOs = $derived(daemon ? reportedDaemonOs(daemon) : null);
+	let pickedSyncOs = $state<DaemonOS | null>(null);
+	let syncOs = $derived<DaemonOS>(reportedSyncOs ?? pickedSyncOs ?? daemon?.os ?? 'linux');
 	let syncLinuxMethod = $state<'binary' | 'docker'>('binary');
 	let syncIsDocker = $derived(syncOs === 'linux' && syncLinuxMethod === 'docker');
 	let hasReconfigure = $derived(installCommandQuery.data != null);
@@ -346,7 +348,7 @@
 							<OsSelector
 								selectedOS={syncOs}
 								onOsSelect={(os) => (pickedSyncOs = os)}
-								showOs={!daemon?.os}
+								showOs={!reportedSyncOs}
 								linuxMethod={syncLinuxMethod}
 								onLinuxMethodChange={(method) => (syncLinuxMethod = method)}
 							>

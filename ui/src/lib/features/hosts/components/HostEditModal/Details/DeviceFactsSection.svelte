@@ -2,6 +2,11 @@
 	import type { HostFormData } from '$lib/features/hosts/types/base';
 	import type { AttributeSource } from '$lib/shared/utils/attribute-source';
 	import AttributeSourceTag from '$lib/shared/components/data/AttributeSourceTag.svelte';
+	import { isInferredSource } from '$lib/shared/utils/attribute-source';
+	import { hostOsLabel } from '$lib/features/hosts/host-os';
+	import { metaDescription, metaName } from '$lib/i18n/metadata';
+	import attributeMethods from '$lib/data/attribute-methods.json';
+	import { CloudAlert } from 'lucide-svelte';
 	import {
 		common_contact,
 		common_firmwareRevision,
@@ -10,6 +15,7 @@
 		common_location,
 		common_manufacturer,
 		common_model,
+		common_operatingSystem,
 		common_serialNumber,
 		common_softwareRevision,
 		hosts_deviceFacts_firmwareGroup,
@@ -24,6 +30,11 @@
 
 	let { host }: { host: HostFormData } = $props();
 
+	// What an inferred value is, in the backend's own words for the tier, so the caveat on a matched
+	// OS says the same thing the tier means everywhere else.
+	const inferredMethod = attributeMethods.find((method) => method.id === 'Inferred');
+	const inferredTitle = `${metaName('attribute_methods', 'Inferred', inferredMethod?.name ?? '')}: ${metaDescription('attribute_methods', 'Inferred', inferredMethod?.description ?? '')}`;
+
 	interface Fact {
 		label: string;
 		value: string | null | undefined;
@@ -31,6 +42,8 @@
 		source: AttributeSource | null | undefined;
 		mono?: boolean;
 		link?: boolean;
+		/** Derived from something the host emitted rather than read off it. */
+		inferred?: boolean;
 	}
 
 	// Grouped by what each value describes, not by the protocol that carried it. A model arrives
@@ -82,6 +95,12 @@
 				title: hosts_deviceFacts_firmwareGroup(),
 				facts: [
 					{
+						label: common_operatingSystem(),
+						value: host.os ? hostOsLabel(host.os) : undefined,
+						source: host.os_source,
+						inferred: isInferredSource(host.os_source)
+					},
+					{
 						label: common_firmwareRevision(),
 						value: host.firmware_revision,
 						source: host.firmware_revision_source,
@@ -130,9 +149,16 @@
 						<div class="flex flex-wrap items-center gap-x-4 gap-y-1">
 							<span class="text-secondary w-40 shrink-0 text-sm">{fact.label}</span>
 							<span
-								class="text-primary min-w-0 flex-1 break-words text-sm"
+								class="min-w-0 flex-1 break-words text-sm"
+								class:text-primary={!fact.inferred}
+								class:text-secondary={fact.inferred}
 								class:font-mono={fact.mono}
 							>
+								{#if fact.inferred}
+									<span title={inferredTitle} class="mr-1 inline-flex align-text-bottom">
+										<CloudAlert class="h-4 w-4 text-indigo-400" aria-label={inferredTitle} />
+									</span>
+								{/if}
 								{#if fact.link}
 									<!-- eslint-disable svelte/no-navigation-without-resolve -->
 									<a

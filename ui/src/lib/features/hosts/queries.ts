@@ -76,7 +76,8 @@ export function toHostPrimitive(response: HostResponse): Host {
 		model: hostFields.model ?? undefined,
 		serial_number: hostFields.serial_number ?? undefined,
 		firmware_revision: hostFields.firmware_revision ?? undefined,
-		software_revision: hostFields.software_revision ?? undefined
+		software_revision: hostFields.software_revision ?? undefined,
+		os: hostFields.os ?? undefined
 	};
 }
 
@@ -891,6 +892,7 @@ export function hydrateHostToFormData(
 		serial_number: host.serial_number,
 		firmware_revision: host.firmware_revision,
 		software_revision: host.software_revision,
+		os: host.os ?? undefined,
 		credential_assignments: host.credential_assignments ?? []
 	};
 }

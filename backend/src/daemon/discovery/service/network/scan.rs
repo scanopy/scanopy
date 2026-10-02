@@ -1869,6 +1869,14 @@ impl NetworkScan {
                 }
             }
 
+            // What the host sent unasked: its web servers' `Server` headers and its mDNS
+            // device-info record. Combined with the banner's match above.
+            super::emitted_os::offer_emitted_os(
+                &mut host_data,
+                &endpoint_responses,
+                dns_sd.as_ref(),
+            );
+
             ops.record_equal_reach_integrations(ip, &host_data).await;
 
             // Extract final state from host_data

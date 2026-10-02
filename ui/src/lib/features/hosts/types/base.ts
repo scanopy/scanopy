@@ -1,5 +1,6 @@
 // Re-export generated types from OpenAPI schema
 import type { components } from '$lib/api/schema';
+import type { HostOs } from '$lib/features/hosts/host-os';
 
 // Entity primitive types
 /**
@@ -109,6 +110,8 @@ export interface HostFormData extends Partial<
 	serial_number?: string;
 	firmware_revision?: string;
 	software_revision?: string;
+	// The OS, from whichever source read or matched it (read-only in UI).
+	os?: HostOs;
 
 	// Credential assignments (user-editable, from junction table)
 	credential_assignments: CredentialAssignment[];

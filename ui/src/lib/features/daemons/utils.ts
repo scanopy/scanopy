@@ -90,6 +90,15 @@ export function hasSunsetWarning(daemon: Daemon): boolean {
 /// label where an OS identifier was expected.
 export type DaemonOS = components['schemas']['DaemonOs'];
 
+/**
+ * The OS this daemon reported it runs on, or null when it is too old to report one. A daemon that
+ * reports is refused on any other OS, so its `os` is fact; below that version `os` is only the OS
+ * picked at creation (or absent), and a command built for it has to let the user choose.
+ */
+export function reportedDaemonOs(daemon: Daemon): DaemonOS | null {
+	return daemon.version_status.supports_os_reporting ? (daemon.os ?? null) : null;
+}
+
 export function slugifyNetworkName(name: string): string {
 	return name
 		.toLowerCase()

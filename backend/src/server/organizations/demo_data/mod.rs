@@ -30,11 +30,12 @@ use crate::server::{
     hosts::r#impl::{
         attributes::{
             HostChassisIdValue, HostFirmwareRevisionValue, HostManufacturerValue, HostModelValue,
-            HostSerialNumberValue, HostSoftwareRevisionValue, HostSysContactValue,
+            HostOsValue, HostSerialNumberValue, HostSoftwareRevisionValue, HostSysContactValue,
             HostSysDescrValue, HostSysLocationValue, HostSysNameValue, HostSysObjectIdValue,
         },
         base::{Host, HostBase},
         name::{HostName, HostNameSources},
+        os::{HostOs, HostOsFamily},
         virtualization::{HostVirtualization, ProxmoxVirtualization},
     },
     interfaces::r#impl::base::{IfAdminStatus, IfOperStatus, Interface, InterfaceBase},
@@ -387,6 +388,7 @@ fn create_host(
             serial_number: None,
             firmware_revision: None,
             software_revision: None,
+            os: None,
             credential_assignments: vec![],
         },
     };
@@ -429,11 +431,13 @@ fn with_snmp(
     host.base.model = model.map(|v| Attributed::new(HostModelValue(v.into()), probe));
     host.base.serial_number =
         serial_number.map(|v| Attributed::new(HostSerialNumberValue(v.into()), probe));
+    // The server matches an OS in what SNMP reported on every scan; the demo runs the same match.
+    host.base.match_os_from_system_strings();
     (host, ip_address)
 }
 
 /// Wraps a `create_host()` result to add what the "Linux Inventory" SSH credential's script
-/// reports: OS and hardware identity, attributed to the script as a real scan would.
+/// reports: the OS and hardware identity, attributed to the script as a real scan would.
 fn with_ssh_inventory(
     (mut host, ip_address): (Host, IPAddress),
     sys_descr: &str,
@@ -441,7 +445,7 @@ fn with_ssh_inventory(
     model: &str,
     serial_number: &str,
     firmware_revision: &str,
-    software_revision: &str,
+    os: HostOs,
 ) -> (Host, IPAddress) {
     let source = AttributeSource::SshScript;
     host.base.sys_descr = Some(Attributed::new(HostSysDescrValue(sys_descr.into()), source));
@@ -458,10 +462,7 @@ fn with_ssh_inventory(
         HostFirmwareRevisionValue(firmware_revision.into()),
         source,
     ));
-    host.base.software_revision = Some(Attributed::new(
-        HostSoftwareRevisionValue(software_revision.into()),
-        source,
-    ));
+    host.base.os = Some(Attributed::new(HostOsValue(os), source));
     (host, ip_address)
 }
 
@@ -724,3 +725,35 @@ use host_with_services;
 
 #[cfg(test)]
 mod tests;
+
+/// What the Docker engine on a demo Docker host reports about the machine it runs on. The daemon
+/// there runs in the published image and self-reports that image's OS (Debian 12); the Docker
+/// integration's engine reading replaces it by rank, so this is what a scan leaves on the host.
+fn docker_engine_host_os() -> Option<crate::server::hosts::r#impl::attributes::HostOsAttributed> {
+    Some(Attributed::new(
+        HostOsValue(HostOs {
+            family: HostOsFamily::Linux,
+            name: Some("Ubuntu 24.04.1 LTS".to_string()),
+            version: None,
+            edition: None,
+            codename: None,
+            kernel_version: Some("6.8.0-45-generic".to_string()),
+        }),
+        AttributeSource::ContainerRuntimeInfo,
+    ))
+}
+
+/// The identification string a Proxmox VE 8 node's SSH server sends, after the `SSH-2.0-` prefix.
+const PROXMOX_SSH_BANNER: &str = "OpenSSH_9.2p1 Debian-2+deb12u3";
+
+/// Wraps a `create_host()` result with the OS its SSH banner names, matched the way the daemon's
+/// SSH probe matches it, so the demo carries an inferred OS beside the ones read off a host.
+fn with_ssh_banner((mut host, ip_address): (Host, IPAddress), banner: &str) -> (Host, IPAddress) {
+    if let Some(os) = crate::server::hosts::r#impl::os::recog::RecogDatabase::SshBanner.os(banner) {
+        Attributed::apply(
+            &mut host.base.os,
+            Attributed::new(HostOsValue(os), AttributeSource::SshBannerMatch),
+        );
+    }
+    (host, ip_address)
+}
