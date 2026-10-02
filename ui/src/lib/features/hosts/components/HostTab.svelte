@@ -833,7 +833,7 @@
 	</TabHeader>
 
 	{#if !hasDaemon(onboarding)}
-		<PreDaemonEmptyState title={daemons_installPromptHosts()} />
+		<PreDaemonEmptyState title={daemons_installPromptHosts()} {isReadOnly} />
 	{:else if isInitialLoading}
 		<!-- Loading state (only on initial load) -->
 		<Loading />

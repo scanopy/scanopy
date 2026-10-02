@@ -53,6 +53,7 @@
 		onboarding,
 		organization,
 		onNavigate,
+		onDismiss,
 		isActive = false
 	}: {
 		onboarding: OnboardingOperation[];
@@ -61,6 +62,7 @@
 			plan?: { included_seats?: number | null; seat_cents?: number | null } | null;
 		};
 		onNavigate: (tab: string) => void;
+		onDismiss?: () => void;
 		isActive: boolean;
 	} = $props();
 
@@ -180,6 +182,7 @@
 		trackEvent('checklist_dismissed', { completed_count: completedCount });
 		localStorage.setItem(DISMISS_KEY, 'true');
 		dismissed = true;
+		onDismiss?.();
 	}
 
 	// Waiting suggestions — show all applicable, mark completed ones

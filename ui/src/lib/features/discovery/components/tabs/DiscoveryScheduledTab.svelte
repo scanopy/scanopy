@@ -456,7 +456,7 @@
 	{/if}
 
 	{#if !hasDaemon(onboarding)}
-		<PreDaemonEmptyState title={daemons_installPromptDiscoveries()} />
+		<PreDaemonEmptyState title={daemons_installPromptDiscoveries()} {isReadOnly} />
 	{:else if isLoading}
 		<Loading />
 	{:else if discoveriesData.length === 0}

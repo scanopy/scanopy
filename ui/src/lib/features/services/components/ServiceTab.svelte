@@ -717,7 +717,7 @@
 	<TabHeader title={common_services()} subtitle={services_subtitle()} />
 
 	{#if !hasDaemon(onboarding)}
-		<PreDaemonEmptyState title={daemons_installPromptServices()} />
+		<PreDaemonEmptyState title={daemons_installPromptServices()} {isReadOnly} />
 	{:else if isInitialLoading}
 		<!-- Loading state (only on initial load) -->
 		<Loading />

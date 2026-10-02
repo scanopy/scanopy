@@ -380,7 +380,7 @@
 	</TabHeader>
 
 	{#if !hasDaemon(onboarding)}
-		<PreDaemonEmptyState title={daemons_installPromptSubnets()} />
+		<PreDaemonEmptyState title={daemons_installPromptSubnets()} {isReadOnly} />
 	{:else if isLoading}
 		<!-- Loading state -->
 		<Loading />
