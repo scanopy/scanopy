@@ -85,7 +85,7 @@ impl Storable for Credential {
                 SqlValue::String(name),
                 SqlValue::OptionalString(description),
                 SqlValue::CredentialType(credential_type),
-                SqlValue::OsFamily(daemon_os),
+                SqlValue::OptionalOsFamily(daemon_os),
                 SqlValue::Timestamp(created_at),
                 SqlValue::Timestamp(updated_at),
             ],
@@ -95,7 +95,10 @@ impl Storable for Credential {
     fn from_row(row: &PgRow) -> Result<Self, anyhow::Error> {
         let credential_type_json: serde_json::Value = row.get("credential_type");
         let credential_type: CredentialType = serde_json::from_value(credential_type_json)?;
-        let daemon_os: OsFamily = serde_json::from_str(&row.get::<String, _>("daemon_os"))?;
+        let daemon_os: Option<OsFamily> = row
+            .get::<Option<String>, _>("daemon_os")
+            .map(|s| serde_json::from_str(&s))
+            .transpose()?;
 
         Ok(Credential {
             id: row.get("id"),

@@ -8,6 +8,7 @@ use crate::server::daemons::r#impl::api::{
     DaemonDiscoveryRequest, DaemonHeartbeatPayload, ProvisionDaemonRequest,
     ProvisionDaemonResponse, TestReachabilityRequest, TestReachabilityResponse,
 };
+use crate::server::daemons::r#impl::base::DaemonOs;
 use crate::server::openapi::tags as api_tags;
 use crate::server::shared::entities::EntityDiscriminants;
 use crate::server::shared::extractors::Query;
@@ -452,19 +453,6 @@ async fn bulk_delete_daemons(
         }
     }
     generated::bulk_delete(state, auth, Json(ids)).await
-}
-
-/// Operating system the install command was generated for.
-#[derive(
-    Debug, Clone, Copy, Deserialize, Serialize, strum_macros::IntoStaticStr, utoipa::ToSchema,
-)]
-#[serde(rename_all = "lowercase")]
-#[strum(serialize_all = "lowercase")]
-pub enum DaemonOs {
-    Linux,
-    MacOS,
-    Windows,
-    FreeBsd,
 }
 
 /// Request body for emailing an install command to the authenticated user.

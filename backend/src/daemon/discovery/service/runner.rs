@@ -346,6 +346,7 @@ impl DiscoveryRunner {
             &self.service.utils,
             ops.config_store.get_accept_invalid_scan_certs().await?,
             trusted_ca.as_deref(),
+            &ops.config_store,
         )
         .await?;
 

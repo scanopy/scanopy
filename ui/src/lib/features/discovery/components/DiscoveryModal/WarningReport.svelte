@@ -46,6 +46,7 @@
 		common_credentials,
 		common_warnings,
 		daemons_upgradeDaemon,
+		discovery_credentialWarningsElsewhere,
 		discovery_noWarnings,
 		discovery_noWarningsBeforeStop,
 		discovery_noWarningsSubtitle,
@@ -58,17 +59,25 @@
 	import {
 		buildWarningReport,
 		credentialIdsOf,
+		isCredentialWarning,
 		type WarningEntry,
 		type WarningSubject
 	} from '../../utils/warnings';
 
 	interface Props {
 		payload: DiscoveryUpdatePayload;
+		/** Switch to the Credentials tab, which holds the run's credential warnings. */
+		onShowCredentials?: () => void;
 	}
 
-	let { payload }: Props = $props();
+	let { payload, onShowCredentials }: Props = $props();
 
-	let warnings = $derived(payload.warnings ?? []);
+	// Credential warnings are shown with their credential on the Credentials tab; this tab keeps the
+	// scan's own and points there for the rest.
+	let warnings = $derived((payload.warnings ?? []).filter((w) => !isCredentialWarning(w)));
+	let credentialWarningCount = $derived(
+		(payload.warnings ?? []).filter(isCredentialWarning).length
+	);
 
 	/**
 	 * How the run ended, for a run that did not complete. This tab is where a reader looks for
@@ -283,7 +292,7 @@
 	{/if}
 {/if}
 
-{#if sections.length === 0}
+{#if sections.length === 0 && credentialWarningCount === 0}
 	<EmptyState
 		title={discovery_noWarnings()}
 		subtitle={outcome ? discovery_noWarningsBeforeStop() : discovery_noWarningsSubtitle()}
@@ -381,4 +390,10 @@
 			</CollapsibleCard>
 		{/each}
 	</div>
+{/if}
+
+{#if credentialWarningCount > 0}
+	<button type="button" class="text-link mt-4 text-sm" onclick={() => onShowCredentials?.()}>
+		{discovery_credentialWarningsElsewhere({ count: credentialWarningCount })}
+	</button>
 {/if}

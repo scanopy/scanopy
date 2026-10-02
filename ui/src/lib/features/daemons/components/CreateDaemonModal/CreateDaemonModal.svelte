@@ -432,7 +432,8 @@
 				network_id: selectedNetworkId,
 				mode,
 				url: isServerPoll ? constructDaemonUrl(daemonUrlBase, daemonPort) : null,
-				seed_credential_refs: seedCredentialRefs
+				seed_credential_refs: seedCredentialRefs,
+				os: selectedOS
 			});
 			keyState = result.daemon_api_key;
 			provisionedDaemonId = result.daemon.id;
@@ -762,6 +763,7 @@
 				bind:selectedTypeIds={selectedCredentialTypeIds}
 				canReturnToTypeSelect={true}
 				fixedDaemonOs={osFamilyOf(selectedOS)}
+				daemonName={String(formValues.name ?? '')}
 			/>
 		{:else}
 			<div class="flex-1 overflow-auto p-4 sm:p-6">

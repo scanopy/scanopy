@@ -16,7 +16,7 @@ use crate::server::{
     daemon_api_keys::r#impl::base::{DaemonApiKey, DaemonApiKeyBase},
     daemons::r#impl::{
         api::DiscoveryUpdatePayload,
-        base::{Daemon, DaemonBase, DaemonMode},
+        base::{Daemon, DaemonBase, DaemonMode, DaemonOs},
     },
     dependencies::r#impl::{
         base::{Dependency, DependencyBase, DependencyMembers},

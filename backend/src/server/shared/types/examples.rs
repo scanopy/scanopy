@@ -18,7 +18,7 @@ use crate::server::{
     bindings::r#impl::base::Binding,
     credentials::r#impl::mapping::SnmpCredentialMapping,
     daemon_api_keys::r#impl::base::{DaemonApiKey, DaemonApiKeyBase},
-    daemons::r#impl::base::{Daemon, DaemonBase, DaemonMode},
+    daemons::r#impl::base::{Daemon, DaemonBase, DaemonMode, DaemonOs},
     dependencies::r#impl::{
         base::{Dependency, DependencyBase, DependencyMembers},
         types::DependencyType,
@@ -348,6 +348,7 @@ pub fn daemon() -> Daemon {
             is_unreachable: false,
             standby: false,
             standby_cleared_at: None,
+            os: Some(DaemonOs::Linux),
         },
     }
 }

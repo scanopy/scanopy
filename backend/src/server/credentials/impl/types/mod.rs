@@ -798,6 +798,14 @@ impl CredentialType {
         paths.into_iter().flatten().collect()
     }
 
+    /// Whether anything in this credential is read on the daemon: a file or a socket. Exactly the
+    /// credentials whose `daemon_os` means something.
+    pub fn reads_daemon_paths(&self) -> bool {
+        self.paths()
+            .iter()
+            .any(|(_, p)| matches!(p, CredentialPath::Daemon(_) | CredentialPath::Socket(_)))
+    }
+
     /// Check every path for the OS of the machine that holds it: daemon-side paths for the
     /// credential's `daemon_os`, an SSH host file for its `target_os`.
     pub fn validate_paths(&self, daemon_os: OsFamily) -> Result<(), Error> {
@@ -1153,10 +1161,10 @@ mod tests {
             timeout_seconds: 60,
             host_key_fingerprint: None,
         };
-        let check = |credential_type, daemon_os| {
+        let check = |credential_type, daemon_os: OsFamily| {
             CredentialBase {
                 credential_type,
-                daemon_os,
+                daemon_os: Some(daemon_os),
                 ..Default::default()
             }
             .validate_settings()

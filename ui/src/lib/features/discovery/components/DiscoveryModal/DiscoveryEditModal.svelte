@@ -22,6 +22,7 @@
 	import DiscoveryHistoricalSummary from './DiscoveryHistoricalSummary.svelte';
 	import WarningReport from './WarningReport.svelte';
 	import CredentialResults from './CredentialResults.svelte';
+	import { isCredentialWarning } from '../../utils/warnings';
 	import { uuidv4Sentinel } from '$lib/shared/utils/formatting';
 	import { createEmptyDiscoveryFormData, parseDayTimeCronSchedule } from '../../queries';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
@@ -30,7 +31,7 @@
 	import { copyText } from '$lib/shared/utils/clipboard';
 	import { formatDiagnostics } from '../../utils/diagnostics';
 	import type { Daemon } from '$lib/features/daemons/types/base';
-	import { isPreUnifiedDaemon } from '$lib/features/daemons/utils';
+	import { isPreUnifiedDaemon, osFamilyOf } from '$lib/features/daemons/utils';
 	import type { Host } from '$lib/features/hosts/types/base';
 	import { useSubnetsQuery } from '$lib/features/subnets/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
@@ -62,7 +63,7 @@
 		common_deleting,
 		common_details,
 		common_failedToCopy,
-		common_issues,
+		common_warnings,
 		common_next,
 		common_saving,
 		common_schedule,
@@ -143,13 +144,16 @@
 	let historicalResults = $derived(
 		discovery?.run_type.type === 'Historical' ? discovery.run_type.results : null
 	);
-	/** A run that failed or was cancelled: the Issues tab has its reason to show. */
+	/** A run that failed or was cancelled: the Warnings tab has its reason to show. */
 	let endedBadly = $derived(
 		historicalResults?.phase === 'Failed' || historicalResults?.phase === 'Cancelled'
 	);
 	let historicalWarnings = $derived(
 		discovery?.run_type.type === 'Historical' ? (discovery.run_type.results.warnings ?? []) : []
 	);
+	// Each warning is on one of the two tabs, as the backend files its code.
+	let credentialWarningCount = $derived(historicalWarnings.filter(isCredentialWarning).length);
+	let scanWarningCount = $derived(historicalWarnings.length - credentialWarningCount);
 	let readOnly = $derived(formData.run_type.type == 'Historical');
 
 	/**
@@ -337,27 +341,30 @@
 	let wizardCredentialsActive = $derived(hasCredentialsTab && activeTab === 'credentials');
 
 	/**
-	 * A run has issues and it has details, and they are read for different reasons — "did this
-	 * need me" before "what did it do". Two tabs rather than the warnings stapled to the top of
-	 * the details, which is what made a run with fourteen of them unreadable.
+	 * A run has warnings and it has details, and they are read for different reasons — "did this
+	 * need me" before "what did it do". Separate tabs rather than the warnings stapled to the top
+	 * of the details, which is what made a run with fourteen of them unreadable.
 	 *
-	 * Issues holds everything that went wrong: the warnings, and for a run that failed or was
-	 * cancelled, why it ended. The tab carries no status dot. Landing on it already says the run
-	 * has something, and the count that says how many belongs on the row in scan history, where
-	 * runs are compared.
-	 *
-	 * Credentials sits between them: what each stored credential did, with a link back to Issues
-	 * for the ones that had problems.
+	 * Each warning is on exactly one tab, as the backend files its code (`concerns_credential`).
+	 * Warnings holds the scan's own, and for a run that failed or was cancelled, why it ended.
+	 * Credentials holds what each credential did together with its warnings. Both tabs show their
+	 * warning count the same way.
 	 */
 	let tabs: ModalTab[] = $derived(
 		isHistoricalRun
 			? [
 					{
-						id: 'issues',
-						label: common_issues(),
+						id: 'warnings',
+						label: common_warnings(),
+						count: scanWarningCount,
 						icon: TriangleAlert
 					},
-					{ id: 'credentials', label: common_credentials(), icon: KeyRound },
+					{
+						id: 'credentials',
+						label: common_credentials(),
+						icon: KeyRound,
+						count: credentialWarningCount
+					},
 					{ id: 'details', label: common_details(), icon: Info }
 				]
 			: [
@@ -613,9 +620,14 @@
 
 	function handleOpen() {
 		// A run with something wrong opens on it: its warnings, or the reason it did not finish.
-		// A clean one opens on its details. The Issues tab exists either way, so the modal does
+		// A clean one opens on its details. The Warnings tab exists either way, so the modal does
 		// not change shape between runs.
-		activeTab = historicalWarnings.length > 0 || endedBadly ? 'issues' : 'details';
+		activeTab =
+			scanWarningCount > 0 || endedBadly
+				? 'warnings'
+				: credentialWarningCount > 0
+					? 'credentials'
+					: 'details';
 		appliedJunctionFingerprint = '';
 		furthestReached = discovery ? Infinity : 0;
 		formData = getDefaultFormData();
@@ -776,12 +788,15 @@
 		>
 			{#if isHistoricalRun && discovery?.run_type.type === 'Historical'}
 				<div class="space-y-8 p-6">
-					{#if activeTab === 'issues'}
-						<WarningReport payload={discovery.run_type.results} />
+					{#if activeTab === 'warnings'}
+						<WarningReport
+							payload={discovery.run_type.results}
+							onShowCredentials={() => (activeTab = 'credentials')}
+						/>
 					{:else if activeTab === 'credentials'}
 						<CredentialResults
 							payload={discovery.run_type.results}
-							onShowIssues={() => (activeTab = 'issues')}
+							daemonName={daemon?.name ?? null}
 						/>
 					{:else}
 						<DiscoveryHistoricalSummary payload={discovery.run_type.results} />
@@ -849,6 +864,7 @@
 						fixedCapabilityTypeIds={daemonHostCredentialTypeIds}
 						daemonVersion={daemon?.version ?? null}
 						daemonName={daemon?.name ?? null}
+						fixedDaemonOs={daemon?.os ? osFamilyOf(daemon.os) : null}
 						canReturnToTypeSelect={!isEditing}
 					/>
 				</div>
@@ -876,7 +892,7 @@
 				<div class="flex items-center gap-3">
 					<!-- Beside Close rather than above the report: it acts on the whole run, not on
 					     any one row, and the footer is where a modal's whole-record actions live. -->
-					{#if activeTab === 'issues' && historicalWarnings.length > 0}
+					{#if activeTab === 'warnings' && historicalWarnings.length > 0}
 						<button
 							type="button"
 							class="btn-secondary flex items-center gap-1"
@@ -886,7 +902,7 @@
 							<span>{discovery_copyWarningData()}</span>
 						</button>
 					{/if}
-					{#if activeTab === 'issues' && endedBadly}
+					{#if activeTab === 'warnings' && endedBadly}
 						<button
 							type="button"
 							class="btn-secondary flex items-center gap-1"

@@ -9,7 +9,12 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::server::shared::entities::ChangeTriggersTopologyStaleness;
+use crate::server::credentials::r#impl::types::OsFamily;
+use crate::server::shared::entities::{ChangeTriggersTopologyStaleness, EntityDiscriminants};
+use crate::server::shared::types::{
+    Color, Icon,
+    metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider},
+};
 
 #[derive(
     Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Default, ToSchema, Validate,
@@ -66,6 +71,81 @@ pub struct DaemonBase {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schema(read_only)]
     pub standby_cleared_at: Option<DateTime<Utc>>,
+    /// The operating system chosen when the daemon was created. Credentials set up for another
+    /// OS's file paths cannot be used by it. `None` for daemons created before this was recorded.
+    #[serde(default)]
+    #[schema(required)]
+    pub os: Option<DaemonOs>,
+}
+
+/// Operating system a daemon is installed on, as picked when it is created.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Deserialize,
+    Serialize,
+    strum_macros::IntoStaticStr,
+    strum_macros::EnumIter,
+    strum_macros::VariantNames,
+    ToSchema,
+)]
+#[serde(rename_all = "lowercase")]
+#[strum(serialize_all = "lowercase")]
+pub enum DaemonOs {
+    Linux,
+    MacOS,
+    Windows,
+    FreeBsd,
+}
+
+impl From<DaemonOs> for OsFamily {
+    fn from(os: DaemonOs) -> Self {
+        match os {
+            DaemonOs::Windows => OsFamily::Windows,
+            DaemonOs::Linux | DaemonOs::MacOS | DaemonOs::FreeBsd => OsFamily::Unix,
+        }
+    }
+}
+
+impl HasId for DaemonOs {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+impl EntityMetadataProvider for DaemonOs {
+    fn color(&self) -> Color {
+        EntityDiscriminants::Daemon.color()
+    }
+
+    fn icon(&self) -> Icon {
+        EntityDiscriminants::Daemon.icon()
+    }
+}
+
+/// Emitted as `daemon-os.json`: the OS family each install OS maps to, so the create-daemon modal
+/// stamps credentials and checks existing ones without its own copy of the mapping.
+impl TypeMetadataProvider for DaemonOs {
+    fn name(&self) -> &'static str {
+        match self {
+            DaemonOs::Linux => "Linux",
+            DaemonOs::MacOS => "macOS",
+            DaemonOs::Windows => "Windows",
+            DaemonOs::FreeBsd => "FreeBSD",
+        }
+    }
+
+    fn description(&self) -> &'static str {
+        ""
+    }
+
+    fn metadata(&self) -> serde_json::Value {
+        serde_json::json!({ "os_family": OsFamily::from(*self) })
+    }
 }
 
 #[derive(

@@ -423,6 +423,8 @@ pub(crate) async fn apply_pending_setup(
                     url: None,
                     seed_credential_refs: Vec::new(),
                     daemon_id: None,
+                    // The integrated daemon ships in the Linux server image.
+                    os: Some(DaemonOs::Linux),
                 },
                 None,
                 auth_entity.clone(),

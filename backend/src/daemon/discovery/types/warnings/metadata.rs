@@ -180,7 +180,7 @@ impl DiscoveryWarningCode {
                 &["credential", "addresses"]
             }
             Self::CredentialGateClosed => &["credential", "addresses", "ports"],
-            Self::CredentialDaemonOsMismatch => &["credential", "declared", "actual"],
+            Self::CredentialDaemonOsMismatch => &["credential", "declared", "daemon", "actual"],
             Self::CredentialRejected
             | Self::CredentialMalformed
             | Self::CredentialTlsFailed
@@ -552,7 +552,7 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
                 "The {credential} credential for {addresses} was not tried, because port {ports} was not open there — check the port configured on the credential."
             }
             Self::CredentialDaemonOsMismatch => {
-                "The {credential} credential reads files on a {declared} daemon, and this daemon runs {actual}, so it was not used. Set the credential's daemon OS to match, or scan with a {declared} daemon."
+                "The {credential} credential reads files on a {declared} daemon, and {daemon} runs {actual}, so it was not used. Set the credential's daemon OS to match, or scan with a {declared} daemon."
             }
             Self::CredentialRejected => {
                 "The {credential} credential for {addresses} was refused — check the username, password or community string. ({detail})"
@@ -640,7 +640,73 @@ impl TypeMetadataProvider for DiscoveryWarningCode {
     }
 
     fn metadata(&self) -> serde_json::Value {
-        json!({ "slots": self.slots() })
+        json!({ "slots": self.slots(), "concerns_credential": self.concerns_credential() })
+    }
+}
+
+impl DiscoveryWarningCode {
+    /// Whether this code reports on one credential, so a run shows it with that credential's
+    /// results on the Credentials tab rather than among the scan's own warnings. Each code is on
+    /// exactly one of the two.
+    ///
+    /// Exhaustive, so a new code has to say which.
+    pub fn concerns_credential(&self) -> bool {
+        match self {
+            Self::CredentialTargetNotScanned
+            | Self::CredentialTargetNotResponding
+            | Self::CredentialGateClosed
+            | Self::CredentialDaemonOsMismatch
+            | Self::CredentialRejected
+            | Self::CredentialMalformed
+            | Self::CredentialTlsFailed
+            | Self::CredentialNotThisService
+            | Self::CredentialCollectionFailed
+            | Self::CredentialCollectionTimedOut
+            | Self::CredentialUnreachable
+            | Self::CredentialTimedOut => true,
+
+            Self::ClaimedCapabilityEmpty
+            | Self::ClaimedCapabilityReadCutShort
+            | Self::ClaimedCountReadCutShort
+            | Self::ClaimedCountUnderRead
+            | Self::ConnectionsWithoutProtocolResponse
+            | Self::DcpSweepTimedOut
+            | Self::EqualReachIntegrationsMerged
+            | Self::FdbResolutionIncomplete
+            | Self::IcmpSweepTimedOut
+            | Self::InterfaceDetailsCutShort
+            | Self::InterfaceSetCutShort
+            | Self::LldpLocalPortDropped
+            | Self::LldpLocalPortDroppedReadCutShort
+            | Self::LldpLocalPortMisplaced
+            | Self::LldpNeighbourAmbiguous
+            | Self::LldpNeighbourNotFound
+            | Self::LldpPortAmbiguous
+            | Self::LldpPortNoStrategy
+            | Self::LldpPortNotFound
+            | Self::MalformedNeighboursGhostRows
+            | Self::MalformedNeighboursIncompleteRecords
+            | Self::MalformedNeighboursUnexpectedType
+            | Self::MalformedNeighboursUnreadableIndex
+            | Self::MalformedNeighboursWalkCutShort
+            | Self::NeighbourResolutionIncomplete
+            | Self::OutdatedDaemonFormat
+            | Self::ProvisionalSubnetInferred
+            | Self::ReverseDnsTimedOut
+            | Self::ScanTimeLimit
+            | Self::ScanTimeLimitWithEstimate
+            | Self::SnmpCollectedNothing
+            | Self::SnmpWalkBridgeMibAbsent
+            | Self::SnmpWalkDesynchronised
+            | Self::SnmpWalkEntryCap
+            | Self::SnmpWalkNoAnswer
+            | Self::SnmpWalkPartialDiscarded
+            | Self::SnmpWalkPartialRecorded
+            | Self::SnmpWalkUnsupported
+            | Self::Unknown
+            | Self::VlanRecordingFailed
+            | Self::WarningsTruncated => false,
+        }
     }
 }
 

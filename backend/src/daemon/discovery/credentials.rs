@@ -142,7 +142,10 @@ pub fn take_os_mismatches(
         else {
             return true;
         };
-        if m.daemon_os == actual || !payload.reads_daemon_paths() {
+        let Some(declared) = m.daemon_os else {
+            return true;
+        };
+        if declared == actual || !payload.reads_daemon_paths() {
             return true;
         }
         warnings.push(DiscoveryWarning::CredentialDaemonOsMismatch {
@@ -150,7 +153,7 @@ pub fn take_os_mismatches(
             credential_id: m
                 .default_credential_id
                 .or_else(|| m.ip_overrides.first().map(|o| o.credential_id)),
-            declared: m.daemon_os,
+            declared,
             actual,
         });
         false
@@ -195,9 +198,9 @@ mod tests {
             ip_overrides: vec![],
         };
         let mut mappings = vec![
-            mapping(file_backed.clone(), windows_file, OsFamily::Windows),
-            mapping(snmp("public"), windows_inline, OsFamily::Windows),
-            mapping(file_backed, Uuid::new_v4(), OsFamily::Unix),
+            mapping(file_backed.clone(), windows_file, Some(OsFamily::Windows)),
+            mapping(snmp("public"), windows_inline, Some(OsFamily::Windows)),
+            mapping(file_backed, Uuid::new_v4(), Some(OsFamily::Unix)),
         ];
 
         let warnings = take_os_mismatches(&mut mappings, OsFamily::Unix);

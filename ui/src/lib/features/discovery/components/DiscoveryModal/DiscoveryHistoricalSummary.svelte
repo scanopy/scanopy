@@ -118,7 +118,7 @@
 
 <div class="space-y-4">
 	<!-- Status Banner: the phase, and only the phase. Why a run ended the way it did, and the
-	     error that came with it, belong to the Issues tab, which is where a reader goes when
+	     error that came with it, belong to the Warnings tab, which is where a reader goes when
 	     something went wrong. -->
 
 	{#if payload.phase === 'Complete'}

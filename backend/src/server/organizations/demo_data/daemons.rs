@@ -51,6 +51,7 @@ pub(super) fn generate_daemons(
                 is_unreachable: false,
                 standby: false,
                 standby_cleared_at: None,
+                os: Some(DaemonOs::Linux),
             },
         });
     }
@@ -69,6 +70,7 @@ pub(super) fn generate_daemons(
                 last_seen: Some(now),
                 mode: DaemonMode::DaemonPoll,
                 standby_cleared_at: None,
+                os: Some(DaemonOs::Linux),
                 name: "DC Daemon".to_string(),
                 tags: vec![],
                 version: Version::parse(env!("CARGO_PKG_VERSION"))

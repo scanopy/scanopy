@@ -1,9 +1,11 @@
 //! SSH: run the credential's script on the host and apply the JSON it prints.
 //!
-//! Probe completes a handshake and reads the host key, sending no credentials. Execute decides
-//! whether that key is trusted (the credential's required fingerprint, else the key pinned on
-//! first use), authenticates to that exact key, runs the script, and applies its output. The
-//! contract the output follows lives in `server::credentials::impl::types::ssh_script`.
+//! Probe completes a handshake, decides whether the host key is trusted (the credential's required
+//! fingerprint, else the key pinned on first use), and logs in. Sending nothing to an untrusted key
+//! and proving the login works both happen there, so of several SSH credentials on one host the
+//! first that logs in is the one used, as for every other integration. Execute runs the script on
+//! the probe's session and applies its output. The contract the output follows lives in
+//! `server::credentials::impl::types::ssh_script`.
 
 mod apply;
 mod client;
@@ -33,9 +35,9 @@ const MAX_SCRIPT_TIMEOUT: Duration = Duration::from_secs(30 * 60);
 
 pub struct SshIntegration;
 
-/// The host key the probe saw.
+/// The session the probe logged in on, taken by execute.
 struct SshProbeHandle {
-    fingerprint: String,
+    session: tokio::sync::Mutex<Option<client::Session>>,
 }
 
 fn credential(c: &CredentialQueryPayload) -> Option<&SshQueryCredential> {
@@ -79,13 +81,45 @@ impl DiscoveryIntegration for SshIntegration {
     async fn probe(&self, ctx: &ProbeContext<'_>) -> Result<ProbeSuccess, ProbeFailure> {
         let cred = credential(ctx.credential)
             .ok_or_else(|| ProbeFailure::malformed("Expected SSH credential"))?;
-        let fingerprint = client::read_host_key(ctx.ip, cred.port)
+        let handshake = client::handshake(ctx.ip, cred.port)
             .await
             .map_err(|e| ProbeFailure::not_this_service(format!("SSH handshake failed: {e}")))?;
+        let observed = handshake.fingerprint().to_string();
+
+        let endpoint = format!("{}:{}", ctx.ip, cred.port);
+        let store = ctx.config_store;
+        let pinned = store.ssh_known_host_key(&endpoint).await;
+        let pin_after_login = match host_key_verdict(
+            &observed,
+            cred.host_key_fingerprint.as_deref(),
+            pinned.as_deref(),
+        ) {
+            KeyVerdict::Trust { pin } => pin,
+            KeyVerdict::Mismatch { trusted } => {
+                return Err(ProbeFailure::rejected(format!(
+                    "the host presented key {observed}, not the trusted {trusted}; nothing was sent to it and the script was not run. If the host was reinstalled, remove {endpoint} from ssh_known_host_keys in the daemon config"
+                )));
+            }
+        };
+
+        let session = handshake
+            .authenticate(&cred.username, &cred.auth)
+            .await
+            .map_err(|e| match e {
+                SessionError::AuthenticationFailed(m) => ProbeFailure::rejected(m),
+                SessionError::Malformed(m) => ProbeFailure::malformed(m),
+                SessionError::Unreachable(m) => ProbeFailure::unreachable(m),
+            })?;
+        if pin_after_login && let Err(e) = store.pin_ssh_host_key(&endpoint, &observed).await {
+            tracing::warn!(%endpoint, error = %e, "Could not pin the SSH host key");
+        }
+
         Ok(ProbeSuccess {
             client_probe: Some(ClientProbe::Ssh),
             ports: vec![PortType::new_tcp(cred.port)],
-            handle: Some(Box::new(SshProbeHandle { fingerprint })),
+            handle: Some(Box::new(SshProbeHandle {
+                session: tokio::sync::Mutex::new(Some(session)),
+            })),
         })
     }
 
@@ -97,11 +131,15 @@ impl DiscoveryIntegration for SshIntegration {
     ) -> Result<Completeness, IntegrationFailure> {
         let cred = credential(ctx.credential)
             .ok_or_else(|| IntegrationFailure::collection_failed("Expected SSH credential"))?;
-        let observed = ctx
+        let session = ctx
             .probe_handle
             .and_then(|h| h.downcast_ref::<SshProbeHandle>())
-            .map(|h| h.fingerprint.clone())
-            .ok_or_else(|| anyhow::anyhow!("SSH execute called without SshProbeHandle"))?;
+            .ok_or_else(|| anyhow::anyhow!("SSH execute called without SshProbeHandle"))?
+            .session
+            .lock()
+            .await
+            .take()
+            .ok_or_else(|| anyhow::anyhow!("SSH execute called twice on one probe session"))?;
 
         let mut run = SshScriptRun {
             ip: ctx.ip,
@@ -112,7 +150,7 @@ impl DiscoveryIntegration for SshIntegration {
             detail: None,
             duration_ms: 0,
         };
-        let result = self.run(ctx, cred, &observed, host_data, &mut run).await;
+        let result = self.run(ctx, cred, session, host_data, &mut run).await;
         if let Some(id) = ctx.credential_id {
             ctx.ops.record_ssh_script_run(id, run).await;
         }
@@ -126,34 +164,10 @@ impl SshIntegration {
         &self,
         ctx: &IntegrationContext<'_>,
         cred: &SshQueryCredential,
-        observed: &str,
+        session: client::Session,
         host_data: &mut HostData,
         run: &mut SshScriptRun,
     ) -> Result<Completeness, IntegrationFailure> {
-        let endpoint = format!("{}:{}", ctx.ip, cred.port);
-        let store = &ctx.ops.config_store;
-        let pinned = store.ssh_known_host_key(&endpoint).await;
-        let pin_after_login = match host_key_verdict(
-            observed,
-            cred.host_key_fingerprint.as_deref(),
-            pinned.as_deref(),
-        ) {
-            KeyVerdict::Trust { pin } => pin,
-            KeyVerdict::Mismatch { trusted } => {
-                run.outcome = SshScriptOutcome::HostKeyMismatch;
-                let message = format!(
-                    "the host presented key {observed}, not the trusted {trusted}; the script was not run. If the host was reinstalled, remove {endpoint} from ssh_known_host_keys in the daemon config"
-                );
-                run.detail = Some(message.clone());
-                return Err(IntegrationFailure::with_outcome(
-                    AttemptOutcome::Rejected,
-                    message,
-                ));
-            }
-        };
-
-        // A script file on the daemon's own disk that cannot be read is our configuration, not the
-        // host: report it before connecting.
         let command = match cred.script.command(cred.target_os) {
             Ok(c) => c,
             Err(e) => {
@@ -165,45 +179,17 @@ impl SshIntegration {
                 ));
             }
         };
-        let script = client::run_script(
-            ctx.ip,
-            cred.port,
-            observed,
-            &cred.username,
-            &cred.auth,
-            &command,
-            script_timeout(cred),
-        )
-        .await;
-        let script = match script {
+        let script = match session.run_script(&command, script_timeout(cred)).await {
             Ok(s) => s,
             Err(e) => {
-                let (outcome, attempt) = match &e {
-                    SessionError::HostKeyMismatch { .. } => {
-                        (SshScriptOutcome::HostKeyMismatch, AttemptOutcome::Rejected)
-                    }
-                    SessionError::AuthenticationFailed(_) => (
-                        SshScriptOutcome::AuthenticationFailed,
-                        AttemptOutcome::Rejected,
-                    ),
-                    SessionError::Malformed(_) => (
-                        SshScriptOutcome::ConnectionFailed,
-                        AttemptOutcome::Malformed,
-                    ),
-                    SessionError::Unreachable(_) => (
-                        SshScriptOutcome::ConnectionFailed,
-                        AttemptOutcome::Unreachable,
-                    ),
-                };
-                run.outcome = outcome;
+                run.outcome = SshScriptOutcome::ConnectionFailed;
                 run.detail = Some(e.to_string());
-                return Err(IntegrationFailure::with_outcome(attempt, e.to_string()));
+                return Err(IntegrationFailure::with_outcome(
+                    AttemptOutcome::Unreachable,
+                    e.to_string(),
+                ));
             }
         };
-
-        if pin_after_login && let Err(e) = store.pin_ssh_host_key(&endpoint, observed).await {
-            tracing::warn!(%endpoint, error = %e, "Could not pin the SSH host key");
-        }
 
         run.exit_code = script.exit_code;
         run.duration_ms = u64::try_from(script.elapsed.as_millis()).unwrap_or(u64::MAX);

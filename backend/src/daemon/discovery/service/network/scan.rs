@@ -1647,6 +1647,7 @@ impl NetworkScan {
             utils,
             accept_invalid_certs,
             trusted_ca.as_deref(),
+            &ops.config_store,
         )
         .await?;
         open_ports.extend(probe_results.additional_ports.iter());

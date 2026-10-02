@@ -128,11 +128,6 @@
 		/>
 	{/if}
 
-	<div class="space-y-2">
-		<OsSelector {selectedOS} {onOsSelect} showMethods={false} osDisabled={osLocked} />
-		<p class="text-muted text-xs">{osLocked ? daemons_osLocked() : daemons_osHelp()}</p>
-	</div>
-
 	<!-- Name -->
 	<div oninput={() => onNameInput?.()}>
 		<form.Field name={nameDef.id} validators={getValidators(nameDef.id)}>
@@ -230,4 +225,9 @@
 			{/if}
 		{/if}
 	{/if}
+
+	<div class="space-y-2">
+		<OsSelector {selectedOS} {onOsSelect} showMethods={false} osDisabled={osLocked} />
+		<p class="text-muted text-xs">{osLocked ? daemons_osLocked() : daemons_osHelp()}</p>
+	</div>
 </div>

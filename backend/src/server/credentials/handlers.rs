@@ -354,12 +354,13 @@ async fn update_credential(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Admin>,
     Path(id): Path<Uuid>,
-    Json(entity): Json<Credential>,
+    Json(mut entity): Json<Credential>,
 ) -> ApiResult<Json<ApiResponse<Credential>>> {
     entity
         .base
         .validate_settings()
         .map_err(|e| ApiError::bad_request(&e.to_string()))?;
+    entity.base.clear_unused_daemon_os();
 
     let assigned_network_ids = entity.base.assigned_network_ids.clone();
     let host_assignments = entity.base.host_assignments.clone();

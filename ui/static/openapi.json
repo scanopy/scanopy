@@ -15574,19 +15574,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-02T00:42:15.220334Z",
+              "created_at": "2026-10-02T02:55:14.596747Z",
               "first_discovery_id": null,
-              "id": "8565514f-7636-449d-8cea-6049b870d37c",
+              "id": "78c686f7-4a5e-4dcc-b01c-87488e71b29e",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-02T00:42:15.220334Z",
+              "last_seen_at": "2026-10-02T02:55:14.596747Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-02T00:42:15.220334Z",
-              "valid_from": "2026-10-02T00:42:15.220334Z",
+              "updated_at": "2026-10-02T02:55:14.596747Z",
+              "valid_from": "2026-10-02T02:55:14.596747Z",
               "valid_to": null
             }
           },
@@ -17165,19 +17165,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-02T00:42:15.197738Z",
+                      "created_at": "2026-10-02T02:55:14.577823Z",
                       "first_discovery_id": null,
-                      "id": "cd624cfd-f3bd-46bd-87b1-fe4a046e8be2",
+                      "id": "2083fb80-e0ab-4a4d-be45-d7d7e464ba8a",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-02T00:42:15.197738Z",
+                      "last_seen_at": "2026-10-02T02:55:14.577823Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-02T00:42:15.197738Z",
-                      "valid_from": "2026-10-02T00:42:15.197738Z",
+                      "updated_at": "2026-10-02T02:55:14.577823Z",
+                      "valid_from": "2026-10-02T02:55:14.577823Z",
                       "valid_to": null
                     }
                   ],
@@ -17191,7 +17191,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Pi-Hole",
+                  "service_definition": "Glance",
                   "source": {
                     "type": "Manual"
                   },
@@ -18589,19 +18589,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-02T00:42:15.214651Z",
+                  "created_at": "2026-10-02T02:55:14.592291Z",
                   "first_discovery_id": null,
-                  "id": "bf4bb2fe-9b28-4b5c-b196-b074402fbfb2",
+                  "id": "cff5bf9b-c30c-4f2c-ae51-89eb37f8c19e",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-02T00:42:15.214651Z",
+                  "last_seen_at": "2026-10-02T02:55:14.592291Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-02T00:42:15.214651Z",
-                  "valid_from": "2026-10-02T00:42:15.214651Z",
+                  "updated_at": "2026-10-02T02:55:14.592291Z",
+                  "valid_from": "2026-10-02T02:55:14.592291Z",
                   "valid_to": null
                 }
               ],
@@ -18615,7 +18615,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Pi-Hole",
+              "service_definition": "Glance",
               "source": {
                 "type": "Manual"
               },
@@ -20985,19 +20985,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-02T00:42:15.198159Z",
+          "created_at": "2026-10-02T02:55:14.578260Z",
           "first_discovery_id": null,
-          "id": "a57d1ebc-d8df-4b48-850c-0a7c11f08614",
+          "id": "1fd79a99-6f47-4f86-866c-2e86c97976e1",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-02T00:42:15.198159Z",
+          "last_seen_at": "2026-10-02T02:55:14.578260Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-02T00:42:15.198159Z",
-          "valid_from": "2026-10-02T00:42:15.198159Z",
+          "updated_at": "2026-10-02T02:55:14.578260Z",
+          "valid_from": "2026-10-02T02:55:14.578260Z",
           "valid_to": null
         }
       },
@@ -21713,7 +21713,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Pi-Hole",
+              "service_definition": "Glance",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -21982,8 +21982,15 @@
             "description": "Protocol this credential authenticates with, and its settings."
           },
           "daemon_os": {
-            "$ref": "#/components/schemas/OsFamily",
-            "description": "The OS of the daemons that will read this credential's files and sockets. Paths are\nvalidated for it, and a daemon on another OS skips the credential with a warning."
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OsFamily",
+                "description": "The OS of the daemons that will read this credential's files and sockets. Paths are\nvalidated for it, and a daemon on another OS cannot use the credential. Set exactly when\nthe credential reads something on the daemon; `None` otherwise."
+              }
+            ]
           },
           "description": {
             "type": [
@@ -22068,10 +22075,9 @@
       },
       "CredentialOsFields": {
         "type": "object",
-        "description": "Which fields depend on which declared OS. Computed from the field definitions, so the form\nplaces each OS picker without its own rule: with the one field that depends on it, or above the\nfirst of several.",
+        "description": "Which fields depend on the credential's Daemon OS. Computed from the field definitions, so the\nform places the Daemon OS picker without its own rule: with the one field that depends on it, or\nabove the first of several. The Scanned Host OS is an ordinary field of the SSH types and sits\nin its declared place, above Script, because it sets how the script runs as well as its path.",
         "required": [
-          "daemon",
-          "scanned_host"
+          "daemon"
         ],
         "properties": {
           "daemon": {
@@ -22080,20 +22086,6 @@
               "type": "string"
             },
             "description": "Fields that can read a file or socket on the daemon, so depend on the credential's\n`daemon_os`: every file-or-value field, a script that can come from the daemon, and any\nfield whose placeholder follows `daemon_os`."
-          },
-          "scanned_host": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Fields that depend on the scanned host's OS: those whose placeholder follows the Scanned\nHost OS picker."
-          },
-          "scanned_host_picker": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "The Scanned Host OS picker's own field, where the type has one."
           }
         }
       },
@@ -22973,7 +22965,8 @@
           "mode",
           "name",
           "tags",
-          "user_id"
+          "user_id",
+          "os"
         ],
         "properties": {
           "api_key_id": {
@@ -23014,6 +23007,17 @@
             "type": "string",
             "format": "uuid",
             "description": "The network this entity belongs to."
+          },
+          "os": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DaemonOs",
+                "description": "The operating system chosen when the daemon was created. Credentials set up for another\nOS's file paths cannot be used by it. `None` for daemons created before this was recorded."
+              }
+            ]
           },
           "standby": {
             "type": "boolean",
@@ -23103,7 +23107,7 @@
       },
       "DaemonOs": {
         "type": "string",
-        "description": "Operating system the install command was generated for.",
+        "description": "Operating system a daemon is installed on, as picked when it is created.",
         "enum": [
           "linux",
           "macos",
@@ -27738,19 +27742,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-02T00:42:15.197274Z",
+                  "created_at": "2026-10-02T02:55:14.577423Z",
                   "first_discovery_id": null,
-                  "id": "86e6bcc4-ea7c-4041-b07d-bd09ee24c013",
+                  "id": "474987b7-be28-408a-a415-415ea5db78a4",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-02T00:42:15.197274Z",
+                  "last_seen_at": "2026-10-02T02:55:14.577423Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-02T00:42:15.197274Z",
-                  "valid_from": "2026-10-02T00:42:15.197274Z",
+                  "updated_at": "2026-10-02T02:55:14.577423Z",
+                  "valid_from": "2026-10-02T02:55:14.577423Z",
                   "valid_to": null
                 }
               ],
@@ -27764,7 +27768,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Pi-Hole",
+              "service_definition": "Glance",
               "source": {
                 "type": "Manual"
               },
@@ -31461,19 +31465,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-02T00:42:15.187321Z",
+                        "created_at": "2026-10-02T02:55:14.569865Z",
                         "first_discovery_id": null,
-                        "id": "c025c200-f6a3-4091-8711-f13e2e2a4533",
+                        "id": "df1e4cfd-6cde-4421-b8e1-911edc74e9da",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-02T00:42:15.187321Z",
+                        "last_seen_at": "2026-10-02T02:55:14.569865Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-02T00:42:15.187321Z",
-                        "valid_from": "2026-10-02T00:42:15.187321Z",
+                        "updated_at": "2026-10-02T02:55:14.569865Z",
+                        "valid_from": "2026-10-02T02:55:14.569865Z",
                         "valid_to": null
                       }
                     ],
@@ -31487,7 +31491,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Pi-Hole",
+                    "service_definition": "Glance",
                     "source": {
                       "type": "Manual"
                     },
@@ -31630,19 +31634,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-02T00:42:15.213729Z",
+                    "created_at": "2026-10-02T02:55:14.591554Z",
                     "first_discovery_id": null,
-                    "id": "b0c8ff1b-b9ef-4f3d-bc69-e20f3b03cddf",
+                    "id": "e50ec159-bd7e-4abc-be40-f04d8112b555",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-02T00:42:15.213729Z",
+                    "last_seen_at": "2026-10-02T02:55:14.591554Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-02T00:42:15.213729Z",
-                    "valid_from": "2026-10-02T00:42:15.213729Z",
+                    "updated_at": "2026-10-02T02:55:14.591554Z",
+                    "valid_from": "2026-10-02T02:55:14.591554Z",
                     "valid_to": null
                   }
                 ],
@@ -31656,7 +31660,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Pi-Hole",
+                "service_definition": "Glance",
                 "source": {
                   "type": "Manual"
                 },
@@ -32832,6 +32836,17 @@
             "format": "uuid",
             "description": "Network this daemon will be associated with. Required unless `daemon_id` is set, in\nwhich case the existing record's network is kept."
           },
+          "os": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DaemonOs",
+                "description": "The operating system picked in the create-daemon modal. Recorded on the daemon so a\ncredential set up for another OS's file paths can be refused for it. Ignored when\n`daemon_id` is set."
+              }
+            ]
+          },
           "seed_credential_refs": {
             "type": "array",
             "items": {
@@ -33856,19 +33871,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-02T00:42:15.198027Z",
+              "created_at": "2026-10-02T02:55:14.578132Z",
               "first_discovery_id": null,
-              "id": "9b48665d-741e-4277-bc57-e9be40c720c3",
+              "id": "b69ef9b2-3341-4d81-8739-e4ee9620c019",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-02T00:42:15.198027Z",
+              "last_seen_at": "2026-10-02T02:55:14.578132Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-02T00:42:15.198027Z",
-              "valid_from": "2026-10-02T00:42:15.198027Z",
+              "updated_at": "2026-10-02T02:55:14.578132Z",
+              "valid_from": "2026-10-02T02:55:14.578132Z",
               "valid_to": null
             }
           ],
@@ -33882,7 +33897,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Pi-Hole",
+          "service_definition": "Glance",
           "source": {
             "type": "Manual"
           },
@@ -35326,7 +35341,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "c08f63aa-aa75-4000-b3da-c8a58d6b19bd",
+                  "id": "5b6c7151-8346-4c0a-ac17-212c7594f663",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -35336,23 +35351,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "1c07a8d1-d5aa-4252-ae3b-2fd38729a63d",
+                  "id": "3b8688c9-aad1-4b31-a67e-f64a8d80b2d6",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "bf42f6c2-f50e-4ed1-ace9-a252cca510b0",
+                  "id": "2c6044bc-e393-4a06-a7f2-b74ec8b10be7",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "e7977284-cd33-4d32-993b-f45d16966d2e",
+                  "id": "903fe29c-0408-4121-855b-e212a580d716",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "1c07a8d1-d5aa-4252-ae3b-2fd38729a63d",
+                  "id": "3b8688c9-aad1-4b31-a67e-f64a8d80b2d6",
                   "rule": "ByHost"
                 }
               ]
@@ -35382,19 +35397,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "8471794e-7550-4789-a5c7-8e98f97ce8f0",
+                "id": "a14d8d8d-be1b-4be3-88fe-711fe65df388",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "e3f5cc06-346d-4e17-ab76-9ad32f75a23a",
+                "id": "5b5d3cd6-6408-4bd0-af9a-a8ade419df5b",
                 "rule": "ByVLAN"
               },
               {
-                "id": "0f955975-57d6-44d9-8881-64110c808f46",
+                "id": "4ce22ac1-9702-49d5-aae3-e8972ffd1e0c",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "d089762d-a213-456b-81e9-41400e088321",
+                "id": "e9a87a43-612a-4909-8612-3921a69cc4be",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -35412,7 +35427,7 @@
                 }
               },
               {
-                "id": "dbd1c16f-0bb6-4516-86d1-7b8d3ed15a42",
+                "id": "1a863145-dbbe-4f40-9341-e5259ddcfa37",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -35421,15 +35436,15 @@
                 }
               },
               {
-                "id": "edbcd707-d4b1-488b-9722-3c5a129254b5",
+                "id": "93e04ec7-bdc9-4c44-ad06-9b99339b55c3",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "a15affbe-c632-40be-8168-9617ba12b610",
+                "id": "b8a40127-f2fa-4bbc-8955-ca256a66e670",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "4b6a567a-c80c-445a-b0b9-f34e4ea4afa8",
+                "id": "f8f926f2-a651-48c7-a8db-f099ce72019a",
                 "rule": "ByStack"
               }
             ]

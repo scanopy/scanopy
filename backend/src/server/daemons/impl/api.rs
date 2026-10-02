@@ -11,7 +11,7 @@ use crate::{
             CredentialMapping, CredentialQueryPayload, IntegrationTarget,
         },
         daemons::r#impl::{
-            base::{Daemon, DaemonBase, DaemonMode},
+            base::{Daemon, DaemonBase, DaemonMode, DaemonOs},
             version::{DaemonVersionStatus, DeprecationSeverity, DeprecationWarning},
         },
         discovery::r#impl::types::DiscoveryType,
@@ -498,6 +498,11 @@ pub struct ProvisionDaemonRequest {
     /// discovery run. References only — never secret material. Empty by default.
     #[serde(default)]
     pub seed_credential_refs: Vec<IntegrationTarget>,
+    /// The operating system picked in the create-daemon modal. Recorded on the daemon so a
+    /// credential set up for another OS's file paths can be refused for it. Ignored when
+    /// `daemon_id` is set.
+    #[serde(default)]
+    pub os: Option<DaemonOs>,
     /// Mint a fresh 1:1 key for this existing daemon instead of creating a new record,
     /// keeping its host, discovery jobs and history. Used to give a legacy daemon (no bound
     /// key) a dedicated one. When set, `name`/`network_id`/`mode`/`url` are ignored — those

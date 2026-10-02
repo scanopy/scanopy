@@ -6,7 +6,7 @@ use sqlx::postgres::PgRow;
 use uuid::Uuid;
 
 use crate::server::{
-    daemons::r#impl::base::{Daemon, DaemonBase, DaemonMode},
+    daemons::r#impl::base::{Daemon, DaemonBase, DaemonMode, DaemonOs},
     shared::{
         entities::EntityDiscriminants,
         entity_metadata::EntityCategory,
@@ -72,6 +72,7 @@ impl Storable for Daemon {
                     is_unreachable,
                     standby,
                     standby_cleared_at,
+                    os,
                 },
         } = self.clone();
 
@@ -92,6 +93,7 @@ impl Storable for Daemon {
                 "is_unreachable",
                 "standby",
                 "standby_cleared_at",
+                "os",
             ],
             vec![
                 SqlValue::Uuid(id),
@@ -109,6 +111,7 @@ impl Storable for Daemon {
                 SqlValue::Bool(is_unreachable),
                 SqlValue::Bool(standby),
                 SqlValue::OptionTimestamp(standby_cleared_at),
+                SqlValue::OptionalDaemonOs(os),
             ],
         ))
     }
@@ -116,6 +119,10 @@ impl Storable for Daemon {
     fn from_row(row: &PgRow) -> Result<Self, anyhow::Error> {
         let mode: DaemonMode = serde_json::from_str(&row.get::<String, _>("mode"))
             .map_err(|e| anyhow::anyhow!("Failed to deserialize mode: {}", e))?;
+        let os: Option<DaemonOs> = row
+            .get::<Option<String>, _>("os")
+            .map(|s| serde_json::from_str(&s))
+            .transpose()?;
 
         // Parse the stored version. A stored-but-unparseable string is logged
         // (not silently dropped) so a corrupt row is visible rather than quietly
@@ -155,6 +162,7 @@ impl Storable for Daemon {
                 is_unreachable: row.get("is_unreachable"),
                 standby: row.get("standby"),
                 standby_cleared_at: row.get("standby_cleared_at"),
+                os,
             },
         })
     }
@@ -255,6 +263,8 @@ impl Entity for Daemon {
         self.base.standby = existing.base.standby;
         // standby_cleared_at is server-managed alongside standby.
         self.base.standby_cleared_at = existing.base.standby_cleared_at;
+        // os is chosen when the daemon is created and fixed after: credentials are checked against it.
+        self.base.os = existing.base.os;
     }
 }
 
@@ -278,6 +288,7 @@ mod tests {
             is_unreachable: false,
             standby: false,
             standby_cleared_at: None,
+            os: None,
         })
     }
 

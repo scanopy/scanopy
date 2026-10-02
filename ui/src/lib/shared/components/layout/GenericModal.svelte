@@ -9,6 +9,8 @@
 		label: string;
 		icon?: IconComponent;
 		notification?: boolean;
+		/** A count shown beside the label, as an amber chip. Hidden at 0. */
+		count?: number;
 		disabled?: boolean;
 	}
 </script>
@@ -18,6 +20,8 @@
 	import { ArrowLeft, X } from 'lucide-svelte';
 	import { common_closeModal, common_modal, common_modalTabs } from '$lib/paraglide/messages';
 	import ModalStepper from './ModalStepper.svelte';
+	import Tag from '$lib/shared/components/data/Tag.svelte';
+	import { toColor } from '$lib/shared/utils/styling';
 	import { get } from 'svelte/store';
 	import {
 		modalState,
@@ -361,6 +365,9 @@
 											</span>
 										{/if}
 										{tab.label}
+										{#if tab.count}
+											<Tag label={String(tab.count)} color={toColor('amber')} />
+										{/if}
 									</div>
 								</button>
 							{/each}

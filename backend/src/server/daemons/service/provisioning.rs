@@ -63,6 +63,19 @@ impl DaemonService {
             // Check daemon limit for unverified orgs (allows 1st daemon). Re-provisioning an
             // existing record adds no daemons, so it is exempt.
             self.check_unverified_daemon_limit(org_id).await?;
+
+            // The create modal blocks these too; this holds for any other caller.
+            let daemon_os = request.os.map(OsFamily::from);
+            for target in &request.seed_credential_refs {
+                if let Some(cred) = self
+                    .credential_service
+                    .get_by_id(&target.credential_id())
+                    .await?
+                    && let Some(refusal) = cred.base.daemon_os_refusal(&name, daemon_os)
+                {
+                    return Err(ApiError::bad_request(&refusal));
+                }
+            }
         }
 
         // ---- Mint the key and bind it 1:1 ------------------------------------------------
@@ -268,6 +281,7 @@ impl DaemonService {
             is_unreachable: false,
             standby: false,
             standby_cleared_at: None,
+            os: request.os,
         });
 
         let created_daemon = self.create(daemon, auth.clone()).await.map_err(|e| {

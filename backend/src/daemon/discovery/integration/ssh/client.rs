@@ -1,4 +1,9 @@
-//! The SSH session: handshake, host-key check, authentication, one `exec` channel.
+//! The SSH session in three steps: a handshake that reads the host key, authentication, and one
+//! `exec` channel.
+//!
+//! The steps are separate so the caller decides whether to trust the key between the first two:
+//! nothing is sent to the host until [`Handshake::authenticate`], and the key it checked is the key
+//! of the session it authenticates on, because both happen on one connection.
 
 use std::net::IpAddr;
 use std::sync::{Arc, Mutex};
@@ -15,17 +20,13 @@ use crate::server::credentials::r#impl::types::ssh_script::{
 
 pub const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// Accepts exactly one host key, or (with `None`) any key, and records the one it saw.
-///
-/// The probe passes `None` and only reads the fingerprint; it sends no credentials. Execute passes
-/// the fingerprint it has decided to trust, so the key cannot change between that decision and the
-/// password or key signature going out.
-struct KeyCheck {
-    require: Option<String>,
+/// Accepts the host key and records its fingerprint, for the caller to judge before
+/// authenticating.
+struct KeyRecorder {
     seen: Arc<Mutex<Option<String>>>,
 }
 
-impl client::Handler for KeyCheck {
+impl client::Handler for KeyRecorder {
     type Error = russh::Error;
 
     async fn check_server_key(
@@ -33,58 +34,27 @@ impl client::Handler for KeyCheck {
         key: &russh::keys::PublicKeyOrCertificate,
     ) -> Result<bool, Self::Error> {
         let fingerprint = key.public_key().fingerprint(HashAlg::Sha256).to_string();
-        let accept = self.require.as_deref().is_none_or(|r| r == fingerprint);
         if let Ok(mut seen) = self.seen.lock() {
             *seen = Some(fingerprint);
         }
-        Ok(accept)
+        Ok(true)
     }
 }
 
+/// No inactivity timeout: a script that prints nothing until it finishes is silent for as long as
+/// it runs, and the credential's own timeout bounds that. Keepalives detect a host that went away.
 fn config() -> Arc<client::Config> {
     Arc::new(client::Config {
-        inactivity_timeout: Some(Duration::from_secs(30)),
+        inactivity_timeout: None,
+        keepalive_interval: Some(Duration::from_secs(15)),
+        keepalive_max: 3,
         ..Default::default()
     })
-}
-
-async fn connect(
-    ip: IpAddr,
-    port: u16,
-    require: Option<String>,
-) -> Result<(Handle<KeyCheck>, String), SessionError> {
-    let seen = Arc::new(Mutex::new(None));
-    let handler = KeyCheck {
-        require: require.clone(),
-        seen: seen.clone(),
-    };
-    let result = tokio::time::timeout(
-        CONNECT_TIMEOUT,
-        client::connect(config(), (ip, port), handler),
-    )
-    .await;
-    let observed = seen.lock().ok().and_then(|s| s.clone());
-    match result {
-        Err(_) => Err(SessionError::Unreachable(format!(
-            "no SSH handshake within {}s",
-            CONNECT_TIMEOUT.as_secs()
-        ))),
-        Ok(Ok(handle)) => Ok((handle, observed.unwrap_or_default())),
-        Ok(Err(e)) => match (require, observed) {
-            (Some(required), Some(observed)) if required != observed => {
-                Err(SessionError::HostKeyMismatch { observed })
-            }
-            _ => Err(SessionError::Unreachable(e.to_string())),
-        },
-    }
 }
 
 #[derive(Debug)]
 pub enum SessionError {
     Unreachable(String),
-    HostKeyMismatch {
-        observed: String,
-    },
     AuthenticationFailed(String),
     /// The credential could not be used: an unreadable file, a key that does not parse.
     Malformed(String),
@@ -96,23 +66,112 @@ impl std::fmt::Display for SessionError {
             Self::Unreachable(m) | Self::AuthenticationFailed(m) | Self::Malformed(m) => {
                 f.write_str(m)
             }
-            Self::HostKeyMismatch { observed } => {
-                write!(
-                    f,
-                    "the host presented key {observed}, which is not the trusted key"
-                )
-            }
         }
     }
 }
 
-/// Complete a handshake and return the host key's `SHA256:` fingerprint. Sends no credentials.
-pub async fn read_host_key(ip: IpAddr, port: u16) -> Result<String, SessionError> {
-    let (handle, fingerprint) = connect(ip, port, None).await?;
-    let _ = handle
-        .disconnect(Disconnect::ByApplication, "", "English")
-        .await;
-    Ok(fingerprint)
+/// A completed handshake. Nothing has been sent to the host yet.
+pub struct Handshake {
+    handle: Handle<KeyRecorder>,
+    fingerprint: String,
+}
+
+/// An authenticated session, ready to run one script.
+pub struct Session {
+    handle: Handle<KeyRecorder>,
+}
+
+/// Complete a handshake and read the host key's `SHA256:` fingerprint.
+pub async fn handshake(ip: IpAddr, port: u16) -> Result<Handshake, SessionError> {
+    let seen = Arc::new(Mutex::new(None));
+    let handler = KeyRecorder { seen: seen.clone() };
+    let handle = tokio::time::timeout(
+        CONNECT_TIMEOUT,
+        client::connect(config(), (ip, port), handler),
+    )
+    .await
+    .map_err(|_| {
+        SessionError::Unreachable(format!(
+            "no SSH handshake within {}s",
+            CONNECT_TIMEOUT.as_secs()
+        ))
+    })?
+    .map_err(|e| SessionError::Unreachable(e.to_string()))?;
+    let fingerprint = seen.lock().ok().and_then(|s| s.clone()).unwrap_or_default();
+    Ok(Handshake {
+        handle,
+        fingerprint,
+    })
+}
+
+impl Handshake {
+    pub fn fingerprint(&self) -> &str {
+        &self.fingerprint
+    }
+
+    /// Log in. Call only once the fingerprint is trusted: this sends the password or key signature.
+    pub async fn authenticate(
+        mut self,
+        username: &str,
+        auth: &SshAuth,
+    ) -> Result<Session, SessionError> {
+        let resolve = |secret: &crate::server::credentials::r#impl::mapping::ResolvableSecret,
+                       field: &str| {
+            secret
+                .resolve(field, "SSH")
+                .map(|s| s.expose_secret().to_string())
+                .map_err(|e| SessionError::Malformed(e.to_string()))
+        };
+        let handle = &mut self.handle;
+        let authenticated = match auth {
+            SshAuth::Password { password } => handle
+                .authenticate_password(username, resolve(password, "password")?)
+                .await
+                .map_err(|e| SessionError::Unreachable(e.to_string()))?,
+            SshAuth::PrivateKey {
+                private_key,
+                passphrase,
+            } => {
+                let passphrase = passphrase
+                    .as_ref()
+                    .map(|p| resolve(p, "passphrase"))
+                    .transpose()?;
+                let key =
+                    decode_secret_key(&resolve(private_key, "private_key")?, passphrase.as_deref())
+                        .map_err(|e| {
+                            SessionError::Malformed(format!("could not read the private key: {e}"))
+                        })?;
+                let hash = handle
+                    .best_supported_rsa_hash()
+                    .await
+                    .map_err(|e| SessionError::Unreachable(e.to_string()))?
+                    .flatten();
+                handle
+                    .authenticate_publickey(
+                        username,
+                        PrivateKeyWithHashAlg::new(Arc::new(key), hash),
+                    )
+                    .await
+                    .map_err(|e| SessionError::Unreachable(e.to_string()))?
+            }
+        };
+        if !authenticated.success() {
+            let _ = self
+                .handle
+                .disconnect(Disconnect::ByApplication, "", "English")
+                .await;
+            return Err(SessionError::AuthenticationFailed(format!(
+                "the host refused {} for user {username}",
+                match auth {
+                    SshAuth::Password { .. } => "the password",
+                    SshAuth::PrivateKey { .. } => "the private key",
+                }
+            )));
+        }
+        Ok(Session {
+            handle: self.handle,
+        })
+    }
 }
 
 /// What one script run produced.
@@ -127,116 +186,68 @@ pub struct ScriptResult {
     pub elapsed: Duration,
 }
 
-/// Authenticate to a host whose key is `trusted`, then run `script` in one exec channel.
-pub async fn run_script(
-    ip: IpAddr,
-    port: u16,
-    trusted: &str,
-    username: &str,
-    auth: &SshAuth,
-    script: &str,
-    timeout: Duration,
-) -> Result<ScriptResult, SessionError> {
-    let (mut handle, _) = connect(ip, port, Some(trusted.to_string())).await?;
-
-    let resolve = |secret: &crate::server::credentials::r#impl::mapping::ResolvableSecret,
-                   field: &str| {
-        secret
-            .resolve(field, "SSH")
-            .map(|s| s.expose_secret().to_string())
-            .map_err(|e| SessionError::Malformed(e.to_string()))
-    };
-    let authenticated = match auth {
-        SshAuth::Password { password } => handle
-            .authenticate_password(username, resolve(password, "password")?)
+impl Session {
+    /// Run `script` in one exec channel, then close the session.
+    pub async fn run_script(
+        self,
+        script: &str,
+        timeout: Duration,
+    ) -> Result<ScriptResult, SessionError> {
+        let started = Instant::now();
+        let mut channel = self
+            .handle
+            .channel_open_session()
             .await
-            .map_err(|e| SessionError::Unreachable(e.to_string()))?,
-        SshAuth::PrivateKey {
-            private_key,
-            passphrase,
-        } => {
-            let passphrase = passphrase
-                .as_ref()
-                .map(|p| resolve(p, "passphrase"))
-                .transpose()?;
-            let key =
-                decode_secret_key(&resolve(private_key, "private_key")?, passphrase.as_deref())
-                    .map_err(|e| {
-                        SessionError::Malformed(format!("could not read the private key: {e}"))
-                    })?;
-            let hash = handle
-                .best_supported_rsa_hash()
-                .await
-                .map_err(|e| SessionError::Unreachable(e.to_string()))?
-                .flatten();
-            handle
-                .authenticate_publickey(username, PrivateKeyWithHashAlg::new(Arc::new(key), hash))
-                .await
-                .map_err(|e| SessionError::Unreachable(e.to_string()))?
-        }
-    };
-    if !authenticated.success() {
-        return Err(SessionError::AuthenticationFailed(format!(
-            "the host refused {} for user {username}",
-            match auth {
-                SshAuth::Password { .. } => "the password",
-                SshAuth::PrivateKey { .. } => "the private key",
-            }
-        )));
-    }
+            .map_err(|e| SessionError::Unreachable(e.to_string()))?;
+        channel
+            .exec(true, script)
+            .await
+            .map_err(|e| SessionError::Unreachable(e.to_string()))?;
 
-    let started = Instant::now();
-    let mut channel = handle
-        .channel_open_session()
-        .await
-        .map_err(|e| SessionError::Unreachable(e.to_string()))?;
-    channel
-        .exec(true, script)
-        .await
-        .map_err(|e| SessionError::Unreachable(e.to_string()))?;
-
-    let mut result = ScriptResult {
-        exit_code: None,
-        stdout: Vec::new(),
-        stdout_overflowed: false,
-        stderr_tail: Vec::new(),
-        timed_out: false,
-        elapsed: Duration::ZERO,
-    };
-    let read = async {
-        while let Some(msg) = channel.wait().await {
-            match msg {
-                ChannelMsg::Data { data } => {
-                    let room = MAX_SCRIPT_OUTPUT_BYTES.saturating_sub(result.stdout.len());
-                    if data.len() > room {
-                        result.stdout.extend_from_slice(&data[..room]);
-                        result.stdout_overflowed = true;
-                        // Nothing past the cap is used; stop the script rather than drain it.
-                        break;
+        let mut result = ScriptResult {
+            exit_code: None,
+            stdout: Vec::new(),
+            stdout_overflowed: false,
+            stderr_tail: Vec::new(),
+            timed_out: false,
+            elapsed: Duration::ZERO,
+        };
+        let read = async {
+            while let Some(msg) = channel.wait().await {
+                match msg {
+                    ChannelMsg::Data { data } => {
+                        let room = MAX_SCRIPT_OUTPUT_BYTES.saturating_sub(result.stdout.len());
+                        if data.len() > room {
+                            result.stdout.extend_from_slice(&data[..room]);
+                            result.stdout_overflowed = true;
+                            // Nothing past the cap is used; stop the script rather than drain it.
+                            break;
+                        }
+                        result.stdout.extend_from_slice(&data);
                     }
-                    result.stdout.extend_from_slice(&data);
+                    ChannelMsg::ExtendedData { data, ext: 1 } => {
+                        result.stderr_tail.extend_from_slice(&data);
+                        let excess = result
+                            .stderr_tail
+                            .len()
+                            .saturating_sub(MAX_STDERR_EXCERPT_BYTES);
+                        result.stderr_tail.drain(..excess);
+                    }
+                    ChannelMsg::ExitStatus { exit_status } => result.exit_code = Some(exit_status),
+                    _ => {}
                 }
-                ChannelMsg::ExtendedData { data, ext: 1 } => {
-                    result.stderr_tail.extend_from_slice(&data);
-                    let excess = result
-                        .stderr_tail
-                        .len()
-                        .saturating_sub(MAX_STDERR_EXCERPT_BYTES);
-                    result.stderr_tail.drain(..excess);
-                }
-                ChannelMsg::ExitStatus { exit_status } => result.exit_code = Some(exit_status),
-                _ => {}
             }
+        };
+        if tokio::time::timeout(timeout, read).await.is_err() {
+            result.timed_out = true;
         }
-    };
-    if tokio::time::timeout(timeout, read).await.is_err() {
-        result.timed_out = true;
-    }
-    result.elapsed = started.elapsed();
+        result.elapsed = started.elapsed();
 
-    let _ = channel.close().await;
-    let _ = handle
-        .disconnect(Disconnect::ByApplication, "", "English")
-        .await;
-    Ok(result)
+        let _ = channel.close().await;
+        let _ = self
+            .handle
+            .disconnect(Disconnect::ByApplication, "", "English")
+            .await;
+        Ok(result)
+    }
 }

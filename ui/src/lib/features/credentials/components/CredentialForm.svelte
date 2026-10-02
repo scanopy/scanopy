@@ -58,6 +58,9 @@
 		credentials_fileOnDaemonHost,
 		credentials_fileOnScannedHost,
 		credentials_filePathReadByDaemon,
+		credentials_filePathRunByScannedHost,
+		credentials_scriptOutputDocs,
+		credentials_scriptOutputDocsLinkText,
 		common_enterValue,
 		credentials_ipExamplePlaceholder,
 		credentials_descriptionPlaceholder,
@@ -234,8 +237,9 @@
 	// Credential read it through `getDaemonOs()`.
 	let daemonOs = $state<OsFamily>('Unix');
 
-	export function getDaemonOs(): OsFamily {
-		return daemonOs;
+	/** The credential's `daemon_os`: set only when something is read on the daemon. */
+	export function getDaemonOs(): OsFamily | null {
+		return readsDaemonFiles ? daemonOs : null;
 	}
 
 	// A caller that fixed the daemon OS owns it: keep the placeholders and the submitted value on it.
@@ -637,21 +641,13 @@
 
 	let showDaemonOsPicker = $derived(readsDaemonFiles && !fixedDaemonOs);
 
-	// Which fields depend on which OS, computed by the backend (`os_fields`). A picker sits with
-	// its field when exactly one depends on it, and above the first when several do; placement
+	// Which fields depend on the Daemon OS, computed by the backend (`os_fields`). The picker sits
+	// with its field when exactly one depends on it, and above the first when several do; placement
 	// follows the fields that can depend on it, not the ones in a dependent mode now, so it does
-	// not jump as modes change.
-	let osFields = $derived(credentialTypes.getMetadata(selectedTypeId)?.os_fields);
-	let daemonOsDependents = $derived(osFields?.daemon ?? []);
-	let scannedHostDependents = $derived(osFields?.scanned_host ?? []);
-	let scannedHostPicker = $derived(
-		currentFields.find((field) => field.id === osFields?.scanned_host_picker)
+	// not jump as modes change. The Scanned Host OS is an ordinary field and stays where declared.
+	let daemonOsDependents = $derived(
+		credentialTypes.getMetadata(selectedTypeId)?.os_fields?.daemon ?? []
 	);
-
-	/** The Scanned Host OS picker is placed by its dependents, not where it is declared. */
-	function isPlacedByDependents(field: FieldDefinition): boolean {
-		return field.id === scannedHostPicker?.id && scannedHostDependents.length > 0;
-	}
 
 	function syncTargets() {
 		const next = [...targetIpValues];
@@ -1320,11 +1316,11 @@
 								class:input-field-error={formField.state.meta.errors?.length > 0}
 							></textarea>
 						{:else}
-							{#if source.mode === 'DaemonFile'}
-								<p class="text-muted text-xs">
-									{credentials_filePathReadByDaemon()}
-								</p>
-							{/if}
+							<p class="text-muted text-xs">
+								{source.mode === 'DaemonFile'
+									? credentials_filePathReadByDaemon()
+									: credentials_filePathRunByScannedHost()}
+							</p>
 							<input
 								id={field.id}
 								type="text"
@@ -1401,29 +1397,28 @@
 		{#if field.help_text}
 			<p class="text-muted text-xs">{field.help_text}</p>
 		{/if}
+		{#if field.field_type === 'scriptsource' && integrationDocsPath}
+			<DocsHint
+				text={credentials_scriptOutputDocs()}
+				href={docsUrl(`${integrationDocsPath}#what-gets-discovered`)}
+				linkText={credentials_scriptOutputDocsLinkText()}
+			/>
+		{/if}
 
 		<!-- An OS choice only this field depends on sits with it, under its value/path toggle. -->
 		{#if showDaemonOsPicker && daemonOsDependents.length === 1 && daemonOsDependents[0] === field.id}
 			<div class="pt-2">{@render daemonOsPicker()}</div>
-		{/if}
-		{#if scannedHostPicker && scannedHostDependents.length === 1 && scannedHostDependents[0] === field.id}
-			<div class="pt-2">{@render fieldRenderer(scannedHostPicker, false)}</div>
 		{/if}
 	</div>
 {/snippet}
 
 {#snippet fieldList(fields: FieldDefinition[])}
 	{#each fields as field (field.id)}
-		{#if !isPlacedByDependents(field)}
-			<!-- An OS choice several fields depend on comes once, above the first of them. -->
-			{#if showDaemonOsPicker && daemonOsDependents.length > 1 && daemonOsDependents[0] === field.id}
-				{@render daemonOsPicker()}
-			{/if}
-			{#if scannedHostPicker && scannedHostDependents.length > 1 && scannedHostDependents[0] === field.id}
-				{@render fieldRenderer(scannedHostPicker, false)}
-			{/if}
-			{@render fieldRenderer(field, field.secret)}
+		<!-- An OS choice several fields depend on comes once, above the first of them. -->
+		{#if showDaemonOsPicker && daemonOsDependents.length > 1 && daemonOsDependents[0] === field.id}
+			{@render daemonOsPicker()}
 		{/if}
+		{@render fieldRenderer(field, field.secret)}
 	{/each}
 {/snippet}
 
