@@ -22,7 +22,10 @@
 	} from '../../queries';
 	import { useTopology, selectedTopologyId } from '../../context';
 	import type { RenderableTopology, TopologyNode } from '../../types/base';
-	import { resolveContainerNode } from '../../resolvers';
+	import { entityCollection, resolveContainerNode } from '../../resolvers';
+	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { getFreshnessTag, type FreshnessSubject } from '$lib/shared/utils/freshness';
+	import { entities } from '$lib/shared/stores/metadata';
 	import { queryClient, queryKeys } from '$lib/api/query-client';
 	import type { Tag } from '$lib/features/tags/types/base';
 	import type { Writable } from 'svelte/store';
@@ -122,6 +125,23 @@
 		topology ? resolveContainerNode(id, data as TopologyNode, topology) : null
 	);
 	let containerTags = $derived(resolved?.tags ?? []);
+
+	// Staleness pill for a container that stands for one entity (a host box, a subnet box). Judged
+	// on that entity alone with `getFreshnessTag`, the same helper element cards and inventory
+	// badges use. Grouping containers (categories, tags, stacks) have no collection and get none.
+	const networksQuery = useNetworksQuery();
+	let staleTag = $derived.by(() => {
+		if (!topology) return null;
+		const entityId = (data as TopologyNode & { entity_id?: string | null }).entity_id ?? id;
+		const entity = entityCollection(topology, containerType)?.find((e) => e.id === entityId) as
+			(FreshnessSubject & { network_id: string }) | undefined;
+		if (!entity) return null;
+		return getFreshnessTag(
+			entity,
+			(networksQuery.data ?? []).find((n) => n.id === entity.network_id),
+			{ entityTypeLabel: entities.getName(containerType) || undefined }
+		);
+	});
 
 	let childSummary = $derived(
 		topology ? formatElementSummary(tallyContainerElements(id, topology), $activeView) : ''
@@ -410,6 +430,7 @@
 			{groupLabels}
 			{childCount}
 			{childSummary}
+			{staleTag}
 			onToggleCollapse={handleChevronClick}
 		/>
 	{/if}
@@ -428,6 +449,7 @@
 			{groupLabels}
 			{childCount}
 			{childSummary}
+			{staleTag}
 			onToggleCollapse={handleChevronClick}
 		/>
 	{/if}

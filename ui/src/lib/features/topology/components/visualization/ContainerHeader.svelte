@@ -5,6 +5,7 @@
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import type { ColorStyle, Color } from '$lib/shared/utils/styling';
 	import type { IconComponent } from '$lib/shared/utils/types';
+	import type { TagProps } from '$lib/shared/components/data/types';
 	import {
 		topology_elementCount,
 		topology_ungroupedCount,
@@ -41,7 +42,8 @@
 		hideCount = false,
 		countOnly = false,
 		searchMatchCount = 0,
-		searchHighlightRingStyle = ''
+		searchHighlightRingStyle = '',
+		staleTag = null
 	}: {
 		isCollapsed: boolean;
 		isCollapsible: boolean;
@@ -64,6 +66,8 @@
 		countOnly?: boolean;
 		searchMatchCount?: number;
 		searchHighlightRingStyle?: string;
+		/** Staleness pill for the entity this container stands for, from `getFreshnessTag`. */
+		staleTag?: TagProps | null;
 	} = $props();
 
 	let subgroupTotal = $derived(subgroupSummaries.reduce((sum, s) => sum + s.childCount, 0));
@@ -189,6 +193,10 @@
 				{headerText}
 			</span>
 		{/if}
+
+		{#if staleTag}
+			<Tag {...staleTag} pill />
+		{/if}
 	</div>
 {:else if variant === 'inline'}
 	<!-- Inline header: inside container top padding -->
@@ -211,6 +219,9 @@
 			>
 				{headerText}{groupLabels.length > 0 ? ':' : ''}
 			</span>
+		{/if}
+		{#if staleTag}
+			<span data-fixed class="flex-shrink-0"><Tag {...staleTag} pill /></span>
 		{/if}
 		{#each visibleLabels as pill (pill.label)}
 			<Tag label={pill.label} color={pill.color} />

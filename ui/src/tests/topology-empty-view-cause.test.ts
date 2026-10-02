@@ -93,7 +93,7 @@ describe('what emptied a topology view', () => {
 		const causes = activeViewFilters(
 			'L2Physical',
 			l2Topology({}),
-			{ Interface: { Staleness: ['Stale'] } },
+			{ Interface: { Category: ['Web'] } },
 			[],
 			NO_TAGS
 		);
@@ -117,7 +117,7 @@ describe('clearing a view’s filters', () => {
 	it('empties a product default rather than restoring it', () => {
 		const cleared = clearedHideSetFor('L2Physical', 'Interface', { LinkState: ['Unlinked'] });
 
-		expect(cleared).toEqual({ LinkState: [] });
+		expect(cleared).toEqual({ LinkState: [], Staleness: [] });
 	});
 
 	/**
@@ -127,13 +127,16 @@ describe('clearing a view’s filters', () => {
 	 * still has to come back as `[]`, or clearing it survives only until the page reloads.
 	 */
 	it('writes an empty list for a declared filter that had no stored entry', () => {
-		expect(clearedHideSetFor('L2Physical', 'Interface', undefined)).toEqual({ LinkState: [] });
+		expect(clearedHideSetFor('L2Physical', 'Interface', undefined)).toEqual({
+			LinkState: [],
+			Staleness: []
+		});
 	});
 
 	/** A stored filter the view no longer declares still has to stop hiding things. */
 	it('empties a stored filter the view no longer declares', () => {
-		const cleared = clearedHideSetFor('L2Physical', 'Interface', { Staleness: ['Stale'] });
+		const cleared = clearedHideSetFor('L2Physical', 'Interface', { Category: ['Web'] });
 
-		expect(cleared).toEqual({ LinkState: [], Staleness: [] });
+		expect(cleared).toEqual({ LinkState: [], Staleness: [], Category: [] });
 	});
 });
