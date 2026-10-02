@@ -244,7 +244,7 @@
 		/>
 		<DocsHint
 			text={settings_system_recogAttribution()}
-			href="https://github.com/scanopy/scanopy/blob/main/THIRD_PARTY_NOTICES.md"
+			href="https://github.com/scanopy/scanopy/blob/main/backend/assets/recog/LICENSE"
 			linkText={common_license()}
 		/>
 	</div>

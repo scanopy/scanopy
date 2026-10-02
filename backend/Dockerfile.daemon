@@ -17,6 +17,9 @@ RUN apt-get update && apt-get install -y \
 COPY scanopy-daemon-linux-${TARGETARCH} /usr/local/bin/scanopy-daemon
 RUN chmod +x /usr/local/bin/scanopy-daemon
 
+# Notice for third-party data compiled into the binary (Rapid7 Recog, BSD-2-Clause).
+COPY assets/recog/LICENSE /usr/share/doc/scanopy/recog/LICENSE
+
 # OCI Image Spec labels — https://github.com/opencontainers/image-spec/blob/main/annotations.md
 LABEL org.opencontainers.image.title="Scanopy Daemon" \
       org.opencontainers.image.description="Scanopy daemon — network discovery agent." \
