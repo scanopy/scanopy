@@ -1,26 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import {
+	groupIntegrationsByCategory,
 	groupTypesByIntegration,
 	initiallyExpandedIntegrationIds,
-	keepPendingRow,
-	pickerSelectionFromPending,
 	selectedTypeCount,
-	type PickerPendingRow,
 	type PickerType
 } from '$lib/features/credentials/utils/integrationPicker';
 import credentialTypesJson from '../lib/data/credential-types.json';
 import credentialIntegrationsJson from '../lib/data/credential-integrations.json';
 
 const types = credentialTypesJson as PickerType[];
-const integrations = credentialIntegrationsJson as { id: string }[];
+const integrations = credentialIntegrationsJson as { id: string; category: string }[];
 const groups = groupTypesByIntegration(types, integrations);
 
 const multiGroup = groups.find((g) => g.types.length > 1)!;
 const singleGroup = groups.find((g) => g.types.length === 1)!;
-
-function row(type: string, id: string, extra: Partial<PickerPendingRow> = {}): PickerPendingRow {
-	return { credential: { id, credential_type: { type } }, ...extra };
-}
 
 describe('groupTypesByIntegration', () => {
 	it('places every credential type in exactly one integration group', () => {
@@ -88,25 +82,26 @@ describe('initiallyExpandedIntegrationIds', () => {
 	});
 });
 
-describe('returning from the wizard to the picker', () => {
-	const rows = [
-		row('SnmpV3', 'new-snmp'),
-		row('SshKey', 'saved-ssh'),
-		row('DockerProxy', 'existing-docker', { isExisting: true }),
-		row('SnmpV2c', 'assigned-elsewhere', { isExisting: true, lockedHosts: [{}] })
-	];
-	const saved = ['saved-ssh'];
+describe('groupIntegrationsByCategory', () => {
+	const sections = groupIntegrationsByCategory(groups, integrations);
 
-	it('selects only the types of new, unsaved rows', () => {
-		expect(pickerSelectionFromPending(rows, saved)).toEqual(['SnmpV3']);
+	it('places every integration in exactly one section, under its own category', () => {
+		const placed = sections.flatMap((s) => s.groups.map((g) => g.integration.id));
+		expect(placed.sort()).toEqual(groups.map((g) => g.integration.id).sort());
+		for (const section of sections) {
+			for (const g of section.groups) expect(g.integration.category).toBe(section.category);
+		}
 	});
 
-	it('drops a new row whose type was deselected and keeps every other row', () => {
-		const kept = rows.filter((r) => keepPendingRow(r, [], saved)).map((r) => r.credential.id);
-		expect(kept).toEqual(['saved-ssh', 'existing-docker', 'assigned-elsewhere']);
+	it('orders sections by the categories’ order in the fixture and leaves none empty', () => {
+		const fixtureOrder = [...new Set(integrations.map((i) => i.category))];
+		expect(sections.map((s) => s.category)).toEqual(fixtureOrder);
+		expect(sections.every((s) => s.groups.length > 0)).toBe(true);
 	});
 
-	it('keeps a new row whose type stays selected', () => {
-		expect(keepPendingRow(rows[0], ['SnmpV3'], saved)).toBe(true);
+	it('drops a category with no integrations among the groups', () => {
+		const withoutFirst = groups.filter((g) => g.integration.category !== sections[0].category);
+		const result = groupIntegrationsByCategory(withoutFirst, integrations);
+		expect(result.map((s) => s.category)).not.toContain(sections[0].category);
 	});
 });

@@ -68,6 +68,9 @@ export interface CredentialTypeMetadata {
 	associated_service?: string;
 	/** The integration this type is a transport of; keys `credentialIntegrations`. */
 	integration?: components['schemas']['CredentialIntegration'];
+	/** How this type connects, without its integration's discovery text (shown under an
+	 *  integration row). Translated via `metaTransportNote`. */
+	transport_note?: string;
 	/** Minimum daemon version (semver) that can receive this credential type. The
 	 *  discovery credential picker compares the selected daemon's `version` against
 	 *  this to disable too-new types (and to build the requirement tooltip). */

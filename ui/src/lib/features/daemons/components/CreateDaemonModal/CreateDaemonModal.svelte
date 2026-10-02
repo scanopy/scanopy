@@ -171,11 +171,10 @@
 			.length
 	);
 
-	// Continue from the integration picker: with nothing selected and no wizard rows (a
-	// first visit), go straight to Install; otherwise enter the wizard, which also drops
-	// rows whose type was deselected after returning from it.
+	// Continue from the Integrations grid: with nothing selected, go straight to
+	// Install; otherwise enter the wizard.
 	async function handleContinueToWizard() {
-		if (selectedCredentialTypeIds.length === 0 && pendingCredentials.length === 0) {
+		if (selectedCredentialTypeIds.length === 0) {
 			trackEvent('daemon_wizard_step_completed', {
 				step: 'credentials',
 				skipped: true,
@@ -753,7 +752,6 @@
 				bind:credentialIds
 				bind:subStep={credentialSubStep}
 				bind:selectedTypeIds={selectedCredentialTypeIds}
-				canReturnToTypeSelect={true}
 			/>
 		{:else}
 			<div class="flex-1 overflow-auto p-4 sm:p-6">
