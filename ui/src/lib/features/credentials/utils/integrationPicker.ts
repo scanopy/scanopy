@@ -72,20 +72,6 @@ export function selectedIntegrationCount(
 	return groups.filter((g) => selectedTypeCount(g, checkedTypeIds) > 0).length;
 }
 
-/**
- * Whether an integration row is expanded. The user's own toggle wins; untouched, a row is
- * expanded while it holds a selection, so a preselected type (a daemon-host socket, a fixed
- * capability) is visible whenever it arrives. Single-type integrations have nothing to expand.
- */
-export function isIntegrationExpanded(
-	group: IntegrationGroup<{ id: string }, PickerType>,
-	checkedTypeIds: string[],
-	userToggle: boolean | undefined
-): boolean {
-	if (group.types.length < 2) return false;
-	return userToggle ?? selectedTypeCount(group, checkedTypeIds) > 0;
-}
-
 /** A picker section: the integrations sharing one credential category. */
 export interface CategorySection<
 	I extends { id: string; category?: string | null },

@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { ChevronDown, ChevronRight } from 'lucide-svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
-	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
+	import ExpandableChildList from '$lib/shared/components/forms/selection/ExpandableChildList.svelte';
 	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
 	import type { HostDisplayContext } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
 	import { ServiceDisplay } from '$lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
@@ -132,36 +131,14 @@
 				{@const host = item}
 				{@const hostServices = allServices.filter((s) => s.host_id === host.id)}
 				{#if hostServices.length > 0}
-					<div class="mt-2 w-full border-t border-gray-200 pt-2 dark:border-gray-700">
-						<button
-							type="button"
-							class="text-tertiary flex items-center gap-1 text-xs"
-							onclick={(e) => {
-								e.stopPropagation();
-								toggleExpanded(host.id);
-							}}
-						>
-							{#if expandedHostIds.has(host.id)}
-								<ChevronDown class="h-3.5 w-3.5" />
-							{:else}
-								<ChevronRight class="h-3.5 w-3.5" />
-							{/if}
-							{hostServices.length} services
-						</button>
-						{#if expandedHostIds.has(host.id)}
-							<div class="mt-1 divide-y divide-gray-200 dark:divide-gray-700/50">
-								{#each hostServices as service (service.id)}
-									<div class="rounded px-2 py-1.5 pl-6 odd:bg-gray-50 dark:odd:bg-gray-800/30">
-										<ListSelectItem
-											item={service}
-											context={getServiceContext(service)}
-											displayComponent={ServiceDisplay}
-										/>
-									</div>
-								{/each}
-							</div>
-						{/if}
-					</div>
+					<ExpandableChildList
+						items={hostServices}
+						displayComponent={ServiceDisplay}
+						getContext={getServiceContext}
+						toggleLabel={`${hostServices.length} services`}
+						expanded={expandedHostIds.has(host.id)}
+						onToggleExpanded={() => toggleExpanded(host.id)}
+					/>
 				{/if}
 			{/snippet}
 		</ListManager>

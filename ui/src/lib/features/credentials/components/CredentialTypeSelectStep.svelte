@@ -39,21 +39,21 @@
 </script>
 
 <script lang="ts">
-	import { ChevronDown, ChevronRight } from 'lucide-svelte';
-	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
+	import { SvelteSet } from 'svelte/reactivity';
+	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
+	import ExpandableChildList from '$lib/shared/components/forms/selection/ExpandableChildList.svelte';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
-	import { tooltip } from '$lib/shared/actions/tooltip';
 	import { daemonTooOldForCredential } from '$lib/features/credentials/utils/versionGate';
 	import {
 		groupIntegrationsByCategory,
 		groupTypesByIntegration,
-		isIntegrationExpanded,
 		selectedIntegrationCount,
 		selectedTypeCount
 	} from '$lib/features/credentials/utils/integrationPicker';
 	import {
 		daemons_integrationsSubtitle,
 		credentials_integrationSelectedCount,
+		credentials_integrationTypeCount,
 		credentials_lockedDaemonCapability,
 		credentials_requiresDaemonVersion
 	} from '$lib/paraglide/messages';
@@ -95,16 +95,40 @@
 
 	let checkedTypeIds = $derived([...new Set([...selectedTypeIds, ...forceCheckedTypeIds])]);
 
-	// Only the user's explicit toggles are stored; an untouched row is expanded while it holds a
-	// selection (see isIntegrationExpanded), so preselected types show whenever they arrive.
-	let userExpanded = $state<Record<string, boolean>>({});
-
-	function isExpanded(group: Group): boolean {
-		return isIntegrationExpanded(group, checkedTypeIds, userExpanded[group.integration.id]);
-	}
+	// Expanded multi-type integrations. The user's alone: nothing opens by default.
+	const expandedIds = new SvelteSet<string>();
 
 	function toggleExpanded(group: Group) {
-		userExpanded = { ...userExpanded, [group.integration.id]: !isExpanded(group) };
+		if (group.types.length < 2) return;
+		const id = group.integration.id;
+		if (expandedIds.has(id)) {
+			expandedIds.delete(id);
+		} else {
+			expandedIds.add(id);
+		}
+	}
+
+	// ListManager selects integration rows; only single-type rows are selectable, and a row's
+	// selection is its one type's. Forced types read as selected and are never removed here.
+	function selectedGroupsIn(sectionGroups: Group[]): Group[] {
+		return sectionGroups.filter(
+			(g) => g.types.length === 1 && checkedTypeIds.includes(g.types[0].id)
+		);
+	}
+
+	function setSelectedGroupsIn(sectionGroups: Group[], selected: Group[]) {
+		const wanted = new Set(selected.map((g) => g.integration.id));
+		let next = selectedTypeIds;
+		for (const group of sectionGroups) {
+			if (group.types.length !== 1 || isDisabled(group.types[0])) continue;
+			const id = group.types[0].id;
+			if (wanted.has(group.integration.id)) {
+				if (!next.includes(id)) next = [...next, id];
+			} else {
+				next = next.filter((x) => x !== id);
+			}
+		}
+		selectedTypeIds = next;
 	}
 
 	let integrationCount = $derived(selectedIntegrationCount(groups, checkedTypeIds));
@@ -149,50 +173,6 @@
 	}
 </script>
 
-<!-- A selectable type: the type's display with a native checkbox on the right, the same checkbox
-     the entity cards and tables use. A transport row (under an integration) takes RichSelect's
-     option-row hover so the whole row reads as clickable without becoming a card. The wrapper
-     carries the tooltip so a disabled (locked or version-incompatible) type still shows the
-     reason on hover. -->
-{#snippet typeOption(type: CredType, singleTypeGroup: Group | null)}
-	{@const locked = isDisabled(type)}
-	{@const transportRow = singleTypeGroup === null}
-	<span class="block" data-tooltip={disabledReason(type)} use:tooltip>
-		<label
-			class="flex w-full items-center gap-3 {transportRow ? 'rounded-md px-3 py-3' : ''} {locked
-				? 'cursor-not-allowed opacity-60'
-				: transportRow
-					? 'select-option cursor-pointer'
-					: 'cursor-pointer'}"
-		>
-			<div class="min-w-0 flex-1">
-				{#if singleTypeGroup}
-					<ListSelectItem
-						item={singleTypeGroup}
-						displayComponent={IntegrationRowDisplay}
-						context={{}}
-						staticTags={true}
-					/>
-				{:else}
-					<ListSelectItem
-						item={type}
-						displayComponent={CredentialTransportDisplay}
-						context={{}}
-						staticTags={true}
-					/>
-				{/if}
-			</div>
-			<input
-				type="checkbox"
-				class="checkbox-card h-4 w-4 flex-shrink-0"
-				checked={checkedTypeIds.includes(type.id)}
-				disabled={locked}
-				onchange={() => toggleType(type)}
-			/>
-		</label>
-	</span>
-{/snippet}
-
 <div class="flex min-h-0 flex-1 flex-col overflow-auto p-4 sm:p-6">
 	<div class="mb-4 flex items-start gap-3">
 		<p class="text-secondary flex-1 text-sm">{daemons_integrationsSubtitle()}</p>
@@ -205,55 +185,56 @@
 		{/if}
 	</div>
 
-	<div class="flex flex-col gap-6">
+	<!-- One ListManager per category, as in the Applications wizard's Assign step: a row is an
+	     integration; a single-type row selects with its right-aligned checkbox, and a multi-type
+	     row expands to its types, which carry checkboxes in the same column. -->
+	<div class="flex flex-col gap-4">
 		{#each sections as section (section.category)}
-			<section class="flex flex-col gap-2">
-				<h3 class="text-secondary text-xs font-semibold uppercase tracking-wide">
-					{section.category}
-				</h3>
-				{#each section.groups as group (group.integration.id)}
-					<div class="card card-static rounded-lg border p-3">
-						{#if group.types.length === 1}
-							<!-- A single-type integration has nothing to expand: the row is the type. -->
-							{@render typeOption(group.types[0], group)}
-						{:else}
-							{@const expanded = isExpanded(group)}
-							{@const count = selectedTypeCount(group, checkedTypeIds)}
-							<button
-								type="button"
-								onclick={() => toggleExpanded(group)}
-								aria-expanded={expanded}
-								class="flex w-full items-center gap-3 text-left"
-							>
-								<div class="min-w-0 flex-1">
-									<ListSelectItem
-										item={group}
-										displayComponent={IntegrationRowDisplay}
-										context={{}}
-										staticTags={true}
-									/>
-								</div>
+			<ListManager
+				label={section.category}
+				items={section.groups}
+				itemDisplayComponent={IntegrationRowDisplay}
+				optionDisplayComponent={IntegrationRowDisplay}
+				allowAddFromOptions={false}
+				allowReorder={false}
+				allowItemEdit={() => false}
+				allowItemRemove={() => false}
+				allowSelection={true}
+				itemClickAction="select"
+				selectionIndicator="checkbox"
+				showSelectAll={false}
+				allowItemSelection={(group) => group.types.length === 1}
+				getItemSelectionDisabledReason={(group) => disabledReason(group.types[0]) ?? null}
+				bind:selectedItems={
+					() => selectedGroupsIn(section.groups),
+					(selected) => setSelectedGroupsIn(section.groups, selected)
+				}
+				onClick={(group) => toggleExpanded(group)}
+			>
+				{#snippet itemExpandedSnippet({ item: group })}
+					{#if group.types.length > 1}
+						{@const count = selectedTypeCount(group, checkedTypeIds)}
+						<ExpandableChildList
+							items={group.types}
+							displayComponent={CredentialTransportDisplay}
+							toggleLabel={credentials_integrationTypeCount({ count: group.types.length })}
+							expanded={expandedIds.has(group.integration.id)}
+							onToggleExpanded={() => toggleExpanded(group)}
+							selection={{
+								isSelected: (type) => checkedTypeIds.includes(type.id),
+								onToggle: toggleType,
+								disabledReason
+							}}
+						>
+							{#snippet badge()}
 								{#if count > 0}
 									<Tag label={credentials_integrationSelectedCount({ count })} color="Blue" pill />
 								{/if}
-								{#if expanded}
-									<ChevronDown class="text-secondary h-4 w-4 flex-shrink-0" />
-								{:else}
-									<ChevronRight class="text-secondary h-4 w-4 flex-shrink-0" />
-								{/if}
-							</button>
-
-							{#if expanded}
-								<div class="card-divider-h mt-3 flex flex-col gap-1 pt-2">
-									{#each group.types as type (type.id)}
-										{@render typeOption(type, null)}
-									{/each}
-								</div>
-							{/if}
-						{/if}
-					</div>
-				{/each}
-			</section>
+							{/snippet}
+						</ExpandableChildList>
+					{/if}
+				{/snippet}
+			</ListManager>
 		{/each}
 	</div>
 </div>

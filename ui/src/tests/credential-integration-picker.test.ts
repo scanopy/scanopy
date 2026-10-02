@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
 	groupIntegrationsByCategory,
 	groupTypesByIntegration,
-	isIntegrationExpanded,
 	selectedIntegrationCount,
 	selectedTypeCount,
 	type PickerType
@@ -65,27 +64,6 @@ describe('selectedTypeCount', () => {
 			)
 		).toBe(multiGroup.types.length);
 		expect(selectedTypeCount(multiGroup, [])).toBe(0);
-	});
-});
-
-describe('isIntegrationExpanded', () => {
-	const selected = [multiGroup.types[0].id];
-
-	it('expands an untouched multi-type integration holding a selection', () => {
-		expect(isIntegrationExpanded(multiGroup, selected, undefined)).toBe(true);
-	});
-
-	it('keeps an untouched integration with no selection collapsed', () => {
-		expect(isIntegrationExpanded(multiGroup, [], undefined)).toBe(false);
-	});
-
-	it('lets the user collapse a row holding a selection, and expand an empty one', () => {
-		expect(isIntegrationExpanded(multiGroup, selected, false)).toBe(false);
-		expect(isIntegrationExpanded(multiGroup, [], true)).toBe(true);
-	});
-
-	it('never expands a single-type integration', () => {
-		expect(isIntegrationExpanded(singleGroup, [singleGroup.types[0].id], true)).toBe(false);
 	});
 });
 
