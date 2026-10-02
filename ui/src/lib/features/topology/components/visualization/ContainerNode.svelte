@@ -22,16 +22,16 @@
 	} from '../../queries';
 	import { useTopology, selectedTopologyId } from '../../context';
 	import type { RenderableTopology, TopologyNode } from '../../types/base';
-	import { entityCollection, resolveContainerNode } from '../../resolvers';
+	import { containerEntity, resolveContainerNode } from '../../resolvers';
 	import { useNetworksQuery } from '$lib/features/networks/queries';
-	import { getFreshnessTag, type FreshnessSubject } from '$lib/shared/utils/freshness';
+	import { getFreshnessTag } from '$lib/shared/utils/freshness';
 	import { entities } from '$lib/shared/stores/metadata';
 	import { queryClient, queryKeys } from '$lib/api/query-client';
 	import type { Tag } from '$lib/features/tags/types/base';
 	import type { Writable } from 'svelte/store';
 	import { getContext } from 'svelte';
 	import { editModeEnabled } from '../../state';
-	import { UNTAGGED_SENTINEL } from '../../interactions';
+	import { matchesHoveredMetadata, UNTAGGED_SENTINEL } from '../../interactions';
 	import * as sharedStores from '../../reactive-stores.svelte';
 	import { toggleCollapse } from '../../collapse';
 	import type { Node, Edge } from '@xyflow/svelte';
@@ -63,6 +63,7 @@
 	let searchHiddenNodes = $derived(sharedStores.searchHiddenNodes.current);
 	let searchContainerMap = $derived(sharedStores.searchContainerMatches.current);
 	let currentHoveredTag = $derived(sharedStores.currentHoveredTag.current);
+	let currentHoveredMetadata = $derived(sharedStores.currentHoveredMetadata.current);
 	let collapsedNodes = $derived(sharedStores.collapsedNodes.current);
 
 	// `selected` is read only by the commented-out resize controls.
@@ -126,22 +127,21 @@
 	);
 	let containerTags = $derived(resolved?.tags ?? []);
 
-	// Staleness pill for a container that stands for one entity (a host box, a subnet box). Judged
-	// on that entity alone with `getFreshnessTag`, the same helper element cards and inventory
-	// badges use. Grouping containers (categories, tags, stacks) have no collection and get none.
+	// The entity this container stands for (a host box, a subnet box). Grouping containers
+	// (categories, tags, stacks) have none, so they get no stale pill and no filter-hover ring.
 	const networksQuery = useNetworksQuery();
-	let staleTag = $derived.by(() => {
-		if (!topology) return null;
-		const entityId = (data as TopologyNode & { entity_id?: string | null }).entity_id ?? id;
-		const entity = entityCollection(topology, containerType)?.find((e) => e.id === entityId) as
-			(FreshnessSubject & { network_id: string }) | undefined;
-		if (!entity) return null;
-		return getFreshnessTag(
-			entity,
-			(networksQuery.data ?? []).find((n) => n.id === entity.network_id),
-			{ entityTypeLabel: entities.getName(containerType) || undefined }
-		);
-	});
+	let entity = $derived(topology ? containerEntity(data as TopologyNode, topology) : undefined);
+	let entityNetwork = $derived((networksQuery.data ?? []).find((n) => n.id === entity?.network_id));
+
+	// Staleness pill, judged on that entity alone with `getFreshnessTag`, the same helper element
+	// cards and inventory badges use.
+	let staleTag = $derived(
+		entity
+			? getFreshnessTag(entity, entityNetwork, {
+					entityTypeLabel: entities.getName(containerType) || undefined
+				})
+			: null
+	);
 
 	let childSummary = $derived(
 		topology ? formatElementSummary(tallyContainerElements(id, topology), $activeView) : ''
@@ -264,6 +264,18 @@
 	});
 
 	let tagHoverRingStyle = $derived.by(() => {
+		// Filter-value hover: ring the box when the entity it stands for carries the hovered value,
+		// the same ring element cards get.
+		if (
+			currentHoveredMetadata &&
+			currentHoveredMetadata.entityType === containerType &&
+			matchesHoveredMetadata(entity, currentHoveredMetadata, entityNetwork, topology)
+		) {
+			const ch = createColorHelper(
+				currentHoveredMetadata.color as Parameters<typeof createColorHelper>[0]
+			);
+			return `box-shadow: 0 0 0 3px ${ch.rgb};`;
+		}
 		if (!currentHoveredTag) return '';
 		// Only highlight when the hovered entity type matches this container's
 		// entity type. containerType here is the container_type discriminant

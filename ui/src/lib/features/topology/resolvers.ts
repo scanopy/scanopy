@@ -3,6 +3,7 @@ import type { RenderableTopology, TopologyNode } from './types/base';
 import { entities } from '$lib/shared/stores/metadata';
 import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 import { getTopologyIndex, type ContainerContents } from './entity-index';
+import type { FreshnessSubject } from '$lib/shared/utils/freshness';
 
 /**
  * Where each entity type's instances live on a Topology.
@@ -607,4 +608,39 @@ export function resolveContainerNode(
 ): ContainerRenderContext {
 	if (node.node_type !== 'Container') throw new Error(`Expected Container, got ${node.node_type}`);
 	return resolveContainer(nodeId, node, topology);
+}
+
+/** An entity a topology node stands for, as the filter extractors and freshness helpers read it. */
+export type NodeEntity = FreshnessSubject & { id: string; network_id?: string };
+
+/**
+ * The entity an element card depicts: its service, address or interface, and otherwise its host.
+ * One owner for the card's stale pill and its filter-hover match, so the two cannot disagree.
+ */
+export function elementEntity(resolved: ElementRenderContext): NodeEntity | undefined {
+	switch (resolved.elementType) {
+		case 'Service':
+			return resolved.services[0] ?? resolved.host;
+		case 'IPAddress':
+			return resolved.ipAddress ?? resolved.host;
+		case 'Interface':
+			return resolved.snmpInterface ?? resolved.host;
+		default:
+			return resolved.host;
+	}
+}
+
+/**
+ * The entity a container stands for (a host box, a subnet box), found by its `container_type`
+ * and `entity_id`. Grouping containers (categories, tags, stacks) have no entity collection and
+ * resolve to `undefined`.
+ */
+export function containerEntity(
+	node: TopologyNode,
+	topology: RenderableTopology
+): NodeEntity | undefined {
+	if (node.node_type !== 'Container' || !node.container_type) return undefined;
+	const entityId = node.entity_id ?? node.id;
+	return entityCollection(topology, node.container_type)?.find((e) => e.id === entityId) as
+		NodeEntity | undefined;
 }
