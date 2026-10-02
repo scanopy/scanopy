@@ -762,7 +762,7 @@
 				bind:subStep={credentialSubStep}
 				bind:selectedTypeIds={selectedCredentialTypeIds}
 				canReturnToTypeSelect={true}
-				fixedDaemonOs={osFamilyOf(selectedOS)}
+				daemonOs={selectedOS}
 				daemonName={String(formValues.name ?? '')}
 			/>
 		{:else}

@@ -105,7 +105,7 @@ impl DiscoveryRunner {
         // daemon. Drop it before any phase can try it, and say so once per credential.
         let os_mismatches = crate::daemon::discovery::credentials::take_os_mismatches(
             &mut self.credential_mappings,
-            crate::server::credentials::r#impl::types::OsFamily::current(),
+            crate::server::daemons::r#impl::base::DaemonOs::current(),
         );
         if !os_mismatches.is_empty()
             && let Ok(session) = ops.get_session().await

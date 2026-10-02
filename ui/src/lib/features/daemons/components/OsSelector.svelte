@@ -1,15 +1,12 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { DaemonOS } from '../utils';
+	import { osLabel, type DaemonOS } from '../utils';
 	import OsIcon from './OsIcon.svelte';
 	import {
 		common_binary,
 		common_docker,
 		common_exe,
-		common_linux,
-		common_macos,
 		common_msi,
-		common_windows,
 		daemons_operatingSystem
 	} from '$lib/paraglide/messages';
 
@@ -50,12 +47,8 @@
 		osDisabled = false
 	}: Props = $props();
 
-	let osOptions = $derived([
-		{ id: 'linux' as DaemonOS, label: common_linux() },
-		{ id: 'macos' as DaemonOS, label: common_macos() },
-		{ id: 'windows' as DaemonOS, label: common_windows() },
-		{ id: 'freebsd' as DaemonOS, label: 'FreeBSD' }
-	]);
+	const osOrder: DaemonOS[] = ['linux', 'macos', 'windows', 'freebsd'];
+	let osOptions = $derived(osOrder.map((id) => ({ id, label: osLabel(id) })));
 
 	let linuxMethodOptions = $derived([
 		{ id: 'binary' as LinuxMethod, label: common_binary() },

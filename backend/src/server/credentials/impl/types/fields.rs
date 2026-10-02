@@ -41,6 +41,7 @@ impl CredentialType {
                     default_value: None,
                     inline_format: Some(InlineFormat::Plain),
                     group: None,
+                    file_name: Some("snmp-community"),
                 }]
             }
             Self::Gnmi {
@@ -67,6 +68,7 @@ impl CredentialType {
                     default_value: Some("9339"),
                     inline_format: None,
                     group: Some("Connection"),
+                    file_name: None,
                 },
                 FieldDefinition {
                     id: "username",
@@ -83,6 +85,7 @@ impl CredentialType {
                     default_value: None,
                     inline_format: None,
                     group: Some("Authentication"),
+                    file_name: None,
                 },
                 FieldDefinition {
                     id: "password",
@@ -97,6 +100,7 @@ impl CredentialType {
                     default_value: None,
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Authentication"),
+                    file_name: Some("gnmi-password"),
                 },
             ],
             Self::SnmpV3 {
@@ -120,6 +124,7 @@ impl CredentialType {
                     default_value: None,
                     inline_format: None,
                     group: Some("Authentication"),
+                    file_name: None,
                 },
                 FieldDefinition {
                     id: "auth_protocol",
@@ -134,6 +139,7 @@ impl CredentialType {
                     default_value: Some("Sha256"),
                     inline_format: None,
                     group: Some("Authentication"),
+                    file_name: None,
                 },
                 FieldDefinition {
                     id: "auth_password",
@@ -148,6 +154,7 @@ impl CredentialType {
                     default_value: None,
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Authentication"),
+                    file_name: Some("snmpv3-auth-password"),
                 },
                 FieldDefinition {
                     id: "priv_protocol",
@@ -162,6 +169,7 @@ impl CredentialType {
                     default_value: Some("Aes128"),
                     inline_format: None,
                     group: Some("Privacy"),
+                    file_name: None,
                 },
                 FieldDefinition {
                     id: "priv_password",
@@ -176,6 +184,7 @@ impl CredentialType {
                     default_value: None,
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Privacy"),
+                    file_name: Some("snmpv3-priv-password"),
                 },
                 FieldDefinition {
                     id: "context_name",
@@ -192,6 +201,7 @@ impl CredentialType {
                     default_value: None,
                     inline_format: None,
                     group: None,
+                    file_name: None,
                 },
             ],
             Self::DockerProxy { .. } => container_proxy_field_definitions(
@@ -237,6 +247,7 @@ impl CredentialType {
                     default_value: None,
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Authentication"),
+                    file_name: Some("unifi-api-key"),
                 });
                 fields
             }
@@ -257,6 +268,7 @@ impl CredentialType {
                     default_value: None,
                     inline_format: None,
                     group: Some("Authentication"),
+                    file_name: None,
                 });
                 fields.push(FieldDefinition {
                     id: "password",
@@ -271,6 +283,7 @@ impl CredentialType {
                     default_value: None,
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Authentication"),
+                    file_name: Some("unifi-password"),
                 });
                 fields
             }
@@ -290,6 +303,7 @@ impl CredentialType {
                     default_value: None,
                     inline_format: None,
                     group: Some("Authentication"),
+                    file_name: None,
                 },
                 FieldDefinition {
                     id: "password",
@@ -304,6 +318,7 @@ impl CredentialType {
                     default_value: None,
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Authentication"),
+                    file_name: Some("instant-on-password"),
                 },
                 FieldDefinition {
                     id: "site",
@@ -320,6 +335,7 @@ impl CredentialType {
                     default_value: None,
                     inline_format: None,
                     group: Some("Scope"),
+                    file_name: None,
                 },
             ],
             Self::SshPassword {
@@ -345,6 +361,7 @@ impl CredentialType {
                 default_value: None,
                 inline_format: Some(InlineFormat::Plain),
                 group: Some("Authentication"),
+                file_name: Some("ssh-password"),
             }]),
             Self::SshKey {
                 port: _,
@@ -371,6 +388,7 @@ impl CredentialType {
                     default_value: None,
                     inline_format: Some(InlineFormat::SshPrivateKey),
                     group: Some("Authentication"),
+                    file_name: Some("ssh-key"),
                 },
                 FieldDefinition {
                     id: "passphrase",
@@ -385,6 +403,7 @@ impl CredentialType {
                     default_value: None,
                     inline_format: Some(InlineFormat::Plain),
                     group: Some("Authentication"),
+                    file_name: Some("ssh-key-passphrase"),
                 },
             ]),
             Self::WakeOnLan {
@@ -408,6 +427,7 @@ impl CredentialType {
                     default_value: Some("9"),
                     inline_format: None,
                     group: Some("Delivery"),
+                    file_name: None,
                 },
                 FieldDefinition {
                     id: "broadcast_address",
@@ -424,6 +444,7 @@ impl CredentialType {
                     default_value: None,
                     inline_format: None,
                     group: Some("Delivery"),
+                    file_name: None,
                 },
                 FieldDefinition {
                     id: "wait_seconds",
@@ -440,6 +461,7 @@ impl CredentialType {
                     default_value: Some("90"),
                     inline_format: None,
                     group: Some("Delivery"),
+                    file_name: None,
                 },
                 FieldDefinition {
                     id: "secure_on_password",
@@ -456,6 +478,7 @@ impl CredentialType {
                     default_value: None,
                     inline_format: Some(InlineFormat::MacAddress),
                     group: Some("Delivery"),
+                    file_name: Some("secureon-password"),
                 },
             ],
         }
@@ -479,6 +502,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             default_value: Some("22"),
             inline_format: None,
             group: Some("Connection"),
+            file_name: None,
         },
         FieldDefinition {
             id: "username",
@@ -495,6 +519,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             default_value: None,
             inline_format: None,
             group: Some("Authentication"),
+            file_name: None,
         },
     ];
     fields.extend(auth_fields);
@@ -514,6 +539,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             default_value: Some("Unix"),
             inline_format: None,
             group: Some("Script"),
+            file_name: None,
         },
         FieldDefinition {
             id: "script",
@@ -535,6 +561,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             default_value: None,
             inline_format: None,
             group: Some("Script"),
+            file_name: Some("inventory.sh"),
         },
         FieldDefinition {
             id: "timeout_seconds",
@@ -549,6 +576,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             default_value: Some("60"),
             inline_format: None,
             group: Some("Script"),
+            file_name: None,
         },
         FieldDefinition {
             id: "host_key_fingerprint",
@@ -565,6 +593,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             default_value: None,
             inline_format: None,
             group: Some("Script"),
+            file_name: None,
         },
     ]);
     fields
@@ -590,6 +619,7 @@ fn unifi_connection_fields() -> Vec<FieldDefinition> {
             default_value: Some("443"),
             inline_format: None,
             group: Some("Connection"),
+            file_name: None,
         },
         FieldDefinition {
             id: "site",
@@ -606,6 +636,7 @@ fn unifi_connection_fields() -> Vec<FieldDefinition> {
             default_value: Some("default"),
             inline_format: None,
             group: Some("Connection"),
+            file_name: None,
         },
     ]
 }
@@ -631,6 +662,7 @@ fn socket_path_field(
         default_value: None,
         inline_format: None,
         group: Some("Connection"),
+        file_name: None,
     }
 }
 
@@ -655,6 +687,7 @@ fn container_proxy_field_definitions(
             default_value: Some("2375"),
             inline_format: None,
             group: Some("Connection"),
+            file_name: None,
         },
         FieldDefinition {
             id: "path",
@@ -669,6 +702,7 @@ fn container_proxy_field_definitions(
             default_value: None,
             inline_format: None,
             group: Some("Connection"),
+            file_name: None,
         },
         FieldDefinition {
             id: "ssl_cert",
@@ -685,6 +719,7 @@ fn container_proxy_field_definitions(
             default_value: None,
             inline_format: Some(InlineFormat::PemCertificate),
             group: Some("TLS"),
+            file_name: Some("cert.pem"),
         },
         FieldDefinition {
             id: "ssl_key",
@@ -699,6 +734,7 @@ fn container_proxy_field_definitions(
             default_value: None,
             inline_format: Some(InlineFormat::PemPrivateKey),
             group: Some("TLS"),
+            file_name: Some("key.pem"),
         },
         FieldDefinition {
             id: "ssl_chain",
@@ -715,6 +751,7 @@ fn container_proxy_field_definitions(
             default_value: None,
             inline_format: Some(InlineFormat::PemCertificate),
             group: Some("TLS"),
+            file_name: Some("ca.pem"),
         },
     ]
 }
@@ -759,6 +796,7 @@ impl CredentialType {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::server::credentials::r#impl::types::CredentialTypeDiscriminants;
     use strum::IntoEnumIterator;
 
@@ -775,6 +813,28 @@ mod tests {
             .to_credential_type()
             .os_fields();
         assert_eq!(socket.daemon, vec!["socket_path"]);
+    }
+
+    /// Every field that can be read from a file names its own example file, so its placeholder
+    /// and path errors show a path for that field rather than a generic one.
+    #[test]
+    fn every_file_capable_field_names_an_example_file() {
+        for d in CredentialTypeDiscriminants::iter() {
+            for field in d.to_credential_type().field_definitions() {
+                if matches!(
+                    field.field_type,
+                    FieldType::SecretPathOrInline
+                        | FieldType::PathOrInline
+                        | FieldType::ScriptSource
+                ) {
+                    assert!(
+                        field.file_name.is_some(),
+                        "{d:?}.{} has no file_name",
+                        field.id
+                    );
+                }
+            }
+        }
     }
 
     /// Every id the form is told to place the picker by is a field the form renders.

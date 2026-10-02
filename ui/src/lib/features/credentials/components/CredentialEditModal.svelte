@@ -14,17 +14,20 @@
 	import { pruneAssignmentsForTargets } from '../utils/credentialTargets';
 	import CredentialForm from './CredentialForm.svelte';
 	import CredentialAssignmentsSection from './CredentialAssignmentsSection.svelte';
-	import { submitForm } from '$lib/shared/components/forms/form-context';
+	import { submitForm, validateForm } from '$lib/shared/components/forms/form-context';
 	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
-	import { Info, Link } from 'lucide-svelte';
+	import { ArrowRight, Info, KeyRound, Link } from 'lucide-svelte';
 	import {
 		common_assignments,
+		common_back,
+		common_credential,
 		common_couldNotLoadOrganization,
 		common_create,
 		common_delete,
 		common_deleting,
 		common_details,
 		common_editName,
+		common_next,
 		common_saving,
 		common_update,
 		credentials_assignmentsClearedOnTypeChange,
@@ -73,14 +76,51 @@
 	let credentialFormRef: ReturnType<typeof CredentialForm> | undefined = $state();
 	let loading = $state(false);
 	let deleting = $state(false);
-	let saveLabel = $derived(isEditing ? common_update() : common_create());
+	// Tabs, which are also the create flow's steps, in order: who the credential is, what it
+	// holds, where it applies. Creating walks them with Next and a stepper; editing jumps freely.
+	const steps = ['details', 'credential', 'assignments'] as const;
+	type Step = (typeof steps)[number];
+	let activeTab = $state<Step>('details');
+	let furthestReached = $state(0);
+	let stepIndex = $derived(steps.indexOf(activeTab));
+	let isLastStep = $derived(stepIndex === steps.length - 1);
+	let tabs: ModalTab[] = $derived(
+		[
+			{ id: 'details', label: common_details(), icon: Info },
+			{ id: 'credential', label: common_credential(), icon: KeyRound },
+			{ id: 'assignments', label: common_assignments(), icon: Link }
+		].map((tab, i) => ({ ...tab, disabled: !isEditing && i > furthestReached }))
+	);
+	let saveLabel = $derived(
+		isEditing ? common_update() : isLastStep ? common_create() : common_next()
+	);
 
-	// Tabs
-	let activeTab = $state('details');
-	let tabs: ModalTab[] = $derived([
-		{ id: 'details', label: common_details(), icon: Info },
-		{ id: 'assignments', label: common_assignments(), icon: Link }
-	]);
+	/** The form fields a step shows, so Next validates only those. */
+	function fieldsOfStep(step: Step): Set<string> {
+		const all = Object.keys(form.state.fieldMeta);
+		if (step === 'details') return new Set(['name', 'description']);
+		if (step === 'credential') return new Set(all.filter((name) => name.startsWith('fields.')));
+		return new Set();
+	}
+
+	async function handlePrimary() {
+		if (isEditing || isLastStep) {
+			await handleSave();
+			return;
+		}
+		const valid = await validateForm(
+			form,
+			fieldsOfStep(activeTab),
+			(path) => credentialFormRef?.fieldLabel(path) ?? path
+		);
+		if (!valid) return;
+		furthestReached = Math.max(furthestReached, stepIndex + 1);
+		activeTab = steps[stepIndex + 1];
+	}
+
+	function handleBack() {
+		if (stepIndex > 0) activeTab = steps[stepIndex - 1];
+	}
 
 	// Assignment state (source of truth; synced into the submit payload).
 	// The selected type drives which assignment surface(s) show; kept in sync via
@@ -172,6 +212,7 @@
 
 	function handleOpen() {
 		activeTab = 'details';
+		furthestReached = 0;
 		assignedNetworkIds = credential?.assigned_network_ids ?? [];
 		hostAssignments = credential?.host_assignments ?? [];
 		selectedTypeId = credential ? getCredentialTypeId(credential) : 'SnmpV2c';
@@ -211,28 +252,35 @@
 	showCloseButton={true}
 	{tabs}
 	{activeTab}
-	onTabChange={(id) => (activeTab = id)}
+	tabStyle={isEditing ? 'tabs' : 'stepper'}
+	onTabChange={(id) => (activeTab = id as Step)}
 >
 	{#snippet headerIcon()}
 		<ModalHeaderIcon Icon={entities.getIconComponent('Credential')} color={colorHelper.color} />
 	{/snippet}
 
 	<div class="flex min-h-0 flex-1 flex-col overflow-auto p-6">
-		<div class="space-y-4" class:hidden={activeTab !== 'details'}>
-			<p class="text-secondary text-sm">
-				{credentials_description()}
-			</p>
-			<DocsHint
-				text={credentials_docsGuide()}
-				href="https://scanopy.net/docs/using-scanopy/credentials/"
-				linkText={credentials_docsGuideLinkText()}
-			/>
+		<!-- One form for both steps, kept mounted while Assignments shows, so field values and
+		     modes survive moving between tabs. -->
+		<div class="space-y-4" class:hidden={activeTab === 'assignments'}>
+			{#if activeTab === 'details'}
+				<p class="text-secondary text-sm">
+					{credentials_description()}
+				</p>
+				<DocsHint
+					text={credentials_docsGuide()}
+					href="https://scanopy.net/docs/using-scanopy/credentials/"
+					linkText={credentials_docsGuideLinkText()}
+				/>
+			{/if}
 
 			<CredentialForm
 				bind:this={credentialFormRef}
 				{form}
 				{credential}
 				onTypeChange={handleTypeChange}
+				section={activeTab === 'credential' ? 'fields' : 'identity'}
+				onSubmitRequest={handlePrimary}
 			/>
 		</div>
 
@@ -265,14 +313,24 @@
 						</button>
 					{/if}
 				</div>
-				<button
-					type="button"
-					disabled={loading || deleting}
-					class="btn-primary"
-					onclick={handleSave}
-				>
-					{loading ? common_saving() : saveLabel}
-				</button>
+				<div class="flex items-center gap-3">
+					{#if !isEditing && stepIndex > 0}
+						<button type="button" class="btn-secondary" onclick={handleBack}>
+							{common_back()}
+						</button>
+					{/if}
+					<button
+						type="button"
+						disabled={loading || deleting}
+						class="btn-primary flex items-center gap-1"
+						onclick={handlePrimary}
+					>
+						<span>{loading ? common_saving() : saveLabel}</span>
+						{#if !isEditing && !isLastStep}
+							<ArrowRight class="h-4 w-4" />
+						{/if}
+					</button>
+				</div>
 			</div>
 		</div>
 	{/snippet}

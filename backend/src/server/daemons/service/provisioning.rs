@@ -65,7 +65,7 @@ impl DaemonService {
             self.check_unverified_daemon_limit(org_id).await?;
 
             // The create modal blocks these too; this holds for any other caller.
-            let daemon_os = request.os.map(OsFamily::from);
+            let daemon_os = request.os;
             for target in &request.seed_credential_refs {
                 if let Some(cred) = self
                     .credential_service

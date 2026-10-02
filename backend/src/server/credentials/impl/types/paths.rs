@@ -92,15 +92,16 @@ impl OsFamily {
                 .find(|o| o.value == <&'static str>::from(self))
                 .map(|o| o.label)
                 .unwrap_or_default(),
-            example_file_path: self.example(),
+            example_dir: self.example_dir(),
         }
     }
 
-    /// An example absolute path for error messages.
-    fn example(self) -> &'static str {
+    /// Where an example file lives on a daemon of this OS: the form joins a field's `file_name`
+    /// to it for the placeholder, and path errors do the same for their example.
+    pub fn example_dir(self) -> &'static str {
         match self {
-            Self::Unix => "/etc/scanopy/key.pem",
-            Self::Windows => r"C:\ProgramData\Scanopy\key.pem",
+            Self::Unix => "/etc/scanopy/",
+            Self::Windows => r"C:\ProgramData\Scanopy\",
         }
     }
 }
@@ -110,15 +111,14 @@ impl OsFamily {
 pub struct OsFamilyMetadata {
     pub id: &'static str,
     pub name: &'static str,
-    pub example_file_path: &'static str,
+    pub example_dir: &'static str,
 }
 
 /// Reject a path that is not absolute for `os`, with a message that says what would be.
-fn require_absolute(p: &str, field: &str, os: OsFamily) -> Result<(), Error> {
+fn require_absolute(p: &str, field: &str, example: &str, os: OsFamily) -> Result<(), Error> {
     if os.is_absolute(p) {
         return Ok(());
     }
-    let example = os.example();
     if p.starts_with('~') {
         crate::bail_validation!(
             "{field}: use an absolute path such as {example}. ~ is not expanded, and the daemon may run as another user."
@@ -157,8 +157,16 @@ impl DaemonPath {
         self.0.trim().is_empty()
     }
 
-    pub fn validate(&self, field: &str, daemon_os: OsFamily) -> Result<(), Error> {
-        require_absolute(self.0.trim(), field, daemon_os)
+    /// Absolute for the daemon's OS. `example_file` is the field's example file name, for the
+    /// error's example path.
+    pub fn validate(
+        &self,
+        field: &str,
+        example_file: &str,
+        daemon_os: OsFamily,
+    ) -> Result<(), Error> {
+        let example = format!("{}{example_file}", daemon_os.example_dir());
+        require_absolute(self.0.trim(), field, &example, daemon_os)
     }
 
     /// Read the file. A failure is an [`UnresolvableCredential`], which callers classify as a
@@ -244,9 +252,9 @@ impl HostPath {
     }
 
     /// Absolute for the target's OS. A Windows path also cannot hold `"`: it is passed to
-    /// PowerShell's `-File` inside double quotes.
-    pub fn validate(&self, field: &str, target_os: OsFamily) -> Result<(), Error> {
-        require_absolute(self.as_str(), field, target_os)?;
+    /// PowerShell's `-File` inside double quotes. `example` is a full example path for the error.
+    pub fn validate(&self, field: &str, example: &str, target_os: OsFamily) -> Result<(), Error> {
+        require_absolute(self.as_str(), field, example, target_os)?;
         if target_os == OsFamily::Windows && self.0.contains('"') {
             crate::bail_validation!("{field}: a Windows path cannot contain \".");
         }
@@ -293,7 +301,7 @@ mod tests {
 
     #[test]
     fn daemon_paths_must_be_absolute_for_the_declared_os() {
-        let ok = |p: &str, os| DaemonPath::from(p).validate("f", os).is_ok();
+        let ok = |p: &str, os| DaemonPath::from(p).validate("f", "key.pem", os).is_ok();
         assert!(ok("/etc/scanopy/key", OsFamily::Unix));
         for bad in ["~/key", "keys/k", r"C:\key"] {
             assert!(!ok(bad, OsFamily::Unix), "{bad} on Unix");
@@ -326,7 +334,11 @@ mod tests {
 
     #[test]
     fn host_paths_must_be_absolute_for_the_target_os() {
-        let ok = |p: &str, os| HostPath::from(p).validate("f", os).is_ok();
+        let ok = |p: &str, os| {
+            HostPath::from(p)
+                .validate("f", "/usr/local/bin/x", os)
+                .is_ok()
+        };
         assert!(ok("/usr/local/bin/inventory", OsFamily::Unix));
         assert!(!ok("~/inventory", OsFamily::Unix));
         assert!(!ok(r"C:\inventory.ps1", OsFamily::Unix));

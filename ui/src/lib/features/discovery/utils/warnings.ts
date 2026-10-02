@@ -25,6 +25,7 @@ import warningCodes from '$lib/data/warning-codes.json';
 import warningRemedies from '$lib/data/warning-remedies.json';
 import { metaDescription, metaDescriptionWith, metaName } from '$lib/i18n/metadata';
 import { toColor, type Color } from '$lib/shared/utils/styling';
+import { osLabel } from '$lib/features/daemons/utils';
 import {
 	common_andNMore,
 	common_host,
@@ -323,7 +324,8 @@ const WARNING_PARAMS = {
 		credential: integration(w[0].integration),
 		declared: osFamily(w[0].declared),
 		daemon: daemonName,
-		actual: osFamily(w[0].actual)
+		// The daemon's own OS where it sent one; runs recorded before that name its family.
+		actual: w[0].actual_os ? osLabel(w[0].actual_os) : osFamily(w[0].actual)
 	}),
 
 	// One warning per subnet, so the first is the only one — unlike the address-scoped codes above,
@@ -754,7 +756,7 @@ function credentialIdOf(w: DiscoveryWarning): string[] {
 }
 
 /**
- * Whether a warning belongs on the run's Credentials tab rather than its Warnings tab, as the
+ * Whether a warning belongs on the run's Credentials tab rather than its Scan tab, as the
  * backend files its code (`concerns_credential`). Each warning appears on exactly one of the two.
  */
 export function isCredentialWarning(w: DiscoveryWarning): boolean {

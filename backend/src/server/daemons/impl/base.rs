@@ -102,6 +102,21 @@ pub enum DaemonOs {
     FreeBsd,
 }
 
+impl DaemonOs {
+    /// The OS this binary was built for. A daemon reports it in warnings so they can name it.
+    pub fn current() -> Self {
+        if cfg!(target_os = "windows") {
+            Self::Windows
+        } else if cfg!(target_os = "macos") {
+            Self::MacOS
+        } else if cfg!(target_os = "freebsd") {
+            Self::FreeBsd
+        } else {
+            Self::Linux
+        }
+    }
+}
+
 impl From<DaemonOs> for OsFamily {
     fn from(os: DaemonOs) -> Self {
         match os {

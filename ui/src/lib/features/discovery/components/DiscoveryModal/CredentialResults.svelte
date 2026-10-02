@@ -1,9 +1,9 @@
 <!--
 	What each credential did in a run, with its warnings: the hosts it collected from, the SSH script
-	runs, the hosts Wake-on-LAN woke. Every credential warning in the run is here and nowhere else;
-	the Warnings tab points here. Each row starts collapsed, showing the credential, the addresses it
-	reported on, and "Success" or its warning count; expanding it shows the warnings' own sentences
-	and the per-host detail.
+	runs, the hosts Wake-on-LAN woke. Every credential warning in the run is shown here rather than on
+	the Scan tab. Rows use the Scan tab's density: collapsed, a row shows the credential, the
+	addresses it reported on, and "Success" or its warning count; expanded, the warnings' own
+	sentences and only the detail the collapsed row does not already show.
 -->
 <script lang="ts">
 	import { ChevronRight } from 'lucide-svelte';
@@ -23,9 +23,7 @@
 		discovery_credentialWarningCount,
 		discovery_credentialWokeHosts,
 		discovery_noCredentialResults,
-		discovery_noCredentialResultsSubtitle,
-		discovery_wolAnswered,
-		discovery_wolDidNotAnswer
+		discovery_noCredentialResultsSubtitle
 	} from '$lib/paraglide/messages';
 	import type { EntityDiscriminants } from '$lib/api/entities';
 	import type { DiscoveryUpdatePayload } from '../../types/api';
@@ -71,93 +69,80 @@
 		subtitle={discovery_noCredentialResultsSubtitle()}
 	/>
 {:else}
-	<ul class="space-y-3">
+	<ul class="card card-static px-4 py-2">
 		{#each rows as row (row.key)}
 			{@const credential = row.credentialId ? credentialsById.get(row.credentialId) : undefined}
 			{@const open = expanded.has(row.key)}
-			<li class="card card-static">
+			<li>
 				<button
 					type="button"
-					class="flex w-full flex-wrap items-center gap-2 p-4 text-left"
+					class="hover:bg-tertiary/40 -mx-1 flex w-full min-w-0 cursor-pointer items-start gap-2 rounded px-1 py-1 text-left"
 					aria-expanded={open}
 					onclick={() => toggle(row.key)}
 				>
 					<ChevronRight
-						class="text-tertiary h-4 w-4 flex-shrink-0 transition-transform {open
+						class="text-secondary mt-0.5 h-4 w-4 shrink-0 transition-transform {open
 							? 'rotate-90'
 							: ''}"
 					/>
-					{#if credential}
-						<EntityTag
-							entityRef={entityRef('Credential', credential.id, credential)}
-							label={credential.name}
-							icon={entities.getIconComponent('Credential')}
-							color={entities.getColorHelper('Credential').color}
-						/>
-					{:else if row.integration}
-						<span class="text-secondary text-sm">{integration(row.integration)}</span>
-					{:else}
-						<span class="text-secondary text-sm">
-							{common_unknownEntity({ entity: common_credential() })}
-						</span>
-					{/if}
-					{#each row.addresses.slice(0, MAX_ADDRESSES) as address (address)}
-						<Tag label={address} />
-					{/each}
-					{#if row.addresses.length > MAX_ADDRESSES}
-						<Tag label={common_moreItems({ count: row.addresses.length - MAX_ADDRESSES })} />
-					{/if}
-					<span class="ml-auto">
-						{#if row.warnings.length === 0}
-							<Tag label={common_success()} color="Green" />
-						{:else}
-							<Tag
-								label={discovery_credentialWarningCount({ count: row.warnings.length })}
-								color="Amber"
+					<span class="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+						{#if credential}
+							<EntityTag
+								entityRef={entityRef('Credential', credential.id, credential)}
+								label={credential.name}
+								icon={entities.getIconComponent('Credential')}
+								color={entities.getColorHelper('Credential').color}
 							/>
+						{:else if row.integration}
+							<span class="text-primary text-sm">{integration(row.integration)}</span>
+						{:else}
+							<span class="text-primary text-sm">
+								{common_unknownEntity({ entity: common_credential() })}
+							</span>
+						{/if}
+						{#each row.addresses.slice(0, MAX_ADDRESSES) as address (address)}
+							<Tag label={address} />
+						{/each}
+						{#if row.addresses.length > MAX_ADDRESSES}
+							<Tag label={common_moreItems({ count: row.addresses.length - MAX_ADDRESSES })} />
 						{/if}
 					</span>
+					{#if row.warnings.length === 0}
+						<Tag label={common_success()} color="Green" />
+					{:else}
+						<Tag
+							label={discovery_credentialWarningCount({ count: row.warnings.length })}
+							color="Amber"
+						/>
+					{/if}
 				</button>
 
 				{#if open}
-					<div class="space-y-4 border-t border-gray-700 p-4">
+					<div class="space-y-2 pb-2 pl-6">
 						{#each buildWarningReport(row.warnings, nameOfEntity, daemonName) as section (section.remedy)}
 							{#each section.entries as entry (entry.code)}
 								<div class="space-y-1">
-									<p class="text-primary text-sm font-medium">{entry.title}</p>
+									<p class="text-primary text-sm">{entry.title}</p>
 									{#each entry.details as statement, i (i)}
-										<p class="text-secondary text-sm">{statement.sentence}</p>
+										<p class="text-tertiary text-sm">{statement.sentence}</p>
 									{/each}
 								</div>
 							{/each}
 						{/each}
 
 						{#if row.outcome?.type === 'Collected'}
-							<p class="text-secondary text-sm">
+							<p class="text-tertiary text-sm">
 								{discovery_credentialCollectedHosts({ count: row.outcome.hosts })}
 							</p>
 						{:else if row.outcome?.type === 'SshScript'}
 							<SshScriptRuns runs={row.outcome.runs} />
 						{:else if row.outcome?.type === 'WakeOnLan'}
-							{@const hosts = row.outcome.hosts}
-							<p class="text-secondary text-sm">
+							<p class="text-tertiary text-sm">
 								{discovery_credentialWokeHosts({
-									woke: hosts.filter((h) => h.woke).length,
-									total: hosts.length
+									woke: row.outcome.hosts.filter((h) => h.woke).length,
+									total: row.outcome.hosts.length
 								})}
 							</p>
-							<ul class="space-y-1">
-								{#each hosts as host, i (`${host.ip}-${i}`)}
-									<li class="flex items-center gap-2">
-										<span class="text-primary font-mono text-sm">{host.ip}</span>
-										{#if host.woke}
-											<Tag label={discovery_wolAnswered()} color="Green" />
-										{:else}
-											<Tag label={discovery_wolDidNotAnswer()} color="Red" />
-										{/if}
-									</li>
-								{/each}
-							</ul>
 						{/if}
 					</div>
 				{/if}

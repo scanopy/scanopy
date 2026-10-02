@@ -11,7 +11,7 @@
 	} from '$lib/features/credentials/queries';
 	import { type Credential } from '$lib/features/credentials/types/base';
 	import { pickerSelectionFromPending } from '$lib/features/credentials/utils/integrationPicker';
-	import type { OsFamily } from '$lib/features/credentials/utils/placeholders';
+	import type { DaemonOS } from '$lib/features/daemons/utils';
 	import CredentialTypeSelectStep from './CredentialTypeSelectStep.svelte';
 	import CredentialWizardStep, {
 		type PendingCredential as PendingCredentialType
@@ -50,8 +50,9 @@
 		 *  wizard (it calls `continueToWizard`). When true, the wizard adds new credential
 		 *  types by returning to the picker; otherwise it keeps its type dropdown. */
 		canReturnToTypeSelect?: boolean;
-		/** The daemon OS chosen before this step (create-daemon flow); new credentials take it. */
-		fixedDaemonOs?: OsFamily | null;
+		/** The daemon's OS when known (create-daemon flow, or a daemon created with one). New
+		 *  credentials take its OS family, and existing ones set up for another are blocked. */
+		daemonOs?: DaemonOS | null;
 	}
 
 	let {
@@ -66,7 +67,7 @@
 		daemonVersion = null,
 		daemonName = null,
 		canReturnToTypeSelect = false,
-		fixedDaemonOs = null
+		daemonOs = null
 	}: Props = $props();
 
 	const bulkCreateCredentialsMutation = useBulkCreateCredentialsMutation();
@@ -182,7 +183,7 @@
 			{daemonName}
 			onRemoveCredential={handleRemoveCredential}
 			onAddIntegration={canReturnToTypeSelect ? backToTypeSelect : undefined}
-			{fixedDaemonOs}
+			{daemonOs}
 		/>
 	</div>
 {/if}

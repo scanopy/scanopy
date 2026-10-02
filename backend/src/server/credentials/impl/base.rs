@@ -95,14 +95,15 @@ impl CredentialBase {
     pub fn daemon_os_refusal(
         &self,
         daemon_name: &str,
-        daemon_os: Option<OsFamily>,
+        daemon_os: Option<crate::server::daemons::r#impl::base::DaemonOs>,
     ) -> Option<String> {
+        use crate::server::shared::types::metadata::TypeMetadataProvider;
         match (self.daemon_os, daemon_os) {
-            (Some(declared), Some(actual)) if declared != actual => Some(format!(
+            (Some(declared), Some(actual)) if declared != OsFamily::from(actual) => Some(format!(
                 "Credential \"{}\" reads files on a {} daemon, and \"{daemon_name}\" runs {}. Set the credential's Daemon OS to match, or choose another credential.",
                 self.name,
                 declared.metadata().name,
-                actual.metadata().name,
+                actual.name(),
             )),
             _ => None,
         }

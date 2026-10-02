@@ -1,6 +1,7 @@
 <script lang="ts" generics="V, OC">
 	import { ChevronDown } from 'lucide-svelte';
 	import ListSelectItem from './ListSelectItem.svelte';
+	import { tooltip } from '$lib/shared/actions/tooltip';
 	import type { EntityDisplayComponent } from './types';
 	import { tick, onMount } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
@@ -403,7 +404,8 @@
 									? (displayComponent.getDisabledReason?.(option, context) ?? null)
 									: null}
 								<button
-									title={disabledReason}
+									use:tooltip
+									data-tooltip={disabledReason}
 									type="button"
 									onclick={(e) => {
 										e.preventDefault();

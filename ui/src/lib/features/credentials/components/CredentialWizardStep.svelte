@@ -13,7 +13,7 @@
 	import { credentialTypes, entities } from '$lib/shared/stores/metadata';
 	import type { TypedTypeMetadata, CredentialTypeMetadata } from '$lib/shared/stores/metadata';
 	import type { Credential, CredentialType } from '$lib/features/credentials/types/base';
-	import type { OsFamily } from '$lib/features/credentials/utils/placeholders';
+	import { osFamilyOf, type DaemonOS } from '$lib/features/daemons/utils';
 	import type { Host } from '$lib/features/hosts/types/base';
 	import {
 		createDefaultCredential,
@@ -88,9 +88,10 @@
 		 *  add-new-type dropdown; when absent (a parent that cannot advance from the picker),
 		 *  the dropdown stays. */
 		onAddIntegration?: () => void;
-		/** The daemon OS chosen before this step (create-daemon flow). New credentials take it as
-		 *  their `daemon_os`, and their forms hide the Daemon OS picker. */
-		fixedDaemonOs?: OsFamily | null;
+		/** The daemon's OS when known (create-daemon flow, or a daemon created with one). New
+		 *  credentials take its OS family as their `daemon_os` and hide the Daemon OS picker;
+		 *  existing credentials set up for another family are blocked. */
+		daemonOs?: DaemonOS | null;
 	}
 
 	let {
@@ -103,8 +104,10 @@
 		daemonVersion = null,
 		daemonName = null,
 		onAddIntegration,
-		fixedDaemonOs = null
+		daemonOs = null
 	}: Props = $props();
+
+	let fixedDaemonOs = $derived(daemonOs ? osFamilyOf(daemonOs) : null);
 
 	// Query network and credential data for network-level credential display
 	const networksQuery = useNetworksQuery();
@@ -361,7 +364,7 @@
 		const existing = credentialsQuery.data?.find((c) => c.id === credentialId);
 		if (!existing) return;
 		// The picker disables these; this holds for any other path in.
-		if (daemonOsRefusal(existing, fixedDaemonOs, daemonName)) return;
+		if (daemonOsRefusal(existing, daemonOs, daemonName)) return;
 		pendingCredentials = [
 			...pendingCredentials,
 			{
@@ -561,7 +564,7 @@
 					emptyMessage={daemons_credentialWizardEmpty()}
 					options={availableExistingCredentials}
 					getOptionContext={(c) => ({
-						disabledReason: daemonOsRefusal(c, fixedDaemonOs, daemonName)
+						disabledReason: daemonOsRefusal(c, daemonOs, daemonName)
 					})}
 					allowAddFromOptions={availableExistingCredentials.length > 0}
 					allowCreateNew={true}
@@ -596,7 +599,7 @@
 					primaryOptionsLabel={daemons_credentialWizardCreateNew()}
 					secondaryOptions={availableExistingCredentials}
 					getSecondaryOptionContext={(c) => ({
-						disabledReason: daemonOsRefusal(c, fixedDaemonOs, daemonName)
+						disabledReason: daemonOsRefusal(c, daemonOs, daemonName)
 					})}
 					secondaryOptionDisplayComponent={CredentialDisplay}
 					secondaryPlaceholder={daemons_credentialWizardSelectExisting()}

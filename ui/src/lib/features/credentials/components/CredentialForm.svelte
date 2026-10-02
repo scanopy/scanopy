@@ -35,7 +35,7 @@
 	import { docsUrl } from '$lib/shared/utils/docs';
 	import {
 		DAEMON_OS_FIELD,
-		exampleFilePath,
+		filePathPlaceholder,
 		osFamilyOptions,
 		resolvePlaceholder,
 		type OsFamily
@@ -120,6 +120,13 @@
 		/** The daemon OS when the caller already knows it, e.g. the create-daemon flow, which asks
 		 *  for the OS first. Overrides the credential's own and hides the Daemon OS picker. */
 		fixedDaemonOs?: OsFamily | null;
+		/** Standard mode only: which half to show. `identity` is name, description and type;
+		 *  `fields` is the type's own fields. The other half stays mounted, hidden, so a caller
+		 *  stepping between them keeps every value and field mode. */
+		section?: 'all' | 'identity' | 'fields';
+		/** Standard mode: what Enter does. A caller that steps through the form (the create flow)
+		 *  passes its Next; without one, Enter submits. */
+		onSubmitRequest?: () => void;
 	}
 
 	let {
@@ -138,7 +145,9 @@
 		scope,
 		onChange,
 		onTypeChange,
-		fixedDaemonOs = null
+		fixedDaemonOs = null,
+		section = 'all',
+		onSubmitRequest
 	}: Props = $props();
 
 	const organizationQuery = useOrganizationQuery();
@@ -411,6 +420,10 @@
 	}
 
 	async function handleSubmit() {
+		if (onSubmitRequest) {
+			onSubmitRequest();
+			return;
+		}
 		await submitForm(form);
 	}
 
@@ -951,7 +964,7 @@
 		class="flex flex-col gap-4"
 	>
 		<!-- Standard mode: card wrapper for name/type, separate cards for fields -->
-		<div class="card card-static space-y-4 p-4">
+		<div class="card card-static space-y-4 p-4" class:hidden={section === 'fields'}>
 			{#if showName}
 				<form.Field
 					name={nameFieldName}
@@ -1014,17 +1027,19 @@
 			{/if}
 		</div>
 
-		{#each fieldGroups as group (group.name ?? '_ungrouped')}
-			{#if group.name}
-				<InfoCard title={group.name}>
-					{@render fieldList(group.fields)}
-				</InfoCard>
-			{:else if group.fields.length > 0}
-				<div class="card card-static space-y-4 p-4">
-					{@render fieldList(group.fields)}
-				</div>
-			{/if}
-		{/each}
+		<div class="flex flex-col gap-4" class:hidden={section === 'identity'}>
+			{#each fieldGroups as group (group.name ?? '_ungrouped')}
+				{#if group.name}
+					<InfoCard title={group.name}>
+						{@render fieldList(group.fields)}
+					</InfoCard>
+				{:else if group.fields.length > 0}
+					<div class="card card-static space-y-4 p-4">
+						{@render fieldList(group.fields)}
+					</div>
+				{/if}
+			{/each}
+		</div>
 
 		<!-- Hidden submit button for Enter-to-submit -->
 		<button type="submit" class="hidden" aria-hidden="true" tabindex={-1}></button>
@@ -1180,7 +1195,7 @@
 									formField.handleChange(target.value);
 								}}
 								onblur={() => formField.handleBlur()}
-								placeholder={exampleFilePath(daemonOs)}
+								placeholder={filePathPlaceholder(field, daemonOs)}
 								class="input-field text-primary w-full rounded-md px-3 py-2 text-sm"
 								class:input-field-error={formField.state.meta.errors?.length > 0}
 							/>
@@ -1256,7 +1271,7 @@
 									formField.handleChange(target.value);
 								}}
 								onblur={() => formField.handleBlur()}
-								placeholder={exampleFilePath(daemonOs)}
+								placeholder={filePathPlaceholder(field, daemonOs)}
 								class="input-field text-primary w-full rounded-md px-3 py-2 text-sm"
 								class:input-field-error={formField.state.meta.errors?.length > 0}
 							/>
@@ -1333,7 +1348,7 @@
 								onblur={() => formField.handleBlur()}
 								placeholder={source.mode === 'HostFile'
 									? placeholderFor(field)
-									: exampleFilePath(daemonOs)}
+									: filePathPlaceholder(field, daemonOs)}
 								class="input-field text-primary w-full rounded-md px-3 py-2 text-sm"
 								class:input-field-error={formField.state.meta.errors?.length > 0}
 							/>

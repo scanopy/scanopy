@@ -294,8 +294,11 @@ pub enum DiscoveryWarning {
         credential_id: Option<Uuid>,
         /// The OS the credential's paths were declared for.
         declared: crate::server::credentials::r#impl::types::OsFamily,
-        /// The OS this daemon runs.
+        /// The OS family this daemon runs.
         actual: crate::server::credentials::r#impl::types::OsFamily,
+        /// The OS this daemon runs, to name it. Absent on runs recorded before it was sent.
+        #[serde(default)]
+        actual_os: Option<crate::server::daemons::r#impl::base::DaemonOs>,
     },
     /// The port the credential needs was not open, so it was never tried.
     #[schema(title = "CredentialGateClosed")]
