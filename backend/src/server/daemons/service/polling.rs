@@ -1,6 +1,7 @@
 //! ServerPoll polling loop and per-daemon poll state machine.
 use super::*;
 use crate::daemon::discovery::types::base::{DiscoveryPhase, DiscoveryTerminalReason};
+use crate::server::shared::types::error_codes::ErrorCode;
 
 impl DaemonService {
     // ========================================================================
@@ -294,6 +295,11 @@ impl DaemonService {
             .process_status(daemon.id, status.clone(), auth.clone())
             .await
         {
+            // A daemon on another OS from the one it was created for gets no work: stop here,
+            // before first-contact setup or dispatch. `process_status` has logged why.
+            if matches!(e.error_code, Some(ErrorCode::DaemonOsMismatch { .. })) {
+                return Err(anyhow::anyhow!(e.message));
+            }
             tracing::warn!(
                 daemon_id = %daemon.id,
                 error = ?e,
@@ -306,7 +312,7 @@ impl DaemonService {
         if let Some(version) = status.version.clone()
             && daemon.base.version.as_ref() != Some(&version)
             && let Err(e) = self
-                .process_startup(daemon.id, version.clone(), auth.clone())
+                .process_startup(daemon.id, version.clone(), status.os, auth.clone())
                 .await
         {
             tracing::warn!(

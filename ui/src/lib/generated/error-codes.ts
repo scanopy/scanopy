@@ -68,6 +68,8 @@ export const ERROR_CODES = {
 		'Daemon not found on server. It may have been deleted or the database was reset. Reinstall or reconfigure the daemon.',
 	daemon_version_too_old:
 		'Daemon version {daemon_version} is older than server version {server_version}. Update the daemon to match the server version.',
+	daemon_os_mismatch:
+		'This daemon was created for {expected} but is running on {actual}. Create a new daemon for this OS, or install this one on the OS it was created for.',
 	user_email_in_use: "Email '{email}' is already in use",
 	organization_has_active_subscription:
 		'Cancel your subscription before deleting your organization',
@@ -154,6 +156,7 @@ export interface ErrorParams {
 	daemon_standby: Record<string, never>;
 	daemon_not_registered: Record<string, never>;
 	daemon_version_too_old: { daemon_version: string | number; server_version: string | number };
+	daemon_os_mismatch: { expected: string | number; actual: string | number };
 	user_email_in_use: { email: string | number };
 	organization_has_active_subscription: Record<string, never>;
 	billing_payment_required: Record<string, never>;

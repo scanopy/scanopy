@@ -35,7 +35,9 @@ use crate::server::daemons::r#impl::api::{
     DiscoveryUpdatePayload, FirstContactRequest, LegacyCapabilities, ProvisionDaemonRequest,
     ServerCapabilities,
 };
-use crate::server::daemons::r#impl::base::{Daemon, DaemonBase, DaemonMode};
+use crate::server::daemons::r#impl::base::{
+    Daemon, DaemonBase, DaemonMode, DaemonOs, ReportedOsOutcome,
+};
 use crate::server::daemons::r#impl::interfaced_subnets::DaemonInterfacedSubnetStorage;
 use crate::server::daemons::r#impl::version::{
     DaemonVersionPolicy, pre_interface_to_ip_address_rename, supports_server_provisioned_identity,

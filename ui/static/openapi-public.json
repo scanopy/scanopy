@@ -20128,7 +20128,7 @@
               },
               {
                 "$ref": "#/components/schemas/DaemonOs",
-                "description": "The operating system chosen when the daemon was created. Credentials set up for another\nOS's file paths cannot be used by it. `None` for daemons created before this was recorded."
+                "description": "The operating system the daemon runs on. Picked when the daemon is created, then checked\nagainst what the daemon reports on every handshake once it is new enough to report (see\n`version_status.supports_os_reporting`); a daemon on another OS is refused. Credentials\nset up for another OS's file paths cannot be used by it. `None` for a daemon created\nbefore this was recorded that has not yet reported."
               }
             ]
           },
@@ -20292,6 +20292,17 @@
             "format": "uuid",
             "description": "The network this entity belongs to."
           },
+          "os": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DaemonOs",
+                "description": "The OS this daemon binary runs on. Absent from daemons up to 0.17.19."
+              }
+            ]
+          },
           "url": {
             "type": [
               "string",
@@ -20404,6 +20415,17 @@
           "daemon_version": {
             "type": "string",
             "description": "Daemon software version (semver format)"
+          },
+          "os": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DaemonOs",
+                "description": "The OS this daemon binary runs on. Absent from daemons up to 0.17.19."
+              }
+            ]
           }
         }
       },
@@ -20433,6 +20455,17 @@
           "name": {
             "type": "string",
             "description": "Name the daemon reports for itself."
+          },
+          "os": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DaemonOs",
+                "description": "The OS this daemon binary runs on. Absent from daemons up to 0.17.19."
+              }
+            ]
           },
           "ready_for_work": {
             "type": "boolean",
@@ -20475,6 +20508,10 @@
               "null"
             ],
             "description": "The date this daemon's version stops being supported, if a sunset is\nscheduled for it. Surfaced top-level (not only inside `warnings`) so the\nUI can render a countdown from the same value the email uses."
+          },
+          "supports_os_reporting": {
+            "type": "boolean",
+            "description": "Whether this daemon reports its OS on every handshake. When it does, the daemon's `os` is\nwhat it runs on; when it does not, `os` is the OS picked at creation, or absent."
           },
           "supports_targeted_rescan": {
             "type": "boolean",

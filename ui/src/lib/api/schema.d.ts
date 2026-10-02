@@ -7376,6 +7376,7 @@ export interface components {
              * @description The network this entity belongs to.
              */
             network_id: string;
+            os?: null | components["schemas"]["DaemonOs"];
             /**
              * @description URL is ignored by server - kept for backwards compat with old daemons.
              *     URL is only set via admin provisioning for ServerPoll daemons.
@@ -7438,6 +7439,7 @@ export interface components {
         DaemonStartupRequest: {
             /** @description Daemon software version (semver format) */
             daemon_version: string;
+            os?: null | components["schemas"]["DaemonOs"];
         };
         /** @description Lightweight daemon status for polling responses. */
         DaemonStatus: {
@@ -7453,6 +7455,7 @@ export interface components {
             mode: components["schemas"]["DaemonMode"];
             /** @description Name the daemon reports for itself. */
             name: string;
+            os?: null | components["schemas"]["DaemonOs"];
             /**
              * @description Whether the daemon can accept a new discovery session.
              *     Both DaemonPoll and ServerPoll use this to avoid dispatching work to a busy daemon.
@@ -7478,6 +7481,11 @@ export interface components {
              *     UI can render a countdown from the same value the email uses.
              */
             sunset_date?: string | null;
+            /**
+             * @description Whether this daemon reports its OS on every handshake. When it does, the daemon's `os` is
+             *     what it runs on; when it does not, `os` is the OS picked at creation, or absent.
+             */
+            supports_os_reporting?: boolean;
             /**
              * @description Whether this daemon can run a single-host rescan. Server-computed so the
              *     frontend never has to hardcode a version floor.

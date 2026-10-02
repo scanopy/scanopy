@@ -729,6 +729,17 @@ impl ApiError {
             },
         )
     }
+
+    /// Bad request (400) - daemon runs on a different OS from the one it was created for
+    pub fn daemon_os_mismatch(expected: &str, actual: &str) -> Self {
+        Self::coded(
+            StatusCode::BAD_REQUEST,
+            ErrorCode::DaemonOsMismatch {
+                expected: expected.to_string(),
+                actual: actual.to_string(),
+            },
+        )
+    }
 }
 
 /// Response extension carrying the coded error's stable string for metric labeling.

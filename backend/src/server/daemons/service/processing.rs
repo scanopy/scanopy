@@ -30,6 +30,8 @@ impl DaemonService {
             .await?
             .ok_or_else(|| ApiError::entity_not_found::<Daemon>(daemon_id))?;
 
+        self.check_reported_os(&mut daemon, status.os)?;
+
         daemon.base.last_seen = Some(Utc::now());
         // NOTE: We intentionally do NOT update URL from status.
         // URL is only set:
@@ -83,6 +85,45 @@ impl DaemonService {
         Ok(())
     }
 
+    /// Hold a handshake to the OS this daemon was created for; see
+    /// [`DaemonBase::accept_reported_os`]. Call before the handshake writes `last_seen` or
+    /// `version`, which that check reads as they stood before.
+    pub(crate) fn check_reported_os(
+        &self,
+        daemon: &mut Daemon,
+        reported: Option<DaemonOs>,
+    ) -> Result<(), ApiError> {
+        match daemon.base.accept_reported_os(reported) {
+            Ok(ReportedOsOutcome::Unchanged) => Ok(()),
+            Ok(ReportedOsOutcome::Recorded) => {
+                tracing::info!(
+                    daemon_id = %daemon.id,
+                    os = ?daemon.base.os,
+                    "Recorded the OS a daemon reported"
+                );
+                Ok(())
+            }
+            Ok(ReportedOsOutcome::Adopted { picked }) => {
+                tracing::info!(
+                    daemon_id = %daemon.id,
+                    picked = ?picked,
+                    reported = ?daemon.base.os,
+                    "Daemon reported its OS for the first time and it differs from the one picked at creation; recording the reported OS"
+                );
+                Ok(())
+            }
+            Err(mismatch) => {
+                tracing::warn!(
+                    daemon_id = %daemon.id,
+                    expected = ?mismatch.expected,
+                    actual = ?mismatch.actual,
+                    "Refused a daemon running on a different OS from the one it was created for"
+                );
+                Err(mismatch.into())
+            }
+        }
+    }
+
     /// The network's live subnets, sent with a dispatch so the daemon can resolve a scan that
     /// names subnets by id. A ServerPoll daemon has no way to ask for them itself.
     ///
@@ -133,6 +174,7 @@ impl DaemonService {
         &self,
         daemon_id: Uuid,
         version: Version,
+        reported_os: Option<DaemonOs>,
         auth: AuthenticatedEntity,
     ) -> Result<ServerCapabilities, ApiError> {
         // Reject daemons below the minimum supported version
@@ -148,6 +190,8 @@ impl DaemonService {
             .get_by_id(&daemon_id)
             .await?
             .ok_or_else(|| ApiError::entity_not_found::<Daemon>(daemon_id))?;
+
+        self.check_reported_os(&mut daemon, reported_os)?;
 
         let was_pre_unified = !supports_unified_discovery(daemon.base.version.as_ref());
 
@@ -331,6 +375,7 @@ impl DaemonService {
             // URL is only set via admin provisioning for ServerPoll daemons.
             // (Interfaced subnets are not taken from registration — they flow via the
             // status heartbeat / update-capabilities channels into the junction.)
+            self.check_reported_os(&mut existing_daemon, request.os)?;
             existing_daemon.base.last_seen = Some(Utc::now());
             // For a provisioned daemon the server-side name and mode are authoritative
             // (chosen at provision, bound to the 1:1 key). A silent install defaulting to
@@ -515,7 +560,7 @@ impl DaemonService {
             is_unreachable: false,
             standby: false,
             standby_cleared_at: None,
-            os: None,
+            os: request.os,
         });
 
         daemon.id = effective_daemon_id;

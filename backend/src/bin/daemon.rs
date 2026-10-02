@@ -408,7 +408,9 @@ async fn run_daemon<F: std::future::Future<Output = ()>>(
                                     tracing::warn!("{}", conn_err.cause_and_fix());
                                 }
                             }
-                            StartupOutcome::AuthFailed(_) | StartupOutcome::VersionRejected(_) => {
+                            StartupOutcome::AuthFailed(_)
+                            | StartupOutcome::VersionRejected(_)
+                            | StartupOutcome::OsRejected(_) => {
                                 break;
                             }
                         }
@@ -435,6 +437,15 @@ async fn run_daemon<F: std::future::Future<Output = ()>>(
                              server: {e}. Update the daemon binary to the latest version from the \
                              Scanopy UI under Discover > Daemons, then restart. The daemon will not \
                              run until it is updated."
+                        );
+                        std::process::exit(1);
+                    }
+                    StartupOutcome::OsRejected(e) => {
+                        // Terminal, like a version rejection: the same binary on the same OS will
+                        // be refused again, so exit non-zero rather than park.
+                        tracing::error!(
+                            "The server refused this daemon: {e} Create daemons in the Scanopy UI under \
+                             Discover > Daemons. The daemon will not run until this is resolved."
                         );
                         std::process::exit(1);
                     }
