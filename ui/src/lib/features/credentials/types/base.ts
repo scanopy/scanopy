@@ -53,7 +53,7 @@ export function createDefaultCredential(organization_id: string): Credential {
 			type: 'SnmpV2c',
 			community: { mode: 'Inline' as const, value: '' }
 		},
-		daemon_os: 'Unix',
+		daemon_os: null,
 		organization_id,
 		tags: [],
 		assigned_network_ids: [],

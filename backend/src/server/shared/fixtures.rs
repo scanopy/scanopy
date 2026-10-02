@@ -125,6 +125,12 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
     let claim_sources: Vec<TypeMetadata> = ClaimSource::iter().map(|c| c.to_metadata()).collect();
     write_fixture(&claim_sources, output_dir, "claim-sources.json");
 
+    // Install OS → credential OS family, for the create-daemon modal and the daemon OS gate.
+    let daemon_os: Vec<TypeMetadata> = crate::server::daemons::r#impl::base::DaemonOs::iter()
+        .map(|o| o.to_metadata())
+        .collect();
+    write_fixture(&daemon_os, output_dir, "daemon-os.json");
+
     // Keyed by `CredentialQueryPayloadDiscriminants`, which is what a coded warning carries.
     // Neither `integrations.json` (keyed by display name) nor `credential-types.json` (keyed by
     // `CredentialType`) can resolve those eight values.

@@ -70,11 +70,11 @@ pub struct CredentialMapping<T> {
     /// "public" fallback, which has no stored row behind it.
     #[serde(default)]
     pub default_credential_id: Option<Uuid>,
-    /// The OS the credential's files and sockets were declared for. A daemon on another OS drops
-    /// the mapping and warns, rather than reading a path written for a different OS. `Unix` from
-    /// an older server, which is what every credential path was before this existed.
+    /// The OS the credential's files and sockets were declared for, `None` when it reads nothing
+    /// on the daemon. A daemon on another OS drops the mapping and warns, rather than reading a
+    /// path written for a different OS.
     #[serde(default)]
-    pub daemon_os: super::types::paths::OsFamily,
+    pub daemon_os: Option<super::types::paths::OsFamily>,
     #[serde(default)]
     pub ip_overrides: Vec<IpOverride<T>>,
 }

@@ -19,7 +19,10 @@ use crate::server::{
         oidc::{OidcRegisterResult, OidcService},
     },
     config::{AppState, DeploymentType, get_deployment_type},
-    daemons::r#impl::{api::ProvisionDaemonRequest, base::DaemonMode},
+    daemons::r#impl::{
+        api::ProvisionDaemonRequest,
+        base::{DaemonMode, DaemonOs},
+    },
     invites::handlers::process_pending_invite,
     networks::r#impl::{Network, NetworkBase},
     organizations::r#impl::base::UseCase,

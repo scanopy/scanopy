@@ -1,5 +1,7 @@
 import { fieldDefs } from './config';
 import type { components } from '$lib/api/schema';
+import daemonOsMetadata from '$lib/data/daemon-os.json';
+import osFamilies from '$lib/data/os-families.json';
 import type { Daemon } from './types/base';
 import type { FormValue } from '$lib/shared/components/forms/validators';
 import type { TagProps } from '$lib/shared/components/data/types';
@@ -334,17 +336,17 @@ export async function downloadDaemonMsi(filename: string): Promise<boolean> {
 	}
 }
 
+type OsFamily = components['schemas']['OsFamily'];
+
+function isOsFamily(value: string): value is OsFamily {
+	return osFamilies.some((family) => family.id === value);
+}
+
 /**
- * The credential-path OS family for a daemon OS: Windows paths for a Windows daemon, Unix paths
- * for every other. Exhaustive, so a new daemon OS has to say which.
+ * The credential-path OS family for a daemon OS, from the backend's `From<DaemonOs> for OsFamily`
+ * (`daemon-os.json`): Windows paths for a Windows daemon, Unix paths for every other.
  */
-export function osFamilyOf(os: DaemonOS): components['schemas']['OsFamily'] {
-	switch (os) {
-		case 'windows':
-			return 'Windows';
-		case 'linux':
-		case 'macos':
-		case 'freebsd':
-			return 'Unix';
-	}
+export function osFamilyOf(os: DaemonOS): OsFamily {
+	const family = daemonOsMetadata.find((entry) => entry.id === os)?.metadata.os_family;
+	return family && isOsFamily(family) ? family : 'Unix';
 }

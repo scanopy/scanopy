@@ -22,7 +22,10 @@
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { useNetworksQuery } from '$lib/features/networks/queries';
 	import { useCredentialsQuery } from '$lib/features/credentials/queries';
-	import { daemonTooOldForCredential } from '$lib/features/credentials/utils/versionGate';
+	import {
+		daemonOsRefusal,
+		daemonTooOldForCredential
+	} from '$lib/features/credentials/utils/versionGate';
 	import { defaultFieldValue } from '$lib/features/credentials/utils/fieldValues';
 	import {
 		DAEMON_HOST_IP,
@@ -352,6 +355,8 @@
 	function handleAddExistingCredential(credentialId: string) {
 		const existing = credentialsQuery.data?.find((c) => c.id === credentialId);
 		if (!existing) return;
+		// The picker disables these; this holds for any other path in.
+		if (daemonOsRefusal(existing, fixedDaemonOs, daemonName)) return;
 		pendingCredentials = [
 			...pendingCredentials,
 			{
@@ -495,7 +500,9 @@
 					credential: {
 						...p.credential,
 						credential_type: credentialType,
-						daemon_os: fixedDaemonOs ?? ref?.getDaemonOs() ?? p.credential.daemon_os,
+						// Set only when the credential reads something on the daemon; the form applies
+						// `fixedDaemonOs` itself. Without a form the server clears an unused one.
+						daemon_os: ref ? ref.getDaemonOs() : (fixedDaemonOs ?? p.credential.daemon_os),
 						// Broadcast: assign as a network default. Per-host: leave to target_ips.
 						assigned_network_ids: isBroadcast && networkId ? [networkId] : []
 					},
@@ -554,6 +561,9 @@
 				itemDisplayComponent={CredentialDisplay}
 				primaryOptionsLabel={daemons_credentialWizardCreateNew()}
 				secondaryOptions={availableExistingCredentials}
+				getSecondaryOptionContext={(c) => ({
+					disabledReason: daemonOsRefusal(c, fixedDaemonOs, daemonName)
+				})}
 				secondaryOptionDisplayComponent={CredentialDisplay}
 				secondaryPlaceholder={daemons_credentialWizardSelectExisting()}
 				secondaryOptionsLabel={daemons_credentialWizardAddExisting()}

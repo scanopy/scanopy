@@ -34,9 +34,10 @@ pub struct CredentialBase {
     /// Protocol this credential authenticates with, and its settings.
     pub credential_type: CredentialType,
     /// The OS of the daemons that will read this credential's files and sockets. Paths are
-    /// validated for it, and a daemon on another OS skips the credential with a warning.
+    /// validated for it, and a daemon on another OS cannot use the credential. Set exactly when
+    /// the credential reads something on the daemon; `None` otherwise.
     #[serde(default)]
-    pub daemon_os: OsFamily,
+    pub daemon_os: Option<OsFamily>,
     /// Tags assigned to this entity.
     #[serde(default = "default_tags")]
     #[schema(required)]
@@ -71,7 +72,40 @@ impl CredentialBase {
     /// formats its type declares, and every path for the OS of the machine that holds it.
     pub fn validate_settings(&self) -> Result<(), anyhow::Error> {
         self.credential_type.validate()?;
-        self.credential_type.validate_paths(self.daemon_os)
+        match self.daemon_os {
+            Some(os) => self.credential_type.validate_paths(os),
+            None if self.credential_type.reads_daemon_paths() => Err(anyhow::anyhow!(
+                "Choose the Daemon OS: this credential reads a file or socket on the daemon"
+            )),
+            // No daemon-side path, so any OS validates the scanned-host paths alike.
+            None => self.credential_type.validate_paths(OsFamily::default()),
+        }
+    }
+
+    /// Drop a `daemon_os` the credential has no use for, so it never blocks a daemon on an OS the
+    /// credential does not care about.
+    pub fn clear_unused_daemon_os(&mut self) {
+        if !self.credential_type.reads_daemon_paths() {
+            self.daemon_os = None;
+        }
+    }
+
+    /// Why the daemon `daemon_name`, on `daemon_os`, cannot use this credential: both OSes are
+    /// known and differ. `None` when it can.
+    pub fn daemon_os_refusal(
+        &self,
+        daemon_name: &str,
+        daemon_os: Option<OsFamily>,
+    ) -> Option<String> {
+        match (self.daemon_os, daemon_os) {
+            (Some(declared), Some(actual)) if declared != actual => Some(format!(
+                "Credential \"{}\" reads files on a {} daemon, and \"{daemon_name}\" runs {}. Set the credential's Daemon OS to match, or choose another credential.",
+                self.name,
+                declared.metadata().name,
+                actual.metadata().name,
+            )),
+            _ => None,
+        }
     }
 }
 
@@ -88,7 +122,7 @@ impl Default for CredentialBase {
                     value: SecretString::from(String::new()),
                 },
             },
-            daemon_os: OsFamily::default(),
+            daemon_os: None,
             tags: Vec::new(),
             assigned_network_ids: Vec::new(),
             host_assignments: Vec::new(),

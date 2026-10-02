@@ -129,7 +129,7 @@
 				...(formValues as unknown as Credential),
 				organization_id: organization.id,
 				credential_type: credentialType,
-				daemon_os: credentialFormRef?.getDaemonOs() ?? 'Unix',
+				daemon_os: credentialFormRef?.getDaemonOs() ?? null,
 				description: (formValues.description as string | null | undefined)?.trim() || null,
 				assigned_network_ids: permitted.assignedNetworkIds,
 				host_assignments: permitted.hostAssignments

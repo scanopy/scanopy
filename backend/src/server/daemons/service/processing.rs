@@ -515,6 +515,7 @@ impl DaemonService {
             is_unreachable: false,
             standby: false,
             standby_cleared_at: None,
+            os: None,
         });
 
         daemon.id = effective_daemon_id;

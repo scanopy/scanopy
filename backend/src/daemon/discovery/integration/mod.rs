@@ -32,6 +32,7 @@ use uuid::Uuid;
 
 use crate::{
     daemon::discovery::service::warnings::AttemptOutcome,
+    daemon::shared::config::ConfigStore,
     daemon::utils::base::PlatformDaemonUtils,
     server::{
         credentials::r#impl::mapping::{
@@ -348,6 +349,8 @@ pub struct ProbeContext<'a> {
     /// Extra CA roots from the daemon's `trusted_ca_bundle`, for controllers signed by a
     /// private CA. Mirrors [`IntegrationContext::trusted_ca`].
     pub trusted_ca: Option<&'a TrustedCaBundle>,
+    /// The daemon's config, for state an integration keeps between scans: SSH host-key pins.
+    pub config_store: &'a ConfigStore,
 }
 
 /// Successful probe — service responds with this credential.

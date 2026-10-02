@@ -18,6 +18,7 @@ use crate::daemon::discovery::service::ops::{DiscoveryOps, HostData};
 use crate::daemon::discovery::service::warnings::{
     AttemptOutcome, CredentialIssue, CredentialIssueReason, issue_for_attempt,
 };
+use crate::daemon::shared::config::ConfigStore;
 use crate::daemon::utils::base::PlatformDaemonUtils;
 use crate::server::credentials::r#impl::mapping::{
     CredentialMapping, CredentialQueryPayload, CredentialQueryPayloadDiscriminants,
@@ -215,6 +216,7 @@ pub async fn probe_integrations(
     utils: &PlatformDaemonUtils,
     accept_invalid_certs: bool,
     trusted_ca: Option<&TrustedCaBundle>,
+    config_store: &ConfigStore,
 ) -> Result<IntegrationProbeResults, Error> {
     let mut results = IntegrationProbeResults {
         client_responses: HashMap::new(),
@@ -377,6 +379,7 @@ pub async fn probe_integrations(
                         utils,
                         accept_invalid_certs,
                         trusted_ca,
+                        config_store,
                     },
                     discriminant,
                     applicable.user_assigned,

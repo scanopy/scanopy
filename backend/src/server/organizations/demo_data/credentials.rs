@@ -11,7 +11,7 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
             updated_at: now,
             base: CredentialBase {
                 organization_id,
-                daemon_os: OsFamily::Unix,
+                daemon_os: None,
                 name: "Default SNMPv2c".to_string(),
                 description: Some("Read-only public community most switches ship with.".to_string()),
                 credential_type: CredentialType::SnmpV2c {
@@ -30,7 +30,7 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
             updated_at: now,
             base: CredentialBase {
                 organization_id,
-                daemon_os: OsFamily::Unix,
+                daemon_os: None,
                 name: "Network Devices".to_string(),
                 description: Some(
                     "Community for core and access switches, firewalls and APs. Rotated each quarter by the network team."
@@ -52,7 +52,7 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
             updated_at: now,
             base: CredentialBase {
                 organization_id,
-                daemon_os: OsFamily::Unix,
+                daemon_os: None,
                 name: "Docker TLS Proxy".to_string(),
                 description: Some("TLS proxy in front of the Docker API on the container hosts.".to_string()),
                 credential_type: CredentialType::DockerProxy {
@@ -73,7 +73,7 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
             updated_at: now,
             base: CredentialBase {
                 organization_id,
-                daemon_os: OsFamily::Unix,
+                daemon_os: Some(OsFamily::Unix),
                 name: "Linux Inventory".to_string(),
                 description: Some(
                     "Runs the inventory script Ansible deploys to every Linux server. Read-only account.".to_string(),
@@ -107,7 +107,7 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
             updated_at: now,
             base: CredentialBase {
                 organization_id,
-                daemon_os: OsFamily::Unix,
+                daemon_os: None,
                 name: "Backup NAS Wake".to_string(),
                 description: Some("Wakes the backup NAS, which sleeps between weekly backup windows.".to_string()),
                 credential_type: CredentialType::WakeOnLan {
