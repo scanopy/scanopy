@@ -12,8 +12,8 @@
 		tabs: ModalTab[];
 		activeTab: string;
 		onTabClick: (tabId: string) => void;
-		/** Sits in the modal's title row, with smaller circles and tighter spacing. Otherwise
-		 *  its own row below the title. Labels sit under the circles either way. */
+		/** Sits in the modal's title row: smaller circles with the label beside each one.
+		 *  Otherwise its own row, labels under the circles. */
 		inline?: boolean;
 	} = $props();
 
@@ -21,7 +21,7 @@
 </script>
 
 <nav
-	class={inline ? 'flex min-w-0 flex-1 items-start' : 'flex w-full items-start pb-4 pt-4'}
+	class={inline ? 'flex min-w-0 flex-1 items-center' : 'flex w-full items-start pb-4 pt-4'}
 	aria-label={common_progressSteps()}
 >
 	{#each tabs as tab, i (tab.id)}
@@ -31,7 +31,7 @@
 
 		<!-- Connecting line before this step (not for first) -->
 		{#if i > 0}
-			<div class={inline ? 'mt-3 min-w-3 flex-1 px-1' : 'mt-4 flex-1 px-1'}>
+			<div class={inline ? 'min-w-3 flex-1 px-2' : 'mt-4 flex-1 px-1'}>
 				<div
 					class="h-0.5 {i <= activeIndex ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}"
 				></div>
@@ -42,9 +42,9 @@
 		<button
 			type="button"
 			onclick={() => isClickable && onTabClick(tab.id)}
-			class="flex flex-col items-center {inline ? 'shrink-0 gap-0.5' : 'gap-1.5'} {isClickable
-				? 'cursor-pointer'
-				: 'cursor-default'}"
+			class="flex items-center {inline
+				? 'shrink-0 flex-row gap-1.5'
+				: 'flex-col gap-1.5'} {isClickable ? 'cursor-pointer' : 'cursor-default'}"
 			aria-current={isCurrent ? 'step' : undefined}
 			aria-disabled={tab.disabled ? 'true' : undefined}
 			tabindex={isClickable ? 0 : -1}
