@@ -116,30 +116,41 @@ impl PosthogService {
     }
 }
 
+fn entity_filter() -> EntityEventFilter {
+    use crate::server::shared::entities::EntityDiscriminants;
+    let create_or_delete = Some(vec![
+        EntityOperationDiscriminants::Created,
+        EntityOperationDiscriminants::Deleted,
+    ]);
+    EntityEventFilter::by_entity(std::collections::HashMap::from([
+        // Deleted only: creation is already `org_created` (onboarding). Deleting an org deletes
+        // its Stripe customer and the cancellation webhook then finds no org, so without this a
+        // trial org that deletes itself leaves no outcome event.
+        (
+            EntityDiscriminants::Organization,
+            Some(vec![EntityOperationDiscriminants::Deleted]),
+        ),
+        (EntityDiscriminants::Network, create_or_delete.clone()),
+        (EntityDiscriminants::Host, create_or_delete.clone()),
+        (EntityDiscriminants::Subnet, create_or_delete.clone()),
+        (EntityDiscriminants::Discovery, create_or_delete.clone()),
+        (EntityDiscriminants::Dependency, create_or_delete.clone()),
+        (EntityDiscriminants::Tag, create_or_delete.clone()),
+        (EntityDiscriminants::Share, create_or_delete.clone()),
+        (EntityDiscriminants::Vlan, create_or_delete.clone()),
+        (EntityDiscriminants::UserApiKey, create_or_delete.clone()),
+        (EntityDiscriminants::DaemonApiKey, create_or_delete.clone()),
+        (EntityDiscriminants::Daemon, create_or_delete.clone()),
+        (EntityDiscriminants::Credential, create_or_delete.clone()),
+        (EntityDiscriminants::Invite, create_or_delete.clone()),
+        (EntityDiscriminants::User, create_or_delete),
+    ]))
+}
+
 #[async_trait]
 impl Subscriber<EntityOperation> for PosthogService {
     fn filter(&self) -> EntityEventFilter {
-        use crate::server::shared::entities::EntityDiscriminants;
-        let create_or_delete = Some(vec![
-            EntityOperationDiscriminants::Created,
-            EntityOperationDiscriminants::Deleted,
-        ]);
-        EntityEventFilter::by_entity(std::collections::HashMap::from([
-            (EntityDiscriminants::Network, create_or_delete.clone()),
-            (EntityDiscriminants::Host, create_or_delete.clone()),
-            (EntityDiscriminants::Subnet, create_or_delete.clone()),
-            (EntityDiscriminants::Discovery, create_or_delete.clone()),
-            (EntityDiscriminants::Dependency, create_or_delete.clone()),
-            (EntityDiscriminants::Tag, create_or_delete.clone()),
-            (EntityDiscriminants::Share, create_or_delete.clone()),
-            (EntityDiscriminants::Vlan, create_or_delete.clone()),
-            (EntityDiscriminants::UserApiKey, create_or_delete.clone()),
-            (EntityDiscriminants::DaemonApiKey, create_or_delete.clone()),
-            (EntityDiscriminants::Daemon, create_or_delete.clone()),
-            (EntityDiscriminants::Credential, create_or_delete.clone()),
-            (EntityDiscriminants::Invite, create_or_delete.clone()),
-            (EntityDiscriminants::User, create_or_delete),
-        ]))
+        entity_filter()
     }
 
     async fn handle(&self, events: Vec<Event<EntityOperation>>) -> Result<(), Error> {
@@ -643,6 +654,24 @@ mod tests {
         });
         inject_org_group(&mut props);
         assert_eq!(props["$groups"], json!({"organization": "abc-123"}));
+    }
+
+    #[test]
+    fn org_deletion_reaches_posthog_but_org_creation_does_not() {
+        use crate::server::shared::events::traits::{EntityScope, SubscriberFilter};
+        use crate::server::shared::types::examples;
+
+        // The scope `OrganizationService` builds: an org is scoped to its own id.
+        let org = examples::organization();
+        let event = |op| {
+            let scope = EntityScope::from_ids(org.id, org.clone().into(), None, Some(org.id))
+                .expect("org-scoped");
+            Event::new(scope, op, AuthenticatedEntity::System)
+        };
+
+        assert!(entity_filter().matches(&event(EntityOperation::Deleted)));
+        // Creation is `org_created` from onboarding; forwarding it too would double-count.
+        assert!(!entity_filter().matches(&event(EntityOperation::Created)));
     }
 
     #[test]
