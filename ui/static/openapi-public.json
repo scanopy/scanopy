@@ -12675,19 +12675,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-02T12:58:48.621633Z",
+              "created_at": "2026-10-02T22:51:07.664696Z",
               "first_discovery_id": null,
-              "id": "f6a24c3b-d9dd-45b3-b7ae-ddc6dacfeeb2",
+              "id": "38956561-61b3-4ffc-b07f-2674cec72e07",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-02T12:58:48.621633Z",
+              "last_seen_at": "2026-10-02T22:51:07.664696Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-02T12:58:48.621633Z",
-              "valid_from": "2026-10-02T12:58:48.621633Z",
+              "updated_at": "2026-10-02T22:51:07.664696Z",
+              "valid_from": "2026-10-02T22:51:07.664696Z",
               "valid_to": null
             }
           },
@@ -14284,19 +14284,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-02T12:58:48.606911Z",
+                      "created_at": "2026-10-02T22:51:07.649623Z",
                       "first_discovery_id": null,
-                      "id": "38a87ce3-dfa2-40f7-8d52-eb068e0bf635",
+                      "id": "7e6cb9d2-f2a5-495b-9f15-580b4732113e",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-02T12:58:48.606911Z",
+                      "last_seen_at": "2026-10-02T22:51:07.649623Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-02T12:58:48.606911Z",
-                      "valid_from": "2026-10-02T12:58:48.606911Z",
+                      "updated_at": "2026-10-02T22:51:07.649623Z",
+                      "valid_from": "2026-10-02T22:51:07.649623Z",
                       "valid_to": null
                     }
                   ],
@@ -14310,7 +14310,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Tuya Smart",
+                  "service_definition": "Prometheus",
                   "source": {
                     "type": "Manual"
                   },
@@ -15708,19 +15708,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-02T12:58:48.618146Z",
+                  "created_at": "2026-10-02T22:51:07.661084Z",
                   "first_discovery_id": null,
-                  "id": "e628f85d-2b75-4299-9855-b04a697cddaf",
+                  "id": "b64e32d0-2ec9-4f74-b069-b9f72f1fc826",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-02T12:58:48.618146Z",
+                  "last_seen_at": "2026-10-02T22:51:07.661084Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-02T12:58:48.618146Z",
-                  "valid_from": "2026-10-02T12:58:48.618146Z",
+                  "updated_at": "2026-10-02T22:51:07.661084Z",
+                  "valid_from": "2026-10-02T22:51:07.661084Z",
                   "valid_to": null
                 }
               ],
@@ -15734,7 +15734,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Tuya Smart",
+              "service_definition": "Prometheus",
               "source": {
                 "type": "Manual"
               },
@@ -18153,19 +18153,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-02T12:58:48.607253Z",
+          "created_at": "2026-10-02T22:51:07.650013Z",
           "first_discovery_id": null,
-          "id": "04f32d9e-cffa-4aef-912c-44426a5a9848",
+          "id": "fa4bb897-fc20-460e-91a0-d28a1ccf5a0d",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-02T12:58:48.607253Z",
+          "last_seen_at": "2026-10-02T22:51:07.650013Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-02T12:58:48.607253Z",
-          "valid_from": "2026-10-02T12:58:48.607253Z",
+          "updated_at": "2026-10-02T22:51:07.650013Z",
+          "valid_from": "2026-10-02T22:51:07.650013Z",
           "valid_to": null
         }
       },
@@ -18881,7 +18881,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Tuya Smart",
+              "service_definition": "Prometheus",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -25159,19 +25159,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-02T12:58:48.606534Z",
+                  "created_at": "2026-10-02T22:51:07.649189Z",
                   "first_discovery_id": null,
-                  "id": "2f963f7e-b557-4c8a-8649-2928f804172b",
+                  "id": "7beeee70-b772-4ed9-9165-76d7266cd57b",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-02T12:58:48.606534Z",
+                  "last_seen_at": "2026-10-02T22:51:07.649189Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-02T12:58:48.606534Z",
-                  "valid_from": "2026-10-02T12:58:48.606534Z",
+                  "updated_at": "2026-10-02T22:51:07.649189Z",
+                  "valid_from": "2026-10-02T22:51:07.649189Z",
                   "valid_to": null
                 }
               ],
@@ -25185,7 +25185,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Tuya Smart",
+              "service_definition": "Prometheus",
               "source": {
                 "type": "Manual"
               },
@@ -28900,19 +28900,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-02T12:58:48.600947Z",
+                        "created_at": "2026-10-02T22:51:07.642962Z",
                         "first_discovery_id": null,
-                        "id": "76cfc58c-b994-4256-967f-86b4e1d044cb",
+                        "id": "2b53174f-2362-404d-aecc-03c007a84f6f",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-02T12:58:48.600947Z",
+                        "last_seen_at": "2026-10-02T22:51:07.642962Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-02T12:58:48.600947Z",
-                        "valid_from": "2026-10-02T12:58:48.600947Z",
+                        "updated_at": "2026-10-02T22:51:07.642962Z",
+                        "valid_from": "2026-10-02T22:51:07.642962Z",
                         "valid_to": null
                       }
                     ],
@@ -28926,7 +28926,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Tuya Smart",
+                    "service_definition": "Prometheus",
                     "source": {
                       "type": "Manual"
                     },
@@ -29069,19 +29069,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-02T12:58:48.617490Z",
+                    "created_at": "2026-10-02T22:51:07.660419Z",
                     "first_discovery_id": null,
-                    "id": "413d83aa-6880-4218-8801-201800400655",
+                    "id": "8d0673bb-91d6-4004-befb-ab6c991056a5",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-02T12:58:48.617490Z",
+                    "last_seen_at": "2026-10-02T22:51:07.660419Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-02T12:58:48.617490Z",
-                    "valid_from": "2026-10-02T12:58:48.617490Z",
+                    "updated_at": "2026-10-02T22:51:07.660419Z",
+                    "valid_from": "2026-10-02T22:51:07.660419Z",
                     "valid_to": null
                   }
                 ],
@@ -29095,7 +29095,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Tuya Smart",
+                "service_definition": "Prometheus",
                 "source": {
                   "type": "Manual"
                 },
@@ -31307,19 +31307,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-02T12:58:48.607150Z",
+              "created_at": "2026-10-02T22:51:07.649900Z",
               "first_discovery_id": null,
-              "id": "33616bbf-8225-4480-86d9-72fc3d5de4b7",
+              "id": "8d9d4070-225f-403a-86eb-a847d3ccdf28",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-02T12:58:48.607150Z",
+              "last_seen_at": "2026-10-02T22:51:07.649900Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-02T12:58:48.607150Z",
-              "valid_from": "2026-10-02T12:58:48.607150Z",
+              "updated_at": "2026-10-02T22:51:07.649900Z",
+              "valid_from": "2026-10-02T22:51:07.649900Z",
               "valid_to": null
             }
           ],
@@ -31333,7 +31333,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Tuya Smart",
+          "service_definition": "Prometheus",
           "source": {
             "type": "Manual"
           },
@@ -32777,7 +32777,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "b796c809-394a-4d87-8eb7-7b4ea0519c09",
+                  "id": "1a00f51a-6e7d-49b0-8e3a-3bd8cc5ee7dd",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -32787,23 +32787,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "0ae8dd98-a5cb-4301-9691-f9010f395b5d",
+                  "id": "85eabdbc-caa0-4071-a5e1-4352a6d6c8d6",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "25bd4e58-85eb-47c3-8a7e-83e1543a8bd0",
+                  "id": "a09a196f-d910-4488-8f72-c013059e624c",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "7fd49195-168f-4dd8-b2d5-f57a47c15e1c",
+                  "id": "17adf509-cbb4-4b30-9669-4bd48132a415",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "0ae8dd98-a5cb-4301-9691-f9010f395b5d",
+                  "id": "85eabdbc-caa0-4071-a5e1-4352a6d6c8d6",
                   "rule": "ByHost"
                 }
               ]
@@ -32833,19 +32833,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "59c26293-6e93-4165-951a-fa22641348ce",
+                "id": "d2e18f7e-28b1-435f-8267-f5b5cf3ecbd2",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "3637cde1-74bb-495a-af0b-e83e7266d545",
+                "id": "24880840-5beb-418b-a6f0-fb451c703e91",
                 "rule": "ByVLAN"
               },
               {
-                "id": "a3530de5-c657-4684-aa31-6810b29ccf49",
+                "id": "b5a240b5-b8d1-49bf-9c8f-74b37c431829",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "43e42f80-0c52-45fe-8981-58d1c5ecf575",
+                "id": "f42f6869-df56-4303-ae44-92cf61730749",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -32863,7 +32863,7 @@
                 }
               },
               {
-                "id": "11a2e2ae-c496-4e50-8fe8-15ff719fbf78",
+                "id": "74a11185-977f-4bf2-ac9b-b2abc32e37c9",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -32872,15 +32872,15 @@
                 }
               },
               {
-                "id": "ba93ee9c-ace7-4864-aa63-604f5d9b8e09",
+                "id": "231b3070-bec4-481f-a151-53cbd28cea33",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "ee1ac771-eb54-4f95-90de-4ca40d6460a3",
+                "id": "234deb75-82ac-46e6-83ee-76f4454af5a7",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "fd648d6a-8aa5-4637-bad7-c4cb27145be8",
+                "id": "77832acc-6622-45f7-aab7-268627a5d814",
                 "rule": "ByStack"
               }
             ]

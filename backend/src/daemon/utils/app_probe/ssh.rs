@@ -62,10 +62,10 @@ fn parse_banner(bytes: &[u8]) -> AppProbeOutcome {
         model: None,
         serial_number: None,
         firmware_revision: None,
-        os: Some(Attributed::new(
+        os: Some(Box::new(Attributed::new(
             HostOsValue(os),
             AttributeSource::SshBannerMatch,
-        )),
+        ))),
     });
     AppProbeOutcome::Answered { identity }
 }

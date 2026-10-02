@@ -151,7 +151,9 @@ pub struct DeviceIdentity {
     pub firmware_revision: Option<HostFirmwareRevisionAttributed>,
     /// The operating system, when the protocol names it: the distribution an SSH banner carries,
     /// or the Windows build in an SMB challenge.
-    pub os: Option<HostOsAttributed>,
+    /// Boxed: an OS reading is several times the size of the other fields, and inline it makes
+    /// every enum carrying an identity (`AppProbeOutcome`, `ModbusReply`) needlessly large.
+    pub os: Option<Box<HostOsAttributed>>,
 }
 
 impl DeviceIdentity {
@@ -187,7 +189,7 @@ impl DeviceIdentity {
             );
         }
         if let Some(os) = os {
-            host_data.offer_os(os);
+            host_data.offer_os(*os);
         }
     }
 }

@@ -100,10 +100,10 @@ impl AppProbe for SmbProbe {
             model: None,
             serial_number: None,
             firmware_revision: None,
-            os: Some(Attributed::new(
+            os: Some(Box::new(Attributed::new(
                 HostOsValue(os),
                 AttributeSource::Probe(ClientProbe::Smb),
-            )),
+            ))),
         });
         Ok(AppProbeOutcome::Answered { identity })
     }

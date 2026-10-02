@@ -216,7 +216,8 @@ const COVERAGE: Record<string, TabCoverage> = {
 						'model',
 						'serial_number',
 						'firmware_revision',
-						'software_revision'
+						'software_revision',
+						'os'
 					])
 				}
 			}

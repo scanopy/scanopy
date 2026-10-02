@@ -47,7 +47,6 @@
 		common_confirmDeleteName,
 		common_create,
 		common_created,
-		common_description,
 		common_delete,
 		common_description,
 		common_edit,
@@ -288,13 +287,6 @@
 			updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } }
 		},
 		[
-			{
-				key: 'description',
-				label: common_description(),
-				type: 'string',
-				searchable: true,
-				display: { hiddenByDefault: true }
-			},
 			{
 				// Set only on credentials that read files or sockets on the daemon; empty otherwise.
 				key: 'daemon_os',

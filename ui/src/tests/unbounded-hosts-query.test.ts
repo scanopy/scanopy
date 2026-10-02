@@ -27,17 +27,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  * relative to `src/`. Each entry is a surface that reads one of the child caches
  * `useHostsQuery` populates as a side effect, and cannot move until those caches
  * have real queries of their own — see
- * `planned-work/child-cache-rearchitecture.md`. Both are lazy (they mount inside
- * a modal tab), so neither costs anything on page load.
+ * `planned-work/child-cache-rearchitecture.md`. Each is lazy (it mounts inside
+ * a modal tab), so none costs anything on page load.
  */
 const ALLOWED_UNBOUNDED = new Map<string, string>([
 	[
 		'lib/features/hosts/components/HostEditModal/Virtualization/VirtualizationForm.svelte',
 		'VM picker labels candidate hosts with their services, which come from the services cache this query populates.'
-	],
-	[
-		'lib/features/credentials/components/CredentialAssignmentsSection.svelte',
-		'Per-host IP scoping rows read the ip-addresses cache this query populates; /api/v1/ip-addresses takes only a single host_id.'
 	]
 ]);
 

@@ -3467,19 +3467,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-02T12:58:48.562150Z",
+             *       "created_at": "2026-10-02T22:51:07.608765Z",
              *       "first_discovery_id": null,
-             *       "id": "755b0dd3-8d4b-4aaf-9a1c-dd060a5cd9a1",
+             *       "id": "924f7201-498d-41c2-8dd7-09eb4c7e14ef",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-02T12:58:48.562150Z",
+             *       "last_seen_at": "2026-10-02T22:51:07.608765Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-10-02T12:58:48.562150Z",
-             *       "valid_from": "2026-10-02T12:58:48.562150Z",
+             *       "updated_at": "2026-10-02T22:51:07.608765Z",
+             *       "valid_from": "2026-10-02T22:51:07.608765Z",
              *       "valid_to": null
              *     }
              */
@@ -4282,6 +4282,8 @@ export interface components {
              *       ],
              *       "name_source": "Manual",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
+             *       "os": null,
+             *       "os_source": "Unspecified",
              *       "ports": [
              *         {
              *           "created_at": "2026-01-15T10:30:00Z",
@@ -4305,19 +4307,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-02T12:58:48.538570Z",
+             *               "created_at": "2026-10-02T22:51:07.587080Z",
              *               "first_discovery_id": null,
-             *               "id": "4ff0e77a-55a5-4160-862a-798374ca464e",
+             *               "id": "d9e02bcd-6146-400d-a288-026d1a387cc2",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-02T12:58:48.538570Z",
+             *               "last_seen_at": "2026-10-02T22:51:07.587080Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-10-02T12:58:48.538570Z",
-             *               "valid_from": "2026-10-02T12:58:48.538570Z",
+             *               "updated_at": "2026-10-02T22:51:07.587080Z",
+             *               "valid_from": "2026-10-02T22:51:07.587080Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4331,7 +4333,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Tuya Smart",
+             *           "service_definition": "Prometheus",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5250,19 +5252,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-02T12:58:48.556453Z",
+             *           "created_at": "2026-10-02T22:51:07.604165Z",
              *           "first_discovery_id": null,
-             *           "id": "d4fd1f77-7253-4fcd-9cf8-83f7b88a9a02",
+             *           "id": "5257cfea-89ac-4e12-9b6d-0532ebb3104f",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-02T12:58:48.556453Z",
+             *           "last_seen_at": "2026-10-02T22:51:07.604165Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-10-02T12:58:48.556453Z",
-             *           "valid_from": "2026-10-02T12:58:48.556453Z",
+             *           "updated_at": "2026-10-02T22:51:07.604165Z",
+             *           "valid_from": "2026-10-02T22:51:07.604165Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5276,7 +5278,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Tuya Smart",
+             *       "service_definition": "Prometheus",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6350,19 +6352,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-02T12:58:48.538996Z",
+         *       "created_at": "2026-10-02T22:51:07.587665Z",
          *       "first_discovery_id": null,
-         *       "id": "18931ccd-18d8-4769-ae01-9df30227ad18",
+         *       "id": "7acbe615-c8ce-4d92-9948-fd5f39dfb4ae",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-02T12:58:48.538996Z",
+         *       "last_seen_at": "2026-10-02T22:51:07.587665Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-10-02T12:58:48.538996Z",
-         *       "valid_from": "2026-10-02T12:58:48.538996Z",
+         *       "updated_at": "2026-10-02T22:51:07.587665Z",
+         *       "valid_from": "2026-10-02T22:51:07.587665Z",
          *       "valid_to": null
          *     }
          */
@@ -6690,7 +6692,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Tuya Smart",
+         *           "service_definition": "Prometheus",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -9176,6 +9178,8 @@ export interface components {
          *       ],
          *       "name_source": "Manual",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
+         *       "os": null,
+         *       "os_source": "Unspecified",
          *       "ports": [
          *         {
          *           "created_at": "2026-01-15T10:30:00Z",
@@ -9199,19 +9203,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-02T12:58:48.538111Z",
+         *               "created_at": "2026-10-02T22:51:07.586406Z",
          *               "first_discovery_id": null,
-         *               "id": "fd6159b4-b34f-4da3-b2dc-5c7a5c6fa7d4",
+         *               "id": "3d8ea198-c8eb-498a-8635-567fbb447e8d",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-02T12:58:48.538111Z",
+         *               "last_seen_at": "2026-10-02T22:51:07.586406Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-10-02T12:58:48.538111Z",
-         *               "valid_from": "2026-10-02T12:58:48.538111Z",
+         *               "updated_at": "2026-10-02T22:51:07.586406Z",
+         *               "valid_from": "2026-10-02T22:51:07.586406Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9225,7 +9229,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Tuya Smart",
+         *           "service_definition": "Prometheus",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -12258,19 +12262,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-02T12:58:48.538872Z",
+         *           "created_at": "2026-10-02T22:51:07.587502Z",
          *           "first_discovery_id": null,
-         *           "id": "d755d9cf-9d34-4736-9a49-466bb018855f",
+         *           "id": "8d12c3fe-ca38-4b91-b6e1-942a99766765",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-02T12:58:48.538872Z",
+         *           "last_seen_at": "2026-10-02T22:51:07.587502Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-10-02T12:58:48.538872Z",
-         *           "valid_from": "2026-10-02T12:58:48.538872Z",
+         *           "updated_at": "2026-10-02T22:51:07.587502Z",
+         *           "valid_from": "2026-10-02T22:51:07.587502Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12284,7 +12288,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Tuya Smart",
+         *       "service_definition": "Prometheus",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -13042,7 +13046,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "2ace4c98-2018-450f-8509-aef120243b43",
+             *           "id": "b14e0188-e8b1-4fde-9d96-2c14a90ca7c4",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13052,23 +13056,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "a178580f-9a5d-4ee9-a0d7-300deba50d0a",
+             *           "id": "dc932514-248e-4b99-bd5c-9477fc538969",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "62666c60-a387-49ee-b99d-eb1128bcb00e",
+             *           "id": "44e518ec-f3b8-46fc-b313-61e806f2e5ec",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "8379a56d-c564-45f2-82bf-1fb1284696ec",
+             *           "id": "db49d0e1-b36c-44dd-9723-e1873a39f4ea",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "a178580f-9a5d-4ee9-a0d7-300deba50d0a",
+             *           "id": "dc932514-248e-4b99-bd5c-9477fc538969",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13081,19 +13085,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "0911d61d-a33d-4277-9bd6-6ee84e722911",
+             *         "id": "7aa6b271-5111-49cb-8ce0-54edd9c712ac",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "b0c6fbda-77bb-4408-9f2d-9ba9d1e69b2e",
+             *         "id": "89bceff0-883e-44a6-9b8b-b0b54e388f49",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "e9186178-7c44-432d-8a7d-2f0e8a3977ee",
+             *         "id": "efa29409-cf83-4699-bf6d-8a577fbb4a2b",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "f6ce9aa5-e5e0-4e6a-a1de-e1de24b7a7c7",
+             *         "id": "5f7f4b79-8973-46d0-8a58-4c54bd639a29",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13111,7 +13115,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "87a3af18-4aaf-444c-b41c-a1a2cbb8c82b",
+             *         "id": "54c528bf-cbd7-40a0-938a-08d626573b31",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13120,15 +13124,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "27292996-d771-44dd-8aae-059de039895e",
+             *         "id": "40c3646c-4c3a-4985-bf16-818ab9f359e1",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "d17e36ce-a6e3-4eed-bc47-a32dfc7fa023",
+             *         "id": "6b3c72a3-1c30-473a-af43-d5541fe7b1c1",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "4191a4ed-7a0a-4651-aa5c-3ac2d82aff16",
+             *         "id": "335b226a-71fe-4a8e-b783-bd385679f84f",
              *         "rule": "ByStack"
              *       }
              *     ]
