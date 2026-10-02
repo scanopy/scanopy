@@ -16,7 +16,7 @@ Scanopy replaces manual network diagrams with a continuously maintained model of
 ![Daemon](https://img.shields.io/github/actions/workflow/status/scanopy/scanopy/daemon-ci.yml?label=daemon-ci&style=for-the-badge)  ![Server](https://img.shields.io/github/actions/workflow/status/scanopy/scanopy/server-ci.yml?label=server-ci&style=for-the-badge)  ![UI](https://img.shields.io/github/actions/workflow/status/scanopy/scanopy/ui-ci.yml?label=ui-ci&style=for-the-badge)<br>
 [![Discord](https://img.shields.io/discord/1432872786828726392?logo=discord&label=discord&labelColor=white&color=7289da&style=for-the-badge)](https://discord.gg/b7ffQr8AcZ) [![Translations](https://img.shields.io/weblate/progress/scanopy?style=for-the-badge&logo=weblate)](https://hosted.weblate.org/engage/scanopy/)
 
-> 🏢 **Running Scanopy for your business?** The [Commercial Edition](https://scanopy.net/commercial?utm_source=github&utm_medium=readme&utm_campaign=self_hosted_license) adds a commercial license, up to 100 networks and 50 seats, Confluence export, and support, all on your own infrastructure. No per-host fees, and a 14-day trial.
+> 🏢 **Running Scanopy for your business?** The [Commercial Edition](https://scanopy.net/commercial?utm_source=github&utm_medium=readme&utm_campaign=self_hosted_license) adds a commercial license, more networks and seats, Confluence export, and support, all on your own infrastructure.
 
 <table>
   <tr>
@@ -63,16 +63,10 @@ Scanopy replaces manual network diagrams with a continuously maintained model of
 
 Every edition runs on your own infrastructure, so discovery data, topology and credentials stay inside your network.
 
-| Edition | Price | Networks / seats | License | Includes |
-|---|---|---|---|---|
-| Community | Free | 1 / 1 | [AGPL-3.0](LICENSE.md) | Self-hosted, open source |
-| Self-Hosted Standard | $4,000 / year | 50 / 25 | [Commercial](https://scanopy.net/commercial?utm_source=github&utm_medium=readme&utm_campaign=self_hosted_license) | Confluence export, invoice billing, procurement documents, email support |
-| Self-Hosted Plus | $6,000 / year | 100 / 50 | [Commercial](https://scanopy.net/commercial?utm_source=github&utm_medium=readme&utm_campaign=self_hosted_license) | Everything in Standard, plus multiple organizations, offline license keys for air-gapped networks, and priority support |
-| Enterprise | Custom | Custom | [Commercial](https://scanopy.net/commercial?utm_source=github&utm_medium=readme&utm_campaign=self_hosted_license) | Sized to your deployment |
+- **Community Edition ([AGPL-3.0](LICENSE.md)):** free and open source. AGPL-3.0 requires source disclosure for network services and copyleft compliance.
+- **Commercial Edition (Self-Hosted Standard, Self-Hosted Plus, Enterprise):** a commercial license for organizations that can't meet AGPL-3.0's terms or need more networks and seats. Adds Confluence export, invoice billing, procurement documents and support. Self-Hosted Plus adds multiple organizations, and Plus and Enterprise add offline license keys for air-gapped networks.
 
-The Community Edition is AGPL-3.0, which requires source disclosure for network services and copyleft compliance. Organizations that can't meet those terms, or need more than one network or seat, need a commercial license. Standard and Plus are billed annually with no per-host fees and include a 14-day trial.
-
-**[Get a commercial license](https://scanopy.net/commercial?utm_source=github&utm_medium=readme&utm_campaign=self_hosted_license)**, or email licensing@scanopy.net.
+**[Compare editions and get a commercial license](https://scanopy.net/commercial?utm_source=github&utm_medium=readme&utm_campaign=self_hosted_license)**, or email licensing@scanopy.net.
 
 Prefer not to run it yourself? [Scanopy Cloud](https://scanopy.net/pricing?utm_source=github&utm_medium=readme&utm_campaign=cloud_trial) runs the same engine as a hosted service.
 
@@ -97,7 +91,7 @@ Available as an Unraid community app.
 
 Access the UI at `http://<your-server-ip>:60072`, create your account, and wait for the first discovery to complete.
 
-A new install runs as the Community Edition. To move to Self-Hosted Standard or Plus, [get a license](https://scanopy.net/commercial?utm_source=github&utm_medium=readme&utm_campaign=self_hosted_license) and paste the key under **Settings → License**.
+This runs the Community Edition. With a commercial license key, deploy with `docker-compose.commercial.yml` and set `SCANOPY_LICENSE_KEY`. See [Deploying the Commercial Edition](https://scanopy.net/docs/self-hosted-server/commercial-deployment/?utm_source=github&utm_medium=readme&utm_campaign=docs).
 
 For detailed setup options and configuration, see the [Installation Guide](https://scanopy.net/docs/server-installation?utm_source=github&utm_medium=readme&utm_campaign=docs).
 
