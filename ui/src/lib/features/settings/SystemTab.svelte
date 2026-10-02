@@ -232,7 +232,7 @@
 		<p class="text-tertiary text-xs">{settings_system_copyright({ year: copyrightYear })}</p>
 		<DocsHint
 			text={settings_system_license()}
-			href="https://github.com/scanopy/scanopy/blob/main/COMMERCIAL-LICENSE.md"
+			href="https://scanopy.net/commercial"
 			linkText={settings_system_licenseLinkText()}
 		/>
 		<DocsHint
