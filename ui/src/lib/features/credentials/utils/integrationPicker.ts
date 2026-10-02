@@ -64,18 +64,26 @@ export function selectedTypeCount(
 	return group.types.filter((t) => checkedTypeIds.includes(t.id)).length;
 }
 
-/**
- * Integration ids whose row opens expanded: those with more than one type and at least one of
- * them already checked, so a preselected type (a daemon-host socket, a fixed capability) is visible.
- * Single-type integrations have nothing to expand.
- */
-export function initiallyExpandedIntegrationIds(
+/** How many integrations have at least one type selected (checked or forced on). */
+export function selectedIntegrationCount(
 	groups: IntegrationGroup<{ id: string }, PickerType>[],
 	checkedTypeIds: string[]
-): string[] {
-	return groups
-		.filter((g) => g.types.length > 1 && selectedTypeCount(g, checkedTypeIds) > 0)
-		.map((g) => g.integration.id);
+): number {
+	return groups.filter((g) => selectedTypeCount(g, checkedTypeIds) > 0).length;
+}
+
+/**
+ * Whether an integration row is expanded. The user's own toggle wins; untouched, a row is
+ * expanded while it holds a selection, so a preselected type (a daemon-host socket, a fixed
+ * capability) is visible whenever it arrives. Single-type integrations have nothing to expand.
+ */
+export function isIntegrationExpanded(
+	group: IntegrationGroup<{ id: string }, PickerType>,
+	checkedTypeIds: string[],
+	userToggle: boolean | undefined
+): boolean {
+	if (group.types.length < 2) return false;
+	return userToggle ?? selectedTypeCount(group, checkedTypeIds) > 0;
 }
 
 /** A picker section: the integrations sharing one credential category. */
