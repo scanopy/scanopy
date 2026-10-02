@@ -46,10 +46,12 @@ impl BillingService {
 
     /// Finalize a client-confirmed SetupIntent: verify it succeeded for this
     /// org's customer and set the collected card as the customer's default
-    /// invoice payment method. Does NOT emit `PaymentMethodAdded` — that event
-    /// (which drives the `has_payment_method` mirror, the email, and analytics)
-    /// is owned solely by the `payment_method.attached` webhook, so it fires
-    /// exactly once. Callers that need an immediate, race-free "card on file?"
+    /// invoice payment method, then mark the org as having a card on file
+    /// (`record_payment_method_on_file`). Safe to call again with the same
+    /// SetupIntent: every step sets the same value. Does NOT emit
+    /// `PaymentMethodAdded`; that event (the email and analytics) is owned
+    /// solely by the `payment_method.attached` webhook, so it fires exactly
+    /// once. Callers that need an immediate, race-free "card on file?"
     /// answer (the charge-vs-Checkout branch) read Stripe via
     /// `customer_has_payment_method` rather than the event-sourced mirror.
     pub async fn finalize_payment_method(
@@ -116,11 +118,14 @@ impl BillingService {
             );
         }
 
-        // No PaymentMethodAdded emission here — the `payment_method.attached`
-        // webhook is the sole emitter (one event → one mirror flip, one email,
-        // one analytics capture). Synchronous "card on file?" callers read
-        // Stripe via `customer_has_payment_method`.
-        Ok(())
+        // The card is confirmed on the customer, so mirror it on the org now
+        // rather than waiting on the webhook. No PaymentMethodAdded emission
+        // here: the `payment_method.attached` webhook stays the sole emitter
+        // (one email, one analytics capture), and its mirror write then finds
+        // nothing to change.
+        self.organization_service
+            .record_payment_method_on_file(organization_id)
+            .await
     }
 
     pub async fn create_portal_session(
