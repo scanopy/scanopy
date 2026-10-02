@@ -126,9 +126,17 @@ impl HostService {
     /// The child collections dominate the payload — a host list carrying them is
     /// an order of magnitude larger than one without — so callers that only need
     /// host identity (name pickers, id→name lookups, counts) pass `false` and
-    /// skip both the bytes and the four child queries. Tags are hydrated either
+    /// skip the ports, services and interfaces. Tags are hydrated either
     /// way: they live on the host row's own junction table, callers filter and
     /// label by them, and they cost one query for the whole page.
+    ///
+    /// IP addresses are loaded either way too. The last rung of the
+    /// [`Host::display_name`] ladder is the host's address, so without them every
+    /// host titled by its IP came back with no `display_name` and rendered as
+    /// "Unnamed host" in every picker fed by this path. They stay on the response
+    /// because pickers show and search them.
+    ///
+    /// [`Host::display_name`]: crate::server::hosts::r#impl::base::Host::display_name
     ///
     /// Supports custom ordering via the `order_by` parameter.
     pub async fn get_all_host_responses_paginated(
@@ -153,7 +161,12 @@ impl HostService {
         let (ip_addresses_map, ports_map, services_map, interfaces_map) = if include_children {
             self.load_children_for_hosts(&host_ids, at).await?
         } else {
-            Default::default()
+            (
+                self.ip_address_service.get_for_hosts(&host_ids, at).await?,
+                Default::default(),
+                Default::default(),
+                Default::default(),
+            )
         };
 
         // Hydrate tags from junction table

@@ -6,6 +6,7 @@
 
 import {
 	createQuery,
+	createInfiniteQuery,
 	createMutation,
 	useQueryClient,
 	keepPreviousData
@@ -20,6 +21,7 @@ import { discoverySSEManager } from '$lib/features/discovery/queries';
 import type { DiscoveryUpdatePayload } from '$lib/features/discovery/types/api';
 import type {
 	Host,
+	HostWithAddresses,
 	HostResponse,
 	HostFormData,
 	IPAddress,
@@ -76,6 +78,11 @@ export function toHostPrimitive(response: HostResponse): Host {
 		firmware_revision: hostFields.firmware_revision ?? undefined,
 		software_revision: hostFields.software_revision ?? undefined
 	};
+}
+
+/** A host primitive that keeps its addresses, for pickers and cards that show and search them. */
+export function toHostWithAddresses(response: HostResponse): HostWithAddresses {
+	return { ...toHostPrimitive(response), ip_addresses: response.ip_addresses };
 }
 
 /**
@@ -318,8 +325,9 @@ export interface HostSummaryQueryOptions {
  *
  * Use this for anything that needs hosts as *labels or options*: name lookups,
  * pickers, per-network lists. It requests `include_children=false`, so the
- * response carries the host row and its tags but not ip_addresses, ports,
- * services or interfaces — which are the bulk of a host payload.
+ * response carries the host row, its tags and its ip_addresses but not ports,
+ * services or interfaces — which are the bulk of a host payload. The addresses
+ * stay because a host's title can be its address, and pickers show and search them.
  *
  * Deliberately a separate hook rather than an option on {@link useHostsQuery},
  * for two reasons:
@@ -329,6 +337,7 @@ export interface HostSummaryQueryOptions {
  *     the hosts in its response. A children-free response run through it would
  *     silently delete real child rows for those hosts. This hook has no such
  *     side effect, which is only safe because it never claims to carry children.
+ *     Its addresses stay on the returned hosts and never reach the ip-addresses cache.
  *  2. It keys off `['hosts','summary',…]`, so a summary result can never be
  *     mistaken for — or dedupe against — a full nested `['hosts','list',…]`
  *     entry that some other feature is relying on.
@@ -349,7 +358,7 @@ export function useHostSummariesQuery(
 
 		return {
 			queryKey: [...queryKeys.hosts.all, 'summary', options],
-			queryFn: async (): Promise<PaginatedResult<Host>> => {
+			queryFn: async (): Promise<PaginatedResult<HostWithAddresses>> => {
 				const envelope = unwrapEnvelope(
 					await apiClient.GET('/api/v1/hosts', {
 						params: {
@@ -368,11 +377,79 @@ export function useHostSummariesQuery(
 				);
 
 				return {
-					items: envelope.data.map(toHostPrimitive),
+					items: envelope.data.map(toHostWithAddresses),
 					pagination: envelope.meta?.pagination ?? null
 				};
 			},
 			enabled: enabled && !hasEmptyIdFilter,
+			placeholderData: keepPreviousData
+		};
+	});
+}
+
+/** Hosts per page in a host picker. */
+const HOST_PICKER_PAGE_SIZE = 50;
+
+/** Options for {@link useHostPickerQuery}. */
+export interface HostPickerQueryOptions {
+	/** Filter by network ID. Omit for a picker that spans every network the user can see. */
+	network_id?: string;
+	/** Server-side search: name, hostname, sysName, chassis id, description, IPs, MACs, services. */
+	search?: string;
+	/** Set false to hold the fetch until the picker is shown. Excluded from the query key. */
+	enabled?: boolean;
+}
+
+/**
+ * Infinite query behind every host picker: pages of {@link HostWithAddresses}, ordered by the
+ * title the picker shows and searched on the server.
+ *
+ * Searching on the server is what lets a picker page at all: a client-side filter over the loaded
+ * pages would miss every match on a page not yet fetched. The server's `search` also matches
+ * fields a picker row can't show in full (every address, MACs, description), so a host is found by
+ * anything that identifies it.
+ *
+ * Same cache rules as {@link useHostSummariesQuery}: keyed under `['hosts','picker',…]` and writes
+ * no child cache.
+ *
+ * @param optionsOrGetter - Options, or a getter for reactive options.
+ */
+export function useHostPickerQuery(
+	optionsOrGetter: HostPickerQueryOptions | (() => HostPickerQueryOptions) = {}
+) {
+	return createInfiniteQuery(() => {
+		const { enabled = true, ...options } =
+			typeof optionsOrGetter === 'function' ? optionsOrGetter() : optionsOrGetter;
+		const search = options.search?.trim() || undefined;
+
+		return {
+			queryKey: [...queryKeys.hosts.all, 'picker', { ...options, search }],
+			queryFn: async ({ pageParam }: { pageParam: number }) => {
+				const envelope = unwrapEnvelope(
+					await apiClient.GET('/api/v1/hosts', {
+						params: {
+							query: {
+								network_ids: options.network_id ? [options.network_id] : undefined,
+								search,
+								limit: HOST_PICKER_PAGE_SIZE,
+								offset: pageParam,
+								order_by: 'name',
+								order_direction: 'asc',
+								include_children: false
+							}
+						}
+					})
+				);
+
+				return {
+					items: envelope.data.map(toHostWithAddresses),
+					pagination: envelope.meta?.pagination ?? null
+				};
+			},
+			initialPageParam: 0,
+			getNextPageParam: (last: PaginatedResult<HostWithAddresses>) =>
+				last.pagination?.has_more ? last.pagination.offset + last.pagination.limit : undefined,
+			enabled,
 			placeholderData: keepPreviousData
 		};
 	});

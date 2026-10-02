@@ -179,8 +179,9 @@ pub struct HostFilterQuery {
     /// network's staleness window; `false` returns only those it has. Omit for
     /// both. Evaluated per row against the host's own network's window.
     pub stale: Option<bool>,
-    /// `false` returns hosts with empty `ip_addresses`/`ports`/`services`/
-    /// `interfaces`. The children dominate the payload, so callers that only need
+    /// `false` returns hosts with empty `ports`/`services`/`interfaces`.
+    /// `ip_addresses` is always populated: the host's title can come from its
+    /// address. The children dominate the payload, so callers that only need
     /// host identity — name pickers, id→name lookups, counts — should pass
     /// `false`. Defaults to `true`, so existing callers are unaffected.
     pub include_children: Option<bool>,
@@ -292,7 +293,8 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 ///
 /// Returns all hosts the authenticated user has access to, with their
 /// ip_addresses, ports, services and interfaces included — pass
-/// `include_children=false` to omit those and get a much smaller payload.
+/// `include_children=false` to omit the ports, services and interfaces and get a
+/// much smaller payload.
 /// Supports pagination via `limit` and `offset` query parameters, and ordering
 /// via `group_by`, `order_by`, and `order_direction`.
 #[utoipa::path(

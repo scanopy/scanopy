@@ -1,8 +1,8 @@
 <script lang="ts">
 	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
-	import type { Host } from '../types/base';
+	import type { Host, HostWithAddresses } from '../types/base';
 	import { hostDisplayName } from '../host-display-name';
-	import { useHostSummariesQuery } from '../queries';
+	import { useHostPicker, useHostServices, hostDisplayContext } from '../host-picker.svelte';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
 	import EntityDisplay from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
 	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
@@ -44,52 +44,35 @@
 	// TanStack Query hooks
 	//
 	// The destination picker only offers hosts on the same network as the host
-	// being consolidated away, and only needs their id/name — so this is scoped to
-	// that network and asks for no nested children.
+	// being consolidated away, a page at a time, searched on the server.
 	//
 	// It is also gated on `isOpen`. This modal is rendered unconditionally by
 	// HostTab, so its script runs on first paint; as an unpaginated org-wide
 	// `useHostsQuery({ limit: 0 })` it therefore pulled ~1.9MB on page load for a
 	// dropdown nobody had opened, and shared that key with every other consumer.
-	const hostsQuery = useHostSummariesQuery(() => ({
-		network_id: otherHost?.network_id,
+	const hostPicker = useHostPicker(() => ({
+		networkId: otherHost?.network_id,
 		// Also guards against `network_id: undefined` meaning "every network".
 		enabled: isOpen && !!otherHost
 	}));
+	const otherHostServices = useHostServices(() => (isOpen && otherHost ? [otherHost.id] : []));
 	const servicesQuery = useServicesCacheQuery();
 	const ipAddressesQuery = useIPAddressesQuery();
 	const portsQuery = usePortsQuery();
 
-	let hostsData = $derived(hostsQuery.data?.items ?? []);
 	let servicesData = $derived(servicesQuery.data ?? []);
 	let ipAddressesData = $derived(ipAddressesQuery.data ?? []);
 	let portsData = $derived(portsQuery.data ?? []);
 
-	let selectedDestinationHostId = $state('');
+	let selectedTargetHost = $state<HostWithAddresses | null>(null);
+	let selectedDestinationHostId = $derived(selectedTargetHost?.id ?? '');
 	let loading = $state(false);
 	let showPreview = $state(false);
 
-	// Get available hosts (excluding the host being consolidated away)
+	// Every host on the page but the one being consolidated away. The server orders by the same
+	// title the dropdown renders.
 	let availableHosts = $derived(
-		(otherHost
-			? hostsData
-					.filter((host) => host.id !== otherHost.id)
-					.filter((host) => host.network_id == otherHost.network_id)
-			: []
-		)
-			// Sorted by the same title the dropdown renders, not the stored name — otherwise every
-			// host that has never been named sorts to the top under the empty string, in a list
-			// where each of them is visibly labelled.
-			.sort((a, b) =>
-				hostDisplayName(a).toLowerCase().localeCompare(hostDisplayName(b).toLowerCase())
-			)
-	);
-
-	// Get the selected target host
-	let selectedTargetHost = $derived(
-		selectedDestinationHostId
-			? hostsData.find((host) => host.id === selectedDestinationHostId)
-			: null
+		otherHost ? hostPicker.options.filter((host) => host.id !== otherHost.id) : []
 	);
 
 	// Build consolidation actions list
@@ -166,7 +149,7 @@
 	});
 
 	function resetForm() {
-		selectedDestinationHostId = '';
+		selectedTargetHost = null;
 		showPreview = false;
 		loading = false;
 	}
@@ -200,7 +183,7 @@
 	}
 
 	function handleHostSelect(hostId: string) {
-		selectedDestinationHostId = hostId;
+		selectedTargetHost = availableHosts.find((host) => host.id === hostId) ?? null;
 	}
 </script>
 
@@ -226,9 +209,7 @@
 				<!-- Source host info -->
 				<div class="card mb-6">
 					<EntityDisplay
-						context={{
-							services: servicesData.filter((s) => (otherHost ? s.host_id == otherHost.id : false))
-						}}
+						context={hostDisplayContext(ipAddressesData, otherHostServices.services)}
 						item={otherHost}
 						displayComponent={HostDisplay}
 					/>
@@ -242,12 +223,15 @@
 						})}
 						placeholder={hosts_consolidateModal_chooseHost()}
 						selectedValue={selectedDestinationHostId}
+						selectedOption={selectedTargetHost ?? undefined}
 						options={availableHosts}
 						onSelect={handleHostSelect}
 						showSearch={true}
-						getOptionContext={(option) => ({
-							services: servicesData.filter((s) => s.host_id == option.id)
-						})}
+						onSearchChange={hostPicker.onSearchChange}
+						onLoadMore={hostPicker.onLoadMore}
+						hasMore={hostPicker.hasMore}
+						loading={hostPicker.loading}
+						getOptionContext={() => hostPicker.context()}
 						displayComponent={HostDisplay}
 					/>
 				</div>

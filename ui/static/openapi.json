@@ -6470,7 +6470,7 @@
           "Hosts"
         ],
         "summary": "List all hosts",
-        "description": "Returns all hosts the authenticated user has access to, with their\nip_addresses, ports, services and interfaces included — pass\n`include_children=false` to omit those and get a much smaller payload.\nSupports pagination via `limit` and `offset` query parameters, and ordering\nvia `group_by`, `order_by`, and `order_direction`.",
+        "description": "Returns all hosts the authenticated user has access to, with their\nip_addresses, ports, services and interfaces included — pass\n`include_children=false` to omit the ports, services and interfaces and get a\nmuch smaller payload.\nSupports pagination via `limit` and `offset` query parameters, and ordering\nvia `group_by`, `order_by`, and `order_direction`.",
         "operationId": "get_all_hosts",
         "parameters": [
           {
@@ -6711,7 +6711,7 @@
           {
             "name": "include_children",
             "in": "query",
-            "description": "`false` returns hosts with empty `ip_addresses`/`ports`/`services`/\n`interfaces`. The children dominate the payload, so callers that only need\nhost identity — name pickers, id→name lookups, counts — should pass\n`false`. Defaults to `true`, so existing callers are unaffected.",
+            "description": "`false` returns hosts with empty `ports`/`services`/`interfaces`.\n`ip_addresses` is always populated: the host's title can come from its\naddress. The children dominate the payload, so callers that only need\nhost identity — name pickers, id→name lookups, counts — should pass\n`false`. Defaults to `true`, so existing callers are unaffected.",
             "required": false,
             "schema": {
               "type": [
@@ -7154,7 +7154,7 @@
           {
             "name": "include_children",
             "in": "query",
-            "description": "`false` returns hosts with empty `ip_addresses`/`ports`/`services`/\n`interfaces`. The children dominate the payload, so callers that only need\nhost identity — name pickers, id→name lookups, counts — should pass\n`false`. Defaults to `true`, so existing callers are unaffected.",
+            "description": "`false` returns hosts with empty `ports`/`services`/`interfaces`.\n`ip_addresses` is always populated: the host's title can come from its\naddress. The children dominate the payload, so callers that only need\nhost identity — name pickers, id→name lookups, counts — should pass\n`false`. Defaults to `true`, so existing callers are unaffected.",
             "required": false,
             "schema": {
               "type": [
@@ -7433,7 +7433,7 @@
           {
             "name": "include_children",
             "in": "query",
-            "description": "`false` returns hosts with empty `ip_addresses`/`ports`/`services`/\n`interfaces`. The children dominate the payload, so callers that only need\nhost identity — name pickers, id→name lookups, counts — should pass\n`false`. Defaults to `true`, so existing callers are unaffected.",
+            "description": "`false` returns hosts with empty `ports`/`services`/`interfaces`.\n`ip_addresses` is always populated: the host's title can come from its\naddress. The children dominate the payload, so callers that only need\nhost identity — name pickers, id→name lookups, counts — should pass\n`false`. Defaults to `true`, so existing callers are unaffected.",
             "required": false,
             "schema": {
               "type": [
