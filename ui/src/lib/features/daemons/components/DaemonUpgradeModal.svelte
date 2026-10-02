@@ -73,8 +73,10 @@
 		return Math.max(0, Math.ceil(ms / 86_400_000));
 	});
 
-	// OS selection state
-	let selectedOS: DaemonOS = $state(detectOS());
+	// OS selection: the daemon's recorded OS when it has one, which also hides the OS picker;
+	// otherwise the user picks, starting from the browser's OS.
+	let pickedOS: DaemonOS = $state(detectOS());
+	let selectedOS = $derived<DaemonOS>(daemon.os ?? pickedOS);
 
 	type LinuxMethod = 'binary' | 'docker';
 	let linuxMethod: LinuxMethod = $state('binary');
@@ -108,7 +110,7 @@ docker compose up -d`;
 	let dockerComposeImageLine = $derived(`image: ghcr.io/scanopy/scanopy/daemon:v${VERSION}`);
 
 	function handleOsSelect(os: DaemonOS) {
-		selectedOS = os;
+		pickedOS = os;
 		trackEvent('daemon_upgrade_os_selected', { os });
 	}
 
@@ -160,6 +162,7 @@ docker compose up -d`;
 				<OsSelector
 					{selectedOS}
 					onOsSelect={handleOsSelect}
+					showOs={!daemon.os}
 					{linuxMethod}
 					onLinuxMethodChange={(method) => (linuxMethod = method)}
 				>
