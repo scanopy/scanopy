@@ -231,6 +231,107 @@ describe('topology staleness filter', () => {
 });
 
 /**
+ * A host that has gone quiet, drawn the two other ways views draw it: its address as an L3
+ * element, and the host itself as the Workloads container its services sit in. Each node is judged
+ * on the entity it stands for.
+ */
+function buildContainerTopology(): RenderableTopology {
+	const topo = buildTopology();
+	const stale = seenHoursAgo(24 * 45);
+	const fresh = seenHoursAgo(1);
+	Object.assign(topo, {
+		ip_addresses: [
+			{ id: 'ip-stale', host_id: 'stale-host', network_id: NETWORK_ID, last_seen_at: stale },
+			{ id: 'ip-fresh', host_id: 'fresh-host', network_id: NETWORK_ID, last_seen_at: fresh }
+		],
+		nodes: [
+			{
+				id: 'n-ip-stale',
+				node_type: 'Element',
+				element_type: 'IPAddress',
+				host_id: 'stale-host',
+				ip_address_id: 'ip-stale'
+			},
+			{
+				id: 'n-ip-fresh',
+				node_type: 'Element',
+				element_type: 'IPAddress',
+				host_id: 'fresh-host',
+				ip_address_id: 'ip-fresh'
+			},
+			{
+				id: 'c-stale-host',
+				node_type: 'Container',
+				container_type: 'Host',
+				entity_id: 'stale-host'
+			},
+			{
+				id: 'c-fresh-host',
+				node_type: 'Container',
+				container_type: 'Host',
+				entity_id: 'fresh-host'
+			},
+			{
+				id: 'svc-on-stale-host',
+				node_type: 'Element',
+				element_type: 'Service',
+				host_id: 'stale-host',
+				container_id: 'c-stale-host'
+			},
+			{
+				id: 'svc-itself-stale',
+				node_type: 'Element',
+				element_type: 'Service',
+				host_id: 'fresh-host',
+				container_id: 'c-fresh-host'
+			}
+		]
+	});
+	return topo;
+}
+
+describe('staleness filter on addresses and containers', () => {
+	it('hides a stale IP address element and keeps a fresh one', () => {
+		updateTagFilter(
+			buildContainerTopology(),
+			undefined,
+			'L3Logical',
+			{ IPAddress: { Staleness: ['stale'] } },
+			[],
+			network
+		);
+		const hidden = get(tagHiddenNodeIds);
+		expect(hidden.has('n-ip-stale')).toBe(true);
+		expect(hidden.has('n-ip-fresh')).toBe(false);
+	});
+
+	it('offers the IP address filter when stale and current addresses are both present', () => {
+		updateTagFilter(buildContainerTopology(), undefined, 'L3Logical', {}, [], network);
+		expect([...(get(presentFilterValues).IPAddress?.Staleness ?? [])].sort()).toEqual([
+			'current',
+			'stale'
+		]);
+	});
+
+	// The container goes, and so does everything drawn inside it, as with hiding it by tag.
+	it('hides a stale host container with its contents and keeps a fresh one', () => {
+		updateTagFilter(
+			buildContainerTopology(),
+			undefined,
+			'Workloads',
+			{ Host: { Staleness: ['stale'] } },
+			[],
+			network
+		);
+		const hidden = get(tagHiddenNodeIds);
+		expect(hidden.has('c-stale-host')).toBe(true);
+		expect(hidden.has('svc-on-stale-host')).toBe(true);
+		expect(hidden.has('c-fresh-host')).toBe(false);
+		expect(hidden.has('svc-itself-stale')).toBe(false);
+	});
+});
+
+/**
  * Server-side filters remove their entities from the response, so the panel can no longer see the
  * hidden value represented in the topology. `presentFilterValues` drops a filter group whose
  * entities all share one value — which, unguarded, would delete the only control capable of

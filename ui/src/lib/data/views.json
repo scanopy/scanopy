@@ -72,6 +72,27 @@
           }
         ],
         "metadata_filters": {
+          "Host": [
+            {
+              "applies": "Client",
+              "filter_type": "Staleness",
+              "label": "By staleness",
+              "values": [
+                {
+                  "color": "Green",
+                  "icon": "check",
+                  "id": "current",
+                  "label": "Current"
+                },
+                {
+                  "color": "Amber",
+                  "icon": "clock",
+                  "id": "stale",
+                  "label": "Stale"
+                }
+              ]
+            }
+          ],
           "Interface": [
             {
               "applies": "Server",
@@ -89,6 +110,25 @@
                   "icon": "circle",
                   "id": "Unlinked",
                   "label": "Unlinked"
+                }
+              ]
+            },
+            {
+              "applies": "Client",
+              "filter_type": "Staleness",
+              "label": "By staleness",
+              "values": [
+                {
+                  "color": "Green",
+                  "icon": "check",
+                  "id": "current",
+                  "label": "Current"
+                },
+                {
+                  "color": "Amber",
+                  "icon": "clock",
+                  "id": "stale",
+                  "label": "Stale"
                 }
               ]
             }
@@ -198,6 +238,27 @@
           }
         ],
         "metadata_filters": {
+          "IPAddress": [
+            {
+              "applies": "Client",
+              "filter_type": "Staleness",
+              "label": "By staleness",
+              "values": [
+                {
+                  "color": "Green",
+                  "icon": "check",
+                  "id": "current",
+                  "label": "Current"
+                },
+                {
+                  "color": "Amber",
+                  "icon": "clock",
+                  "id": "stale",
+                  "label": "Stale"
+                }
+              ]
+            }
+          ],
           "Service": [
             {
               "applies": "Client",
@@ -440,6 +501,27 @@
                 }
               ]
             },
+            {
+              "applies": "Client",
+              "filter_type": "Staleness",
+              "label": "By staleness",
+              "values": [
+                {
+                  "color": "Green",
+                  "icon": "check",
+                  "id": "current",
+                  "label": "Current"
+                },
+                {
+                  "color": "Amber",
+                  "icon": "clock",
+                  "id": "stale",
+                  "label": "Stale"
+                }
+              ]
+            }
+          ],
+          "Subnet": [
             {
               "applies": "Client",
               "filter_type": "Staleness",

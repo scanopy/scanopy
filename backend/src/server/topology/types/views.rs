@@ -139,6 +139,16 @@ pub struct ViewElementConfig {
     pub collective_noun: Option<String>,
 }
 
+/// Entities the topology can filter by staleness: those with a stale badge in the inventory or
+/// on a topology card. Port is left out because nothing badges it.
+const STALENESS_FILTERED_ENTITIES: [EntityDiscriminants; 5] = [
+    EntityDiscriminants::Host,
+    EntityDiscriminants::Service,
+    EntityDiscriminants::IPAddress,
+    EntityDiscriminants::Interface,
+    EntityDiscriminants::Subnet,
+];
+
 impl ViewElementConfig {
     /// Attach the staleness filter to every entity in this view that both
     /// carries a freshness verdict and can actually be hidden by one.
@@ -147,14 +157,13 @@ impl ViewElementConfig {
     /// so a new view — or a view that gains a Host/Service slot — picks the
     /// filter up automatically and cannot forget it.
     ///
-    /// Scope: Host and Service only. They are the two entities with a
-    /// `source` (so a freshness verdict is meaningful — see
-    /// `DiscoveryTracked::is_discovery_managed`) and the two the inventory
-    /// already badges. Restricted to entities in an element or inline role
-    /// because the generic hide path only removes element nodes and inline
-    /// services; declaring it for a container-role Host would render a filter
-    /// that silently does nothing.
+    /// Scope: every entity in `STALENESS_FILTERED_ENTITIES`, in whatever role
+    /// the view gives it: container (a Workloads or L2 host box, an L3 subnet
+    /// box), element, or inline. Each entity is judged on its own
+    /// `last_seen_at`, so a stale host's IP in L3 is hidden by the IP's own
+    /// verdict rather than inherited from the host.
     fn add_staleness_filters(&mut self) {
+        let is_container = |entity: EntityDiscriminants| self.container_entity == Some(entity);
         let is_element = |entity: EntityDiscriminants| {
             self.element_entities
                 .iter()
@@ -166,8 +175,8 @@ impl ViewElementConfig {
                 .any(|e| e.inline_entities.contains(&entity))
         };
 
-        for entity in [EntityDiscriminants::Host, EntityDiscriminants::Service] {
-            if !is_element(entity) && !is_inline(entity) {
+        for entity in STALENESS_FILTERED_ENTITIES {
+            if !is_container(entity) && !is_element(entity) && !is_inline(entity) {
                 continue;
             }
             self.metadata_filters
