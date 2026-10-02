@@ -153,6 +153,17 @@ pub enum AttributeSource {
     /// An operating system implied by an SNMP `sysObjectID` a Recog fingerprint names. Inferred for
     /// the same reason as [`Self::SysDescrMatch`].
     SysObjectIdMatch,
+    /// An operating system matched in the system description an LLDP neighbour advertised for itself
+    /// (`lldpRemSysDesc`). Inferred for the same reason as [`Self::SysDescrMatch`].
+    LldpSysDescMatch,
+    /// An operating system matched in an SSH server's identification string, such as the
+    /// `Ubuntu-3ubuntu13` a distribution's OpenSSH package appends.
+    SshBannerMatch,
+    /// An operating system matched in an HTTP `Server` header, such as `Microsoft-IIS/10.0`.
+    HttpServerMatch,
+    /// An operating system matched in an mDNS `_device-info._tcp` record, such as a Mac's
+    /// `model=MacBookPro18,3`.
+    DnsSdDeviceInfoMatch,
 
     // --- Claims that arrive on the link without a directed exchange. ---
     /// A DNS-SD instance label — the Chromecast `fn=Living Room TV`, typed by a person during
@@ -216,7 +227,11 @@ impl AttributeSource {
             | Self::LldpNeighbourAddress
             | Self::CipVendorId
             | Self::SysDescrMatch
-            | Self::SysObjectIdMatch => M::Inferred,
+            | Self::SysObjectIdMatch
+            | Self::LldpSysDescMatch
+            | Self::SshBannerMatch
+            | Self::HttpServerMatch
+            | Self::DnsSdDeviceInfoMatch => M::Inferred,
 
             Self::DnsSdInstanceName | Self::DnsSdHostname | Self::LldpChassisId => M::Announced,
 
@@ -251,6 +266,10 @@ impl AttributeSource {
             | Self::CipVendorId
             | Self::SysDescrMatch
             | Self::SysObjectIdMatch
+            | Self::LldpSysDescMatch
+            | Self::SshBannerMatch
+            | Self::HttpServerMatch
+            | Self::DnsSdDeviceInfoMatch
             | Self::DnsSdHostname
             | Self::LldpChassisId
             | Self::ReverseDns
@@ -314,6 +333,12 @@ impl AttributeSource {
                 AttributeSourceDiscriminants::CipVendorId => vec![Self::CipVendorId],
                 AttributeSourceDiscriminants::SysDescrMatch => vec![Self::SysDescrMatch],
                 AttributeSourceDiscriminants::SysObjectIdMatch => vec![Self::SysObjectIdMatch],
+                AttributeSourceDiscriminants::LldpSysDescMatch => vec![Self::LldpSysDescMatch],
+                AttributeSourceDiscriminants::SshBannerMatch => vec![Self::SshBannerMatch],
+                AttributeSourceDiscriminants::HttpServerMatch => vec![Self::HttpServerMatch],
+                AttributeSourceDiscriminants::DnsSdDeviceInfoMatch => {
+                    vec![Self::DnsSdDeviceInfoMatch]
+                }
                 AttributeSourceDiscriminants::DnsSdInstanceName => vec![Self::DnsSdInstanceName],
                 AttributeSourceDiscriminants::DnsSdHostname => vec![Self::DnsSdHostname],
                 AttributeSourceDiscriminants::LldpChassisId => vec![Self::LldpChassisId],
@@ -371,6 +396,10 @@ impl AttributeSource {
             AttributeSourceDiscriminants::CipVendorId => Self::CipVendorId,
             AttributeSourceDiscriminants::SysDescrMatch => Self::SysDescrMatch,
             AttributeSourceDiscriminants::SysObjectIdMatch => Self::SysObjectIdMatch,
+            AttributeSourceDiscriminants::LldpSysDescMatch => Self::LldpSysDescMatch,
+            AttributeSourceDiscriminants::SshBannerMatch => Self::SshBannerMatch,
+            AttributeSourceDiscriminants::HttpServerMatch => Self::HttpServerMatch,
+            AttributeSourceDiscriminants::DnsSdDeviceInfoMatch => Self::DnsSdDeviceInfoMatch,
             AttributeSourceDiscriminants::DnsSdInstanceName => Self::DnsSdInstanceName,
             AttributeSourceDiscriminants::DnsSdHostname => Self::DnsSdHostname,
             AttributeSourceDiscriminants::LldpChassisId => Self::LldpChassisId,
@@ -484,6 +513,10 @@ impl TypeMetadataProvider for AttributeSourceDiscriminants {
             Self::CipVendorId => "A CIP vendor ID",
             Self::SysDescrMatch => "SNMP system description",
             Self::SysObjectIdMatch => "SNMP system object ID",
+            Self::LldpSysDescMatch => "A neighbour's LLDP system description",
+            Self::SshBannerMatch => "SSH banner",
+            Self::HttpServerMatch => "HTTP server header",
+            Self::DnsSdDeviceInfoMatch => "mDNS device info",
             Self::DnsSdInstanceName => "mDNS name",
             Self::DnsSdHostname => "mDNS",
             Self::LldpChassisId => "LLDP",
@@ -515,6 +548,18 @@ impl TypeMetadataProvider for AttributeSourceDiscriminants {
             }
             Self::SysObjectIdMatch => {
                 "Scanopy recognised this from the system object ID the device reported over SNMP."
+            }
+            Self::LldpSysDescMatch => {
+                "Scanopy recognised this in the system description the device advertised to its neighbours over LLDP."
+            }
+            Self::SshBannerMatch => {
+                "Scanopy recognised this in the identification string the host's SSH server sent."
+            }
+            Self::HttpServerMatch => {
+                "Scanopy recognised this in the Server header the host's web server sent."
+            }
+            Self::DnsSdDeviceInfoMatch => {
+                "Scanopy recognised this in the device-info record the host announced over mDNS."
             }
             Self::DnsSdInstanceName => {
                 "The device announced this name over mDNS. A person usually sets it during setup."

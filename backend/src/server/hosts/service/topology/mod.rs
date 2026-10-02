@@ -198,6 +198,8 @@ struct NeighbourPass {
 mod inference;
 mod reciprocal;
 
+use crate::server::hosts::r#impl::attributes::HostOsValue;
+use crate::server::hosts::r#impl::os::{HostOs, recog::RecogDatabase};
 use crate::server::interface_neighbors::r#impl::base::{
     InterfaceNeighborCandidate, InterfaceNeighborEvidence, Neighbor,
 };
@@ -299,6 +301,9 @@ impl HostService {
         // to no port of it. Collected here and acted on after the loop rather than mid-tier, so the
         // resolution pass stays a read of identities and a write of neighbours.
         let mut advertised_ports: Vec<(Uuid, Option<String>, Option<String>)> = Vec::new();
+        // (host, the system description its LLDP advertisement carried), acted on after the loop for
+        // the same reason.
+        let mut advertised_os: Vec<(Uuid, String)> = Vec::new();
         let mut reopened = 0usize;
         let mut rebound = 0usize;
         let scan_time = Utc::now();
@@ -530,6 +535,10 @@ impl HostService {
                     // `InterfaceNeighborService::replace_candidates_from_discovery`).
                     desired.insert(host_id, (neighbor, Some(candidate.created_at)));
 
+                    if let Some(sys_desc) = &evidence.lldp_sys_desc {
+                        advertised_os.push((host_id, sys_desc.clone()));
+                    }
+
                     // Resolved to a device but to no port of it. The advertisement still names
                     // that port, and for a device nothing can walk that is the only description
                     // of it there will ever be.
@@ -562,6 +571,7 @@ impl HostService {
         let recorded_ports = self
             .record_advertised_far_end_ports(network_id, advertised_ports)
             .await;
+        self.record_advertised_far_end_os(advertised_os).await;
 
         tracing::info!(
             network_id = %network_id,
@@ -766,6 +776,39 @@ impl HostService {
         }
 
         recorded_count
+    }
+
+    /// Name an OS for each far end from the system description its LLDP advertisement carried.
+    ///
+    /// `lldpRemSysDesc` is the device's own sysDescr, but it was announced on a link anything could
+    /// have spoken on and the OS is our match of it, so it lands at the inferred tier: an OS read off
+    /// the device itself keeps its value. A host this cannot read or update is logged and skipped;
+    /// the next pass offers the same description again.
+    async fn record_advertised_far_end_os(&self, advertised: Vec<(Uuid, String)>) {
+        let mut by_host: HashMap<Uuid, HostOs> = HashMap::new();
+        for (host_id, sys_desc) in advertised {
+            if let Some(os) = RecogDatabase::SnmpSysDescr.os(&sys_desc) {
+                by_host.entry(host_id).or_insert(os);
+            }
+        }
+
+        for (host_id, os) in by_host {
+            let mut host = match self.get_by_id(&host_id).await {
+                Ok(Some(host)) => host,
+                Ok(None) => continue,
+                Err(e) => {
+                    tracing::warn!(host_id = %host_id, error = %e, "Could not read a far end to record its advertised OS");
+                    continue;
+                }
+            };
+            let offered = Attributed::new(HostOsValue(os), AttributeSource::LldpSysDescMatch);
+            if !Attributed::apply(&mut host.base.os, offered) {
+                continue;
+            }
+            if let Err(e) = self.update(&mut host, AuthenticatedEntity::System).await {
+                tracing::warn!(host_id = %host_id, error = %e, "Could not record the OS a far end advertised over LLDP");
+            }
+        }
     }
 
     /// Read this network's identity columns once, for the pass to resolve against.

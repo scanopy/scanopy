@@ -501,6 +501,8 @@ pub(super) fn generate_hosts_and_services(
             Some("PowerEdge R740"),
             Some("DL7QX2B1PVE1"),
         );
+        // Proxmox VE 8 is Debian 12, and its OpenSSH package says so in the banner.
+        let (host, ip_address) = with_ssh_banner((host, ip_address), PROXMOX_SSH_BANNER);
         let ip_addresses = vec![ip_address];
         let mut ports = Vec::new();
         let mut services = Vec::new();
@@ -569,6 +571,7 @@ pub(super) fn generate_hosts_and_services(
             Some("AS-2124BT-HNTR"),
             Some("SMC2124B2PVE2"),
         );
+        let (host, ip_address) = with_ssh_banner((host, ip_address), PROXMOX_SSH_BANNER);
         let ip_addresses = vec![ip_address];
         let mut ports = Vec::new();
         let mut services = Vec::new();

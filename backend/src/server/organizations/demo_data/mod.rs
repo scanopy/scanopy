@@ -929,3 +929,18 @@ fn daemon_container_self_report()
         AttributeSource::DaemonSelfReport,
     ))
 }
+
+/// The identification string a Proxmox VE 8 node's SSH server sends, after the `SSH-2.0-` prefix.
+const PROXMOX_SSH_BANNER: &str = "OpenSSH_9.2p1 Debian-2+deb12u3";
+
+/// Wraps a `create_host()` result with the OS its SSH banner names, matched the way the daemon's
+/// SSH probe matches it, so the demo carries an inferred OS beside the ones read off a host.
+fn with_ssh_banner((mut host, ip_address): (Host, IPAddress), banner: &str) -> (Host, IPAddress) {
+    if let Some(os) = crate::server::hosts::r#impl::os::recog::RecogDatabase::SshBanner.os(banner) {
+        Attributed::apply(
+            &mut host.base.os,
+            Attributed::new(HostOsValue(os), AttributeSource::SshBannerMatch),
+        );
+    }
+    (host, ip_address)
+}

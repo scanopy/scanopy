@@ -202,6 +202,10 @@ pub fn is_identifier_copy(source: AttributeSource) -> bool {
         | S::CipVendorId
         | S::SysDescrMatch
         | S::SysObjectIdMatch
+        | S::LldpSysDescMatch
+        | S::SshBannerMatch
+        | S::HttpServerMatch
+        | S::DnsSdDeviceInfoMatch
         | S::LldpChassisId
         | S::ForwardingTable
         | S::ArpReply
