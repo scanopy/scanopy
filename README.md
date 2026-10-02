@@ -91,7 +91,7 @@ Available as an Unraid community app.
 
 Access the UI at `http://<your-server-ip>:60072`, create your account, and wait for the first discovery to complete.
 
-This runs the Community Edition. With a commercial license key, deploy with `docker-compose.commercial.yml` and set `SCANOPY_LICENSE_KEY`. See [Deploying the Commercial Edition](https://scanopy.net/docs/self-hosted-server/commercial-deployment/?utm_source=github&utm_medium=readme&utm_campaign=docs).
+Have a commercial license? See [Deploying the Commercial Edition](https://scanopy.net/docs/self-hosted-server/commercial-deployment/?utm_source=github&utm_medium=readme&utm_campaign=docs).
 
 For detailed setup options and configuration, see the [Installation Guide](https://scanopy.net/docs/server-installation?utm_source=github&utm_medium=readme&utm_campaign=docs).
 
