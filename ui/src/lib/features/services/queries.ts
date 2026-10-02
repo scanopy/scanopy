@@ -55,6 +55,8 @@ export interface ServicesQueryParams {
 	ports?: number[];
 	/** Exclude services belonging to these categories. */
 	exclude_categories?: components['schemas']['ServiceCategory'][];
+	/** Set false to hold the fetch. Excluded from the query key. */
+	enabled?: boolean;
 }
 
 /**
@@ -98,7 +100,8 @@ export function useServicesQuery(
 			stale,
 			search,
 			ports,
-			exclude_categories
+			exclude_categories,
+			enabled = true
 		} = params;
 
 		return {
@@ -151,6 +154,7 @@ export function useServicesQuery(
 					pagination: envelope.meta?.pagination ?? null
 				};
 			},
+			enabled,
 			// Keep showing previous page data while fetching next page
 			placeholderData: keepPreviousData
 		};

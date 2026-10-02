@@ -30,6 +30,11 @@
 		optionDisplayComponent: EntityDisplayComponent<V, OC>;
 		getOptionContext?: (option: V, index: number) => OC;
 		showSearch?: boolean;
+		/** Server-side search and paging for the add-dropdown; see RichSelect. */
+		onSearchChange?: ((query: string) => void) | null;
+		onLoadMore?: (() => void) | null;
+		hasMore?: boolean;
+		loading?: boolean;
 
 		// Secondary options (dual-mode dropdown)
 		secondaryOptions?: W[];
@@ -97,6 +102,10 @@
 		optionDisplayComponent,
 		getOptionContext = () => ({}) as OC,
 		showSearch = false,
+		onSearchChange = null,
+		onLoadMore = null,
+		hasMore = false,
+		loading = false,
 
 		// Secondary options (dual-mode dropdown)
 		secondaryOptions = undefined,
@@ -325,6 +334,10 @@
 							onSelect={handleDropdownSelectChange}
 							displayComponent={optionDisplayComponent}
 							{getOptionContext}
+							{onSearchChange}
+							{onLoadMore}
+							{hasMore}
+							{loading}
 						/>
 					{:else if secondaryOptionDisplayComponent}
 						<RichSelect

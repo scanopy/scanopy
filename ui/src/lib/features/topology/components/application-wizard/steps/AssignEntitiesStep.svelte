@@ -10,6 +10,7 @@
 	import type { Host } from '$lib/features/hosts/types/base';
 	import type { Tag as TagType } from '$lib/features/tags/types/base';
 	import { useHostSummariesQuery } from '$lib/features/hosts/queries';
+	import { hostDisplayContext } from '$lib/features/hosts/host-picker.svelte';
 	import { useServicesQuery } from '$lib/features/services/queries';
 	import { useBulkAddTagMutation } from '$lib/features/tags/queries';
 	import TagBadge from '$lib/shared/components/data/Tag.svelte';
@@ -34,7 +35,7 @@
 	const hostsQuery = useHostSummariesQuery(() => ({ network_id: networkId }));
 	const servicesQuery = useServicesQuery(() => ({
 		limit: 0,
-		network_id: networkId,
+		network_ids: [networkId],
 		exclude_categories: ['OpenPorts']
 	}));
 	const bulkAddTagMutation = useBulkAddTagMutation();
@@ -77,14 +78,14 @@
 		return appTags;
 	}
 
+	let allIpAddresses = $derived((hostsQuery.data?.items ?? []).flatMap((h) => h.ip_addresses));
+
 	function getHostContext(host: Host): HostDisplayContext {
-		const hostServices = allServices.filter((s) => s.host_id === host.id);
-		return {
+		return hostDisplayContext(allIpAddresses, allServices, {
 			showEntityTagPicker: true,
 			entityTags: getEntityTags(host),
-			allowTagCreate: false,
-			services: hostServices
-		};
+			allowTagCreate: false
+		});
 	}
 
 	function getServiceContext(service: { tags: string[] }): ServiceDisplayContext {

@@ -91,7 +91,9 @@
 		showEntityTagPicker: !editState.isReadonly,
 		tagPickerDisabled: !editState.isEditable,
 		entityTags: topology.entity_tags,
-		compact: true
+		compact: true,
+		// The first service supplies the icon, as on every other topology host card.
+		services: topology.services
 	});
 
 	// For containers: show the header/title

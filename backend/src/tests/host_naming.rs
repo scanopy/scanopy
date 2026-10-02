@@ -34,6 +34,7 @@ use crate::server::ip_addresses::r#impl::base::{IPAddress, IPAddressBase};
 use crate::server::networks::r#impl::{Network, NetworkBase};
 use crate::server::shared::services::factory::ServiceFactory;
 use crate::server::shared::services::traits::CrudService;
+use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::{Storable, Storage};
 use crate::server::shared::types::entities::EntitySource;
 use crate::server::subnets::r#impl::base::{Subnet, SubnetBase};
@@ -523,4 +524,35 @@ async fn clearing_a_typed_name_hands_naming_back_to_discovery() {
         resynced.name, "Core Switch",
         "with the typed name gone, discovery names the host again"
     );
+}
+
+/// Pickers and id→name lookups read hosts through the children-free list path. It used to skip
+/// the host's addresses along with its other children, so the ladder's last rung had nothing to
+/// read and every host titled by its IP reached the picker with no title at all.
+#[tokio::test]
+async fn an_address_title_survives_the_children_free_list() {
+    harness!(services, network_id, _container);
+
+    let scanned = submit(&services, submission(network_id, HostName::unnamed(), None)).await;
+    assert_eq!(scanned.display_name_rung, Some(HostNameRung::Address));
+
+    let listed = services
+        .host_service
+        .get_all_host_responses_paginated(
+            StorableFilter::<Host>::new_from_network_ids(&[network_id]).live(),
+            "hosts.created_at ASC",
+            None,
+            false,
+        )
+        .await
+        .expect("the list must load")
+        .items;
+    let host = listed
+        .iter()
+        .find(|h| h.id == scanned.id)
+        .expect("the scanned host must be listed");
+
+    assert_eq!(host.display_name, scanned.display_name);
+    assert_eq!(host.display_name_rung, Some(HostNameRung::Address));
+    assert!(host.ports.is_empty() && host.services.is_empty() && host.interfaces.is_empty());
 }

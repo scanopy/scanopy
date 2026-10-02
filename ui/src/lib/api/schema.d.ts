@@ -1713,7 +1713,8 @@ export interface paths {
          * List all hosts
          * @description Returns all hosts the authenticated user has access to, with their
          *     ip_addresses, ports, services and interfaces included — pass
-         *     `include_children=false` to omit those and get a much smaller payload.
+         *     `include_children=false` to omit the ports, services and interfaces and get a
+         *     much smaller payload.
          *     Supports pagination via `limit` and `offset` query parameters, and ordering
          *     via `group_by`, `order_by`, and `order_direction`.
          */
@@ -17305,8 +17306,9 @@ export interface operations {
                  */
                 stale?: boolean | null;
                 /**
-                 * @description `false` returns hosts with empty `ip_addresses`/`ports`/`services`/
-                 *     `interfaces`. The children dominate the payload, so callers that only need
+                 * @description `false` returns hosts with empty `ports`/`services`/`interfaces`.
+                 *     `ip_addresses` is always populated: the host's title can come from its
+                 *     address. The children dominate the payload, so callers that only need
                  *     host identity — name pickers, id→name lookups, counts — should pass
                  *     `false`. Defaults to `true`, so existing callers are unaffected.
                  */
@@ -17498,8 +17500,9 @@ export interface operations {
                  */
                 stale?: boolean | null;
                 /**
-                 * @description `false` returns hosts with empty `ip_addresses`/`ports`/`services`/
-                 *     `interfaces`. The children dominate the payload, so callers that only need
+                 * @description `false` returns hosts with empty `ports`/`services`/`interfaces`.
+                 *     `ip_addresses` is always populated: the host's title can come from its
+                 *     address. The children dominate the payload, so callers that only need
                  *     host identity — name pickers, id→name lookups, counts — should pass
                  *     `false`. Defaults to `true`, so existing callers are unaffected.
                  */
@@ -17582,8 +17585,9 @@ export interface operations {
                  */
                 stale?: boolean | null;
                 /**
-                 * @description `false` returns hosts with empty `ip_addresses`/`ports`/`services`/
-                 *     `interfaces`. The children dominate the payload, so callers that only need
+                 * @description `false` returns hosts with empty `ports`/`services`/`interfaces`.
+                 *     `ip_addresses` is always populated: the host's title can come from its
+                 *     address. The children dominate the payload, so callers that only need
                  *     host identity — name pickers, id→name lookups, counts — should pass
                  *     `false`. Defaults to `true`, so existing callers are unaffected.
                  */

@@ -4,7 +4,9 @@
 	import type { EntityDisplayComponent } from './types';
 	import { tick, onMount } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
+	import throttle from 'just-throttle';
 	import {
+		common_loading,
 		common_noOptionsAvailable,
 		common_selectOption,
 		common_typeToFilter,
@@ -26,7 +28,12 @@
 		displayComponent,
 		getOptionContext = () => new Object() as OC,
 		minWidth = null,
-		fitToContent = false
+		fitToContent = false,
+		onSearchChange = null,
+		onLoadMore = null,
+		hasMore = false,
+		loading = false,
+		selectedOption = undefined
 	}: {
 		label?: string;
 		selectedValue?: string | null;
@@ -54,7 +61,53 @@
 		 *  Uses a hidden CSS-grid sizer so the trigger never collapses below — or
 		 *  grows beyond — what the longest label needs. */
 		fitToContent?: boolean;
+		/** Server-side search. When set, typing is passed here (throttled) instead of filtering
+		 *  `options` locally: the caller owns the result set, and a local filter over one loaded
+		 *  page would miss every match on the pages not yet fetched. */
+		onSearchChange?: ((query: string) => void) | null;
+		/** Called when the list is scrolled near its end and `hasMore` is true. */
+		onLoadMore?: (() => void) | null;
+		hasMore?: boolean;
+		/** A fetch is in flight: shows a loading row and holds off `onLoadMore`. */
+		loading?: boolean;
+		/** The selected option when it may not be in `options`, as with a paginated list whose
+		 *  loaded pages don't include it. */
+		selectedOption?: V;
 	} = $props();
+
+	/** Debounce window for server-side search, in ms. Matches DataControls. */
+	const SEARCH_THROTTLE_MS = 300;
+	/** How close to the bottom, in px, a scroll has to get before the next page loads. */
+	const LOAD_MORE_THRESHOLD_PX = 48;
+
+	// Trailing throttle so a burst of keystrokes costs one request and the last one is never
+	// dropped. Built once: rebuilding it per keystroke would defeat the debounce.
+	const notifySearchChange = throttle(
+		(query: string) => onSearchChange?.(query),
+		SEARCH_THROTTLE_MS,
+		{ leading: false, trailing: true }
+	);
+
+	/** Clear the search box. A server-side search is reset at once, with any pending keystroke
+	 *  dropped, so the next open starts from the unsearched list. */
+	function resetFilter() {
+		filterText = '';
+		if (onSearchChange) {
+			notifySearchChange.cancel();
+			onSearchChange('');
+		}
+	}
+
+	function handleFilterInput() {
+		if (onSearchChange) notifySearchChange(filterText);
+	}
+
+	function handleScroll() {
+		updateScrollIndicators();
+		if (!scrollContainerEl || !onLoadMore || !hasMore || loading) return;
+		const { scrollTop, scrollHeight, clientHeight } = scrollContainerEl;
+		if (scrollTop + clientHeight >= scrollHeight - LOAD_MORE_THRESHOLD_PX) onLoadMore();
+	}
 
 	let isOpen = $state(false);
 	let dropdownElement: HTMLDivElement | undefined = $state();
@@ -115,12 +168,17 @@
 		};
 	}
 
-	let selectedItem = $derived(options.find((i) => displayComponent.getId(i) === selectedValue));
+	let selectedItem = $derived(
+		options.find((i) => displayComponent.getId(i) === selectedValue) ??
+			(selectedOption && displayComponent.getId(selectedOption) === selectedValue
+				? selectedOption
+				: undefined)
+	);
 
 	// Filter options based on search text
 	let filteredOptions = $derived(
 		options.filter((option, index) => {
-			if (!filterText.trim()) return true;
+			if (onSearchChange || !filterText.trim()) return true;
 
 			const context = getOptionContext(option, index);
 
@@ -204,13 +262,13 @@
 		if (!disabled) {
 			if (!isOpen) {
 				isOpen = true;
-				filterText = ''; // Reset filter when opening
+				resetFilter();
 				await calculatePosition(); // Calculate once when opening
 				// Focus the input after the dropdown is positioned
 				setTimeout(() => inputElement?.focus(), 0);
 			} else {
 				isOpen = false;
-				filterText = '';
+				resetFilter();
 			}
 		}
 	}
@@ -227,13 +285,13 @@
 			});
 			if (item && index !== undefined) {
 				isOpen = false;
-				filterText = '';
+				resetFilter();
 				onSelect(value);
 			}
 		} catch (e) {
 			console.warn('Error in handleSelect:', e);
 			isOpen = false;
-			filterText = '';
+			resetFilter();
 		}
 	}
 
@@ -245,14 +303,14 @@
 			!triggerElement.contains(event.target as Node)
 		) {
 			isOpen = false;
-			filterText = '';
+			resetFilter();
 		}
 	}
 
 	function handleInputKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') {
 			isOpen = false;
-			filterText = '';
+			resetFilter();
 			triggerElement?.focus(); // Return focus to trigger
 		}
 		// Prevent the input keydown from bubbling to parent components
@@ -311,9 +369,11 @@
 				<ListSelectItem {context} item={selectedItem} {displayComponent} staticTags={true} />
 			{:else}
 				<span class="text-secondary"
-					>{options.length == 0
-						? common_noOptionsAvailable()
-						: (placeholder ?? common_selectOption())}</span
+					>{options.length == 0 && loading
+						? common_loading()
+						: options.length == 0
+							? common_noOptionsAvailable()
+							: (placeholder ?? common_selectOption())}</span
 				>
 			{/if}
 		</div>
@@ -358,6 +418,7 @@
 					class="input-field text-primary w-full rounded px-2 py-1 text-sm"
 					onkeydown={handleInputKeydown}
 					onclick={(e) => e.stopPropagation()}
+					oninput={handleFilterInput}
 				/>
 			</div>
 		{/if}
@@ -373,9 +434,11 @@
 				bind:this={scrollContainerEl}
 				class="overflow-y-auto"
 				style="max-height: {dropdownPosition.maxHeight - (showSearch ? 44 : 0)}px"
-				onscroll={updateScrollIndicators}
+				onscroll={handleScroll}
 			>
-				{#if groupedOptions.length === 0 || groupedOptions.every((group) => group.options.length === 0)}
+				{#if loading && options.length === 0}
+					<div class="text-tertiary px-3 py-4 text-center text-sm">{common_loading()}</div>
+				{:else if groupedOptions.length === 0 || groupedOptions.every((group) => group.options.length === 0)}
 					<div class="text-tertiary px-3 py-4 text-center text-sm">
 						{common_noOptionsMatch({ filterText })}
 					</div>
@@ -410,7 +473,7 @@
 										e.stopPropagation();
 										if (isDisabled) {
 											isOpen = false;
-											filterText = '';
+											resetFilter();
 											onDisabledClick?.(displayComponent.getId(option));
 										} else {
 											handleSelect(displayComponent.getId(option));
@@ -430,6 +493,9 @@
 							{/each}
 						{/if}
 					{/each}
+					{#if loading && hasMore}
+						<div class="text-tertiary px-3 py-2 text-center text-sm">{common_loading()}</div>
+					{/if}
 				{/if}
 			</div>
 			{#if canScrollDown}
