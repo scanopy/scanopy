@@ -19,7 +19,7 @@
 	import { reopenSettingsTabAfterPayment } from '$lib/features/billing/stores';
 	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
 	import { billingPlans } from '$lib/shared/stores/metadata';
-	import { pushSuccess } from '$lib/shared/stores/feedback';
+	import { pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
 	import { queryClient, queryKeys } from '$lib/api/query-client';
 	import {
 		apiFailure,
@@ -28,10 +28,7 @@
 		type PaymentFormSource
 	} from '$lib/shared/billing/setup-payment';
 	import {
-		common_cancel,
-		common_processing,
 		common_save,
-		common_tryAgain,
 		billing_addPaymentMethod,
 		billing_invoice_quoteCreated,
 		billing_invoice_sent,
@@ -97,11 +94,6 @@
 	type Method = 'card' | 'invoice';
 	let method = $state<Method>('card');
 	let clientSecret = $state<string | null>(null);
-	// A SetupIntent Stripe confirmed (the card is already attached to the
-	// customer) whose finalize call failed. Retrying finalize with it saves the
-	// card without collecting it again, which would attach a second copy.
-	let pendingSetupIntentId = $state<string | null>(null);
-	let retryingFinalize = $state(false);
 
 	// Opened from a tab inside Settings, this modal replaced Settings in the
 	// registry while Settings stayed on screen (a locked org's Settings can't
@@ -111,7 +103,6 @@
 		// A SetupIntent is single-use. The next open fetches a fresh one rather
 		// than remounting the form on one that may already have succeeded.
 		clientSecret = null;
-		pendingSetupIntentId = null;
 		const tab = $reopenSettingsTabAfterPayment;
 		closeModal();
 		if (tab) {
@@ -147,14 +138,13 @@
 		try {
 			await finalizeMutation.mutateAsync(setupIntentId);
 		} catch (err) {
-			// The mutation toasts the failure. Stripe already holds the card, so
-			// offer to retry finalize for this SetupIntent instead of showing the
-			// form again.
+			// The mutation toasts the cause. Stripe already holds the card, so
+			// rethrow: the form stays open and its button retries finalize for
+			// this same SetupIntent.
 			trackPaymentFormFailed('finalize', source, apiFailure(err));
-			pendingSetupIntentId = setupIntentId;
-			return;
+			pushWarning(billing_paymentMethodFinalizeFailed());
+			throw err;
 		}
-		pendingSetupIntentId = null;
 
 		// Buying a plan: the card is now on file, so the backend creates the
 		// subscription in place. It only returns a URL when Stripe still needs
@@ -184,16 +174,6 @@
 		// clears the payment banners; no need to wait for the webhook.
 		await queryClient.invalidateQueries({ queryKey: queryKeys.organizations.current() });
 		pushSuccess(billing_paymentMethodAdded());
-	}
-
-	async function retryFinalize() {
-		if (pendingSetupIntentId == null) return;
-		retryingFinalize = true;
-		try {
-			await handleCardSuccess(pendingSetupIntentId);
-		} finally {
-			retryingFinalize = false;
-		}
 	}
 
 	function handleInvoiceDone(mode: InvoiceBillingMode) {
@@ -228,23 +208,6 @@
 			onCancel={closeAndReturn}
 			onPayByCard={() => (method = 'card')}
 		/>
-	{:else if pendingSetupIntentId}
-		<div class="p-6">
-			<p class="text-secondary text-sm">{billing_paymentMethodFinalizeFailed()}</p>
-		</div>
-		<div class="modal-footer flex items-center justify-end gap-3">
-			<button
-				type="button"
-				class="btn-secondary"
-				disabled={retryingFinalize}
-				onclick={closeAndReturn}
-			>
-				{common_cancel()}
-			</button>
-			<button type="button" class="btn-primary" disabled={retryingFinalize} onclick={retryFinalize}>
-				{retryingFinalize ? common_processing() : common_tryAgain()}
-			</button>
-		</div>
 	{:else if clientSecret}
 		{#if planAllowsInvoice && writtenOffInvoice.current}
 			<div class="px-6 pt-4">

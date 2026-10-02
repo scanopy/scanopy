@@ -8,7 +8,7 @@
 	import { loadStripe } from '@stripe/stripe-js/pure';
 	// Types only — `/pure` re-exports just the runtime function. `import type` is erased at
 	// compile time, so this never pulls the injecting module into the bundle.
-	import type { Stripe, StripeElements } from '@stripe/stripe-js';
+	import type { Stripe, StripeElements, StripePaymentElement } from '@stripe/stripe-js';
 	import { buildStripeAppearance } from '$lib/shared/billing/stripe-appearance';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import Loading from '$lib/shared/components/feedback/Loading.svelte';
@@ -17,6 +17,7 @@
 		common_cancel,
 		common_continue,
 		common_processing,
+		common_tryAgain,
 		billing_cardError,
 		billing_cardLoadError
 	} from '$lib/paraglide/messages';
@@ -73,6 +74,11 @@
 	let methodSelected = $state(false);
 	let busy = $state(false);
 	let errorMessage = $state('');
+	let mountedElement: StripePaymentElement | null = null;
+	// The SetupIntent Stripe confirmed. Stripe now holds the card, so if
+	// `onSuccess` (finalize) fails, the next submit retries `onSuccess` with this
+	// id instead of confirming again, which would attach a second copy.
+	let confirmedSetupIntentId = $state<string | null>(null);
 	let loadFailed = $state(false);
 	let initialized = false;
 
@@ -131,13 +137,31 @@
 				methodSelected = !event.collapsed;
 			});
 			paymentElement.mount(node);
+			mountedElement = paymentElement;
 		})();
 	});
+
+	/** Hand a confirmed SetupIntent to the caller (finalize/checkout). */
+	async function finishSetup(setupIntentId: string) {
+		try {
+			await onSuccess(setupIntentId);
+		} catch {
+			// onSuccess surfaces its own toast; re-enable so the user can retry,
+			// which reuses the confirmed intent. On success the caller unmounts
+			// this form.
+			busy = false;
+		}
+	}
 
 	async function handleSubmit() {
 		if (!stripe || !elements || busy) return;
 		busy = true;
 		errorMessage = '';
+
+		if (confirmedSetupIntentId) {
+			await finishSetup(confirmedSetupIntentId);
+			return;
+		}
 
 		const { error, setupIntent } = await stripe.confirmSetup({
 			elements,
@@ -156,13 +180,11 @@
 		}
 
 		if (setupIntent?.status === 'succeeded' && setupIntent.id) {
-			try {
-				await onSuccess(setupIntent.id);
-			} catch {
-				// onSuccess (finalize/checkout) surfaces its own toast; re-enable
-				// so the user can retry. On success the caller unmounts this form.
-				busy = false;
-			}
+			confirmedSetupIntentId = setupIntent.id;
+			// The card is saved with Stripe now; editing it would no longer
+			// change what a retry saves.
+			mountedElement?.update({ readOnly: true });
+			await finishSetup(setupIntent.id);
 			return;
 		}
 
@@ -228,7 +250,7 @@
 		{/if}
 		{#if methodSelected}
 			<button type="submit" class="btn-primary" disabled={busy || !ready}>
-				{busy ? common_processing() : submitLabel}
+				{busy ? common_processing() : confirmedSetupIntentId ? common_tryAgain() : submitLabel}
 			</button>
 		{/if}
 	</div>
