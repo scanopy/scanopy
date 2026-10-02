@@ -1,7 +1,7 @@
 <!--
 	What each credential did in a run, with its warnings: the hosts it collected from, the SSH script
 	runs, the hosts Wake-on-LAN woke. Every credential warning in the run is shown here rather than on
-	the Scan tab. Rows use the Scan tab's density: collapsed, a row shows the credential, the
+	the Scan tab. One compact card per credential: collapsed, it shows the credential, the
 	addresses it reported on, and "Success" or its warning count; expanded, the warnings' own
 	sentences and only the detail the collapsed row does not already show.
 -->
@@ -69,11 +69,11 @@
 		subtitle={discovery_noCredentialResultsSubtitle()}
 	/>
 {:else}
-	<ul class="card card-static px-4 py-2">
+	<ul class="space-y-2">
 		{#each rows as row (row.key)}
 			{@const credential = row.credentialId ? credentialsById.get(row.credentialId) : undefined}
 			{@const open = expanded.has(row.key)}
-			<li>
+			<li class="card card-static px-3 py-1.5">
 				<button
 					type="button"
 					class="hover:bg-tertiary/40 -mx-1 flex w-full min-w-0 cursor-pointer items-start gap-2 rounded px-1 py-1 text-left"
