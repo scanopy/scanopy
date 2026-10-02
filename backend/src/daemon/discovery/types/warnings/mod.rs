@@ -9,7 +9,7 @@
 //! Two rules shape the enum below.
 //!
 //! - **One code per claim.** Each variant is one arm of what used to be a renderer's `match` — one
-//!   statement about one kind of failure. Collapsing "credential rejected", "TLS failed" and
+//!   statement about one type of failure. Collapsing "credential rejected", "TLS failed" and
 //!   "unreachable" into one code would make the metric useless, because which of the three it was
 //!   is the entire question an operator asks.
 //! - **One warning per occurrence.** A warning names the single thing it is about and carries that
@@ -604,17 +604,14 @@ pub struct UnresolvedPort {
     strum::AsRefStr,
     strum::EnumDiscriminants,
 )]
-#[strum_discriminants(
-    name(DiscoveryWarningCodeKind),
-    derive(
-        Hash,
-        EnumIter,
-        strum::Display,
-        strum::AsRefStr,
-        Serialize,
-        Deserialize
-    )
-)]
+#[strum_discriminants(derive(
+    Hash,
+    EnumIter,
+    strum::Display,
+    strum::AsRefStr,
+    Serialize,
+    Deserialize
+))]
 pub enum DiscoveryWarningCode {
     InterfaceSetCutShort,
     InterfaceDetailsCutShort,

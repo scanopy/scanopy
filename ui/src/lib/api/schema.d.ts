@@ -4081,7 +4081,7 @@ export interface components {
                  *     Always enriched server-side; daemons do not send this field.
                  */
                 discovery_id?: string | null;
-                /** @description What kind of discovery is running. */
+                /** @description What type of discovery is running. */
                 discovery_type: components["schemas"]["DiscoveryType"];
                 /** @description Failure message, when the run did not complete. */
                 error?: string | null;
@@ -6037,7 +6037,7 @@ export interface components {
                  *     Always enriched server-side; daemons do not send this field.
                  */
                 discovery_id?: string | null;
-                /** @description What kind of discovery is running. */
+                /** @description What type of discovery is running. */
                 discovery_type: components["schemas"]["DiscoveryType"];
                 /** @description Failure message, when the run did not complete. */
                 error?: string | null;
@@ -6589,7 +6589,7 @@ export interface components {
          *     The probe result (success/failure) is pre-computed; Pattern::ClientResponse
          *     just checks whether it succeeded.
          *
-         *     Two kinds of producer fill this: the credentialed `DiscoveryIntegration`s, and the
+         *     Two types of producer fill this: the credentialed `DiscoveryIntegration`s, and the
          *     non-credentialed [`AppProbe`](crate::daemon::utils::app_probe::AppProbe)s. Every variant needs
          *     one — a variant nothing produces gives a service definition a pattern that can never match, and
          *     `every_client_probe_variant_has_a_producer` is what now says so.
@@ -7573,7 +7573,7 @@ export interface components {
         DependencyBase: {
             /** @description Colour the dependency edge is drawn in. */
             color: components["schemas"]["Color"];
-            /** @description What kind of relationship this dependency records. */
+            /** @description What type of relationship this dependency records. */
             dependency_type: components["schemas"]["DependencyType"];
             /** @description Free-text notes about the dependency. */
             description?: string | null;
@@ -7856,7 +7856,7 @@ export interface components {
              *     Always enriched server-side; daemons do not send this field.
              */
             discovery_id?: string | null;
-            /** @description What kind of discovery is running. */
+            /** @description What type of discovery is running. */
             discovery_type: components["schemas"]["DiscoveryType"];
             /** @description Failure message, when the run did not complete. */
             error?: string | null;
@@ -9603,7 +9603,7 @@ export interface components {
          *     install and a re-key are the same command.
          * @enum {string}
          */
-        InstallCommandKind: "install" | "reconfigure";
+        InstallCommandType: "install" | "reconfigure";
         /**
          * @description Per-daemon integration targeting, stored on the `Discovery` entity and delivered via the
          *     init command at registration. Each entry references exactly one stored credential and says
@@ -12635,7 +12635,7 @@ export interface components {
             network_id: string;
             /** @description Will be automatically set to Manual for creation through API */
             source: components["schemas"]["EntitySource"];
-            /** @description What kind of subnet this is — physical, virtual, container bridge, and so on. */
+            /** @description What type of subnet this is — physical, virtual, container bridge, and so on. */
             subnet_type: components["schemas"]["SubnetType"];
             /** @description Tags assigned to this entity. */
             tags: string[];
@@ -16512,7 +16512,7 @@ export interface operations {
         parameters: {
             query: {
                 /** @description `install` (with the api-key placeholder) or `reconfigure` (credential-free). */
-                purpose: components["schemas"]["InstallCommandKind"];
+                purpose: components["schemas"]["InstallCommandType"];
                 /** @description Log verbosity the daemon should run at (e.g. `info`, `debug`). */
                 log_level?: string | null;
                 /** @description Path the daemon should write its log file to. */

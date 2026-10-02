@@ -319,7 +319,7 @@ impl LldpChassisId {
 
     /// Resolve this chassis ID to a host_id, trying each applicable strategy in turn.
     ///
-    /// Subtype-specific strategy first — it matches the identifier against the kind of column it
+    /// Subtype-specific strategy first — it matches the identifier against the type of column it
     /// actually is:
     /// - MacAddress: `ip_addresses.mac_address`, then `interfaces.mac_address`
     /// - NetworkAddress: `ip_addresses.ip_address`

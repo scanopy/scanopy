@@ -2,7 +2,7 @@
 //!
 //! Docker and Podman both expose a Docker-compatible REST API, so a single
 //! scanner and two transports (HTTP(S) proxy + local Unix socket) serve both.
-//! The [`ContainerRuntime`] kind selects the runtime-specific bits — which
+//! The [`ContainerRuntime`] type selects the runtime-specific bits — which
 //! daemon service the discovered containers belong to, which `ClientProbe`
 //! feeds service matching, and which virtualization variants get stamped onto
 //! services and subnets. The `docker` and `podman` integration modules are thin

@@ -97,7 +97,7 @@ pub async fn query_lldp_neighbors_for<T: SnmpWalkTransport>(
     // invisible at the transport: a response that skips a row carries the right request id and a
     // well-formed OID, and is byte-for-byte a legitimate end-of-column. Judging it by OID position
     // instead is the assumption GH #674 had to remove before unsorted firmware could be read at
-    // all. Which rows each column enumerated is evidence of a different kind, and it is already
+    // all. Which rows each column enumerated is evidence of a different type, and it is already
     // here for the asking.
     let mut subtype_keys: HashSet<(i32, i32)> = HashSet::new();
     let mut value_keys: HashSet<(i32, i32)> = HashSet::new();
@@ -409,7 +409,7 @@ pub static CLASSIC_LLDP_MIB: LldpMibProfile = LldpMibProfile {
 /// disappear without trace: no record was created, so nothing reached the discard counters,
 /// `complete` stayed true, and an empty result from a switch with sixteen ports was then treated
 /// as authoritative — overwriting the LLDP data the server held with NULL. It was the only
-/// failure in this walk that produced no warning of any kind.
+/// failure in this walk that produced no warning at all.
 ///
 /// **Reading from the end is what makes this table-specific, and it does not generalise.**
 /// `lldpV2RemEntry` (LLDP-V2-MIB, `1.3.111.2.802.1.1.13`) is indexed

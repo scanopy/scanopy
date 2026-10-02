@@ -122,10 +122,10 @@ fn is_opc_ua_reply(reply: &[u8]) -> bool {
 mod tests {
     use super::*;
 
-    fn message(kind: &[u8; 3], body: &[u8]) -> Vec<u8> {
+    fn message(message_type: &[u8; 3], body: &[u8]) -> Vec<u8> {
         let size = (HEADER_LEN + body.len()) as u32;
         let mut msg = Vec::new();
-        msg.extend_from_slice(kind);
+        msg.extend_from_slice(message_type);
         msg.push(CHUNK_FINAL);
         msg.extend_from_slice(&size.to_le_bytes());
         msg.extend_from_slice(body);

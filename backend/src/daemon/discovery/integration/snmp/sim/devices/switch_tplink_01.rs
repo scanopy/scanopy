@@ -218,7 +218,7 @@ mod tests {
     /// sub-ids built no record, so nothing reached the discard counters, the walk still reported
     /// itself complete, and an empty result from a sixteen-port switch was then treated as the
     /// device authoritatively reporting no neighbours — clearing links the server already held. It
-    /// was the only failure in this query that raised no warning of any kind.
+    /// was the only failure in this query that raised no warning at all.
     #[tokio::test]
     async fn a_two_element_neighbour_index_still_builds_records() {
         let scan = harness::scan("switch-tplink-01").await;

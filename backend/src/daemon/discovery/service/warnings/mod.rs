@@ -73,7 +73,7 @@ impl ShortfallReason {
 ///
 /// The reporting surface is otherwise entirely self-referential: it can say a walk did not finish,
 /// that we hit our own cap, or that rows were discarded, but never that the device itself said
-/// there was more. These are the inputs that make the second kind of statement possible, and both
+/// there was more. These are the inputs that make the second type of statement possible, and both
 /// were already declared in `oids.rs` and never read.
 ///
 /// A claim is evidence, never a verdict. Devices misreport their own counts, so a contradiction
@@ -92,7 +92,7 @@ pub enum DeviceClaim {
 
 /// LLDP neighbours whose local port could not be placed on an interface of the device.
 ///
-/// Kept apart from [`IncompleteSnmpWalk`] because it is a different kind of problem and reads
+/// Kept apart from [`IncompleteSnmpWalk`] because it is a different type of problem and reads
 /// nothing like one: the walk succeeded and the neighbours are there, but their `lldpLocPortNum`
 /// could not be translated to an `ifIndex`.
 ///
@@ -172,7 +172,7 @@ pub struct SnmpCollectedNothing {
 
 /// Neighbour records a device served without the identifier that makes them usable.
 ///
-/// A third kind of problem again, and it must not read like either neighbour above. The walk
+/// A third type of problem again, and it must not read like either neighbour above. The walk
 /// finished and the rows arrived; they are missing a mandatory field — the LLDP chassis ID
 /// (IEEE 802.1AB) or the CDP device id — which is what L2 resolution matches the far end on, so
 /// they are discarded rather than written over good data.

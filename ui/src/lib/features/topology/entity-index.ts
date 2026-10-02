@@ -47,7 +47,7 @@ export interface TopologyIndex {
 	/**
 	 * Tags of whatever entity a container can represent, keyed by entity id.
 	 * Hosts, subnets and services share one map because `resolveContainerTags`
-	 * looks up a container's entity without knowing which kind it is.
+	 * looks up a container's entity without knowing which type it is.
 	 */
 	entityTags: Map<string, string[]>;
 

@@ -211,7 +211,7 @@ pub struct DiscoveryUpdatePayload {
     pub network_id: Uuid,
     /// Which stage of the run is in progress.
     pub phase: DiscoveryPhase,
-    /// What kind of discovery is running.
+    /// What type of discovery is running.
     pub discovery_type: DiscoveryType,
     /// Completion of the current phase, from 0 to 1.
     pub progress: u8,

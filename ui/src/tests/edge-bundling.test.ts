@@ -10,7 +10,7 @@ const DB_BOX = 'box-db';
 /**
  * `relation_key` is what the backend computes for this edge type (`EdgeType::relation_key`):
  * the identity of the thing the edge stands for, or null when the edge is one of several
- * interchangeable connections of its kind.
+ * interchangeable connections of its type.
  */
 function edge(
 	source: string,

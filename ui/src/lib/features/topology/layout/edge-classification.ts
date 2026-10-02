@@ -82,7 +82,7 @@ export function getSelectionScope(edgeType: string): EdgeSelectionScope {
 /**
  * The relation this edge stands for, as computed by the backend (`EdgeType::relation_key`), or
  * null when it stands for nothing in particular — one of several interchangeable connections of
- * its kind. Two edges sharing this are one thing drawn twice.
+ * its type. Two edges sharing this are one thing drawn twice.
  *
  * Qualified by edge type: a `RequestPath` and a `HubAndSpoke` of the same dependency carry the
  * same backend key but are not the same line.

@@ -71,7 +71,7 @@ pub struct DependencyBase {
     #[serde(deserialize_with = "deserialize_empty_string_as_none")]
     #[validate(length(min = 0, max = 500))]
     pub description: Option<String>,
-    /// What kind of relationship this dependency records.
+    /// What type of relationship this dependency records.
     pub dependency_type: DependencyType,
     /// Members of this dependency: either service IDs or binding IDs.
     #[serde(default)]

@@ -76,7 +76,7 @@ impl SubnetService {
     ) {
         let (from_cidr, from_source) = before;
 
-        let kind = if from_cidr == *corrected.base.cidr {
+        let correction = if from_cidr == *corrected.base.cidr {
             SubnetCorrection::Promoted
         } else if corrected.base.cidr.contains(&from_cidr.first_address())
             && corrected.base.cidr.network_length() < from_cidr.network_length()
@@ -98,7 +98,7 @@ impl SubnetService {
                     from_source,
                     to_source: corrected.base.cidr.source(),
                 },
-                kind,
+                correction,
                 authentication,
             ))
             .await

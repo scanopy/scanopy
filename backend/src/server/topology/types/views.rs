@@ -219,7 +219,7 @@ pub struct ViewElementEntityConfig {
 // both the filter-panel chip UI and the hide-set stored in request options.
 // ---------------------------------------------------------------------------
 
-/// The kind of metadata filter. One variant per conceptually-distinct filter
+/// The type of metadata filter. One variant per conceptually-distinct filter
 /// across the app — Category (on Service), Virtualization (on Host), and so
 /// on. Kept narrow on purpose: adding a new filter means adding a variant
 /// here + a `HasFilterValues` impl on the relevant entity.
@@ -443,7 +443,7 @@ pub struct ViewInspectorConfig {
     pub element_sections: Vec<InspectorSection>,
     /// Inspector sections shown when a container is selected.
     pub container_sections: Vec<InspectorSection>,
-    /// What kind of member a dependency can be drawn between in this view.
+    /// What type of member a dependency can be drawn between in this view.
     pub dependency_creation: Option<DependencyMemberType>,
     /// Whether the inspector offers the application picker.
     pub show_application_picker: bool,

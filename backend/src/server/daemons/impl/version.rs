@@ -207,7 +207,7 @@ pub fn supports_server_provisioned_identity(version: Option<&Version>) -> bool {
 ///
 /// This gate is not cosmetic — it is required for correctness. `DiscoveryType`
 /// has no `#[serde(other)]` fallback (see `daemon/shared/forward_compat.rs`:
-/// an unknown discovery kind is not actionable and must be rejected, not
+/// an unknown discovery type is not actionable and must be rejected, not
 /// degraded), so an older daemon cannot deserialize a rescan request at all.
 pub fn minimum_targeted_rescan() -> Version {
     Version::new(0, 17, 7)

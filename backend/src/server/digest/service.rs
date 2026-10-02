@@ -535,7 +535,7 @@ struct DigestWindow {
 /// definition shared with the read path — this function only adds the
 /// digest-specific `New` bucket and the transition detection.
 ///
-/// `scanned_ids` is the daemon-reported set for whichever entity kind
+/// `scanned_ids` is the daemon-reported set for whichever entity type
 /// `T` is — `scanned.host_ids` for hosts, `scanned.port_ids` for ports,
 /// etc.
 fn compute_digest_status<T: DiscoveryTracked>(

@@ -2,7 +2,7 @@
 //! to its warnings.
 //!
 //! One row per credential. Its name, type and integration come from the credential id, so nothing
-//! here repeats them. The outcome's shape follows the kind of integration: a count for the ones
+//! here repeats them. The outcome's shape follows the type of integration: a count for the ones
 //! that collect from a host, per-host detail for SSH scripts and Wake-on-LAN.
 
 use std::net::IpAddr;
@@ -38,7 +38,7 @@ pub enum CredentialRunOutcome {
 }
 
 impl CredentialRunOutcome {
-    /// The empty outcome for a credential of this kind, before anything is recorded. Exhaustive,
+    /// The empty outcome for a credential of this type, before anything is recorded. Exhaustive,
     /// so a new integration has to say which shape its results take.
     pub fn empty_for(integration: CredentialQueryPayloadDiscriminants) -> Self {
         use CredentialQueryPayloadDiscriminants as D;

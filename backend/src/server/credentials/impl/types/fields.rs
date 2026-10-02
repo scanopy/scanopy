@@ -571,7 +571,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
 }
 
 /// Connection fields shared by both UniFi transports. Only the auth fields differ, so the
-/// port/site pair is defined once — a UniFi credential of either kind points at the same
+/// port/site pair is defined once — a UniFi credential of either type points at the same
 /// controller endpoint.
 fn unifi_connection_fields() -> Vec<FieldDefinition> {
     vec![

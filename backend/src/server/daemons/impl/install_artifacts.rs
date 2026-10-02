@@ -83,12 +83,12 @@ pub struct InstallArtifacts {
 /// install and a re-key are the same command.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
-pub enum InstallCommandKind {
+pub enum InstallCommandType {
     Install,
     Reconfigure,
 }
 
-impl InstallCommandKind {
+impl InstallCommandType {
     /// Whether the emitted command carries the daemon's api key.
     ///
     /// The plaintext is never known here — the builder emits the [`API_KEY_PLACEHOLDER`] and the
@@ -115,16 +115,16 @@ fn install_args(
     public_url: &str,
     daemon: &Daemon,
     install_config: Option<&DaemonArgs>,
-    kind: InstallCommandKind,
+    command_type: InstallCommandType,
 ) -> DaemonArgs {
     // Only an install seeds from the caller's advanced settings; a reconfigure keeps whatever is
     // already in the daemon's config.json.
-    let mut args = match kind {
-        InstallCommandKind::Install => install_config.cloned().unwrap_or_default(),
-        InstallCommandKind::Reconfigure => DaemonArgs::default(),
+    let mut args = match command_type {
+        InstallCommandType::Install => install_config.cloned().unwrap_or_default(),
+        InstallCommandType::Reconfigure => DaemonArgs::default(),
     };
 
-    // Both kinds carry the server-held connectivity. Only DaemonPoll dials the server, so only
+    // Both types carry the server-held connectivity. Only DaemonPoll dials the server, so only
     // it gets a server url; its absence is also how the daemon infers ServerPoll, which is why
     // no command needs `--mode`. ServerPoll instead needs the port the server dials, taken from
     // the record. `url` is empty for DaemonPoll.
@@ -140,7 +140,7 @@ fn install_args(
         })
         .flatten();
 
-    if kind == InstallCommandKind::Install {
+    if command_type == InstallCommandType::Install {
         // name/mode only reach the MSI pre-fill (both have no CLI flag), so the command still
         // omits `--name`; the MSI needs them up front. The builder never mints, so the key flag
         // carries the placeholder and the frontend fills it in.
@@ -161,8 +161,9 @@ fn install_args(
     // Only emitted when this daemon has connected before, i.e. an install command that is really a
     // re-key of a live daemon, and every reconfigure. A first install has nothing to select and
     // stays a two-flag command.
-    args.instance = (kind == InstallCommandKind::Reconfigure || daemon.base.last_seen.is_some())
-        .then(|| daemon.id.to_string());
+    args.instance = (command_type == InstallCommandType::Reconfigure
+        || daemon.base.last_seen.is_some())
+    .then(|| daemon.id.to_string());
 
     args
 }
@@ -247,7 +248,7 @@ pub fn encode_msi_filename(
         public_url,
         daemon,
         install_config,
-        InstallCommandKind::Install,
+        InstallCommandType::Install,
     );
     let (query, omitted) = msi_config_query(&args);
     let blob = Base64UrlUnpadded::encode_string(query.as_bytes());
@@ -403,16 +404,16 @@ pub fn build_install_artifacts(
     daemon: &Daemon,
     install_config: Option<&DaemonArgs>,
     seed_credential_refs: &[IntegrationTarget],
-    kind: InstallCommandKind,
+    command_type: InstallCommandType,
 ) -> InstallArtifacts {
     let public_url = public_url.trim_end_matches('/');
-    let args = install_args(public_url, daemon, install_config, kind);
+    let args = install_args(public_url, daemon, install_config, command_type);
 
     // A reconfigure runs against an already-installed daemon, so it must not re-fetch the
     // binary — it only re-asserts config. An install fetches: even re-keying a legacy daemon,
     // picking up the current binary alongside the new key is desirable.
-    let (unix, windows) = match kind {
-        InstallCommandKind::Reconfigure => (
+    let (unix, windows) = match command_type {
+        InstallCommandType::Reconfigure => (
             format!(
                 "sudo scanopy-daemon install {}",
                 install_flags(&args, quote_posix)
@@ -423,7 +424,7 @@ pub fn build_install_artifacts(
                 install_flags(&args, quote_powershell)
             ),
         ),
-        InstallCommandKind::Install => (
+        InstallCommandType::Install => (
             // Unix binary platforms share the fetch-script + `install` shape.
             format!(
                 "{UNIX_INSTALL_SCRIPT} && sudo scanopy-daemon install {}",
@@ -443,7 +444,7 @@ pub fn build_install_artifacts(
     // way, just as the binary reconfigure relies on the on-disk config.json.
     let docker_env = docker_env_lines(&args, seed_credential_refs);
     let compose =
-        (kind == InstallCommandKind::Install).then(|| docker_compose(&docker_env, daemon));
+        (command_type == InstallCommandType::Install).then(|| docker_compose(&docker_env, daemon));
 
     let (msi_filename, msi_omitted_config_keys) =
         encode_msi_filename(public_url, daemon, install_config);
@@ -556,7 +557,7 @@ mod tests {
             &daemon(DaemonMode::DaemonPoll, ""),
             None,
             &[],
-            InstallCommandKind::Install,
+            InstallCommandType::Install,
         ));
         assert_eq!(args.daemon_api_key.as_deref(), Some(API_KEY_PLACEHOLDER));
     }
@@ -571,7 +572,7 @@ mod tests {
             &daemon(DaemonMode::ServerPoll, "https://edge.corp:60074"),
             None,
             &[],
-            InstallCommandKind::Reconfigure,
+            InstallCommandType::Reconfigure,
         ));
         assert_eq!(sp.daemon_api_key, None);
         assert_eq!(sp.name, None);
@@ -582,7 +583,7 @@ mod tests {
             &daemon(DaemonMode::DaemonPoll, ""),
             None,
             &[],
-            InstallCommandKind::Reconfigure,
+            InstallCommandType::Reconfigure,
         ));
         assert_eq!(dp.daemon_api_key, None);
         assert_eq!(dp.server_url.as_deref(), Some("https://app.scanopy.net"));
@@ -600,28 +601,28 @@ mod tests {
         let mut connected = daemon(DaemonMode::DaemonPoll, "");
         connected.base.last_seen = Some(chrono::Utc::now());
 
-        let target = |d: &Daemon, kind| {
+        let target = |d: &Daemon, command_type| {
             parse_unix_install(&build_install_artifacts(
                 "https://app.scanopy.net",
                 d,
                 None,
                 &[],
-                kind,
+                command_type,
             ))
             .instance
         };
 
         assert_eq!(
-            target(&fresh, InstallCommandKind::Install),
+            target(&fresh, InstallCommandType::Install),
             None,
             "a daemon that has never connected has no install to target"
         );
         assert_eq!(
-            target(&connected, InstallCommandKind::Install),
+            target(&connected, InstallCommandType::Install),
             Some(connected.id.to_string())
         );
         assert_eq!(
-            target(&fresh, InstallCommandKind::Reconfigure),
+            target(&fresh, InstallCommandType::Reconfigure),
             Some(fresh.id.to_string())
         );
     }
@@ -634,7 +635,7 @@ mod tests {
             &daemon(DaemonMode::ServerPoll, "https://edge.corp:60074"),
             None,
             &[],
-            InstallCommandKind::Reconfigure,
+            InstallCommandType::Reconfigure,
         );
         for (platform, command) in [
             ("linux", &artifacts.linux),
@@ -665,7 +666,7 @@ mod tests {
             &daemon(DaemonMode::DaemonPoll, ""),
             Some(&config),
             &[],
-            InstallCommandKind::Install,
+            InstallCommandType::Install,
         );
         let compose = artifacts
             .docker
@@ -711,7 +712,7 @@ mod tests {
             &daemon(DaemonMode::ServerPoll, "https://edge.corp:60074"),
             None,
             &[],
-            InstallCommandKind::Reconfigure,
+            InstallCommandType::Reconfigure,
         );
 
         assert!(
@@ -757,7 +758,7 @@ mod tests {
             &daemon(DaemonMode::DaemonPoll, ""),
             Some(&config),
             &[],
-            InstallCommandKind::Install,
+            InstallCommandType::Install,
         );
         // Take the `scanopy-daemon install ...` half of the `bootstrap && install` one-liner.
         let install = artifacts.linux.split("&& sudo ").nth(1).unwrap();
@@ -806,7 +807,7 @@ mod tests {
             &daemon(DaemonMode::DaemonPoll, ""),
             Some(&config),
             &[],
-            InstallCommandKind::Install,
+            InstallCommandType::Install,
         );
         assert!(
             artifacts
@@ -909,7 +910,7 @@ mod tests {
             &daemon(DaemonMode::DaemonPoll, ""),
             None,
             &[],
-            InstallCommandKind::Install,
+            InstallCommandType::Install,
         );
         assert!(dp.linux.contains("--server-url https://app.scanopy.net"));
         assert!(dp.linux.contains("--daemon-api-key"));
@@ -919,7 +920,7 @@ mod tests {
             &daemon(DaemonMode::ServerPoll, "https://edge.corp:60073"),
             None,
             &[],
-            InstallCommandKind::Install,
+            InstallCommandType::Install,
         );
         assert!(!sp.linux.contains("--server-url"));
         assert!(sp.linux.contains("--daemon-api-key"));
@@ -984,7 +985,7 @@ mod tests {
             &daemon(DaemonMode::ServerPoll, "https://edge.corp"),
             None,
             &[],
-            InstallCommandKind::Install,
+            InstallCommandType::Install,
         );
         // Filename carries the encoded values for a rename-to-prefill; the static MSI URL
         // is a UI-side const, not part of the per-tenant provision response.
@@ -999,7 +1000,7 @@ mod tests {
             &daemon(DaemonMode::DaemonPoll, ""),
             None,
             &[],
-            InstallCommandKind::Install,
+            InstallCommandType::Install,
         );
         assert!(!a.linux.contains("--name"));
     }

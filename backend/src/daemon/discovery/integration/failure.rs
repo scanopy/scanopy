@@ -3,7 +3,7 @@
 //! # Why these live in their own module
 //!
 //! The fields below are private, and that is the entire enforcement mechanism: an integration
-//! cannot add a failure path without saying what kind of failure it is, because the only way to
+//! cannot add a failure path without saying what type of failure it is, because the only way to
 //! build one is a constructor that names an [`AttemptOutcome`].
 //!
 //! Rust privacy is *module and descendants*, so this only holds if the integrations are not
@@ -28,7 +28,7 @@
 
 use crate::daemon::discovery::service::warnings::AttemptOutcome;
 
-/// Failed probe, carrying what kind of failure it was.
+/// Failed probe, carrying what type of failure it was.
 ///
 /// Only the integration knows whether its error was a refused password, a closed port or a TLS
 /// problem, and nothing downstream can recover that from prose. Every one of these used to be a

@@ -19,7 +19,7 @@ pub struct MetadataRegistry {
     pub entities: Vec<EntityMetadata>,
     /// The well-known ports Scanopy recognises.
     pub ports: Vec<TypeMetadata>,
-    /// The kinds of discovery that can be run.
+    /// The types of discovery that can be run.
     pub discovery_types: Vec<TypeMetadata>,
     /// The plans available on this deployment.
     pub billing_plans: Vec<TypeMetadata>,

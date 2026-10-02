@@ -275,7 +275,7 @@ impl<'a> TopologyContext<'a> {
     /// The hypervisor service this host runs on.
     ///
     /// Reads the column rather than matching a variant. This used to match `Proxmox` only, so a
-    /// vCenter or ESXi guest reported no hypervisor at all despite carrying one — the kind of gap
+    /// vCenter or ESXi guest reported no hypervisor at all despite carrying one — the type of gap
     /// a single-variant match creates silently and a column cannot.
     pub fn get_host_is_virtualized_by(&self, host_id: &Uuid) -> Option<&Service> {
         let host = self.get_host_by_id(*host_id)?;

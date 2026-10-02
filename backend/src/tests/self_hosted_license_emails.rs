@@ -1,7 +1,7 @@
 //! Which emails an organization on a self-hosted plan receives from the cloud
 //! app, and who may reach the license key endpoints.
 //!
-//! The same `SelfHostedStandard` / `SelfHostedPlus` plan sits on two kinds of
+//! The same `SelfHostedStandard` / `SelfHostedPlus` plan sits on two types of
 //! org: the cloud org that bought the license (locked out of the app, nothing
 //! scanned there) and the org on the customer's own server (`plan_for_license`),
 //! where daemon and limit emails are the ones that matter. Several tests here

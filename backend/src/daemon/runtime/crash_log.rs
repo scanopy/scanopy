@@ -252,11 +252,12 @@ mod tests {
         /// Child entry point; does nothing unless launched by one of the tests below.
         #[test]
         fn crash_child() {
-            let (Ok(kind), Ok(log)) = (std::env::var(CHILD_ENV), std::env::var(LOG_ENV)) else {
+            let (Ok(crash_type), Ok(log)) = (std::env::var(CHILD_ENV), std::env::var(LOG_ENV))
+            else {
                 return;
             };
             super::install(Some(log.into()));
-            match kind.as_str() {
+            match crash_type.as_str() {
                 "access_violation" => unsafe {
                     std::ptr::write_volatile(std::ptr::null_mut::<u8>().wrapping_add(0x10), 1)
                 },
@@ -270,11 +271,11 @@ mod tests {
                     let mut size = 0u32;
                     unsafe { PacketGetAdapterNames(std::ptr::null_mut(), &mut size) };
                 }
-                other => panic!("unknown crash kind {other}"),
+                other => panic!("unknown crash type {other}"),
             }
         }
 
-        fn run_child(kind: &str) -> String {
+        fn run_child(crash_type: &str) -> String {
             let dir = tempfile::tempdir().unwrap();
             let log = dir.path().join("daemon.log");
             let status = Command::new(std::env::current_exe().unwrap())
@@ -283,7 +284,7 @@ mod tests {
                     "daemon::runtime::crash_log::tests::native::crash_child",
                     "--nocapture",
                 ])
-                .env(CHILD_ENV, kind)
+                .env(CHILD_ENV, crash_type)
                 .env(LOG_ENV, &log)
                 .status()
                 .unwrap();

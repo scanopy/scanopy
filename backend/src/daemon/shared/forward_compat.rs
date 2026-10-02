@@ -335,7 +335,7 @@ impl DaemonResponse for DaemonDiscoveryRequest {
             subnets: _,
         } = &instance;
         // `discovery_type` is intentionally NOT skewed: an unknown discovery
-        // kind is not actionable by the daemon and should be rejected, not
+        // type is not actionable by the daemon and should be rejected, not
         // silently degraded.
         let mut v = serde_json::to_value(&instance).expect("DaemonDiscoveryRequest serializes");
         // Populate `credential_mappings` with a real mapping whose payload is a

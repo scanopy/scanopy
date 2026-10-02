@@ -411,7 +411,7 @@
 			// A licensed org's trial ends in a dead license key, not a downgraded cloud
 			// account, so it gets the license wording.
 			return {
-				kind: 'warning' as const,
+				type: 'warning' as const,
 				message: `${settings_billing_trialCountdown({ days: trialDaysLeft ?? 0, date })} ${
 					isLicensedPlan
 						? settings_billing_license_addPaymentMethodSubtitle()
@@ -422,14 +422,14 @@
 		// Nobody attempted a charge on a sent invoice, so telling an invoice
 		// buyer to update a payment method names something they never had.
 		if (isPastDue && openInvoiceUrl)
-			return { kind: 'danger' as const, message: settings_billing_pastDueInvoice() };
-		if (isPastDue) return { kind: 'danger' as const, message: settings_billing_pastDue() };
+			return { type: 'danger' as const, message: settings_billing_pastDueInvoice() };
+		if (isPastDue) return { type: 'danger' as const, message: settings_billing_pastDue() };
 		if (missingCard)
-			return { kind: 'warning' as const, message: billing_noPaymentMethodBannerBody() };
+			return { type: 'warning' as const, message: billing_noPaymentMethodBannerBody() };
 		// No lapsed branch: PlanLapsedBanner renders in this same modal frame
 		// and says it already, so a second copy sat directly above it.
 		if (isPendingCancellation)
-			return { kind: 'warning' as const, message: settings_billing_downgrade_pending() };
+			return { type: 'warning' as const, message: settings_billing_downgrade_pending() };
 		return null;
 	});
 
@@ -668,7 +668,7 @@
 			<div class="space-y-6">
 				<!-- Single status banner: one message per state, no embedded action. -->
 				{#if statusBanner}
-					{#if statusBanner.kind === 'danger'}
+					{#if statusBanner.type === 'danger'}
 						<InlineDanger title={statusBanner.message} />
 					{:else}
 						<InlineWarning title={statusBanner.message} />

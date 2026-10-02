@@ -2900,7 +2900,7 @@
             "description": "`install` (with the api-key placeholder) or `reconfigure` (credential-free).",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/InstallCommandKind"
+              "$ref": "#/components/schemas/InstallCommandType"
             }
           },
           {
@@ -13674,7 +13674,7 @@
               },
               "discovery_type": {
                 "$ref": "#/components/schemas/DiscoveryType",
-                "description": "What kind of discovery is running."
+                "description": "What type of discovery is running."
               },
               "error": {
                 "type": [
@@ -16495,7 +16495,7 @@
                   },
                   "propertyNames": {
                     "type": "string",
-                    "description": "The kind of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
+                    "description": "The type of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
                     "enum": [
                       "Category",
                       "Virtualization",
@@ -17192,7 +17192,7 @@
                 },
                 "discovery_type": {
                   "$ref": "#/components/schemas/DiscoveryType",
-                  "description": "What kind of discovery is running."
+                  "description": "What type of discovery is running."
                 },
                 "error": {
                   "type": [
@@ -18466,7 +18466,7 @@
       },
       "ClientProbe": {
         "type": "string",
-        "description": "Types of client probes that run before service matching.\nThe probe result (success/failure) is pre-computed; Pattern::ClientResponse\njust checks whether it succeeded.\n\nTwo kinds of producer fill this: the credentialed `DiscoveryIntegration`s, and the\nnon-credentialed [`AppProbe`](crate::daemon::utils::app_probe::AppProbe)s. Every variant needs\none — a variant nothing produces gives a service definition a pattern that can never match, and\n`every_client_probe_variant_has_a_producer` is what now says so.",
+        "description": "Types of client probes that run before service matching.\nThe probe result (success/failure) is pre-computed; Pattern::ClientResponse\njust checks whether it succeeded.\n\nTwo types of producer fill this: the credentialed `DiscoveryIntegration`s, and the\nnon-credentialed [`AppProbe`](crate::daemon::utils::app_probe::AppProbe)s. Every variant needs\none — a variant nothing produces gives a service definition a pattern that can never match, and\n`every_client_probe_variant_has_a_producer` is what now says so.",
         "enum": [
           "Docker",
           "Gnmi",
@@ -20702,7 +20702,7 @@
           },
           "dependency_type": {
             "$ref": "#/components/schemas/DependencyType",
-            "description": "What kind of relationship this dependency records."
+            "description": "What type of relationship this dependency records."
           },
           "description": {
             "type": [
@@ -21298,7 +21298,7 @@
           },
           "discovery_type": {
             "$ref": "#/components/schemas/DiscoveryType",
-            "description": "What kind of discovery is running."
+            "description": "What type of discovery is running."
           },
           "error": {
             "type": [
@@ -25556,7 +25556,7 @@
           }
         }
       },
-      "InstallCommandKind": {
+      "InstallCommandType": {
         "type": "string",
         "description": "What the caller wants the command to do — the one axis that actually varies.\n\n`install` brings a daemon up (or re-keys a legacy one): it carries the api-key placeholder,\nfetches the binary, and spells out the connectivity + advanced config. `reconfigure` adjusts\nan already-installed daemon in place: no key, no fetch, just the server-held connectivity —\n`scanopy-daemon install` layers it over the existing `config.json`. There is no third case:\nre-asserting the record's (correct) values on an installed daemon is harmless, so a first\ninstall and a re-key are the same command.",
         "enum": [
@@ -31828,7 +31828,7 @@
               },
               "subnet_type": {
                 "$ref": "#/components/schemas/SubnetType",
-                "description": "What kind of subnet this is — physical, virtual, container bridge, and so on."
+                "description": "What type of subnet this is — physical, virtual, container bridge, and so on."
               },
               "tags": {
                 "type": "array",
@@ -32214,7 +32214,7 @@
               },
               "propertyNames": {
                 "type": "string",
-                "description": "The kind of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
+                "description": "The type of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
                 "enum": [
                   "Category",
                   "Virtualization",
@@ -32624,7 +32624,7 @@
                 },
                 "propertyNames": {
                   "type": "string",
-                  "description": "The kind of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
+                  "description": "The type of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
                   "enum": [
                     "Category",
                     "Virtualization",
