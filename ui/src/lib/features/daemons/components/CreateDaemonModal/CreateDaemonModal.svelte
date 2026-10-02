@@ -40,7 +40,6 @@
 		buildRunCommand,
 		constructDaemonUrl,
 		detectOS,
-		osFamilyOf,
 		slugifyNetworkName,
 		type DaemonOS
 	} from '../../utils';
@@ -760,7 +759,7 @@
 				bind:credentialIds
 				bind:subStep={credentialSubStep}
 				bind:selectedTypeIds={selectedCredentialTypeIds}
-				fixedDaemonOs={osFamilyOf(selectedOS)}
+				daemonOs={selectedOS}
 				daemonName={String(formValues.name ?? '')}
 			/>
 		{:else}

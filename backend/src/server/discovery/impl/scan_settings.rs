@@ -223,6 +223,7 @@ impl ScanSettings {
                 default_value: Some("500"),
                 inline_format: None,
                 group: Some("Port Scanning"),
+                file_name: None,
             },
             FieldDefinition {
                 id: "arp_rate_pps",
@@ -239,6 +240,7 @@ impl ScanSettings {
                 default_value: Some("50"),
                 inline_format: None,
                 group: Some("ARP"),
+                file_name: None,
             },
             FieldDefinition {
                 id: "arp_retries",
@@ -255,6 +257,7 @@ impl ScanSettings {
                 default_value: Some("2"),
                 inline_format: None,
                 group: Some("ARP"),
+                file_name: None,
             },
             FieldDefinition {
                 id: "port_scan_batch_size",
@@ -269,6 +272,7 @@ impl ScanSettings {
                 default_value: Some("200"),
                 inline_format: None,
                 group: Some("Port Scanning"),
+                file_name: None,
             },
             FieldDefinition {
                 id: "trust_port_only_detections",
@@ -287,6 +291,7 @@ impl ScanSettings {
                 default_value: Some("false"),
                 inline_format: None,
                 group: Some("Detection"),
+                file_name: None,
             },
             FieldDefinition {
                 id: "probe_raw_socket_ports",
@@ -301,6 +306,7 @@ impl ScanSettings {
                 default_value: Some("false"),
                 inline_format: None,
                 group: Some("Detection"),
+                file_name: None,
             },
             FieldDefinition {
                 id: "arp_scan_cutoff",
@@ -317,6 +323,7 @@ impl ScanSettings {
                 default_value: Some("15"),
                 inline_format: None,
                 group: Some("ARP"),
+                file_name: None,
             },
             FieldDefinition {
                 id: "use_npcap_arp",
@@ -333,6 +340,7 @@ impl ScanSettings {
                 default_value: Some("false"),
                 inline_format: None,
                 group: Some("ARP"),
+                file_name: None,
             },
             FieldDefinition {
                 id: "full_scan_interval",
@@ -349,6 +357,7 @@ impl ScanSettings {
                 default_value: Some("3"),
                 inline_format: None,
                 group: Some("Detection"),
+                file_name: None,
             },
             FieldDefinition {
                 id: "max_discovery_duration",
@@ -365,6 +374,7 @@ impl ScanSettings {
                 default_value: Some("21600"),
                 inline_format: None,
                 group: Some("Detection"),
+                file_name: None,
             },
         ]
     }

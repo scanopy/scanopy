@@ -9,6 +9,7 @@ use crate::server::credentials::r#impl::mapping::{
     CredentialMapping, CredentialQueryPayload, CredentialQueryPayloadDiscriminants,
 };
 use crate::server::credentials::r#impl::types::OsFamily;
+use crate::server::daemons::r#impl::base::DaemonOs;
 use crate::server::hosts::r#impl::base::Host;
 
 /// One credential to try at an address, and where it came from.
@@ -131,8 +132,9 @@ pub fn summarize_credential_assignments(
 /// that read nothing off this machine are kept whatever their declaration.
 pub fn take_os_mismatches(
     mappings: &mut Vec<CredentialMapping<CredentialQueryPayload>>,
-    actual: OsFamily,
+    actual_os: DaemonOs,
 ) -> Vec<DiscoveryWarning> {
+    let actual = OsFamily::from(actual_os);
     let mut warnings = Vec::new();
     mappings.retain(|m| {
         let Some(payload) = m
@@ -155,6 +157,7 @@ pub fn take_os_mismatches(
                 .or_else(|| m.ip_overrides.first().map(|o| o.credential_id)),
             declared,
             actual,
+            actual_os: Some(actual_os),
         });
         false
     });
@@ -203,7 +206,7 @@ mod tests {
             mapping(file_backed, Uuid::new_v4(), Some(OsFamily::Unix)),
         ];
 
-        let warnings = take_os_mismatches(&mut mappings, OsFamily::Unix);
+        let warnings = take_os_mismatches(&mut mappings, DaemonOs::Linux);
 
         assert_eq!(mappings.len(), 2);
         assert!(
@@ -218,6 +221,7 @@ mod tests {
                 credential_id: Some(windows_file),
                 declared: OsFamily::Windows,
                 actual: OsFamily::Unix,
+                actual_os: Some(DaemonOs::Linux),
             }]
         );
     }

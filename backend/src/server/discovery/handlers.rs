@@ -6,7 +6,7 @@ use crate::server::{
         permissions::{Authorized, IsDaemon, Member, Viewer},
     },
     config::AppState,
-    credentials::r#impl::types::{CredentialTypeDiscriminants, OsFamily},
+    credentials::r#impl::types::CredentialTypeDiscriminants,
     daemons::r#impl::{api::DiscoveryUpdatePayload, version::supports_unified_discovery},
     discovery::r#impl::{base::Discovery, types::DiscoveryType},
     networks::r#impl::Network,
@@ -511,7 +511,7 @@ pub async fn update_discovery(
             {
                 if let Some(refusal) = cred
                     .base
-                    .daemon_os_refusal(&daemon.base.name, daemon.base.os.map(OsFamily::from))
+                    .daemon_os_refusal(&daemon.base.name, daemon.base.os)
                 {
                     return Err(ApiError::bad_request(&refusal));
                 }

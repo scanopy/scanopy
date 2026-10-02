@@ -1,10 +1,8 @@
 import { coerce, lt } from 'semver';
-import type { components } from '$lib/api/schema';
 import osFamilies from '$lib/data/os-families.json';
 import { credentials_daemonOsMismatch } from '$lib/paraglide/messages';
 import type { Credential } from '../types/base';
-
-type OsFamily = components['schemas']['OsFamily'];
+import { osFamilyOf, osLabel, type DaemonOS } from '$lib/features/daemons/utils';
 
 /**
  * Whether a daemon at `daemonVersion` is too old to receive a credential type
@@ -30,15 +28,14 @@ export function daemonTooOldForCredential(
  */
 export function daemonOsRefusal(
 	credential: Credential,
-	daemonOs: OsFamily | null | undefined,
+	daemonOs: DaemonOS | null | undefined,
 	daemonName: string | null | undefined
 ): string | null {
 	const declared = credential.daemon_os;
-	if (!declared || !daemonOs || declared === daemonOs) return null;
-	const nameOf = (os: OsFamily) => osFamilies.find((f) => f.id === os)?.name ?? os;
+	if (!declared || !daemonOs || declared === osFamilyOf(daemonOs)) return null;
 	return credentials_daemonOsMismatch({
-		declared: nameOf(declared),
-		actual: nameOf(daemonOs),
+		declared: osFamilies.find((f) => f.id === declared)?.name ?? declared,
+		actual: osLabel(daemonOs),
 		name: daemonName ?? ''
 	});
 }

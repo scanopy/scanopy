@@ -809,11 +809,33 @@ impl CredentialType {
     /// Check every path for the OS of the machine that holds it: daemon-side paths for the
     /// credential's `daemon_os`, an SSH host file for its `target_os`.
     pub fn validate_paths(&self, daemon_os: OsFamily) -> Result<(), Error> {
+        let definitions = self.field_definitions();
+        let definition = |field: &str| definitions.iter().find(|d| d.id == field);
         for (field, path) in self.paths() {
             match path {
-                CredentialPath::Daemon(p) => p.validate(field, daemon_os)?,
+                CredentialPath::Daemon(p) => p.validate(
+                    field,
+                    definition(field)
+                        .and_then(|d| d.file_name)
+                        .unwrap_or("file"),
+                    daemon_os,
+                )?,
                 CredentialPath::Socket(s) => s.validate(field, daemon_os)?,
-                CredentialPath::Host(p, target_os) => p.validate(field, target_os)?,
+                // The example is the field's own placeholder for the scanned host's OS.
+                CredentialPath::Host(p, target_os) => {
+                    let example = definition(field)
+                        .map(|d| {
+                            d.placeholder_by
+                                .unwrap_or_default()
+                                .iter()
+                                .find(|by| by.value == <&str>::from(target_os))
+                                .map(|by| by.placeholder)
+                                .or(d.placeholder)
+                                .unwrap_or_default()
+                        })
+                        .unwrap_or_default();
+                    p.validate(field, example, target_os)?
+                }
             }
         }
         Ok(())

@@ -77,6 +77,10 @@ pub struct FieldDefinition {
     /// Grouping label used to section a long form.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub group: Option<&'static str>,
+    /// For a field that can be read from a file on the daemon: an example file name, which the
+    /// form joins to the Daemon OS's example directory for the path placeholder.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_name: Option<&'static str>,
 }
 
 /// A placeholder that applies while `field` holds `value`.

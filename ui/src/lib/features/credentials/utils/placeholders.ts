@@ -31,9 +31,13 @@ export function resolvePlaceholder(
 	return match?.placeholder ?? field.placeholder ?? '';
 }
 
-/** An example absolute path on a daemon running `os`, for a file-path input's placeholder. */
-export function exampleFilePath(os: OsFamily): string {
-	return osFamilies.find((family) => family.id === os)?.example_file_path ?? '';
+/**
+ * The placeholder for a field's "File on daemon host" path: the daemon OS's example directory
+ * joined to the field's own `file_name`, e.g. `/etc/scanopy/snmp-community`.
+ */
+export function filePathPlaceholder(field: { file_name?: string | null }, os: OsFamily): string {
+	const dir = osFamilies.find((family) => family.id === os)?.example_dir ?? '';
+	return field.file_name ? `${dir}${field.file_name}` : dir;
 }
 
 /** Every OS family as radio options, with translated names. */

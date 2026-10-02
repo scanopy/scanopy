@@ -46,7 +46,6 @@
 		common_credentials,
 		common_warnings,
 		daemons_upgradeDaemon,
-		discovery_credentialWarningsElsewhere,
 		discovery_noWarnings,
 		discovery_noWarningsBeforeStop,
 		discovery_noWarningsSubtitle,
@@ -66,14 +65,12 @@
 
 	interface Props {
 		payload: DiscoveryUpdatePayload;
-		/** Switch to the Credentials tab, which holds the run's credential warnings. */
-		onShowCredentials?: () => void;
 	}
 
-	let { payload, onShowCredentials }: Props = $props();
+	let { payload }: Props = $props();
 
-	// Credential warnings are shown with their credential on the Credentials tab; this tab keeps the
-	// scan's own and points there for the rest.
+	// Credential warnings are shown with their credential on the Credentials tab, whose title counts
+	// them; this tab keeps the scan's own.
 	let warnings = $derived((payload.warnings ?? []).filter((w) => !isCredentialWarning(w)));
 	let credentialWarningCount = $derived(
 		(payload.warnings ?? []).filter(isCredentialWarning).length
@@ -292,10 +289,15 @@
 	{/if}
 {/if}
 
-{#if sections.length === 0 && credentialWarningCount === 0}
+{#if sections.length === 0}
+	<!-- "Nothing needs you" is only true when the Credentials tab has nothing either. -->
 	<EmptyState
 		title={discovery_noWarnings()}
-		subtitle={outcome ? discovery_noWarningsBeforeStop() : discovery_noWarningsSubtitle()}
+		subtitle={outcome
+			? discovery_noWarningsBeforeStop()
+			: credentialWarningCount === 0
+				? discovery_noWarningsSubtitle()
+				: undefined}
 	/>
 {:else}
 	<div class="space-y-4" aria-label={common_warnings()}>
@@ -390,10 +392,4 @@
 			</CollapsibleCard>
 		{/each}
 	</div>
-{/if}
-
-{#if credentialWarningCount > 0}
-	<button type="button" class="text-link mt-4 text-sm" onclick={() => onShowCredentials?.()}>
-		{discovery_credentialWarningsElsewhere({ count: credentialWarningCount })}
-	</button>
 {/if}

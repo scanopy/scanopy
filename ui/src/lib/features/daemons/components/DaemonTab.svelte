@@ -5,7 +5,9 @@
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 	import type { Daemon } from '$lib/features/daemons/types/base';
-	import { hasSunsetWarning, getDaemonStatusTag } from '$lib/features/daemons/utils';
+	import { hasSunsetWarning, getDaemonStatusTag, osLabel } from '$lib/features/daemons/utils';
+	import OsIcon from './OsIcon.svelte';
+	import { createColorHelper } from '$lib/shared/utils/styling';
 	import CreateDaemonModal from './CreateDaemonModal/CreateDaemonModal.svelte';
 	import { defineFields, type CardAction } from '$lib/shared/components/data/types';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
@@ -39,6 +41,7 @@
 	import { downloadCsv } from '$lib/shared/utils/csvExport';
 	import {
 		common_create,
+		common_operatingSystem,
 		common_confirmBulkDelete,
 		common_confirmDeleteName,
 		common_created,
@@ -364,6 +367,16 @@
 					}
 				},
 				{
+					key: 'os',
+					label: common_operatingSystem(),
+					type: 'string',
+					searchable: true,
+					filterable: true,
+					groupable: true,
+					getValue: (daemon) => (daemon.os ? osLabel(daemon.os) : ''),
+					display: { order: 4.5, cell: osCell }
+				},
+				{
 					key: 'mode',
 					label: daemons_config_mode(),
 					type: 'string',
@@ -423,6 +436,21 @@
 		)
 	);
 </script>
+
+<!-- A gray Tag with the OS's own icon: Tag takes an icon component, and OsIcon needs its `os`. -->
+{#snippet osCell(daemon: Daemon)}
+	{#if daemon.os}
+		{@const gray = createColorHelper('Gray')}
+		<span
+			class="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium {gray.bg} {gray.text}"
+		>
+			<OsIcon os={daemon.os} class="h-4 w-4 flex-shrink-0" />
+			<span class="truncate">{osLabel(daemon.os)}</span>
+		</span>
+	{:else}
+		<span class="text-tertiary text-sm">—</span>
+	{/if}
+{/snippet}
 
 <div class="space-y-6">
 	<!-- Header -->

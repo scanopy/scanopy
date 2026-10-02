@@ -31,7 +31,7 @@
 	import { copyText } from '$lib/shared/utils/clipboard';
 	import { formatDiagnostics } from '../../utils/diagnostics';
 	import type { Daemon } from '$lib/features/daemons/types/base';
-	import { isPreUnifiedDaemon, osFamilyOf } from '$lib/features/daemons/utils';
+	import { isPreUnifiedDaemon } from '$lib/features/daemons/utils';
 	import type { Host } from '$lib/features/hosts/types/base';
 	import { useSubnetsQuery } from '$lib/features/subnets/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
@@ -45,7 +45,6 @@
 		Calendar,
 		ArrowRight,
 		KeyRound,
-		TriangleAlert,
 		Copy
 	} from 'lucide-svelte';
 	import CredentialsStep, {
@@ -63,7 +62,7 @@
 		common_deleting,
 		common_details,
 		common_failedToCopy,
-		common_warnings,
+		common_scan,
 		common_next,
 		common_saving,
 		common_schedule,
@@ -144,7 +143,7 @@
 	let historicalResults = $derived(
 		discovery?.run_type.type === 'Historical' ? discovery.run_type.results : null
 	);
-	/** A run that failed or was cancelled: the Warnings tab has its reason to show. */
+	/** A run that failed or was cancelled: the Scan tab has its reason to show. */
 	let endedBadly = $derived(
 		historicalResults?.phase === 'Failed' || historicalResults?.phase === 'Cancelled'
 	);
@@ -360,7 +359,7 @@
 	 * of the details, which is what made a run with fourteen of them unreadable.
 	 *
 	 * Each warning is on exactly one tab, as the backend files its code (`concerns_credential`).
-	 * Warnings holds the scan's own, and for a run that failed or was cancelled, why it ended.
+	 * Scan holds the scan's own, and for a run that failed or was cancelled, why it ended.
 	 * Credentials holds what each credential did together with its warnings. Both tabs show their
 	 * warning count the same way.
 	 */
@@ -368,10 +367,10 @@
 		isHistoricalRun
 			? [
 					{
-						id: 'warnings',
-						label: common_warnings(),
+						id: 'scan',
+						label: common_scan(),
 						count: scanWarningCount,
-						icon: TriangleAlert
+						icon: entities.getIconComponent('Discovery')
 					},
 					{
 						id: 'credentials',
@@ -634,11 +633,11 @@
 
 	function handleOpen() {
 		// A run with something wrong opens on it: its warnings, or the reason it did not finish.
-		// A clean one opens on its details. The Warnings tab exists either way, so the modal does
+		// A clean one opens on its details. The Scan tab exists either way, so the modal does
 		// not change shape between runs.
 		activeTab =
 			scanWarningCount > 0 || endedBadly
-				? 'warnings'
+				? 'scan'
 				: credentialWarningCount > 0
 					? 'credentials'
 					: 'details';
@@ -802,11 +801,8 @@
 		>
 			{#if isHistoricalRun && discovery?.run_type.type === 'Historical'}
 				<div class="space-y-8 p-6">
-					{#if activeTab === 'warnings'}
-						<WarningReport
-							payload={discovery.run_type.results}
-							onShowCredentials={() => (activeTab = 'credentials')}
-						/>
+					{#if activeTab === 'scan'}
+						<WarningReport payload={discovery.run_type.results} />
 					{:else if activeTab === 'credentials'}
 						<CredentialResults
 							payload={discovery.run_type.results}
@@ -878,7 +874,7 @@
 						fixedCapabilityTypeIds={daemonHostCredentialTypeIds}
 						daemonVersion={daemon?.version ?? null}
 						daemonName={daemon?.name ?? null}
-						fixedDaemonOs={daemon?.os ? osFamilyOf(daemon.os) : null}
+						daemonOs={daemon?.os ?? null}
 					/>
 				</div>
 			{/if}
@@ -905,7 +901,7 @@
 				<div class="flex items-center gap-3">
 					<!-- Beside Close rather than above the report: it acts on the whole run, not on
 					     any one row, and the footer is where a modal's whole-record actions live. -->
-					{#if (activeTab === 'warnings' || activeTab === 'credentials') && hasRunData}
+					{#if (activeTab === 'scan' || activeTab === 'credentials') && hasRunData}
 						<button
 							type="button"
 							class="btn-secondary flex items-center gap-1"
@@ -915,7 +911,7 @@
 							<span>{discovery_copyRunData()}</span>
 						</button>
 					{/if}
-					{#if activeTab === 'warnings' && endedBadly}
+					{#if activeTab === 'scan' && endedBadly}
 						<button
 							type="button"
 							class="btn-secondary flex items-center gap-1"

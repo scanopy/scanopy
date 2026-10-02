@@ -26,7 +26,7 @@ use crate::daemon::runtime::types::InitializeDaemonRequest;
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::billing::types::base::{LimitSource, LimitType};
 use crate::server::credentials::r#impl::mapping::IntegrationTarget;
-use crate::server::credentials::r#impl::types::{CredentialTypeDiscriminants, OsFamily};
+use crate::server::credentials::r#impl::types::CredentialTypeDiscriminants;
 use crate::server::credentials::service::CredentialService;
 use crate::server::daemon_api_keys::r#impl::base::{DaemonApiKey, DaemonApiKeyBase};
 use crate::server::daemon_api_keys::service::DaemonApiKeyService;
