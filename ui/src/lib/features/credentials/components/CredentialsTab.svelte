@@ -46,6 +46,7 @@
 		common_confirmDeleteName,
 		common_create,
 		common_created,
+		common_description,
 		common_delete,
 		common_edit,
 		common_name,
@@ -321,6 +322,7 @@
 					}
 				}
 			},
+			{ key: 'description', label: common_description(), type: 'string', searchable: true },
 			{
 				// Assignments were card-only, so the credentials table could not show
 				// what a credential actually applies to.

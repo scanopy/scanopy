@@ -141,6 +141,20 @@ pub(super) fn generate_hosts_and_services(
         .iter()
         .find(|c| c.base.name == "Backup NAS Wake")
         .map(|c| c.id);
+    let find_cred = |name: &str| {
+        credentials
+            .iter()
+            .find(|c| c.base.name == name)
+            .map(|c| c.id)
+    };
+    let legacy_printers_cred = find_cred("Legacy Printers");
+    let dc_snmpv3_cred = find_cred("Data Center SNMPv3");
+    let arista_gnmi_cred = find_cred("Arista gNMI");
+    let podman_proxy_cred = find_cred("Podman API Proxy");
+    let unifi_admin_cred = find_cred("UniFi Controller Admin");
+    let unifi_os_cred = find_cred("UniFi OS API Key");
+    let instant_on_cred = find_cred("Instant On Cloud Account");
+    let hypervisor_ssh_cred = find_cred("Hypervisor SSH");
 
     let critical_tag = find_tag("Critical");
     let production_tag = find_tag("Production");
@@ -254,30 +268,63 @@ pub(super) fn generate_hosts_and_services(
         .collect();
     result.push(pfsense);
 
-    // 2. UniFi Controller
-    result.push(host_with_services!(
-        with_mac(
-            create_host(
-                "unifi-controller",
-                Some("unifi.acme.local"),
-                Some("UniFi Network Controller"),
-                hq,
-                hq_mgmt,
-                Ipv4Addr::new(10, 0, 1, 10),
-                vec![],
-                None,
-                None,
-                now
+    // 2. UniFi Controller: the self-hosted Network application, on its legacy 8443 port.
+    result.push(with_credentials(
+        host_with_services!(
+            with_mac(
+                create_host(
+                    "unifi-controller",
+                    Some("unifi.acme.local"),
+                    Some("UniFi Network Controller"),
+                    hq,
+                    hq_mgmt,
+                    Ipv4Addr::new(10, 0, 1, 10),
+                    vec![],
+                    None,
+                    None,
+                    now
+                ),
+                [0xfc, 0xec, 0xda, 0x10, 0x02, 0x01],
             ),
-            [0xfc, 0xec, 0xda, 0x10, 0x02, 0x01],
+            now,
+            (
+                "UniFi Controller",
+                "UniFi Controller",
+                Some(PortType::Https8443),
+                vec![]
+            ),
         ),
-        now,
-        (
-            "UniFi Controller",
-            "UniFi Controller",
-            Some(PortType::Https8443),
-            vec![]
+        &[unifi_admin_cred],
+    ));
+
+    // 2b. UniFi OS console: a Cloud Key running the Network application under UniFi OS, which
+    // serves it on 443 and accepts API keys.
+    result.push(with_credentials(
+        host_with_services!(
+            with_mac(
+                create_host(
+                    "unifi-cloudkey",
+                    Some("cloudkey.acme.local"),
+                    Some("UniFi Cloud Key Gen2 Plus"),
+                    hq,
+                    hq_mgmt,
+                    Ipv4Addr::new(10, 0, 1, 11),
+                    vec![],
+                    None,
+                    None,
+                    now
+                ),
+                [0xfc, 0xec, 0xda, 0x10, 0x02, 0x02],
+            ),
+            now,
+            (
+                "UniFi Controller",
+                "UniFi OS Console",
+                Some(PortType::Https),
+                vec![]
+            ),
         ),
+        &[unifi_os_cred],
     ));
 
     // 3. Core switch (48 ports, SNMP/LLDP) — ENTITY-MIB reports bootloader and OS firmware
@@ -534,12 +581,15 @@ pub(super) fn generate_hosts_and_services(
             }
             services.push(svc);
         }
-        result.push(HostWithServices {
-            host,
-            ip_addresses,
-            ports,
-            services,
-        });
+        result.push(with_credentials(
+            HostWithServices {
+                host,
+                ip_addresses,
+                ports,
+                services,
+            },
+            &[hypervisor_ssh_cred],
+        ));
     }
 
     // 9. Proxmox Hypervisor 2 (pre-generated Proxmox VE service ID)
@@ -601,12 +651,15 @@ pub(super) fn generate_hosts_and_services(
             }
             services.push(svc);
         }
-        result.push(HostWithServices {
-            host,
-            ip_addresses,
-            ports,
-            services,
-        });
+        result.push(with_credentials(
+            HostWithServices {
+                host,
+                ip_addresses,
+                ports,
+                services,
+            },
+            &[hypervisor_ssh_cred],
+        ));
     }
 
     // 10. gitlab-vm — VM on hv01 (vm_id=100)
@@ -1301,44 +1354,48 @@ pub(super) fn generate_hosts_and_services(
     ));
 
     // 26. HP Printer. Never named in Scanopy, so it is titled by the sysName it reports. Unplugged
-    // when the copy room got a replacement; it has not answered a scan since.
-    result.push(gone_quiet(
-        host_with_services!(
-            unnamed(with_snmp(
-                with_mac(
-                    create_host(
-                        "printer-hp-main",
-                        None,
-                        Some("HP LaserJet Pro"),
-                        hq,
-                        hq_iot,
-                        Ipv4Addr::new(10, 0, 30, 50),
-                        iot_tag.into_iter().collect(),
-                        None,
-                        None,
-                        now,
+    // when the copy room got a replacement; it has not answered a scan since. Old enough to speak
+    // only SNMPv1.
+    result.push(with_credentials(
+        gone_quiet(
+            host_with_services!(
+                unnamed(with_snmp(
+                    with_mac(
+                        create_host(
+                            "printer-hp-main",
+                            None,
+                            Some("HP LaserJet Pro"),
+                            hq,
+                            hq_iot,
+                            Ipv4Addr::new(10, 0, 30, 50),
+                            iot_tag.into_iter().collect(),
+                            None,
+                            None,
+                            now,
+                        ),
+                        [0x3c, 0xd9, 0x2b, 0x30, 0x26, 0x01],
                     ),
-                    [0x3c, 0xd9, 0x2b, 0x30, 0x26, 0x01],
+                    Some("HP LaserJet Pro MFP M428fdw, Firmware 20230809"),
+                    Some("1.3.6.1.4.1.11.2.3.9.1"),
+                    Some("HQ Floor 1, Copy Room"),
+                    Some("helpdesk@acme-corp.com"),
+                    None,
+                    Some("HP"),
+                    Some("LaserJet Pro MFP M428fdw"),
+                    Some("CNBRK1F0X8"),
+                )),
+                now,
+                (
+                    "HP Printer",
+                    "HP Printer",
+                    Some(PortType::Ipp),
+                    iot_tag.into_iter().collect()
                 ),
-                Some("HP LaserJet Pro MFP M428fdw, Firmware 20230809"),
-                Some("1.3.6.1.4.1.11.2.3.9.1"),
-                Some("HQ Floor 1, Copy Room"),
-                Some("helpdesk@acme-corp.com"),
-                None,
-                Some("HP"),
-                Some("LaserJet Pro MFP M428fdw"),
-                Some("CNBRK1F0X8"),
-            )),
-            now,
-            (
-                "HP Printer",
-                "HP Printer",
-                Some(PortType::Ipp),
-                iot_tag.into_iter().collect()
             ),
+            now - Duration::days(1100),
+            now - Duration::days(430),
         ),
-        now - Duration::days(1100),
-        now - Duration::days(430),
+        &[legacy_printers_cred],
     ));
 
     // 27. Camera Entrance
@@ -1452,6 +1509,31 @@ pub(super) fn generate_hosts_and_services(
         AttributeSource::Probe(ClientProbe::ModbusTcp),
     ));
     result.push(facility_ups);
+
+    // 30b. Facility switch: an Instant On access switch for the cameras and UPS, managed from the
+    // Instant On cloud portal rather than the UniFi controller.
+    result.push(with_credentials(
+        host_with_services!(
+            with_mac(
+                create_host(
+                    "instanton-sw-facility",
+                    Some("sw-facility.acme.local"),
+                    Some("HPE Networking Instant On 1930 24G switch"),
+                    hq,
+                    hq_iot,
+                    Ipv4Addr::new(10, 0, 30, 5),
+                    iot_tag.into_iter().collect(),
+                    None,
+                    None,
+                    now
+                ),
+                [0x20, 0x4c, 0x03, 0x30, 0x05, 0x01],
+            ),
+            now,
+            ("Instant On Switch", "Instant On Switch", None, vec![]),
+        ),
+        &[instant_on_cred],
+    ));
 
     // -- Guest WiFi (10.0.100.x) --
 
@@ -1603,39 +1685,42 @@ pub(super) fn generate_hosts_and_services(
     // -- Management (172.16.0.x) --
 
     // 1. DC Firewall
-    result.push(host_with_services!(
-        with_snmp(
-            with_mac(
-                create_host(
-                    "dc-fw01",
-                    Some("fw01.dc.acme.io"),
-                    Some("Data center firewall"),
-                    dc,
-                    dc_mgmt,
-                    Ipv4Addr::new(172, 16, 0, 1),
-                    critical_tag.into_iter().collect(),
-                    network_devices_cred,
-                    None,
-                    now,
+    result.push(with_credentials(
+        host_with_services!(
+            with_snmp(
+                with_mac(
+                    create_host(
+                        "dc-fw01",
+                        Some("fw01.dc.acme.io"),
+                        Some("Data center firewall"),
+                        dc,
+                        dc_mgmt,
+                        Ipv4Addr::new(172, 16, 0, 1),
+                        critical_tag.into_iter().collect(),
+                        network_devices_cred,
+                        None,
+                        now,
+                    ),
+                    [0x70, 0x4c, 0xa5, 0xdc, 0x01, 0x01],
                 ),
-                [0x70, 0x4c, 0xa5, 0xdc, 0x01, 0x01],
+                Some("FortiGate-60F v7.4.3, build 2573, 240514 (GA.F)"),
+                Some("1.3.6.1.4.1.12356.101.1"),
+                Some("DC-East, Cage 4, Rack 1"),
+                Some("netops@acme-corp.com"),
+                None,
+                Some("Fortinet"),
+                Some("FortiGate-60F"),
+                Some("FGT60FTK24010123"),
             ),
-            Some("FortiGate-60F v7.4.3, build 2573, 240514 (GA.F)"),
-            Some("1.3.6.1.4.1.12356.101.1"),
-            Some("DC-East, Cage 4, Rack 1"),
-            Some("netops@acme-corp.com"),
-            None,
-            Some("Fortinet"),
-            Some("FortiGate-60F"),
-            Some("FGT60FTK24010123"),
+            now,
+            (
+                "Fortinet",
+                "FortiGate",
+                Some(PortType::Https),
+                critical_tag.into_iter().collect()
+            ),
         ),
-        now,
-        (
-            "Fortinet",
-            "FortiGate",
-            Some(PortType::Https),
-            critical_tag.into_iter().collect()
-        ),
+        &[dc_snmpv3_cred],
     ));
 
     // 2. DC Switch (24 ports, LLDP) — same bootloader/OS firmware split as the HQ core switch.
@@ -1678,7 +1763,10 @@ pub(super) fn generate_hosts_and_services(
         HostSoftwareRevisionValue("EOS-4.32.0F".to_string()),
         dc_switch_revision_source,
     ));
-    result.push(dc_switch);
+    result.push(with_credentials(
+        dc_switch,
+        &[dc_snmpv3_cred, arista_gnmi_cred],
+    ));
 
     // 3. Zabbix Monitoring
     result.push(host_with_services!(
@@ -1812,31 +1900,35 @@ pub(super) fn generate_hosts_and_services(
         });
     }
 
-    // 6. App Server 02
-    result.push(host_with_services!(
-        with_mac(
-            create_host(
-                "app-server-02",
-                Some("app-02.dc.acme.io"),
-                Some("Application server 2"),
-                dc,
-                dc_dmz,
-                Ipv4Addr::new(172, 16, 30, 21),
-                production_tag.into_iter().chain(web_tier_tag).collect(),
-                None,
-                None,
-                now
+    // 6. App Server 02. Runs its sidecars under rootless Podman.
+    result.push(with_credentials(
+        host_with_services!(
+            with_mac(
+                create_host(
+                    "app-server-02",
+                    Some("app-02.dc.acme.io"),
+                    Some("Application server 2"),
+                    dc,
+                    dc_dmz,
+                    Ipv4Addr::new(172, 16, 30, 21),
+                    production_tag.into_iter().chain(web_tier_tag).collect(),
+                    None,
+                    None,
+                    now
+                ),
+                [0xf8, 0xbc, 0x12, 0xdc, 0x06, 0x01],
             ),
-            [0xf8, 0xbc, 0x12, 0xdc, 0x06, 0x01],
+            now,
+            (
+                "Tomcat",
+                "Tomcat",
+                Some(PortType::Http8080),
+                web_tier_tag.into_iter().collect()
+            ),
+            ("SSH", "SSH", Some(PortType::Ssh), vec![]),
+            ("Podman", "Podman", Some(PortType::Docker), vec![]),
         ),
-        now,
-        (
-            "Tomcat",
-            "Tomcat",
-            Some(PortType::Http8080),
-            web_tier_tag.into_iter().collect()
-        ),
-        ("SSH", "SSH", Some(PortType::Ssh), vec![]),
+        &[podman_proxy_cred],
     ));
 
     // -- Compute (172.16.10.x) --

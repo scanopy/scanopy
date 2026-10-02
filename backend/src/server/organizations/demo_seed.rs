@@ -473,6 +473,15 @@ pub(crate) async fn insert_demo_data(
         .create_many(&demo_data.daemons)
         .await?;
 
+    // 6.1. Daemon interfaced subnets (depend on daemons + subnets). Same service method the
+    // heartbeat writes through.
+    for (daemon_id, subnet_ids) in &demo_data.daemon_interfaced_subnets {
+        services
+            .daemon_service
+            .set_interfaced_subnet_ids(daemon_id, subnet_ids)
+            .await?;
+    }
+
     // 7. Daemon API Keys (depends on networks)
     services
         .daemon_api_key_service

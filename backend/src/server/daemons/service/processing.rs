@@ -72,12 +72,8 @@ impl DaemonService {
                 .await
         };
 
-        self.interfaced_subnet_storage
-            .save_interfaced_subnets_for_daemon(&daemon_id, &subnet_ids)
-            .await
-            .map_err(|e| {
-                ApiError::internal_error(&format!("Failed to save interfaced subnets: {e}"))
-            })?;
+        self.set_interfaced_subnet_ids(&daemon_id, &subnet_ids)
+            .await?;
 
         self.update(&mut daemon, auth).await?;
         Ok(())
@@ -569,13 +565,8 @@ impl DaemonService {
         let subnet_ids = self
             .filter_existing_subnet_ids(&capabilities.interfaced_subnet_ids)
             .await;
-        self.interfaced_subnet_storage
-            .save_interfaced_subnets_for_daemon(&daemon_id, &subnet_ids)
+        self.set_interfaced_subnet_ids(&daemon_id, &subnet_ids)
             .await
-            .map_err(|e| {
-                ApiError::internal_error(&format!("Failed to save interfaced subnets: {e}"))
-            })?;
-        Ok(())
     }
 
     /// Process a discovery progress update.

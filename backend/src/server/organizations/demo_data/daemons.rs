@@ -7,7 +7,6 @@ use super::*;
 pub(super) fn generate_daemons(
     networks: &[Network],
     hosts: &[&Host],
-    _subnets: &[Subnet],
     now: DateTime<Utc>,
     user_id: Uuid,
 ) -> Vec<Daemon> {
@@ -26,9 +25,8 @@ pub(super) fn generate_daemons(
 
     let mut daemons = Vec::new();
 
-    // HQ Daemon on docker-prod01. (Interfaced subnets are populated at runtime from
-    // daemon heartbeats into the `daemon_interfaced_subnets` junction; demo seed data
-    // leaves them empty.)
+    // HQ Daemon on docker-prod01. Interfaced subnets live in the `daemon_interfaced_subnets`
+    // junction, not on the daemon row; see `generate_daemon_interfaced_subnets`.
     if let Some(host) = find_host("docker-prod01") {
         let network = find_network("Headquarters");
         daemons.push(Daemon {
@@ -85,4 +83,29 @@ pub(super) fn generate_daemons(
     }
 
     daemons
+}
+
+/// The subnets each daemon reports in its heartbeat: one per address on its host. Derived from
+/// IP addresses rather than `Interface` rows because the daemon hosts carry a single eth0
+/// interface, and their docker0 bridge address exists only as an IP address. A real daemon
+/// reports both.
+pub(super) fn generate_daemon_interfaced_subnets(
+    daemons: &[Daemon],
+    ip_addresses: &[&IPAddress],
+) -> Vec<(Uuid, Vec<Uuid>)> {
+    daemons
+        .iter()
+        .map(|daemon| {
+            let mut subnet_ids: Vec<Uuid> = Vec::new();
+            for ip in ip_addresses
+                .iter()
+                .filter(|ip| ip.base.host_id == daemon.base.host_id)
+            {
+                if !subnet_ids.contains(&ip.base.subnet_id) {
+                    subnet_ids.push(ip.base.subnet_id);
+                }
+            }
+            (daemon.id, subnet_ids)
+        })
+        .collect()
 }
