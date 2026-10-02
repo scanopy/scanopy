@@ -60,8 +60,8 @@ impl BillingService {
             // per single user action. payment_method.attached is the canonical
             // signal and is handled below.
             EventType::PaymentMethodAttached => {
-                if let Some(customer) = event.customer {
-                    self.handle_payment_method_attached(customer, event.object_id)
+                if let Some(customer) = event.customer.clone() {
+                    self.handle_payment_method_attached(customer, event.object_id()?.to_string())
                         .await?;
                 }
             }
@@ -137,7 +137,7 @@ impl BillingService {
         &self,
         event: &StripeEnvelope,
     ) -> Result<Option<Subscription>, Error> {
-        let fetched = RetrieveSubscription::new(event.object_id.as_str())
+        let fetched = RetrieveSubscription::new(event.object_id()?)
             .send(&self.stripe)
             .await;
         still_exists(event, fetched)
@@ -146,7 +146,7 @@ impl BillingService {
     /// The event's invoice as Stripe holds it now. Only a deleted draft is
     /// gone.
     async fn fetch_invoice(&self, event: &StripeEnvelope) -> Result<Option<Invoice>, Error> {
-        let fetched = RetrieveInvoice::new(event.object_id.as_str())
+        let fetched = RetrieveInvoice::new(event.object_id()?)
             .send(&self.stripe)
             .await;
         still_exists(event, fetched)
@@ -1061,7 +1061,7 @@ fn still_exists<T>(
             tracing::info!(
                 event_id = %event.id,
                 event_type = ?event.type_,
-                object_id = %event.object_id,
+                object_id = ?event.object_id,
                 "Stripe no longer has this event's object; nothing to do"
             );
             Ok(None)

@@ -68,8 +68,10 @@ pub struct StripeEnvelope {
     /// The version the delivery was rendered in, for logs.
     pub api_version: Option<String>,
     pub created: i64,
-    /// `data.object.id`: the subscription, invoice or payment method.
-    pub object_id: String,
+    /// `data.object.id`: the subscription, invoice or payment method. Absent
+    /// on a preview such as `invoice.upcoming`, whose invoice does not exist
+    /// yet. Handlers that need it read it through [`Self::object_id`].
+    pub object_id: Option<String>,
     /// `data.object.customer`, where the object has one.
     pub customer: Option<String>,
     /// `data.previous_attributes.customer`: who a detached payment method
@@ -101,7 +103,7 @@ struct RawData {
 
 #[derive(Deserialize)]
 struct RawObject {
-    id: String,
+    id: Option<String>,
     customer: Option<Value>,
     cancellation_details: Option<Value>,
 }
@@ -135,6 +137,18 @@ impl StripeEnvelope {
             carries_cancellation_feedback,
         })
     }
+
+    /// The object id a handler acts on. Every handled event type carries one;
+    /// only previews of objects that don't exist yet leave it out.
+    pub fn object_id(&self) -> Result<&str, Error> {
+        self.object_id.as_deref().ok_or_else(|| {
+            anyhow!(
+                "Stripe event {} ({:?}) has no data.object.id",
+                self.id,
+                self.type_
+            )
+        })
+    }
 }
 
 /// An id field, whether Stripe sent the bare id or the expanded object.
@@ -159,6 +173,8 @@ pub(crate) mod tests {
         include_str!("fixtures/payment_method_attached.clover.json");
     const PAYMENT_METHOD_ATTACHED_DAHLIA: &str =
         include_str!("fixtures/payment_method_attached.dahlia.json");
+    /// `evt_1ULymsAkcpHEg5IA9qAMhzjj`: its invoice is a preview with no `id`.
+    const INVOICE_UPCOMING_CLOVER: &str = include_str!("fixtures/invoice_upcoming.clover.json");
 
     const SECRET: &str = "whsec_test_secret";
     const NOW: i64 = 1_790_820_700;
@@ -204,6 +220,16 @@ pub(crate) mod tests {
             assert!(clover.customer.is_some());
             assert_ne!(clover.api_version, dahlia.api_version);
         }
+    }
+
+    /// An event whose object has no id used to fail to parse, so the endpoint
+    /// answered 500 to a type it doesn't even handle and Stripe kept retrying.
+    #[test]
+    fn an_event_without_an_object_id_still_parses() {
+        let envelope = StripeEnvelope::parse(INVOICE_UPCOMING_CLOVER).unwrap();
+        assert!(envelope.object_id.is_none());
+        assert!(envelope.object_id().is_err());
+        assert!(envelope.customer.is_some());
     }
 
     #[test]
