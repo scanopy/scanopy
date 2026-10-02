@@ -119,6 +119,26 @@ impl OrganizationService {
         Ok(())
     }
 
+    /// Record that the org has a card on file, once finalize has confirmed it with Stripe. The
+    /// same values the `PaymentMethodAdded` arm of the billing mirror writes
+    /// (`subscriber.rs`); writing them here as well means the app reflects the card as soon as
+    /// the owner saves it, instead of waiting on the `payment_method.attached` webhook, which
+    /// may be late or never delivered. The webhook stays the only publisher of the event (and so
+    /// of its email and analytics); when it lands, the mirror finds nothing to change.
+    pub async fn record_payment_method_on_file(&self, organization_id: Uuid) -> Result<(), Error> {
+        let lock = self.lock_organization(organization_id).await?;
+        if let Some(mut organization) = self.get_by_id(&organization_id).await?
+            && (!organization.base.has_payment_method || organization.base.bills_by_invoice)
+        {
+            organization.base.has_payment_method = true;
+            organization.base.bills_by_invoice = false;
+            self.update(&mut organization, AuthenticatedEntity::System)
+                .await?;
+        }
+        lock.release().await?;
+        Ok(())
+    }
+
     /// The `iat` this org's online license key is signed with, assigned on
     /// first use. Holding it makes minting deterministic: every copy of the
     /// key returns the same string until the key is rotated.
