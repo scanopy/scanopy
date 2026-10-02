@@ -323,7 +323,7 @@
 							{:else}
 								<div
 									class="flex min-w-0 items-center gap-3 {inlineStepper
-										? 'max-w-[40%] shrink-0'
+										? 'mr-4 max-w-[40%] shrink-0'
 										: ''}"
 								>
 									{@render headerIcon?.()}
