@@ -2365,6 +2365,7 @@
 	"settings_system_license": "Licensed under AGPL-3.0, or a %link% for organizations that need one.",
 	"settings_system_licenseLinkText": "commercial license",
 	"settings_system_preview": "Preview: {date} · {timestamp} · {relative}",
+	"settings_system_recogAttribution": "Host OS fingerprints from Rapid7 Recog, copyright 2014-2015 Rapid7, used under the BSD 2-Clause license. %link%",
 	"settings_system_themeDesc": "Choose how Scanopy looks to you",
 	"settings_system_timeZoneBrowser": "Browser default ({zone})",
 	"settings_system_timestamps": "Recent activity",

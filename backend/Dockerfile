@@ -116,7 +116,7 @@ RUN chmod +x /usr/local/bin/server
 COPY --from=ui-builder /app/ui/build ./static
 
 # Notices for third-party data compiled into the binary.
-COPY THIRD_PARTY_NOTICES.md /usr/share/doc/scanopy/THIRD_PARTY_NOTICES.md
+COPY backend/assets/recog/LICENSE /usr/share/doc/scanopy/recog/LICENSE
 
 # Verify UI files are present
 RUN ls -la /app/static && \

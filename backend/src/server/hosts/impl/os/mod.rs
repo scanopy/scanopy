@@ -6,6 +6,7 @@
 //! matched from a banner or a description string, and anything read off the host itself replaces it.
 
 pub mod recog;
+mod supplement;
 
 use std::fmt;
 
@@ -43,6 +44,20 @@ pub struct HostOs {
 }
 
 impl HostOs {
+    /// This reading with every blank text field read as absent, the rule a script's other keys
+    /// follow: `"codename": ""` from a host without one is no codename, not an empty one.
+    pub fn without_blank_fields(self) -> Self {
+        let text = |v: Option<String>| v.map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
+        Self {
+            family: self.family,
+            name: text(self.name),
+            version: text(self.version),
+            edition: text(self.edition),
+            codename: text(self.codename),
+            kernel_version: text(self.kernel_version),
+        }
+    }
+
     /// A reading that names the family and nothing else.
     pub fn family_only(family: HostOsFamily) -> Self {
         Self {

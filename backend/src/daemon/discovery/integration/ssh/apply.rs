@@ -126,7 +126,7 @@ pub fn apply(
     if let Some(os) = os.filter(|v| !v.is_null()) {
         match serde_json::from_value::<HostOs>(os) {
             Ok(os) => {
-                host_data.with_os(os, SOURCE);
+                host_data.with_os(os.without_blank_fields(), SOURCE);
                 mark(SshScriptField::Os);
             }
             Err(_) => invalid.push(SshScriptField::Os.path()),
@@ -309,6 +309,32 @@ mod tests {
         let output = SshScriptOutput::parse(r#"{"model": "from script"}"#).unwrap();
         apply(output, &mut host_data, source(), host_id);
         assert_eq!(model(&host_data), "typed by a person");
+    }
+
+    #[test]
+    fn an_os_with_blank_fields_lands_without_them() {
+        let output = SshScriptOutput::parse(
+            r#"{"os": {"family": "Linux", "name": "Debian GNU/Linux", "version": "12", "codename": ""}}"#,
+        )
+        .unwrap();
+        let mut host_data = blank_host();
+        let host_id = host_data.host.id;
+        apply(output, &mut host_data, source(), host_id);
+        let os = &host_data.host.base.os.as_ref().unwrap().value().0;
+        assert_eq!(os.name.as_deref(), Some("Debian GNU/Linux"));
+        assert_eq!(os.codename, None);
+    }
+
+    #[test]
+    fn an_os_with_an_unknown_family_is_reported_and_the_rest_kept() {
+        let output =
+            SshScriptOutput::parse(r#"{"model": "X11SCL-F", "os": {"family": "Plan9"}}"#).unwrap();
+        let mut host_data = blank_host();
+        let host_id = host_data.host.id;
+        let (applied, invalid) = apply(output, &mut host_data, source(), host_id);
+        assert_eq!(invalid, vec!["os"]);
+        assert_eq!(applied, vec!["model"]);
+        assert!(host_data.host.base.os.is_none());
     }
 
     #[test]

@@ -77,10 +77,13 @@ impl RecogDatabase {
         DATABASES.get(self).map(Vec::as_slice).unwrap_or_default()
     }
 
-    /// The OS the first fingerprint matching `input` names, if it names one with enough certainty.
+    /// The OS `input` names: the first matching Recog fingerprint's, if it names one with enough
+    /// certainty, and otherwise Scanopy's own entry for the string ([`super::supplement`]).
     ///
-    /// First match only, which is Recog's own semantics: the databases are ordered from specific to
-    /// generic, so a later fingerprint matching too is the less precise reading of the same string.
+    /// First match only within Recog, which is its own semantics: the databases are ordered from
+    /// specific to generic, so a later fingerprint matching too is the less precise reading. Recog
+    /// is consulted first because its specific fingerprints name more (a distribution, a product)
+    /// than the supplement's broad ones, which exist only to fill what Recog leaves unnamed.
     pub fn os(&self, input: &str) -> Option<HostOs> {
         let input = input.trim();
         if input.is_empty() {
@@ -90,6 +93,7 @@ impl RecogDatabase {
             .iter()
             .find_map(|fp| fp.extract(input))
             .and_then(|params| os_from_params(&params))
+            .or_else(|| super::supplement::os(*self, input))
     }
 }
 
@@ -180,7 +184,11 @@ fn os_from_params(params: &HashMap<String, String>) -> Option<HostOs> {
         version: params.get("os.version").filter(|v| !v.is_empty()).cloned(),
         edition: None,
         codename: None,
-        kernel_version: None,
+        // Recog's Linux fingerprints capture the kernel release under this name.
+        kernel_version: params
+            .get("linux.kernel.version")
+            .filter(|v| !v.is_empty())
+            .cloned(),
     })
 }
 

@@ -226,7 +226,7 @@ pub(super) fn generate_hosts_and_services(
                 ),
                 [0xa4, 0xbe, 0x2b, 0x10, 0x01, 0x01],
             ),
-            Some("pfSense 2.7.0-RELEASE (amd64) built on FreeBSD 14.0-CURRENT"),
+            Some("pfSense pfsense-fw01.acme.local 2.7.0-RELEASE FreeBSD 14.0-CURRENT amd64"),
             Some("1.3.6.1.4.1.12325.1.1"),
             Some("HQ Server Room, Rack A1"),
             Some("netops@acme-corp.com"),

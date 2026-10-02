@@ -211,7 +211,7 @@ impl DemoData {
         );
         let network_credential_assignments =
             generate_network_credential_assignments(&networks, &credentials);
-        let hosts_with_services = generate_hosts_and_services(
+        let mut hosts_with_services = generate_hosts_and_services(
             &networks,
             &subnets,
             &tags,
@@ -219,6 +219,11 @@ impl DemoData {
             &dep_svc_ids,
             now,
         );
+        // The server matches an OS in what SNMP reported when a host is ingested, after the daemon
+        // has offered its own readings (an SSH banner, say), so the demo matches last too.
+        for host in &mut hosts_with_services {
+            host.host.base.match_os_from_system_strings();
+        }
         let recent_hosts_with_services = generate_recent_hosts(&networks, &subnets, now);
 
         // Collect hosts for daemon generation and interface generation
@@ -431,8 +436,6 @@ fn with_snmp(
     host.base.model = model.map(|v| Attributed::new(HostModelValue(v.into()), probe));
     host.base.serial_number =
         serial_number.map(|v| Attributed::new(HostSerialNumberValue(v.into()), probe));
-    // The server matches an OS in what SNMP reported on every scan; the demo runs the same match.
-    host.base.match_os_from_system_strings();
     (host, ip_address)
 }
 
