@@ -880,7 +880,7 @@
 	"discovery_confirmDeleteHistorical": "Are you sure you want to delete {count} Historical Discoveries?",
 	"discovery_confirmDeleteScheduled": "Are you sure you want to delete {count} Scheduled Discoveries?",
 	"discovery_copyDiagnostics": "Copy diagnostics",
-	"discovery_copyWarningData": "Copy warning data",
+	"discovery_copyRunData": "Copy warnings and results",
 	"discovery_couldNotGetNetworkId": "Could not get network ID from selected daemon. Please try a different daemon.",
 	"discovery_createDiscovery": "Create Discovery",
 	"discovery_createScheduled": "Create Scheduled Discovery",
