@@ -6,6 +6,7 @@
 	import type { EntityDisplayComponent } from './types';
 	import type { Snippet } from 'svelte';
 	import { common_edit, common_remove } from '$lib/paraglide/messages';
+	import { tooltip } from '$lib/shared/actions/tooltip';
 
 	interface Props {
 		// Global
@@ -19,6 +20,15 @@
 		allowAddFromOptions?: boolean;
 		allowCreateNew?: boolean;
 		allowSelection?: boolean;
+		/** How a selected row shows with `itemClickAction="select"`: the `card-selected` ring
+		 *  (default), or a right-aligned checkbox and no ring. */
+		selectionIndicator?: 'highlight' | 'checkbox';
+		/** Which items can be selected at all (default: every item). */
+		allowItemSelection?: (item: T) => boolean;
+		/** A non-null reason disables an item's selection and shows as its tooltip. */
+		getItemSelectionDisabledReason?: (item: T) => string | null;
+		/** Show the All/None button when selection is on (default true). */
+		showSelectAll?: boolean;
 		disableCreateNewButton?: boolean;
 		createNewLabel?: string;
 		highlightedIndex?: number;
@@ -91,6 +101,10 @@
 		allowAddFromOptions = true,
 		allowCreateNew = false,
 		allowSelection = false,
+		selectionIndicator = 'highlight',
+		allowItemSelection = () => true,
+		getItemSelectionDisabledReason = () => null,
+		showSelectAll = true,
 		disableCreateNewButton = false,
 		createNewLabel = 'Create New',
 		highlightedIndex = -1,
@@ -278,7 +292,7 @@
 			{/if}
 		</div>
 
-		{#if allowSelection && items.length > 0}
+		{#if allowSelection && showSelectAll && items.length > 0}
 			{@const anySelected = selectedItems.length > 0}
 			<button
 				onclick={anySelected ? selectNone : selectAll}
@@ -360,16 +374,24 @@
 		<div class={`mb-3 space-y-2 p-0.5${stickyHeader ? ' min-h-0 flex-1 overflow-y-auto' : ''}`}>
 			{#each items as item, index (itemDisplayComponent.getId(item))}
 				{@const isHighlighted = highlightedIndex === index}
+				{@const selectable = allowSelection && allowItemSelection(item)}
+				{@const selectionDisabledReason = selectable ? getItemSelectionDisabledReason(item) : null}
 
 				<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 				<div
 					class="
 						card flex flex-wrap items-center gap-3 rounded-lg border p-3 transition-all
-						{isHighlighted ? 'card-focused' : isItemSelected(item) ? 'card-selected' : ''}"
+						{isHighlighted
+						? 'card-focused'
+						: selectionIndicator === 'highlight' && isItemSelected(item)
+							? 'card-selected'
+							: ''}
+						{selectable && itemClickAction == 'select' && !selectionDisabledReason ? 'cursor-pointer' : ''}"
 					onclick={() => {
 						onClick(item, index);
 						if (allowSelection && itemClickAction == 'select') {
-							toggleItemSelection(item);
+							// A non-selectable or disabled row in selection mode only reports the click.
+							if (selectable && !selectionDisabledReason) toggleItemSelection(item);
 						} else if (allowItemEdit(item)) {
 							if (!itemSnippet && itemDisplayComponent.supportsInlineEdit) {
 								// Toggle inline editing for this item
@@ -379,9 +401,9 @@
 							}
 						}
 					}}
-					tabindex={allowItemEdit(item) || allowSelection ? 0 : -1}
-					role={allowSelection ? 'checkbox' : allowItemEdit(item) ? 'button' : undefined}
-					aria-checked={allowSelection ? isItemSelected(item) : undefined}
+					tabindex={allowItemEdit(item) || selectable ? 0 : -1}
+					role={selectable ? 'checkbox' : allowItemEdit(item) ? 'button' : undefined}
+					aria-checked={selectable ? isItemSelected(item) : undefined}
 				>
 					<!-- Selection checkbox -->
 					{#if allowSelection && itemClickAction != 'select'}
@@ -485,6 +507,27 @@
 							</button>
 						{/if}
 					</div>
+
+					<!-- Right-aligned selection checkbox (selectionIndicator="checkbox"). The row click
+					     toggles it; its own click stops so the toggle doesn't run twice. -->
+					{#if selectable && itemClickAction == 'select' && selectionIndicator === 'checkbox'}
+						<span
+							class="flex flex-shrink-0"
+							data-tooltip={selectionDisabledReason ?? undefined}
+							use:tooltip
+						>
+							<input
+								type="checkbox"
+								checked={isItemSelected(item)}
+								disabled={!!selectionDisabledReason}
+								onclick={(e) => {
+									e.stopPropagation();
+									toggleItemSelection(item);
+								}}
+								class="checkbox-card h-4 w-4"
+							/>
+						</span>
+					{/if}
 
 					<!-- Expanded content panel — full card width, below the header row -->
 					{#if itemExpandedSnippet}

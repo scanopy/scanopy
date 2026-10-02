@@ -609,6 +609,7 @@
 	"credentials_fileOnScannedHost": "File on scanned host",
 	"credentials_filePathReadByDaemon": "File paths are read by the daemon at scan time — the content is never stored in Scanopy.",
 	"credentials_integrationSelectedCount": "{count} selected",
+	"credentials_integrationTypeCount": "{count} credential types",
 	"credentials_invalidSshPrivateKey": "Not a private key. Paste the whole key file, including its BEGIN and END lines.",
 	"credentials_ipExamplePlaceholder": "e.g. 192.168.1.1",
 	"credentials_ipTargetAllDefault": "All IP addresses (default)",
