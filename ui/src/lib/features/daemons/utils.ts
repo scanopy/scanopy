@@ -333,3 +333,18 @@ export async function downloadDaemonMsi(filename: string): Promise<boolean> {
 		return false;
 	}
 }
+
+/**
+ * The credential-path OS family for a daemon OS: Windows paths for a Windows daemon, Unix paths
+ * for every other. Exhaustive, so a new daemon OS has to say which.
+ */
+export function osFamilyOf(os: DaemonOS): components['schemas']['OsFamily'] {
+	switch (os) {
+		case 'windows':
+			return 'Windows';
+		case 'linux':
+		case 'macos':
+		case 'freebsd':
+			return 'Unix';
+	}
+}

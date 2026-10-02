@@ -40,6 +40,7 @@
 		buildRunCommand,
 		constructDaemonUrl,
 		detectOS,
+		osFamilyOf,
 		slugifyNetworkName,
 		type DaemonOS
 	} from '../../utils';
@@ -191,6 +192,12 @@
 
 	// OS selection
 	let selectedOS: DaemonOS = $state(detectOS());
+	// Chosen on the Configure step: the integrations created next take its OS as their daemon OS,
+	// and the Install step shows that OS's commands without offering a different one.
+	function handleOsSelect(os: DaemonOS) {
+		selectedOS = os;
+		trackEvent('daemon_install_os_selected', { os });
+	}
 	let linuxMethod = $state<'binary' | 'docker'>('binary');
 	let windowsMethod = $state<'exe' | 'msi'>('exe');
 	let isDockerInstall = $derived(selectedOS === 'linux' && linuxMethod === 'docker');
@@ -754,6 +761,7 @@
 				bind:subStep={credentialSubStep}
 				bind:selectedTypeIds={selectedCredentialTypeIds}
 				canReturnToTypeSelect={true}
+				fixedDaemonOs={osFamilyOf(selectedOS)}
 			/>
 		{:else}
 			<div class="flex-1 overflow-auto p-4 sm:p-6">
@@ -761,6 +769,9 @@
 					{#if activeTab === 'configure'}
 						<ConfigureStep
 							{form}
+							{selectedOS}
+							onOsSelect={handleOsSelect}
+							osLocked={credentialIds.length > 0}
 							{formValues}
 							{selectedNetworkId}
 							onNetworkChange={(id) => (selectedNetworkId = id)}

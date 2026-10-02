@@ -12675,19 +12675,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-01T20:55:16.747369Z",
+              "created_at": "2026-10-02T00:13:21.377281Z",
               "first_discovery_id": null,
-              "id": "8599b7ea-49b7-403d-b1be-a5a9f4a125eb",
+              "id": "ba43b227-eb97-4aed-8c87-1f754ae84cbe",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-01T20:55:16.747369Z",
+              "last_seen_at": "2026-10-02T00:13:21.377281Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-01T20:55:16.747369Z",
-              "valid_from": "2026-10-01T20:55:16.747369Z",
+              "updated_at": "2026-10-02T00:13:21.377281Z",
+              "valid_from": "2026-10-02T00:13:21.377281Z",
               "valid_to": null
             }
           },
@@ -13645,6 +13645,13 @@
               "progress"
             ],
             "properties": {
+              "credential_results": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CredentialRunResult"
+                },
+                "description": "What each stored credential did in this run, one entry per credential. Results, not\nproblems: those are `warnings`. Old servers ignore it."
+              },
               "daemon_id": {
                 "type": "string",
                 "format": "uuid",
@@ -13751,13 +13758,6 @@
                 "type": "string",
                 "format": "uuid",
                 "description": "The discovery run this update belongs to."
-              },
-              "ssh_script_runs": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/SshScriptRun"
-                },
-                "description": "What each SSH credential's script did, one entry per host it ran on. Old servers ignore it."
               },
               "started_at": {
                 "type": [
@@ -14266,19 +14266,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-01T20:55:16.731982Z",
+                      "created_at": "2026-10-02T00:13:21.361635Z",
                       "first_discovery_id": null,
-                      "id": "339d792b-8a89-4f96-a4c7-2ff487000739",
+                      "id": "3c4491bf-fccd-488a-a23e-7efd38184de5",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-01T20:55:16.731982Z",
+                      "last_seen_at": "2026-10-02T00:13:21.361635Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-01T20:55:16.731982Z",
-                      "valid_from": "2026-10-01T20:55:16.731982Z",
+                      "updated_at": "2026-10-02T00:13:21.361635Z",
+                      "valid_from": "2026-10-02T00:13:21.361635Z",
                       "valid_to": null
                     }
                   ],
@@ -14292,7 +14292,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "cAdvisor",
+                  "service_definition": "Mendelson AS2",
                   "source": {
                     "type": "Manual"
                   },
@@ -15690,19 +15690,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-01T20:55:16.743679Z",
+                  "created_at": "2026-10-02T00:13:21.373612Z",
                   "first_discovery_id": null,
-                  "id": "9c1887f1-3481-4f4f-8179-4ab85bb9a213",
+                  "id": "45c46d24-8d4b-4157-8e04-49301ec5211d",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-01T20:55:16.743679Z",
+                  "last_seen_at": "2026-10-02T00:13:21.373612Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-01T20:55:16.743679Z",
-                  "valid_from": "2026-10-01T20:55:16.743679Z",
+                  "updated_at": "2026-10-02T00:13:21.373612Z",
+                  "valid_from": "2026-10-02T00:13:21.373612Z",
                   "valid_to": null
                 }
               ],
@@ -15716,7 +15716,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "cAdvisor",
+              "service_definition": "Mendelson AS2",
               "source": {
                 "type": "Manual"
               },
@@ -17163,6 +17163,13 @@
                 "progress"
               ],
               "properties": {
+                "credential_results": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CredentialRunResult"
+                  },
+                  "description": "What each stored credential did in this run, one entry per credential. Results, not\nproblems: those are `warnings`. Old servers ignore it."
+                },
                 "daemon_id": {
                   "type": "string",
                   "format": "uuid",
@@ -17269,13 +17276,6 @@
                   "type": "string",
                   "format": "uuid",
                   "description": "The discovery run this update belongs to."
-                },
-                "ssh_script_runs": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SshScriptRun"
-                  },
-                  "description": "What each SSH credential's script did, one entry per host it ran on. Old servers ignore it."
                 },
                 "started_at": {
                   "type": [
@@ -18086,19 +18086,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-01T20:55:16.732328Z",
+          "created_at": "2026-10-02T00:13:21.361976Z",
           "first_discovery_id": null,
-          "id": "8cf1a2ef-bc72-4a94-9bea-fbfd077ff64a",
+          "id": "ef18e5cc-e633-48a8-9452-7ed99be68ff9",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-01T20:55:16.732328Z",
+          "last_seen_at": "2026-10-02T00:13:21.361976Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-01T20:55:16.732328Z",
-          "valid_from": "2026-10-01T20:55:16.732328Z",
+          "updated_at": "2026-10-02T00:13:21.361976Z",
+          "valid_from": "2026-10-02T00:13:21.361976Z",
           "valid_to": null
         }
       },
@@ -18511,6 +18511,14 @@
           "H323"
         ]
       },
+      "ClockFormat": {
+        "type": "string",
+        "enum": [
+          "browser_default",
+          "twelve_hour",
+          "twenty_four_hour"
+        ]
+      },
       "Color": {
         "type": "string",
         "enum": [
@@ -18806,7 +18814,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "cAdvisor",
+              "service_definition": "Mendelson AS2",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -19073,6 +19081,10 @@
             "$ref": "#/components/schemas/CredentialType",
             "description": "Protocol this credential authenticates with, and its settings."
           },
+          "daemon_os": {
+            "$ref": "#/components/schemas/OsFamily",
+            "description": "The OS of the daemons that will read this credential's files and sockets. Paths are\nvalidated for it, and a daemon on another OS skips the credential with a warning."
+          },
           "host_assignments": {
             "type": "array",
             "items": {
@@ -19147,6 +19159,37 @@
           "updated_at"
         ]
       },
+      "CredentialOsFields": {
+        "type": "object",
+        "description": "Which fields depend on which declared OS. Computed from the field definitions, so the form\nplaces each OS picker without its own rule: with the one field that depends on it, or above the\nfirst of several.",
+        "required": [
+          "daemon",
+          "scanned_host"
+        ],
+        "properties": {
+          "daemon": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Fields that can read a file or socket on the daemon, so depend on the credential's\n`daemon_os`: every file-or-value field, a script that can come from the daemon, and any\nfield whose placeholder follows `daemon_os`."
+          },
+          "scanned_host": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Fields that depend on the scanned host's OS: those whose placeholder follows the Scanned\nHost OS picker."
+          },
+          "scanned_host_picker": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The Scanned Host OS picker's own field, where the type has one."
+          }
+        }
+      },
       "CredentialQueryPayloadDiscriminants": {
         "type": "string",
         "enum": [
@@ -19162,6 +19205,109 @@
           "WakeOnLan",
           "Unknown"
         ]
+      },
+      "CredentialRunOutcome": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "Collected",
+            "description": "An integration that collects from a host: how many hosts it collected from.",
+            "required": [
+              "hosts",
+              "type"
+            ],
+            "properties": {
+              "hosts": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Collected"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "SshScript",
+            "description": "One entry per host the script ran on.",
+            "required": [
+              "runs",
+              "type"
+            ],
+            "properties": {
+              "runs": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SshScriptRun"
+                }
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "SshScript"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "WakeOnLan",
+            "description": "One entry per address the daemon tried to wake.",
+            "required": [
+              "hosts",
+              "type"
+            ],
+            "properties": {
+              "hosts": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WakeOnLanResult"
+                }
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "WakeOnLan"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "An outcome from a newer daemon than this server.",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "Unknown"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "CredentialRunResult": {
+        "type": "object",
+        "required": [
+          "credential_id",
+          "outcome"
+        ],
+        "properties": {
+          "credential_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/CredentialRunOutcome"
+          }
+        }
       },
       "CredentialStability": {
         "type": "string",
@@ -19374,11 +19520,15 @@
             ],
             "properties": {
               "socket_path": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "Path to the Docker socket. Blank lets the daemon auto-detect it."
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DaemonSocket",
+                    "description": "Path to the Docker socket. Blank lets the daemon auto-detect it."
+                  }
+                ]
               },
               "type": {
                 "type": "string",
@@ -19459,11 +19609,15 @@
             ],
             "properties": {
               "socket_path": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "description": "Path to the Podman socket. Blank lets the daemon auto-detect it."
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DaemonSocket",
+                    "description": "Path to the Podman socket. Blank lets the daemon auto-detect it."
+                  }
+                ]
               },
               "type": {
                 "type": "string",
@@ -19600,7 +19754,11 @@
                 "minimum": 0
               },
               "script": {
-                "type": "string"
+                "$ref": "#/components/schemas/ScriptSource"
+              },
+              "target_os": {
+                "$ref": "#/components/schemas/OsFamily",
+                "description": "The scanned host's OS: decides how a host-file path is validated and the shell the\nscript runs in."
               },
               "timeout_seconds": {
                 "type": "integer",
@@ -19655,7 +19813,11 @@
                 "$ref": "#/components/schemas/SecretValue"
               },
               "script": {
-                "type": "string"
+                "$ref": "#/components/schemas/ScriptSource"
+              },
+              "target_os": {
+                "$ref": "#/components/schemas/OsFamily",
+                "description": "The scanned host's OS: decides how a host-file path is validated and the shell the\nscript runs in."
               },
               "timeout_seconds": {
                 "type": "integer",
@@ -20042,6 +20204,10 @@
           "freebsd"
         ]
       },
+      "DaemonPath": {
+        "type": "string",
+        "description": "A file on the daemon's own machine, read by the daemon at scan time."
+      },
       "DaemonPromptAction": {
         "type": "string",
         "description": "Which daemon-prompt CTA the user chose.",
@@ -20200,6 +20366,10 @@
         ],
         "description": "Daemon response for UI including computed version status"
       },
+      "DaemonSocket": {
+        "type": "string",
+        "description": "A container runtime's API socket on the daemon: a Unix socket, or a Windows named pipe.\n\nHanded to bollard's `connect_with_socket`, which strips a `unix://` or `npipe://` scheme and\nopens a Unix socket or a named pipe for the OS it runs on."
+      },
       "DaemonStartupRequest": {
         "type": "object",
         "description": "Sent by daemon on startup to report version",
@@ -20342,6 +20512,15 @@
             "description": "The most recent discovery runs, newest first."
           }
         }
+      },
+      "DateOrder": {
+        "type": "string",
+        "enum": [
+          "browser_default",
+          "iso",
+          "day_first",
+          "month_first"
+        ]
       },
       "DemoPopulateStatus": {
         "oneOf": [
@@ -20627,6 +20806,26 @@
           "RequestPath",
           "HubAndSpoke"
         ]
+      },
+      "DependentPlaceholder": {
+        "type": "object",
+        "description": "A placeholder that applies while `field` holds `value`.",
+        "required": [
+          "field",
+          "value",
+          "placeholder"
+        ],
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "placeholder": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
       },
       "DeploymentType": {
         "type": "string",
@@ -21062,6 +21261,13 @@
           "progress"
         ],
         "properties": {
+          "credential_results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CredentialRunResult"
+            },
+            "description": "What each stored credential did in this run, one entry per credential. Results, not\nproblems: those are `warnings`. Old servers ignore it."
+          },
           "daemon_id": {
             "type": "string",
             "format": "uuid",
@@ -21168,13 +21374,6 @@
             "type": "string",
             "format": "uuid",
             "description": "The discovery run this update belongs to."
-          },
-          "ssh_script_runs": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SshScriptRun"
-            },
-            "description": "What each SSH credential's script did, one entry per host it ran on. Old servers ignore it."
           },
           "started_at": {
             "type": [
@@ -21933,6 +22132,45 @@
           },
           {
             "type": "object",
+            "title": "CredentialDaemonOsMismatch",
+            "description": "The credential's files or sockets were declared for one OS and this daemon runs another, so\nit was not used here.",
+            "required": [
+              "integration",
+              "credential_id",
+              "declared",
+              "actual",
+              "code"
+            ],
+            "properties": {
+              "actual": {
+                "$ref": "#/components/schemas/OsFamily",
+                "description": "The OS this daemon runs."
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "CredentialDaemonOsMismatch"
+                ]
+              },
+              "credential_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The stored credential. See [`CredentialAttempt::credential_id`]."
+              },
+              "declared": {
+                "$ref": "#/components/schemas/OsFamily",
+                "description": "The OS the credential's paths were declared for."
+              },
+              "integration": {
+                "$ref": "#/components/schemas/CredentialQueryPayloadDiscriminants"
+              }
+            }
+          },
+          {
+            "type": "object",
             "title": "CredentialGateClosed",
             "description": "The port the credential needs was not open, so it was never tried.",
             "required": [
@@ -22602,6 +22840,56 @@
           }
         ],
         "description": "A single non-fatal finding from one discovery run, about one device, neighbour, or the scan\nitself.\n\nSerialized with the code as the tag, so the generated TypeScript is a discriminated union the\nUI can switch on exhaustively. The derived `Deserialize` reads that shape; the leniency that\nkeeps historical records and pre-coded daemons working lives in [`deserialize_warnings`],\nwhich is applied at the one field that holds these."
+      },
+      "DisplaySettings": {
+        "type": "object",
+        "description": "Per-user display preferences for dates and times in the UI.\n\nStored as a JSONB blob with `#[serde(default)]` on the struct, so a stored\nobject missing a key (including the `{}` every existing row starts with)\nreads as that field's default. Every default reproduces the UI's\nbehaviour from before the setting existed.",
+        "properties": {
+          "clock": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ClockFormat",
+                "description": "12- or 24-hour clock for displayed times."
+              }
+            ],
+            "default": "browser_default"
+          },
+          "date_order": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DateOrder",
+                "description": "Order of day, month and year in displayed dates."
+              }
+            ],
+            "default": "browser_default"
+          },
+          "time_zone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "IANA time zone dates are shown in. `None` uses the browser's zone.",
+            "default": null
+          },
+          "timestamps": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TimestampStyle",
+                "description": "Whether recent events show as relative (\"3h ago\") or absolute times."
+              }
+            ],
+            "default": "relative"
+          },
+          "week_start": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WeekStart",
+                "description": "First day of the week in day pickers."
+              }
+            ],
+            "default": "monday"
+          }
+        }
       },
       "DockerInstall": {
         "type": "object",
@@ -23597,6 +23885,16 @@
             ],
             "description": "Placeholder text for the input."
           },
+          "placeholder_by": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/DependentPlaceholder"
+            },
+            "description": "Placeholders that replace `placeholder` while another field holds a given value, e.g. a\nWindows path once the OS picker says Windows. `field` is a sibling field id, or `daemon_os`\nfor the credential's own daemon OS."
+          },
           "secret": {
             "type": "boolean",
             "description": "Whether the value is a secret, so it is masked and never echoed back."
@@ -23612,9 +23910,11 @@
           "number",
           "boolean",
           "select",
+          "radio",
           "port",
           "secretpathorinline",
-          "pathorinline"
+          "pathorinline",
+          "scriptsource"
         ]
       },
       "FileOrInline": {
@@ -23654,7 +23954,7 @@
                 ]
               },
               "path": {
-                "type": "string",
+                "$ref": "#/components/schemas/DaemonPath",
                 "description": "Path to a file on the daemon host holding the value."
               }
             }
@@ -24100,6 +24400,10 @@
           "mac_address"
         ]
       },
+      "HostPath": {
+        "type": "string",
+        "description": "A file on the scanned host, executed there over SSH. Never read by the daemon."
+      },
       "HostResponse": {
         "type": "object",
         "description": "Response type for host endpoints.\nIncludes children (ip_addresses, ports, services, interfaces).",
@@ -24527,19 +24831,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-01T20:55:16.731588Z",
+                  "created_at": "2026-10-02T00:13:21.361229Z",
                   "first_discovery_id": null,
-                  "id": "33b20963-d112-4eff-a3a0-6805dd9df038",
+                  "id": "c3ed2fc8-7c88-4a09-a20f-d7f8febdff6d",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-01T20:55:16.731588Z",
+                  "last_seen_at": "2026-10-02T00:13:21.361229Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-01T20:55:16.731588Z",
-                  "valid_from": "2026-10-01T20:55:16.731588Z",
+                  "updated_at": "2026-10-02T00:13:21.361229Z",
+                  "valid_from": "2026-10-02T00:13:21.361229Z",
                   "valid_to": null
                 }
               ],
@@ -24553,7 +24857,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "cAdvisor",
+              "service_definition": "Mendelson AS2",
               "source": {
                 "type": "Manual"
               },
@@ -27431,6 +27735,14 @@
           }
         }
       },
+      "OsFamily": {
+        "type": "string",
+        "description": "The OS family of a machine a credential's paths live on. Paths, sockets and the shell a script\nruns in all follow from it.",
+        "enum": [
+          "Unix",
+          "Windows"
+        ]
+      },
       "PaginatedApiMeta": {
         "type": "object",
         "description": "API metadata for paginated list responses (pagination is always present)",
@@ -28242,19 +28554,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-01T20:55:16.725457Z",
+                        "created_at": "2026-10-02T00:13:21.355163Z",
                         "first_discovery_id": null,
-                        "id": "a363bd03-2f87-40ba-a895-21e4e1e1d7fe",
+                        "id": "3f5c4e0f-0a93-49ea-b2cb-12b18ecbb1d5",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-01T20:55:16.725457Z",
+                        "last_seen_at": "2026-10-02T00:13:21.355163Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-01T20:55:16.725457Z",
-                        "valid_from": "2026-10-01T20:55:16.725457Z",
+                        "updated_at": "2026-10-02T00:13:21.355163Z",
+                        "valid_from": "2026-10-02T00:13:21.355163Z",
                         "valid_to": null
                       }
                     ],
@@ -28268,7 +28580,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "cAdvisor",
+                    "service_definition": "Mendelson AS2",
                     "source": {
                       "type": "Manual"
                     },
@@ -28411,19 +28723,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-01T20:55:16.742900Z",
+                    "created_at": "2026-10-02T00:13:21.372884Z",
                     "first_discovery_id": null,
-                    "id": "26b67a7a-eed7-43dd-8ebe-4ffc94dbd1eb",
+                    "id": "85674379-94fc-4e68-9c43-94a6b3447724",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-01T20:55:16.742900Z",
+                    "last_seen_at": "2026-10-02T00:13:21.372884Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-01T20:55:16.742900Z",
-                    "valid_from": "2026-10-01T20:55:16.742900Z",
+                    "updated_at": "2026-10-02T00:13:21.372884Z",
+                    "valid_from": "2026-10-02T00:13:21.372884Z",
                     "valid_to": null
                   }
                 ],
@@ -28437,7 +28749,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "cAdvisor",
+                "service_definition": "Mendelson AS2",
                 "source": {
                   "type": "Manual"
                 },
@@ -30399,6 +30711,71 @@
           }
         }
       },
+      "ScriptSource": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "HostFile",
+            "description": "An executable already on each scanned host. Nothing but the path is stored in Scanopy.",
+            "required": [
+              "path",
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "HostFile"
+                ]
+              },
+              "path": {
+                "$ref": "#/components/schemas/HostPath"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "DaemonFile",
+            "description": "A script file on the daemon's machine; the daemon reads it and runs its text.",
+            "required": [
+              "path",
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "DaemonFile"
+                ]
+              },
+              "path": {
+                "$ref": "#/components/schemas/DaemonPath"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "title": "Inline",
+            "description": "The script text, stored on the credential.",
+            "required": [
+              "value",
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "Inline"
+                ]
+              },
+              "value": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "description": "Where an SSH credential's script comes from. One type for the stored credential and the wire:\nboth sides hold the same typed paths, so there is nothing to translate."
+      },
       "SecretValue": {
         "oneOf": [
           {
@@ -30436,7 +30813,7 @@
                 ]
               },
               "path": {
-                "type": "string",
+                "$ref": "#/components/schemas/DaemonPath",
                 "description": "Path to a file on the daemon host holding the secret."
               }
             }
@@ -30572,19 +30949,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-01T20:55:16.732220Z",
+              "created_at": "2026-10-02T00:13:21.361870Z",
               "first_discovery_id": null,
-              "id": "430c95b9-3e72-466c-a4a2-13bfdc0cc248",
+              "id": "ecf4c85d-9916-4444-96d5-c29d577a3fcc",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-01T20:55:16.732220Z",
+              "last_seen_at": "2026-10-02T00:13:21.361870Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-01T20:55:16.732220Z",
-              "valid_from": "2026-10-01T20:55:16.732220Z",
+              "updated_at": "2026-10-02T00:13:21.361870Z",
+              "valid_from": "2026-10-02T00:13:21.361870Z",
               "valid_to": null
             }
           ],
@@ -30598,7 +30975,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "cAdvisor",
+          "service_definition": "Mendelson AS2",
           "source": {
             "type": "Manual"
           },
@@ -31261,14 +31638,6 @@
             },
             "description": "Keys whose values were applied, as paths (`model`, `interfaces[].mac`)."
           },
-          "credential_id": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uuid",
-            "description": "The SSH credential that ran it."
-          },
           "detail": {
             "type": [
               "string",
@@ -31702,6 +32071,13 @@
           }
         }
       },
+      "TimestampStyle": {
+        "type": "string",
+        "enum": [
+          "relative",
+          "absolute"
+        ]
+      },
       "Topology": {
         "allOf": [
           {
@@ -32043,7 +32419,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "d14addc8-6a94-475d-90ab-9c4a1bf2d865",
+                  "id": "4d328331-186f-4d9d-8938-84e20a7fe940",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -32053,23 +32429,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "cb45a422-18bc-4945-a4bd-aacf19b6f0e0",
+                  "id": "faf3b038-01b7-4f70-a3ea-11530c467e57",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "3143f3d1-3669-405f-9534-73b41d7459da",
+                  "id": "21b90ada-469a-4198-8a3d-de10290310fe",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "f3e66276-c0e2-4110-8065-3a1bd8695813",
+                  "id": "40678016-6586-4208-bbca-2b2ae3a0a442",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "cb45a422-18bc-4945-a4bd-aacf19b6f0e0",
+                  "id": "faf3b038-01b7-4f70-a3ea-11530c467e57",
                   "rule": "ByHost"
                 }
               ]
@@ -32099,19 +32475,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "14512830-367c-4e4e-9d53-b2eb67d3fc5f",
+                "id": "8b0a6adc-0e91-4d93-9248-80cf7f3849b0",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "44ba0118-cc13-4a38-8acd-3d10bd8352c4",
+                "id": "2eac791a-af06-47e7-a286-df16bf5cedd8",
                 "rule": "ByVLAN"
               },
               {
-                "id": "5e1ffad6-3300-413e-90ac-1246f8022629",
+                "id": "59476444-0f9e-43f8-85f8-e69eddcce161",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "57621971-fd5c-4fbc-a4fc-838d0ef10407",
+                "id": "ed4acfe4-1d22-46f8-98c1-037139a74552",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -32129,7 +32505,7 @@
                 }
               },
               {
-                "id": "86d5cde3-c22f-4d31-a264-198eb83f727f",
+                "id": "524b0e23-d6fb-48ac-8b06-a22099f1d9cc",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -32138,15 +32514,15 @@
                 }
               },
               {
-                "id": "6a1206f4-9532-4c32-b9da-e9c4a0a1e644",
+                "id": "7c7d2a45-1aea-4eeb-a545-d0c20a4ca8f8",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "092fc144-7c5d-402c-98f9-c637e54ea67c",
+                "id": "f5954290-178d-4fcc-b2a1-ff7c8b102448",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "ecddeb56-1f9d-425f-aa6f-51121a2d49da",
+                "id": "1f27ef53-46f6-44d6-95ad-1bedc5c48889",
                 "rule": "ByStack"
               }
             ]
@@ -32772,6 +33148,10 @@
           "network_ids"
         ],
         "properties": {
+          "display_settings": {
+            "$ref": "#/components/schemas/DisplaySettings",
+            "description": "Per-user date and time display preferences"
+          },
           "email": {
             "type": "string",
             "format": "email",
@@ -33151,6 +33531,36 @@
           "name",
           "vlan_number",
           "updated_at"
+        ]
+      },
+      "WakeOnLanResult": {
+        "type": "object",
+        "description": "Whether one address woke.",
+        "required": [
+          "ip",
+          "woke",
+          "waited_ms"
+        ],
+        "properties": {
+          "ip": {
+            "type": "string"
+          },
+          "waited_ms": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How long after the packets the address answered, or how long the daemon waited for it.",
+            "minimum": 0
+          },
+          "woke": {
+            "type": "boolean"
+          }
+        }
+      },
+      "WeekStart": {
+        "type": "string",
+        "enum": [
+          "monday",
+          "sunday"
         ]
       }
     },

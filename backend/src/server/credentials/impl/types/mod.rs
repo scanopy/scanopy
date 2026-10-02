@@ -27,6 +27,7 @@ mod integration;
 mod metadata;
 mod secrets;
 
+pub use fields::{CredentialOsFields, DAEMON_OS_FIELD, TARGET_OS_FIELD};
 pub use integration::CredentialIntegration;
 pub use metadata::{
     CredentialAssignment, CredentialCategory, CredentialHostAssignment, CredentialStability,

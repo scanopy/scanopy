@@ -68,6 +68,9 @@ export interface CredentialTypeMetadata {
 	associated_service?: string;
 	/** The integration this type is a transport of; keys `credentialIntegrations`. */
 	integration?: components['schemas']['CredentialIntegration'];
+	/** Which fields depend on the daemon's and the scanned host's OS, computed by the backend; the
+	 *  form places each OS picker from it. */
+	os_fields?: components['schemas']['CredentialOsFields'];
 	/** Minimum daemon version (semver) that can receive this credential type. The
 	 *  discovery credential picker compares the selected daemon's `version` against
 	 *  this to disable too-new types (and to build the requirement tooltip). */

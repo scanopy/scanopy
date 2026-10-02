@@ -383,6 +383,7 @@
 			<OsSelector
 				{selectedOS}
 				onOsSelect={handleOsSelect}
+				showOs={false}
 				{linuxMethod}
 				onLinuxMethodChange={(method) => onLinuxMethodChange?.(method)}
 				{windowsMethod}

@@ -13,6 +13,7 @@
 	import { credentialTypes, entities } from '$lib/shared/stores/metadata';
 	import type { TypedTypeMetadata, CredentialTypeMetadata } from '$lib/shared/stores/metadata';
 	import type { Credential, CredentialType } from '$lib/features/credentials/types/base';
+	import type { OsFamily } from '$lib/features/credentials/utils/placeholders';
 	import type { Host } from '$lib/features/hosts/types/base';
 	import {
 		createDefaultCredential,
@@ -84,6 +85,9 @@
 		 *  add-new-type dropdown; when absent (a parent that cannot advance from the picker),
 		 *  the dropdown stays. */
 		onAddIntegration?: () => void;
+		/** The daemon OS chosen before this step (create-daemon flow). New credentials take it as
+		 *  their `daemon_os`, and their forms hide the Daemon OS picker. */
+		fixedDaemonOs?: OsFamily | null;
 	}
 
 	let {
@@ -95,7 +99,8 @@
 		claimedDaemonHostIntegrations = [],
 		daemonVersion = null,
 		daemonName = null,
-		onAddIntegration
+		onAddIntegration,
+		fixedDaemonOs = null
 	}: Props = $props();
 
 	// Query network and credential data for network-level credential display
@@ -495,7 +500,7 @@
 					credential: {
 						...p.credential,
 						credential_type: credentialType,
-						daemon_os: ref?.getDaemonOs() ?? p.credential.daemon_os,
+						daemon_os: fixedDaemonOs ?? ref?.getDaemonOs() ?? p.credential.daemon_os,
 						// Broadcast: assign as a network default. Per-host: leave to target_ips.
 						assigned_network_ids: isBroadcast && networkId ? [networkId] : []
 					},
@@ -636,6 +641,7 @@
 							hideTargets={true}
 							fieldPrefix={`credentials[${index}].`}
 							fixedCredentialType={pending.credential.credential_type.type}
+							{fixedDaemonOs}
 							onChange={(data) => handleConfigChange(index, data)}
 						/>
 					{:else}
@@ -648,6 +654,7 @@
 							daemonHostUnavailable={daemonHostUnavailableFor(index)}
 							targetIps={pending.targetIps}
 							scope={pending.scope}
+							{fixedDaemonOs}
 							onChange={(data) => handleConfigChange(index, data)}
 						/>
 					{/if}

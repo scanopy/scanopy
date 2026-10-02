@@ -17,7 +17,8 @@ use crate::server::bindings::r#impl::base::Binding;
 use crate::server::credentials::handlers::CredentialOrderField;
 use crate::server::credentials::r#impl::base::Credential;
 use crate::server::credentials::r#impl::types::{
-    CredentialIntegration, CredentialStability, CredentialTypeDiscriminants, UpstreamSupport,
+    CredentialIntegration, CredentialOsFields, CredentialStability, CredentialTypeDiscriminants,
+    UpstreamSupport,
 };
 use crate::server::daemon_api_keys::r#impl::base::DaemonApiKey;
 use crate::server::daemons::handlers::DaemonOrderField;
@@ -122,6 +123,9 @@ pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
         // `CredentialStability`, and keys `credential-integrations.json`; the picker types its
         // grouping key from here.
         CredentialIntegration,
+        // Which credential fields depend on which declared OS. Travels inside `TypeMetadata.metadata`
+        // like `CredentialIntegration`; the form types its picker placement from here.
+        CredentialOsFields,
         // Referenced by the install-command query parameter, so it needs a registered schema.
         InstallCommandKind,
         // Referenced by the credential-list `?type` filter, which utoipa collects from

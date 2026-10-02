@@ -21,6 +21,9 @@
 		value?: T;
 		/** Called with the chosen value, after the form field is updated. */
 		onChange?: (value: T) => void;
+		/** `card` frames each option (a standalone choice); `inline` is plain radios in a row, for a
+		 *  choice that sits inside another card. */
+		variant?: 'card' | 'inline';
 	}
 
 	let {
@@ -31,7 +34,8 @@
 		required = false,
 		disabled = false,
 		value,
-		onChange
+		onChange,
+		variant = 'card'
 	}: Props = $props();
 
 	let selected = $derived(value !== undefined ? value : field.state.value);
@@ -39,9 +43,17 @@
 
 <div class:disabled>
 	<FormField {label} {field} {id} {required}>
-		<div class="flex flex-col gap-3 sm:flex-row sm:gap-4">
+		<div
+			class={variant === 'card'
+				? 'flex flex-col gap-3 sm:flex-row sm:gap-4'
+				: 'flex flex-wrap gap-x-6 gap-y-2'}
+		>
 			{#each options as option (option.value)}
-				<label class="card card-static flex flex-1 cursor-pointer flex-col gap-2 p-3">
+				<label
+					class={variant === 'card'
+						? 'card card-static flex flex-1 cursor-pointer flex-col gap-2 p-3'
+						: 'flex cursor-pointer flex-col gap-1'}
+				>
 					<div class="flex items-center gap-2">
 						<input
 							type="radio"
