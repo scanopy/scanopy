@@ -1,4 +1,4 @@
-//! Shared discovery operations used by both the pipeline and integrations.
+//! S                o.record_wake_on_lan(result);ared discovery operations used by both the pipeline and integrations.
 //!
 //! `DiscoveryOps` provides entity creation, service matching, and progress reporting
 //! without requiring `DiscoveryRunner` or its associated traits.
@@ -1029,7 +1029,7 @@ impl DiscoveryOps {
         .await;
     }
 
-    /// Record whether one address woke, woken or not.
+    /// Record whether one address woke. See [`CredentialRunOutcome::record_wake_on_lan`].
     pub async fn record_wake_on_lan(
         &self,
         credential_id: uuid::Uuid,
@@ -1038,11 +1038,7 @@ impl DiscoveryOps {
         self.with_credential_result(
             credential_id,
             CredentialQueryPayloadDiscriminants::WakeOnLan,
-            |o| {
-                if let CredentialRunOutcome::WakeOnLan { hosts } = o {
-                    hosts.push(result);
-                }
-            },
+            |o| o.record_wake_on_lan(result),
         )
         .await;
     }

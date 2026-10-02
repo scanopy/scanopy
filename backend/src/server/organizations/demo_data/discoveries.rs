@@ -239,7 +239,6 @@ pub(super) fn generate_discoveries(
                                     hosts: vec![WakeOnLanResult {
                                         ip: IpAddr::V4(Ipv4Addr::new(10, 0, 40, 21)),
                                         woke: true,
-                                        waited_ms: 74_000,
                                     }],
                                 },
                             },

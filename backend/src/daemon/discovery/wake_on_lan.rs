@@ -1,21 +1,21 @@
 //! The Wake-on-LAN step: wake hosts that sleep between scans before the sweep looks for them.
 //!
-//! Not a [`DiscoveryIntegration`](super::integration::DiscoveryIntegration). Every assumption of
-//! probe → execute fails here: the target is asleep, so there is no IP to probe; a magic packet
-//! gets no reply; nothing is collected into `HostData`; and it has to finish before the ARP/ICMP
-//! sweep, which only finds hosts that are already awake. So it runs once per session, between the
-//! daemon-host phase and the network phase.
+//! Runs once per session, between the daemon-host phase and the network phase, because the ARP/ICMP
+//! sweep only finds hosts that are already awake. The server sends one `IpOverride` per address of
+//! each assigned host, carrying the MAC it holds for that address. The packet goes to the directed
+//! broadcast of the address's subnet unless the credential names another destination, and then the
+//! daemon pauses for the credential's wait so the hosts can boot.
 //!
-//! The server sends one `IpOverride` per address of each assigned host, carrying the MAC it holds
-//! for that address. The packet goes to the directed broadcast of the address's subnet unless the
-//! credential names another destination, and then the daemon waits for the addresses to answer.
+//! This step does not decide whether a host woke. The sweep does, with the same liveness checks it
+//! runs on every host: every target is recorded here as not woken, and the Wake-on-LAN integration
+//! (`integration::wake_on_lan`) marks the ones the scan then finds.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::time::Duration;
 
 use mac_address::MacAddress;
-use tokio::net::{TcpStream, UdpSocket};
+use tokio::net::UdpSocket;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
@@ -34,12 +34,9 @@ use crate::server::subnets::r#impl::base::Subnet;
 /// renegotiating link speed as the NIC drops into its low-power state.
 const PACKETS_PER_TARGET: u32 = 3;
 const PACKET_INTERVAL: Duration = Duration::from_secs(1);
-/// How often the wait loop checks whether the woken addresses answer.
-const POLL_INTERVAL: Duration = Duration::from_secs(5);
-const CONNECT_TIMEOUT: Duration = Duration::from_secs(1);
-/// Ports tried to tell a host is up. A refused connection counts as much as an accepted one: a
-/// RST means the IP stack is running, which is all the sweep needs.
-const LIVENESS_PORTS: [u16; 4] = [22, 80, 443, 445];
+/// How often the boot wait re-reports progress, so the server's stall detector does not end the
+/// session while hosts boot.
+const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(30);
 
 /// One address to wake, with what to wake it with.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -112,7 +109,7 @@ pub fn destination(ip: IpAddr, broadcast_address: Option<IpAddr>, subnets: &[Sub
         .unwrap_or(IpAddr::V4(Ipv4Addr::BROADCAST))
 }
 
-/// Send the packets, wait for the targets, and report the ones that never woke.
+/// Send the packets, record every target as not yet woken, and wait for the hosts to boot.
 ///
 /// Never fails the session: a host that will not wake is a finding about that host, and the sweep
 /// still has every other host to find.
@@ -137,50 +134,24 @@ pub async fn wake(
         }
     }
 
+    // Every target gets a result. The Wake-on-LAN integration flips the ones the scan finds.
+    for target in &targets {
+        let result = WakeOnLanResult {
+            ip: target.ip,
+            woke: false,
+        };
+        ops.record_wake_on_lan(target.credential_id, result).await;
+    }
+    if !cancel.is_cancelled() {
+        ops.record_credential_issues(&issues).await;
+    }
+
     let wait = sent
         .iter()
         .map(|t| Duration::from_secs(u64::from(t.credential.wait_seconds)))
         .max()
         .unwrap_or_default();
-    let pending: Vec<IpAddr> = sent.iter().map(|t| t.ip).collect();
-    let woke_after = wait_for(&pending, wait, ops, cancel).await;
-
-    // Every target gets a result, woken or not: the run's Credentials tab shows both.
-    for target in &targets {
-        let was_sent = sent.iter().any(|s| std::ptr::eq(*s, target));
-        let result = match woke_after.get(&target.ip) {
-            Some(after) => WakeOnLanResult {
-                ip: target.ip,
-                woke: true,
-                waited_ms: u64::try_from(after.as_millis()).unwrap_or(u64::MAX),
-            },
-            None => WakeOnLanResult {
-                ip: target.ip,
-                woke: false,
-                waited_ms: if was_sent {
-                    u64::try_from(wait.as_millis()).unwrap_or(u64::MAX)
-                } else {
-                    0
-                },
-            },
-        };
-        ops.record_wake_on_lan(target.credential_id, result).await;
-    }
-
-    for target in sent.iter().filter(|t| !woke_after.contains_key(&t.ip)) {
-        issues.push(issue(
-            target,
-            AttemptOutcome::TimedOut,
-            format!(
-                "sent a magic packet to {} and the host did not answer within {}s; check that the packet reaches its network segment and that Wake-on-LAN is enabled on the host",
-                target.mac.map(|m| m.to_string()).unwrap_or_default(),
-                target.credential.wait_seconds
-            ),
-        ));
-    }
-    if !cancel.is_cancelled() {
-        ops.record_credential_issues(&issues).await;
-    }
+    boot_wait(wait, ops, cancel).await;
 }
 
 async fn send(
@@ -259,54 +230,21 @@ async fn send(
     }
 }
 
-/// Poll until every address answers or `wait` runs out. Returns each address that answered and how
-/// long after the packets it did.
-async fn wait_for(
-    pending: &[IpAddr],
-    wait: Duration,
-    ops: &DiscoveryOps,
-    cancel: &CancellationToken,
-) -> HashMap<IpAddr, Duration> {
-    let mut down: HashSet<IpAddr> = pending.iter().copied().collect();
-    let mut woke_after = HashMap::new();
-    let started = tokio::time::Instant::now();
-    let deadline = started + wait;
-    while !down.is_empty() && !cancel.is_cancelled() {
-        let checks = down
-            .iter()
-            .map(|ip| async move { (*ip, is_awake(*ip).await) });
-        for (ip, awake) in futures::future::join_all(checks).await {
-            if awake {
-                tracing::info!(%ip, "Woken host is answering");
-                down.remove(&ip);
-                woke_after.insert(ip, started.elapsed());
-            }
-        }
-        if down.is_empty() || tokio::time::Instant::now() + POLL_INTERVAL > deadline {
+/// Pause for `wait`, re-reporting progress so a long boot wait does not trip the stall detector.
+async fn boot_wait(wait: Duration, ops: &DiscoveryOps, cancel: &CancellationToken) {
+    let deadline = tokio::time::Instant::now() + wait;
+    while !cancel.is_cancelled() {
+        let now = tokio::time::Instant::now();
+        if now >= deadline {
             break;
         }
-        // The wait can run past the server's stall detector on a slow-booting host.
-        let _ = ops.heartbeat().await;
+        let step = (deadline - now).min(HEARTBEAT_INTERVAL);
         tokio::select! {
-            _ = tokio::time::sleep(POLL_INTERVAL) => {}
+            _ = tokio::time::sleep(step) => {}
             _ = cancel.cancelled() => break,
         }
+        let _ = ops.heartbeat().await;
     }
-    woke_after
-}
-
-async fn is_awake(ip: IpAddr) -> bool {
-    let attempts = LIVENESS_PORTS.iter().map(|port| async move {
-        match tokio::time::timeout(CONNECT_TIMEOUT, TcpStream::connect((ip, *port))).await {
-            Ok(Ok(_)) => true,
-            Ok(Err(e)) => e.kind() == std::io::ErrorKind::ConnectionRefused,
-            Err(_) => false,
-        }
-    });
-    futures::future::join_all(attempts)
-        .await
-        .into_iter()
-        .any(|up| up)
 }
 
 fn issue(target: &WakeTarget, outcome: AttemptOutcome, message: String) -> CredentialIssue {

@@ -434,7 +434,7 @@ impl CredentialType {
                     secret: false,
                     optional: true,
                     help_text: Some(
-                        "How long to wait for the hosts to come up before the scan starts. Allow for disks spinning up and services starting.",
+                        "How long the daemon waits after sending the packets before the scan starts. Hosts the scan finds count as woken. Allow for disks spinning up and services starting.",
                     ),
                     options: None,
                     default_value: Some("90"),

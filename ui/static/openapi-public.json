@@ -12675,19 +12675,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-02T00:13:21.377281Z",
+              "created_at": "2026-10-02T00:42:15.282672Z",
               "first_discovery_id": null,
-              "id": "ba43b227-eb97-4aed-8c87-1f754ae84cbe",
+              "id": "241dee90-584a-46ba-9c41-50dec111563b",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-02T00:13:21.377281Z",
+              "last_seen_at": "2026-10-02T00:42:15.282672Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-02T00:13:21.377281Z",
-              "valid_from": "2026-10-02T00:13:21.377281Z",
+              "updated_at": "2026-10-02T00:42:15.282672Z",
+              "valid_from": "2026-10-02T00:42:15.282672Z",
               "valid_to": null
             }
           },
@@ -14266,19 +14266,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-02T00:13:21.361635Z",
+                      "created_at": "2026-10-02T00:42:15.267378Z",
                       "first_discovery_id": null,
-                      "id": "3c4491bf-fccd-488a-a23e-7efd38184de5",
+                      "id": "ff7caa63-6031-4a5b-9d26-bd6baf123131",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-02T00:13:21.361635Z",
+                      "last_seen_at": "2026-10-02T00:42:15.267378Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-02T00:13:21.361635Z",
-                      "valid_from": "2026-10-02T00:13:21.361635Z",
+                      "updated_at": "2026-10-02T00:42:15.267378Z",
+                      "valid_from": "2026-10-02T00:42:15.267378Z",
                       "valid_to": null
                     }
                   ],
@@ -14292,7 +14292,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Mendelson AS2",
+                  "service_definition": "Pi-Hole",
                   "source": {
                     "type": "Manual"
                   },
@@ -15690,19 +15690,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-02T00:13:21.373612Z",
+                  "created_at": "2026-10-02T00:42:15.279055Z",
                   "first_discovery_id": null,
-                  "id": "45c46d24-8d4b-4157-8e04-49301ec5211d",
+                  "id": "1d1d0bc9-da7b-4541-bf35-cc56fc8a9b14",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-02T00:13:21.373612Z",
+                  "last_seen_at": "2026-10-02T00:42:15.279055Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-02T00:13:21.373612Z",
-                  "valid_from": "2026-10-02T00:13:21.373612Z",
+                  "updated_at": "2026-10-02T00:42:15.279055Z",
+                  "valid_from": "2026-10-02T00:42:15.279055Z",
                   "valid_to": null
                 }
               ],
@@ -15716,7 +15716,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Mendelson AS2",
+              "service_definition": "Pi-Hole",
               "source": {
                 "type": "Manual"
               },
@@ -18086,19 +18086,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-02T00:13:21.361976Z",
+          "created_at": "2026-10-02T00:42:15.267737Z",
           "first_discovery_id": null,
-          "id": "ef18e5cc-e633-48a8-9452-7ed99be68ff9",
+          "id": "5daa6adf-bc54-44cd-aa30-57e553d9d022",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-02T00:13:21.361976Z",
+          "last_seen_at": "2026-10-02T00:42:15.267737Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-02T00:13:21.361976Z",
-          "valid_from": "2026-10-02T00:13:21.361976Z",
+          "updated_at": "2026-10-02T00:42:15.267737Z",
+          "valid_from": "2026-10-02T00:42:15.267737Z",
           "valid_to": null
         }
       },
@@ -18814,7 +18814,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Mendelson AS2",
+              "service_definition": "Pi-Hole",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -19063,6 +19063,7 @@
         "required": [
           "organization_id",
           "name",
+          "description",
           "credential_type",
           "tags",
           "assigned_network_ids",
@@ -19084,6 +19085,13 @@
           "daemon_os": {
             "$ref": "#/components/schemas/OsFamily",
             "description": "The OS of the daemons that will read this credential's files and sockets. Paths are\nvalidated for it, and a daemon on another OS skips the credential with a warning."
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Free-text notes about the credential: what it is for, who owns it."
           },
           "host_assignments": {
             "type": "array",
@@ -24831,19 +24839,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-02T00:13:21.361229Z",
+                  "created_at": "2026-10-02T00:42:15.266970Z",
                   "first_discovery_id": null,
-                  "id": "c3ed2fc8-7c88-4a09-a20f-d7f8febdff6d",
+                  "id": "10ecd651-402f-4abf-9a6f-cbe13252595b",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-02T00:13:21.361229Z",
+                  "last_seen_at": "2026-10-02T00:42:15.266970Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-02T00:13:21.361229Z",
-                  "valid_from": "2026-10-02T00:13:21.361229Z",
+                  "updated_at": "2026-10-02T00:42:15.266970Z",
+                  "valid_from": "2026-10-02T00:42:15.266970Z",
                   "valid_to": null
                 }
               ],
@@ -24857,7 +24865,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Mendelson AS2",
+              "service_definition": "Pi-Hole",
               "source": {
                 "type": "Manual"
               },
@@ -28554,19 +28562,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-02T00:13:21.355163Z",
+                        "created_at": "2026-10-02T00:42:15.260885Z",
                         "first_discovery_id": null,
-                        "id": "3f5c4e0f-0a93-49ea-b2cb-12b18ecbb1d5",
+                        "id": "611797a7-8c2f-4720-84a2-8cadef3bd2e9",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-02T00:13:21.355163Z",
+                        "last_seen_at": "2026-10-02T00:42:15.260885Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-02T00:13:21.355163Z",
-                        "valid_from": "2026-10-02T00:13:21.355163Z",
+                        "updated_at": "2026-10-02T00:42:15.260885Z",
+                        "valid_from": "2026-10-02T00:42:15.260885Z",
                         "valid_to": null
                       }
                     ],
@@ -28580,7 +28588,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Mendelson AS2",
+                    "service_definition": "Pi-Hole",
                     "source": {
                       "type": "Manual"
                     },
@@ -28723,19 +28731,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-02T00:13:21.372884Z",
+                    "created_at": "2026-10-02T00:42:15.278389Z",
                     "first_discovery_id": null,
-                    "id": "85674379-94fc-4e68-9c43-94a6b3447724",
+                    "id": "b75917fd-b520-454e-a6d8-95546c4e7bf7",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-02T00:13:21.372884Z",
+                    "last_seen_at": "2026-10-02T00:42:15.278389Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-02T00:13:21.372884Z",
-                    "valid_from": "2026-10-02T00:13:21.372884Z",
+                    "updated_at": "2026-10-02T00:42:15.278389Z",
+                    "valid_from": "2026-10-02T00:42:15.278389Z",
                     "valid_to": null
                   }
                 ],
@@ -28749,7 +28757,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Mendelson AS2",
+                "service_definition": "Pi-Hole",
                 "source": {
                   "type": "Manual"
                 },
@@ -30949,19 +30957,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-02T00:13:21.361870Z",
+              "created_at": "2026-10-02T00:42:15.267628Z",
               "first_discovery_id": null,
-              "id": "ecf4c85d-9916-4444-96d5-c29d577a3fcc",
+              "id": "860fad50-76ea-482f-9ce2-2b1efd6f0b4a",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-02T00:13:21.361870Z",
+              "last_seen_at": "2026-10-02T00:42:15.267628Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-02T00:13:21.361870Z",
-              "valid_from": "2026-10-02T00:13:21.361870Z",
+              "updated_at": "2026-10-02T00:42:15.267628Z",
+              "valid_from": "2026-10-02T00:42:15.267628Z",
               "valid_to": null
             }
           ],
@@ -30975,7 +30983,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Mendelson AS2",
+          "service_definition": "Pi-Hole",
           "source": {
             "type": "Manual"
           },
@@ -32419,7 +32427,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "4d328331-186f-4d9d-8938-84e20a7fe940",
+                  "id": "4f0f1b4c-a825-433a-b7e5-32de8488d795",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -32429,23 +32437,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "faf3b038-01b7-4f70-a3ea-11530c467e57",
+                  "id": "06029310-843d-4545-a771-538b42aec3cd",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "21b90ada-469a-4198-8a3d-de10290310fe",
+                  "id": "c06835af-4b35-489f-9b8a-cd159fac0bb6",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "40678016-6586-4208-bbca-2b2ae3a0a442",
+                  "id": "a48be54a-f761-417b-9b0c-5026b8e5cd62",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "faf3b038-01b7-4f70-a3ea-11530c467e57",
+                  "id": "06029310-843d-4545-a771-538b42aec3cd",
                   "rule": "ByHost"
                 }
               ]
@@ -32475,19 +32483,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "8b0a6adc-0e91-4d93-9248-80cf7f3849b0",
+                "id": "5e60df87-2ef5-48f9-b0d0-63828d204fb3",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "2eac791a-af06-47e7-a286-df16bf5cedd8",
+                "id": "feeb9fc8-1e5e-45d4-9c43-2c46b3e5cd63",
                 "rule": "ByVLAN"
               },
               {
-                "id": "59476444-0f9e-43f8-85f8-e69eddcce161",
+                "id": "861f04c7-3a56-4cbb-994c-dd06af2f6fb7",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "ed4acfe4-1d22-46f8-98c1-037139a74552",
+                "id": "e8d05cd3-53cd-4595-9b37-3c94fe33e327",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -32505,7 +32513,7 @@
                 }
               },
               {
-                "id": "524b0e23-d6fb-48ac-8b06-a22099f1d9cc",
+                "id": "c023ee67-2b38-4fa6-a0bb-0aee09f67d43",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -32514,15 +32522,15 @@
                 }
               },
               {
-                "id": "7c7d2a45-1aea-4eeb-a545-d0c20a4ca8f8",
+                "id": "e6530220-083c-4c50-b620-fde0b4546292",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "f5954290-178d-4fcc-b2a1-ff7c8b102448",
+                "id": "3f24d506-d1d5-40c4-8a13-9e1871892f7a",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "1f27ef53-46f6-44d6-95ad-1bedc5c48889",
+                "id": "5f98e1e7-ce42-4aef-b284-c78de62160fd",
                 "rule": "ByStack"
               }
             ]
@@ -33535,21 +33543,14 @@
       },
       "WakeOnLanResult": {
         "type": "object",
-        "description": "Whether one address woke.",
+        "description": "Whether one address woke: whether the scan found it after the magic packets went out.",
         "required": [
           "ip",
-          "woke",
-          "waited_ms"
+          "woke"
         ],
         "properties": {
           "ip": {
             "type": "string"
-          },
-          "waited_ms": {
-            "type": "integer",
-            "format": "int64",
-            "description": "How long after the packets the address answered, or how long the daemon waited for it.",
-            "minimum": 0
           },
           "woke": {
             "type": "boolean"

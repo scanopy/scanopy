@@ -5,8 +5,8 @@ use crate::server::services::r#impl::patterns::Pattern;
 
 /// The integration behind the Wake-on-LAN credential: a host the daemon powers on before a scan.
 ///
-/// Never matched on a host. A NIC listening for magic packets has nothing to fingerprint, and the
-/// credential has no per-host execute step for a match to gate. It exists so the credential has a
+/// Never matched on a host: a NIC listening for magic packets has nothing to fingerprint. Its
+/// `Pattern::None` is what lets the Wake-on-LAN integration execute without a match. It exists so the credential has a
 /// name, category and logo like every other integration.
 #[derive(Default, Clone, Eq, PartialEq, Hash)]
 pub struct WakeOnLan;
