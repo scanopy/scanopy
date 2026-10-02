@@ -224,6 +224,10 @@
 	.checkbox-card {
 		@apply cursor-pointer rounded text-blue-600 focus:ring-2 focus:ring-blue-500;
 		@apply border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700;
+		/* The dark background above (.dark .checkbox-card) outranks the forms plugin's checked
+		   fill, so restate the fill at higher specificity: checked is blue at rest, not only
+		   on hover/focus. */
+		@apply checked:border-transparent checked:bg-current dark:checked:border-transparent dark:checked:bg-current;
 	}
 	/* Card dividers/borders */
 	.card-divider-h {
