@@ -2900,7 +2900,7 @@
             "description": "`install` (with the api-key placeholder) or `reconfigure` (credential-free).",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/InstallCommandKind"
+              "$ref": "#/components/schemas/InstallCommandType"
             }
           },
           {
@@ -25556,7 +25556,7 @@
           }
         }
       },
-      "InstallCommandKind": {
+      "InstallCommandType": {
         "type": "string",
         "description": "What the caller wants the command to do — the one axis that actually varies.\n\n`install` brings a daemon up (or re-keys a legacy one): it carries the api-key placeholder,\nfetches the binary, and spells out the connectivity + advanced config. `reconfigure` adjusts\nan already-installed daemon in place: no key, no fetch, just the server-held connectivity —\n`scanopy-daemon install` layers it over the existing `config.json`. There is no third case:\nre-asserting the record's (correct) values on an installed daemon is harmless, so a first\ninstall and a re-key are the same command.",
         "enum": [

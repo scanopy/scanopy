@@ -9604,7 +9604,7 @@ export interface components {
          *     install and a re-key are the same command.
          * @enum {string}
          */
-        InstallCommandKind: "install" | "reconfigure";
+        InstallCommandType: "install" | "reconfigure";
         /**
          * @description Per-daemon integration targeting, stored on the `Discovery` entity and delivered via the
          *     init command at registration. Each entry references exactly one stored credential and says
@@ -16513,7 +16513,7 @@ export interface operations {
         parameters: {
             query: {
                 /** @description `install` (with the api-key placeholder) or `reconfigure` (credential-free). */
-                purpose: components["schemas"]["InstallCommandKind"];
+                purpose: components["schemas"]["InstallCommandType"];
                 /** @description Log verbosity the daemon should run at (e.g. `info`, `debug`). */
                 log_level?: string | null;
                 /** @description Path the daemon should write its log file to. */
