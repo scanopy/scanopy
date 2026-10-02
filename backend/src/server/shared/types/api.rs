@@ -865,11 +865,13 @@ where
     type Rejection = ApiError;
 
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
+        let method = req.method().clone();
+        let path = req.uri().path().to_string();
         match Json::<T>::from_request(req, state).await {
             Ok(Json(value)) => Ok(ApiJson(value)),
             Err(rejection) => {
                 let message = rejection.body_text();
-                tracing::warn!("JSON deserialization failed: {}", message);
+                tracing::warn!(%method, %path, "JSON deserialization failed: {}", message);
                 // Extract the useful part of the error message
                 let friendly_message = if message.contains("Failed to deserialize") {
                     // Extract the actual error after the boilerplate
@@ -979,5 +981,38 @@ mod metric_error_code_tests {
         let resp =
             ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, "boom".to_string()).into_response();
         assert!(resp.extensions().get::<MetricErrorCode>().is_none());
+    }
+}
+
+#[cfg(test)]
+mod api_json_tests {
+    use super::*;
+    use crate::server::daemons::r#impl::api::DiscoveryUpdatePayload;
+    use axum::{body::Body, response::IntoResponse};
+
+    /// A body a daemon-facing handler can't read is answered in the standard error envelope, so
+    /// the daemon can report what the server rejected instead of guessing at the URL.
+    #[tokio::test]
+    async fn a_malformed_discovery_update_is_rejected_in_the_standard_format() {
+        let request = Request::builder()
+            .method("POST")
+            .uri("/api/v1/discovery/00000000-0000-0000-0000-000000000000/update")
+            .header("content-type", "application/json")
+            .body(Body::from(r#"{"session_id": "not-a-uuid"}"#))
+            .unwrap();
+
+        let Err(rejection) = ApiJson::<DiscoveryUpdatePayload>::from_request(request, &()).await
+        else {
+            panic!("a malformed body must be rejected");
+        };
+        let response = rejection.into_response();
+
+        assert!(response.status().is_client_error());
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let parsed: ApiErrorResponse = serde_json::from_slice(&body).unwrap();
+        assert!(!parsed.success);
+        assert!(parsed.error.is_some_and(|message| !message.is_empty()));
     }
 }

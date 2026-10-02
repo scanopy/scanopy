@@ -1,3 +1,4 @@
+use crate::server::shared::types::api::ApiJson;
 use axum::Json;
 use axum::extract::{Path, State};
 use std::sync::Arc;
@@ -74,10 +75,10 @@ async fn validate_port_network_consistency(state: &AppState, port: &Port) -> Res
 async fn create_port(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(port): Json<Port>,
+    ApiJson(port): ApiJson<Port>,
 ) -> ApiResult<Json<ApiResponse<Port>>> {
     validate_port_network_consistency(&state, &port).await?;
-    create_handler::<Port>(State(state), auth, Json(port)).await
+    create_handler::<Port>(State(state), auth, ApiJson(port)).await
 }
 
 /// Update a port
@@ -98,8 +99,8 @@ async fn update_port(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
     path: Path<Uuid>,
-    Json(port): Json<Port>,
+    ApiJson(port): ApiJson<Port>,
 ) -> ApiResult<Json<ApiResponse<Port>>> {
     validate_port_network_consistency(&state, &port).await?;
-    update_handler::<Port>(State(state), auth, path, Json(port)).await
+    update_handler::<Port>(State(state), auth, path, ApiJson(port)).await
 }

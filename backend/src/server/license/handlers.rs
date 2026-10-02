@@ -6,6 +6,7 @@ use std::num::NonZeroU32;
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
+use crate::server::shared::types::api::ApiJson;
 use axum::Json;
 use axum::extract::State;
 use chrono::Utc;
@@ -143,7 +144,7 @@ fn mint_error(error: MintError) -> ApiError {
 )]
 pub async fn get_entitlement(
     State(state): State<Arc<AppState>>,
-    Json(request): Json<EntitlementRequest>,
+    ApiJson(request): ApiJson<EntitlementRequest>,
 ) -> ApiResult<Json<ApiResponse<EntitlementResponse>>> {
     let issuer = license_issuer(&state)?;
     let claims = issuer
@@ -201,7 +202,7 @@ pub async fn get_entitlement(
 pub async fn create_license_key(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Owner>,
-    Json(request): Json<CreateLicenseKeyRequest>,
+    ApiJson(request): ApiJson<CreateLicenseKeyRequest>,
 ) -> ApiResult<Json<ApiResponse<LicenseKeyResponse>>> {
     let organization_id = auth.require_organization_id()?;
     let organization = load_organization(&state, organization_id).await?;

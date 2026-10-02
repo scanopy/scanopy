@@ -27,6 +27,7 @@ use crate::server::shared::handlers::traits::{
 use crate::server::shared::services::{csv::build_csv, traits::CrudService};
 use crate::server::shared::storage::traits::Entity;
 use crate::server::shared::storage::{filter::StorableFilter, traits::Storable};
+use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::api::{ApiErrorResponse, EmptyApiResponse};
 use crate::server::shared::types::entities::EntitySourceDiscriminants;
 use crate::server::shared::types::error_codes::ErrorCode;
@@ -494,7 +495,7 @@ async fn get_host_by_id(
 async fn create_host(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Or<Member, IsDaemon>>,
-    Json(request): Json<HostCreateRequestBody>,
+    ApiJson(request): ApiJson<HostCreateRequestBody>,
 ) -> ApiResult<Json<ApiResponse<HostCreateResponse>>> {
     let network_ids = auth.network_ids();
     let organization_id = auth.organization_id();
@@ -715,7 +716,7 @@ async fn update_host(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
     Path(id): Path<Uuid>,
-    Json(mut request): Json<UpdateHostRequest>,
+    ApiJson(mut request): ApiJson<UpdateHostRequest>,
 ) -> ApiResult<Json<ApiResponse<HostResponse>>> {
     let network_ids = auth.network_ids();
     let organization_id = auth
@@ -804,7 +805,7 @@ async fn update_host(
 async fn create_host_discovery(
     State(state): State<Arc<AppState>>,
     auth: Authorized<IsDaemon>,
-    Json(request): Json<DiscoveryHostRequest>,
+    ApiJson(request): ApiJson<DiscoveryHostRequest>,
 ) -> ApiResult<impl IntoResponse> {
     // Legacy cleanup: remove once minimum_supported >= 0.16.0
     let is_legacy_daemon = pre_interface_to_ip_address_rename(auth.entity.daemon_version());
@@ -842,10 +843,11 @@ async fn create_host_discovery(
                 ErrorCode::BillingHostLimitReached { limit },
             )
         } else if let Some(err) = created.first_host_error {
-            // Single-host discovery: surface the real per-host failure instead of
-            // a generic message. The processor swallows per-host errors to keep
-            // multi-host batches going; here there is exactly one host.
-            ApiError::internal_error(&format!("Failed to process discovered host: {err}"))
+            // Single-host discovery: answer with the real per-host failure and its
+            // status (a refusal stays a 4xx) instead of a generic message. The
+            // processor swallows per-host errors to keep multi-host batches going;
+            // here there is exactly one host.
+            err
         } else {
             ApiError::internal_error("No host returned from processor")
         }
@@ -1282,7 +1284,7 @@ pub async fn delete_host(
 pub async fn bulk_delete_hosts(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(ids): Json<Vec<Uuid>>,
+    ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>> {
     let daemon_service = &state.services.daemon_service;
 
@@ -1301,7 +1303,7 @@ pub async fn bulk_delete_hosts(
         ));
     }
 
-    bulk_delete_handler::<Host>(axum::extract::State(state), auth, axum::extract::Json(ids)).await
+    bulk_delete_handler::<Host>(axum::extract::State(state), auth, ApiJson(ids)).await
 }
 
 /// Export hosts with children to ZIP

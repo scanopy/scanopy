@@ -21,6 +21,7 @@ use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::{Entity, Storable};
 use crate::server::shared::trusted_ca::TrustedCaBundle;
 use crate::server::shared::types::api::ApiErrorResponse;
+use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::error_codes::ErrorCode;
 use crate::server::shared::validation::validate_network_access;
 use crate::server::{
@@ -186,7 +187,7 @@ async fn update_daemon(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
     Path(id): Path<Uuid>,
-    Json(mut request): Json<Daemon>,
+    ApiJson(mut request): ApiJson<Daemon>,
 ) -> ApiResult<Json<ApiResponse<Daemon>>> {
     let network_ids = auth.network_ids();
 
@@ -209,7 +210,7 @@ async fn update_daemon(
 
     request.preserve_immutable_fields(&existing);
 
-    update_handler::<Daemon>(State(state), auth, Path(id), Json(request)).await
+    update_handler::<Daemon>(State(state), auth, Path(id), ApiJson(request)).await
 }
 
 /// Query for [`get_install_command`]. `purpose` is required; the rest are the client-settable
@@ -439,7 +440,7 @@ async fn delete_daemon(
 async fn bulk_delete_daemons(
     state: State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(ids): Json<Vec<Uuid>>,
+    ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<crate::server::shared::handlers::traits::BulkDeleteResponse>>> {
     for id in &ids {
         if state
@@ -451,7 +452,7 @@ async fn bulk_delete_daemons(
             return Err(active_session_error());
         }
     }
-    generated::bulk_delete(state, auth, Json(ids)).await
+    generated::bulk_delete(state, auth, ApiJson(ids)).await
 }
 
 /// Operating system the install command was generated for.
@@ -499,7 +500,7 @@ pub struct EmailInstallCommandRequest {
 async fn email_install_command(
     State(state): State<Arc<AppState>>,
     auth: Authorized<And<Member, IsUser>>,
-    Json(request): Json<EmailInstallCommandRequest>,
+    ApiJson(request): ApiJson<EmailInstallCommandRequest>,
 ) -> ApiResult<Json<EmptyApiResponse>> {
     // Unreachable: `IsUser` has already rejected every variant that lacks an address, and the
     // `User` variant's email is a plain `EmailAddress`, not an `Option`. Kept as a fallback that
@@ -713,7 +714,7 @@ async fn get_by_id(
 async fn register_daemon(
     State(state): State<Arc<AppState>>,
     auth: Authorized<IsDaemon>,
-    Json(request): Json<DaemonRegistrationRequest>,
+    ApiJson(request): ApiJson<DaemonRegistrationRequest>,
 ) -> ApiResult<Json<ApiResponse<DaemonRegistrationResponse>>> {
     // Delegate to processor for shared registration logic
     // This ensures both DaemonPoll and ServerPoll modes use the same logic
@@ -746,7 +747,7 @@ async fn daemon_startup(
     State(state): State<Arc<AppState>>,
     auth: Authorized<IsDaemon>,
     Path(id): Path<Uuid>,
-    Json(request): Json<DaemonStartupRequest>,
+    ApiJson(request): ApiJson<DaemonStartupRequest>,
 ) -> ApiResult<Json<ApiResponse<ServerCapabilities>>> {
     let daemon_network_id = auth.network_ids()[0];
 
@@ -795,7 +796,7 @@ async fn update_capabilities(
     State(state): State<Arc<AppState>>,
     auth: Authorized<IsDaemon>,
     Path(id): Path<Uuid>,
-    Json(updated_capabilities): Json<LegacyCapabilities>,
+    ApiJson(updated_capabilities): ApiJson<LegacyCapabilities>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let daemon_network_id = auth.network_ids()[0];
 
@@ -843,7 +844,7 @@ async fn receive_work_request(
     State(state): State<Arc<AppState>>,
     auth: Authorized<IsDaemon>,
     Path(daemon_id): Path<Uuid>,
-    Json(status): Json<DaemonStatus>,
+    ApiJson(status): ApiJson<DaemonStatus>,
 ) -> ApiResult<Json<ApiResponse<(Option<serde_json::Value>, bool)>>> {
     let daemon_network_id = auth.network_ids()[0];
 
@@ -1000,7 +1001,7 @@ async fn receive_heartbeat(
     State(state): State<Arc<AppState>>,
     auth: Authorized<IsDaemon>,
     Path(id): Path<Uuid>,
-    Json(request): Json<DaemonHeartbeatPayload>,
+    ApiJson(request): ApiJson<DaemonHeartbeatPayload>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let daemon_network_id = auth.network_ids()[0];
 
@@ -1108,7 +1109,7 @@ async fn load_reprovision_target(
 async fn provision_daemon(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(request): Json<ProvisionDaemonRequest>,
+    ApiJson(request): ApiJson<ProvisionDaemonRequest>,
 ) -> ApiResult<Json<ApiResponse<ProvisionDaemonResponse>>> {
     let network_ids = auth.network_ids();
 
@@ -1242,7 +1243,7 @@ async fn retry_connection(
 async fn test_reachability(
     State(state): State<Arc<AppState>>,
     _auth: Authorized<Member>,
-    Json(request): Json<TestReachabilityRequest>,
+    ApiJson(request): ApiJson<TestReachabilityRequest>,
 ) -> ApiResult<Json<ApiResponse<TestReachabilityResponse>>> {
     // Parse the URL
     let parsed =

@@ -1,4 +1,5 @@
 use crate::server::openapi::tags as api_tags;
+use crate::server::shared::types::api::ApiJson;
 use std::{num::NonZeroU32, sync::Arc};
 
 use axum::{
@@ -138,7 +139,7 @@ async fn create_share(
     State(state): State<Arc<AppState>>,
     _feature: RequireFeature<ShareViewsFeature>,
     auth: Authorized<RequireVerified<Member>>,
-    Json(CreateUpdateShareRequest { mut share }): Json<CreateUpdateShareRequest>,
+    ApiJson(CreateUpdateShareRequest { mut share }): ApiJson<CreateUpdateShareRequest>,
 ) -> ApiResult<Json<ApiResponse<Share>>> {
     // Validate allowed_domains for CSP safety
     if let Some(ref domains) = share.base.allowed_domains {
@@ -165,7 +166,12 @@ async fn create_share(
 
     share.base.created_by = auth.user_id().ok_or_else(ApiError::user_required)?;
 
-    create_handler::<Share>(State(state), auth.into_permission::<Member>(), Json(share)).await
+    create_handler::<Share>(
+        State(state),
+        auth.into_permission::<Member>(),
+        ApiJson(share),
+    )
+    .await
 }
 
 /// Update a share
@@ -185,7 +191,7 @@ async fn update_share(
     State(state): State<Arc<AppState>>,
     auth: Authorized<RequireVerified<Member>>,
     Path(id): Path<Uuid>,
-    Json(CreateUpdateShareRequest { mut share }): Json<CreateUpdateShareRequest>,
+    ApiJson(CreateUpdateShareRequest { mut share }): ApiJson<CreateUpdateShareRequest>,
 ) -> ApiResult<Json<ApiResponse<Share>>> {
     // Validate allowed_domains for CSP safety
     if let Some(ref domains) = share.base.allowed_domains {
@@ -225,7 +231,7 @@ async fn update_share(
         State(state),
         auth.into_permission::<Member>(),
         Path(id),
-        Json(share),
+        ApiJson(share),
     )
     .await
 }
@@ -334,7 +340,7 @@ async fn get_public_share_metadata(
 async fn verify_share_password(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
-    Json(password): Json<String>,
+    ApiJson(password): ApiJson<String>,
 ) -> ApiResult<Json<ApiResponse<ShareAccessTokenResponse>>> {
     check_share_rate_limit(&id)?;
 
@@ -390,7 +396,7 @@ async fn get_share_topology(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     Query(query): Query<ShareQuery>,
-    Json(body): Json<ShareTopologyRequest>,
+    ApiJson(body): ApiJson<ShareTopologyRequest>,
 ) -> ApiResult<Response> {
     let share = state
         .services

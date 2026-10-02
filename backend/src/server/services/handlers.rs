@@ -10,6 +10,7 @@ use crate::server::shared::handlers::traits::update_handler;
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::{Entity, Storable};
+use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::api::{
     ApiError, ApiErrorResponse, ApiResponse, ApiResult, PaginatedApiResponse,
 };
@@ -421,7 +422,7 @@ async fn get_all_services(
 pub async fn create_service(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(request): Json<CreateServiceRequest>,
+    ApiJson(request): ApiJson<CreateServiceRequest>,
 ) -> ApiResult<Json<ApiResponse<Service>>> {
     // Validate user has access to the network
     validate_network_access(Some(request.network_id()), &auth.network_ids(), "create")?;
@@ -479,7 +480,7 @@ pub async fn update_service(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
     Path(id): Path<Uuid>,
-    Json(service): Json<Service>,
+    ApiJson(service): ApiJson<Service>,
 ) -> ApiResult<Json<ApiResponse<Service>>> {
     // Custom validation: Check host network matches service network
     if let Some(host) = state
@@ -493,5 +494,5 @@ pub async fn update_service(
     }
 
     // Delegate to generic handler (handles validation, auth checks, update)
-    update_handler::<Service>(State(state), auth, Path(id), Json(service)).await
+    update_handler::<Service>(State(state), auth, Path(id), ApiJson(service)).await
 }

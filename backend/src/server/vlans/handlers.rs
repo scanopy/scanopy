@@ -7,6 +7,7 @@ use crate::server::shared::handlers::traits::create_handler;
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::{Entity, Storable};
+use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::api::{ApiError, ApiErrorResponse, PaginatedApiResponse};
 use crate::server::vlans::r#impl::base::Vlan;
 use crate::server::{
@@ -201,7 +202,7 @@ async fn get_all_vlans(
 pub async fn create_vlan(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(vlan): Json<Vlan>,
+    ApiJson(vlan): ApiJson<Vlan>,
 ) -> ApiResult<Json<ApiResponse<Vlan>>> {
     let network_ids = auth.network_ids();
 
@@ -222,7 +223,7 @@ pub async fn create_vlan(
         )));
     }
 
-    create_handler::<Vlan>(State(state), auth, Json(vlan)).await
+    create_handler::<Vlan>(State(state), auth, ApiJson(vlan)).await
 }
 
 // ============================================================================
@@ -295,7 +296,7 @@ pub struct VlanDiscoveryResponseItem {
 pub async fn discovery_upsert_vlans(
     State(state): State<Arc<AppState>>,
     auth: Authorized<IsDaemon>,
-    Json(request): Json<VlanDiscoveryRequest>,
+    ApiJson(request): ApiJson<VlanDiscoveryRequest>,
 ) -> ApiResult<Json<ApiResponse<VlanDiscoveryResponse>>> {
     request.validate()?;
 
