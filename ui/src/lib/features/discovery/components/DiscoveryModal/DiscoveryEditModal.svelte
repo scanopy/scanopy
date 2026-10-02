@@ -72,7 +72,7 @@
 		common_targets,
 		daemons_credentialWizardTargetRequired,
 		discovery_copyDiagnostics,
-		discovery_copyWarningData,
+		discovery_copyRunData,
 		discovery_couldNotGetNetworkId,
 		discovery_createDiscovery,
 		discovery_createScheduled,
@@ -156,8 +156,16 @@
 	let scanWarningCount = $derived(historicalWarnings.length - credentialWarningCount);
 	let readOnly = $derived(formData.run_type.type == 'Historical');
 
+	let historicalCredentialResults = $derived(historicalResults?.credential_results ?? []);
+	/** Whether the copy button has anything to copy. */
+	let hasRunData = $derived(
+		historicalWarnings.length > 0 || historicalCredentialResults.length > 0
+	);
+
 	/**
-	 * Put the run's warnings on the clipboard as recorded, for pasting into an issue or a thread.
+	 * Put the run's warnings and credential results on the clipboard as recorded, for pasting into
+	 * an issue or a thread. Both tabs that show them copy the whole of both, so whichever tab the
+	 * reader is on, nothing the run recorded is left out.
 	 *
 	 * The rendered report is the wrong thing to share: its sentences are this build's copy in the
 	 * reader's locale, its rows merge occurrences the backend deliberately kept apart, and its
@@ -167,8 +175,14 @@
 	 * `copyText` falls back to a selection copy on plain-HTTP self-hosts, the deployment most
 	 * likely to be sharing warnings with us.
 	 */
-	async function copyWarningData() {
-		await copyToClipboard(JSON.stringify(historicalWarnings, null, 2));
+	async function copyRunData() {
+		await copyToClipboard(
+			JSON.stringify(
+				{ warnings: historicalWarnings, credential_results: historicalCredentialResults },
+				null,
+				2
+			)
+		);
 	}
 
 	/**
@@ -892,14 +906,14 @@
 				<div class="flex items-center gap-3">
 					<!-- Beside Close rather than above the report: it acts on the whole run, not on
 					     any one row, and the footer is where a modal's whole-record actions live. -->
-					{#if activeTab === 'warnings' && historicalWarnings.length > 0}
+					{#if (activeTab === 'warnings' || activeTab === 'credentials') && hasRunData}
 						<button
 							type="button"
 							class="btn-secondary flex items-center gap-1"
-							onclick={copyWarningData}
+							onclick={copyRunData}
 						>
 							<Copy class="h-4 w-4" />
-							<span>{discovery_copyWarningData()}</span>
+							<span>{discovery_copyRunData()}</span>
 						</button>
 					{/if}
 					{#if activeTab === 'warnings' && endedBadly}
