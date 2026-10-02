@@ -12675,19 +12675,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-02T05:34:40.278636Z",
+              "created_at": "2026-10-02T12:58:48.621633Z",
               "first_discovery_id": null,
-              "id": "1bfdc27f-69d4-429c-88c3-66311f2f14cd",
+              "id": "f6a24c3b-d9dd-45b3-b7ae-ddc6dacfeeb2",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-02T05:34:40.278636Z",
+              "last_seen_at": "2026-10-02T12:58:48.621633Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-02T05:34:40.278636Z",
-              "valid_from": "2026-10-02T05:34:40.278636Z",
+              "updated_at": "2026-10-02T12:58:48.621633Z",
+              "valid_from": "2026-10-02T12:58:48.621633Z",
               "valid_to": null
             }
           },
@@ -14266,19 +14266,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-02T05:34:40.263420Z",
+                      "created_at": "2026-10-02T12:58:48.606911Z",
                       "first_discovery_id": null,
-                      "id": "aabc5bff-dff2-4165-9284-cdc2cfc753e0",
+                      "id": "38a87ce3-dfa2-40f7-8d52-eb068e0bf635",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-02T05:34:40.263420Z",
+                      "last_seen_at": "2026-10-02T12:58:48.606911Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-02T05:34:40.263420Z",
-                      "valid_from": "2026-10-02T05:34:40.263420Z",
+                      "updated_at": "2026-10-02T12:58:48.606911Z",
+                      "valid_from": "2026-10-02T12:58:48.606911Z",
                       "valid_to": null
                     }
                   ],
@@ -14292,7 +14292,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Oracle Database",
+                  "service_definition": "Tuya Smart",
                   "source": {
                     "type": "Manual"
                   },
@@ -15690,19 +15690,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-02T05:34:40.275071Z",
+                  "created_at": "2026-10-02T12:58:48.618146Z",
                   "first_discovery_id": null,
-                  "id": "48533700-1f85-4258-bcaa-5865c011084a",
+                  "id": "e628f85d-2b75-4299-9855-b04a697cddaf",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-02T05:34:40.275071Z",
+                  "last_seen_at": "2026-10-02T12:58:48.618146Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-02T05:34:40.275071Z",
-                  "valid_from": "2026-10-02T05:34:40.275071Z",
+                  "updated_at": "2026-10-02T12:58:48.618146Z",
+                  "valid_from": "2026-10-02T12:58:48.618146Z",
                   "valid_to": null
                 }
               ],
@@ -15716,7 +15716,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Oracle Database",
+              "service_definition": "Tuya Smart",
               "source": {
                 "type": "Manual"
               },
@@ -18086,19 +18086,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-02T05:34:40.263776Z",
+          "created_at": "2026-10-02T12:58:48.607253Z",
           "first_discovery_id": null,
-          "id": "30c505ec-1624-4134-aabd-5d9cfd84c9cb",
+          "id": "04f32d9e-cffa-4aef-912c-44426a5a9848",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-02T05:34:40.263776Z",
+          "last_seen_at": "2026-10-02T12:58:48.607253Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-02T05:34:40.263776Z",
-          "valid_from": "2026-10-02T05:34:40.263776Z",
+          "updated_at": "2026-10-02T12:58:48.607253Z",
+          "valid_from": "2026-10-02T12:58:48.607253Z",
           "valid_to": null
         }
       },
@@ -18814,7 +18814,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Oracle Database",
+              "service_definition": "Tuya Smart",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -19220,6 +19220,7 @@
               "hosts": {
                 "type": "integer",
                 "format": "int32",
+                "description": "Number of hosts it collected from.",
                 "minimum": 0
               },
               "type": {
@@ -19243,7 +19244,8 @@
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/SshScriptRun"
-                }
+                },
+                "description": "The script runs, one per host."
               },
               "type": {
                 "type": "string",
@@ -19266,7 +19268,8 @@
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/WakeOnLanResult"
-                }
+                },
+                "description": "The addresses woken or tried, one per address."
               },
               "type": {
                 "type": "string",
@@ -19278,6 +19281,7 @@
           },
           {
             "type": "object",
+            "title": "Unknown",
             "description": "An outcome from a newer daemon than this server.",
             "required": [
               "type"
@@ -19302,10 +19306,12 @@
         "properties": {
           "credential_id": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "description": "The credential these results belong to."
           },
           "outcome": {
-            "$ref": "#/components/schemas/CredentialRunOutcome"
+            "$ref": "#/components/schemas/CredentialRunOutcome",
+            "description": "What it did in this run."
           }
         }
       },
@@ -19751,6 +19757,7 @@
               "port": {
                 "type": "integer",
                 "format": "int32",
+                "description": "Port `sshd` listens on (default 22).",
                 "minimum": 0
               },
               "script": {
@@ -19763,6 +19770,7 @@
               "timeout_seconds": {
                 "type": "integer",
                 "format": "int32",
+                "description": "How long the script may run before the daemon closes the channel, in seconds (default 60).",
                 "minimum": 0
               },
               "type": {
@@ -19772,7 +19780,8 @@
                 ]
               },
               "username": {
-                "type": "string"
+                "type": "string",
+                "description": "User the daemon logs in as."
               }
             }
           },
@@ -19807,6 +19816,7 @@
               "port": {
                 "type": "integer",
                 "format": "int32",
+                "description": "Port `sshd` listens on (default 22).",
                 "minimum": 0
               },
               "private_key": {
@@ -19822,6 +19832,7 @@
               "timeout_seconds": {
                 "type": "integer",
                 "format": "int32",
+                "description": "How long the script may run before the daemon closes the channel, in seconds (default 60).",
                 "minimum": 0
               },
               "type": {
@@ -19831,7 +19842,8 @@
                 ]
               },
               "username": {
-                "type": "string"
+                "type": "string",
+                "description": "User the daemon logs in as."
               }
             }
           },
@@ -20821,21 +20833,24 @@
       },
       "DependentPlaceholder": {
         "type": "object",
-        "description": "A placeholder that applies while `field` holds `value`.",
+        "description": "A placeholder that applies while `depends_on` holds `value`.",
         "required": [
-          "field",
+          "depends_on",
           "value",
           "placeholder"
         ],
         "properties": {
-          "field": {
-            "type": "string"
+          "depends_on": {
+            "type": "string",
+            "description": "Id of the form field this placeholder depends on (or `daemon_os` for the credential's\nDaemon OS)."
           },
           "placeholder": {
-            "type": "string"
+            "type": "string",
+            "description": "Placeholder shown while it does."
           },
           "value": {
-            "type": "string"
+            "type": "string",
+            "description": "Value that field must hold for this placeholder to apply."
           }
         }
       },
@@ -24861,19 +24876,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-02T05:34:40.263017Z",
+                  "created_at": "2026-10-02T12:58:48.606534Z",
                   "first_discovery_id": null,
-                  "id": "991c3f93-464e-4881-9b13-82c3db59ac14",
+                  "id": "2f963f7e-b557-4c8a-8649-2928f804172b",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-02T05:34:40.263017Z",
+                  "last_seen_at": "2026-10-02T12:58:48.606534Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-02T05:34:40.263017Z",
-                  "valid_from": "2026-10-02T05:34:40.263017Z",
+                  "updated_at": "2026-10-02T12:58:48.606534Z",
+                  "valid_from": "2026-10-02T12:58:48.606534Z",
                   "valid_to": null
                 }
               ],
@@ -24887,7 +24902,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Oracle Database",
+              "service_definition": "Tuya Smart",
               "source": {
                 "type": "Manual"
               },
@@ -28584,19 +28599,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-02T05:34:40.257249Z",
+                        "created_at": "2026-10-02T12:58:48.600947Z",
                         "first_discovery_id": null,
-                        "id": "38a20e37-c83f-4918-b69e-b14efa537a6d",
+                        "id": "76cfc58c-b994-4256-967f-86b4e1d044cb",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-02T05:34:40.257249Z",
+                        "last_seen_at": "2026-10-02T12:58:48.600947Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-02T05:34:40.257249Z",
-                        "valid_from": "2026-10-02T05:34:40.257249Z",
+                        "updated_at": "2026-10-02T12:58:48.600947Z",
+                        "valid_from": "2026-10-02T12:58:48.600947Z",
                         "valid_to": null
                       }
                     ],
@@ -28610,7 +28625,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Oracle Database",
+                    "service_definition": "Tuya Smart",
                     "source": {
                       "type": "Manual"
                     },
@@ -28753,19 +28768,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-02T05:34:40.274416Z",
+                    "created_at": "2026-10-02T12:58:48.617490Z",
                     "first_discovery_id": null,
-                    "id": "94e3c18b-134b-4acc-a305-eb63cc1af447",
+                    "id": "413d83aa-6880-4218-8801-201800400655",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-02T05:34:40.274416Z",
+                    "last_seen_at": "2026-10-02T12:58:48.617490Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-02T05:34:40.274416Z",
-                    "valid_from": "2026-10-02T05:34:40.274416Z",
+                    "updated_at": "2026-10-02T12:58:48.617490Z",
+                    "valid_from": "2026-10-02T12:58:48.617490Z",
                     "valid_to": null
                   }
                 ],
@@ -28779,7 +28794,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Oracle Database",
+                "service_definition": "Tuya Smart",
                 "source": {
                   "type": "Manual"
                 },
@@ -30810,7 +30825,8 @@
                 ]
               },
               "value": {
-                "type": "string"
+                "type": "string",
+                "description": "The script text."
               }
             }
           }
@@ -30990,19 +31006,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-02T05:34:40.263669Z",
+              "created_at": "2026-10-02T12:58:48.607150Z",
               "first_discovery_id": null,
-              "id": "574e495e-1d2a-444f-b77d-c91705374a1d",
+              "id": "33616bbf-8225-4480-86d9-72fc3d5de4b7",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-02T05:34:40.263669Z",
+              "last_seen_at": "2026-10-02T12:58:48.607150Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-02T05:34:40.263669Z",
-              "valid_from": "2026-10-02T05:34:40.263669Z",
+              "updated_at": "2026-10-02T12:58:48.607150Z",
+              "valid_from": "2026-10-02T12:58:48.607150Z",
               "valid_to": null
             }
           ],
@@ -31016,7 +31032,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Oracle Database",
+          "service_definition": "Tuya Smart",
           "source": {
             "type": "Manual"
           },
@@ -32460,7 +32476,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "7c9f5718-f982-4811-aa86-41aa0ccbb641",
+                  "id": "b796c809-394a-4d87-8eb7-7b4ea0519c09",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -32470,23 +32486,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "b05b2de9-efa2-488f-b5d5-f9487fabb911",
+                  "id": "0ae8dd98-a5cb-4301-9691-f9010f395b5d",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "6f817d13-3b84-4d35-a80f-2e0e03df6900",
+                  "id": "25bd4e58-85eb-47c3-8a7e-83e1543a8bd0",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "d09da80b-e78b-4602-a7a6-c00fea18fe88",
+                  "id": "7fd49195-168f-4dd8-b2d5-f57a47c15e1c",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "b05b2de9-efa2-488f-b5d5-f9487fabb911",
+                  "id": "0ae8dd98-a5cb-4301-9691-f9010f395b5d",
                   "rule": "ByHost"
                 }
               ]
@@ -32516,19 +32532,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "fa8ca8e9-eaf0-4a30-ba55-3d907dc989e2",
+                "id": "59c26293-6e93-4165-951a-fa22641348ce",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "b1e44f6a-51d8-4392-ba70-6bd456b300a0",
+                "id": "3637cde1-74bb-495a-af0b-e83e7266d545",
                 "rule": "ByVLAN"
               },
               {
-                "id": "adf1055e-1d7f-4fca-8c5b-8072bd676379",
+                "id": "a3530de5-c657-4684-aa31-6810b29ccf49",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "9bfe550d-4254-4b2b-a666-4f046116df21",
+                "id": "43e42f80-0c52-45fe-8981-58d1c5ecf575",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -32546,7 +32562,7 @@
                 }
               },
               {
-                "id": "f925759e-114d-4e62-bbdb-2e0330b34e6d",
+                "id": "11a2e2ae-c496-4e50-8fe8-15ff719fbf78",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -32555,15 +32571,15 @@
                 }
               },
               {
-                "id": "e44f89f4-8ede-4dcf-8f6c-794c72b6bf20",
+                "id": "ba93ee9c-ace7-4864-aa63-604f5d9b8e09",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "922ec256-59fa-40a8-a6bc-ad81fb751e84",
+                "id": "ee1ac771-eb54-4f95-90de-4ca40d6460a3",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "cb0c9b48-b4e5-4e1a-9559-3d5c5750c9b4",
+                "id": "fd648d6a-8aa5-4637-bad7-c4cb27145be8",
                 "rule": "ByStack"
               }
             ]
@@ -33583,10 +33599,12 @@
         ],
         "properties": {
           "ip": {
-            "type": "string"
+            "type": "string",
+            "description": "The address the magic packets were sent for."
           },
           "woke": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the scan found the address after the packets went out."
           }
         }
       },

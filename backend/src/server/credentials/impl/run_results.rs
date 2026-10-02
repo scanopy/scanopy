@@ -16,7 +16,9 @@ use crate::server::credentials::r#impl::types::ssh_script::SshScriptRun;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
 pub struct CredentialRunResult {
+    /// The credential these results belong to.
     pub credential_id: Uuid,
+    /// What it did in this run.
     pub outcome: CredentialRunOutcome,
 }
 
@@ -25,14 +27,24 @@ pub struct CredentialRunResult {
 pub enum CredentialRunOutcome {
     /// An integration that collects from a host: how many hosts it collected from.
     #[schema(title = "Collected")]
-    Collected { hosts: u32 },
+    Collected {
+        /// Number of hosts it collected from.
+        hosts: u32,
+    },
     /// One entry per host the script ran on.
     #[schema(title = "SshScript")]
-    SshScript { runs: Vec<SshScriptRun> },
+    SshScript {
+        /// The script runs, one per host.
+        runs: Vec<SshScriptRun>,
+    },
     /// One entry per address the daemon tried to wake.
     #[schema(title = "WakeOnLan")]
-    WakeOnLan { hosts: Vec<WakeOnLanResult> },
+    WakeOnLan {
+        /// The addresses woken or tried, one per address.
+        hosts: Vec<WakeOnLanResult>,
+    },
     /// An outcome from a newer daemon than this server.
+    #[schema(title = "Unknown")]
     #[serde(other)]
     Unknown,
 }
@@ -110,8 +122,10 @@ fn result_from_value(value: serde_json::Value) -> Option<CredentialRunResult> {
 /// Whether one address woke: whether the scan found it after the magic packets went out.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
 pub struct WakeOnLanResult {
+    /// The address the magic packets were sent for.
     #[schema(value_type = String)]
     pub ip: IpAddr,
+    /// Whether the scan found the address after the packets went out.
     pub woke: bool,
 }
 

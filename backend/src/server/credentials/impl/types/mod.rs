@@ -269,8 +269,10 @@ pub enum CredentialType {
     /// object whose keys (`SshScriptField`) fill existing host and interface fields.
     #[schema(title = "SshPassword")]
     SshPassword {
+        /// Port `sshd` listens on (default 22).
         #[serde(default = "default_ssh_port")]
         port: u16,
+        /// User the daemon logs in as.
         username: String,
         password: SecretValue,
         /// The scanned host's OS: decides how a host-file path is validated and the shell the
@@ -278,6 +280,7 @@ pub enum CredentialType {
         #[serde(default)]
         target_os: OsFamily,
         script: ScriptSource,
+        /// How long the script may run before the daemon closes the channel, in seconds (default 60).
         #[serde(default = "default_ssh_timeout_seconds")]
         timeout_seconds: u32,
         /// Require this host key (OpenSSH `SHA256:…` fingerprint). Blank ⇒ the daemon pins the
@@ -289,8 +292,10 @@ pub enum CredentialType {
     /// [`CredentialType::SshPassword`].
     #[schema(title = "SshKey")]
     SshKey {
+        /// Port `sshd` listens on (default 22).
         #[serde(default = "default_ssh_port")]
         port: u16,
+        /// User the daemon logs in as.
         username: String,
         private_key: SecretValue,
         #[serde(
@@ -304,6 +309,7 @@ pub enum CredentialType {
         #[serde(default)]
         target_os: OsFamily,
         script: ScriptSource,
+        /// How long the script may run before the daemon closes the channel, in seconds (default 60).
         #[serde(default = "default_ssh_timeout_seconds")]
         timeout_seconds: u32,
         /// Require this host key (OpenSSH `SHA256:…` fingerprint). Blank ⇒ trust on first use.

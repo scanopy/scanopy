@@ -83,11 +83,15 @@ pub struct FieldDefinition {
     pub file_name: Option<&'static str>,
 }
 
-/// A placeholder that applies while `field` holds `value`.
+/// A placeholder that applies while `depends_on` holds `value`.
 #[derive(Debug, Clone, Copy, Serialize, ToSchema)]
 pub struct DependentPlaceholder {
-    pub field: &'static str,
+    /// Id of the form field this placeholder depends on (or `daemon_os` for the credential's
+    /// Daemon OS).
+    pub depends_on: &'static str,
+    /// Value that field must hold for this placeholder to apply.
     pub value: &'static str,
+    /// Placeholder shown while it does.
     pub placeholder: &'static str,
 }
 

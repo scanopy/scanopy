@@ -4,12 +4,14 @@ import { resolvePlaceholder } from '$lib/features/credentials/utils/placeholders
 describe('resolvePlaceholder', () => {
 	const script = {
 		placeholder: '/usr/local/bin/inventory',
-		placeholder_by: [{ field: 'target_os', value: 'Windows', placeholder: 'C:\\inventory.ps1' }]
+		placeholder_by: [
+			{ depends_on: 'target_os', value: 'Windows', placeholder: 'C:\\inventory.ps1' }
+		]
 	};
 	const socket = {
 		placeholder: '/var/run/docker.sock',
 		placeholder_by: [
-			{ field: 'daemon_os', value: 'Windows', placeholder: '\\\\.\\pipe\\docker_engine' }
+			{ depends_on: 'daemon_os', value: 'Windows', placeholder: '\\\\.\\pipe\\docker_engine' }
 		]
 	};
 

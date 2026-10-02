@@ -21,7 +21,7 @@ interface TranslatableField {
 	placeholder?: string | null;
 	help_text?: string | null;
 	options?: { value: string; label: string }[] | null;
-	placeholder_by?: { field: string; value: string; placeholder: string }[] | null;
+	placeholder_by?: { depends_on: string; value: string; placeholder: string }[] | null;
 }
 
 /**
@@ -151,7 +151,7 @@ export function translateFieldDefinitions<F extends TranslatableField>(
 			placeholder_by: field.placeholder_by?.map((dependent) => ({
 				...dependent,
 				placeholder: resolveMeta(
-					`${prefix}_placeholderBy_${dependent.field}_${dependent.value}`,
+					`${prefix}_placeholderBy_${dependent.depends_on}_${dependent.value}`,
 					dependent.placeholder
 				)
 			}))

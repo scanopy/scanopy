@@ -9,7 +9,7 @@ export const DAEMON_OS_FIELD = 'daemon_os';
 
 interface PlaceholderField {
 	placeholder?: string | null;
-	placeholder_by?: { field: string; value: string; placeholder: string }[] | null;
+	placeholder_by?: { depends_on: string; value: string; placeholder: string }[] | null;
 }
 
 /**
@@ -26,7 +26,8 @@ export function resolvePlaceholder(
 ): string {
 	const match = field.placeholder_by?.find(
 		(dependent) =>
-			(dependent.field === DAEMON_OS_FIELD ? daemonOs : values[dependent.field]) === dependent.value
+			(dependent.depends_on === DAEMON_OS_FIELD ? daemonOs : values[dependent.depends_on]) ===
+			dependent.value
 	);
 	return match?.placeholder ?? field.placeholder ?? '';
 }

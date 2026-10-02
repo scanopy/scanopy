@@ -215,7 +215,7 @@ impl CredentialType {
             Self::DockerSocket { .. } => vec![socket_path_field(
                 "/var/run/docker.sock",
                 &[DependentPlaceholder {
-                    field: DAEMON_OS_FIELD,
+                    depends_on: DAEMON_OS_FIELD,
                     value: "Windows",
                     placeholder: r"\\.\pipe\docker_engine",
                 }],
@@ -224,7 +224,7 @@ impl CredentialType {
             Self::PodmanSocket { .. } => vec![socket_path_field(
                 "/run/podman/podman.sock",
                 &[DependentPlaceholder {
-                    field: DAEMON_OS_FIELD,
+                    depends_on: DAEMON_OS_FIELD,
                     value: "Windows",
                     placeholder: r"\\.\pipe\podman-machine-default",
                 }],
@@ -548,7 +548,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             // The file-on-scanned-host path, which is the default mode.
             placeholder: Some("/usr/local/bin/scanopy-inventory.sh"),
             placeholder_by: Some(&[DependentPlaceholder {
-                field: TARGET_OS_FIELD,
+                depends_on: TARGET_OS_FIELD,
                 value: "Windows",
                 placeholder: r"C:\Scanopy\scanopy-inventory.ps1",
             }]),
@@ -775,7 +775,7 @@ impl CredentialType {
             f.placeholder_by
                 .unwrap_or_default()
                 .iter()
-                .any(|d| d.field == id)
+                .any(|d| d.depends_on == id)
         };
         CredentialOsFields {
             daemon: fields

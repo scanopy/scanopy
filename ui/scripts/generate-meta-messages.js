@@ -109,7 +109,7 @@ export const COVERED_FIXTURES = [
  * @property {string} [placeholder]
  * @property {string} [help_text]
  * @property {{ value: string, label: string }[]} [options]
- * @property {{ field: string, value: string, placeholder: string }[] | null} [placeholder_by]
+ * @property {{ depends_on: string, value: string, placeholder: string }[] | null} [placeholder_by]
  */
 
 /**
@@ -130,7 +130,7 @@ function fieldMessages(prefix, field) {
 	if (field.placeholder) messages[`${prefix}_${field.id}_placeholder`] = field.placeholder;
 	for (const dependent of field.placeholder_by ?? []) {
 		if (dependent.placeholder) {
-			messages[`${prefix}_${field.id}_placeholderBy_${dependent.field}_${dependent.value}`] =
+			messages[`${prefix}_${field.id}_placeholderBy_${dependent.depends_on}_${dependent.value}`] =
 				dependent.placeholder;
 		}
 	}

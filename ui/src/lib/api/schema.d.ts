@@ -3467,19 +3467,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-02T05:34:40.220294Z",
+             *       "created_at": "2026-10-02T12:58:48.562150Z",
              *       "first_discovery_id": null,
-             *       "id": "93c74deb-5e7c-4547-a392-70275a9b34e6",
+             *       "id": "755b0dd3-8d4b-4aaf-9a1c-dd060a5cd9a1",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-02T05:34:40.220294Z",
+             *       "last_seen_at": "2026-10-02T12:58:48.562150Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-10-02T05:34:40.220294Z",
-             *       "valid_from": "2026-10-02T05:34:40.220294Z",
+             *       "updated_at": "2026-10-02T12:58:48.562150Z",
+             *       "valid_from": "2026-10-02T12:58:48.562150Z",
              *       "valid_to": null
              *     }
              */
@@ -4305,19 +4305,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-02T05:34:40.197465Z",
+             *               "created_at": "2026-10-02T12:58:48.538570Z",
              *               "first_discovery_id": null,
-             *               "id": "a106d605-2c5c-4a40-a65e-dbae04cfbc0b",
+             *               "id": "4ff0e77a-55a5-4160-862a-798374ca464e",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-02T05:34:40.197465Z",
+             *               "last_seen_at": "2026-10-02T12:58:48.538570Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-10-02T05:34:40.197465Z",
-             *               "valid_from": "2026-10-02T05:34:40.197465Z",
+             *               "updated_at": "2026-10-02T12:58:48.538570Z",
+             *               "valid_from": "2026-10-02T12:58:48.538570Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4331,7 +4331,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Oracle Database",
+             *           "service_definition": "Tuya Smart",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5244,19 +5244,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-02T05:34:40.215331Z",
+             *           "created_at": "2026-10-02T12:58:48.556453Z",
              *           "first_discovery_id": null,
-             *           "id": "1ea63bc7-c3aa-41b0-8aa8-67b0eca0eaed",
+             *           "id": "d4fd1f77-7253-4fcd-9cf8-83f7b88a9a02",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-02T05:34:40.215331Z",
+             *           "last_seen_at": "2026-10-02T12:58:48.556453Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-10-02T05:34:40.215331Z",
-             *           "valid_from": "2026-10-02T05:34:40.215331Z",
+             *           "updated_at": "2026-10-02T12:58:48.556453Z",
+             *           "valid_from": "2026-10-02T12:58:48.556453Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5270,7 +5270,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Oracle Database",
+             *       "service_definition": "Tuya Smart",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6344,19 +6344,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-02T05:34:40.198059Z",
+         *       "created_at": "2026-10-02T12:58:48.538996Z",
          *       "first_discovery_id": null,
-         *       "id": "3a88bd88-5788-4187-9615-ad69bbe72837",
+         *       "id": "18931ccd-18d8-4769-ae01-9df30227ad18",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-02T05:34:40.198059Z",
+         *       "last_seen_at": "2026-10-02T12:58:48.538996Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-10-02T05:34:40.198059Z",
-         *       "valid_from": "2026-10-02T05:34:40.198059Z",
+         *       "updated_at": "2026-10-02T12:58:48.538996Z",
+         *       "valid_from": "2026-10-02T12:58:48.538996Z",
          *       "valid_to": null
          *     }
          */
@@ -6684,7 +6684,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Oracle Database",
+         *           "service_definition": "Tuya Smart",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -6923,15 +6923,20 @@ export interface components {
         /** @enum {string} */
         CredentialQueryPayloadDiscriminants: "Snmp" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiController" | "InstantOn" | "Gnmi" | "Ssh" | "WakeOnLan" | "Unknown";
         CredentialRunOutcome: {
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description Number of hosts it collected from.
+             */
             hosts: number;
             /** @enum {string} */
             type: "Collected";
         } | {
+            /** @description The script runs, one per host. */
             runs: components["schemas"]["SshScriptRun"][];
             /** @enum {string} */
             type: "SshScript";
         } | {
+            /** @description The addresses woken or tried, one per address. */
             hosts: components["schemas"]["WakeOnLanResult"][];
             /** @enum {string} */
             type: "WakeOnLan";
@@ -6940,8 +6945,12 @@ export interface components {
             type: "Unknown";
         };
         CredentialRunResult: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The credential these results belong to.
+             */
             credential_id: string;
+            /** @description What it did in this run. */
             outcome: components["schemas"]["CredentialRunOutcome"];
         };
         /**
@@ -7082,7 +7091,10 @@ export interface components {
              */
             host_key_fingerprint?: string | null;
             password: components["schemas"]["SecretValue"];
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description Port `sshd` listens on (default 22).
+             */
             port?: number;
             script: components["schemas"]["ScriptSource"];
             /**
@@ -7090,16 +7102,23 @@ export interface components {
              *     script runs in.
              */
             target_os?: components["schemas"]["OsFamily"];
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description How long the script may run before the daemon closes the channel, in seconds (default 60).
+             */
             timeout_seconds?: number;
             /** @enum {string} */
             type: "SshPassword";
+            /** @description User the daemon logs in as. */
             username: string;
         } | {
             /** @description Require this host key (OpenSSH `SHA256:…` fingerprint). Blank ⇒ trust on first use. */
             host_key_fingerprint?: string | null;
             passphrase?: null | components["schemas"]["SecretValue"];
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description Port `sshd` listens on (default 22).
+             */
             port?: number;
             private_key: components["schemas"]["SecretValue"];
             script: components["schemas"]["ScriptSource"];
@@ -7108,10 +7127,14 @@ export interface components {
              *     script runs in.
              */
             target_os?: components["schemas"]["OsFamily"];
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description How long the script may run before the daemon closes the channel, in seconds (default 60).
+             */
             timeout_seconds?: number;
             /** @enum {string} */
             type: "SshKey";
+            /** @description User the daemon logs in as. */
             username: string;
         } | {
             /**
@@ -7614,10 +7637,16 @@ export interface components {
         DependencyOrderField: "created_at" | "name" | "dependency_type" | "updated_at" | "network_id";
         /** @enum {string} */
         DependencyType: "RequestPath" | "HubAndSpoke";
-        /** @description A placeholder that applies while `field` holds `value`. */
+        /** @description A placeholder that applies while `depends_on` holds `value`. */
         DependentPlaceholder: {
-            field: string;
+            /**
+             * @description Id of the form field this placeholder depends on (or `daemon_os` for the credential's
+             *     Daemon OS).
+             */
+            depends_on: string;
+            /** @description Placeholder shown while it does. */
             placeholder: string;
+            /** @description Value that field must hold for this placeholder to apply. */
             value: string;
         };
         /** @enum {string} */
@@ -9112,19 +9141,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-02T05:34:40.196844Z",
+         *               "created_at": "2026-10-02T12:58:48.538111Z",
          *               "first_discovery_id": null,
-         *               "id": "f69cc3ab-90fa-4f4b-88ff-affbc31997ef",
+         *               "id": "fd6159b4-b34f-4da3-b2dc-5c7a5c6fa7d4",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-02T05:34:40.196844Z",
+         *               "last_seen_at": "2026-10-02T12:58:48.538111Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-10-02T05:34:40.196844Z",
-         *               "valid_from": "2026-10-02T05:34:40.196844Z",
+         *               "updated_at": "2026-10-02T12:58:48.538111Z",
+         *               "valid_from": "2026-10-02T12:58:48.538111Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9138,7 +9167,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Oracle Database",
+         *           "service_definition": "Tuya Smart",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -12121,6 +12150,7 @@ export interface components {
         } | {
             /** @enum {string} */
             mode: "Inline";
+            /** @description The script text. */
             value: string;
         };
         /** @description Secret value that can be either inline content or a file path on the daemon host. */
@@ -12158,19 +12188,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-02T05:34:40.197884Z",
+         *           "created_at": "2026-10-02T12:58:48.538872Z",
          *           "first_discovery_id": null,
-         *           "id": "07696eb3-3c5b-4f45-a841-df87cba79277",
+         *           "id": "d755d9cf-9d34-4736-9a49-466bb018855f",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-02T05:34:40.197884Z",
+         *           "last_seen_at": "2026-10-02T12:58:48.538872Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-10-02T05:34:40.197884Z",
-         *           "valid_from": "2026-10-02T05:34:40.197884Z",
+         *           "updated_at": "2026-10-02T12:58:48.538872Z",
+         *           "valid_from": "2026-10-02T12:58:48.538872Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12184,7 +12214,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Oracle Database",
+         *       "service_definition": "Tuya Smart",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12942,7 +12972,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "82178b31-40cf-4ee3-9ce4-e3cc15e61c5e",
+             *           "id": "2ace4c98-2018-450f-8509-aef120243b43",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -12952,23 +12982,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "3bee292d-1472-4baf-886e-bf472ac26c8e",
+             *           "id": "a178580f-9a5d-4ee9-a0d7-300deba50d0a",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "b5c24bff-fdf2-4ddc-9125-9af24883e729",
+             *           "id": "62666c60-a387-49ee-b99d-eb1128bcb00e",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "7bbfcfb7-18a7-4714-9b3b-86360206b870",
+             *           "id": "8379a56d-c564-45f2-82bf-1fb1284696ec",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "3bee292d-1472-4baf-886e-bf472ac26c8e",
+             *           "id": "a178580f-9a5d-4ee9-a0d7-300deba50d0a",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -12981,19 +13011,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "c83c9a44-a464-4aec-a761-599a8502c4c1",
+             *         "id": "0911d61d-a33d-4277-9bd6-6ee84e722911",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "fb442d70-9d64-467c-89ba-a7fa5bd73ffe",
+             *         "id": "b0c6fbda-77bb-4408-9f2d-9ba9d1e69b2e",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "44579798-93b5-4b07-ada9-35c60da8285a",
+             *         "id": "e9186178-7c44-432d-8a7d-2f0e8a3977ee",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "dccbcb7c-c906-472b-a221-ffcbb7c45759",
+             *         "id": "f6ce9aa5-e5e0-4e6a-a1de-e1de24b7a7c7",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13011,7 +13041,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "62f73e1c-3d45-4625-b49e-20188d90fb25",
+             *         "id": "87a3af18-4aaf-444c-b41c-a1a2cbb8c82b",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13020,15 +13050,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "864045f9-4f34-4c05-8bad-5c45e1fa4a25",
+             *         "id": "27292996-d771-44dd-8aae-059de039895e",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "f09b04b3-a77f-4e53-908f-c699463c3b38",
+             *         "id": "d17e36ce-a6e3-4eed-bc47-a32dfc7fa023",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "7f84ae92-3442-4686-9cba-0abac604e5eb",
+             *         "id": "4191a4ed-7a0a-4651-aa5c-3ac2d82aff16",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -13549,7 +13579,9 @@ export interface components {
         VlanOrderField: "created_at" | "name" | "vlan_number" | "updated_at";
         /** @description Whether one address woke: whether the scan found it after the magic packets went out. */
         WakeOnLanResult: {
+            /** @description The address the magic packets were sent for. */
             ip: string;
+            /** @description Whether the scan found the address after the packets went out. */
             woke: boolean;
         };
         /** @enum {string} */

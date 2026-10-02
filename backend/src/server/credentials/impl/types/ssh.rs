@@ -110,7 +110,10 @@ pub enum ScriptSource {
     DaemonFile { path: DaemonPath },
     /// The script text, stored on the credential.
     #[schema(title = "Inline")]
-    Inline { value: String },
+    Inline {
+        /// The script text.
+        value: String,
+    },
 }
 
 impl Default for ScriptSource {
