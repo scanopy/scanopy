@@ -124,7 +124,7 @@
 	"billing_payByCard": "Pay by card or bank account instead",
 	"billing_payByInvoice": "Pay by invoice",
 	"billing_paymentMethodAdded": "Payment method added.",
-	"billing_paymentMethodFinalizeFailed": "Your card was accepted, but we couldn't finish saving it.",
+	"billing_paymentMethodFinalizeFailed": "Your card was accepted, but we couldn't finish saving it. Select Try again.",
 	"billing_perHostMonthly": "+${amount} / host / mo",
 	"billing_perNetworkMonthly": "+${amount} / network / mo",
 	"billing_perSeatMonthly": "+${amount} / seat / mo",
