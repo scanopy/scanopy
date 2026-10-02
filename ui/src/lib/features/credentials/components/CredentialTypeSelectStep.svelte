@@ -39,7 +39,6 @@
 </script>
 
 <script lang="ts">
-	import { untrack } from 'svelte';
 	import { ChevronDown, ChevronRight } from 'lucide-svelte';
 	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
@@ -48,7 +47,8 @@
 	import {
 		groupIntegrationsByCategory,
 		groupTypesByIntegration,
-		initiallyExpandedIntegrationIds,
+		isIntegrationExpanded,
+		selectedIntegrationCount,
 		selectedTypeCount
 	} from '$lib/features/credentials/utils/integrationPicker';
 	import {
@@ -95,17 +95,19 @@
 
 	let checkedTypeIds = $derived([...new Set([...selectedTypeIds, ...forceCheckedTypeIds])]);
 
-	// Rows holding a selection on open start expanded, so a preselected type is visible.
-	// After that, expansion is the user's alone.
-	let expandedIds = $state<string[]>(
-		untrack(() => initiallyExpandedIntegrationIds(groups, checkedTypeIds))
-	);
+	// Only the user's explicit toggles are stored; an untouched row is expanded while it holds a
+	// selection (see isIntegrationExpanded), so preselected types show whenever they arrive.
+	let userExpanded = $state<Record<string, boolean>>({});
 
-	function toggleExpanded(id: string) {
-		expandedIds = expandedIds.includes(id)
-			? expandedIds.filter((x) => x !== id)
-			: [...expandedIds, id];
+	function isExpanded(group: Group): boolean {
+		return isIntegrationExpanded(group, checkedTypeIds, userExpanded[group.integration.id]);
 	}
+
+	function toggleExpanded(group: Group) {
+		userExpanded = { ...userExpanded, [group.integration.id]: !isExpanded(group) };
+	}
+
+	let integrationCount = $derived(selectedIntegrationCount(groups, checkedTypeIds));
 
 	function isLocked(id: string): boolean {
 		return lockedTypeIds.includes(id);
@@ -147,24 +149,22 @@
 	}
 </script>
 
-<!-- A selectable type: a native checkbox and the type's display, the same checkbox the entity
-     cards and tables use. The wrapper carries the tooltip so a disabled (locked or
-     version-incompatible) type still shows the reason on hover. -->
+<!-- A selectable type: the type's display with a native checkbox on the right, the same checkbox
+     the entity cards and tables use. A transport row (under an integration) takes RichSelect's
+     option-row hover so the whole row reads as clickable without becoming a card. The wrapper
+     carries the tooltip so a disabled (locked or version-incompatible) type still shows the
+     reason on hover. -->
 {#snippet typeOption(type: CredType, singleTypeGroup: Group | null)}
 	{@const locked = isDisabled(type)}
+	{@const transportRow = singleTypeGroup === null}
 	<span class="block" data-tooltip={disabledReason(type)} use:tooltip>
 		<label
-			class="flex w-full items-center gap-3 {locked
+			class="flex w-full items-center gap-3 {transportRow ? 'rounded-md px-3 py-3' : ''} {locked
 				? 'cursor-not-allowed opacity-60'
-				: 'cursor-pointer'}"
+				: transportRow
+					? 'select-option cursor-pointer'
+					: 'cursor-pointer'}"
 		>
-			<input
-				type="checkbox"
-				class="checkbox-card h-4 w-4 flex-shrink-0"
-				checked={checkedTypeIds.includes(type.id)}
-				disabled={locked}
-				onchange={() => toggleType(type)}
-			/>
 			<div class="min-w-0 flex-1">
 				{#if singleTypeGroup}
 					<ListSelectItem
@@ -182,12 +182,28 @@
 					/>
 				{/if}
 			</div>
+			<input
+				type="checkbox"
+				class="checkbox-card h-4 w-4 flex-shrink-0"
+				checked={checkedTypeIds.includes(type.id)}
+				disabled={locked}
+				onchange={() => toggleType(type)}
+			/>
 		</label>
 	</span>
 {/snippet}
 
 <div class="flex min-h-0 flex-1 flex-col overflow-auto p-4 sm:p-6">
-	<p class="text-secondary mb-4 text-sm">{daemons_integrationsSubtitle()}</p>
+	<div class="mb-4 flex items-start gap-3">
+		<p class="text-secondary flex-1 text-sm">{daemons_integrationsSubtitle()}</p>
+		{#if integrationCount > 0}
+			<Tag
+				label={credentials_integrationSelectedCount({ count: integrationCount })}
+				color="Blue"
+				pill
+			/>
+		{/if}
+	</div>
 
 	<div class="flex flex-col gap-6">
 		{#each sections as section (section.category)}
@@ -201,11 +217,11 @@
 							<!-- A single-type integration has nothing to expand: the row is the type. -->
 							{@render typeOption(group.types[0], group)}
 						{:else}
-							{@const expanded = expandedIds.includes(group.integration.id)}
+							{@const expanded = isExpanded(group)}
 							{@const count = selectedTypeCount(group, checkedTypeIds)}
 							<button
 								type="button"
-								onclick={() => toggleExpanded(group.integration.id)}
+								onclick={() => toggleExpanded(group)}
 								aria-expanded={expanded}
 								class="flex w-full items-center gap-3 text-left"
 							>
@@ -228,7 +244,7 @@
 							</button>
 
 							{#if expanded}
-								<div class="card-divider-h mt-3 flex flex-col gap-3 pt-3">
+								<div class="card-divider-h mt-3 flex flex-col gap-1 pt-2">
 									{#each group.types as type (type.id)}
 										{@render typeOption(type, null)}
 									{/each}

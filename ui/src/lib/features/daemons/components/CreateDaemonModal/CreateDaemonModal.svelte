@@ -726,7 +726,7 @@
 	{isOpen}
 	{title}
 	{name}
-	size="full"
+	size="max"
 	fixedHeight={true}
 	onClose={handleOnClose}
 	onOpen={handleOpen}

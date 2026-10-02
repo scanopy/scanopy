@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
 	groupIntegrationsByCategory,
 	groupTypesByIntegration,
-	initiallyExpandedIntegrationIds,
+	isIntegrationExpanded,
+	selectedIntegrationCount,
 	selectedTypeCount,
 	type PickerType
 } from '$lib/features/credentials/utils/integrationPicker';
@@ -67,18 +68,33 @@ describe('selectedTypeCount', () => {
 	});
 });
 
-describe('initiallyExpandedIntegrationIds', () => {
-	it('expands a multi-type integration holding a selection', () => {
-		const ids = initiallyExpandedIntegrationIds(groups, [multiGroup.types[0].id]);
-		expect(ids).toEqual([multiGroup.integration.id]);
+describe('isIntegrationExpanded', () => {
+	const selected = [multiGroup.types[0].id];
+
+	it('expands an untouched multi-type integration holding a selection', () => {
+		expect(isIntegrationExpanded(multiGroup, selected, undefined)).toBe(true);
 	});
 
-	it('never expands a single-type integration, even when selected', () => {
-		expect(initiallyExpandedIntegrationIds(groups, [singleGroup.types[0].id])).toEqual([]);
+	it('keeps an untouched integration with no selection collapsed', () => {
+		expect(isIntegrationExpanded(multiGroup, [], undefined)).toBe(false);
 	});
 
-	it('starts everything collapsed with nothing selected', () => {
-		expect(initiallyExpandedIntegrationIds(groups, [])).toEqual([]);
+	it('lets the user collapse a row holding a selection, and expand an empty one', () => {
+		expect(isIntegrationExpanded(multiGroup, selected, false)).toBe(false);
+		expect(isIntegrationExpanded(multiGroup, [], true)).toBe(true);
+	});
+
+	it('never expands a single-type integration', () => {
+		expect(isIntegrationExpanded(singleGroup, [singleGroup.types[0].id], true)).toBe(false);
+	});
+});
+
+describe('selectedIntegrationCount', () => {
+	it('counts integrations, not types', () => {
+		const allOfOne = multiGroup.types.map((t) => t.id);
+		expect(selectedIntegrationCount(groups, allOfOne)).toBe(1);
+		expect(selectedIntegrationCount(groups, [...allOfOne, singleGroup.types[0].id])).toBe(2);
+		expect(selectedIntegrationCount(groups, [])).toBe(0);
 	});
 });
 
