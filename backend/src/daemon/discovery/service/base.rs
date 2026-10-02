@@ -32,7 +32,7 @@ pub struct DiscoveryRunner {
     pub manager: Arc<DaemonDiscoverySessionManager>,
     /// The type this run was dispatched as, echoed back verbatim on every
     /// progress update. Kept whole rather than reconstructed, so the server's
-    /// stored session keeps the kind it started with.
+    /// stored session keeps the type it started with.
     pub discovery_type: DiscoveryType,
     pub host_id: Uuid,
     pub subnet_ids: Option<Vec<Uuid>>,

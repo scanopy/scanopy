@@ -6,7 +6,7 @@ use crate::server::services::r#impl::patterns::{InstantOnDeviceType, Pattern};
 /// An Instant On switch — 1830, 1930 or 1960, standalone or stacked.
 ///
 /// `STACK` matches here too: the portal presents a stack as one device with one management IP, so
-/// it is one host wearing the switch label, not a separate kind of thing.
+/// it is one host wearing the switch label, not a separate type of thing.
 #[derive(Default, Clone, Eq, PartialEq, Hash)]
 pub struct InstantOnSwitch;
 

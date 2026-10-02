@@ -201,16 +201,16 @@ function resolveContainerTags(
 // Dependencies are a Services/Bindings concept; L2 Interface elements and non-Host
 // containers (Subnet, Application) are filtered out at resolution time.
 export type DependencyTarget =
-	| { kind: 'service'; serviceId: string; elementId: string; label: string; hostName: string }
+	| { type: 'service'; serviceId: string; elementId: string; label: string; hostName: string }
 	| {
-			kind: 'host';
+			type: 'host';
 			hostId: string;
 			candidateServiceIds: string[];
 			elementId: string;
 			label: string;
 	  }
 	| {
-			kind: 'ipAddress';
+			type: 'ipAddress';
 			hostId: string;
 			ipAddressId: string;
 			candidateServiceIds: string[];
@@ -252,7 +252,7 @@ export function resolveDependencyTargets(
 				.filter((s) => s.host_id === entityId)
 				.map((s) => s.id);
 			targets.push({
-				kind: 'host',
+				type: 'host',
 				hostId: entityId,
 				candidateServiceIds,
 				elementId: node.id,
@@ -272,7 +272,7 @@ export function resolveDependencyTargets(
 			if (!service) continue;
 			const host = topology.hosts.find((h) => h.id === service.host_id);
 			targets.push({
-				kind: 'service',
+				type: 'service',
 				serviceId: node.id,
 				elementId: node.id,
 				label: service.name,
@@ -290,7 +290,7 @@ export function resolveDependencyTargets(
 				.filter((s) => s.host_id === hostId)
 				.map((s) => s.id);
 			targets.push({
-				kind: 'host',
+				type: 'host',
 				hostId,
 				candidateServiceIds,
 				elementId: node.id,
@@ -308,7 +308,7 @@ export function resolveDependencyTargets(
 					resolved.ipAddress.ip_address
 				: resolved.ipAddressId;
 			targets.push({
-				kind: 'ipAddress',
+				type: 'ipAddress',
 				hostId: resolved.hostId,
 				ipAddressId: resolved.ipAddressId,
 				candidateServiceIds,

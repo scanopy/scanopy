@@ -165,7 +165,7 @@ impl ServiceDefinition for Box<dyn ServiceDefinition> {
 // Helper methods to be used in rest of codebase, not overridable by definition implementations
 /// The virtualization role a manager service definition plays, paired with the
 /// backing `HostVirtualization` / `ServiceVirtualization` enum variant it
-/// produces. The variant strings (kind + serde tag) are derived from the actual
+/// produces. The variant strings (type + serde tag) are derived from the actual
 /// enum discriminants, so they cannot drift from the persisted/deserialized
 /// variants.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, IntoStaticStr)]
@@ -237,7 +237,7 @@ impl ServiceDefinitionExt for Box<dyn ServiceDefinition> {
 
     /// Single source of truth mapping a manager service definition to the
     /// virtualization role + backing enum variant it produces. The "vms"/
-    /// "containers" kind and the serde variant tag are both derived from this
+    /// "containers" type and the serde variant tag are both derived from this
     /// (see `VirtualizationRole`), so they cannot drift apart or from the enums.
     fn virtualization_role(&self) -> Option<VirtualizationRole> {
         let id = self.id();
@@ -413,7 +413,7 @@ mod tests {
 
     #[test]
     fn virtualization_managers_declare_role_and_variant() {
-        // (service id, kind == "vms"/"containers", variant serde tag)
+        // (service id, role type == "vms"/"containers", variant serde tag)
         let cases = [
             ("Proxmox VE", "vms", "Proxmox"),
             ("vCenter", "vms", "VCenter"),
@@ -421,13 +421,13 @@ mod tests {
             ("Docker", "containers", "Docker"),
             ("Podman", "containers", "Podman"),
         ];
-        for (id, kind, variant) in cases {
+        for (id, role_type, variant) in cases {
             let def = ServiceDefinitionRegistry::find_by_id(id)
                 .unwrap_or_else(|| panic!("{id} not registered"));
             let role = def
                 .virtualization_role()
                 .unwrap_or_else(|| panic!("{id} should declare a virtualization role"));
-            assert_eq!(<&'static str>::from(&role), kind, "{id} kind");
+            assert_eq!(<&'static str>::from(&role), role_type, "{id} role type");
             assert_eq!(role.variant_tag(), variant, "{id} variant");
         }
     }

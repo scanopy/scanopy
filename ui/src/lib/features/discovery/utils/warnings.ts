@@ -450,7 +450,7 @@ function attemptParams(
  * host whose name has not loaded yet, or one deleted since the scan, then reads exactly as it did
  * before names were resolved at all.
  *
- * The address is the segment that says which kind of gap this is. A far end that published one and
+ * The address is the segment that says which type of gap this is. A far end that published one and
  * still matched nothing is a device on a range this network has not scanned, which an operator can
  * act on; one that published none cannot be placed however much gets scanned. Reading the two apart
  * used to cost a round trip to whoever reported the scan.

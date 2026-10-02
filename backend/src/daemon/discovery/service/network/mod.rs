@@ -243,7 +243,7 @@ pub(super) enum LivenessEvidence {
 }
 
 impl LivenessEvidence {
-    /// The MAC, when the evidence was the kind that carries one.
+    /// The MAC, when the evidence was the type that carries one.
     pub(super) fn mac(&self) -> Option<MacAddress> {
         match self {
             Self::Arp(mac) => Some(*mac),

@@ -32,7 +32,7 @@ use crate::server::{
             DaemonStartupRequest, LegacyCapabilities, ServerCapabilities,
         },
         base::{Daemon, DaemonMode},
-        install_artifacts::{InstallCommandKind, WINDOWS_MSI_URL},
+        install_artifacts::{InstallCommandType, WINDOWS_MSI_URL},
         version::DaemonVersionPolicy,
     },
     shared::{
@@ -219,7 +219,7 @@ async fn update_daemon(
 #[derive(Deserialize, Debug, Clone, IntoParams)]
 pub struct InstallCommandQuery {
     /// `install` (with the api-key placeholder) or `reconfigure` (credential-free).
-    pub purpose: InstallCommandKind,
+    pub purpose: InstallCommandType,
     /// Log verbosity the daemon should run at (e.g. `info`, `debug`).
     pub log_level: Option<String>,
     /// Path the daemon should write its log file to.

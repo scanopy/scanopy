@@ -806,7 +806,7 @@ impl BillingService {
     /// which is enough for a customer who was only past due. A lapsed one also
     /// needs its plan back and a subscription to renew on, and the date is
     /// wrong for anyone who settled after the term had run out. `None` for
-    /// every other kind of payment.
+    /// every other type of payment.
     async fn prepare_license_resume(
         &self,
         organization: &Organization,

@@ -749,7 +749,7 @@ impl DiscoveryOps {
             .load(std::sync::atomic::Ordering::Relaxed);
 
         // Non-fatal findings accumulated during the run (e.g. hit the time limit), plus one coded
-        // warning per occurrence for each kind that fires per host — see
+        // warning per occurrence for each type that fires per host — see
         // `crate::daemon::discovery::service::warnings` for why those are recorded typed and coded
         // here rather than pushed as sentences when they happen.
         let mut warnings = session
@@ -1025,7 +1025,7 @@ impl DiscoveryOps {
         }
     }
 
-    /// Apply `f` to a credential's run outcome, creating the empty outcome for its kind first.
+    /// Apply `f` to a credential's run outcome, creating the empty outcome for its type first.
     async fn with_credential_result(
         &self,
         credential_id: uuid::Uuid,
@@ -1718,7 +1718,7 @@ pub enum DiscoveryAbort {
 /// The terminal update a run reports, from how it ended.
 ///
 /// A watchdog abort is a failure with its own reason whatever the session's token says: the
-/// session may well have been cancelled first and never reacted, which is the kind of wedge the
+/// session may well have been cancelled first and never reacted, which is the wedge the
 /// watchdog exists for.
 fn terminal_update(
     result: &Result<(), Error>,
@@ -1952,7 +1952,7 @@ mod tests {
 
     /// The positive control for the attribute path: what an integration read reaches the host.
     ///
-    /// Worth pinning on its own because the failure it guards against is different in kind from
+    /// Worth pinning on its own because the failure it guards against is a different type from
     /// the one below — a scan that stops delivering a model at all is not the same bug as one
     /// that delivers the wrong source's model.
     #[test]

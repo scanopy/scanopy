@@ -72,7 +72,7 @@ describe('computeCollapsedForLevel — scale collapse', () => {
 	// manual ladder has to agree, or the first Collapse press expands the graph
 	// instead of densifying it and the level indicator stops describing what is
 	// drawn. Two hosts' worth of containers, padded past the threshold.
-	// Includes one of each kind the ladder distinguishes — a plain root, a
+	// Includes one of each type the ladder distinguishes — a plain root, a
 	// subcontainer, and a collapsed-by-default root — so the four levels are
 	// genuinely distinguishable. Without the last one, levels 3 and 4 coincide
 	// for want of anything to auto-collapse, which is a property of the fixture

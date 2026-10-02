@@ -122,7 +122,7 @@ pub struct SubnetBase {
     #[serde(deserialize_with = "deserialize_empty_string_as_none")]
     #[validate(length(min = 0, max = 500))]
     pub description: Option<String>,
-    /// What kind of subnet this is — physical, virtual, container bridge, and so on.
+    /// What type of subnet this is — physical, virtual, container bridge, and so on.
     pub subnet_type: SubnetType,
     /// The container runtime service that owns this bridge network.
     ///

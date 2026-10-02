@@ -283,8 +283,8 @@ impl DaemonApiClient {
             };
         }
 
-        // rustls rejects the certificate inside an `io::Error` of kind InvalidData, which the
-        // io-kind match below would report as a DNS/network failure.
+        // rustls rejects the certificate inside an `io::Error` with `ErrorKind::InvalidData`, which the
+        // `ErrorKind` match below would report as a DNS/network failure.
         if is_untrusted_certificate(err) {
             return ConnectionError::Tls {
                 url: url.to_string(),

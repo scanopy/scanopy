@@ -696,7 +696,7 @@ pub async fn execute_integrations(
 /// credential probed over the daemon's own loopback address earns an assignment
 /// on the daemon host and so keeps scanning containers on every later scan.
 ///
-/// Two kinds are deliberately excluded:
+/// Two types are deliberately excluded:
 /// - **SNMP**, which records its own assignments in `SnmpIntegration::execute`.
 /// - **Network defaults** (`None` id), which are network-wide by definition and
 ///   must not be pinned to whichever host happened to answer them.
@@ -839,7 +839,7 @@ mod tests {
         assert_eq!(assignments[0].ip_address_ids, Some(vec![loopback_ip_id]));
     }
 
-    /// Two kinds must never be promoted here: SNMP records its own assignments inside
+    /// Two types must never be promoted here: SNMP records its own assignments inside
     /// `SnmpIntegration::execute`, and a network default (`None` id) is network-wide by
     /// definition — pinning it to whichever host answered would turn a broadcast credential
     /// into a host-scoped one.

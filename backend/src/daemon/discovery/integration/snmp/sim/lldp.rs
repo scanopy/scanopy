@@ -736,7 +736,7 @@ mod tests {
 
     /// GH #668: firmware that omits `lldpRemTimeMark` indexes on the remaining two sub-ids, so
     /// every row arrives one shorter. The shape that made a sixteen-port switch vanish without
-    /// raising a warning of any kind.
+    /// raising any warning.
     #[test]
     fn a_neighbour_indexed_without_a_time_mark_is_one_sub_id_shorter() {
         let rows = RemoteNeighbour::new(1, chassis(), port())

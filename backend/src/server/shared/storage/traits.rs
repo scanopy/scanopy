@@ -696,8 +696,8 @@ impl SqlValue {
     /// For each `SqlValue` variant, contribute the DB-backed enum variant
     /// names reachable through its wrapped type. Exhaustive match on
     /// `SqlValueDiscriminants` forces every variant to be covered.
-    fn dispatch_kind(
-        kind: SqlValueDiscriminants,
+    fn dispatch_type(
+        sql_type: SqlValueDiscriminants,
         out: &mut std::collections::BTreeMap<&'static str, Vec<String>>,
     ) {
         use crate::server::lldp::{LldpChassisId, LldpPortId};
@@ -705,7 +705,7 @@ impl SqlValue {
         use TopologyView;
         use Vlan;
 
-        match kind {
+        match sql_type {
             SqlValueDiscriminants::Uuid
             | SqlValueDiscriminants::OptionalUuid
             | SqlValueDiscriminants::UuidArray
@@ -790,8 +790,8 @@ impl SqlValue {
     pub fn collect_all_db_enum_variants() -> std::collections::BTreeMap<&'static str, Vec<String>> {
         use strum::IntoEnumIterator;
         let mut out = std::collections::BTreeMap::new();
-        for kind in SqlValueDiscriminants::iter() {
-            Self::dispatch_kind(kind, &mut out);
+        for sql_type in SqlValueDiscriminants::iter() {
+            Self::dispatch_type(sql_type, &mut out);
         }
         out
     }

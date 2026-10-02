@@ -154,7 +154,7 @@ impl MatchConfidence {
 /// The probe result (success/failure) is pre-computed; Pattern::ClientResponse
 /// just checks whether it succeeded.
 ///
-/// Two kinds of producer fill this: the credentialed `DiscoveryIntegration`s, and the
+/// Two types of producer fill this: the credentialed `DiscoveryIntegration`s, and the
 /// non-credentialed [`AppProbe`](crate::daemon::utils::app_probe::AppProbe)s. Every variant needs
 /// one — a variant nothing produces gives a service definition a pattern that can never match, and
 /// `every_client_probe_variant_has_a_producer` is what now says so.

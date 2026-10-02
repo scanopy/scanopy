@@ -19,7 +19,7 @@
 //!
 //! # What goes in `name`
 //!
-//! A host's title comes from two kinds of value, and each kind has one home:
+//! A host's title comes from two types of value, and each type has one home:
 //!
 //! - **Identifiers** are facts about the host with uses beyond naming it: its hostname, SNMP
 //!   sysName, chassis ID and addresses. Each has its own column with its own source, and none is
@@ -29,7 +29,7 @@
 //!   detected service (`ServiceMatch`), and a placeholder we cannot attribute (`Unspecified`). They
 //!   live in `name`, where source rank settles which one is kept.
 //!
-//! [`Host::name_ladder`](super::base::Host::name_ladder) is the only place the two kinds are
+//! [`Host::name_ladder`](super::base::Host::name_ladder) is the only place the two types are
 //! ordered against each other: a vouched-for name, then the identifiers, then a guessed name, then
 //! the address.
 

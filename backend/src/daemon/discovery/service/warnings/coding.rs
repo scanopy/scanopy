@@ -1,6 +1,6 @@
 //! Turning accumulated records into coded warnings.
 //!
-//! One function per record kind, and each is the same shape: decide which code this record is an
+//! One function per record type, and each is the same shape: decide which code this record is an
 //! instance of, then hand the rest of the record over as that occurrence's detail. What used to be
 //! a renderer's `match` over English sentences is now a `match` over codes — the arms are the
 //! same, which is where the codes came from.
