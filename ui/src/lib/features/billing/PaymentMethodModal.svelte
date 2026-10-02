@@ -20,7 +20,6 @@
 	import { waitForOrgUpdate } from '$lib/shared/billing/wait-for-org-update';
 	import { billingPlans } from '$lib/shared/stores/metadata';
 	import { pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
-	import { queryClient, queryKeys } from '$lib/api/query-client';
 	import {
 		apiFailure,
 		trackPaymentFormFailed,
@@ -170,9 +169,9 @@
 		}
 
 		closeAndReturn();
-		// Finalize has already recorded the card on the org, so one refetch
-		// clears the payment banners; no need to wait for the webhook.
-		await queryClient.invalidateQueries({ queryKey: queryKeys.organizations.current() });
+		// The finalize mutation has marked the cached org as having a card, so
+		// the banners clear now. No refetch here: until the webhook lands it would
+		// read the old value back.
 		pushSuccess(billing_paymentMethodAdded());
 	}
 
