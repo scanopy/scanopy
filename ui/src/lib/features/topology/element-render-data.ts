@@ -25,7 +25,7 @@ import type {
 	TopologyNode,
 	TopologyOptions
 } from './types/base';
-import { resolveElementNode } from './resolvers';
+import { elementEntity, resolveElementNode } from './resolvers';
 import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 import { getTopologyIndex } from './entity-index';
 import { entities, serviceDefinitions, views } from '$lib/shared/stores/metadata';
@@ -130,17 +130,7 @@ function resolveStaleTag(
 	resolved: ReturnType<typeof resolveElementNode>,
 	networks: Network[]
 ): ReturnType<typeof getFreshnessTag> {
-	// The entity this node actually depicts.
-	const entity =
-		resolved.elementType === 'Service'
-			? resolved.services[0]
-			: resolved.elementType === 'IPAddress'
-				? resolved.ipAddress
-				: resolved.elementType === 'Interface'
-					? resolved.snmpInterface
-					: resolved.host;
-
-	const subject = entity ?? resolved.host;
+	const subject = elementEntity(resolved);
 	if (!subject) return null;
 	return getFreshnessTag(
 		subject,
