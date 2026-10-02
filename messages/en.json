@@ -742,6 +742,7 @@
 	"daemons_installPromptSubnets": "Install a daemon to start discovering subnets on your network.",
 	"daemons_installPromptTopology": "Install a daemon to start mapping your network topology.",
 	"daemons_installPromptVlans": "Install a daemon to start discovering VLANs on your network.",
+	"daemons_installPromptViewer": "A member, admin, or owner of your organization can install one.",
 	"daemons_installReturnToCommands": "Return to install commands",
 	"daemons_integrationsSubtitle": "Select the integrations this daemon should use to gather deeper detail from your devices. You'll configure integrations on the next step.",
 	"daemons_interfacesWith": "Interfaces With",
