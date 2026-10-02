@@ -17766,6 +17766,13 @@
           },
           {
             "type": "string",
+            "description": "A container engine (Docker, Podman) reporting the machine it runs on, from its `info`\nendpoint: the host OS, its release and kernel. `Native` for the reason [`Self::ProfinetDcp`]\nis: the engine reads its own host, and that is what the answer means. A bare variant rather\nthan `Probe(Docker)`, which is the container listing; this is a different exchange.",
+            "enum": [
+              "ContainerRuntimeInfo"
+            ]
+          },
+          {
+            "type": "string",
             "description": "A script the operator wrote, run on the host over SSH, printed it. Queried: we chose the\nhost, authenticated to it and read the answer from its own shell. Human-authored, because\nthe operator chose what the script reports, which is what puts it above the machine values\nSNMP and LLDP emit about the same fields.",
             "enum": [
               "SshScript"

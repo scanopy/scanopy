@@ -797,7 +797,7 @@ pub(super) fn generate_hosts_and_services(
                 serial_number: None,
                 firmware_revision: None,
                 software_revision: None,
-                os: daemon_container_self_report(),
+                os: docker_engine_host_os(),
                 credential_assignments: docker_proxy_cred
                     .into_iter()
                     .map(|id| CredentialAssignment {
@@ -2120,7 +2120,7 @@ pub(super) fn generate_hosts_and_services(
                 serial_number: None,
                 firmware_revision: None,
                 software_revision: None,
-                os: daemon_container_self_report(),
+                os: docker_engine_host_os(),
                 credential_assignments: docker_proxy_cred
                     .into_iter()
                     .map(|id| CredentialAssignment {

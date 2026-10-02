@@ -1325,6 +1325,8 @@
 	"meta_attribute_sources_Authored_name": "{probe}, set by a person",
 	"meta_attribute_sources_CipVendorId_description": "Scanopy built this from the numeric vendor ID the device reported over CIP.",
 	"meta_attribute_sources_CipVendorId_name": "A CIP vendor ID",
+	"meta_attribute_sources_ContainerRuntimeInfo_description": "The Docker or Podman engine on this host reported the machine it runs on.",
+	"meta_attribute_sources_ContainerRuntimeInfo_name": "Container engine",
 	"meta_attribute_sources_DaemonSelfReport_description": "The Scanopy daemon running on this host read it locally.",
 	"meta_attribute_sources_DaemonSelfReport_name": "The daemon on this host",
 	"meta_attribute_sources_DnsSdDeviceInfoMatch_description": "Scanopy recognised this in the device-info record the host announced over mDNS.",

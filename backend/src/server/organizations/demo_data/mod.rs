@@ -912,21 +912,20 @@ mod tests {
     }
 }
 
-/// What a daemon in the published Docker image reports about the machine it runs on: the image's
-/// own OS (Debian 12, `debian:bookworm-slim`) and the host's kernel. A Docker integration reading
-/// the engine host would replace it with the host's OS.
-fn daemon_container_self_report()
--> Option<crate::server::hosts::r#impl::attributes::HostOsAttributed> {
+/// What the Docker engine on a demo Docker host reports about the machine it runs on. The daemon
+/// there runs in the published image and self-reports that image's OS (Debian 12); the Docker
+/// integration's engine reading replaces it by rank, so this is what a scan leaves on the host.
+fn docker_engine_host_os() -> Option<crate::server::hosts::r#impl::attributes::HostOsAttributed> {
     Some(Attributed::new(
         HostOsValue(HostOs {
             family: HostOsFamily::Linux,
-            name: Some("Debian".to_string()),
-            version: Some("12".to_string()),
+            name: Some("Ubuntu 24.04.1 LTS".to_string()),
+            version: None,
             edition: None,
-            codename: Some("bookworm".to_string()),
+            codename: None,
             kernel_version: Some("6.8.0-45-generic".to_string()),
         }),
-        AttributeSource::DaemonSelfReport,
+        AttributeSource::ContainerRuntimeInfo,
     ))
 }
 

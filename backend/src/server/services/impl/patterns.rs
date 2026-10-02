@@ -280,10 +280,10 @@ impl ClientProbe {
             // Same, over the device's own product protocol.
             Self::ModbusTcp | Self::EtherNetIp | Self::OpcUa => M::Native,
             // The presence probes: we chose the address and spoke the service's own protocol to
-            // it. None of them reads an identity field today — they establish that the protocol
-            // answered and nothing more — so this tier is not consulted for any value yet. It is
-            // still stated rather than defaulted, because the day one of them does parse a version
-            // banner into a `DeviceIdentity` the tier has to already be right.
+            // it. Most establish only that the protocol answered. SMB is the one that reads a value
+            // under this tier: the Windows release its NTLMSSP challenge states, which the server
+            // emits about itself. (The SSH banner's OS is filed as `SshBannerMatch`, because it is
+            // our match of a package tag rather than a field the server fills.)
             Self::Sip
             | Self::Ssh
             | Self::Ftp

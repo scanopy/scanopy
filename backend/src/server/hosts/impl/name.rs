@@ -197,6 +197,7 @@ pub fn is_identifier_copy(source: AttributeSource) -> bool {
         | S::DnsSdInstanceName
         | S::Authored(_)
         | S::ProfinetDcp
+        | S::ContainerRuntimeInfo
         | S::Manual
         | S::LldpNeighbourAddress
         | S::CipVendorId

@@ -196,6 +196,11 @@ pub enum AttributeSource {
     /// TCP/UDP port (`every_client_probe_variant_has_a_producer` enforces that every variant has an
     /// `AppProbe` producer), and DCP is raw Ethernet with no port at all.
     ProfinetDcp,
+    /// A container engine (Docker, Podman) reporting the machine it runs on, from its `info`
+    /// endpoint: the host OS, its release and kernel. `Native` for the reason [`Self::ProfinetDcp`]
+    /// is: the engine reads its own host, and that is what the answer means. A bare variant rather
+    /// than `Probe(Docker)`, which is the container listing; this is a different exchange.
+    ContainerRuntimeInfo,
     /// A script the operator wrote, run on the host over SSH, printed it. Queried: we chose the
     /// host, authenticated to it and read the answer from its own shell. Human-authored, because
     /// the operator chose what the script reports, which is what puts it above the machine values
@@ -242,7 +247,7 @@ impl AttributeSource {
             // The protocol is the device's own, not a generic transport a MIB approximates —
             // same reasoning as `ClientProbe::method()`'s `Native` arms, just not delegated (see
             // the variant's own doc comment for why).
-            Self::ProfinetDcp => M::Native,
+            Self::ProfinetDcp | Self::ContainerRuntimeInfo => M::Native,
 
             // Delegated, not because probes are special, but so that adding a probe forces the
             // tier decision at the probe's own definition instead of here — where it would be easy
@@ -277,6 +282,7 @@ impl AttributeSource {
             | Self::ArpReply
             | Self::DaemonSelfReport
             | Self::ProfinetDcp
+            | Self::ContainerRuntimeInfo
             | Self::Probe(_) => Authorship::Machine,
         }
     }
@@ -347,6 +353,9 @@ impl AttributeSource {
                 AttributeSourceDiscriminants::ArpReply => vec![Self::ArpReply],
                 AttributeSourceDiscriminants::DaemonSelfReport => vec![Self::DaemonSelfReport],
                 AttributeSourceDiscriminants::ProfinetDcp => vec![Self::ProfinetDcp],
+                AttributeSourceDiscriminants::ContainerRuntimeInfo => {
+                    vec![Self::ContainerRuntimeInfo]
+                }
                 AttributeSourceDiscriminants::SshScript => vec![Self::SshScript],
                 AttributeSourceDiscriminants::Manual => vec![Self::Manual],
             })
@@ -408,6 +417,7 @@ impl AttributeSource {
             AttributeSourceDiscriminants::ArpReply => Self::ArpReply,
             AttributeSourceDiscriminants::DaemonSelfReport => Self::DaemonSelfReport,
             AttributeSourceDiscriminants::ProfinetDcp => Self::ProfinetDcp,
+            AttributeSourceDiscriminants::ContainerRuntimeInfo => Self::ContainerRuntimeInfo,
             AttributeSourceDiscriminants::SshScript => Self::SshScript,
             AttributeSourceDiscriminants::Manual => Self::Manual,
         }
@@ -525,6 +535,7 @@ impl TypeMetadataProvider for AttributeSourceDiscriminants {
             Self::ArpReply => "ARP",
             Self::DaemonSelfReport => "The daemon on this host",
             Self::ProfinetDcp => "PROFINET DCP",
+            Self::ContainerRuntimeInfo => "Container engine",
             Self::SshScript => "SSH script",
             Self::Probe => "{probe}",
             Self::Authored => "{probe}, set by a person",
@@ -573,6 +584,9 @@ impl TypeMetadataProvider for AttributeSourceDiscriminants {
             Self::ArpReply => "The host answered an ARP request for its address.",
             Self::DaemonSelfReport => "The Scanopy daemon running on this host read it locally.",
             Self::ProfinetDcp => "The device answered a PROFINET DCP identify request.",
+            Self::ContainerRuntimeInfo => {
+                "The Docker or Podman engine on this host reported the machine it runs on."
+            }
             Self::SshScript => {
                 "A script you configured on an SSH credential ran on the host and printed this."
             }
