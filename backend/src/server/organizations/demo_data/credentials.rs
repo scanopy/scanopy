@@ -91,7 +91,7 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
                     // The default mode: the script is deployed to each server (by config management),
                     // and only its path is stored here.
                     script: ScriptSource::HostFile {
-                        path: "/usr/local/bin/scanopy-inventory".into(),
+                        path: "/usr/local/bin/scanopy-inventory.sh".into(),
                     },
                     timeout_seconds: 60,
                     host_key_fingerprint: None,

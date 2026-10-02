@@ -121,8 +121,9 @@
 		 *  for the OS first. Overrides the credential's own and hides the Daemon OS picker. */
 		fixedDaemonOs?: OsFamily | null;
 		/** Standard mode only: which half to show. `identity` is name, description and type;
-		 *  `fields` is the type's own fields. The other half stays mounted, hidden, so a caller
-		 *  stepping between them keeps every value and field mode. */
+		 *  `fields` is the type's own fields. The other half's fields unmount (so a step's
+		 *  validation reaches only what is on screen); this component stays mounted, so values and
+		 *  field modes survive stepping between them. */
 		section?: 'all' | 'identity' | 'fields';
 		/** Standard mode: what Enter does. A caller that steps through the form (the create flow)
 		 *  passes its Next; without one, Enter submits. */
@@ -963,71 +964,75 @@
 		}}
 		class="flex flex-col gap-4"
 	>
-		<!-- Standard mode: card wrapper for name/type, separate cards for fields -->
-		<div class="card card-static space-y-4 p-4" class:hidden={section === 'fields'}>
-			{#if showName}
-				<form.Field
-					name={nameFieldName}
-					validators={{
-						onBlur: ({ value }: { value: string }) => required(value) || max(100)(value),
-						onSubmit: ({ value }: { value: string }) => required(value) || max(100)(value)
-					}}
-				>
-					{#snippet children(field: AnyFieldApi)}
-						<TextInput
-							label={common_name()}
-							id="credential-name"
-							{field}
-							placeholder={credentials_namePlaceholderExample()}
-							required
-						/>
-					{/snippet}
-				</form.Field>
+		<!-- Standard mode: card wrapper for name/type, separate cards for fields. A caller showing one
+		     section unmounts the other's fields, so validation only reaches what is on screen; the
+		     values and modes live in this component and the form, and survive. -->
+		{#if section !== 'fields'}
+			<div class="card card-static space-y-4 p-4">
+				{#if showName}
+					<form.Field
+						name={nameFieldName}
+						validators={{
+							onBlur: ({ value }: { value: string }) => required(value) || max(100)(value),
+							onSubmit: ({ value }: { value: string }) => required(value) || max(100)(value)
+						}}
+					>
+						{#snippet children(field: AnyFieldApi)}
+							<TextInput
+								label={common_name()}
+								id="credential-name"
+								{field}
+								placeholder={credentials_namePlaceholderExample()}
+								required
+							/>
+						{/snippet}
+					</form.Field>
 
-				<form.Field
-					name="description"
-					validators={{
-						onBlur: ({ value }: { value: string | null }) => max(500)(value || '')
-					}}
-				>
-					{#snippet children(field: AnyFieldApi)}
-						<TextArea
-							label={common_description()}
-							id="credential-description"
-							{field}
-							placeholder={credentials_descriptionPlaceholder()}
-						/>
-					{/snippet}
-				</form.Field>
-			{/if}
+					<form.Field
+						name="description"
+						validators={{
+							onBlur: ({ value }: { value: string | null }) => max(500)(value || '')
+						}}
+					>
+						{#snippet children(field: AnyFieldApi)}
+							<TextArea
+								label={common_description()}
+								id="credential-description"
+								{field}
+								placeholder={credentials_descriptionPlaceholder()}
+							/>
+						{/snippet}
+					</form.Field>
+				{/if}
 
-			{#if showTypeSelector}
-				<div class="space-y-2">
-					<RichSelect
-						label={credentials_credentialType()}
-						selectedValue={selectedTypeId}
-						options={typeOptions}
-						displayComponent={CredentialTypeDisplay}
-						showSearch={true}
-						disabled={isEditing}
-						onSelect={handleTypeChange}
+				{#if showTypeSelector}
+					<div class="space-y-2">
+						<RichSelect
+							label={credentials_credentialType()}
+							selectedValue={selectedTypeId}
+							options={typeOptions}
+							displayComponent={CredentialTypeDisplay}
+							showSearch={true}
+							disabled={isEditing}
+							onSelect={handleTypeChange}
+						/>
+						{#if !isEditing}
+							<p class="text-muted mt-1 text-xs">{credentials_typeImmutableWarning()}</p>
+						{/if}
+					</div>
+				{/if}
+
+				{#if integrationDocsPath}
+					<DocsHint
+						text={credentials_docsIntegration()}
+						href={docsUrl(integrationDocsPath)}
+						linkText={credentials_docsIntegrationLinkText({ integration: integrationName })}
 					/>
-					{#if !isEditing}
-						<p class="text-muted mt-1 text-xs">{credentials_typeImmutableWarning()}</p>
-					{/if}
-				</div>
-			{/if}
+				{/if}
+			</div>
+		{/if}
 
-			{#if integrationDocsPath}
-				<DocsHint
-					text={credentials_docsIntegration()}
-					href={docsUrl(integrationDocsPath)}
-					linkText={credentials_docsIntegrationLinkText({ integration: integrationName })}
-				/>
-			{/if}
-		</div>
-
-		<div class="flex flex-col gap-4" class:hidden={section === 'identity'}>
+		{#if section !== 'identity'}
 			{#each fieldGroups as group (group.name ?? '_ungrouped')}
 				{#if group.name}
 					<InfoCard title={group.name}>
@@ -1039,7 +1044,7 @@
 					</div>
 				{/if}
 			{/each}
-		</div>
+		{/if}
 
 		<!-- Hidden submit button for Enter-to-submit -->
 		<button type="submit" class="hidden" aria-hidden="true" tabindex={-1}></button>

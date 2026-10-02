@@ -546,11 +546,11 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             label: "Script",
             field_type: FieldType::ScriptSource,
             // The file-on-scanned-host path, which is the default mode.
-            placeholder: Some("/usr/local/bin/scanopy-inventory"),
+            placeholder: Some("/usr/local/bin/scanopy-inventory.sh"),
             placeholder_by: Some(&[DependentPlaceholder {
                 field: TARGET_OS_FIELD,
                 value: "Windows",
-                placeholder: r"C:\Scanopy\inventory.ps1",
+                placeholder: r"C:\Scanopy\scanopy-inventory.ps1",
             }]),
             secret: false,
             optional: false,
@@ -561,7 +561,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             default_value: None,
             inline_format: None,
             group: Some("Script"),
-            file_name: Some("inventory.sh"),
+            file_name: Some("scanopy-inventory.sh"),
         },
         FieldDefinition {
             id: "timeout_seconds",
