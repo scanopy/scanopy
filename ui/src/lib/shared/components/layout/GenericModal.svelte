@@ -106,11 +106,9 @@
 	// sr-only below, since `aria-labelledby` points at it.
 	let hideTitleRow = $derived(banners != null && !showCloseButton);
 
-	// A stepper shares the title row, between the title and the close button, whenever that row
-	// shows a left-aligned title. Otherwise it keeps its own row below.
-	let inlineStepper = $derived(
-		tabs.length > 0 && tabStyle === 'stepper' && !hideTitleRow && !centerTitle
-	);
+	// Tabs and steppers share the title row, between the title and the close button, whenever
+	// that row shows a left-aligned title. Otherwise they keep their own row below.
+	let inlineTabs = $derived(tabs.length > 0 && !hideTitleRow && !centerTitle);
 
 	let showBackButton = $derived(
 		name != null && $modalState.name === name && $modalState.returnUrl != null
@@ -308,10 +306,10 @@
 			{/if}
 			<!-- Header (hidden when no title, no close button, and no tabs) -->
 			{#if title || showCloseButton || tabs.length > 0}
-				<div class="modal-header flex-col gap-0 {tabs.length > 0 && !inlineStepper ? 'pb-0' : ''}">
+				<div class="modal-header flex-col gap-0 {tabs.length > 0 && !inlineTabs ? 'pb-0' : ''}">
 					<!-- Title row -->
 					{#if !hideTitleRow}
-						<div class="flex w-full items-center justify-between {inlineStepper ? 'gap-6' : ''}">
+						<div class="flex w-full items-center justify-between {inlineTabs ? 'gap-6' : ''}">
 							{#if centerTitle}
 								{@render headerIcon?.()}
 								<h2
@@ -322,7 +320,7 @@
 								</h2>
 							{:else}
 								<div
-									class="flex min-w-0 items-center gap-3 {inlineStepper
+									class="flex min-w-0 items-center gap-3 {inlineTabs
 										? 'mr-4 max-w-[40%] shrink-0'
 										: ''}"
 								>
@@ -333,8 +331,8 @@
 								</div>
 							{/if}
 
-							{#if inlineStepper}
-								<ModalStepper {tabs} {activeTab} onTabClick={handleTabClick} inline />
+							{#if inlineTabs}
+								{@render tabNav(true)}
 							{/if}
 
 							{#if showCloseButton}
@@ -350,47 +348,57 @@
 						</div>
 					{/if}
 
-					<!-- Tab navigation (if tabs provided) -->
-					{#if inlineStepper}
-						<!-- Rendered in the title row above. -->
-					{:else if tabs.length > 0 && tabStyle === 'stepper'}
-						<ModalStepper {tabs} {activeTab} onTabClick={handleTabClick} />
-					{:else if tabs.length > 0}
-						<nav class="flex w-full space-x-6 pt-4" aria-label={common_modalTabs()}>
-							{#each tabs as tab (tab.id)}
-								<button
-									type="button"
-									onclick={() => !tab.disabled && handleTabClick(tab.id)}
-									class="border-b-2 px-1 pb-3 text-sm font-medium transition-colors
-									{tab.disabled
-										? 'text-muted cursor-not-allowed border-transparent opacity-50'
-										: activeTab === tab.id
-											? 'text-primary border-blue-500'
-											: 'text-muted hover:text-secondary border-transparent'}"
-									aria-current={activeTab === tab.id ? 'page' : undefined}
-									aria-disabled={tab.disabled ? 'true' : undefined}
-								>
-									<div class="flex items-center gap-2">
-										{#if tab.icon}
-											<span class="relative">
-												<tab.icon class="h-4 w-4" />
-												{#if tab.notification}
-													<span class="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-amber-500"
-													></span>
-												{/if}
-											</span>
-										{/if}
-										{tab.label}
-										{#if tab.count}
-											<Tag label={String(tab.count)} color={toColor('amber')} />
-										{/if}
-									</div>
-								</button>
-							{/each}
-						</nav>
+					<!-- Tab navigation on its own row, when the title row can't hold it -->
+					{#if tabs.length > 0 && !inlineTabs}
+						{@render tabNav(false)}
 					{/if}
 				</div>
 			{/if}
+
+			{#snippet tabNav(inline: boolean)}
+				{#if tabStyle === 'stepper'}
+					<ModalStepper {tabs} {activeTab} onTabClick={handleTabClick} {inline} />
+				{:else}
+					<nav
+						class={inline
+							? 'flex min-w-0 flex-1 items-center gap-6 overflow-x-auto'
+							: 'flex w-full space-x-6 pt-4'}
+						aria-label={common_modalTabs()}
+					>
+						{#each tabs as tab (tab.id)}
+							<button
+								type="button"
+								onclick={() => !tab.disabled && handleTabClick(tab.id)}
+								class="shrink-0 whitespace-nowrap border-b-2 px-1 text-sm font-medium transition-colors
+									{inline ? 'py-1' : 'pb-3'}
+									{tab.disabled
+									? 'text-muted cursor-not-allowed border-transparent opacity-50'
+									: activeTab === tab.id
+										? 'text-primary border-blue-500'
+										: 'text-muted hover:text-secondary border-transparent'}"
+								aria-current={activeTab === tab.id ? 'page' : undefined}
+								aria-disabled={tab.disabled ? 'true' : undefined}
+							>
+								<div class="flex items-center gap-2">
+									{#if tab.icon}
+										<span class="relative">
+											<tab.icon class="h-4 w-4" />
+											{#if tab.notification}
+												<span class="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-amber-500"
+												></span>
+											{/if}
+										</span>
+									{/if}
+									{tab.label}
+									{#if tab.count}
+										<Tag label={String(tab.count)} color={toColor('amber')} />
+									{/if}
+								</div>
+							</button>
+						{/each}
+					</nav>
+				{/if}
+			{/snippet}
 
 			<!-- Content slot -->
 			<div class="modal-content">
