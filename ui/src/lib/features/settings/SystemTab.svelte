@@ -22,6 +22,7 @@
 		common_theme,
 		common_timezone,
 		common_light,
+		common_license,
 		common_dark,
 		common_monday,
 		common_source,
@@ -40,6 +41,7 @@
 		settings_system_license,
 		settings_system_licenseLinkText,
 		settings_system_preview,
+		settings_system_recogAttribution,
 		settings_system_themeDesc,
 		settings_system_timeZoneBrowser,
 		settings_system_timestamps,
@@ -239,6 +241,11 @@
 			text={settings_system_tuxAttribution()}
 			href="https://commons.wikimedia.org/wiki/File:Tux.svg"
 			linkText={common_source()}
+		/>
+		<DocsHint
+			text={settings_system_recogAttribution()}
+			href="https://github.com/scanopy/scanopy/blob/main/THIRD_PARTY_NOTICES.md"
+			linkText={common_license()}
 		/>
 	</div>
 </div>
