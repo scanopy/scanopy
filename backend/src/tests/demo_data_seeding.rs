@@ -17,6 +17,7 @@ use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::hosts::r#impl::base::Host;
 use crate::server::organizations::demo_data::DemoData;
 use crate::server::organizations::demo_seed::insert_demo_data;
+use crate::server::organizations::handlers::DEMO_USER_ID;
 use crate::server::services::r#impl::base::Service;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::Storage;
@@ -232,4 +233,60 @@ async fn demo_seed_persists_every_virtualization_relationship() {
         declared.hosts.len(),
         declared.services.len()
     );
+}
+
+/// The two seeded rows that live outside the entity tables: daemon interfaced subnets (a junction
+/// heartbeats normally fill) and the demo login's user API key (written last, after the demo user
+/// exists). Both are read back through the paths the daemons page and API keys page use.
+#[tokio::test]
+async fn demo_seed_writes_daemon_subnets_and_the_demo_logins_api_key() {
+    let (storage, services, _container) = test_services().await;
+
+    let org = organization();
+    storage.organizations.create(&org).await.unwrap();
+    let owner = user(&org.id);
+    storage.users.create(&owner).await.unwrap();
+
+    let demo_data = DemoData::generate(org.id, owner.id);
+    let declared_subnets: HashMap<Uuid, HashSet<Uuid>> = demo_data
+        .daemon_interfaced_subnets
+        .iter()
+        .map(|(daemon_id, subnet_ids)| (*daemon_id, subnet_ids.iter().copied().collect()))
+        .collect();
+    assert!(!declared_subnets.is_empty());
+
+    insert_demo_data(
+        &services,
+        demo_data,
+        org.id,
+        owner.id,
+        AuthenticatedEntity::System,
+    )
+    .await
+    .expect("demo seeding succeeds");
+
+    for (daemon_id, expected) in &declared_subnets {
+        let persisted: HashSet<Uuid> = services
+            .daemon_service
+            .get_interfaced_subnet_ids(daemon_id)
+            .await
+            .into_iter()
+            .collect();
+        assert_eq!(
+            &persisted, expected,
+            "daemon {daemon_id} interfaced subnets"
+        );
+    }
+
+    let demo_login_keys = services
+        .user_api_key_service
+        .get_for_user(&DEMO_USER_ID)
+        .await
+        .unwrap();
+    assert_eq!(
+        demo_login_keys.len(),
+        1,
+        "the demo login should own the seeded user API key"
+    );
+    assert!(!demo_login_keys[0].base.network_ids.is_empty());
 }
