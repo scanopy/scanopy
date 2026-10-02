@@ -19,7 +19,8 @@
 	import type { IPAddress, Port } from '$lib/features/hosts/types/base';
 	import { tagNames } from '$lib/features/tags/columns';
 	import { networkItems } from '$lib/features/networks/columns';
-	import { entities } from '$lib/shared/stores/metadata';
+	import { entities, entitySources } from '$lib/shared/stores/metadata';
+	import { entitySourceItems } from '$lib/shared/utils/entity-source';
 	import { Trash2, Edit } from 'lucide-svelte';
 	import type { Service } from '../types/base';
 	import { matchConfidenceLabel } from '$lib/shared/types';
@@ -58,6 +59,7 @@
 		common_port,
 		common_position,
 		common_services,
+		common_source,
 		common_tags,
 		common_type,
 		common_unbound,
@@ -687,6 +689,18 @@
 						item.source.type == 'DiscoveryWithMatch'
 							? matchConfidenceLabel(item.source.details.confidence)
 							: services_notDiscovered()
+				},
+				{
+					key: 'source',
+					label: common_source(),
+					type: 'string',
+					// Not filterable: the services list filters server-side, and the server
+					// has no source filter for services.
+					getValue: (service) => entitySources.getName(service.source.type),
+					display: {
+						hiddenByDefault: true,
+						getItems: (service) => entitySourceItems(service.source)
+					}
 				},
 				{
 					key: 'port',

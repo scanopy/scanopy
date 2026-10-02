@@ -1,5 +1,11 @@
 <script lang="ts" generics="T">
-	import { ArrowUpNarrowWide, ArrowDownWideNarrow, ChevronDown, ChevronRight } from 'lucide-svelte';
+	import {
+		ArrowUpDown,
+		ArrowUpNarrowWide,
+		ArrowDownWideNarrow,
+		ChevronDown,
+		ChevronRight
+	} from 'lucide-svelte';
 	import { getCoreRowModel, type ColumnDef, type Row } from '@tanstack/table-core';
 	import { createSvelteTable } from './createSvelteTable.svelte';
 	import type { EntityColumn } from './columns';
@@ -204,15 +210,24 @@
 									type="button"
 									onclick={() => onToggleSort(column.id)}
 									aria-label={common_sortByColumn({ column: column.label })}
-									class="hover:text-primary inline-flex items-center gap-1 transition-colors"
+									class="hover:text-primary group inline-flex items-center gap-1 transition-colors"
 								>
 									<span>{column.label}</span>
+									<!--
+										Every sortable header carries an icon, so it reads as sortable
+										before anyone clicks it. A header without one cannot sort.
+									-->
 									{#if sortState.field === column.id}
 										{#if sortState.direction === 'asc'}
-											<ArrowUpNarrowWide class="h-3.5 w-3.5" aria-hidden="true" />
+											<ArrowUpNarrowWide class="text-accent h-3.5 w-3.5" aria-hidden="true" />
 										{:else}
-											<ArrowDownWideNarrow class="h-3.5 w-3.5" aria-hidden="true" />
+											<ArrowDownWideNarrow class="text-accent h-3.5 w-3.5" aria-hidden="true" />
 										{/if}
+									{:else}
+										<ArrowUpDown
+											class="text-tertiary group-hover:text-secondary group-focus-visible:text-secondary h-3.5 w-3.5"
+											aria-hidden="true"
+										/>
 									{/if}
 								</button>
 							{:else}

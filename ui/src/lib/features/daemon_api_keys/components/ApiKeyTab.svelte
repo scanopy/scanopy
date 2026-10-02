@@ -37,6 +37,7 @@
 		common_network,
 		common_noEntityYet,
 		common_tags,
+		common_updated,
 		common_unknownNetwork,
 		daemonApiKeys_title,
 		daemonApiKeys_provisionOnlyHint,
@@ -215,6 +216,13 @@
 			label: common_created(),
 			type: 'date',
 			sortable: true
+		},
+		{
+			key: 'updated_at',
+			label: common_updated(),
+			type: 'date',
+			sortable: true,
+			display: { hiddenByDefault: true }
 		}
 	];
 </script>

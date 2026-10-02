@@ -5,10 +5,17 @@ import {
 	defaultColumnOrder,
 	reconcileColumnState,
 	visibleColumns,
+	moveColumn,
+	moveColumnTo,
+	movableIds,
 	TAG_COLUMN_ID,
 	type ColumnState
 } from '$lib/shared/components/data/table/columns';
 import { defineFields, getFieldKey, type FieldConfig } from '$lib/shared/components/data/types';
+import {
+	parseStoredState,
+	serializeState
+} from '$lib/shared/components/data/controls/dataControlsStorage';
 
 interface Row {
 	name: string;
@@ -176,5 +183,111 @@ describe('visibleColumns', () => {
 		state.visibility.name = false;
 
 		expect(visibleColumns(columns, state).map((c) => c.id)).not.toContain('name');
+	});
+});
+
+describe('column reordering', () => {
+	// A trailing column alongside the primary one, so both pinned ends are exercised.
+	function reorderFields(): FieldConfig<Row, RowOrderField>[] {
+		return [
+			...fields(),
+			{ key: 'progress', label: 'Progress', type: 'string', display: { trailing: true } }
+		];
+	}
+
+	function setup(stored?: Partial<ColumnState>) {
+		const columns = fieldsToColumns(reorderFields());
+		return { columns, state: reconcileColumnState(columns, stored) };
+	}
+
+	it('keeps the primary column first and trailing columns last whatever was stored', () => {
+		// A hand-edited or older blob must not be able to unpin either end.
+		const { state } = setup({
+			visibility: {},
+			order: ['progress', 'network_id', 'name', 'description', 'labels', 'created_at']
+		});
+
+		expect(state.order[0]).toBe('name');
+		expect(state.order[state.order.length - 1]).toBe('progress');
+		expect(state.order.slice(1, -1)).toEqual(['network_id', 'description', 'labels', 'created_at']);
+	});
+
+	it('moves a column one step among the movable columns', () => {
+		const { columns, state } = setup();
+		const movable = movableIds(state.order, columns);
+
+		const down = moveColumn(state.order, columns, movable[0], 1);
+		expect(movableIds(down, columns).slice(0, 2)).toEqual([movable[1], movable[0]]);
+
+		const up = moveColumn(down, columns, movable[0], -1);
+		expect(up).toEqual(state.order);
+	});
+
+	it('leaves the order alone for a pinned column or a step past either end', () => {
+		const { columns, state } = setup();
+		const movable = movableIds(state.order, columns);
+
+		expect(moveColumn(state.order, columns, 'name', 1)).toBe(state.order);
+		expect(moveColumn(state.order, columns, 'progress', -1)).toBe(state.order);
+		expect(moveColumn(state.order, columns, movable[0], -1)).toBe(state.order);
+		expect(moveColumn(state.order, columns, movable[movable.length - 1], 1)).toBe(state.order);
+	});
+
+	it('drops a dragged column before or after its target', () => {
+		const { columns, state } = setup();
+
+		const after = moveColumnTo(state.order, columns, 'network_id', 'labels', 'after');
+		expect(after.indexOf('network_id')).toBe(after.indexOf('labels') + 1);
+
+		const before = moveColumnTo(after, columns, 'network_id', 'description', 'before');
+		expect(before.indexOf('network_id')).toBe(before.indexOf('description') - 1);
+	});
+
+	it('refuses a drag that involves a pinned column', () => {
+		// Dropping before the primary column would put a column on its far side.
+		const { columns, state } = setup();
+
+		expect(moveColumnTo(state.order, columns, 'network_id', 'name', 'before')).toBe(state.order);
+		expect(moveColumnTo(state.order, columns, 'progress', 'labels', 'before')).toBe(state.order);
+	});
+
+	it('places a new column after its default predecessor in a rearranged order', () => {
+		// The user moved created_at to the end; description is declared right after
+		// it, so it arrives beside created_at rather than at its default index.
+		const { columns } = setup();
+		const rearranged = ['name', 'network_id', 'labels', 'created_at', 'progress'];
+
+		const state = reconcileColumnState(columns, { visibility: {}, order: rearranged });
+
+		expect(state.order).toEqual([
+			'name',
+			'network_id',
+			'labels',
+			'created_at',
+			'description',
+			'progress'
+		]);
+	});
+
+	it('survives a save and reload', () => {
+		const { columns, state } = setup();
+		const moved = moveColumn(state.order, columns, 'network_id', 1);
+
+		const reloaded = parseStoredState(
+			serializeState({
+				searchQuery: '',
+				filterState: {},
+				sortState: { field: null, direction: 'asc' },
+				selectedGroupField: null,
+				showFilters: false,
+				viewMode: 'table',
+				currentPage: 1,
+				columnOrder: moved
+			})
+		);
+
+		expect(
+			reconcileColumnState(columns, { visibility: {}, order: reloaded!.columnOrder }).order
+		).toEqual(moved);
 	});
 });

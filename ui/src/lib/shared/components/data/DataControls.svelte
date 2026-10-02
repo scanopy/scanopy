@@ -343,6 +343,9 @@
 					void viewMode;
 					void currentPage;
 					void pageSize;
+					void columnVisibility;
+					void columnOrder;
+					void columnSizing;
 
 					// Debounce saves
 					clearTimeout(saveTimeout);
@@ -697,6 +700,10 @@
 		columnVisibility = { ...columnState.visibility, [id]: columnState.visibility[id] === false };
 	}
 
+	function reorderColumns(order: string[]) {
+		columnOrder = order;
+	}
+
 	function resetColumns() {
 		columnVisibility = {};
 		columnOrder = [];
@@ -862,8 +869,10 @@
 			{#snippet columnMenu()}
 				<ColumnVisibilityMenu
 					columns={allColumns}
+					order={columnState.order}
 					visibility={columnState.visibility}
 					onToggle={toggleColumn}
+					onReorder={reorderColumns}
 					onReset={resetColumns}
 				/>
 			{/snippet}
