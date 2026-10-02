@@ -41,6 +41,7 @@
 	import { downloadCsv } from '$lib/shared/utils/csvExport';
 	import {
 		common_create,
+		common_operatingSystem,
 		common_confirmBulkDelete,
 		common_confirmDeleteName,
 		common_created,
@@ -60,7 +61,6 @@
 		daemons_retryConnection,
 		common_version,
 		daemons_config_mode,
-		daemons_operatingSystem,
 		daemons_interfacesWith,
 		daemons_lastSeen,
 		daemons_mode_daemonPoll,
@@ -368,7 +368,7 @@
 				},
 				{
 					key: 'os',
-					label: daemons_operatingSystem(),
+					label: common_operatingSystem(),
 					type: 'string',
 					searchable: true,
 					filterable: true,
