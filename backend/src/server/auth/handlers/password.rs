@@ -8,6 +8,7 @@ use validator::Validate;
     post,
     path = "/update",
     tags = [api_tags::AUTH, api_tags::INTERNAL],
+    request_body = UpdatePasswordRequest,
     responses(
         (status = 200, description = "Password updated", body = ApiResponse<User>),
         (status = 401, description = "Not authenticated", body = ApiErrorResponse),

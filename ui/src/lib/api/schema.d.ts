@@ -3467,19 +3467,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-02T00:42:15.220334Z",
+             *       "created_at": "2026-10-02T05:34:40.220294Z",
              *       "first_discovery_id": null,
-             *       "id": "8565514f-7636-449d-8cea-6049b870d37c",
+             *       "id": "93c74deb-5e7c-4547-a392-70275a9b34e6",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-02T00:42:15.220334Z",
+             *       "last_seen_at": "2026-10-02T05:34:40.220294Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-10-02T00:42:15.220334Z",
-             *       "valid_from": "2026-10-02T00:42:15.220334Z",
+             *       "updated_at": "2026-10-02T05:34:40.220294Z",
+             *       "valid_from": "2026-10-02T05:34:40.220294Z",
              *       "valid_to": null
              *     }
              */
@@ -4064,6 +4064,9 @@ export interface components {
                 /**
                  * @description What each stored credential did in this run, one entry per credential. Results, not
                  *     problems: those are `warnings`. Old servers ignore it.
+                 *
+                 *     Read per entry, like `warnings`: an outcome shape from a newer daemon becomes `Unknown`
+                 *     for that credential instead of failing the terminal payload.
                  */
                 credential_results?: components["schemas"]["CredentialRunResult"][];
                 /**
@@ -4082,7 +4085,7 @@ export interface components {
                  *     Always enriched server-side; daemons do not send this field.
                  */
                 discovery_id?: string | null;
-                /** @description What kind of discovery is running. */
+                /** @description What type of discovery is running. */
                 discovery_type: components["schemas"]["DiscoveryType"];
                 /** @description Failure message, when the run did not complete. */
                 error?: string | null;
@@ -4302,19 +4305,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-02T00:42:15.197738Z",
+             *               "created_at": "2026-10-02T05:34:40.197465Z",
              *               "first_discovery_id": null,
-             *               "id": "cd624cfd-f3bd-46bd-87b1-fe4a046e8be2",
+             *               "id": "a106d605-2c5c-4a40-a65e-dbae04cfbc0b",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-02T00:42:15.197738Z",
+             *               "last_seen_at": "2026-10-02T05:34:40.197465Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-10-02T00:42:15.197738Z",
-             *               "valid_from": "2026-10-02T00:42:15.197738Z",
+             *               "updated_at": "2026-10-02T05:34:40.197465Z",
+             *               "valid_from": "2026-10-02T05:34:40.197465Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4328,7 +4331,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Pi-Hole",
+             *           "service_definition": "Oracle Database",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5241,19 +5244,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-02T00:42:15.214651Z",
+             *           "created_at": "2026-10-02T05:34:40.215331Z",
              *           "first_discovery_id": null,
-             *           "id": "bf4bb2fe-9b28-4b5c-b196-b074402fbfb2",
+             *           "id": "1ea63bc7-c3aa-41b0-8aa8-67b0eca0eaed",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-02T00:42:15.214651Z",
+             *           "last_seen_at": "2026-10-02T05:34:40.215331Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-10-02T00:42:15.214651Z",
-             *           "valid_from": "2026-10-02T00:42:15.214651Z",
+             *           "updated_at": "2026-10-02T05:34:40.215331Z",
+             *           "valid_from": "2026-10-02T05:34:40.215331Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5267,7 +5270,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Pi-Hole",
+             *       "service_definition": "Oracle Database",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6020,6 +6023,9 @@ export interface components {
                 /**
                  * @description What each stored credential did in this run, one entry per credential. Results, not
                  *     problems: those are `warnings`. Old servers ignore it.
+                 *
+                 *     Read per entry, like `warnings`: an outcome shape from a newer daemon becomes `Unknown`
+                 *     for that credential instead of failing the terminal payload.
                  */
                 credential_results?: components["schemas"]["CredentialRunResult"][];
                 /**
@@ -6038,7 +6044,7 @@ export interface components {
                  *     Always enriched server-side; daemons do not send this field.
                  */
                 discovery_id?: string | null;
-                /** @description What kind of discovery is running. */
+                /** @description What type of discovery is running. */
                 discovery_type: components["schemas"]["DiscoveryType"];
                 /** @description Failure message, when the run did not complete. */
                 error?: string | null;
@@ -6338,19 +6344,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-02T00:42:15.198159Z",
+         *       "created_at": "2026-10-02T05:34:40.198059Z",
          *       "first_discovery_id": null,
-         *       "id": "a57d1ebc-d8df-4b48-850c-0a7c11f08614",
+         *       "id": "3a88bd88-5788-4187-9615-ad69bbe72837",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-02T00:42:15.198159Z",
+         *       "last_seen_at": "2026-10-02T05:34:40.198059Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-10-02T00:42:15.198159Z",
-         *       "valid_from": "2026-10-02T00:42:15.198159Z",
+         *       "updated_at": "2026-10-02T05:34:40.198059Z",
+         *       "valid_from": "2026-10-02T05:34:40.198059Z",
          *       "valid_to": null
          *     }
          */
@@ -6590,7 +6596,7 @@ export interface components {
          *     The probe result (success/failure) is pre-computed; Pattern::ClientResponse
          *     just checks whether it succeeded.
          *
-         *     Two kinds of producer fill this: the credentialed `DiscoveryIntegration`s, and the
+         *     Two types of producer fill this: the credentialed `DiscoveryIntegration`s, and the
          *     non-credentialed [`AppProbe`](crate::daemon::utils::app_probe::AppProbe)s. Every variant needs
          *     one — a variant nothing produces gives a service definition a pattern that can never match, and
          *     `every_client_probe_variant_has_a_producer` is what now says so.
@@ -6678,7 +6684,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Pi-Hole",
+         *           "service_definition": "Oracle Database",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -6854,11 +6860,7 @@ export interface components {
             assigned_network_ids: string[];
             /** @description Protocol this credential authenticates with, and its settings. */
             credential_type: components["schemas"]["CredentialType"];
-            /**
-             * @description The OS of the daemons that will read this credential's files and sockets. Paths are
-             *     validated for it, and a daemon on another OS skips the credential with a warning.
-             */
-            daemon_os?: components["schemas"]["OsFamily"];
+            daemon_os?: null | components["schemas"]["OsFamily"];
             /** @description Free-text notes about the credential: what it is for, who owns it. */
             description: string | null;
             /**
@@ -6905,9 +6907,10 @@ export interface components {
         /** @enum {string} */
         CredentialOrderField: "created_at" | "name" | "updated_at";
         /**
-         * @description Which fields depend on which declared OS. Computed from the field definitions, so the form
-         *     places each OS picker without its own rule: with the one field that depends on it, or above the
-         *     first of several.
+         * @description Which fields depend on the credential's Daemon OS. Computed from the field definitions, so the
+         *     form places the Daemon OS picker without its own rule: with the one field that depends on it, or
+         *     above the first of several. The Scanned Host OS is an ordinary field of the SSH types and sits
+         *     in its declared place, above Script, because it sets how the script runs as well as its path.
          */
         CredentialOsFields: {
             /**
@@ -6916,13 +6919,6 @@ export interface components {
              *     field whose placeholder follows `daemon_os`.
              */
             daemon: string[];
-            /**
-             * @description Fields that depend on the scanned host's OS: those whose placeholder follows the Scanned
-             *     Host OS picker.
-             */
-            scanned_host: string[];
-            /** @description The Scanned Host OS picker's own field, where the type has one. */
-            scanned_host_picker?: string | null;
         };
         /** @enum {string} */
         CredentialQueryPayloadDiscriminants: "Snmp" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiController" | "InstantOn" | "Gnmi" | "Ssh" | "WakeOnLan" | "Unknown";
@@ -7247,6 +7243,7 @@ export interface components {
              * @description The network this entity belongs to.
              */
             network_id: string;
+            os: null | components["schemas"]["DaemonOs"];
             /** @description Whether the daemon is on standby due to inactivity (no discovery in 30 days). */
             readonly standby?: boolean;
             /**
@@ -7310,7 +7307,7 @@ export interface components {
          */
         DaemonOrderField: "created_at" | "name" | "last_seen" | "updated_at" | "network_id";
         /**
-         * @description Operating system the install command was generated for.
+         * @description Operating system a daemon is installed on, as picked when it is created.
          * @enum {string}
          */
         DaemonOs: "linux" | "macos" | "windows" | "freebsd";
@@ -7574,7 +7571,7 @@ export interface components {
         DependencyBase: {
             /** @description Colour the dependency edge is drawn in. */
             color: components["schemas"]["Color"];
-            /** @description What kind of relationship this dependency records. */
+            /** @description What type of relationship this dependency records. */
             dependency_type: components["schemas"]["DependencyType"];
             /** @description Free-text notes about the dependency. */
             description?: string | null;
@@ -7839,6 +7836,9 @@ export interface components {
             /**
              * @description What each stored credential did in this run, one entry per credential. Results, not
              *     problems: those are `warnings`. Old servers ignore it.
+             *
+             *     Read per entry, like `warnings`: an outcome shape from a newer daemon becomes `Unknown`
+             *     for that credential instead of failing the terminal payload.
              */
             credential_results?: components["schemas"]["CredentialRunResult"][];
             /**
@@ -7857,7 +7857,7 @@ export interface components {
              *     Always enriched server-side; daemons do not send this field.
              */
             discovery_id?: string | null;
-            /** @description What kind of discovery is running. */
+            /** @description What type of discovery is running. */
             discovery_type: components["schemas"]["DiscoveryType"];
             /** @description Failure message, when the run did not complete. */
             error?: string | null;
@@ -8137,8 +8137,9 @@ export interface components {
             credential_id: string | null;
             integration: components["schemas"]["CredentialQueryPayloadDiscriminants"];
         } | {
-            /** @description The OS this daemon runs. */
+            /** @description The OS family this daemon runs. */
             actual: components["schemas"]["OsFamily"];
+            actual_os?: null | components["schemas"]["DaemonOs"];
             /** @enum {string} */
             code: "CredentialDaemonOsMismatch";
             /**
@@ -8733,6 +8734,11 @@ export interface components {
             default_value?: string | null;
             /** @description How the field should be rendered and validated. */
             field_type: components["schemas"]["FieldType"];
+            /**
+             * @description For a field that can be read from a file on the daemon: an example file name, which the
+             *     form joins to the Daemon OS's example directory for the path placeholder.
+             */
+            file_name?: string | null;
             /** @description Grouping label used to section a long form. */
             group?: string | null;
             /** @description Explanatory text shown beneath the field. */
@@ -9106,19 +9112,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-02T00:42:15.197274Z",
+         *               "created_at": "2026-10-02T05:34:40.196844Z",
          *               "first_discovery_id": null,
-         *               "id": "86e6bcc4-ea7c-4041-b07d-bd09ee24c013",
+         *               "id": "f69cc3ab-90fa-4f4b-88ff-affbc31997ef",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-02T00:42:15.197274Z",
+         *               "last_seen_at": "2026-10-02T05:34:40.196844Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-10-02T00:42:15.197274Z",
-         *               "valid_from": "2026-10-02T00:42:15.197274Z",
+         *               "updated_at": "2026-10-02T05:34:40.196844Z",
+         *               "valid_from": "2026-10-02T05:34:40.196844Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9132,7 +9138,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Pi-Hole",
+         *           "service_definition": "Oracle Database",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -11621,6 +11627,7 @@ export interface components {
              *     which case the existing record's network is kept.
              */
             network_id?: string | null;
+            os?: null | components["schemas"]["DaemonOs"];
             /**
              * @description Credential/integration references to seed onto the daemon's first
              *     discovery run. References only — never secret material. Empty by default.
@@ -12151,19 +12158,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-02T00:42:15.198027Z",
+         *           "created_at": "2026-10-02T05:34:40.197884Z",
          *           "first_discovery_id": null,
-         *           "id": "9b48665d-741e-4277-bc57-e9be40c720c3",
+         *           "id": "07696eb3-3c5b-4f45-a841-df87cba79277",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-02T00:42:15.198027Z",
+         *           "last_seen_at": "2026-10-02T05:34:40.197884Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-10-02T00:42:15.198027Z",
-         *           "valid_from": "2026-10-02T00:42:15.198027Z",
+         *           "updated_at": "2026-10-02T05:34:40.197884Z",
+         *           "valid_from": "2026-10-02T05:34:40.197884Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12177,7 +12184,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Pi-Hole",
+         *       "service_definition": "Oracle Database",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12636,7 +12643,7 @@ export interface components {
             network_id: string;
             /** @description Will be automatically set to Manual for creation through API */
             source: components["schemas"]["EntitySource"];
-            /** @description What kind of subnet this is — physical, virtual, container bridge, and so on. */
+            /** @description What type of subnet this is — physical, virtual, container bridge, and so on. */
             subnet_type: components["schemas"]["SubnetType"];
             /** @description Tags assigned to this entity. */
             tags: string[];
@@ -12935,7 +12942,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "c08f63aa-aa75-4000-b3da-c8a58d6b19bd",
+             *           "id": "82178b31-40cf-4ee3-9ce4-e3cc15e61c5e",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -12945,23 +12952,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "1c07a8d1-d5aa-4252-ae3b-2fd38729a63d",
+             *           "id": "3bee292d-1472-4baf-886e-bf472ac26c8e",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "bf42f6c2-f50e-4ed1-ace9-a252cca510b0",
+             *           "id": "b5c24bff-fdf2-4ddc-9125-9af24883e729",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "e7977284-cd33-4d32-993b-f45d16966d2e",
+             *           "id": "7bbfcfb7-18a7-4714-9b3b-86360206b870",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "1c07a8d1-d5aa-4252-ae3b-2fd38729a63d",
+             *           "id": "3bee292d-1472-4baf-886e-bf472ac26c8e",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -12974,19 +12981,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "8471794e-7550-4789-a5c7-8e98f97ce8f0",
+             *         "id": "c83c9a44-a464-4aec-a761-599a8502c4c1",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "e3f5cc06-346d-4e17-ab76-9ad32f75a23a",
+             *         "id": "fb442d70-9d64-467c-89ba-a7fa5bd73ffe",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "0f955975-57d6-44d9-8881-64110c808f46",
+             *         "id": "44579798-93b5-4b07-ada9-35c60da8285a",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "d089762d-a213-456b-81e9-41400e088321",
+             *         "id": "dccbcb7c-c906-472b-a221-ffcbb7c45759",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13004,7 +13011,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "dbd1c16f-0bb6-4516-86d1-7b8d3ed15a42",
+             *         "id": "62f73e1c-3d45-4625-b49e-20188d90fb25",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13013,15 +13020,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "edbcd707-d4b1-488b-9722-3c5a129254b5",
+             *         "id": "864045f9-4f34-4c05-8bad-5c45e1fa4a25",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "a15affbe-c632-40be-8168-9617ba12b610",
+             *         "id": "f09b04b3-a77f-4e53-908f-c699463c3b38",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "4b6a567a-c80c-445a-b0b9-f34e4ea4afa8",
+             *         "id": "7f84ae92-3442-4686-9cba-0abac604e5eb",
              *         "rule": "ByStack"
              *       }
              *     ]

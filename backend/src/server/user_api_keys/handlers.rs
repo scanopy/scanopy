@@ -113,6 +113,7 @@ pub async fn get_all(
     path = "",
     tag = UserApiKey::ENTITY_NAME_PLURAL,
     operation_id = "create_user_api_key",
+    request_body = UserApiKey,
     responses(
         (status = 200, description = "API key created", body = ApiResponse<UserApiKeyResponse>),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
@@ -202,6 +203,7 @@ pub async fn create_user_api_key(
     tag = UserApiKey::ENTITY_NAME_PLURAL,
     operation_id = "update_user_api_key",
     params(("id" = Uuid, Path, description = "API key ID")),
+    request_body = UserApiKey,
     responses(
         (status = 200, description = "API key updated", body = ApiResponse<UserApiKey>),
         (status = 403, description = "Not authorized to update this key", body = ApiErrorResponse),

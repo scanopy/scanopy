@@ -203,6 +203,7 @@ async fn get_topology_data(
     path = "/{id}",
     tags = [Topology::ENTITY_NAME_PLURAL],
     params(("id" = Uuid, Path, description = "Topology ID")),
+    request_body = Topology,
     responses(
         (status = 200, description = "Topology updated", body = ApiResponse<Topology>),
         (status = 404, description = "Topology not found", body = ApiErrorResponse),

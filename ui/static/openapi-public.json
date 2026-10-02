@@ -12675,19 +12675,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-02T00:42:15.282672Z",
+              "created_at": "2026-10-02T05:34:40.278636Z",
               "first_discovery_id": null,
-              "id": "241dee90-584a-46ba-9c41-50dec111563b",
+              "id": "1bfdc27f-69d4-429c-88c3-66311f2f14cd",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-02T00:42:15.282672Z",
+              "last_seen_at": "2026-10-02T05:34:40.278636Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-02T00:42:15.282672Z",
-              "valid_from": "2026-10-02T00:42:15.282672Z",
+              "updated_at": "2026-10-02T05:34:40.278636Z",
+              "valid_from": "2026-10-02T05:34:40.278636Z",
               "valid_to": null
             }
           },
@@ -13650,7 +13650,7 @@
                 "items": {
                   "$ref": "#/components/schemas/CredentialRunResult"
                 },
-                "description": "What each stored credential did in this run, one entry per credential. Results, not\nproblems: those are `warnings`. Old servers ignore it."
+                "description": "What each stored credential did in this run, one entry per credential. Results, not\nproblems: those are `warnings`. Old servers ignore it.\n\nRead per entry, like `warnings`: an outcome shape from a newer daemon becomes `Unknown`\nfor that credential instead of failing the terminal payload."
               },
               "daemon_id": {
                 "type": "string",
@@ -13674,7 +13674,7 @@
               },
               "discovery_type": {
                 "$ref": "#/components/schemas/DiscoveryType",
-                "description": "What kind of discovery is running."
+                "description": "What type of discovery is running."
               },
               "error": {
                 "type": [
@@ -13739,7 +13739,7 @@
                   },
                   {
                     "$ref": "#/components/schemas/DiscoveryTerminalReason",
-                    "description": "Why the run ended. Set on terminal payloads; absent on runs recorded before it existed.\nA daemon may send one of the reasons only it can know; the server assigns every other."
+                    "description": "Why the run ended. Set on terminal payloads; absent on runs recorded before it existed.\nA daemon may send one of the reasons only it can know; the server assigns every other.\nA reason this server doesn't know reads as `None`, and the server assigns one from the\nphase."
                   }
                 ]
               },
@@ -14266,19 +14266,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-02T00:42:15.267378Z",
+                      "created_at": "2026-10-02T05:34:40.263420Z",
                       "first_discovery_id": null,
-                      "id": "ff7caa63-6031-4a5b-9d26-bd6baf123131",
+                      "id": "aabc5bff-dff2-4165-9284-cdc2cfc753e0",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-02T00:42:15.267378Z",
+                      "last_seen_at": "2026-10-02T05:34:40.263420Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-02T00:42:15.267378Z",
-                      "valid_from": "2026-10-02T00:42:15.267378Z",
+                      "updated_at": "2026-10-02T05:34:40.263420Z",
+                      "valid_from": "2026-10-02T05:34:40.263420Z",
                       "valid_to": null
                     }
                   ],
@@ -14292,7 +14292,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Pi-Hole",
+                  "service_definition": "Oracle Database",
                   "source": {
                     "type": "Manual"
                   },
@@ -15690,19 +15690,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-02T00:42:15.279055Z",
+                  "created_at": "2026-10-02T05:34:40.275071Z",
                   "first_discovery_id": null,
-                  "id": "1d1d0bc9-da7b-4541-bf35-cc56fc8a9b14",
+                  "id": "48533700-1f85-4258-bcaa-5865c011084a",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-02T00:42:15.279055Z",
+                  "last_seen_at": "2026-10-02T05:34:40.275071Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-02T00:42:15.279055Z",
-                  "valid_from": "2026-10-02T00:42:15.279055Z",
+                  "updated_at": "2026-10-02T05:34:40.275071Z",
+                  "valid_from": "2026-10-02T05:34:40.275071Z",
                   "valid_to": null
                 }
               ],
@@ -15716,7 +15716,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Pi-Hole",
+              "service_definition": "Oracle Database",
               "source": {
                 "type": "Manual"
               },
@@ -16495,7 +16495,7 @@
                   },
                   "propertyNames": {
                     "type": "string",
-                    "description": "The kind of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
+                    "description": "The type of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
                     "enum": [
                       "Category",
                       "Virtualization",
@@ -17168,7 +17168,7 @@
                   "items": {
                     "$ref": "#/components/schemas/CredentialRunResult"
                   },
-                  "description": "What each stored credential did in this run, one entry per credential. Results, not\nproblems: those are `warnings`. Old servers ignore it."
+                  "description": "What each stored credential did in this run, one entry per credential. Results, not\nproblems: those are `warnings`. Old servers ignore it.\n\nRead per entry, like `warnings`: an outcome shape from a newer daemon becomes `Unknown`\nfor that credential instead of failing the terminal payload."
                 },
                 "daemon_id": {
                   "type": "string",
@@ -17192,7 +17192,7 @@
                 },
                 "discovery_type": {
                   "$ref": "#/components/schemas/DiscoveryType",
-                  "description": "What kind of discovery is running."
+                  "description": "What type of discovery is running."
                 },
                 "error": {
                   "type": [
@@ -17257,7 +17257,7 @@
                     },
                     {
                       "$ref": "#/components/schemas/DiscoveryTerminalReason",
-                      "description": "Why the run ended. Set on terminal payloads; absent on runs recorded before it existed.\nA daemon may send one of the reasons only it can know; the server assigns every other."
+                      "description": "Why the run ended. Set on terminal payloads; absent on runs recorded before it existed.\nA daemon may send one of the reasons only it can know; the server assigns every other.\nA reason this server doesn't know reads as `None`, and the server assigns one from the\nphase."
                     }
                   ]
                 },
@@ -18086,19 +18086,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-02T00:42:15.267737Z",
+          "created_at": "2026-10-02T05:34:40.263776Z",
           "first_discovery_id": null,
-          "id": "5daa6adf-bc54-44cd-aa30-57e553d9d022",
+          "id": "30c505ec-1624-4134-aabd-5d9cfd84c9cb",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-02T00:42:15.267737Z",
+          "last_seen_at": "2026-10-02T05:34:40.263776Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-02T00:42:15.267737Z",
-          "valid_from": "2026-10-02T00:42:15.267737Z",
+          "updated_at": "2026-10-02T05:34:40.263776Z",
+          "valid_from": "2026-10-02T05:34:40.263776Z",
           "valid_to": null
         }
       },
@@ -18466,7 +18466,7 @@
       },
       "ClientProbe": {
         "type": "string",
-        "description": "Types of client probes that run before service matching.\nThe probe result (success/failure) is pre-computed; Pattern::ClientResponse\njust checks whether it succeeded.\n\nTwo kinds of producer fill this: the credentialed `DiscoveryIntegration`s, and the\nnon-credentialed [`AppProbe`](crate::daemon::utils::app_probe::AppProbe)s. Every variant needs\none — a variant nothing produces gives a service definition a pattern that can never match, and\n`every_client_probe_variant_has_a_producer` is what now says so.",
+        "description": "Types of client probes that run before service matching.\nThe probe result (success/failure) is pre-computed; Pattern::ClientResponse\njust checks whether it succeeded.\n\nTwo types of producer fill this: the credentialed `DiscoveryIntegration`s, and the\nnon-credentialed [`AppProbe`](crate::daemon::utils::app_probe::AppProbe)s. Every variant needs\none — a variant nothing produces gives a service definition a pattern that can never match, and\n`every_client_probe_variant_has_a_producer` is what now says so.",
         "enum": [
           "Docker",
           "Gnmi",
@@ -18814,7 +18814,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Pi-Hole",
+              "service_definition": "Oracle Database",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -19083,8 +19083,15 @@
             "description": "Protocol this credential authenticates with, and its settings."
           },
           "daemon_os": {
-            "$ref": "#/components/schemas/OsFamily",
-            "description": "The OS of the daemons that will read this credential's files and sockets. Paths are\nvalidated for it, and a daemon on another OS skips the credential with a warning."
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/OsFamily",
+                "description": "The OS of the daemons that will read this credential's files and sockets. Paths are\nvalidated for it, and a daemon on another OS cannot use the credential. Set exactly when\nthe credential reads something on the daemon; `None` otherwise."
+              }
+            ]
           },
           "description": {
             "type": [
@@ -19169,10 +19176,9 @@
       },
       "CredentialOsFields": {
         "type": "object",
-        "description": "Which fields depend on which declared OS. Computed from the field definitions, so the form\nplaces each OS picker without its own rule: with the one field that depends on it, or above the\nfirst of several.",
+        "description": "Which fields depend on the credential's Daemon OS. Computed from the field definitions, so the\nform places the Daemon OS picker without its own rule: with the one field that depends on it, or\nabove the first of several. The Scanned Host OS is an ordinary field of the SSH types and sits\nin its declared place, above Script, because it sets how the script runs as well as its path.",
         "required": [
-          "daemon",
-          "scanned_host"
+          "daemon"
         ],
         "properties": {
           "daemon": {
@@ -19181,20 +19187,6 @@
               "type": "string"
             },
             "description": "Fields that can read a file or socket on the daemon, so depend on the credential's\n`daemon_os`: every file-or-value field, a script that can come from the daemon, and any\nfield whose placeholder follows `daemon_os`."
-          },
-          "scanned_host": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Fields that depend on the scanned host's OS: those whose placeholder follows the Scanned\nHost OS picker."
-          },
-          "scanned_host_picker": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "The Scanned Host OS picker's own field, where the type has one."
           }
         }
       },
@@ -20074,7 +20066,8 @@
           "mode",
           "name",
           "tags",
-          "user_id"
+          "user_id",
+          "os"
         ],
         "properties": {
           "api_key_id": {
@@ -20115,6 +20108,17 @@
             "type": "string",
             "format": "uuid",
             "description": "The network this entity belongs to."
+          },
+          "os": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DaemonOs",
+                "description": "The operating system chosen when the daemon was created. Credentials set up for another\nOS's file paths cannot be used by it. `None` for daemons created before this was recorded."
+              }
+            ]
           },
           "standby": {
             "type": "boolean",
@@ -20204,7 +20208,7 @@
       },
       "DaemonOs": {
         "type": "string",
-        "description": "Operating system the install command was generated for.",
+        "description": "Operating system a daemon is installed on, as picked when it is created.",
         "enum": [
           "linux",
           "macos",
@@ -20702,7 +20706,7 @@
           },
           "dependency_type": {
             "$ref": "#/components/schemas/DependencyType",
-            "description": "What kind of relationship this dependency records."
+            "description": "What type of relationship this dependency records."
           },
           "description": {
             "type": [
@@ -21274,7 +21278,7 @@
             "items": {
               "$ref": "#/components/schemas/CredentialRunResult"
             },
-            "description": "What each stored credential did in this run, one entry per credential. Results, not\nproblems: those are `warnings`. Old servers ignore it."
+            "description": "What each stored credential did in this run, one entry per credential. Results, not\nproblems: those are `warnings`. Old servers ignore it.\n\nRead per entry, like `warnings`: an outcome shape from a newer daemon becomes `Unknown`\nfor that credential instead of failing the terminal payload."
           },
           "daemon_id": {
             "type": "string",
@@ -21298,7 +21302,7 @@
           },
           "discovery_type": {
             "$ref": "#/components/schemas/DiscoveryType",
-            "description": "What kind of discovery is running."
+            "description": "What type of discovery is running."
           },
           "error": {
             "type": [
@@ -21363,7 +21367,7 @@
               },
               {
                 "$ref": "#/components/schemas/DiscoveryTerminalReason",
-                "description": "Why the run ended. Set on terminal payloads; absent on runs recorded before it existed.\nA daemon may send one of the reasons only it can know; the server assigns every other."
+                "description": "Why the run ended. Set on terminal payloads; absent on runs recorded before it existed.\nA daemon may send one of the reasons only it can know; the server assigns every other.\nA reason this server doesn't know reads as `None`, and the server assigns one from the\nphase."
               }
             ]
           },
@@ -22152,7 +22156,18 @@
             "properties": {
               "actual": {
                 "$ref": "#/components/schemas/OsFamily",
-                "description": "The OS this daemon runs."
+                "description": "The OS family this daemon runs."
+              },
+              "actual_os": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DaemonOs",
+                    "description": "The OS this daemon runs, to name it. Absent on runs recorded before it was sent."
+                  }
+                ]
               },
               "code": {
                 "type": "string",
@@ -23839,6 +23854,13 @@
             "$ref": "#/components/schemas/FieldType",
             "description": "How the field should be rendered and validated."
           },
+          "file_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "For a field that can be read from a file on the daemon: an example file name, which the\nform joins to the Daemon OS's example directory for the path placeholder."
+          },
           "group": {
             "type": [
               "string",
@@ -24239,7 +24261,7 @@
                   },
                   {
                     "$ref": "#/components/schemas/HostVirtualization",
-                    "description": "How the host is virtualized, when it is a VM or container guest."
+                    "description": "How the host is virtualized, when it is a VM or container guest. A provider from a newer\ndaemon reads as `None` instead of rejecting the host."
                   }
                 ]
               },
@@ -24839,19 +24861,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-02T00:42:15.266970Z",
+                  "created_at": "2026-10-02T05:34:40.263017Z",
                   "first_discovery_id": null,
-                  "id": "10ecd651-402f-4abf-9a6f-cbe13252595b",
+                  "id": "991c3f93-464e-4881-9b13-82c3db59ac14",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-02T00:42:15.266970Z",
+                  "last_seen_at": "2026-10-02T05:34:40.263017Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-02T00:42:15.266970Z",
-                  "valid_from": "2026-10-02T00:42:15.266970Z",
+                  "updated_at": "2026-10-02T05:34:40.263017Z",
+                  "valid_from": "2026-10-02T05:34:40.263017Z",
                   "valid_to": null
                 }
               ],
@@ -24865,7 +24887,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Pi-Hole",
+              "service_definition": "Oracle Database",
               "source": {
                 "type": "Manual"
               },
@@ -28562,19 +28584,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-02T00:42:15.260885Z",
+                        "created_at": "2026-10-02T05:34:40.257249Z",
                         "first_discovery_id": null,
-                        "id": "611797a7-8c2f-4720-84a2-8cadef3bd2e9",
+                        "id": "38a20e37-c83f-4918-b69e-b14efa537a6d",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-02T00:42:15.260885Z",
+                        "last_seen_at": "2026-10-02T05:34:40.257249Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-02T00:42:15.260885Z",
-                        "valid_from": "2026-10-02T00:42:15.260885Z",
+                        "updated_at": "2026-10-02T05:34:40.257249Z",
+                        "valid_from": "2026-10-02T05:34:40.257249Z",
                         "valid_to": null
                       }
                     ],
@@ -28588,7 +28610,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Pi-Hole",
+                    "service_definition": "Oracle Database",
                     "source": {
                       "type": "Manual"
                     },
@@ -28731,19 +28753,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-02T00:42:15.278389Z",
+                    "created_at": "2026-10-02T05:34:40.274416Z",
                     "first_discovery_id": null,
-                    "id": "b75917fd-b520-454e-a6d8-95546c4e7bf7",
+                    "id": "94e3c18b-134b-4acc-a305-eb63cc1af447",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-02T00:42:15.278389Z",
+                    "last_seen_at": "2026-10-02T05:34:40.274416Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-02T00:42:15.278389Z",
-                    "valid_from": "2026-10-02T00:42:15.278389Z",
+                    "updated_at": "2026-10-02T05:34:40.274416Z",
+                    "valid_from": "2026-10-02T05:34:40.274416Z",
                     "valid_to": null
                   }
                 ],
@@ -28757,7 +28779,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Pi-Hole",
+                "service_definition": "Oracle Database",
                 "source": {
                   "type": "Manual"
                 },
@@ -29933,6 +29955,17 @@
             "format": "uuid",
             "description": "Network this daemon will be associated with. Required unless `daemon_id` is set, in\nwhich case the existing record's network is kept."
           },
+          "os": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DaemonOs",
+                "description": "The operating system picked in the create-daemon modal. Recorded on the daemon so a\ncredential set up for another OS's file paths can be refused for it. Ignored when\n`daemon_id` is set."
+              }
+            ]
+          },
           "seed_credential_refs": {
             "type": "array",
             "items": {
@@ -30957,19 +30990,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-02T00:42:15.267628Z",
+              "created_at": "2026-10-02T05:34:40.263669Z",
               "first_discovery_id": null,
-              "id": "860fad50-76ea-482f-9ce2-2b1efd6f0b4a",
+              "id": "574e495e-1d2a-444f-b77d-c91705374a1d",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-02T00:42:15.267628Z",
+              "last_seen_at": "2026-10-02T05:34:40.263669Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-02T00:42:15.267628Z",
-              "valid_from": "2026-10-02T00:42:15.267628Z",
+              "updated_at": "2026-10-02T05:34:40.263669Z",
+              "valid_from": "2026-10-02T05:34:40.263669Z",
               "valid_to": null
             }
           ],
@@ -30983,7 +31016,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Pi-Hole",
+          "service_definition": "Oracle Database",
           "source": {
             "type": "Manual"
           },
@@ -31828,7 +31861,7 @@
               },
               "subnet_type": {
                 "$ref": "#/components/schemas/SubnetType",
-                "description": "What kind of subnet this is — physical, virtual, container bridge, and so on."
+                "description": "What type of subnet this is — physical, virtual, container bridge, and so on."
               },
               "tags": {
                 "type": "array",
@@ -32214,7 +32247,7 @@
               },
               "propertyNames": {
                 "type": "string",
-                "description": "The kind of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
+                "description": "The type of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
                 "enum": [
                   "Category",
                   "Virtualization",
@@ -32427,7 +32460,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "4f0f1b4c-a825-433a-b7e5-32de8488d795",
+                  "id": "7c9f5718-f982-4811-aa86-41aa0ccbb641",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -32437,23 +32470,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "06029310-843d-4545-a771-538b42aec3cd",
+                  "id": "b05b2de9-efa2-488f-b5d5-f9487fabb911",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "c06835af-4b35-489f-9b8a-cd159fac0bb6",
+                  "id": "6f817d13-3b84-4d35-a80f-2e0e03df6900",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "a48be54a-f761-417b-9b0c-5026b8e5cd62",
+                  "id": "d09da80b-e78b-4602-a7a6-c00fea18fe88",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "06029310-843d-4545-a771-538b42aec3cd",
+                  "id": "b05b2de9-efa2-488f-b5d5-f9487fabb911",
                   "rule": "ByHost"
                 }
               ]
@@ -32483,19 +32516,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "5e60df87-2ef5-48f9-b0d0-63828d204fb3",
+                "id": "fa8ca8e9-eaf0-4a30-ba55-3d907dc989e2",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "feeb9fc8-1e5e-45d4-9c43-2c46b3e5cd63",
+                "id": "b1e44f6a-51d8-4392-ba70-6bd456b300a0",
                 "rule": "ByVLAN"
               },
               {
-                "id": "861f04c7-3a56-4cbb-994c-dd06af2f6fb7",
+                "id": "adf1055e-1d7f-4fca-8c5b-8072bd676379",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "e8d05cd3-53cd-4595-9b37-3c94fe33e327",
+                "id": "9bfe550d-4254-4b2b-a666-4f046116df21",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -32513,7 +32546,7 @@
                 }
               },
               {
-                "id": "c023ee67-2b38-4fa6-a0bb-0aee09f67d43",
+                "id": "f925759e-114d-4e62-bbdb-2e0330b34e6d",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -32522,15 +32555,15 @@
                 }
               },
               {
-                "id": "e6530220-083c-4c50-b620-fde0b4546292",
+                "id": "e44f89f4-8ede-4dcf-8f6c-794c72b6bf20",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "3f24d506-d1d5-40c4-8a13-9e1871892f7a",
+                "id": "922ec256-59fa-40a8-a6bc-ad81fb751e84",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "5f98e1e7-ce42-4aef-b284-c78de62160fd",
+                "id": "cb0c9b48-b4e5-4e1a-9559-3d5c5750c9b4",
                 "rule": "ByStack"
               }
             ]
@@ -32624,7 +32657,7 @@
                 },
                 "propertyNames": {
                   "type": "string",
-                  "description": "The kind of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
+                  "description": "The type of metadata filter. One variant per conceptually-distinct filter\nacross the app — Category (on Service), Virtualization (on Host), and so\non. Kept narrow on purpose: adding a new filter means adding a variant\nhere + a `HasFilterValues` impl on the relevant entity.",
                   "enum": [
                     "Category",
                     "Virtualization",

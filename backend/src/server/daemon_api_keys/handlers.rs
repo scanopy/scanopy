@@ -47,6 +47,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
     post,
     path = "",
     tag = DaemonApiKey::ENTITY_NAME_PLURAL,
+    request_body = DaemonApiKey,
     responses(
         (status = 200, description = "Daemon API key created", body = ApiResponse<DaemonApiKeyResponse>),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
@@ -101,6 +102,7 @@ pub async fn create_daemon_api_key(
     path = "/{id}",
     tag = DaemonApiKey::ENTITY_NAME_PLURAL,
     params(("id" = Uuid, Path, description = "Daemon API key ID")),
+    request_body = DaemonApiKey,
     responses(
         (status = 200, description = "Daemon API key updated", body = ApiResponse<DaemonApiKey>),
         (status = 404, description = "Daemon API key not found", body = ApiErrorResponse),

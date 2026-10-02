@@ -126,6 +126,7 @@ async fn get_by_id_network(
     post,
     path = "",
     tag = Network::ENTITY_NAME_PLURAL,
+    request_body = Network,
     responses(
         (status = 200, description = "Network created", body = ApiResponse<Network>),
     ),
