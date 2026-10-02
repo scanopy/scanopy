@@ -425,6 +425,10 @@ pub async fn probe_integrations(
     let mut winners = Vec::new();
     for (entry, winner, failures, disposition) in outcomes {
         ledger[entry].disposition = disposition;
+        // Reported even when another credential of the same integration worked here: each
+        // credential is its own mapping, and a host-assigned credential that cannot log in where
+        // it is assigned is worth knowing, under its own row. Network defaults never reach this
+        // list (`attempt_credential` keeps their failures quiet).
         results.credential_issues.extend(failures);
         winners.push(winner);
     }

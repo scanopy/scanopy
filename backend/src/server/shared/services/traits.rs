@@ -64,6 +64,57 @@ where
 
 /// Helper trait for services that use generic storage
 /// Provides default implementations for common CRUD operations
+/// The entity `create_base` stores: server-owned id and timestamps.
+///
+/// A nil id gets a fresh entity. A client that mints its own id (the credential wizard, so its
+/// targets can name the credential before it exists) keeps that id, but still sends the UI's
+/// placeholder timestamps (the Unix epoch), which are replaced: creation order decides which of two
+/// equally specific credentials a scan uses. Real timestamps a caller set on purpose are kept.
+fn ready_for_create<T: Entity>(entity: T) -> T {
+    if entity.id() == Uuid::nil() {
+        T::new(entity.get_base())
+    } else if entity.created_at() == chrono::DateTime::<chrono::Utc>::UNIX_EPOCH {
+        let mut stamped = T::new(entity.get_base());
+        stamped.set_id(entity.id());
+        stamped
+    } else {
+        entity
+    }
+}
+
+#[cfg(test)]
+mod ready_for_create_tests {
+    use super::*;
+    use crate::server::credentials::r#impl::base::Credential;
+
+    /// The wizard's own id survives, and the placeholder date does not reach storage.
+    #[test]
+    fn a_client_id_keeps_its_id_and_gets_real_timestamps() {
+        let id = Uuid::new_v4();
+        let sent = Credential {
+            id,
+            created_at: chrono::DateTime::<chrono::Utc>::UNIX_EPOCH,
+            updated_at: chrono::DateTime::<chrono::Utc>::UNIX_EPOCH,
+            ..Default::default()
+        };
+        let stored = ready_for_create(sent);
+        assert_eq!(stored.id, id);
+        assert!(stored.created_at > chrono::DateTime::<chrono::Utc>::UNIX_EPOCH);
+    }
+
+    #[test]
+    fn a_real_timestamp_is_kept() {
+        let when = chrono::Utc::now() - chrono::Duration::days(3);
+        let sent = Credential {
+            id: Uuid::new_v4(),
+            created_at: when,
+            updated_at: when,
+            ..Default::default()
+        };
+        assert_eq!(ready_for_create(sent).created_at, when);
+    }
+}
+
 #[async_trait]
 pub trait CrudService<T: Entity + Into<EntityEnum> + Default>: EventBusService<T>
 where
@@ -356,11 +407,7 @@ where
         entity: T,
         authentication: AuthenticatedEntity,
     ) -> Result<T, anyhow::Error> {
-        let entity = if entity.id() == Uuid::nil() {
-            T::new(entity.get_base())
-        } else {
-            entity
-        };
+        let entity = ready_for_create(entity);
 
         let created = self.storage().create(&entity).await?;
         let trigger_stale = created.triggers_staleness(None);
