@@ -555,7 +555,7 @@ impl DiscoveryIntegration for GnmiIntegration {
             .await
             .map_err(|e| ProbeFailure::rejected(e.to_string()))?;
         Ok(ProbeSuccess {
-            client_probe: ClientProbe::Gnmi,
+            client_probe: Some(ClientProbe::Gnmi),
             ports: vec![PortType::new_tcp(cred.port)],
             handle: Some(Box::new(handle_from(cred.clone(), models))),
         })

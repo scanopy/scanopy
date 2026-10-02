@@ -83,7 +83,7 @@ impl DiscoveryIntegration for SshIntegration {
             .await
             .map_err(|e| ProbeFailure::not_this_service(format!("SSH handshake failed: {e}")))?;
         Ok(ProbeSuccess {
-            client_probe: ClientProbe::Ssh,
+            client_probe: Some(ClientProbe::Ssh),
             ports: vec![PortType::new_tcp(cred.port)],
             handle: Some(Box::new(SshProbeHandle { fingerprint })),
         })

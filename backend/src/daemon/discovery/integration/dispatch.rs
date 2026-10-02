@@ -25,7 +25,7 @@ use crate::server::credentials::r#impl::mapping::{
 use crate::server::credentials::r#impl::types::CredentialAssignment;
 use crate::server::discovery::r#impl::types::HostNamingFallback;
 use crate::server::ports::r#impl::base::PortType;
-use crate::server::services::r#impl::patterns::ClientProbe;
+use crate::server::services::r#impl::patterns::{ClientProbe, Pattern};
 use crate::server::shared::trusted_ca::TrustedCaBundle;
 use crate::server::subnets::r#impl::base::Subnet;
 
@@ -282,13 +282,6 @@ pub async fn probe_integrations(
             disposition: Disposition::Unresolved,
         });
 
-        if discriminant == CredentialQueryPayloadDiscriminants::WakeOnLan {
-            // Already done by the time a host reaches the deep scan: the wake step runs before
-            // the sweep and reports its own outcome.
-            ledger[entry].disposition =
-                Disposition::Suppressed("Wake-on-LAN runs before the sweep, not per host");
-            continue;
-        }
         let Some(integration) = IntegrationRegistry::get(discriminant) else {
             tracing::warn!(integration = ?discriminant, "Skipping unrecognized credential type from newer server");
             // A credential type this daemon cannot run. The server blocks configuring one, so
@@ -450,7 +443,9 @@ pub async fn probe_integrations(
                 results.additional_ports.push(*port);
             }
         }
-        results.client_responses.insert(client_probe, ports);
+        if let Some(client_probe) = client_probe {
+            results.client_responses.insert(client_probe, ports);
+        }
         if let Some(handle) = handle {
             results.probe_handles.insert(discriminant, handle);
         }
@@ -556,10 +551,13 @@ pub async fn execute_integrations(
         let associated_service = cred_type_discriminant
             .to_credential_type()
             .associated_service();
-        let service_matched = host_data
-            .services
-            .iter()
-            .any(|s| s.base.service_definition.id() == associated_service.id());
+        // A service that can never be matched (`Pattern::None`, Wake-on-LAN) has nothing to gate
+        // on: its probe succeeding is the whole finding.
+        let service_matched = matches!(associated_service.discovery_pattern(), Pattern::None)
+            || host_data
+                .services
+                .iter()
+                .any(|s| s.base.service_definition.id() == associated_service.id());
 
         if !service_matched {
             // The credential authenticated and the collection never ran, which reads to an

@@ -108,7 +108,7 @@ impl DiscoveryIntegration for InstantOnIntegration {
         );
 
         Ok(ProbeSuccess {
-            client_probe: ClientProbe::InstantOn,
+            client_probe: Some(ClientProbe::InstantOn),
             // Nothing was proven about a port on this host — the authentication happened
             // elsewhere entirely.
             ports: vec![],

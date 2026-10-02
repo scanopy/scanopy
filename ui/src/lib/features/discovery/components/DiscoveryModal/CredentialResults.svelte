@@ -11,7 +11,6 @@
 	import { entityRef } from '$lib/shared/components/data/types';
 	import { useCredentialsQuery } from '$lib/features/credentials/queries';
 	import { credentialTypes, entities } from '$lib/shared/stores/metadata';
-	import { formatMillisAsSeconds } from '$lib/shared/utils/formatting';
 	import {
 		common_credential,
 		common_unknownEntity,
@@ -21,8 +20,8 @@
 		discovery_noCredentialResults,
 		discovery_noCredentialResultsSubtitle,
 		discovery_noWarnings,
-		discovery_wolDidNotWake,
-		discovery_wolWokeAfter
+		discovery_wolAnswered,
+		discovery_wolDidNotAnswer
 	} from '$lib/paraglide/messages';
 	import type { DiscoveryUpdatePayload } from '../../types/api';
 	import { credentialResultRows } from '../../utils/credentialResults';
@@ -99,13 +98,12 @@
 					</p>
 					<ul class="space-y-1">
 						{#each hosts as host, i (`${host.ip}-${i}`)}
-							{@const duration = formatMillisAsSeconds(host.waited_ms)}
 							<li class="flex items-center gap-2">
 								<span class="text-primary font-mono text-sm">{host.ip}</span>
 								{#if host.woke}
-									<Tag label={discovery_wolWokeAfter({ duration })} color="Green" />
+									<Tag label={discovery_wolAnswered()} color="Green" />
 								{:else}
-									<Tag label={discovery_wolDidNotWake({ duration })} color="Red" />
+									<Tag label={discovery_wolDidNotAnswer()} color="Red" />
 								{/if}
 							</li>
 						{/each}

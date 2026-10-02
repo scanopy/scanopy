@@ -48,6 +48,7 @@ import {
 export function createDefaultCredential(organization_id: string): Credential {
 	return {
 		name: '',
+		description: null,
 		credential_type: {
 			type: 'SnmpV2c',
 			community: { mode: 'Inline' as const, value: '' }

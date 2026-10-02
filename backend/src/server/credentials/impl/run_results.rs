@@ -56,14 +56,52 @@ impl CredentialRunOutcome {
             D::Unknown => Self::Unknown,
         }
     }
+
+    /// Record whether one address woke, replacing any earlier result for it: the wake step records
+    /// every target as not woken, and the Wake-on-LAN integration overwrites the ones the scan
+    /// found. A no-op on any other outcome.
+    pub fn record_wake_on_lan(&mut self, result: WakeOnLanResult) {
+        if let Self::WakeOnLan { hosts } = self {
+            match hosts.iter_mut().find(|h| h.ip == result.ip) {
+                Some(existing) => *existing = result,
+                None => hosts.push(result),
+            }
+        }
+    }
 }
 
-/// Whether one address woke.
+/// Whether one address woke: whether the scan found it after the magic packets went out.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
 pub struct WakeOnLanResult {
     #[schema(value_type = String)]
     pub ip: IpAddr,
     pub woke: bool,
-    /// How long after the packets the address answered, or how long the daemon waited for it.
-    pub waited_ms: u64,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn result(ip: &str, woke: bool) -> WakeOnLanResult {
+        WakeOnLanResult {
+            ip: ip.parse().unwrap(),
+            woke,
+        }
+    }
+
+    #[test]
+    fn a_host_the_scan_found_replaces_its_not_woken_entry() {
+        let mut outcome =
+            CredentialRunOutcome::empty_for(CredentialQueryPayloadDiscriminants::WakeOnLan);
+        outcome.record_wake_on_lan(result("10.0.40.21", false));
+        outcome.record_wake_on_lan(result("10.0.40.22", false));
+        outcome.record_wake_on_lan(result("10.0.40.21", true));
+
+        assert_eq!(
+            outcome,
+            CredentialRunOutcome::WakeOnLan {
+                hosts: vec![result("10.0.40.21", true), result("10.0.40.22", false)]
+            }
+        );
+    }
 }

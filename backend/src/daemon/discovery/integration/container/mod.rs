@@ -294,7 +294,7 @@ pub async fn probe_proxy(
             Ok(client) => {
                 tracing::info!(ip = %ctx.ip, proxy_url = %proxy_url, runtime = runtime.label(), "Container client probe succeeded");
                 return Ok(ProbeSuccess {
-                    client_probe: runtime.client_probe(),
+                    client_probe: Some(runtime.client_probe()),
                     ports: vec![PortType::new_tcp(cred.port)],
                     handle: Some(Box::new(ContainerProbeHandle {
                         client,
@@ -355,7 +355,7 @@ pub async fn probe_socket(
         Ok(client) => {
             tracing::debug!(runtime = runtime.label(), socket = ?socket_path, "Container socket probe succeeded");
             Ok(ProbeSuccess {
-                client_probe: runtime.client_probe(),
+                client_probe: Some(runtime.client_probe()),
                 ports: vec![],
                 handle: Some(Box::new(ContainerProbeHandle {
                     client,

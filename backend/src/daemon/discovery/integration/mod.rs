@@ -20,6 +20,7 @@ pub mod podman;
 pub mod snmp;
 pub mod ssh;
 pub mod unifi;
+pub mod wake_on_lan;
 
 use std::any::Any;
 use std::net::IpAddr;
@@ -352,7 +353,9 @@ pub struct ProbeContext<'a> {
 /// Successful probe — service responds with this credential.
 pub struct ProbeSuccess {
     /// What was detected. Feeds into `client_responses` for `Pattern::ClientResponse` matching.
-    pub client_probe: ClientProbe,
+    /// `None` when the probe proves something about the host but there is no service to identify:
+    /// Wake-on-LAN, whose probe succeeding means the host answered the scan.
+    pub client_probe: Option<ClientProbe>,
     /// Ports the probe was detected on.
     pub ports: Vec<PortType>,
     /// Opaque keep-alive state passed to `execute()`.
@@ -429,9 +432,9 @@ impl IntegrationRegistry {
                 Box::new(instant_on::InstantOnIntegration)
             }
             CredentialQueryPayloadDiscriminants::Ssh => Box::new(ssh::SshIntegration),
-            // Not a per-host integration: the wake step runs before the sweep, on hosts that are
-            // asleep (`discovery::wake_on_lan`). Dispatch suppresses it before asking here.
-            CredentialQueryPayloadDiscriminants::WakeOnLan => return None,
+            CredentialQueryPayloadDiscriminants::WakeOnLan => {
+                Box::new(wake_on_lan::WakeOnLanIntegration)
+            }
             CredentialQueryPayloadDiscriminants::Unknown => return None,
         })
     }

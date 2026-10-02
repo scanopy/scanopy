@@ -3,7 +3,9 @@ use super::dcp;
 use super::icmp;
 use super::mdns;
 use crate::daemon::discovery::service::ops::DiscoveryOps;
-use crate::daemon::discovery::service::warnings::{CredentialIssue, CredentialIssueReason};
+use crate::daemon::discovery::service::warnings::{
+    AttemptOutcome, CredentialIssue, CredentialIssueReason,
+};
 use crate::daemon::discovery::types::base::DiscoveryCriticalError;
 use crate::daemon::discovery::types::warnings::DiscoveryWarning;
 use crate::daemon::utils::app_probe::{ProbeContext, scan_app_probes};
@@ -2208,9 +2210,6 @@ pub(crate) fn unanswered_credential_targets(
         .filter(|o| subnets.iter().any(|s| s.base.cidr.contains(&o.ip)))
         .filter(|o| target_ips.is_none_or(|t| t.contains(&o.ip)))
         .filter(|o| !answered.contains(&o.ip))
-        // A host Wake-on-LAN could not wake is already reported by the wake step, with the cause
-        // (no MAC, or no answer within the wait). A second line saying nothing answered adds nothing.
-        .filter(|o| !matches!(o.credential, CredentialQueryPayload::WakeOnLan(_)))
         // The same rule as the pre-scan check, against the addresses that answered rather than
         // the ones in scope: a device that answered on one of its addresses was reached, and its
         // silent second address is not an untried credential.
@@ -2218,7 +2217,18 @@ pub(crate) fn unanswered_credential_targets(
         .map(|o| CredentialIssue {
             integration: (&o.credential).into(),
             ip: o.ip,
-            reason: CredentialIssueReason::TargetNotResponding,
+            reason: match o.credential {
+                // Wake-on-LAN did run, before the sweep. The scan not finding the host is its
+                // failure, so "not tried" would send the operator to the wrong place.
+                CredentialQueryPayload::WakeOnLan(_) => CredentialIssueReason::Attempted {
+                    outcome: AttemptOutcome::TimedOut,
+                    message: "the scan did not find the host after the wake step; check that the \
+                              packet reaches its network segment, that Wake-on-LAN is enabled on \
+                              the host, and that Wait (seconds) covers its boot time"
+                        .to_string(),
+                },
+                _ => CredentialIssueReason::TargetNotResponding,
+            },
             credential_id: (o.credential_id != Uuid::nil()).then_some(o.credential_id),
         })
         .collect()
@@ -2227,6 +2237,7 @@ pub(crate) fn unanswered_credential_targets(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::server::credentials::r#impl::mapping::CredentialQueryPayloadDiscriminants;
     use crate::server::shared::attribution::AttributeSource;
     use crate::server::shared::storage::traits::Storable;
     use crate::server::subnets::r#impl::base::SubnetBase;
@@ -2349,8 +2360,10 @@ mod tests {
         assert_eq!(issues[0].reason, CredentialIssueReason::TargetNotResponding);
     }
 
+    /// The scan's liveness checks are what tell whether Wake-on-LAN worked, so a target the scan
+    /// never found is reported as a failed wake rather than an untried credential.
     #[test]
-    fn a_wake_on_lan_target_that_never_answered_is_left_to_the_wake_step() {
+    fn a_wake_on_lan_target_that_never_answered_is_reported() {
         let subnets = [subnet("192.168.4.0/22")];
         let mut mapping = mapping_targeting("192.168.4.141");
         mapping.ip_overrides[0].credential = CredentialQueryPayload::WakeOnLan(
@@ -2361,9 +2374,19 @@ mod tests {
                 secure_on_password: None,
             },
         );
-        assert!(
-            unanswered_credential_targets(&[mapping], &subnets, None, &HashSet::new()).is_empty()
+        let issues = unanswered_credential_targets(&[mapping], &subnets, None, &HashSet::new());
+        assert_eq!(issues.len(), 1);
+        assert_eq!(
+            issues[0].integration,
+            CredentialQueryPayloadDiscriminants::WakeOnLan
         );
+        assert!(matches!(
+            issues[0].reason,
+            CredentialIssueReason::Attempted {
+                outcome: AttemptOutcome::TimedOut,
+                ..
+            }
+        ));
     }
 
     #[test]

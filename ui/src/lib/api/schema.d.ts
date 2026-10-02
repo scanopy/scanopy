@@ -3466,19 +3466,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-02T00:13:21.317068Z",
+             *       "created_at": "2026-10-02T00:42:15.220334Z",
              *       "first_discovery_id": null,
-             *       "id": "d124c5cf-bd3c-4eeb-8c1f-30f0d81cff11",
+             *       "id": "8565514f-7636-449d-8cea-6049b870d37c",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-02T00:13:21.317068Z",
+             *       "last_seen_at": "2026-10-02T00:42:15.220334Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-10-02T00:13:21.317068Z",
-             *       "valid_from": "2026-10-02T00:13:21.317068Z",
+             *       "updated_at": "2026-10-02T00:42:15.220334Z",
+             *       "valid_from": "2026-10-02T00:42:15.220334Z",
              *       "valid_to": null
              *     }
              */
@@ -4301,19 +4301,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-02T00:13:21.295068Z",
+             *               "created_at": "2026-10-02T00:42:15.197738Z",
              *               "first_discovery_id": null,
-             *               "id": "ec80ccfc-3604-4384-a223-cb0707d5f724",
+             *               "id": "cd624cfd-f3bd-46bd-87b1-fe4a046e8be2",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-02T00:13:21.295068Z",
+             *               "last_seen_at": "2026-10-02T00:42:15.197738Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-10-02T00:13:21.295068Z",
-             *               "valid_from": "2026-10-02T00:13:21.295068Z",
+             *               "updated_at": "2026-10-02T00:42:15.197738Z",
+             *               "valid_from": "2026-10-02T00:42:15.197738Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4327,7 +4327,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Mendelson AS2",
+             *           "service_definition": "Pi-Hole",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5240,19 +5240,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-02T00:13:21.311661Z",
+             *           "created_at": "2026-10-02T00:42:15.214651Z",
              *           "first_discovery_id": null,
-             *           "id": "2f8af5ef-81ec-44f8-9c9e-d34f6c1a1eb4",
+             *           "id": "bf4bb2fe-9b28-4b5c-b196-b074402fbfb2",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-02T00:13:21.311661Z",
+             *           "last_seen_at": "2026-10-02T00:42:15.214651Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-10-02T00:13:21.311661Z",
-             *           "valid_from": "2026-10-02T00:13:21.311661Z",
+             *           "updated_at": "2026-10-02T00:42:15.214651Z",
+             *           "valid_from": "2026-10-02T00:42:15.214651Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5266,7 +5266,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Mendelson AS2",
+             *       "service_definition": "Pi-Hole",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6337,19 +6337,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-02T00:13:21.295476Z",
+         *       "created_at": "2026-10-02T00:42:15.198159Z",
          *       "first_discovery_id": null,
-         *       "id": "1e9f33f7-81ef-4679-8806-6e7ee658f58f",
+         *       "id": "a57d1ebc-d8df-4b48-850c-0a7c11f08614",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-02T00:13:21.295476Z",
+         *       "last_seen_at": "2026-10-02T00:42:15.198159Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-10-02T00:13:21.295476Z",
-         *       "valid_from": "2026-10-02T00:13:21.295476Z",
+         *       "updated_at": "2026-10-02T00:42:15.198159Z",
+         *       "valid_from": "2026-10-02T00:42:15.198159Z",
          *       "valid_to": null
          *     }
          */
@@ -6677,7 +6677,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Mendelson AS2",
+         *           "service_definition": "Pi-Hole",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -6858,6 +6858,8 @@ export interface components {
              *     validated for it, and a daemon on another OS skips the credential with a warning.
              */
             daemon_os?: components["schemas"]["OsFamily"];
+            /** @description Free-text notes about the credential: what it is for, who owns it. */
+            description: string | null;
             /**
              * @description Hosts this credential is assigned to (PerHost scope), with optional IP scoping.
              *     Hydrated from the `host_credentials` junction table.
@@ -9103,19 +9105,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-02T00:13:21.294615Z",
+         *               "created_at": "2026-10-02T00:42:15.197274Z",
          *               "first_discovery_id": null,
-         *               "id": "93fd1b0d-764b-4fe1-9e16-282c0e1fc878",
+         *               "id": "86e6bcc4-ea7c-4041-b07d-bd09ee24c013",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-02T00:13:21.294615Z",
+         *               "last_seen_at": "2026-10-02T00:42:15.197274Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-10-02T00:13:21.294615Z",
-         *               "valid_from": "2026-10-02T00:13:21.294615Z",
+         *               "updated_at": "2026-10-02T00:42:15.197274Z",
+         *               "valid_from": "2026-10-02T00:42:15.197274Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9129,7 +9131,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Mendelson AS2",
+         *           "service_definition": "Pi-Hole",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -12148,19 +12150,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-02T00:13:21.295356Z",
+         *           "created_at": "2026-10-02T00:42:15.198027Z",
          *           "first_discovery_id": null,
-         *           "id": "7d03309c-158b-4144-8132-ab1326c8ecd5",
+         *           "id": "9b48665d-741e-4277-bc57-e9be40c720c3",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-02T00:13:21.295356Z",
+         *           "last_seen_at": "2026-10-02T00:42:15.198027Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-10-02T00:13:21.295356Z",
-         *           "valid_from": "2026-10-02T00:13:21.295356Z",
+         *           "updated_at": "2026-10-02T00:42:15.198027Z",
+         *           "valid_from": "2026-10-02T00:42:15.198027Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12174,7 +12176,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Mendelson AS2",
+         *       "service_definition": "Pi-Hole",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12932,7 +12934,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "7cfe91e9-d29e-430a-81a2-9badabacdecb",
+             *           "id": "c08f63aa-aa75-4000-b3da-c8a58d6b19bd",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -12942,23 +12944,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "95e81530-8066-4e9b-88e7-40ae4e75cb83",
+             *           "id": "1c07a8d1-d5aa-4252-ae3b-2fd38729a63d",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "1cca9085-c0f5-4b82-8cf2-8a5a7066e5af",
+             *           "id": "bf42f6c2-f50e-4ed1-ace9-a252cca510b0",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "8e5d8037-3814-4372-a0ea-82d72b4ba244",
+             *           "id": "e7977284-cd33-4d32-993b-f45d16966d2e",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "95e81530-8066-4e9b-88e7-40ae4e75cb83",
+             *           "id": "1c07a8d1-d5aa-4252-ae3b-2fd38729a63d",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -12971,19 +12973,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "fedb5a3b-0fc4-4ebc-a0a0-439feed2e082",
+             *         "id": "8471794e-7550-4789-a5c7-8e98f97ce8f0",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "ff983cdc-1470-4b64-a787-52b5ff3483c9",
+             *         "id": "e3f5cc06-346d-4e17-ab76-9ad32f75a23a",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "213e79f4-eb5b-497b-ba0a-9ba4adfc6534",
+             *         "id": "0f955975-57d6-44d9-8881-64110c808f46",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "5ad3f170-d854-4268-9aea-1edb352cbfca",
+             *         "id": "d089762d-a213-456b-81e9-41400e088321",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13001,7 +13003,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "ec5517cf-a54f-4964-8972-203bbb65f842",
+             *         "id": "dbd1c16f-0bb6-4516-86d1-7b8d3ed15a42",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13010,15 +13012,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "ab6e665a-4dcf-42cd-b72f-976b956e2d34",
+             *         "id": "edbcd707-d4b1-488b-9722-3c5a129254b5",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "cd38fc96-9440-4f7d-b8d6-d418d5f33691",
+             *         "id": "a15affbe-c632-40be-8168-9617ba12b610",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "8f05e279-5b6c-442f-bb3b-dc0359bd75a6",
+             *         "id": "4b6a567a-c80c-445a-b0b9-f34e4ea4afa8",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -13537,14 +13539,9 @@ export interface components {
         };
         /** @enum {string} */
         VlanOrderField: "created_at" | "name" | "vlan_number" | "updated_at";
-        /** @description Whether one address woke. */
+        /** @description Whether one address woke: whether the scan found it after the magic packets went out. */
         WakeOnLanResult: {
             ip: string;
-            /**
-             * Format: int64
-             * @description How long after the packets the address answered, or how long the daemon waited for it.
-             */
-            waited_ms: number;
             woke: boolean;
         };
         /** @enum {string} */

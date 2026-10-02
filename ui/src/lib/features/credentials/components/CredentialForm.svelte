@@ -27,6 +27,7 @@
 	import { translateFieldDefinitions } from '$lib/i18n/metadata';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
+	import TextArea from '$lib/shared/components/forms/input/TextArea.svelte';
 	import RadioGroup from '$lib/shared/components/forms/input/RadioGroup.svelte';
 	import type { FieldDefinition, FieldType } from '$lib/shared/stores/metadata';
 	import { Eye, EyeOff } from 'lucide-svelte';
@@ -49,6 +50,7 @@
 		type ScriptSourceMode
 	} from '../utils/fieldValues';
 	import {
+		common_description,
 		common_name,
 		credentials_credentialType,
 		credentials_daemonOs,
@@ -58,6 +60,7 @@
 		credentials_filePathReadByDaemon,
 		common_enterValue,
 		credentials_ipExamplePlaceholder,
+		credentials_descriptionPlaceholder,
 		credentials_namePlaceholderExample,
 		credentials_secretStoredInDatabase,
 		credentials_typeImmutableWarning,
@@ -968,6 +971,22 @@
 							{field}
 							placeholder={credentials_namePlaceholderExample()}
 							required
+						/>
+					{/snippet}
+				</form.Field>
+
+				<form.Field
+					name="description"
+					validators={{
+						onBlur: ({ value }: { value: string | null }) => max(500)(value || '')
+					}}
+				>
+					{#snippet children(field: AnyFieldApi)}
+						<TextArea
+							label={common_description()}
+							id="credential-description"
+							{field}
+							placeholder={credentials_descriptionPlaceholder()}
 						/>
 					{/snippet}
 				</form.Field>

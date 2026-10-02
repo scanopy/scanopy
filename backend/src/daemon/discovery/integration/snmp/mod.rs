@@ -196,7 +196,7 @@ impl DiscoveryIntegration for SnmpIntegration {
             match port_outcome {
                 SnmpProbeOutcome::Answered(detected_port) => {
                     return Ok(ProbeSuccess {
-                        client_probe: ClientProbe::Snmp,
+                        client_probe: Some(ClientProbe::Snmp),
                         ports: vec![PortType::new_udp(detected_port)],
                         handle: Some(Box::new(SnmpProbeHandle {
                             credential: snmp_cred.clone(),

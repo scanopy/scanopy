@@ -112,7 +112,7 @@ impl DiscoveryIntegration for UnifiIntegration {
         );
 
         Ok(ProbeSuccess {
-            client_probe: ClientProbe::UnifiController,
+            client_probe: Some(ClientProbe::UnifiController),
             ports: vec![PortType::new_tcp(credential.port)],
             handle: Some(Box::new(UnifiProbeHandle { client })),
         })
