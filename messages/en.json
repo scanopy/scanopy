@@ -743,6 +743,8 @@
 	"daemons_msiRenameHint": "Rename the downloaded file to {filename} to pre-fill your daemon's configuration in the installer.",
 	"daemons_networkCannotChange": "Network cannot be changed after API key is generated",
 	"daemons_operatingSystem": "Select operating system",
+	"daemons_osHelp": "The machine the daemon will run on. Integrations you add next read their files from it, so their paths are written for this OS.",
+	"daemons_osLocked": "Fixed for this daemon: integrations were already set up for this OS.",
 	"daemons_portReachable": "Port is reachable",
 	"daemons_promptBody": "The first step to generating your network map is installing a lightweight daemon to scan for hosts, services, and connections. Ready to get started?",
 	"daemons_promptGetStarted": "Let's go!",

@@ -434,6 +434,8 @@ impl CredentialTypeDiscriminants {
         let service = integration.service();
         serde_json::json!({
             "fields": ct.field_definitions(),
+            // Which fields depend on the daemon's and the scanned host's OS, for placing the pickers.
+            "os_fields": ct.os_fields(),
             // The frontend derives "daemon-host-only" (former `is_local_auto`) from `targets`.
             "targets": ct.targets(),
             "requires_config": ct.requires_config(),

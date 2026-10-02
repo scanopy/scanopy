@@ -8,6 +8,10 @@ use crate::server::shared::types::field_definition::{
 /// the credential rather than a field of its type.
 pub const DAEMON_OS_FIELD: &str = "daemon_os";
 
+/// The SSH credentials' Scanned Host OS picker. Fields whose placeholder follows it are the ones
+/// that depend on the scanned host's OS.
+pub const TARGET_OS_FIELD: &str = "target_os";
+
 // ============================================================================
 // Credential field definitions — the form each credential type renders.
 //
@@ -496,7 +500,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
     fields.extend(auth_fields);
     fields.extend([
         FieldDefinition {
-            id: "target_os",
+            id: TARGET_OS_FIELD,
             label: "Scanned Host OS",
             field_type: FieldType::Radio,
             placeholder: None,
@@ -518,7 +522,7 @@ fn ssh_field_definitions(auth_fields: Vec<FieldDefinition>) -> Vec<FieldDefiniti
             // The file-on-scanned-host path, which is the default mode.
             placeholder: Some("/usr/local/bin/scanopy-inventory"),
             placeholder_by: Some(&[DependentPlaceholder {
-                field: "target_os",
+                field: TARGET_OS_FIELD,
                 value: "Windows",
                 placeholder: r"C:\Scanopy\inventory.ps1",
             }]),
@@ -713,4 +717,99 @@ fn container_proxy_field_definitions(
             group: Some("TLS"),
         },
     ]
+}
+
+/// Which fields depend on which declared OS. Computed from the field definitions, so the form
+/// places each OS picker without its own rule: with the one field that depends on it, or above the
+/// first of several.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, utoipa::ToSchema)]
+pub struct CredentialOsFields {
+    /// Fields that can read a file or socket on the daemon, so depend on the credential's
+    /// `daemon_os`: every file-or-value field, a script that can come from the daemon, and any
+    /// field whose placeholder follows `daemon_os`.
+    pub daemon: Vec<&'static str>,
+    /// Fields that depend on the scanned host's OS: those whose placeholder follows the Scanned
+    /// Host OS picker.
+    pub scanned_host: Vec<&'static str>,
+    /// The Scanned Host OS picker's own field, where the type has one.
+    pub scanned_host_picker: Option<&'static str>,
+}
+
+impl CredentialType {
+    pub fn os_fields(&self) -> CredentialOsFields {
+        let fields = self.field_definitions();
+        let follows = |f: &FieldDefinition, id: &str| {
+            f.placeholder_by
+                .unwrap_or_default()
+                .iter()
+                .any(|d| d.field == id)
+        };
+        CredentialOsFields {
+            daemon: fields
+                .iter()
+                .filter(|f| {
+                    matches!(
+                        f.field_type,
+                        FieldType::SecretPathOrInline
+                            | FieldType::PathOrInline
+                            | FieldType::ScriptSource
+                    ) || follows(f, DAEMON_OS_FIELD)
+                })
+                .map(|f| f.id)
+                .collect(),
+            scanned_host: fields
+                .iter()
+                .filter(|f| follows(f, TARGET_OS_FIELD))
+                .map(|f| f.id)
+                .collect(),
+            scanned_host_picker: fields
+                .iter()
+                .find(|f| f.id == TARGET_OS_FIELD)
+                .map(|f| f.id),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::server::credentials::r#impl::types::CredentialTypeDiscriminants;
+    use strum::IntoEnumIterator;
+
+    /// An SSH key credential depends on both machines: its key (and passphrase) and a daemon-side
+    /// script on the daemon's OS, the script on the scanned host's. A socket credential depends on
+    /// the daemon's through its placeholder alone.
+    #[test]
+    fn os_fields_follow_field_types_and_placeholders() {
+        let ssh = CredentialTypeDiscriminants::SshKey
+            .to_credential_type()
+            .os_fields();
+        assert_eq!(ssh.daemon, vec!["private_key", "passphrase", "script"]);
+        assert_eq!(ssh.scanned_host, vec!["script"]);
+        assert_eq!(ssh.scanned_host_picker, Some(TARGET_OS_FIELD));
+
+        let socket = CredentialTypeDiscriminants::DockerSocket
+            .to_credential_type()
+            .os_fields();
+        assert_eq!(socket.daemon, vec!["socket_path"]);
+        assert!(socket.scanned_host.is_empty());
+    }
+
+    /// Every id the form is told to place a picker by is a field the form renders.
+    #[test]
+    fn os_fields_name_real_fields() {
+        for d in CredentialTypeDiscriminants::iter() {
+            let ct = d.to_credential_type();
+            let ids: Vec<&str> = ct.field_definitions().iter().map(|f| f.id).collect();
+            let os = ct.os_fields();
+            for id in os
+                .daemon
+                .iter()
+                .chain(&os.scanned_host)
+                .chain(&os.scanned_host_picker)
+            {
+                assert!(ids.contains(id), "{d:?}: {id} is not a field");
+            }
+        }
+    }
 }

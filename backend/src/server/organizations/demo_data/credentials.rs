@@ -13,6 +13,7 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
                 organization_id,
                 daemon_os: OsFamily::Unix,
                 name: "Default SNMPv2c".to_string(),
+                description: Some("Read-only public community most switches ship with.".to_string()),
                 credential_type: CredentialType::SnmpV2c {
                     community: SecretValue::Inline {
                         value: SecretString::from("public".to_string()),
@@ -31,6 +32,10 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
                 organization_id,
                 daemon_os: OsFamily::Unix,
                 name: "Network Devices".to_string(),
+                description: Some(
+                    "Community for core and access switches, firewalls and APs. Rotated each quarter by the network team."
+                        .to_string(),
+                ),
                 credential_type: CredentialType::SnmpV2c {
                     community: SecretValue::Inline {
                         value: SecretString::from("acme-network".to_string()),
@@ -49,6 +54,7 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
                 organization_id,
                 daemon_os: OsFamily::Unix,
                 name: "Docker TLS Proxy".to_string(),
+                description: Some("TLS proxy in front of the Docker API on the container hosts.".to_string()),
                 credential_type: CredentialType::DockerProxy {
                     port: 2376,
                     path: None,
@@ -69,6 +75,9 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
                 organization_id,
                 daemon_os: OsFamily::Unix,
                 name: "Linux Inventory".to_string(),
+                description: Some(
+                    "Runs the inventory script Ansible deploys to every Linux server. Read-only account.".to_string(),
+                ),
                 credential_type: CredentialType::SshKey {
                     target_os: OsFamily::Unix,
                     port: 22,
@@ -100,6 +109,7 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
                 organization_id,
                 daemon_os: OsFamily::Unix,
                 name: "Backup NAS Wake".to_string(),
+                description: Some("Wakes the backup NAS, which sleeps between weekly backup windows.".to_string()),
                 credential_type: CredentialType::WakeOnLan {
                     port: 9,
                     // The NAS spins up eight drives before DSM answers.
