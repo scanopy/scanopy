@@ -7,7 +7,7 @@
 
 use std::net::IpAddr;
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -66,6 +66,43 @@ impl CredentialRunOutcome {
                 Some(existing) => *existing = result,
                 None => hosts.push(result),
             }
+        }
+    }
+}
+
+/// Reads `credential_results` one entry at a time, so an entry this server can't read costs that
+/// entry's outcome and not the whole payload. A daemon newer than the server can change an
+/// outcome's shape (a field added, dropped or retyped), and `#[serde(other)]` only covers a new
+/// `type` tag. An entry whose outcome doesn't parse keeps its credential as `Unknown`; one without a
+/// readable `credential_id` has nothing to attach to and is dropped.
+pub fn deserialize_credential_results<'de, D>(
+    deserializer: D,
+) -> Result<Vec<CredentialRunResult>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let raw: Vec<serde_json::Value> = Vec::deserialize(deserializer)?;
+    Ok(raw.into_iter().filter_map(result_from_value).collect())
+}
+
+fn result_from_value(value: serde_json::Value) -> Option<CredentialRunResult> {
+    if let Ok(result) = serde_json::from_value::<CredentialRunResult>(value.clone()) {
+        return Some(result);
+    }
+    let credential_id = value
+        .get("credential_id")
+        .and_then(|id| serde_json::from_value::<Uuid>(id.clone()).ok());
+    match credential_id {
+        Some(credential_id) => {
+            tracing::warn!(%credential_id, entry = %value, "Unreadable credential result outcome");
+            Some(CredentialRunResult {
+                credential_id,
+                outcome: CredentialRunOutcome::Unknown,
+            })
+        }
+        None => {
+            tracing::warn!(entry = %value, "Dropping credential result without a credential id");
+            None
         }
     }
 }

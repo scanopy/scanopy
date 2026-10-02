@@ -63,8 +63,13 @@ pub struct HostBase {
     /// How this host came to be known — discovered, imported, or created by hand.
     #[schema(read_only)]
     pub source: EntitySource,
-    /// How the host is virtualized, when it is a VM or container guest.
+    /// How the host is virtualized, when it is a VM or container guest. A provider from a newer
+    /// daemon reads as `None` instead of rejecting the host.
     #[schema(required)]
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::deserialize_lenient_option"
+    )]
     pub virtualization_metadata: Option<HostVirtualization>,
     /// The service doing the virtualizing — the hypervisor this VM runs on.
     ///

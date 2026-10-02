@@ -1,6 +1,7 @@
 //! Password update, email-change request, and forgot/reset flows.
 use super::*;
 use crate::server::openapi::tags as api_tags;
+use crate::server::shared::types::api::ApiJson;
 use validator::Validate;
 
 #[utoipa::path(
@@ -19,7 +20,7 @@ pub(crate) async fn update_password_auth(
     ClientIp(ip): ClientIp,
     user_agent: Option<TypedHeader<UserAgent>>,
     auth: Authorized<IsUser>,
-    Json(request): Json<UpdatePasswordRequest>,
+    ApiJson(request): ApiJson<UpdatePasswordRequest>,
 ) -> ApiResult<Json<ApiResponse<User>>> {
     // Enforce the password policy on change (length + complexity), matching
     // registration — the service takes raw fields, so validate here.
@@ -74,7 +75,7 @@ pub(crate) async fn request_email_change(
     ClientIp(ip): ClientIp,
     user_agent: Option<TypedHeader<UserAgent>>,
     auth: Authorized<IsUser>,
-    Json(request): Json<RequestEmailChangeRequest>,
+    ApiJson(request): ApiJson<RequestEmailChangeRequest>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let user_id = auth.require_user_id()?;
     let user_agent = user_agent.map(|u| u.to_string());
@@ -107,7 +108,7 @@ pub(crate) async fn forgot_password(
     State(state): State<Arc<AppState>>,
     ClientIp(ip): ClientIp,
     user_agent: Option<TypedHeader<UserAgent>>,
-    Json(request): Json<ForgotPasswordRequest>,
+    ApiJson(request): ApiJson<ForgotPasswordRequest>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let user_agent = user_agent.map(|u| u.to_string());
 
@@ -135,7 +136,7 @@ pub(crate) async fn reset_password(
     ClientIp(ip): ClientIp,
     user_agent: Option<TypedHeader<UserAgent>>,
     session: Session,
-    Json(request): Json<ResetPasswordRequest>,
+    ApiJson(request): ApiJson<ResetPasswordRequest>,
 ) -> ApiResult<Json<ApiResponse<User>>> {
     // Enforce the password policy on reset (length + complexity), matching
     // registration — the service takes raw fields, so validate here.

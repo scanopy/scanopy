@@ -2,7 +2,7 @@ use crate::daemon::discovery::manager::{CancelTarget, InitiateOutcome};
 use crate::daemon::runtime::types::DaemonAppState;
 use crate::server::{
     daemons::r#impl::api::{DaemonDiscoveryRequest, DaemonDiscoveryResponse},
-    shared::types::api::{ApiError, ApiResponse, ApiResult},
+    shared::types::api::{ApiError, ApiJson, ApiResponse, ApiResult},
 };
 use axum::{Router, extract::State, response::Json, routing::post};
 use std::sync::Arc;
@@ -16,7 +16,7 @@ pub fn create_router() -> Router<Arc<DaemonAppState>> {
 
 pub async fn handle_discovery_request(
     State(state): State<Arc<DaemonAppState>>,
-    Json(request): Json<DaemonDiscoveryRequest>,
+    ApiJson(request): ApiJson<DaemonDiscoveryRequest>,
 ) -> ApiResult<Json<ApiResponse<DaemonDiscoveryResponse>>> {
     let session_id = request.session_id;
     tracing::info!(
@@ -39,7 +39,7 @@ pub async fn handle_discovery_request(
 
 pub async fn handle_cancel_request(
     State(state): State<Arc<DaemonAppState>>,
-    Json(session_id): Json<Uuid>,
+    ApiJson(session_id): ApiJson<Uuid>,
 ) -> ApiResult<Json<ApiResponse<Uuid>>> {
     tracing::info!(
         "Received discovery cancellation request for session {}",

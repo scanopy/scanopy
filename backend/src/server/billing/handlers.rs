@@ -9,7 +9,7 @@ use crate::server::config::AppState;
 use crate::server::openapi::tags as api_tags;
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::types::ErrorCode;
-use crate::server::shared::types::api::{ApiError, ApiResult};
+use crate::server::shared::types::api::{ApiError, ApiJson, ApiResult};
 use crate::server::shared::types::api::{ApiErrorResponse, ApiResponse, EmptyApiResponse};
 use axum::Json;
 use axum::extract::State;
@@ -144,7 +144,7 @@ async fn get_billing_plans(
 async fn create_checkout_session(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Owner>,
-    Json(request): Json<CreateCheckoutRequest>,
+    ApiJson(request): ApiJson<CreateCheckoutRequest>,
 ) -> ApiResult<Json<ApiResponse<String>>> {
     let organization_id = auth
         .organization_id()
@@ -350,7 +350,7 @@ async fn create_payment_method_setup_intent(
 async fn finalize_payment_method(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Owner>,
-    Json(request): Json<FinalizePaymentMethodRequest>,
+    ApiJson(request): ApiJson<FinalizePaymentMethodRequest>,
 ) -> ApiResult<Json<EmptyApiResponse>> {
     let organization_id = auth
         .organization_id()
@@ -383,7 +383,7 @@ async fn finalize_payment_method(
 async fn change_plan(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Owner>,
-    Json(request): Json<ChangePlanRequest>,
+    ApiJson(request): ApiJson<ChangePlanRequest>,
 ) -> ApiResult<Json<ApiResponse<String>>> {
     let organization_id = auth
         .organization_id()
@@ -499,7 +499,7 @@ async fn handle_webhook(
 async fn create_portal_session(
     State(state): State<Arc<AppState>>,
     auth: Authorized<RequireVerified<Owner>>,
-    Json(return_url): Json<String>,
+    ApiJson(return_url): ApiJson<String>,
 ) -> ApiResult<Json<ApiResponse<String>>> {
     let organization_id = auth
         .organization_id()
@@ -537,7 +537,7 @@ async fn submit_enterprise_inquiry(
     State(state): State<Arc<AppState>>,
     ClientIp(ip): ClientIp,
     auth: Authorized<Viewer>,
-    Json(request): Json<EnterpriseInquiryRequest>,
+    ApiJson(request): ApiJson<EnterpriseInquiryRequest>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let organization_id = auth
         .organization_id()
@@ -636,7 +636,7 @@ async fn submit_enterprise_inquiry(
 async fn pause_subscription(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Owner>,
-    Json(request): Json<PauseSubscriptionRequest>,
+    ApiJson(request): ApiJson<PauseSubscriptionRequest>,
 ) -> ApiResult<Json<ApiResponse<String>>> {
     let organization_id = auth
         .organization_id()
@@ -799,7 +799,7 @@ async fn end_trial(
 async fn cancel_subscription(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Owner>,
-    Json(request): Json<CancelSubscriptionRequest>,
+    ApiJson(request): ApiJson<CancelSubscriptionRequest>,
 ) -> ApiResult<Json<ApiResponse<CancelSubscriptionResponse>>> {
     let organization_id = auth
         .organization_id()

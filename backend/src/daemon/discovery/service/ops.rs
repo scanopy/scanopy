@@ -24,7 +24,10 @@ use crate::{
             },
             types::warnings::DiscoveryWarning,
         },
-        shared::{api_client::DaemonApiClient, config::ConfigStore},
+        shared::{
+            api_client::{DaemonApiClient, ServerResponseError},
+            config::ConfigStore,
+        },
     },
     server::{
         credentials::r#impl::{
@@ -81,6 +84,27 @@ use crate::daemon::discovery::integration::{InterfaceSource, InterfaceViewScope}
 
 /// Default number of retries for entity creation during discovery.
 const ENTITY_CREATION_MAX_RETRIES: usize = 5;
+
+/// Retry schedule for a run's final report: about 4 minutes of waiting in all, so a report that
+/// gets through late still lands inside the server's 5-minute stall window.
+const TERMINAL_REPORT_BACKOFF: ExponentialBuilder = ExponentialBuilder::new()
+    .with_min_delay(Duration::from_secs(1))
+    .with_max_delay(Duration::from_secs(30))
+    .with_total_delay(Some(Duration::from_secs(240)))
+    .without_max_times();
+
+/// Send a run's final report until it lands or `backoff` runs out. A 4xx stops at once: the
+/// server refused this body, and sending it again gets the same answer.
+async fn send_terminal_report<F, Fut>(send: F, backoff: ExponentialBuilder) -> Result<(), Error>
+where
+    F: FnMut() -> Fut,
+    Fut: std::future::Future<Output = Result<(), Error>>,
+{
+    send.retry(backoff)
+        .when(|e| !ServerResponseError::is_rejection(e))
+        .notify(|e, dur| tracing::warn!("Retrying the final discovery report after {dur:?}: {e}"))
+        .await
+}
 
 /// Timeout for waiting for server confirmation in ServerPoll mode.
 const SERVER_POLL_CONFIRMATION_TIMEOUT: Duration = Duration::from_secs(120);
@@ -896,8 +920,28 @@ impl DiscoveryOps {
             payload.estimated_remaining_secs = Some(estimate);
         }
 
-        // Progress updates are non-critical - log errors but don't fail discovery
-        self.post_session_update(&session, &payload).await;
+        // The terminal report is the run's outcome: without it the server's stall sweep records
+        // the run as failed, so it is retried. ServerPoll servers also collect it from
+        // `terminal_payload`. Progress updates are best-effort; the next one supersedes a lost one.
+        let retry_terminal = payload.phase.is_terminal()
+            && self.config_store.get_mode().await? == DaemonMode::DaemonPoll;
+        if retry_terminal {
+            if let Err(e) = send_terminal_report(
+                || self.post_session_update(&session, &payload),
+                TERMINAL_REPORT_BACKOFF,
+            )
+            .await
+            {
+                tracing::error!(
+                    session_id = %session.info.session_id,
+                    phase = %payload.phase,
+                    error = %e,
+                    "The run's final report did not reach the server; the server will record the run as stalled"
+                );
+            }
+        } else {
+            let _ = self.post_session_update(&session, &payload).await;
+        }
 
         Ok(())
     }
@@ -1186,7 +1230,7 @@ impl DiscoveryOps {
                 payload.estimated_remaining_secs = Some(estimate);
             }
 
-            self.post_session_update(&session, &payload).await;
+            let _ = self.post_session_update(&session, &payload).await;
         }
 
         Ok(())
@@ -1198,15 +1242,15 @@ impl DiscoveryOps {
         &self,
         session: &super::base::DiscoverySession,
         payload: &DiscoveryUpdatePayload,
-    ) {
+    ) -> Result<(), Error> {
         use std::sync::atomic::Ordering;
 
         let path = format!("/api/v1/discovery/{}/update", session.info.session_id);
-        match self
+        let result = self
             .api_client
             .post_no_data(&path, payload, "Failed to report discovery update")
-            .await
-        {
+            .await;
+        match &result {
             Err(e) => {
                 let failures = session
                     .consecutive_report_failures
@@ -1233,6 +1277,7 @@ impl DiscoveryOps {
                 }
             }
         }
+        result
     }
 
     /// Create a host with its children.
@@ -1289,7 +1334,10 @@ impl DiscoveryOps {
                         .with_max_delay(Duration::from_secs(30))
                         .with_max_times(ENTITY_CREATION_MAX_RETRIES),
                 )
-                .when(|e| e.downcast_ref::<ApiErrorResponse>().is_none())
+                .when(|e| {
+                    e.downcast_ref::<ApiErrorResponse>().is_none()
+                        && !ServerResponseError::is_rejection(e)
+                })
                 .notify(|e, dur| tracing::warn!("Retrying host creation after {:?}: {}", dur, e))
                 .await?;
 
@@ -1793,6 +1841,67 @@ mod tests {
     use crate::server::shared::attribution;
     use tokio::sync::Mutex;
     use tokio::time::Instant;
+
+    fn fast_backoff() -> ExponentialBuilder {
+        ExponentialBuilder::new()
+            .with_min_delay(Duration::from_millis(1))
+            .with_max_delay(Duration::from_millis(1))
+            .with_max_times(10)
+    }
+
+    fn server_error(status: u16) -> Error {
+        use crate::daemon::shared::api_client::ServerResponseErrorType;
+        let status = reqwest::StatusCode::from_u16(status).unwrap();
+        Error::new(ServerResponseError {
+            context: "Failed to report discovery update".into(),
+            status,
+            message: None,
+            r#type: if status.is_client_error() {
+                ServerResponseErrorType::Rejected
+            } else {
+                ServerResponseErrorType::ServerFault
+            },
+        })
+    }
+
+    /// A final report that fails to send goes again, and stops once the server takes it.
+    #[tokio::test]
+    async fn the_final_report_is_resent_until_the_server_takes_it() {
+        let attempts = std::sync::atomic::AtomicUsize::new(0);
+
+        let result = send_terminal_report(
+            || async {
+                match attempts.fetch_add(1, std::sync::atomic::Ordering::SeqCst) {
+                    0 => Err(anyhow!("connection reset")),
+                    1 => Err(server_error(503)),
+                    _ => Ok(()),
+                }
+            },
+            fast_backoff(),
+        )
+        .await;
+
+        assert!(result.is_ok());
+        assert_eq!(attempts.load(std::sync::atomic::Ordering::SeqCst), 3);
+    }
+
+    /// The server refusing the body is final: the same body gets the same answer.
+    #[tokio::test]
+    async fn a_rejected_final_report_is_not_resent() {
+        let attempts = std::sync::atomic::AtomicUsize::new(0);
+
+        let result = send_terminal_report(
+            || async {
+                attempts.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                Err::<(), _>(server_error(422))
+            },
+            fast_backoff(),
+        )
+        .await;
+
+        assert!(result.is_err());
+        assert_eq!(attempts.load(std::sync::atomic::Ordering::SeqCst), 1);
+    }
 
     fn empty_host_data() -> HostData {
         use crate::server::hosts::r#impl::base::{Host, HostBase};

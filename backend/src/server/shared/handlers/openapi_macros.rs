@@ -97,7 +97,7 @@ macro_rules! crud_create_handler {
         pub async fn create(
             state: axum::extract::State<std::sync::Arc<$crate::server::config::AppState>>,
             auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Member>,
-            body: axum::response::Json<$entity>,
+            body: $crate::server::shared::types::api::ApiJson<$entity>,
         ) -> $crate::server::shared::types::api::ApiResult<
             axum::response::Json<$crate::server::shared::types::api::ApiResponse<$entity>>,
         > {
@@ -136,7 +136,7 @@ macro_rules! crud_update_handler {
             state: axum::extract::State<std::sync::Arc<$crate::server::config::AppState>>,
             auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Member>,
             path: axum::extract::Path<uuid::Uuid>,
-            body: axum::response::Json<$entity>,
+            body: $crate::server::shared::types::api::ApiJson<$entity>,
         ) -> $crate::server::shared::types::api::ApiResult<
             axum::response::Json<$crate::server::shared::types::api::ApiResponse<$entity>>,
         > {
@@ -210,7 +210,7 @@ macro_rules! crud_bulk_delete_handler {
         pub async fn bulk_delete(
             state: axum::extract::State<std::sync::Arc<$crate::server::config::AppState>>,
             auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Member>,
-            body: axum::response::Json<Vec<uuid::Uuid>>,
+            body: $crate::server::shared::types::api::ApiJson<Vec<uuid::Uuid>>,
         ) -> $crate::server::shared::types::api::ApiResult<
             axum::response::Json<
                 $crate::server::shared::types::api::ApiResponse<

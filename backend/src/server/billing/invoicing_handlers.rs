@@ -9,7 +9,7 @@ use crate::server::billing::types::api::{
 use crate::server::config::AppState;
 use crate::server::openapi::tags as api_tags;
 use crate::server::shared::types::api::{
-    ApiError, ApiErrorResponse, ApiResponse, ApiResult, EmptyApiResponse,
+    ApiError, ApiErrorResponse, ApiJson, ApiResponse, ApiResult, EmptyApiResponse,
 };
 use axum::Json;
 use axum::body::Body;
@@ -48,7 +48,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
 async fn set_up_invoice_billing(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Owner>,
-    Json(request): Json<InvoiceBillingRequest>,
+    ApiJson(request): ApiJson<InvoiceBillingRequest>,
 ) -> ApiResult<Json<ApiResponse<String>>> {
     let organization_id = auth
         .organization_id()
@@ -220,7 +220,7 @@ async fn download_quote_pdf(
 async fn update_po_number(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Owner>,
-    Json(request): Json<UpdatePoNumberRequest>,
+    ApiJson(request): ApiJson<UpdatePoNumberRequest>,
 ) -> ApiResult<Json<EmptyApiResponse>> {
     let organization_id = auth
         .organization_id()

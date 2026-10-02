@@ -429,15 +429,8 @@ impl HostService {
         //
         // Discovery only. A person creating a host with no addresses is asserting it themselves,
         // which is the top of the ladder, not a claim to be graded.
-        if is_new_host
-            && host.base.source.is_from_discovery()
-            && !mac_identity::identity_permits_minting(&host, &ip_addresses, &interfaces)
-        {
-            return Err(anyhow!(
-                "Refusing to create a host identified only by a MAC address that cannot anchor \
-                 one. Minting needs a vendor-assigned unicast address read from the device \
-                 itself; this payload carries neither that nor an IP address or chassis id."
-            ));
+        if is_new_host && host.base.source.is_from_discovery() {
+            mac_identity::require_minting_identity(&host, &ip_addresses, &interfaces)?;
         }
 
         // Check host limit for new hosts (not upserts)

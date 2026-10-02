@@ -1,3 +1,4 @@
+use crate::server::shared::types::api::ApiJson;
 use axum::Json;
 use axum::extract::{Path, State};
 use std::sync::Arc;
@@ -82,7 +83,7 @@ async fn validate_if_entry_network_consistency(
 async fn create_if_entry(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(interface): Json<Interface>,
+    ApiJson(interface): ApiJson<Interface>,
 ) -> ApiResult<Json<ApiResponse<Interface>>> {
     validate_if_entry_network_consistency(&state, &interface).await?;
     state
@@ -91,7 +92,7 @@ async fn create_if_entry(
         .validate_relationships(&interface)
         .await
         .map_err(|e| ApiError::bad_request(&e.to_string()))?;
-    create_handler::<Interface>(State(state), auth, Json(interface)).await
+    create_handler::<Interface>(State(state), auth, ApiJson(interface)).await
 }
 
 /// Update an Interface
@@ -112,7 +113,7 @@ async fn update_if_entry(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
     path: Path<Uuid>,
-    Json(interface): Json<Interface>,
+    ApiJson(interface): ApiJson<Interface>,
 ) -> ApiResult<Json<ApiResponse<Interface>>> {
     validate_if_entry_network_consistency(&state, &interface).await?;
     state
@@ -121,5 +122,5 @@ async fn update_if_entry(
         .validate_relationships(&interface)
         .await
         .map_err(|e| ApiError::bad_request(&e.to_string()))?;
-    update_handler::<Interface>(State(state), auth, path, Json(interface)).await
+    update_handler::<Interface>(State(state), auth, path, ApiJson(interface)).await
 }

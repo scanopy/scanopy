@@ -1,3 +1,4 @@
+use crate::server::shared::types::api::ApiJson;
 use axum::Json;
 use axum::extract::{Path, State};
 use serde::{Deserialize, Serialize};
@@ -207,7 +208,7 @@ async fn get_all_dependencies(
 async fn create_dependency(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(dependency): Json<Dependency>,
+    ApiJson(dependency): ApiJson<Dependency>,
 ) -> ApiResult<Json<ApiResponse<Dependency>>> {
     let organization_id = auth
         .organization_id()
@@ -219,7 +220,7 @@ async fn create_dependency(
 
     // Delegate to generic handler (handles validation, auth checks, creation)
     let response =
-        create_handler::<Dependency>(State(state.clone()), auth, Json(dependency)).await?;
+        create_handler::<Dependency>(State(state.clone()), auth, ApiJson(dependency)).await?;
 
     // Emit FirstDependencyCreated telemetry event if this is the first dependency
     if response.data().is_some() {
@@ -266,10 +267,10 @@ async fn update_dependency(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
     path: Path<Uuid>,
-    Json(dependency): Json<Dependency>,
+    ApiJson(dependency): ApiJson<Dependency>,
 ) -> ApiResult<Json<ApiResponse<Dependency>>> {
     validate_dependency_members(&state, &dependency).await?;
-    update_handler::<Dependency>(State(state), auth, path, Json(dependency)).await
+    update_handler::<Dependency>(State(state), auth, path, ApiJson(dependency)).await
 }
 
 /// Validate dependency members based on the variant.

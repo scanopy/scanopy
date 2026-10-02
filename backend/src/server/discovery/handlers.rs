@@ -1,4 +1,5 @@
 use crate::server::openapi::tags as api_tags;
+use crate::server::shared::types::api::ApiJson;
 use crate::server::{
     auth::middleware::{
         auth::AuthenticatedEntity,
@@ -332,7 +333,7 @@ async fn delete_discovery(
 async fn bulk_delete_discoveries(
     state: State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(ids): Json<Vec<Uuid>>,
+    ApiJson(ids): ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<crate::server::shared::handlers::traits::BulkDeleteResponse>>> {
     for id in &ids {
         if state
@@ -344,7 +345,7 @@ async fn bulk_delete_discoveries(
             return Err(active_session_error());
         }
     }
-    generated::bulk_delete(state, auth, Json(ids)).await
+    generated::bulk_delete(state, auth, ApiJson(ids)).await
 }
 
 /// Create new Discovery
@@ -363,7 +364,7 @@ async fn bulk_delete_discoveries(
 pub async fn create_discovery(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(discovery): Json<Discovery>,
+    ApiJson(discovery): ApiJson<Discovery>,
 ) -> ApiResult<Json<ApiResponse<Discovery>>> {
     if discovery.base.run_type.is_server_managed() {
         return Err(ApiError::discovery_historical_read_only());
@@ -436,7 +437,7 @@ pub async fn create_discovery(
     }
 
     // Delegate to generic handler (handles validation, auth checks, creation)
-    create_handler::<Discovery>(State(state), auth, Json(discovery)).await
+    create_handler::<Discovery>(State(state), auth, ApiJson(discovery)).await
 }
 
 /// Update Discovery
@@ -457,7 +458,7 @@ pub async fn update_discovery(
     state: State<Arc<AppState>>,
     auth: Authorized<Member>,
     id: Path<Uuid>,
-    discovery: Json<Discovery>,
+    ApiJson(discovery): ApiJson<Discovery>,
 ) -> ApiResult<Json<ApiResponse<Discovery>>> {
     if discovery.base.run_type.is_server_managed() {
         return Err(ApiError::discovery_historical_read_only());
@@ -543,7 +544,7 @@ pub async fn update_discovery(
         // dropped at completion, so re-adding it here is how a user retries it.
     }
 
-    update_handler::<Discovery>(state, auth, id, discovery).await
+    update_handler::<Discovery>(state, auth, id, ApiJson(discovery)).await
 }
 
 /// Receive discovery progress update from daemon
@@ -564,7 +565,7 @@ async fn receive_discovery_update(
     State(state): State<Arc<AppState>>,
     auth: Authorized<IsDaemon>,
     Path(_session_id): Path<Uuid>,
-    Json(update): Json<DiscoveryUpdatePayload>,
+    ApiJson(update): ApiJson<DiscoveryUpdatePayload>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     // IsDaemon guarantees exactly one network_id and a daemon_id
     let daemon_network_id = auth.network_ids()[0];
@@ -609,7 +610,7 @@ async fn receive_discovery_update(
 async fn start_session(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
-    Json(discovery_id): Json<Uuid>,
+    ApiJson(discovery_id): ApiJson<Uuid>,
 ) -> ApiResult<Json<ApiResponse<DiscoveryUpdatePayload>>> {
     let network_ids = auth.network_ids();
     let entity = auth.into_entity();

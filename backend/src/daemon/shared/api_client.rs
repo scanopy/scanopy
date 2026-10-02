@@ -79,6 +79,114 @@ impl ConnectionError {
     }
 }
 
+/// A non-success HTTP response from the server, classified by status and body. When the body is
+/// the standard `ApiErrorResponse`, that response stays in the error chain under this one, so
+/// `downcast_ref::<ApiErrorResponse>()` still finds its code.
+#[derive(Debug)]
+pub struct ServerResponseError {
+    pub context: String,
+    pub status: reqwest::StatusCode,
+    /// The server's message, or the start of a non-API body.
+    pub message: Option<String>,
+    pub r#type: ServerResponseErrorType,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ServerResponseErrorType {
+    /// A 4xx: the server read the request and refused it. Sending the same request again gets the
+    /// same answer.
+    Rejected,
+    /// A 5xx: the server failed handling the request.
+    ServerFault,
+    /// The response didn't come from Scanopy: an HTML page, or a 404 without an API body.
+    NotScanopy { server_url: String },
+}
+
+impl std::error::Error for ServerResponseError {}
+
+impl std::fmt::Display for ServerResponseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let Self {
+            context, status, ..
+        } = self;
+        let detail = self
+            .message
+            .as_deref()
+            .map(|m| format!(": {m}"))
+            .unwrap_or_default();
+        match &self.r#type {
+            ServerResponseErrorType::Rejected => write!(
+                f,
+                "{context}: The server rejected this payload (HTTP {status}){detail}"
+            ),
+            ServerResponseErrorType::ServerFault => {
+                write!(f, "{context}: Server error (HTTP {status}){detail}")
+            }
+            ServerResponseErrorType::NotScanopy { server_url } => write!(
+                f,
+                "{context}: Not a Scanopy server (HTTP {status}). \
+                 Cause: URL points to the wrong service. \
+                 Fix: verify the server URL is correct. Targeting: {server_url}"
+            ),
+        }
+    }
+}
+
+impl ServerResponseError {
+    /// Whether the server refused the request itself, so resending it unchanged can't succeed.
+    pub fn is_rejection(error: &Error) -> bool {
+        error
+            .downcast_ref::<Self>()
+            .is_some_and(|e| e.r#type == ServerResponseErrorType::Rejected)
+    }
+}
+
+/// Longest stretch of a non-API body quoted back in an error.
+const MAX_BODY_EXCERPT: usize = 300;
+
+/// Classify a non-success response. Only a response that can't have come from Scanopy is called
+/// "Not a Scanopy server": every Scanopy route answers in JSON, so an HTML page or a bare 404
+/// means the URL reaches something else. A 4xx with any other body is the server refusing the
+/// request (axum's plain-text rejection on an older server is one), and says so with the body.
+fn classify_failure(
+    status: reqwest::StatusCode,
+    body: &str,
+    context: &str,
+    server_url: &str,
+) -> Error {
+    let api_error = serde_json::from_str::<ApiErrorResponse>(body).ok();
+    let trimmed = body.trim();
+    let is_html = trimmed.starts_with('<');
+    let r#type = if api_error.is_none() && (is_html || status == reqwest::StatusCode::NOT_FOUND) {
+        ServerResponseErrorType::NotScanopy {
+            server_url: server_url.to_string(),
+        }
+    } else if status.is_client_error() {
+        ServerResponseErrorType::Rejected
+    } else if status.is_server_error() {
+        ServerResponseErrorType::ServerFault
+    } else {
+        ServerResponseErrorType::NotScanopy {
+            server_url: server_url.to_string(),
+        }
+    };
+    let message = match &api_error {
+        Some(api_error) => api_error.error.clone(),
+        None if trimmed.is_empty() || is_html => None,
+        None => Some(trimmed.chars().take(MAX_BODY_EXCERPT).collect()),
+    };
+    let error = ServerResponseError {
+        context: context.to_string(),
+        status,
+        message,
+        r#type,
+    };
+    match api_error {
+        Some(api_error) => Error::from(api_error).context(error),
+        None => Error::new(error),
+    }
+}
+
 pub struct DaemonApiClient {
     config_store: Arc<ConfigStore>,
     client: OnceCell<Client>,
@@ -144,21 +252,9 @@ impl DaemonApiClient {
         let status = response.status();
 
         if !status.is_success() {
-            // Try to parse as ApiErrorResponse to get error codes
             let body = response.text().await.unwrap_or_else(|_| String::new());
-            if let Ok(error_response) = serde_json::from_str::<ApiErrorResponse>(&body) {
-                return Err(error_response.into());
-            }
-            // Non-API response (HTML, plain text, etc.) — server URL is probably wrong
             let server_url = self.config_store.get_server_url().await.unwrap_or_default();
-            bail!(
-                "{}: Not a Scanopy server (HTTP {}). \
-                 Cause: URL points to the wrong service. \
-                 Fix: verify the server URL is correct. Targeting: {}",
-                context,
-                status,
-                server_url
-            );
+            return Err(classify_failure(status, &body, context, &server_url));
         }
 
         let api_response: ApiResponse<serde_json::Value> = response
@@ -365,6 +461,84 @@ mod tests {
         assert!(!envelope.is_success());
         assert_eq!(envelope.error(), Some("network is not on this daemon"));
         assert!(envelope.into_data().is_none());
+    }
+
+    fn classified(status: u16, body: &str) -> Error {
+        classify_failure(
+            reqwest::StatusCode::from_u16(status).unwrap(),
+            body,
+            "Failed to report discovery update",
+            "https://scanopy.example",
+        )
+    }
+
+    fn response_type(error: &Error) -> ServerResponseErrorType {
+        error
+            .downcast_ref::<ServerResponseError>()
+            .expect("classified as a server response")
+            .r#type
+            .clone()
+    }
+
+    /// An older server answers a payload it can't parse with axum's plain-text 422. That is the
+    /// server refusing the request, and the daemon reports the server's reason instead of sending
+    /// the user to check the URL.
+    #[test]
+    fn a_plain_text_422_is_a_rejection_carrying_the_servers_reason() {
+        let error = classified(
+            422,
+            "Failed to deserialize the JSON body into the target type: missing field `waited_ms`",
+        );
+
+        assert_eq!(response_type(&error), ServerResponseErrorType::Rejected);
+        assert!(ServerResponseError::is_rejection(&error));
+        assert!(error.to_string().contains("missing field `waited_ms`"));
+    }
+
+    /// An API error body keeps its code reachable for callers that branch on it, and its status
+    /// decides whether the request is worth sending again.
+    #[tokio::test]
+    async fn an_api_error_body_keeps_its_code_and_is_typed_by_status() {
+        use crate::server::shared::types::api::ApiError;
+        use axum::response::IntoResponse;
+
+        for (api_error, expected) in [
+            (
+                ApiError::bad_request("bad payload"),
+                ServerResponseErrorType::Rejected,
+            ),
+            (
+                ApiError::internal_error("database down"),
+                ServerResponseErrorType::ServerFault,
+            ),
+        ] {
+            let response = api_error.into_response();
+            let status = response.status();
+            let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+                .await
+                .unwrap();
+            let error = classified(status.as_u16(), std::str::from_utf8(&body).unwrap());
+
+            assert_eq!(response_type(&error), expected);
+            assert!(error.downcast_ref::<ApiErrorResponse>().is_some());
+        }
+    }
+
+    /// Only a response no Scanopy route could send is called "Not a Scanopy server".
+    #[test]
+    fn html_or_a_bare_404_is_not_a_scanopy_server() {
+        for error in [
+            classified(404, ""),
+            classified(404, "Not Found"),
+            classified(502, "<html><body>Bad Gateway</body></html>"),
+            classified(400, "<!DOCTYPE html><html></html>"),
+        ] {
+            assert!(matches!(
+                response_type(&error),
+                ServerResponseErrorType::NotScanopy { .. }
+            ));
+            assert!(!ServerResponseError::is_rejection(&error));
+        }
     }
 
     /// A server certificate the daemon doesn't trust is reported as a TLS problem, not as

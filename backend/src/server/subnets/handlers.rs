@@ -393,7 +393,7 @@ async fn update_subnet(
     }
 
     // Delegate to generic handler
-    update_handler::<Subnet>(State(state), auth, Path(id), Json(subnet)).await
+    update_handler::<Subnet>(State(state), auth, Path(id), ApiJson(subnet)).await
 }
 
 /// Request body for merging a subnet into the range that contains it.

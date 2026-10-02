@@ -16,6 +16,7 @@ use crate::server::shared::handlers::traits::{
 use crate::server::shared::services::traits::CrudService;
 use crate::server::shared::storage::filter::StorableFilter;
 use crate::server::shared::storage::traits::{Entity, Storable};
+use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::api::{
     ApiError, ApiErrorResponse, EmptyApiResponse, PaginatedApiResponse,
 };
@@ -354,7 +355,7 @@ async fn update_credential(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Admin>,
     Path(id): Path<Uuid>,
-    Json(entity): Json<Credential>,
+    ApiJson(entity): ApiJson<Credential>,
 ) -> ApiResult<Json<ApiResponse<Credential>>> {
     entity
         .base
@@ -372,7 +373,7 @@ async fn update_credential(
         State(state.clone()),
         auth.into_permission::<crate::server::auth::middleware::permissions::Member>(),
         Path(id),
-        Json(entity),
+        ApiJson(entity),
     )
     .await?;
 
@@ -432,7 +433,7 @@ async fn delete_credential(
 async fn bulk_delete_credentials(
     state: State<Arc<AppState>>,
     auth: Authorized<Admin>,
-    ids: Json<Vec<Uuid>>,
+    ids: ApiJson<Vec<Uuid>>,
 ) -> ApiResult<Json<ApiResponse<BulkDeleteResponse>>> {
     bulk_delete_handler::<Credential>(
         state,
@@ -510,7 +511,7 @@ async fn get_all_credentials(
 pub async fn create_credential(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Admin>,
-    Json(credential): Json<Credential>,
+    ApiJson(credential): ApiJson<Credential>,
 ) -> ApiResult<Json<ApiResponse<Credential>>> {
     let assigned_network_ids = credential.base.assigned_network_ids.clone();
     let host_assignments = credential.base.host_assignments.clone();
@@ -522,7 +523,7 @@ pub async fn create_credential(
     let mut response = create_handler::<Credential>(
         State(state.clone()),
         auth.into_permission::<crate::server::auth::middleware::permissions::Member>(),
-        Json(credential),
+        ApiJson(credential),
     )
     .await?;
 
@@ -572,7 +573,7 @@ fn check_bulk_create_size(len: usize) -> Result<(), ApiError> {
 async fn bulk_create_credentials(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Admin>,
-    Json(credentials): Json<Vec<Credential>>,
+    ApiJson(credentials): ApiJson<Vec<Credential>>,
 ) -> ApiResult<Json<ApiResponse<Vec<Credential>>>> {
     if credentials.is_empty() {
         return Ok(Json(ApiResponse::success(vec![])));

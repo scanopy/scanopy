@@ -100,10 +100,10 @@ pub struct CreatedEntitiesPayload {
     #[serde(skip)]
     pub billing_limit_hit: Option<(u64, Uuid)>,
     /// First per-host processing error (non-billing), captured so the synchronous
-    /// single-host `/hosts/discovery` handler can surface the real cause instead
-    /// of a generic "no host returned". Not sent over the wire.
+    /// single-host `/hosts/discovery` handler can answer with the real cause and its
+    /// status instead of a generic "no host returned". Not sent over the wire.
     #[serde(skip)]
-    pub first_host_error: Option<String>,
+    pub first_host_error: Option<crate::server::shared::types::api::ApiError>,
 }
 
 /// Daemon state for handlers.

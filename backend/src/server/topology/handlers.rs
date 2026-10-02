@@ -1,6 +1,7 @@
 use crate::server::openapi::tags as api_tags;
 use crate::server::shared::extractors::Query;
 use crate::server::shared::storage::traits::Entity;
+use crate::server::shared::types::api::ApiJson;
 use crate::server::{
     auth::middleware::{
         auth::AuthenticatedEntity,
@@ -212,7 +213,7 @@ async fn update_topology(
     state: State<Arc<AppState>>,
     auth: Authorized<Member>,
     id: Path<Uuid>,
-    topology: Json<Topology>,
+    topology: ApiJson<Topology>,
 ) -> ApiResult<Json<ApiResponse<Topology>>> {
     // `snapshot_id` is immutable post-insert; `Storable::preserve_immutable_fields`
     // restores it from the existing row before the UPDATE statement runs, so
@@ -305,7 +306,7 @@ async fn update_node_position(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
     Path(id): Path<Uuid>,
-    Json(request): Json<TopologyNodePositionUpdate>,
+    ApiJson(request): ApiJson<TopologyNodePositionUpdate>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let network_ids = auth.network_ids();
 
@@ -359,7 +360,7 @@ async fn update_edge_handles(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
     Path(id): Path<Uuid>,
-    Json(request): Json<TopologyEdgeHandleUpdate>,
+    ApiJson(request): ApiJson<TopologyEdgeHandleUpdate>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let network_ids = auth.network_ids();
 
@@ -414,7 +415,7 @@ async fn update_node_resize(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Member>,
     Path(id): Path<Uuid>,
-    Json(request): Json<TopologyNodeResizeUpdate>,
+    ApiJson(request): ApiJson<TopologyNodeResizeUpdate>,
 ) -> ApiResult<Json<ApiResponse<()>>> {
     let network_ids = auth.network_ids();
 
