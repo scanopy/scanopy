@@ -442,6 +442,10 @@ impl CredentialTypeDiscriminants {
             "docs_path": integration.docs_path(),
             // Keys `credential-integrations.json`; the picker groups types on it.
             "integration": integration,
+            // How this transport connects, without the integration's discovery text. The picker
+            // shows it under an integration row that already carries that text; standalone
+            // surfaces (the type dropdown) use the full `description`.
+            "transport_note": self.transport_note(),
             "associated_service": ServiceDefinition::name(&*service),
             "has_logo": service.has_logo(),
             "logo_ext": integration.logo_ext(),

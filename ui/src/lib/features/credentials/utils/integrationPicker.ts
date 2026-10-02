@@ -66,7 +66,7 @@ export function selectedTypeCount(
 
 /**
  * Integration ids whose row opens expanded: those with more than one type and at least one of
- * them already checked, so a selection made earlier (or a returning wizard's rows) is visible.
+ * them already checked, so a preselected type (a daemon-host socket, a fixed capability) is visible.
  * Single-type integrations have nothing to expand.
  */
 export function initiallyExpandedIntegrationIds(
@@ -78,41 +78,29 @@ export function initiallyExpandedIntegrationIds(
 		.map((g) => g.integration.id);
 }
 
-/** The fields of a wizard row that decide whether the picker owns it. */
-export interface PickerPendingRow {
-	credential: { id: string; credential_type: { type: string } };
-	isExisting?: boolean;
-	lockedHosts?: unknown[];
+/** A picker section: the integrations sharing one credential category. */
+export interface CategorySection<
+	I extends { id: string; category?: string | null },
+	T extends PickerType
+> {
+	category: string;
+	groups: IntegrationGroup<I, T>[];
 }
 
 /**
- * Whether the picker's selection owns this wizard row: a new credential not yet saved. Existing
- * credentials, rows listed because they are assigned elsewhere, and credentials already created
- * this session are managed in the wizard itself, never added or removed by the picker.
+ * Split integration groups into sections by the integration's `category` (the same field the
+ * credential-type dropdown groups on). Sections follow the categories' order in `integrations`
+ * (the fixture), and each keeps its groups' order.
  */
-function pickerOwnsRow(row: PickerPendingRow, savedIds: string[]): boolean {
-	return !row.isExisting && !row.lockedHosts?.length && !savedIds.includes(row.credential.id);
-}
-
-/** The type ids the picker shows selected when the wizard returns to it. */
-export function pickerSelectionFromPending(rows: PickerPendingRow[], savedIds: string[]): string[] {
-	return [
-		...new Set(
-			rows.filter((r) => pickerOwnsRow(r, savedIds)).map((r) => r.credential.credential_type.type)
-		)
-	];
-}
-
-/**
- * Whether a wizard row survives continuing from the picker with `selectedTypeIds`: a row the
- * picker owns is dropped when its type was deselected; every other row is kept.
- */
-export function keepPendingRow(
-	row: PickerPendingRow,
-	selectedTypeIds: string[],
-	savedIds: string[]
-): boolean {
-	return (
-		selectedTypeIds.includes(row.credential.credential_type.type) || !pickerOwnsRow(row, savedIds)
-	);
+export function groupIntegrationsByCategory<
+	I extends { id: string; category?: string | null },
+	T extends PickerType
+>(groups: IntegrationGroup<I, T>[], integrations: I[]): CategorySection<I, T>[] {
+	const order = [...new Set(integrations.map((i) => i.category ?? ''))];
+	return order
+		.map((category) => ({
+			category,
+			groups: groups.filter((g) => (g.integration.category ?? '') === category)
+		}))
+		.filter((section) => section.groups.length > 0);
 }

@@ -110,6 +110,12 @@ export function metaDescription(fixtureKey: string, id: string | null, fallback:
 	return resolveMeta(`meta_${fixtureKey}_${id}_description`, fallback);
 }
 
+/** Resolve a credential type's translated transport note, falling back to the fixture string. */
+export function metaTransportNote(fixtureKey: string, id: string | null, fallback: string): string {
+	if (!id) return fallback;
+	return resolveMeta(`meta_${fixtureKey}_${id}_transportNote`, fallback);
+}
+
 /**
  * Resolve translated label/placeholder/help_text/option labels for field
  * definitions. `ownerId` namespaces nested fields (credential type id);

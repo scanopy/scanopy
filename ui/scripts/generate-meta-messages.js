@@ -38,7 +38,8 @@ export const MESSAGES_FILE = join(PROJECT_ROOT, 'messages/en.json');
  * kind:
  * - 'typeMetadata': entries are {id, name, description, ...}
  * - 'fieldDefinitions': entries are flat field definitions {id, label, placeholder, help_text}
- * - 'credentialTypes': typeMetadata plus nested metadata.fields[] field definitions
+ * - 'credentialTypes': typeMetadata plus nested metadata.fields[] field definitions and
+ *   metadata.transport_note (as meta_<fixtureKey>_<id>_transportNote)
  */
 export const COVERED_FIXTURES = [
 	{ file: 'credential-types.json', key: 'credential_types', kind: 'credentialTypes' },
@@ -149,6 +150,9 @@ export function buildMetaMessages(dataDir = DATA_DIR) {
 			if (item.name) messages[`${prefix}_name`] = item.name;
 			if (item.description) messages[`${prefix}_description`] = item.description;
 			if (kind === 'credentialTypes') {
+				if (item.metadata?.transport_note) {
+					messages[`${prefix}_transportNote`] = item.metadata.transport_note;
+				}
 				for (const field of item.metadata?.fields ?? []) {
 					Object.assign(messages, fieldMessages(prefix, field));
 				}

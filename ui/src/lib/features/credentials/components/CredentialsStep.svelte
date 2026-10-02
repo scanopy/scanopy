@@ -10,7 +10,6 @@
 		useDeleteCredentialMutation
 	} from '$lib/features/credentials/queries';
 	import { type Credential } from '$lib/features/credentials/types/base';
-	import { pickerSelectionFromPending } from '$lib/features/credentials/utils/integrationPicker';
 	import CredentialTypeSelectStep from './CredentialTypeSelectStep.svelte';
 	import CredentialWizardStep, {
 		type PendingCredential as PendingCredentialType
@@ -45,10 +44,6 @@
 		daemonVersion?: string | null;
 		/** Name of that daemon, used in the version-requirement tooltip. */
 		daemonName?: string | null;
-		/** Whether the parent's footer can advance from the integration picker to the
-		 *  wizard (it calls `continueToWizard`). When true, the wizard adds new credential
-		 *  types by returning to the picker; otherwise it keeps its type dropdown. */
-		canReturnToTypeSelect?: boolean;
 	}
 
 	let {
@@ -61,8 +56,7 @@
 		localAutoMode = 'interactive',
 		fixedCapabilityTypeIds = [],
 		daemonVersion = null,
-		daemonName = null,
-		canReturnToTypeSelect = false
+		daemonName = null
 	}: Props = $props();
 
 	const bulkCreateCredentialsMutation = useBulkCreateCredentialsMutation();
@@ -86,14 +80,10 @@
 	async function continueToWizard() {
 		subStep = 'wizard';
 		await tick();
-		credentialWizardRef?.addTypes(selectedTypeIds, credentialIds);
+		credentialWizardRef?.addTypes(selectedTypeIds);
 	}
 
-	// Back to the picker to add integrations. The selection is rebuilt from the wizard's
-	// new, unsaved rows (a row removed in the wizard is no longer selected), so
-	// deselecting a type removes its row on continue.
 	function backToTypeSelect() {
-		selectedTypeIds = pickerSelectionFromPending(pendingCredentials, credentialIds);
 		subStep = 'typeSelect';
 	}
 
@@ -154,7 +144,7 @@
 	// while a create/update is in flight.
 	let busy = $derived(bulkCreateCredentialsMutation.isPending);
 
-	export { busy, continueToWizard, collectCredentialIds };
+	export { busy, continueToWizard, backToTypeSelect, collectCredentialIds };
 </script>
 
 {#if subStep === 'typeSelect'}
@@ -177,7 +167,6 @@
 			{daemonVersion}
 			{daemonName}
 			onRemoveCredential={handleRemoveCredential}
-			onAddIntegration={canReturnToTypeSelect ? backToTypeSelect : undefined}
 		/>
 	</div>
 {/if}

@@ -26,7 +26,6 @@
 		DAEMON_HOST_IP,
 		hasExplicitTarget
 	} from '$lib/features/credentials/utils/credentialTargets';
-	import { keepPendingRow } from '$lib/features/credentials/utils/integrationPicker';
 	import { v4 as uuidv4 } from 'uuid';
 	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
 	import { pushError } from '$lib/shared/stores/feedback';
@@ -45,7 +44,6 @@
 		daemons_credentialWizardSelectExisting,
 		daemons_credentialWizardExistingDescription,
 		daemons_credentialWizardDaemonHostUnavailable,
-		credentials_addIntegration,
 		credentials_requiresDaemonVersion
 	} from '$lib/paraglide/messages';
 
@@ -79,10 +77,6 @@
 		 *  type's `minimum_daemon_version`. Absent/null ⇒ no version gate. */
 		daemonVersion?: string | null;
 		daemonName?: string | null;
-		/** Return to the integration picker to add credential types. When set, it replaces the
-		 *  add-new-type dropdown; when absent (a parent that cannot advance from the picker),
-		 *  the dropdown stays. */
-		onAddIntegration?: () => void;
 	}
 
 	let {
@@ -93,8 +87,7 @@
 		descriptionLinkText,
 		claimedDaemonHostIntegrations = [],
 		daemonVersion = null,
-		daemonName = null,
-		onAddIntegration
+		daemonName = null
 	}: Props = $props();
 
 	// Query network and credential data for network-level credential display
@@ -335,21 +328,23 @@
 
 	/**
 	 * Seed the wizard with one new credential per given type id (used to prefill
-	 * from the integration picker). Types already present as a new (non-existing)
-	 * pending credential are skipped to avoid duplicates.
-	 *
-	 * `savedIds` are credentials already created this session; with existing and
-	 * assigned-elsewhere rows, they are never removed here.
+	 * from the credential-type selection step). Types already present as a new
+	 * (non-existing) pending credential are skipped to avoid duplicates.
 	 */
-	export function addTypes(typeIds: string[], savedIds: string[] = []) {
+	export function addTypes(typeIds: string[]) {
 		for (const typeId of typeIds) {
 			const alreadyPending = pendingCredentials.some(
 				(p) => !p.isExisting && p.credential.credential_type.type === typeId
 			);
 			if (!alreadyPending) handleAddCredential(typeId);
 		}
-		// Reconcile with the picker selection: drop new, unsaved rows whose type was deselected.
-		pendingCredentials = pendingCredentials.filter((p) => keepPendingRow(p, typeIds, savedIds));
+		// Reconcile daemon-host-only entries (the local socket) with the grid selection: drop
+		// any that were deselected. Configurable creds added in the wizard are kept.
+		pendingCredentials = pendingCredentials.filter(
+			(p) =>
+				!isDaemonHostOnly(p.credential.credential_type.type) ||
+				typeIds.includes(p.credential.credential_type.type)
+		);
 	}
 
 	function handleAddExistingCredential(credentialId: string) {
@@ -541,60 +536,33 @@
 <div class="flex min-h-0 flex-1 flex-col">
 	<ListConfigEditor {items} onChange={handleCredentialChange}>
 		<svelte:fragment slot="list" let:items let:onEdit let:highlightedIndex let:onItemSelect>
-			{#if onAddIntegration}
-				<!-- New credentials come from the integration picker; the dropdown only adds
-				     existing ones. -->
-				<ListManager
-					label={daemons_credentialWizardTitle()}
-					helpSnippet={credentialHelpSnippet}
-					placeholder={daemons_credentialWizardSelectExisting()}
-					emptyMessage={daemons_credentialWizardEmpty()}
-					options={availableExistingCredentials}
-					allowAddFromOptions={availableExistingCredentials.length > 0}
-					allowCreateNew={true}
-					createNewLabel={credentials_addIntegration()}
-					onCreateNew={onAddIntegration}
-					itemClickAction="edit"
-					allowReorder={false}
-					optionDisplayComponent={CredentialDisplay}
-					itemDisplayComponent={CredentialDisplay}
-					{items}
-					onAdd={handleAddExistingCredential}
-					onRemove={handleRemoveCredential}
-					allowItemRemove={(c) => !assignedElsewhereCredIds.includes(c.id)}
-					onClick={onItemSelect}
-					{onEdit}
-					{highlightedIndex}
-				/>
-			{:else}
-				<ListManager
-					label={daemons_credentialWizardTitle()}
-					helpSnippet={credentialHelpSnippet}
-					placeholder={daemons_credentialWizardSelectType()}
-					emptyMessage={daemons_credentialWizardEmpty()}
-					options={typeOptions}
-					showSearch={true}
-					getOptionContext={(option) => ({ disabledReason: dropdownDisabledReason(option) })}
-					itemClickAction="edit"
-					allowReorder={false}
-					allowDuplicates={true}
-					optionDisplayComponent={CredentialTypeDisplay}
-					itemDisplayComponent={CredentialDisplay}
-					primaryOptionsLabel={daemons_credentialWizardCreateNew()}
-					secondaryOptions={availableExistingCredentials}
-					secondaryOptionDisplayComponent={CredentialDisplay}
-					secondaryPlaceholder={daemons_credentialWizardSelectExisting()}
-					secondaryOptionsLabel={daemons_credentialWizardAddExisting()}
-					onAddSecondary={handleAddExistingCredential}
-					{items}
-					onAdd={handleAddCredential}
-					onRemove={handleRemoveCredential}
-					allowItemRemove={(c) => !assignedElsewhereCredIds.includes(c.id)}
-					onClick={onItemSelect}
-					{onEdit}
-					{highlightedIndex}
-				/>
-			{/if}
+			<ListManager
+				label={daemons_credentialWizardTitle()}
+				helpSnippet={credentialHelpSnippet}
+				placeholder={daemons_credentialWizardSelectType()}
+				emptyMessage={daemons_credentialWizardEmpty()}
+				options={typeOptions}
+				showSearch={true}
+				getOptionContext={(option) => ({ disabledReason: dropdownDisabledReason(option) })}
+				itemClickAction="edit"
+				allowReorder={false}
+				allowDuplicates={true}
+				optionDisplayComponent={CredentialTypeDisplay}
+				itemDisplayComponent={CredentialDisplay}
+				primaryOptionsLabel={daemons_credentialWizardCreateNew()}
+				secondaryOptions={availableExistingCredentials}
+				secondaryOptionDisplayComponent={CredentialDisplay}
+				secondaryPlaceholder={daemons_credentialWizardSelectExisting()}
+				secondaryOptionsLabel={daemons_credentialWizardAddExisting()}
+				onAddSecondary={handleAddExistingCredential}
+				{items}
+				onAdd={handleAddCredential}
+				onRemove={handleRemoveCredential}
+				allowItemRemove={(c) => !assignedElsewhereCredIds.includes(c.id)}
+				onClick={onItemSelect}
+				{onEdit}
+				{highlightedIndex}
+			/>
 		</svelte:fragment>
 
 		<svelte:fragment slot="config" let:selectedItem let:selectedIndex>
