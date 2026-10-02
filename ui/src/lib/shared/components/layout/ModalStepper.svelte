@@ -21,7 +21,7 @@
 </script>
 
 <nav
-	class={inline ? 'flex min-w-0 flex-1 items-center' : 'flex w-full items-start pb-4 pt-4'}
+	class={inline ? 'flex flex-1 items-center' : 'flex w-full items-start pb-4 pt-4'}
 	aria-label={common_progressSteps()}
 >
 	{#each tabs as tab, i (tab.id)}

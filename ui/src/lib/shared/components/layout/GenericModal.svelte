@@ -107,7 +107,8 @@
 	let hideTitleRow = $derived(banners != null && !showCloseButton);
 
 	// Tabs and steppers share the title row, between the title and the close button, whenever
-	// that row shows a left-aligned title. Otherwise they keep their own row below.
+	// that row shows a left-aligned title. Otherwise they keep their own row below. In the row,
+	// tabs never shrink below their full width; a long title truncates instead.
 	let inlineTabs = $derived(tabs.length > 0 && !hideTitleRow && !centerTitle);
 
 	let showBackButton = $derived(
@@ -319,11 +320,7 @@
 									{title}
 								</h2>
 							{:else}
-								<div
-									class="flex min-w-0 items-center gap-3 {inlineTabs
-										? 'mr-4 max-w-[40%] shrink-0'
-										: ''}"
-								>
+								<div class="flex min-w-0 items-center gap-3 {inlineTabs ? 'mr-4' : ''}">
 									{@render headerIcon?.()}
 									<h2 id="modal-title" class="text-primary truncate text-xl font-semibold">
 										{title}
@@ -360,9 +357,7 @@
 					<ModalStepper {tabs} {activeTab} onTabClick={handleTabClick} {inline} />
 				{:else}
 					<nav
-						class={inline
-							? 'flex min-w-0 flex-1 items-center gap-6 overflow-x-auto'
-							: 'flex w-full space-x-6 pt-4'}
+						class={inline ? 'flex flex-1 items-center gap-6' : 'flex w-full space-x-6 pt-4'}
 						aria-label={common_modalTabs()}
 					>
 						{#each tabs as tab (tab.id)}
