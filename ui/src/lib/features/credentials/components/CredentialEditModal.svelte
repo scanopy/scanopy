@@ -95,22 +95,15 @@
 		isEditing ? common_update() : isLastStep ? common_create() : common_next()
 	);
 
-	/** The form fields a step shows, so Next validates only those. */
-	function fieldsOfStep(step: Step): Set<string> {
-		const all = Object.keys(form.state.fieldMeta);
-		if (step === 'details') return new Set(['name', 'description']);
-		if (step === 'credential') return new Set(all.filter((name) => name.startsWith('fields.')));
-		return new Set();
-	}
-
 	async function handlePrimary() {
 		if (isEditing || isLastStep) {
 			await handleSave();
 			return;
 		}
+		// Only the current step's fields are mounted, so this checks just them, as in HostEditor.
 		const valid = await validateForm(
 			form,
-			fieldsOfStep(activeTab),
+			undefined,
 			(path) => credentialFormRef?.fieldLabel(path) ?? path
 		);
 		if (!valid) return;
