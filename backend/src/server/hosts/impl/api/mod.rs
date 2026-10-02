@@ -22,12 +22,13 @@ use crate::server::{
     hosts::r#impl::{
         attributes::{
             HostChassisIdValue, HostFirmwareRevisionValue, HostHostnameValue,
-            HostManagementUrlValue, HostManufacturerValue, HostModelValue, HostSerialNumberValue,
-            HostSoftwareRevisionValue, HostSysContactValue, HostSysDescrValue,
-            HostSysLocationValue, HostSysNameValue, HostSysObjectIdValue,
+            HostManagementUrlValue, HostManufacturerValue, HostModelValue, HostOsValue,
+            HostSerialNumberValue, HostSoftwareRevisionValue, HostSysContactValue,
+            HostSysDescrValue, HostSysLocationValue, HostSysNameValue, HostSysObjectIdValue,
         },
         base::{Host, HostBase},
         name::host_name_from_parts,
+        os::HostOs,
         virtualization::HostVirtualization,
     },
     interfaces::r#impl::base::{
@@ -1001,6 +1002,19 @@ pub struct HostResponse {
     #[serde(default)]
     #[schema(read_only)]
     pub software_revision_source: AttributeSource,
+    /// The host's operating system. Read-only: written by whichever source read or matched it.
+    /// Lenient, so a daemon tolerates a family added on a newer server.
+    #[serde(
+        default,
+        deserialize_with = "crate::server::shared::types::api::deserialize_lenient_option"
+    )]
+    #[schema(required, read_only)]
+    pub os: Option<HostOs>,
+    /// What produced the OS. Read-only, as above. A source whose method is `Inferred` matched the OS
+    /// in a string the host emitted rather than reading it off the host.
+    #[serde(default)]
+    #[schema(read_only)]
+    pub os_source: AttributeSource,
     /// Credentials assigned to scan this host.
     #[serde(default)]
     pub credential_assignments: Vec<CredentialAssignment>,

@@ -44,6 +44,7 @@ pub enum SshScriptField {
     SerialNumber,
     FirmwareRevision,
     SoftwareRevision,
+    Os,
     ManagementUrl,
     InterfaceName,
     InterfaceDescr,
@@ -78,6 +79,7 @@ impl SshScriptField {
             | Self::SerialNumber
             | Self::FirmwareRevision
             | Self::SoftwareRevision
+            | Self::Os
             | Self::ManagementUrl => SshScriptScope::Host,
             Self::InterfaceName
             | Self::InterfaceDescr
@@ -104,6 +106,7 @@ impl SshScriptField {
             Self::SerialNumber => "serial_number",
             Self::FirmwareRevision => "firmware_revision",
             Self::SoftwareRevision => "software_revision",
+            Self::Os => "os",
             Self::ManagementUrl => "management_url",
             Self::InterfaceName => "name",
             Self::InterfaceDescr => "descr",
@@ -127,6 +130,7 @@ impl SshScriptField {
         match self {
             Self::InterfaceSpeedBps => "integer",
             Self::InterfaceAdminStatus | Self::InterfaceOperStatus => "string (enum)",
+            Self::Os => "object",
             _ => "string",
         }
     }
@@ -144,7 +148,12 @@ impl SshScriptField {
             Self::Model => "Hardware model.",
             Self::SerialNumber => "Hardware serial number.",
             Self::FirmwareRevision => "Firmware or BIOS version.",
-            Self::SoftwareRevision => "Operating system or software version.",
+            Self::SoftwareRevision => {
+                "Software version, as ENTITY-MIB entPhysicalSoftwareRev reports it."
+            }
+            Self::Os => {
+                "The operating system: an object with family (required, such as Linux, Windows or MacOs) and optional name, version, edition, codename and kernel_version."
+            }
             Self::ManagementUrl => "URL of the host's management interface.",
             Self::InterfaceName => {
                 "Interface name. Interfaces are matched to ones discovery already holds by name, then by MAC."
@@ -178,7 +187,14 @@ impl SshScriptField {
             Self::Model => json!("X11SCL-F"),
             Self::SerialNumber => json!("ZM19AS012345"),
             Self::FirmwareRevision => json!("2.1"),
-            Self::SoftwareRevision => json!("12.5"),
+            Self::SoftwareRevision => json!("4.2.1"),
+            Self::Os => json!({
+                "family": "Linux",
+                "name": "Debian GNU/Linux",
+                "version": "12",
+                "codename": "bookworm",
+                "kernel_version": "6.1.0-18-amd64"
+            }),
             Self::ManagementUrl => json!("https://nas-01.example.lan:5001"),
             Self::InterfaceName => json!("eth0"),
             Self::InterfaceDescr => json!("Intel Corporation I210 Gigabit"),
@@ -256,6 +272,7 @@ pub fn host_coverage() -> Vec<(&'static str, ScriptCoverage)> {
         serial_number => Writable(F::SerialNumber),
         firmware_revision => Writable(F::FirmwareRevision),
         software_revision => Writable(F::SoftwareRevision),
+        os => Writable(F::Os),
         credential_assignments => NotWritable(USER_SET),
     })
 }
@@ -311,6 +328,10 @@ pub struct SshScriptOutput {
     pub firmware_revision: Option<String>,
     #[serde(default)]
     pub software_revision: Option<String>,
+    /// Kept as raw JSON so a malformed object is reported as one invalid key rather than failing
+    /// the whole document; the daemon decodes it when applying.
+    #[serde(default)]
+    pub os: Option<serde_json::Value>,
     #[serde(default)]
     pub management_url: Option<String>,
     #[serde(default)]

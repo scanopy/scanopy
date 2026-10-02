@@ -147,6 +147,12 @@ pub enum AttributeSource {
     /// module doc gives: the variant names what was read, not how it arrived, and `"CIP vendor 1"`
     /// is our own construction rather than anything the device emitted.
     CipVendorId,
+    /// An operating system matched in SNMP `sysDescr` against a Recog fingerprint. The text is the
+    /// device's own, but the OS is our reading of it, so it ranks below anything read off the host.
+    SysDescrMatch,
+    /// An operating system implied by an SNMP `sysObjectID` a Recog fingerprint names. Inferred for
+    /// the same reason as [`Self::SysDescrMatch`].
+    SysObjectIdMatch,
 
     // --- Claims that arrive on the link without a directed exchange. ---
     /// A DNS-SD instance label — the Chromecast `fn=Living Room TV`, typed by a person during
@@ -208,7 +214,9 @@ impl AttributeSource {
             Self::OwnAddress
             | Self::ServiceMatch
             | Self::LldpNeighbourAddress
-            | Self::CipVendorId => M::Inferred,
+            | Self::CipVendorId
+            | Self::SysDescrMatch
+            | Self::SysObjectIdMatch => M::Inferred,
 
             Self::DnsSdInstanceName | Self::DnsSdHostname | Self::LldpChassisId => M::Announced,
 
@@ -241,6 +249,8 @@ impl AttributeSource {
             | Self::ServiceMatch
             | Self::LldpNeighbourAddress
             | Self::CipVendorId
+            | Self::SysDescrMatch
+            | Self::SysObjectIdMatch
             | Self::DnsSdHostname
             | Self::LldpChassisId
             | Self::ReverseDns
@@ -302,6 +312,8 @@ impl AttributeSource {
                     vec![Self::LldpNeighbourAddress]
                 }
                 AttributeSourceDiscriminants::CipVendorId => vec![Self::CipVendorId],
+                AttributeSourceDiscriminants::SysDescrMatch => vec![Self::SysDescrMatch],
+                AttributeSourceDiscriminants::SysObjectIdMatch => vec![Self::SysObjectIdMatch],
                 AttributeSourceDiscriminants::DnsSdInstanceName => vec![Self::DnsSdInstanceName],
                 AttributeSourceDiscriminants::DnsSdHostname => vec![Self::DnsSdHostname],
                 AttributeSourceDiscriminants::LldpChassisId => vec![Self::LldpChassisId],
@@ -357,6 +369,8 @@ impl AttributeSource {
             AttributeSourceDiscriminants::ServiceMatch => Self::ServiceMatch,
             AttributeSourceDiscriminants::LldpNeighbourAddress => Self::LldpNeighbourAddress,
             AttributeSourceDiscriminants::CipVendorId => Self::CipVendorId,
+            AttributeSourceDiscriminants::SysDescrMatch => Self::SysDescrMatch,
+            AttributeSourceDiscriminants::SysObjectIdMatch => Self::SysObjectIdMatch,
             AttributeSourceDiscriminants::DnsSdInstanceName => Self::DnsSdInstanceName,
             AttributeSourceDiscriminants::DnsSdHostname => Self::DnsSdHostname,
             AttributeSourceDiscriminants::LldpChassisId => Self::LldpChassisId,
@@ -468,6 +482,8 @@ impl TypeMetadataProvider for AttributeSourceDiscriminants {
             Self::ServiceMatch => "A detected service",
             Self::LldpNeighbourAddress => "An LLDP neighbour's address",
             Self::CipVendorId => "A CIP vendor ID",
+            Self::SysDescrMatch => "SNMP system description",
+            Self::SysObjectIdMatch => "SNMP system object ID",
             Self::DnsSdInstanceName => "mDNS name",
             Self::DnsSdHostname => "mDNS",
             Self::LldpChassisId => "LLDP",
@@ -493,6 +509,12 @@ impl TypeMetadataProvider for AttributeSourceDiscriminants {
             }
             Self::CipVendorId => {
                 "Scanopy built this from the numeric vendor ID the device reported over CIP."
+            }
+            Self::SysDescrMatch => {
+                "Scanopy recognised this in the system description the device reported over SNMP."
+            }
+            Self::SysObjectIdMatch => {
+                "Scanopy recognised this from the system object ID the device reported over SNMP."
             }
             Self::DnsSdInstanceName => {
                 "The device announced this name over mDNS. A person usually sets it during setup."

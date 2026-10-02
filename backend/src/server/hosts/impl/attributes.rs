@@ -6,6 +6,7 @@
 //! first own the value permanently, and there was no record of which one that was.
 
 use crate::attributed_value;
+use crate::server::hosts::r#impl::os::HostOs;
 use crate::server::shared::attribution::string_schema;
 
 /// Blank means absent, for every string-valued attribute: a rung with nothing to attribute is not
@@ -205,5 +206,23 @@ attributed_value! {
         refreshable: true,
         blank: blank,
         schema: string_schema("ENTITY-MIB entPhysicalSoftwareRev - software revision of the device as a whole"),
+    }
+}
+
+attributed_value! {
+    /// The host's operating system: a family, and the product, version and kernel when the source
+    /// read them.
+    ///
+    /// Refreshable: an OS upgrade re-read by the same source is the value moving, not flapping.
+    /// Several sources write it at different strengths (a script run on the host, the daemon
+    /// reading its own machine, an OS matched in a banner or description string), and the source
+    /// is the only marker of certainty, so a matched one is replaced by anything read off the host.
+    pub struct HostOsValue(HostOs) as HostOsAttributed {
+        key: "os",
+        source_key: "os_source",
+        schema_name: "HostOperatingSystem",
+        refreshable: true,
+        blank: |_: &HostOs| false,
+        schema: <HostOs as ::utoipa::PartialSchema>::schema(),
     }
 }

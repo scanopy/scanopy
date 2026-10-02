@@ -1,0 +1,2724 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<fingerprints matches="mdns.device-info.txt" protocol="mdns" database_type="util.os">
+  <!--
+    Fingerprint definitions that are matched against the string values in the
+    TXT record returned by an mDNS endpoint for the '_device-info._tcp.local.'
+    domain name (class IN). Note that the host name may need to be prepended
+    to the domain name for a server to respond with the record:
+    e.g. 'host-name._device-info._tcp.local'.
+  -->
+
+  <!--
+     OS X versions:
+     The number specified after osxvers= is equivalent to the major
+     version of OS X plus 4. E.g. osxvers=13 means OS X 10.9
+   -->
+
+  <fingerprint pattern="^osxvers=22">
+    <description>OS X 13.0 (Ventura)</description>
+    <example>osxvers=22</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.version" value="13.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:13.0"/>
+  </fingerprint> 
+
+  <fingerprint pattern="^osxvers=21">
+    <description>OS X 12.0 (Monterey)</description>
+    <example>osxvers=21</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.version" value="12.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:12.0"/>
+  </fingerprint>
+
+  <fingerprint pattern="^osxvers=20">
+    <description>OS X 11.0 (Big Sur)</description>
+    <example>osxvers=20</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.version" value="11.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:11.0"/>
+  </fingerprint>
+
+  <fingerprint pattern="^osxvers=19">
+    <description>OS X 10.15 (Catalina)</description>
+    <example>osxvers=19</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.version" value="10.15"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:10.15"/>
+  </fingerprint>
+
+  <fingerprint pattern="^osxvers=18">
+    <description>OS X 10.14 (Mojave)</description>
+    <example>osxvers=18</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.version" value="10.14"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:10.14"/>
+  </fingerprint>
+
+  <fingerprint pattern="^osxvers=17">
+    <description>OS X 10.13 (High Sierra)</description>
+    <example>osxvers=17</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.version" value="10.13"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:10.13"/>
+  </fingerprint>
+
+  <fingerprint pattern="^osxvers=16">
+    <description>OS X 10.12 (Sierra)</description>
+    <example>osxvers=16</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.version" value="10.12"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:10.12"/>
+  </fingerprint>
+
+  <fingerprint pattern="^osxvers=15">
+    <description>OS X 10.11 (El Capitan)</description>
+    <example>osxvers=15</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.version" value="10.11"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:10.11"/>
+  </fingerprint>
+
+  <fingerprint pattern="^osxvers=14">
+    <description>OS X 10.10 (Yosemite)</description>
+    <example>osxvers=14</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.version" value="10.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:10.10"/>
+  </fingerprint>
+
+  <fingerprint pattern="^osxvers=13">
+    <description>OS X 10.9 (Mavericks)</description>
+    <example>osxvers=13</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.version" value="10.9"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:10.9"/>
+  </fingerprint>
+
+  <fingerprint pattern="^osxvers=12">
+    <description>OS X 10.8 (Mountain Lion)</description>
+    <example>osxvers=12</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.version" value="10.8"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:10.8"/>
+  </fingerprint>
+
+  <fingerprint pattern="^osxvers=11">
+    <description>Mac OS X 10.7 (Lion)</description>
+    <example>osxvers=11</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.version" value="10.7"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:10.7"/>
+  </fingerprint>
+
+  <fingerprint pattern="^osxvers=10">
+    <description>Mac OS X 10.6 (Snow Leopard)</description>
+    <example>osxvers=10</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.version" value="10.6"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:10.6"/>
+  </fingerprint>
+
+  <fingerprint pattern="^osxvers=9">
+    <description>Mac OS X 10.5 (Leopard)</description>
+    <example>osxvers=9</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.version" value="10.5"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:10.5"/>
+  </fingerprint>
+
+  <fingerprint pattern="^osxvers=8">
+    <description>Mac OS X 10.4 (Tiger)</description>
+    <example>osxvers=8</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.version" value="10.4"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:10.4"/>
+  </fingerprint>
+
+  <fingerprint pattern="^osxvers=7">
+    <description>Mac OS X 10.3 (Panther)</description>
+    <example>osxvers=7</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.version" value="10.3"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:10.3"/>
+  </fingerprint>
+
+  <fingerprint pattern="^osxvers=6">
+    <description>Mac OS X 10.2 (Jaguar)</description>
+    <example>osxvers=6</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.version" value="10.2"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:10.2"/>
+  </fingerprint>
+
+  <fingerprint pattern="^osxvers=5">
+    <description>Mac OS X 10.1 (Puma)</description>
+    <example>osxvers=5</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.version" value="10.1"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:10.1"/>
+  </fingerprint>
+
+  <fingerprint pattern="^osxvers=4">
+    <description>Mac OS X 10.0 (Cheetah)</description>
+    <example>osxvers=4</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.version" value="10.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:10.0"/>
+  </fingerprint>
+
+  <!-- AirPort Express -->
+
+  <!-- TODO: Break this down into specific models and generations -->
+
+  <fingerprint pattern="^model=AirPort4(?:,\d+)?$">
+    <description>AirPort Express</description>
+    <example>model=AirPort4</example>
+    <example>model=AirPort4,104</example>
+    <example>model=AirPort4,107</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="AirPort"/>
+    <param pos="0" name="os.product" value="AirPort Base Station Firmware"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:airport_base_station_firmware:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="AirPort"/>
+    <param pos="0" name="hw.product" value="AirPort Express"/>
+    <param pos="0" name="hw.device" value="WAP"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:airport_express:-"/>
+  </fingerprint>
+
+  <!-- AirPort Extreme -->
+
+  <!-- TODO: Break this down into specific models and generations -->
+
+  <fingerprint pattern="^model=AirPort5?(?:,\d+)?$">
+    <description>AirPort Extreme</description>
+    <example>model=AirPort</example>
+    <example>model=AirPort5</example>
+    <example>model=AirPort5,104</example>
+    <example>model=AirPort5,117</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="AirPort"/>
+    <param pos="0" name="os.product" value="AirPort Base Station Firmware"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:airport_base_station_firmware:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="AirPort"/>
+    <param pos="0" name="hw.product" value="AirPort Extreme"/>
+    <param pos="0" name="hw.device" value="WAP"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:airport_extreme:-"/>
+  </fingerprint>
+
+  <!-- TimeCapsule aka AirPort 6 -->
+
+  <!-- TODO: Break this down into specific models and generations -->
+
+  <fingerprint pattern="^model=(?:AirPort6|TimeCapsule)">
+    <description>Time Capsule</description>
+    <example>model=AirPort6</example>
+    <example>model=AirPort6,106</example>
+    <example>model=TimeCapsule</example>
+    <example>model=TimeCapsule6</example>
+    <example>model=TimeCapsule6,109</example>
+    <example>model=TimeCapsule6,116</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Time Capsule"/>
+    <param pos="0" name="os.product" value="Time Capsule Firmware"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="Time Capsule"/>
+    <param pos="0" name="hw.product" value="Time Capsule"/>
+    <param pos="0" name="hw.device" value="WAP"/>
+  </fingerprint>
+
+  <!-- MacBookPro - Reference for the following: https://support.apple.com/en-us/HT201300 -->
+
+  <fingerprint pattern="^model=MacBookPro18,3$">
+    <description>MacBook Pro (14-Inch, M1, 2021)</description>
+    <example>model=MacBookPro18,3</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (14-Inch, M1, 2021)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:macbook_pro:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro17,1$">
+    <description>MacBook Pro (13-inch, M1, 2020)</description>
+    <example>model=MacBookPro17,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (13-inch, M1, 2020)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:macbook_pro:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro16,1$">
+    <description>MacBook Pro (16-inch, 2019)</description>
+    <example>model=MacBookPro16,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (16-inch, 2019)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:macbook_pro:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro16,[23]$">
+    <description>MacBook Pro (13-inch, 2020)</description>
+    <example>model=MacBookPro16,2</example>
+    <example>model=MacBookPro16,3</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (13-inch, 2020)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:macbook_pro:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro15,4$">
+    <description>MacBook Pro (13-inch, 2019, Two Thunderbolt 3 ports)</description>
+    <example>model=MacBookPro15,4</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (13-inch, 2019, Two Thunderbolt 3 ports)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:macbook_pro:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro15,3$">
+    <description>MacBook Pro (15-inch, 2019)</description>
+    <example>model=MacBookPro15,3</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (15-inch, 2019)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:macbook_pro:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro15,2$">
+    <description>MacBook Pro (13-inch, 2018, Four Thunderbolt 3 ports)</description>
+    <example>model=MacBookPro15,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (13-inch, 2018, Four Thunderbolt 3 ports)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:macbook_pro:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro15,1$">
+    <description>MacBook Pro (15-inch, 2018)</description>
+    <example>model=MacBookPro15,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (15-inch, 2018)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:macbook_pro:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro14,3$">
+    <description>MacBook Pro (15-inch, 2017)</description>
+    <example>model=MacBookPro14,3</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (15-inch, 2017)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro14,2$">
+    <description>MacBook Pro (13-inch, 2017, Four Thunderbolt 3 ports)</description>
+    <example>model=MacBookPro14,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (13-inch, 2017, Four Thunderbolt 3 ports)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:macbook_pro:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro14,1$">
+    <description>MacBook Pro (13-inch, 2017, Two Thunderbolt 3 ports)</description>
+    <example>model=MacBookPro14,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (13-inch, 2017, Two Thunderbolt 3 ports)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:macbook_pro:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro13,3$">
+    <description>MacBook Pro (15-inch, 2016)</description>
+    <example>model=MacBookPro13,3</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (15-inch, 2016)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro13,2$">
+    <description>MacBook Pro (13-inch, 2016, Four Thunderbolt 3 ports)</description>
+    <example>model=MacBookPro13,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (13-inch, 2016, Four Thunderbolt 3 ports)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro13,1$">
+    <description>MacBook Pro (13-inch, 2016, Two Thunderbolt 3 ports)</description>
+    <example>model=MacBookPro13,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (13-inch, 2016, Two Thunderbolt 3 ports)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:macbook_pro:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro12,1$">
+    <description>MacBook Pro (Retina, 13-inch, Early 2015)</description>
+    <example>model=MacBookPro12,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (Retina, 13-inch, Early 2015)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:macbook_pro:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro11,[45]$">
+    <description>MacBook Pro (Retina, 15-inch, Mid 2015)</description>
+    <example>model=MacBookPro11,4</example>
+    <example>model=MacBookPro11,5</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (Retina, 15-inch, Mid 2015)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:macbook_pro:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro11,3$">
+    <description>MacBook Pro (Retina, 15-inch, Late 2013) - rev 2</description>
+    <example>model=MacBookPro11,3</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (Retina, 15-inch, Late 2013)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro11,2$">
+    <description>MacBook Pro (Retina, 15-inch, Late 2013)</description>
+    <example>model=MacBookPro11,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (Retina, 15-inch, Late 2013)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro11,1$">
+    <description>MacBook Pro (Retina, 13-inch, Late 2013)</description>
+    <example>model=MacBookPro11,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (Retina, 13-inch, Late 2013)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro10,2$">
+    <description>MacBook Pro (Retina, 13-inch, Early 2013)</description>
+    <example>model=MacBookPro10,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (Retina, 13-inch, Early 2013)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro10,1$">
+    <description>MacBook Pro (Retina, 15-inch, Early 2013)</description>
+    <example>model=MacBookPro10,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (Retina, 15-inch, Early 2013)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro9,2$">
+    <description>MacBook Pro (13-inch, Mid 2012)</description>
+    <example>model=MacBookPro9,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (13-inch, Mid 2012)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro9,1$">
+    <description>MacBook Pro (15-inch, Mid 2012)</description>
+    <example>model=MacBookPro9,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (15-inch, Mid 2012)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro8,3$">
+    <description>MacBook Pro (17-inch, Late 2011)</description>
+    <example>model=MacBookPro8,3</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (17-inch, Late 2011)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro8,2$">
+    <description>MacBook Pro (15-inch, Late 2011)</description>
+    <example>model=MacBookPro8,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (15-inch, Late 2011)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro8,1$">
+    <description>MacBook Pro (13-inch, Late 2011)</description>
+    <example>model=MacBookPro8,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (13-inch, Late 2011)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro7,1$">
+    <description>MacBook Pro (13-inch, Mid 2010)</description>
+    <example>model=MacBookPro7,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (13-inch, Mid 2010)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro6,2$">
+    <description>MacBook Pro (15-inch, Mid 2010)</description>
+    <example>model=MacBookPro6,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (15-inch, Mid 2010)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro6,1$">
+    <description>MacBook Pro (17-inch, Mid 2010)</description>
+    <example>model=MacBookPro6,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (17-inch, Mid 2010)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro5,5$">
+    <description>MacBook Pro (13-inch, Mid 2009)</description>
+    <example>model=MacBookPro5,5</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (13-inch, Mid 2009)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro5,3$">
+    <description>MacBook Pro (15-inch, Mid 2009)</description>
+    <example>model=MacBookPro5,3</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (15-inch, Mid 2009)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro5,2$">
+    <description>MacBook Pro (17-inch, Mid 2009)</description>
+    <example>model=MacBookPro5,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (17-inch, Mid 2009)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro5,1$">
+    <description>MacBook Pro (15-inch, Late 2008)</description>
+    <example>model=MacBookPro5,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (15-inch, Late 2008)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookPro4,1$">
+    <description>MacBook Pro (17-inch, Early 2008)</description>
+    <example>model=MacBookPro4,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook Pro"/>
+    <param pos="0" name="hw.product" value="MacBook Pro (17-inch, Early 2008)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <!-- MacBook - Reference for the following: https://support.apple.com/en-us/HT201608 -->
+
+  <fingerprint pattern="^model=MacBook10,1$">
+    <description>MacBook (Retina, 12-inch, 2017)</description>
+    <example>model=MacBook10,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook"/>
+    <param pos="0" name="hw.product" value="MacBook (Retina, 12-inch, 2017)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBook9,1$">
+    <description>MacBook (Retina, 12-inch, Early 2016)</description>
+    <example>model=MacBook9,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook"/>
+    <param pos="0" name="hw.product" value="MacBook (Retina, 12-inch, Early 2016)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBook8,1$">
+    <description>MacBook (Retina, 12-inch, Early 2015)</description>
+    <example>model=MacBook8,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook"/>
+    <param pos="0" name="hw.product" value="MacBook (Retina, 12-inch, Early 2015)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBook7,1$">
+    <description>MacBook (13-inch, Mid 2010)</description>
+    <example>model=MacBook7,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook"/>
+    <param pos="0" name="hw.product" value="MacBook (13-inch, Mid 2010)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <!-- MacBookAir - Reference for the following: https://support.apple.com/en-us/HT201862 -->
+
+  <fingerprint pattern="^model=MacBookAir10,1$">
+    <description>MacBook Air (M1, 2020)</description>
+    <example>model=MacBookAir10,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook"/>
+    <param pos="0" name="hw.product" value="MacBook Air (M1, 2020)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:macbook_air:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookAir9,1$">
+    <description>MacBook Air (Retina, 13-inch, 2020)</description>
+    <example>model=MacBookAir9,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook"/>
+    <param pos="0" name="hw.product" value="MacBook Air (Retina, 13-inch, 2020)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:macbook_air:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookAir8,2$">
+    <description>MacBook Air (Retina, 13-inch, 2019)</description>
+    <example>model=MacBookAir8,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook"/>
+    <param pos="0" name="hw.product" value="MacBook Air (Retina, 13-inch, 2019)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:macbook_air:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookAir8,1$">
+    <description>MacBook Air (Retina, 13-inch, 2018)</description>
+    <example>model=MacBookAir8,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook"/>
+    <param pos="0" name="hw.product" value="MacBook Air (Retina, 13-inch, 2018)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:macbook_air:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookAir7,2$">
+    <description>MacBook Air (13-inch, 2017)</description>
+    <example>model=MacBookAir7,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook"/>
+    <param pos="0" name="hw.product" value="MacBook Air (13-inch, 2017)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:macbook_air:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookAir7,1$">
+    <description>MacBook Air (11-inch, Early 2015)</description>
+    <example>model=MacBookAir7,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook"/>
+    <param pos="0" name="hw.product" value="MacBook Air (11-inch, Early 2015)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookAir6,2$">
+    <description>MacBook Air (13-inch, Early 2014)</description>
+    <example>model=MacBookAir6,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook"/>
+    <param pos="0" name="hw.product" value="MacBook Air (13-inch, Early 2014)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookAir6,1$">
+    <description>MacBook Air (11-inch, Early 2014)</description>
+    <example>model=MacBookAir6,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook"/>
+    <param pos="0" name="hw.product" value="MacBook Air (11-inch, Early 2014)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookAir5,2$">
+    <description>MacBook Air (13-inch, Mid 2012)</description>
+    <example>model=MacBookAir5,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook"/>
+    <param pos="0" name="hw.product" value="MacBook Air (13-inch, Mid 2012)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookAir5,1$">
+    <description>MacBook Air (11-inch, Mid 2012)</description>
+    <example>model=MacBookAir5,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook"/>
+    <param pos="0" name="hw.product" value="MacBook Air (11-inch, Mid 2012)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookAir4,2$">
+    <description>MacBook Air (13-inch, Mid 2011)</description>
+    <example>model=MacBookAir4,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook"/>
+    <param pos="0" name="hw.product" value="MacBook Air (13-inch, Mid 2011)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookAir4,1$">
+    <description>MacBook Air (11-inch, Mid 2011)</description>
+    <example>model=MacBookAir4,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook"/>
+    <param pos="0" name="hw.product" value="MacBook Air (11-inch, Mid 2011)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookAir3,2$">
+    <description>MacBook Air (13-inch, Late 2010)</description>
+    <example>model=MacBookAir3,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook"/>
+    <param pos="0" name="hw.product" value="MacBook Air (13-inch, Late 2010)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookAir3,1$">
+    <description>MacBook Air (11-inch, Late 2010)</description>
+    <example>model=MacBookAir3,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook"/>
+    <param pos="0" name="hw.product" value="MacBook Air (11-inch, Late 2010)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacBookAir2,1$">
+    <description>MacBook Air (Mid 2009)</description>
+    <example>model=MacBookAir2,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="MacBook"/>
+    <param pos="0" name="hw.product" value="MacBook Air (Mid 2009)"/>
+    <param pos="0" name="hw.device" value="Laptop"/>
+  </fingerprint>
+
+  <!-- MacMini - Reference for the following: https://support.apple.com/en-us/HT201894 -->
+
+  <fingerprint pattern="^model=Macmini9,1$">
+    <description>Mac mini (M1, 2020)</description>
+    <example>model=Macmini9,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="Mac mini"/>
+    <param pos="0" name="hw.product" value="Mac mini (M1, 2020)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=Macmini8,1$">
+    <description>Mac mini (Late 2018)</description>
+    <example>model=Macmini8,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="Mac mini"/>
+    <param pos="0" name="hw.product" value="Mac mini (Late 2018)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=Macmini7,1$">
+    <description>Mac mini (Late 2014)</description>
+    <example>model=Macmini7,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="Mac mini"/>
+    <param pos="0" name="hw.product" value="Mac mini (Late 2014)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=Macmini6,2$">
+    <description>Mac mini (Late 2012) - rev 2</description>
+    <example>model=Macmini6,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="Mac mini"/>
+    <param pos="0" name="hw.product" value="Mac mini (Late 2012)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=Macmini6,1$">
+    <description>Mac mini (Late 2012)</description>
+    <example>model=Macmini6,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="Mac mini"/>
+    <param pos="0" name="hw.product" value="Mac mini (Late 2012)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=Macmini5,[12]$">
+    <description>Mac mini (Mid 2011)</description>
+    <example>model=Macmini5,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="Mac mini"/>
+    <param pos="0" name="hw.product" value="Mac mini (Mid 2011)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=Macmini4,1$">
+    <description>Mac mini (Mid 2010)</description>
+    <example>model=Macmini4,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="Mac mini"/>
+    <param pos="0" name="hw.product" value="Mac mini (Mid 2010)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=Macmini3,1$">
+    <description>Mac mini (Late 2009)</description>
+    <example>model=Macmini3,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="Mac mini"/>
+    <param pos="0" name="hw.product" value="Mac mini (Late 2009)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <!-- Listed at https://en.wikipedia.org/wiki/Mac_Mini#2nd_generation_(Intel-based,_2006-2009) -->
+
+  <fingerprint pattern="^model=Macmini2,1$">
+    <description>Mac mini (Mid 2007)</description>
+    <example>model=Macmini2,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="Mac mini"/>
+    <param pos="0" name="hw.product" value="Mac mini (Mid 2007)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <!-- MacPro - Reference for the following: https://support.apple.com/en-us/HT202888 -->
+
+  <fingerprint pattern="^model=MacPro7,1$">
+    <description>Mac Pro (Late 2019)</description>
+    <example>model=MacPro7,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="Mac Pro (Late 2019)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacPro6,1$">
+    <description>Mac Pro (Late 2013)</description>
+    <example>model=MacPro6,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="Mac Pro (Late 2013)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacPro5,1$">
+    <description>Mac Pro (Mid 2012)</description>
+    <example>model=MacPro5,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="Mac Pro (Mid 2012)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacPro4,1$">
+    <description>Mac Pro (Early 2009)</description>
+    <example>model=MacPro4,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="Mac Pro (Early 2009)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <!-- MacPro older models listed at https://en.wikipedia.org/wiki/Mac_Pro -->
+
+  <fingerprint pattern="^model=MacPro3,1$">
+    <description>Mac Pro (Early 2008)</description>
+    <example>model=MacPro3,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="Mac Pro (Early 2008)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=MacPro2,1$">
+    <description>Mac Pro (Mid 2007)</description>
+    <example>model=MacPro2,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="Mac Pro (Mid 2007)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <!-- MacPro with no model assumed to early 1,1 -->
+
+  <fingerprint pattern="^model=MacPro(?:1,1)?$">
+    <description>Mac Pro (Mid 2006)</description>
+    <example>model=MacPro1,1</example>
+    <example>model=MacPro</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="Mac Pro (Mid 2006)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <!-- XServe - Reference for the following: https://en.wikipedia.org/wiki/Xserve -->
+
+  <fingerprint pattern="^model=Xserve3,1$">
+    <description>Xserve (Early 2009)</description>
+    <example>model=Xserve3,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="Xserve"/>
+    <param pos="0" name="hw.product" value="Xserve (Early 2009)"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=Xserve2,1$">
+    <description>Xserve (Early 2008)</description>
+    <example>model=Xserve2,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="Xserve"/>
+    <param pos="0" name="hw.product" value="Xserve (Early 2008)"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=Xserve1,1$">
+    <description>Xserve (Late 2006)</description>
+    <example>model=Xserve1,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="Xserve"/>
+    <param pos="0" name="hw.product" value="Xserve (Late 2006)"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=RackMac3,1$">
+    <description>Xserve G5</description>
+    <example>model=RackMac3,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="Xserve"/>
+    <param pos="0" name="hw.product" value="Xserve G5"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=RackMac1,2$">
+    <description>Xserve G4 (Slot Load)</description>
+    <example>model=RackMac1,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="Xserve"/>
+    <param pos="0" name="hw.product" value="Xserve G4 (Slot Load)"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=RackMac1,1$">
+    <description>Xserve G4</description>
+    <example>model=RackMac1,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="Xserve"/>
+    <param pos="0" name="hw.product" value="Xserve G4"/>
+  </fingerprint>
+
+  <!-- iMAC - Reference for the following: https://support.apple.com/en-us/HT201634 -->
+
+  <fingerprint pattern="^model=(?:J457AP|iMac21,2)$">
+    <description>iMac (24-inch, M1, 2021) with Two Thunderbolt / USB 4 port</description>
+    <example>model=iMac21,2</example>
+    <example>model=J457AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (24-inch, M1, 2021)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:J456AP|iMac21,1)$">
+    <description>iMac (24-inch, M1, 2021) with Two Thunderbolt / USB 4 ports and Two USB 3 ports</description>
+    <example>model=iMac21,1</example>
+    <example>model=J456AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (24-inch, M1, 2021)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac20,1$">
+    <description>iMac (Retina 5K, 27-inch, 2020)</description>
+    <example>model=iMac20,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (Retina 5K, 27-inch, 2020)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:imac:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac19,1$">
+    <description>iMac (Retina 5K, 27-inch, 2019)</description>
+    <example>model=iMac19,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (Retina 5K, 27-inch, 2019)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:imac:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac19,2$">
+    <description>iMac (Retina 4K, 21.5-inch, 2019)</description>
+    <example>model=iMac19,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (Retina 4K, 21.5-inch, 2019)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:imac:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMacPro1,1$">
+    <description>iMac Pro (Retina 5K, Late 2017)</description>
+    <example>model=iMacPro1,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac Pro (Retina 5K, Late 2017)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac18,3$">
+    <description>iMac (Retina 5K, 27-inch, 2017)</description>
+    <example>model=iMac18,3</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (Retina 5K, 27-inch, 2017)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:imac:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac18,2$">
+    <description>iMac (Retina 4K, 21.5-inch, 2017)</description>
+    <example>model=iMac18,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (Retina 4K, 21.5-inch, 2017)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:imac:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac18,1$">
+    <description>iMac (21.5-inch, 2017)</description>
+    <example>model=iMac18,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (21.5-inch, 2017)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac17,1$">
+    <description>iMac (Retina 5K, 27-inch, Late 2015)</description>
+    <example>model=iMac17,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (Retina 5K, 27-inch, Late 2015)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac16,2$">
+    <description>iMac (Retina 4K, 21.5-inch, Late 2015)</description>
+    <example>model=iMac16,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (Retina 4K, 21.5-inch, Late 2015)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:imac:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac16,1$">
+    <description>iMac (21.5-inch, Late 2015)</description>
+    <example>model=iMac16,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (21.5-inch, Late 2015)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac15,1$">
+    <description>iMac (Retina 5K, 27-inch, Mid 2015)</description>
+    <example>model=iMac15,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (Retina 5K, 27-inch, Mid 2015)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac14,4$">
+    <description>iMac (21.5-inch, Mid 2014)</description>
+    <example>model=iMac14,4</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (21.5-inch, Mid 2014)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac14,2$">
+    <description>iMac (27-inch, Late 2013)</description>
+    <example>model=iMac14,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (27-inch, Late 2013)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac14,1$">
+    <description>iMac (21.5-inch, Late 2013)</description>
+    <example>model=iMac14,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (21.5-inch, Late 2013)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac13,2$">
+    <description>iMac (27-inch, Late 2012)</description>
+    <example>model=iMac13,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (27-inch, Late 2012)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac13,1$">
+    <description>iMac (21.5-inch, Late 2012)</description>
+    <example>model=iMac13,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (21.5-inch, Late 2012)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac12,2$">
+    <description>iMac (27-inch, Mid 2011)</description>
+    <example>model=iMac12,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (27-inch, Mid 2011)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac12,1$">
+    <description>iMac (21.5-inch, Mid 2011)</description>
+    <example>model=iMac12,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (21.5-inch, Mid 2011)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac11,3$">
+    <description>iMac (27-inch, Mid 2010)</description>
+    <example>model=iMac11,3</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (27-inch, Mid 2010)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac11,2$">
+    <description>iMac (21.5-inch, Mid 2010)</description>
+    <example>model=iMac11,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (21.5-inch, Mid 2010)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac11,1$">
+    <description>iMac 10 (27-inch, Late 2009)</description>
+    <example>model=iMac11,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (27-inch, Late 2009)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac10,1$">
+    <description>iMac 11 (27-inch, Late 2009)</description>
+    <example>model=iMac10,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (27-inch, Late 2009)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac9,1$">
+    <description>iMac (24-inch, Early 2009)</description>
+    <example>model=iMac9,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (24-inch, Early 2009)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=iMac8,1$">
+    <description>iMac (20/24-inch, Early 2008)</description>
+    <example>model=iMac8,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iMac"/>
+    <param pos="0" name="hw.product" value="iMac (20/24-inch, Early 2008)"/>
+    <param pos="0" name="hw.device" value="Desktop"/>
+  </fingerprint>
+
+  <!-- iPad Pro - Reference for the following: https://www.theiphonewiki.com/ -->
+
+  <fingerprint pattern="^model=(?:J42[01]AP|iPad8,11)$">
+    <description>iPad Pro (12.9-inch, 4th generation)</description>
+    <example>model=J420AP</example>
+    <example>model=J421AP</example>
+    <example>model=iPad8,11</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad Pro"/>
+    <param pos="0" name="hw.product" value="iPad Pro (12.9-inch, 4th generation)"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:J41[78]AP|iPad8,10)$">
+    <description>iPad Pro (11-inch, 2nd generation)</description>
+    <example>model=J417AP</example>
+    <example>model=iPad8,10</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad Pro"/>
+    <param pos="0" name="hw.product" value="iPad Pro (11-inch, 2nd generation)"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:J51[78]x?AP|iPad13,[4567])$">
+    <description>iPad Pro (11-inch, 3rd generation)</description>
+    <example>model=J517AP</example>
+    <example>model=J517xAP</example>
+    <example>model=J518AP</example>
+    <example>model=J518xAP</example>
+    <example>model=iPad13,4</example>
+    <example>model=iPad13,5</example>
+    <example>model=iPad13,6</example>
+    <example>model=iPad13,7</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad Pro"/>
+    <param pos="0" name="hw.product" value="iPad Pro (11-inch, 3rd generation)"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:J32[01]x?AP|iPad8,5)$">
+    <description>iPad Pro (12.9-inch, 3rd generation)</description>
+    <example>model=J320AP</example>
+    <example>model=J321xAP</example>
+    <example>model=iPad8,5</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad Pro"/>
+    <param pos="0" name="hw.product" value="iPad Pro (12.9-inch, 3rd generation)"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:J31[78]x?AP|iPad8,1)$">
+    <description>iPad Pro (11-inch)</description>
+    <example>model=J317AP</example>
+    <example>model=J318xAP</example>
+    <example>model=iPad8,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad Pro"/>
+    <param pos="0" name="hw.product" value="iPad Pro (11-inch)"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=J20[78]AP$">
+    <description>iPad Pro (10.5-inch)</description>
+    <example>model=J207AP</example>
+    <example>model=J208AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad Pro"/>
+    <param pos="0" name="hw.product" value="iPad Pro (10.5-inch)"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=J12[78]AP$">
+    <description>iPad Pro (9.7-inch)</description>
+    <example>model=J127AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad Pro"/>
+    <param pos="0" name="hw.product" value="iPad Pro (9.7-inch)"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=J12[01]AP$">
+    <description>iPad Pro (12.9-inch, 2nd generation)</description>
+    <example>model=J120AP</example>
+    <example>model=J121AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad Pro"/>
+    <param pos="0" name="hw.product" value="iPad Pro (12.9-inch, 2nd generation)"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=J9[89]aAP$">
+    <description>iPad Pro (12.9-inch)</description>
+    <example>model=J98aAP</example>
+    <example>model=J99aAP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad Pro"/>
+    <param pos="0" name="hw.product" value="iPad Pro (12.9-inch)"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <!-- iPad -->
+
+  <fingerprint pattern="^model=(?:J18[12]AP|iPad12,[12])$">
+    <description>iPad (9th generation)</description>
+    <example>model=J181AP</example>
+    <example>model=J182AP</example>
+    <example>model=iPad12,1</example>
+    <example>model=iPad12,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad"/>
+    <param pos="0" name="hw.product" value="iPad (9th generation)"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:J17[12]aAP|iPad11,[67])$">
+    <description>iPad (8th generation)</description>
+    <example>model=J172aAP</example>
+    <example>model=J171aAP</example>
+    <example>model=iPad11,6</example>
+    <example>model=iPad11,7</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad"/>
+    <param pos="0" name="hw.product" value="iPad (8th generation)"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:J17[12]AP|iPad7,1[12])$">
+    <description>iPad (7th generation)</description>
+    <example>model=J171AP</example>
+    <example>model=J172AP</example>
+    <example>model=iPad7,11</example>
+    <example>model=iPad7,12</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad"/>
+    <param pos="0" name="hw.product" value="iPad (7th generation)"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:J7[12]bAP|iPad7,5)$">
+    <description>iPad (6th generation)</description>
+    <example>model=J72bAP</example>
+    <example>model=J71bAP</example>
+    <example>model=iPad7,5</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad"/>
+    <param pos="0" name="hw.product" value="iPad (6th generation)"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:J71[ts]AP|iPad6,11)$">
+    <description>iPad (5th generation)</description>
+    <example>model=J71tAP</example>
+    <example>model=J71sAP</example>
+    <example>model=iPad6,11</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad"/>
+    <param pos="0" name="hw.product" value="iPad (5th generation)"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=P10[123]AP$">
+    <description>iPad (4th generation)</description>
+    <example>model=P103AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad"/>
+    <param pos="0" name="hw.product" value="iPad (4th generation)"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <!-- iPad Air -->
+
+  <fingerprint pattern="^model=(?:J30[78]AP|iPad13,[12])$">
+    <description>iPad Air (4th generation)</description>
+    <example>model=J307AP</example>
+    <example>model=J308AP</example>
+    <example>model=iPad13,1</example>
+    <example>model=iPad13,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad Air"/>
+    <param pos="0" name="hw.product" value="iPad Air (4th generation)"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=J21[78]AP$">
+    <description>iPad Air (3rd generation)</description>
+    <example>model=J218AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad Air"/>
+    <param pos="0" name="hw.product" value="iPad Air (3rd generation)"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:J8[12]AP|iPad5,3)$">
+    <description>iPad Air 2</description>
+    <example>model=J81AP</example>
+    <example>model=iPad5,3</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad Air"/>
+    <param pos="0" name="hw.product" value="iPad Air 2"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=J7[123]AP$">
+    <description>iPad Air</description>
+    <example>model=J72AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad Air"/>
+    <param pos="0" name="hw.product" value="iPad Air"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <!-- iPad mini -->
+
+  <fingerprint pattern="^model=(?:J31[01]AP|iPad14,[12])$">
+    <description>iPad mini (6th generation)</description>
+    <example>model=J310AP</example>
+    <example>model=J311AP</example>
+    <example>model=iPad14,1</example>
+    <example>model=iPad14,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad mini"/>
+    <param pos="0" name="hw.product" value="iPad mini (6th generation)"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=J21[01]AP$">
+    <description>iPad mini (5th generation)</description>
+    <example>model=J210AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad mini"/>
+    <param pos="0" name="hw.product" value="iPad mini (5th generation)"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:J9[67]AP|iPad5,2)$">
+    <description>iPad mini 4</description>
+    <example>model=J97AP</example>
+    <example>model=iPad5,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad mini"/>
+    <param pos="0" name="hw.product" value="iPad mini 4"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:J8[567]mAP|iPad4,9)$">
+    <description>iPad mini 3</description>
+    <example>model=J87mAP</example>
+    <example>model=iPad4,9</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad mini"/>
+    <param pos="0" name="hw.product" value="iPad mini 3"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=J8[567]AP$">
+    <description>iPad mini 2</description>
+    <example>model=J85AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad mini"/>
+    <param pos="0" name="hw.product" value="iPad mini 2"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=P10[567]AP$">
+    <description>iPad mini</description>
+    <example>model=P105AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPad mini"/>
+    <param pos="0" name="hw.product" value="iPad mini"/>
+    <param pos="0" name="hw.device" value="Tablet"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:ipad_mini:-"/>
+  </fingerprint>
+
+  <!-- HomePod -->
+
+  <fingerprint pattern="^model=(?:B520AP|AudioAccessory5,1)$">
+    <description>HomePod mini</description>
+    <example>model=B520AP</example>
+    <example>model=AudioAccessory5,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="audioOS"/>
+    <param pos="0" name="os.product" value="audioOS"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="HomePod"/>
+    <param pos="0" name="hw.product" value="HomePod mini"/>
+    <param pos="0" name="hw.device" value="Media Server"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:B238a?AP|AudioAccessory1,[12])$">
+    <description>HomePod</description>
+    <example>model=B238aAP</example>
+    <example>model=B238AP</example>
+    <example>model=AudioAccessory1,1</example>
+    <example>model=AudioAccessory1,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="audioOS"/>
+    <param pos="0" name="os.product" value="audioOS"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="HomePod"/>
+    <param pos="0" name="hw.product" value="HomePod"/>
+    <param pos="0" name="hw.device" value="Media Server"/>
+  </fingerprint>
+
+  <!-- Apple TV -->
+
+  <fingerprint pattern="^model=(?:J305AP|AppleTV11,1)$">
+    <description>Apple TV 4K (2nd generation)</description>
+    <example>model=J305AP</example>
+    <example>model=AppleTV11,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="tvOS"/>
+    <param pos="0" name="os.product" value="tvOS"/>
+    <param pos="0" name="os.certainty" value="0.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:tvos:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="Apple TV"/>
+    <param pos="0" name="hw.product" value="Apple TV 4K (2nd generation)"/>
+    <param pos="0" name="hw.device" value="Media Server"/>
+    <param pos="0" name="hw.certainty" value="0.10"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:J105aAP|AppleTV6,2)$">
+    <description>Apple TV 4K</description>
+    <example>model=J105aAP</example>
+    <example>model=AppleTV6,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="tvOS"/>
+    <param pos="0" name="os.product" value="tvOS"/>
+    <param pos="0" name="os.certainty" value="0.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:tvos:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="Apple TV"/>
+    <param pos="0" name="hw.product" value="Apple TV 4K"/>
+    <param pos="0" name="hw.device" value="Media Server"/>
+    <param pos="0" name="hw.certainty" value="0.10"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:J42dAP|AppleTV5,3)$">
+    <description>Apple TV (4th generation)</description>
+    <example>model=J42dAP</example>
+    <example>model=AppleTV5,3</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="tvOS"/>
+    <param pos="0" name="os.product" value="tvOS"/>
+    <param pos="0" name="os.certainty" value="0.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:tvos:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="Apple TV"/>
+    <param pos="0" name="hw.product" value="Apple TV (4th generation)"/>
+    <param pos="0" name="hw.device" value="Media Server"/>
+    <param pos="0" name="hw.certainty" value="0.10"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:J33[Ii]?AP|AppleTV3,[21])$">
+    <description>Apple TV (3rd generation)</description>
+    <example>model=J33IAP</example>
+    <example>model=J33iAP</example>
+    <example>model=J33AP</example>
+    <example>model=AppleTV3,2</example>
+    <example>model=AppleTV3,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="tvOS"/>
+    <param pos="0" name="os.product" value="tvOS"/>
+    <param pos="0" name="os.certainty" value="0.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:tvos:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="Apple TV"/>
+    <param pos="0" name="hw.product" value="Apple TV (3rd generation)"/>
+    <param pos="0" name="hw.device" value="Media Server"/>
+    <param pos="0" name="hw.certainty" value="0.10"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:K66AP|AppleTV2,1)$">
+    <description>Apple TV (2nd generation)</description>
+    <example>model=K66AP</example>
+    <example>model=AppleTV2,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="tvOS"/>
+    <param pos="0" name="os.product" value="tvOS"/>
+    <param pos="0" name="os.certainty" value="0.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:tvos:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="Apple TV"/>
+    <param pos="0" name="hw.product" value="Apple TV (2nd generation)"/>
+    <param pos="0" name="hw.device" value="Media Server"/>
+    <param pos="0" name="hw.certainty" value="0.10"/>
+  </fingerprint>
+
+  <!-- iPhones - Reference for the following: https://www.theiphonewiki.com/wiki/Category:Devices
+   and http://phonedb.net/ -->
+
+  <fingerprint pattern="^model=(?:D64AP|iPhone14,3)$">
+    <description>iPhone 13 Pro Max</description>
+    <example>model=D64AP</example>
+    <example>model=iPhone14,3</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 13 Pro Max"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_13_pro_max:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:D63AP|iPhone14,2)$">
+    <description>iPhone 13 Pro</description>
+    <example>model=D63AP</example>
+    <example>model=iPhone14,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 13 Pro"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_13_pro:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:D16AP|iPhone14,4)$">
+    <description>iPhone 13 mini</description>
+    <example>model=D16AP</example>
+    <example>model=iPhone14,4</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 13 mini"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_13_mini:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:D17AP|iPhone14,5)$">
+    <description>iPhone 13)</description>
+    <example>model=D17AP</example>
+    <example>model=iPhone14,5</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 13"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_13:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:D79AP|iPhone12,8)$">
+    <description>iPhone SE (2nd generation)</description>
+    <example>model=D79AP</example>
+    <example>model=iPhone12,8</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone SE (2nd generation)"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_se_%282nd_generation%29:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:D54pAP|iPhone13,4)$">
+    <description>iPhone 12 Pro Max</description>
+    <example>model=D54pAP</example>
+    <example>model=iPhone13,4</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 12 Pro Max"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_12_pro_max:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:D53pAP|iPhone13,3)$">
+    <description>iPhone 12 Pro</description>
+    <example>model=D53pAP</example>
+    <example>model=iPhone13,3</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 12 Pro"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_12_pro:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:D53gAP|iPhone13,2)$">
+    <description>iPhone 12</description>
+    <example>model=D53gAP</example>
+    <example>model=iPhone13,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 12"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_12:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:D52g?AP|Phone13,1)$">
+    <description>iPhone 12 Mini</description>
+    <example>model=D52gAP</example>
+    <example>model=D52AP</example>
+    <example>model=Phone13,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 12 Mini"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_12_mini:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:D431p?AP|iPhone12,5)$">
+    <description>iPhone 11 Pro Max</description>
+    <example>model=D431pAP</example>
+    <example>model=D431AP</example>
+    <example>model=iPhone12,5</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 11 Pro Max"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_11_pro_max:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:D421p?AP|iPhone12,3)$">
+    <description>iPhone 11 Pro</description>
+    <example>model=D421pAP</example>
+    <example>model=D421AP</example>
+    <example>model=iPhone12,3</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 11 Pro"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_11_pro:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:N104AP|iPhone12,1)$">
+    <description>iPhone 11</description>
+    <example>model=N104AP</example>
+    <example>model=iPhone12,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 11"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_11:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:D331p?AP|iPhone11,[46])$">
+    <description>iPhone XS Max</description>
+    <example>model=D331pAP</example>
+    <example>model=D331AP</example>
+    <example>model=iPhone11,6</example>
+    <example>model=iPhone11,4</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone XS Max"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_xs_max:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:D321AP|iPhone11,2)$">
+    <description>iPhone XS</description>
+    <example>model=D321AP</example>
+    <example>model=iPhone11,2</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone XS"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_xs:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:N841AP|iPhone11,8)$">
+    <description>iPhone XR</description>
+    <example>model=N841AP</example>
+    <example>model=iPhone11,8</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone XR"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_xr:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:D221?AP|iPhone10,[36])$">
+    <description>iPhone X</description>
+    <example>model=D221AP</example>
+    <example>model=D22AP</example>
+    <example>model=iPhone10,6</example>
+    <example>model=iPhone10,3</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone X"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_x:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:D211?A?AP|iPhone10,[25])$">
+    <description>iPhone 8 Plus</description>
+    <example>model=D21AP</example>
+    <example>model=D21AAP</example>
+    <example>model=D211AP</example>
+    <example>model=D211AAP</example>
+    <example>model=iPhone10,2</example>
+    <example>model=iPhone10,5</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 8 Plus"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_8_plus:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:D201?A?AP|iPhone10,[14])$">
+    <description>iPhone 8</description>
+    <example>model=D20AP</example>
+    <example>model=D20AAP</example>
+    <example>model=D201AP</example>
+    <example>model=D201AAP</example>
+    <example>model=iPhone10,1</example>
+    <example>model=iPhone10,4</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 8"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_8:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:D111?AP|iPhone9,[24])$">
+    <description>iPhone 7 Plus</description>
+    <example>model=D11AP</example>
+    <example>model=D111AP</example>
+    <example>model=iPhone9,2</example>
+    <example>model=iPhone9,4</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 7 Plus"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_7_plus:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:D101?AP$|iPhone9,3)">
+    <description>iPhone 7</description>
+    <example>model=D10AP</example>
+    <example>model=D101AP</example>
+    <example>model=iPhone9,3</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 7"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_7:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=N69u?AP$">
+    <description>iPhone SE (1st generation)</description>
+    <example>model=N69AP</example>
+    <example>model=N69uAP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone SE (1st generation)"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_se_%281st_generation%29:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=N66m?AP$">
+    <description>iPhone 6s Plus</description>
+    <example>model=N66mAP</example>
+    <example>model=N66AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 6s Plus"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_6s_plus:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=N71m?AP$">
+    <description>iPhone 6s</description>
+    <example>model=N71mAP</example>
+    <example>model=N71AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 6s"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_6s:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=N56AP$">
+    <description>iPhone 6 Plus</description>
+    <example>model=N56AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 6 Plus"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_6_plus:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=N61AP$">
+    <description>iPhone 6</description>
+    <example>model=N61AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 6"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_6:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=N5[13]AP$">
+    <description>iPhone 5s</description>
+    <example>model=N51AP</example>
+    <example>model=N53AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 5s"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_5s:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=N4[89]AP$">
+    <description>iPhone 5c</description>
+    <example>model=N48AP</example>
+    <example>model=N49AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 5c"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_5c:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=N4[12]AP$">
+    <description>iPhone 5</description>
+    <example>model=N41AP</example>
+    <example>model=N42AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 5"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_5:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=N94AP$">
+    <description>iPhone 4s</description>
+    <example>model=N94AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 4s"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_4s:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=N9[02]B?AP$">
+    <description>iPhone 4</description>
+    <example>model=N90AP</example>
+    <example>model=N90BAP</example>
+    <example>model=N92AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 4"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_4:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=N88AP$">
+    <description>iPhone 3GS</description>
+    <example>model=N88AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 3GS"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_3gs:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=N82AP$">
+    <description>iPhone 3G</description>
+    <example>model=N82AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone 3G"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_3g:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=M68AP$">
+    <description>iPhone (1st generation)</description>
+    <example>model=M68AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPhone"/>
+    <param pos="0" name="hw.product" value="iPhone (1st generation)"/>
+    <param pos="0" name="hw.device" value="Mobile Phone"/>
+    <param pos="0" name="hw.cpe23" value="cpe:/h:apple:iphone_%281st_generation%29:-"/>
+  </fingerprint>
+
+  <!-- iPod -->
+
+  <fingerprint pattern="^model=(?:N112AP|iPod9,1)$">
+    <description>iPod Touch (7th generation)</description>
+    <example>model=N112AP</example>
+    <example>model=iPod9,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPod"/>
+    <param pos="0" name="hw.product" value="iPod Touch (7th generation)"/>
+    <param pos="0" name="hw.device" value="Media Player"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=N102AP$">
+    <description>iPod Touch (6th generation)</description>
+    <example>model=N102AP</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPod"/>
+    <param pos="0" name="hw.product" value="iPod Touch (6th generation)"/>
+    <param pos="0" name="hw.device" value="Media Player"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:N78a?AP|iPod5,1)$">
+    <description>iPod Touch (5th generation)</description>
+    <example>model=N78AP</example>
+    <example>model=N78aAP</example>
+    <example>model=iPod5,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPod"/>
+    <param pos="0" name="hw.product" value="iPod Touch (5th generation)"/>
+    <param pos="0" name="hw.device" value="Media Player"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:N81AP|iPod4,1)$">
+    <description>iPod Touch (4th generation)</description>
+    <example>model=N81AP</example>
+    <example>model=iPod4,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPod"/>
+    <param pos="0" name="hw.product" value="iPod Touch (4th generation)"/>
+    <param pos="0" name="hw.device" value="Media Player"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:N18AP|iPod3,1)$">
+    <description>iPod Touch (3rd generation)</description>
+    <example>model=N18AP</example>
+    <example>model=iPod3,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPod"/>
+    <param pos="0" name="hw.product" value="iPod Touch (3rd generation)"/>
+    <param pos="0" name="hw.device" value="Media Player"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:N72AP|iPod2,1)$">
+    <description>iPod Touch (2nd generation)</description>
+    <example>model=N72AP</example>
+    <example>model=iPod2,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPod"/>
+    <param pos="0" name="hw.product" value="iPod Touch (2nd generation)"/>
+    <param pos="0" name="hw.device" value="Media Player"/>
+  </fingerprint>
+
+  <fingerprint pattern="^model=(?:N45AP|iPod1,1)$">
+    <description>iPod Touch (1st generation)</description>
+    <example>model=N45AP</example>
+    <example>model=iPod1,1</example>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="iOS"/>
+    <param pos="0" name="os.product" value="iOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:iphone_os:-"/>
+    <param pos="0" name="hw.vendor" value="Apple"/>
+    <param pos="0" name="hw.family" value="iPod"/>
+    <param pos="0" name="hw.product" value="iPod Touch (1st generation)"/>
+    <param pos="0" name="hw.device" value="Media Player"/>
+  </fingerprint>
+
+</fingerprints>

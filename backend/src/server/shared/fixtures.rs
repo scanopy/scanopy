@@ -131,6 +131,13 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
         .collect();
     write_fixture(&daemon_os, output_dir, "daemon-os.json");
 
+    // A host OS family's label, for an OS whose source named no product.
+    let host_os_families: Vec<TypeMetadata> =
+        crate::server::hosts::r#impl::os::HostOsFamily::iter()
+            .map(|f| f.to_metadata())
+            .collect();
+    write_fixture(&host_os_families, output_dir, "host-os-families.json");
+
     // Keyed by `CredentialQueryPayloadDiscriminants`, which is what a coded warning carries.
     // Neither `integrations.json` (keyed by display name) nor `credential-types.json` (keyed by
     // `CredentialType`) can resolve those eight values.

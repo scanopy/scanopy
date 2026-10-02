@@ -794,6 +794,7 @@ pub(super) fn generate_hosts_and_services(
                 serial_number: None,
                 firmware_revision: None,
                 software_revision: None,
+                os: daemon_container_self_report(),
                 credential_assignments: docker_proxy_cred
                     .into_iter()
                     .map(|id| CredentialAssignment {
@@ -946,7 +947,14 @@ pub(super) fn generate_hosts_and_services(
             "PowerEdge R250",
             "7QX2KT3",
             "1.11.2",
-            "24.04",
+            HostOs {
+                family: HostOsFamily::Linux,
+                name: Some("Ubuntu".to_string()),
+                version: Some("24.04.1".to_string()),
+                edition: Some("LTS".to_string()),
+                codename: Some("noble".to_string()),
+                kernel_version: Some("6.8.0-45-generic".to_string()),
+            },
         ),
         now,
         (
@@ -1578,6 +1586,7 @@ pub(super) fn generate_hosts_and_services(
                 serial_number: None,
                 firmware_revision: None,
                 software_revision: None,
+                os: None,
                 credential_assignments: vec![],
             },
         };
@@ -2108,6 +2117,7 @@ pub(super) fn generate_hosts_and_services(
                 serial_number: None,
                 firmware_revision: None,
                 software_revision: None,
+                os: daemon_container_self_report(),
                 credential_assignments: docker_proxy_cred
                     .into_iter()
                     .map(|id| CredentialAssignment {

@@ -471,6 +471,7 @@ impl DaemonService {
             serial_number: None,
             firmware_revision: None,
             software_revision: None,
+            os: None,
             credential_assignments: vec![],
         });
         dummy_host

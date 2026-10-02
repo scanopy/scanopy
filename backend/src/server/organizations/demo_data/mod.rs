@@ -30,11 +30,12 @@ use crate::server::{
     hosts::r#impl::{
         attributes::{
             HostChassisIdValue, HostFirmwareRevisionValue, HostManufacturerValue, HostModelValue,
-            HostSerialNumberValue, HostSoftwareRevisionValue, HostSysContactValue,
+            HostOsValue, HostSerialNumberValue, HostSoftwareRevisionValue, HostSysContactValue,
             HostSysDescrValue, HostSysLocationValue, HostSysNameValue, HostSysObjectIdValue,
         },
         base::{Host, HostBase},
         name::{HostName, HostNameSources},
+        os::{HostOs, HostOsFamily},
         virtualization::{HostVirtualization, ProxmoxVirtualization},
     },
     interfaces::r#impl::base::{IfAdminStatus, IfOperStatus, Interface, InterfaceBase},
@@ -382,6 +383,7 @@ fn create_host(
             serial_number: None,
             firmware_revision: None,
             software_revision: None,
+            os: None,
             credential_assignments: vec![],
         },
     };
@@ -424,11 +426,13 @@ fn with_snmp(
     host.base.model = model.map(|v| Attributed::new(HostModelValue(v.into()), probe));
     host.base.serial_number =
         serial_number.map(|v| Attributed::new(HostSerialNumberValue(v.into()), probe));
+    // The server matches an OS in what SNMP reported on every scan; the demo runs the same match.
+    host.base.match_os_from_system_strings();
     (host, ip_address)
 }
 
 /// Wraps a `create_host()` result to add what the "Linux Inventory" SSH credential's script
-/// reports: OS and hardware identity, attributed to the script as a real scan would.
+/// reports: the OS and hardware identity, attributed to the script as a real scan would.
 fn with_ssh_inventory(
     (mut host, ip_address): (Host, IPAddress),
     sys_descr: &str,
@@ -436,7 +440,7 @@ fn with_ssh_inventory(
     model: &str,
     serial_number: &str,
     firmware_revision: &str,
-    software_revision: &str,
+    os: HostOs,
 ) -> (Host, IPAddress) {
     let source = AttributeSource::SshScript;
     host.base.sys_descr = Some(Attributed::new(HostSysDescrValue(sys_descr.into()), source));
@@ -453,10 +457,7 @@ fn with_ssh_inventory(
         HostFirmwareRevisionValue(firmware_revision.into()),
         source,
     ));
-    host.base.software_revision = Some(Attributed::new(
-        HostSoftwareRevisionValue(software_revision.into()),
-        source,
-    ));
+    host.base.os = Some(Attributed::new(HostOsValue(os), source));
     (host, ip_address)
 }
 
@@ -909,4 +910,22 @@ mod tests {
             "expected at least one host with distinct, populated firmware and software revisions"
         );
     }
+}
+
+/// What a daemon in the published Docker image reports about the machine it runs on: the image's
+/// own OS (Debian 12, `debian:bookworm-slim`) and the host's kernel. A Docker integration reading
+/// the engine host would replace it with the host's OS.
+fn daemon_container_self_report()
+-> Option<crate::server::hosts::r#impl::attributes::HostOsAttributed> {
+    Some(Attributed::new(
+        HostOsValue(HostOs {
+            family: HostOsFamily::Linux,
+            name: Some("Debian".to_string()),
+            version: Some("12".to_string()),
+            edition: None,
+            codename: Some("bookworm".to_string()),
+            kernel_version: Some("6.8.0-45-generic".to_string()),
+        }),
+        AttributeSource::DaemonSelfReport,
+    ))
 }

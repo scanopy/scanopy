@@ -14,9 +14,8 @@
 
 import { CloudAlert } from 'lucide-svelte';
 
-import attributeMethods from '$lib/data/attribute-methods.json';
 import type { CardFieldItem, TagProps } from '$lib/shared/components/data/types';
-import { sourceKey, type AttributeSource } from '$lib/shared/utils/attribute-source';
+import { isInferredSource, type AttributeSource } from '$lib/shared/utils/attribute-source';
 import {
 	subnets_rangeAssumed,
 	subnets_rangeAssumedDetail,
@@ -32,25 +31,9 @@ import { toColor } from '$lib/shared/utils/styling';
  */
 type WithCidrSource = { cidr_source?: AttributeSource };
 
-/**
- * Every source that sits at the `Inferred` tier, as the backend groups them.
- *
- * Read from the metadata fixture rather than matched against a variant name here. The tier a source
- * belongs to is a backend decision — it is the same `AttributeSource::method()` the applier orders
- * by — and the previous version of this file hardcoded `=== 'Inferred'`, which meant a source added
- * at that tier silently stopped raising the badge. Keyed on the whole source, probe included,
- * because `Probe(Snmp)` and `Probe(Docker)` sit at different tiers.
- */
-const INFERRED_SOURCES: ReadonlySet<string> = new Set(
-	(
-		(attributeMethods.find((method) => method.id === 'Inferred')?.metadata?.sources ??
-			[]) as AttributeSource[]
-	).map(sourceKey)
-);
-
 /** Whether this subnet's range is a guess awaiting confirmation. */
 export function isProvisionalCidr(subnet: WithCidrSource): boolean {
-	return subnet.cidr_source ? INFERRED_SOURCES.has(sourceKey(subnet.cidr_source)) : false;
+	return isInferredSource(subnet.cidr_source);
 }
 
 /**

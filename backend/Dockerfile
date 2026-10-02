@@ -115,6 +115,9 @@ RUN chmod +x /usr/local/bin/server
 # Copy UI static assets from ui-builder stage
 COPY --from=ui-builder /app/ui/build ./static
 
+# Notices for third-party data compiled into the binary.
+COPY THIRD_PARTY_NOTICES.md /usr/share/doc/scanopy/THIRD_PARTY_NOTICES.md
+
 # Verify UI files are present
 RUN ls -la /app/static && \
     test -f /app/static/index.html || (echo "UI files not copied correctly" && exit 1)

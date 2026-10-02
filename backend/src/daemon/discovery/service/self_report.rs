@@ -17,7 +17,7 @@ use crate::daemon::discovery::service::lldpd;
 use crate::daemon::discovery::service::ops::DiscoveryOps;
 use crate::daemon::utils::base::DaemonUtils;
 use crate::server::bindings::r#impl::base::Binding;
-use crate::server::hosts::r#impl::attributes::HostHostnameValue;
+use crate::server::hosts::r#impl::attributes::{HostHostnameValue, HostOsValue};
 use crate::server::hosts::r#impl::base::{Host, HostBase};
 use crate::server::hosts::r#impl::name::{HostName, HostNameSources};
 use crate::server::interfaces::r#impl::base::{Interface, InterfaceDataComplete};
@@ -212,6 +212,10 @@ impl DiscoveryRunner {
             serial_number: None,
             firmware_revision: None,
             software_revision: None,
+            os: Some(Attributed::new(
+                HostOsValue(crate::daemon::utils::host_os::own_host_os()),
+                AttributeSource::DaemonSelfReport,
+            )),
             credential_assignments: vec![],
         }
     }

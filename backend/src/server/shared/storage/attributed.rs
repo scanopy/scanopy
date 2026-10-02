@@ -1,6 +1,6 @@
 //! Reading and writing a provenanced pair as two columns.
 //!
-//! Separate from `shared::attribution` so the domain types carry no sqlx dependency — `name.rs`
+//! Separate from `shared::attribution` so the domain types carry no sqlx dependency â `name.rs`
 //! never had one either. What this adds is the pairing: a column name and its value are handed out
 //! together, so the positional vectors in a `to_params` cannot be edited apart.
 
@@ -80,7 +80,7 @@ pub fn read_source(row: &PgRow, column: &str) -> Result<AttributeSource> {
     Ok(serde_json::from_value(raw)?)
 }
 
-/// String-backed values — the eleven host attributes.
+/// String-backed values â the eleven host attributes.
 macro_rules! impl_string_attribute_column {
     ($($t:ty),* $(,)?) => {
         $(
@@ -125,7 +125,7 @@ impl_string_attribute_column!(
 use crate::server::hosts::r#impl::name::HostNameValue;
 
 impl AttributeColumn for HostNameValue {
-    /// `name` is `TEXT NOT NULL`, so an absent name is the empty string rather than `NULL` — the
+    /// `name` is `TEXT NOT NULL`, so an absent name is the empty string rather than `NULL` â the
     /// column carries `ORDER BY` and the free-text host search and has always been non-null.
     fn value_param(value: Option<&Self>) -> SqlValue {
         SqlValue::String(value.map(|v| v.as_str().into_owned()).unwrap_or_default())
@@ -150,6 +150,21 @@ impl AttributeColumn for MacEvidenceValue {
     }
 }
 
+use crate::server::hosts::r#impl::attributes::HostOsValue;
+
+impl AttributeColumn for HostOsValue {
+    fn value_param(value: Option<&Self>) -> SqlValue {
+        SqlValue::OptionalHostOs(value.map(|v| v.0.clone()))
+    }
+
+    /// `jsonb`, read as JSON and decoded into the struct. A row this binary cannot decode (a family
+    /// a newer server wrote) reads as no OS rather than failing the host.
+    fn read_value(row: &PgRow) -> Result<Option<Self>> {
+        let raw: Option<serde_json::Value> = row.try_get(Self::VALUE_KEY)?;
+        Ok(raw.and_then(|v| serde_json::from_value(v).ok()).map(Self))
+    }
+}
+
 use crate::server::subnets::r#impl::base::SubnetCidrValue;
 
 impl AttributeColumn for SubnetCidrValue {
@@ -159,7 +174,7 @@ impl AttributeColumn for SubnetCidrValue {
         SqlValue::IpCidr(value.expect("a subnet's CIDR is required").0)
     }
 
-    /// The column is `text` holding the JSON form, which is how `SqlValue::IpCidr` binds it —
+    /// The column is `text` holding the JSON form, which is how `SqlValue::IpCidr` binds it â
     /// not a Postgres `cidr`, so this decodes the string rather than asking sqlx for an `IpCidr`.
     fn read_value(row: &PgRow) -> Result<Option<Self>> {
         let raw: String = row.try_get(Self::VALUE_KEY)?;

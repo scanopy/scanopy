@@ -10,6 +10,7 @@
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
+	import { hostOsLabel } from '$lib/features/hosts/host-os';
 	import { interfaceDisplayName } from '$lib/features/hosts/interface-display-name';
 	import HostEditor from './HostEditModal/HostEditor.svelte';
 	import HostConsolidationModal from './HostConsolidationModal.svelte';
@@ -58,6 +59,7 @@
 		common_source,
 		common_firmwareRevision,
 		common_softwareRevision,
+		common_operatingSystem,
 		common_service,
 		common_services,
 		common_tags,
@@ -591,6 +593,13 @@
 					key: 'software_revision',
 					label: common_softwareRevision(),
 					type: 'string',
+					display: { hiddenByDefault: true }
+				},
+				{
+					key: 'os',
+					label: common_operatingSystem(),
+					type: 'string',
+					getValue: (host) => (host.os ? hostOsLabel(host.os) : ''),
 					display: { hiddenByDefault: true }
 				},
 				{

@@ -45,11 +45,12 @@ use crate::{
             attributes::{
                 HostChassisIdValue, HostFirmwareRevisionValue, HostHostnameAttributed,
                 HostHostnameValue, HostManagementUrlValue, HostManufacturerValue, HostModelValue,
-                HostSerialNumberValue, HostSoftwareRevisionValue, HostSysContactValue,
+                HostOsValue, HostSerialNumberValue, HostSoftwareRevisionValue, HostSysContactValue,
                 HostSysDescrValue, HostSysLocationValue, HostSysNameValue, HostSysObjectIdValue,
             },
             base::{Host, HostBase},
             name::{HostName, HostNameSources},
+            os::HostOs,
             virtualization::HostVirtualization,
         },
         interfaces::{
@@ -296,6 +297,14 @@ impl HostData {
         Attributed::apply(
             &mut self.host.base.software_revision,
             Attributed::new(HostSoftwareRevisionValue(v), source),
+        );
+        self
+    }
+
+    pub fn with_os(&mut self, os: HostOs, source: AttributeSource) -> &mut Self {
+        Attributed::apply(
+            &mut self.host.base.os,
+            Attributed::new(HostOsValue(os), source),
         );
         self
     }
@@ -1617,6 +1626,7 @@ impl DiscoveryOps {
             serial_number: None,
             firmware_revision: None,
             software_revision: None,
+            os: None,
             credential_assignments: vec![],
         });
 

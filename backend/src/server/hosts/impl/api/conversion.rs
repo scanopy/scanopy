@@ -55,6 +55,8 @@ impl HostResponse {
             firmware_revision_source,
             software_revision,
             software_revision_source,
+            os,
+            os_source,
             credential_assignments,
             ip_addresses: _,
             ports: _,
@@ -124,6 +126,9 @@ impl HostResponse {
                 software_revision: software_revision.clone().map(|v| {
                     Attributed::new(HostSoftwareRevisionValue(v), *software_revision_source)
                 }),
+                os: os
+                    .clone()
+                    .map(|v| Attributed::new(HostOsValue(v), *os_source)),
                 credential_assignments: credential_assignments.clone(),
             },
         }
@@ -206,6 +211,7 @@ impl HostResponse {
             serial_number,
             firmware_revision,
             software_revision,
+            os,
             credential_assignments,
         } = base;
 
@@ -273,6 +279,8 @@ impl HostResponse {
                 .map(|v| v.source())
                 .unwrap_or_default(),
             software_revision: attribution::text_of(&software_revision),
+            os_source: os.as_ref().map(|v| v.source()).unwrap_or_default(),
+            os: os.map(|v| v.into_value().0),
             credential_assignments,
             ip_addresses,
             ports,
