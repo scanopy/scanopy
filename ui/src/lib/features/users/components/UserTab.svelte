@@ -42,6 +42,7 @@
 		common_role,
 		common_status,
 		common_unknownEntity,
+		common_updated,
 		common_url,
 		common_user,
 		common_users,
@@ -51,10 +52,13 @@
 		invites_pendingInvite,
 		users_authMethod,
 		users_confirmDeleteUser,
+		users_emailVerified,
 		users_inviteUser,
 		users_noUsersFound,
 		users_noUsersSubtitle,
+		users_providerLinked,
 		users_subtitle,
+		users_termsAccepted,
 		users_verifyEmailToInvite
 	} from '$lib/paraglide/messages';
 
@@ -358,6 +362,39 @@
 			type: 'date',
 			sortable: true,
 			getValue: (item) => (isUser(item) ? '' : item.data.expires_at),
+			display: { hiddenByDefault: true }
+		},
+		{
+			key: 'updated_at',
+			label: common_updated(),
+			type: 'date',
+			sortable: true,
+			getValue: (item) => item.data.updated_at,
+			display: { hiddenByDefault: true }
+		},
+		// Account facts an invite does not have yet, so its cells stay empty.
+		{
+			key: 'email_verified',
+			label: users_emailVerified(),
+			type: 'boolean',
+			filterable: true,
+			getValue: (item) => (isUser(item) ? (item.data.email_verified ?? null) : null),
+			display: { hiddenByDefault: true }
+		},
+		{
+			key: 'oidc_linked_at',
+			label: users_providerLinked(),
+			type: 'date',
+			sortable: true,
+			getValue: (item) => (isUser(item) ? (item.data.oidc_linked_at ?? null) : null),
+			display: { hiddenByDefault: true }
+		},
+		{
+			key: 'terms_accepted_at',
+			label: users_termsAccepted(),
+			type: 'date',
+			sortable: true,
+			getValue: (item) => (isUser(item) ? (item.data.terms_accepted_at ?? null) : null),
 			display: { hiddenByDefault: true }
 		}
 	];

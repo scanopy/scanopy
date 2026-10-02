@@ -64,10 +64,18 @@
 		common_unknownEntity,
 		common_unknownNetwork,
 		common_updated,
+		common_contact,
+		common_location,
 		daemons_installPromptHosts,
 		hosts_fields_virtualizedBy,
-		hosts_notVirtualized
+		hosts_notVirtualized,
+		hosts_snmp_chassisId,
+		hosts_snmp_managementUrl,
+		hosts_snmp_sysDescr,
+		hosts_snmp_sysName,
+		hosts_snmp_sysObjectId
 	} from '$lib/paraglide/messages';
+	import { entitySourceItems } from '$lib/shared/utils/entity-source';
 
 	let { isReadOnly = false }: TabProps = $props();
 	import {
@@ -539,18 +547,7 @@
 					// page, which would only offer the sources that happen to appear on it.
 					filterOptions: entitySources.getItems().map((source) => entitySources.getName(source.id)),
 					getValue: (host) => entitySources.getName(host.source.type),
-					display: {
-						order: 1,
-						getItems: (host) => [
-							{
-								id: host.source.type,
-								label: entitySources.getName(host.source.type),
-								color: entitySources.getColorHelper(host.source.type).color,
-								icon: entitySources.getIconComponent(host.source.type),
-								title: entitySources.getDescription(host.source.type)
-							}
-						]
-					}
+					display: { order: 1, getItems: (host) => entitySourceItems(host.source) }
 				},
 				{
 					key: 'description',
@@ -590,6 +587,50 @@
 				{
 					key: 'software_revision',
 					label: common_softwareRevision(),
+					type: 'string',
+					display: { hiddenByDefault: true }
+				},
+				// Device facts from SNMP and LLDP, off by default for the same reason as the
+				// hardware identity above, and likewise neither searchable nor filterable.
+				{
+					key: 'sys_name',
+					label: hosts_snmp_sysName(),
+					type: 'string',
+					display: { hiddenByDefault: true }
+				},
+				{
+					key: 'sys_descr',
+					label: hosts_snmp_sysDescr(),
+					type: 'string',
+					display: { hiddenByDefault: true }
+				},
+				{
+					key: 'sys_object_id',
+					label: hosts_snmp_sysObjectId(),
+					type: 'string',
+					display: { hiddenByDefault: true }
+				},
+				{
+					key: 'sys_location',
+					label: common_location(),
+					type: 'string',
+					display: { hiddenByDefault: true }
+				},
+				{
+					key: 'sys_contact',
+					label: common_contact(),
+					type: 'string',
+					display: { hiddenByDefault: true }
+				},
+				{
+					key: 'chassis_id',
+					label: hosts_snmp_chassisId(),
+					type: 'string',
+					display: { hiddenByDefault: true }
+				},
+				{
+					key: 'management_url',
+					label: hosts_snmp_managementUrl(),
 					type: 'string',
 					display: { hiddenByDefault: true }
 				},

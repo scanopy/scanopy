@@ -41,6 +41,7 @@
 		common_networks,
 		common_permissions,
 		common_tags,
+		common_updated,
 		userApiKeys_apiAccessUnavailableSubtitle,
 		userApiKeys_apiAccessUnavailableTitle,
 		userApiKeys_noApiKeysSubtitle,
@@ -248,6 +249,13 @@
 			label: common_created(),
 			type: 'date',
 			sortable: true
+		},
+		{
+			key: 'updated_at',
+			label: common_updated(),
+			type: 'date',
+			sortable: true,
+			display: { hiddenByDefault: true }
 		}
 	];
 </script>

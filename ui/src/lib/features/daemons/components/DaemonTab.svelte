@@ -58,6 +58,7 @@
 		common_unknownNetwork,
 		common_update,
 		common_updated,
+		common_url,
 		daemons_retryConnection,
 		common_version,
 		daemons_config_mode,
@@ -406,6 +407,16 @@
 					filterable: true,
 					getValue: (daemon) => daemon.version ?? '',
 					display: { order: 4 }
+				},
+				{
+					// The address the server dials. A DaemonPoll daemon dials out instead, so
+					// its stored url is unused and the cell stays empty.
+					key: 'url',
+					label: common_url(),
+					type: 'string',
+					searchable: true,
+					getValue: (daemon) => (daemon.mode === 'server_poll' ? daemon.url : null),
+					display: { hiddenByDefault: true }
 				},
 				{
 					key: 'interfaced_subnet_ids',

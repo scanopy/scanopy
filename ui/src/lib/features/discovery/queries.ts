@@ -247,7 +247,7 @@ export function useBulkDeleteDiscoveriesMutation() {
 import { utcTimeZoneSentinel, uuidv4Sentinel } from '$lib/shared/utils/formatting';
 import type { Daemon } from '../daemons/types/base';
 import type { Network } from '../networks/types';
-import type { FieldConfig } from '$lib/shared/components/data/types';
+import type { OrderableFieldConfig } from '$lib/shared/components/data/types';
 
 // ============================================================================
 // Utility Functions
@@ -432,31 +432,38 @@ export function formatScheduleDisplay(
 	return `${cron} (${tz})`;
 }
 
+export type DiscoveryOrderField = components['schemas']['DiscoveryOrderField'];
+
+/** One server-orderable discovery field; `defineFields` supplies the `orderField` from its key. */
+export type DiscoveryFieldEntry = Omit<
+	OrderableFieldConfig<Discovery, DiscoveryOrderField>,
+	'orderField'
+>;
+
 /**
- * Field configuration for the DataTableControls
+ * The discovery fields that are server order fields, one per `DiscoveryOrderField`, for
+ * `defineFields`. A new order field fails to compile here until it has an entry.
  */
 export const discoveryFields = (
 	daemons: Daemon[],
 	networks: Network[]
-): FieldConfig<Discovery>[] => [
-	{
-		key: 'name',
+): Record<DiscoveryOrderField, DiscoveryFieldEntry> => ({
+	name: {
 		label: m.common_name(),
 		type: 'string',
 		searchable: true,
-		sortable: true,
 		// Identity field: grouping by it would render a header per discovery.
-		groupable: false,
-		getValue: (item: Discovery) => item.name
+		groupable: false
 	},
-	{
-		key: 'created_at',
+	created_at: {
 		label: m.common_created(),
-		type: 'date',
-		sortable: true
+		type: 'date'
 	},
-	{
-		key: 'daemon_id',
+	updated_at: {
+		label: m.common_updated(),
+		type: 'date'
+	},
+	daemon_id: {
 		label: m.common_daemon(),
 		type: 'string',
 		searchable: true,
@@ -467,8 +474,7 @@ export const discoveryFields = (
 			m.common_unknownEntity({ entity: m.common_daemon() }),
 		display: { getItems: (item: Discovery) => daemonItems(item.daemon_id, daemons) }
 	},
-	{
-		key: 'network_id',
+	network_id: {
 		label: m.common_network(),
 		type: 'string',
 		searchable: true,
@@ -478,8 +484,7 @@ export const discoveryFields = (
 			networks.find((n) => n.id === item.network_id)?.name ?? m.common_unknownNetwork(),
 		display: { getItems: (item: Discovery) => networkItems(item.network_id, networks) }
 	},
-	{
-		key: 'discovery_type',
+	discovery_type: {
 		label: m.common_type(),
 		type: 'string',
 		searchable: true,
@@ -487,7 +492,7 @@ export const discoveryFields = (
 		groupable: true,
 		getValue: (item: Discovery) => item.discovery_type.type
 	}
-];
+});
 
 // ============================================================================
 // Discovery Sessions (TanStack Query + SSE)

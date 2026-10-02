@@ -35,7 +35,10 @@
 		common_networks,
 		common_noEntityYet,
 		common_tags,
-		networks_confirmDelete
+		common_hoursCount,
+		common_updated,
+		networks_confirmDelete,
+		networks_staleAfter
 	} from '$lib/paraglide/messages';
 
 	let { isReadOnly = false }: TabProps = $props();
@@ -321,6 +324,25 @@
 			label: common_created(),
 			type: 'date',
 			sortable: true,
+			display: { hiddenByDefault: true }
+		},
+		{
+			key: 'updated_at',
+			label: common_updated(),
+			type: 'date',
+			sortable: true,
+			display: { hiddenByDefault: true }
+		},
+		{
+			// The effective window, with the server default applied, so a network that
+			// never set its own still shows the number staleness is judged by.
+			key: 'effective_stale_after_hours',
+			label: networks_staleAfter(),
+			type: 'string',
+			getValue: (network) =>
+				network.effective_stale_after_hours == null
+					? null
+					: common_hoursCount({ hours: network.effective_stale_after_hours }),
 			display: { hiddenByDefault: true }
 		}
 	]);

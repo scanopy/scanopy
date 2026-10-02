@@ -42,18 +42,21 @@
 	import { useHostsByIds } from '$lib/features/hosts/queries';
 	import type { Host } from '$lib/features/hosts/types/base';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
+	import osFamilies from '$lib/data/os-families.json';
 	import {
 		common_confirmDeleteName,
 		common_create,
 		common_created,
 		common_description,
 		common_delete,
+		common_description,
 		common_edit,
 		common_name,
 		common_type,
 		common_updated,
 		credentials_bulkDeleteConfirm,
 		credentials_bulkDeleteImpact,
+		credentials_daemonOs,
 		credentials_deleteImpact,
 		credentials_emptySubtitle,
 		credentials_subtitle,
@@ -285,6 +288,26 @@
 			updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } }
 		},
 		[
+			{
+				key: 'description',
+				label: common_description(),
+				type: 'string',
+				searchable: true,
+				display: { hiddenByDefault: true }
+			},
+			{
+				// Set only on credentials that read files or sockets on the daemon; empty otherwise.
+				key: 'daemon_os',
+				label: credentials_daemonOs(),
+				type: 'string',
+				filterable: true,
+				groupable: true,
+				getValue: (item: Credential) =>
+					item.daemon_os
+						? (osFamilies.find((family) => family.id === item.daemon_os)?.name ?? item.daemon_os)
+						: null,
+				display: { hiddenByDefault: true }
+			},
 			{
 				key: 'credential_type',
 				label: common_type(),
