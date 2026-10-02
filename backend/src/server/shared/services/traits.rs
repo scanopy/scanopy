@@ -82,39 +82,6 @@ fn ready_for_create<T: Entity>(entity: T) -> T {
     }
 }
 
-#[cfg(test)]
-mod ready_for_create_tests {
-    use super::*;
-    use crate::server::credentials::r#impl::base::Credential;
-
-    /// The wizard's own id survives, and the placeholder date does not reach storage.
-    #[test]
-    fn a_client_id_keeps_its_id_and_gets_real_timestamps() {
-        let id = Uuid::new_v4();
-        let sent = Credential {
-            id,
-            created_at: chrono::DateTime::<chrono::Utc>::UNIX_EPOCH,
-            updated_at: chrono::DateTime::<chrono::Utc>::UNIX_EPOCH,
-            ..Default::default()
-        };
-        let stored = ready_for_create(sent);
-        assert_eq!(stored.id, id);
-        assert!(stored.created_at > chrono::DateTime::<chrono::Utc>::UNIX_EPOCH);
-    }
-
-    #[test]
-    fn a_real_timestamp_is_kept() {
-        let when = chrono::Utc::now() - chrono::Duration::days(3);
-        let sent = Credential {
-            id: Uuid::new_v4(),
-            created_at: when,
-            updated_at: when,
-            ..Default::default()
-        };
-        assert_eq!(ready_for_create(sent).created_at, when);
-    }
-}
-
 #[async_trait]
 pub trait CrudService<T: Entity + Into<EntityEnum> + Default>: EventBusService<T>
 where
@@ -879,5 +846,38 @@ where
         }
         self.storage().update_many(&entities).await?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod ready_for_create_tests {
+    use super::*;
+    use crate::server::credentials::r#impl::base::Credential;
+
+    /// The wizard's own id survives, and the placeholder date does not reach storage.
+    #[test]
+    fn a_client_id_keeps_its_id_and_gets_real_timestamps() {
+        let id = Uuid::new_v4();
+        let sent = Credential {
+            id,
+            created_at: chrono::DateTime::<chrono::Utc>::UNIX_EPOCH,
+            updated_at: chrono::DateTime::<chrono::Utc>::UNIX_EPOCH,
+            ..Default::default()
+        };
+        let stored = ready_for_create(sent);
+        assert_eq!(stored.id, id);
+        assert!(stored.created_at > chrono::DateTime::<chrono::Utc>::UNIX_EPOCH);
+    }
+
+    #[test]
+    fn a_real_timestamp_is_kept() {
+        let when = chrono::Utc::now() - chrono::Duration::days(3);
+        let sent = Credential {
+            id: Uuid::new_v4(),
+            created_at: when,
+            updated_at: when,
+            ..Default::default()
+        };
+        assert_eq!(ready_for_create(sent).created_at, when);
     }
 }

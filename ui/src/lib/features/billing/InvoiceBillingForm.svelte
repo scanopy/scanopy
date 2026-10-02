@@ -92,7 +92,6 @@
 		);
 	// Initial value only: the prop names the plan the picker sent, and the
 	// buttons below own it from there.
-	// eslint-disable-next-line svelte/prefer-writable-derived
 	let selectedPlan = $state<BillingPlan | null>(untrack(() => plan));
 	let missingPlan = $derived(needsPlanChoice && selectedPlan == null);
 

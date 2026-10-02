@@ -68,10 +68,14 @@ export function useHostPicker(getOptions: () => HostPickerOptions = () => ({})) 
 	// Offset paging over a list that can change between fetches can repeat a host across pages,
 	// and the select keys its rows by id.
 	const hosts = $derived.by(() => {
-		const seen = new Set<string>();
+		const seen: Record<string, true> = {};
 		return (query.data?.pages ?? [])
 			.flatMap((page) => page.items)
-			.filter((host) => !seen.has(host.id) && !!seen.add(host.id));
+			.filter((host) => {
+				if (seen[host.id]) return false;
+				seen[host.id] = true;
+				return true;
+			});
 	});
 
 	const services = useHostServices(() => hosts.map((host) => host.id));

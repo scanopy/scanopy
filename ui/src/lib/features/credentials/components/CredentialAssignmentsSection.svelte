@@ -113,10 +113,10 @@
 	// A host picked from the dropdown is shown at once, before the by-id query refetches.
 	let pickedHosts = $state<HostWithAddresses[]>([]);
 	let knownHosts = $derived.by(() => {
-		const byId = new Map<string, HostWithAddresses>();
+		const byId: Record<string, HostWithAddresses> = {};
 		for (const host of [...daemonHosts, ...pickedHosts, ...(assignedHostsQuery.data?.items ?? [])])
-			byId.set(host.id, host);
-		return [...byId.values()];
+			byId[host.id] = host;
+		return Object.values(byId);
 	});
 	let allIpAddresses = $derived(knownHosts.flatMap((h) => h.ip_addresses));
 
