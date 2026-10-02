@@ -2,6 +2,7 @@ use crate::server::credentials::r#impl::types::{
     CredentialHostAssignment, CredentialType, OsFamily,
 };
 use crate::server::shared::entities::ChangeTriggersTopologyStaleness;
+use crate::server::shared::types::api::deserialize_empty_string_as_none;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -25,6 +26,11 @@ pub struct CredentialBase {
         message = "Credential name must be between 1 and 100 characters"
     ))]
     pub name: String,
+    /// Free-text notes about the credential: what it is for, who owns it.
+    #[validate(length(min = 0, max = 500))]
+    #[serde(default, deserialize_with = "deserialize_empty_string_as_none")]
+    #[schema(required)]
+    pub description: Option<String>,
     /// Protocol this credential authenticates with, and its settings.
     pub credential_type: CredentialType,
     /// The OS of the daemons that will read this credential's files and sockets. Paths are
@@ -51,6 +57,7 @@ impl PartialEq for CredentialBase {
     fn eq(&self, other: &Self) -> bool {
         self.organization_id == other.organization_id
             && self.name == other.name
+            && self.description == other.description
             && self.credential_type == other.credential_type
             && self.daemon_os == other.daemon_os
             && self.tags == other.tags
@@ -75,6 +82,7 @@ impl Default for CredentialBase {
         Self {
             organization_id: Uuid::nil(),
             name: "New Credential".to_string(),
+            description: None,
             credential_type: CredentialType::SnmpV2c {
                 community: SecretValue::Inline {
                     value: SecretString::from(String::new()),

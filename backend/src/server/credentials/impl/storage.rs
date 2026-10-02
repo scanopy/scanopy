@@ -59,6 +59,7 @@ impl Storable for Credential {
                 Self::BaseData {
                     organization_id,
                     name,
+                    description,
                     credential_type,
                     daemon_os,
                     tags: _,                 // Stored in entity_tags junction table
@@ -72,6 +73,7 @@ impl Storable for Credential {
                 "id",
                 "organization_id",
                 "name",
+                "description",
                 "credential_type",
                 "daemon_os",
                 "created_at",
@@ -81,6 +83,7 @@ impl Storable for Credential {
                 SqlValue::Uuid(id),
                 SqlValue::Uuid(organization_id),
                 SqlValue::String(name),
+                SqlValue::OptionalString(description),
                 SqlValue::CredentialType(credential_type),
                 SqlValue::OsFamily(daemon_os),
                 SqlValue::Timestamp(created_at),
@@ -101,6 +104,7 @@ impl Storable for Credential {
             base: CredentialBase {
                 organization_id: row.get("organization_id"),
                 name: row.get("name"),
+                description: row.get("description"),
                 credential_type,
                 daemon_os,
                 tags: Vec::new(), // Hydrated from entity_tags junction table
