@@ -1,5 +1,8 @@
 <script lang="ts">
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
+	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
+	import { createForm } from '@tanstack/svelte-form';
+	import type { AnyFieldApi } from '@tanstack/svelte-form';
 	import {
 		common_confirmAction,
 		common_areYouSure,
@@ -10,34 +13,53 @@
 	import InlineDanger from './InlineDanger.svelte';
 	import InlineInfo from './InlineInfo.svelte';
 
-	export let isOpen: boolean = false;
-	export let title: string | undefined = undefined;
-	export let message: string | undefined = undefined;
-	export let details: string[] = [];
-	export let confirmLabel: string | undefined = undefined;
-	export let cancelLabel: string | undefined = undefined;
-	export let variant: 'danger' | 'warning' | 'info' = 'warning';
-	/** Text user must type to enable confirm button. If unset, confirm is always enabled. */
-	export let confirmText: string | undefined = undefined;
-	/** Placeholder for the type-to-confirm input. */
-	export let confirmPlaceholder: string | undefined = undefined;
-	export let onConfirm: () => void;
-	export let onCancel: () => void;
-	/** Called when modal is dismissed via X or backdrop click. Required - should close the modal without side effects. */
-	export let onClose: () => void;
+	interface Props {
+		isOpen?: boolean;
+		title?: string;
+		message?: string;
+		details?: string[];
+		confirmLabel?: string;
+		cancelLabel?: string;
+		variant?: 'danger' | 'warning' | 'info';
+		/** Text user must type to enable confirm button. If unset, confirm is always enabled. */
+		confirmText?: string;
+		/** Label for the type-to-confirm input. */
+		confirmPlaceholder?: string;
+		onConfirm: () => void;
+		onCancel: () => void;
+		/** Called when modal is dismissed via X or backdrop click. Required - should close the modal without side effects. */
+		onClose: () => void;
+	}
 
-	let typedValue = '';
+	let {
+		isOpen = false,
+		title,
+		message,
+		details = [],
+		confirmLabel,
+		cancelLabel,
+		variant = 'warning',
+		confirmText,
+		confirmPlaceholder,
+		onConfirm,
+		onCancel,
+		onClose
+	}: Props = $props();
 
-	$: resolvedTitle = title ?? common_confirmAction();
-	$: resolvedMessage = message ?? common_areYouSure();
-	$: resolvedConfirmLabel = confirmLabel ?? common_confirm();
-	$: resolvedCancelLabel = cancelLabel ?? common_cancel();
+	const form = createForm(() => ({
+		defaultValues: { typed: '' }
+	}));
 
-	$: detailsBody = details.length > 0 ? details.join(', ') : null;
-	$: confirmDisabled = confirmText != null && typedValue !== confirmText;
+	// Clear the typed value whenever the dialog closes
+	$effect(() => {
+		if (!isOpen) form.reset();
+	});
 
-	// Reset typed value when dialog opens/closes
-	$: if (!isOpen) typedValue = '';
+	let resolvedTitle = $derived(title ?? common_confirmAction());
+	let resolvedMessage = $derived(message ?? common_areYouSure());
+	let resolvedConfirmLabel = $derived(confirmLabel ?? common_confirm());
+	let resolvedCancelLabel = $derived(cancelLabel ?? common_cancel());
+	let detailsBody = $derived(details.length > 0 ? details.join(', ') : null);
 
 	const confirmButtonClasses = {
 		danger: 'btn-danger',
@@ -57,37 +79,37 @@
 		{/if}
 
 		{#if confirmText != null}
-			<div>
-				{#if confirmPlaceholder}
-					<label for="confirm-text-input" class="text-secondary mb-1 block text-sm"
-						>{confirmPlaceholder}</label
-					>
-				{/if}
-				<input
-					id="confirm-text-input"
-					type="text"
-					class="input w-full"
-					placeholder={confirmText}
-					bind:value={typedValue}
-				/>
-			</div>
+			<form.Field name="typed">
+				{#snippet children(field: AnyFieldApi)}
+					<TextInput
+						label={confirmPlaceholder ?? ''}
+						id="confirm-text-input"
+						placeholder={confirmText}
+						{field}
+					/>
+				{/snippet}
+			</form.Field>
 		{/if}
 	</div>
 
 	{#snippet footer()}
 		<div class="modal-footer">
 			<div class="flex justify-end gap-3">
-				<button type="button" class="btn-secondary" on:click={onCancel}>
+				<button type="button" class="btn-secondary" onclick={onCancel}>
 					{resolvedCancelLabel}
 				</button>
-				<button
-					type="button"
-					class={confirmButtonClasses[variant]}
-					on:click={onConfirm}
-					disabled={confirmDisabled}
-				>
-					{resolvedConfirmLabel}
-				</button>
+				<form.Subscribe selector={(state) => state.values.typed}>
+					{#snippet children(typed)}
+						<button
+							type="button"
+							class={confirmButtonClasses[variant]}
+							onclick={onConfirm}
+							disabled={confirmText != null && typed !== confirmText}
+						>
+							{resolvedConfirmLabel}
+						</button>
+					{/snippet}
+				</form.Subscribe>
 			</div>
 		</div>
 	{/snippet}
