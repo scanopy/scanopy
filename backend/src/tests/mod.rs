@@ -40,6 +40,7 @@ use std::sync::Arc;
 use testcontainers::{ContainerAsync, GenericImage, ImageExt, core::WaitFor, runners::AsyncRunner};
 use uuid::Uuid;
 
+pub mod billing_emails_zero_amount;
 pub mod demo_data_seeding;
 pub mod dependencies;
 pub mod far_end_advertised_ports;

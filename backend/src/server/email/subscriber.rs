@@ -53,6 +53,17 @@ impl EmailService {
     }
 }
 
+/// Records a billing email left unsent because the customer pays nothing, so
+/// "why didn't I get an email" can be answered from the logs. The event itself
+/// was published and every other subscriber saw it.
+fn skip_zero_dollar(email: &str, organization_id: uuid::Uuid) {
+    tracing::debug!(
+        email,
+        organization_id = %organization_id,
+        "Skipping billing email for a customer paying nothing"
+    );
+}
+
 #[async_trait]
 impl Subscriber<BillingOperation> for EmailService {
     fn filter(&self) -> EventFilter<BillingOperation> {
@@ -118,8 +129,16 @@ impl Subscriber<BillingOperation> for EmailService {
                     plan,
                     next_renewal_at: _,
                 } => {
-                    self.send_trial_converted_email(org_owner, plan.name(), plan.billing_period())
+                    if plan.is_priced_at_zero() {
+                        skip_zero_dollar("trial_converted", event.scope.organization_id);
+                    } else {
+                        self.send_trial_converted_email(
+                            org_owner,
+                            plan.name(),
+                            plan.billing_period(),
+                        )
                         .await?;
+                    }
                 }
                 BillingOperation::PlanChanged {
                     from,
@@ -338,6 +357,9 @@ impl Subscriber<BillingOperation> for EmailService {
                     // usage to summarize.
                     if invoice.billing_reason == BillingReason::SubscriptionCycle {
                         match invoice.license_paid_through() {
+                            None if invoice.charged_nothing() => {
+                                skip_zero_dollar("usage_summary", event.scope.organization_id);
+                            }
                             None => self.send_usage_summary_email(org_owner, &invoice).await?,
                             // A renewed self-hosted licence. An online key
                             // picks this up at its next check-in; an
@@ -442,10 +464,13 @@ impl Subscriber<BillingOperation> for EmailService {
                             plan.features().onboarding_call,
                         )
                         .await?;
-                    } else if !is_trialing {
+                    } else if is_trialing {
                         // A cloud trial gets `trial_started` instead; "your
                         // subscription is active" arrives as `trial_converted`
                         // once a card is charged.
+                    } else if plan.is_priced_at_zero() {
+                        skip_zero_dollar("checkout_completed", event.scope.organization_id);
+                    } else {
                         self.send_checkout_completed_email(org_owner, plan.name())
                             .await?;
                     }

@@ -19,18 +19,20 @@ use uuid::Uuid;
 use super::self_hosted_licensing::{reload, test_state_with_email_dir};
 use super::{organization, user};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
+use crate::server::billing::plans::{get_free_plan, get_purchasable_plans};
 use crate::server::billing::service::stripe_client::tests::{client_for, fake_stripe};
 use crate::server::billing::service::webhook_envelope::tests::{
     SUBSCRIPTION_CREATED_CLOVER, SUBSCRIPTION_CREATED_DAHLIA, header,
 };
 use crate::server::billing::service::{BillingService, BillingServiceParams};
-use crate::server::billing::types::base::PlanStatus;
+use crate::server::billing::types::base::{BillingPlan, PlanStatus};
 use crate::server::config::AppState;
 use crate::server::organizations::r#impl::base::Organization;
 use crate::server::shared::events::bus::BusChannel;
 use crate::server::shared::events::traits::Event;
 use crate::server::shared::events::types::BillingOperation;
 use crate::server::shared::services::traits::CrudService;
+use crate::server::shared::types::metadata::TypeMetadataProvider;
 use crate::server::users::r#impl::permissions::UserOrgPermissions;
 
 pub(super) const WEBHOOK_SECRET: &str = "whsec_test_secret";
@@ -148,6 +150,58 @@ pub(super) fn published(
 
 pub(super) fn is_checkout(operation: &BillingOperation) -> bool {
     matches!(operation, BillingOperation::CheckoutCompleted { .. })
+}
+
+/// The recorded subscription as it stands after a renewal: active, on
+/// `plan`, belonging to `org_id`.
+fn renewed_subscription(org_id: Uuid, plan: BillingPlan) -> String {
+    let mut sub: serde_json::Value = serde_json::from_str(&subscription_for(org_id)).unwrap();
+    sub["status"] = "active".into();
+    sub["metadata"]["plan"] = serde_json::to_string(&plan).unwrap().into();
+    sub.to_string()
+}
+
+/// A renewal moves the billing period, and Stripe reports that as
+/// `customer.subscription.updated` on a subscription whose plan and status
+/// are what the org already holds. That is no checkout, whatever the plan
+/// costs: a legacy Free org got "Welcome to Scanopy Free" on each renewal.
+#[tokio::test]
+async fn a_renewal_on_an_unchanged_plan_is_not_a_checkout() {
+    let pro = get_purchasable_plans()
+        .into_iter()
+        .find(|plan| matches!(plan, BillingPlan::Pro(_)))
+        .unwrap();
+    for plan in [get_free_plan(), pro] {
+        let org_id = Uuid::new_v4();
+        let (state, _container) = test_state_with_email_dir(None).await;
+        let subscription = renewed_subscription(org_id, plan);
+        let router = Router::new()
+            .route(
+                "/v1/subscriptions/{id}",
+                get(move |Path(_id): Path<String>| async move { subscription }),
+            )
+            .route("/v1/subscriptions", get(|| async { EMPTY_LIST }));
+        let billing = billing_with(&state, router).await;
+
+        let mut org = checked_out_org(&state, org_id).await;
+        org.base.plan = Some(plan);
+        org.base.plan_status = Some(PlanStatus::Active);
+        state
+            .services
+            .organization_service
+            .update(&mut org, AuthenticatedEntity::System)
+            .await
+            .unwrap();
+        let mut events = billing_events(&state);
+
+        let renewal = SUBSCRIPTION_CREATED_DAHLIA.replace(
+            "\"customer.subscription.created\"",
+            "\"customer.subscription.updated\"",
+        );
+        deliver(&billing, &renewal).await;
+
+        assert_eq!(published(&mut events, is_checkout), 0, "{}", plan.name());
+    }
 }
 
 /// `evt_1ULZRvAkcpHEg5IAyzQrl0Oa` is a Pro checkout's

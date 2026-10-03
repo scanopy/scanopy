@@ -327,6 +327,12 @@ impl BillingPlan {
         matches!(self, BillingPlan::Demo(_))
     }
 
+    /// The plan's own price is zero, before any discount. A paid plan on a
+    /// 100%-off coupon is not this.
+    pub fn is_priced_at_zero(&self) -> bool {
+        self.config().base_cents == 0
+    }
+
     /// Plans where the customer hosts Scanopy themselves and Stripe is not in
     /// the loop. Use this to skip checks that only make sense for cloud plans.
     pub fn is_self_hosted(&self) -> bool {

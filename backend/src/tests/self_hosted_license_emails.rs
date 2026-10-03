@@ -36,7 +36,7 @@ use crate::server::shared::events::types::BillingOperation;
 use crate::server::shared::services::traits::CrudService;
 use crate::server::users::r#impl::permissions::UserOrgPermissions;
 
-async fn create_owner(state: &AppState, organization_id: Uuid) {
+pub(super) async fn create_owner(state: &AppState, organization_id: Uuid) {
     let mut owner = user(&organization_id);
     owner.base.email = EmailAddress::new_unchecked("owner@example.test");
     owner.base.permissions = UserOrgPermissions::Owner;
@@ -51,7 +51,7 @@ async fn create_owner(state: &AppState, organization_id: Uuid) {
 
 /// Everything the logging transport wrote, joined. Tests match on the
 /// `utm_campaign` slug in the rendered links, never on copy.
-fn sent(dir: &Path) -> String {
+pub(super) fn sent(dir: &Path) -> String {
     std::fs::read_dir(dir)
         .unwrap()
         .map(|entry| std::fs::read_to_string(entry.unwrap().path()).unwrap())
@@ -59,7 +59,7 @@ fn sent(dir: &Path) -> String {
         .join("\n")
 }
 
-fn campaign(slug: &str) -> String {
+pub(super) fn campaign(slug: &str) -> String {
     format!("utm_campaign={slug}")
 }
 
@@ -85,7 +85,11 @@ fn email_service_for(
     )
 }
 
-async fn handle_billing(state: &AppState, organization_id: Uuid, operation: BillingOperation) {
+pub(super) async fn handle_billing(
+    state: &AppState,
+    organization_id: Uuid,
+    operation: BillingOperation,
+) {
     state
         .services
         .email_service
