@@ -800,8 +800,22 @@
 	}
 </script>
 
+<!-- The selected type's integration guide. One rendering for the dedicated modal (below the
+     type picker) and the daemon/discovery wizards (top of each compact row). -->
+{#snippet integrationDocsHint()}
+	{#if integrationDocsPath}
+		<DocsHint
+			text={credentials_docsIntegration()}
+			href={docsUrl(integrationDocsPath)}
+			linkText={credentials_docsIntegrationLinkText({ integration: integrationName })}
+		/>
+	{/if}
+{/snippet}
+
 {#if compact}
 	<div class="space-y-4">
+		{@render integrationDocsHint()}
+
 		{#if !hideTargets}
 			<!-- Hosts this credential already reaches through the host/credential junction.
 			     Informational, like the network-wide credential line in the wizard — these are
@@ -1022,13 +1036,7 @@
 					</div>
 				{/if}
 
-				{#if integrationDocsPath}
-					<DocsHint
-						text={credentials_docsIntegration()}
-						href={docsUrl(integrationDocsPath)}
-						linkText={credentials_docsIntegrationLinkText({ integration: integrationName })}
-					/>
-				{/if}
+				{@render integrationDocsHint()}
 			</div>
 		{/if}
 
