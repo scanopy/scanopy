@@ -43,13 +43,27 @@ pub(super) fn offer_emitted_os(
             .find(|(name, _)| name.eq_ignore_ascii_case(DEVICE_INFO_SERVICE))
             .map(|(_, txt)| txt)
     });
-    for (key, value) in device_info.into_iter().flatten() {
+    let Some(device_info) = device_info else {
+        return;
+    };
+    let mut named = false;
+    for (key, value) in device_info {
         if let Some(os) = RecogDatabase::MdnsDeviceInfo.os(&format!("{key}={value}")) {
+            named = true;
             host_data.offer_os(Attributed::new(
                 HostOsValue(os),
                 AttributeSource::DnsSdDeviceInfoMatch,
             ));
         }
+    }
+    // The record arrived and nothing in it named an OS: say what it held, so a device the
+    // fingerprints do not cover can be identified from the log rather than guessed at.
+    if !named {
+        tracing::debug!(
+            address = ?host_data.ip_addresses.first().map(|ip| ip.base.ip_address),
+            device_info = ?device_info,
+            "mDNS device-info record named no OS"
+        );
     }
 }
 

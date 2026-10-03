@@ -555,22 +555,22 @@ impl TypeMetadataProvider for AttributeSourceDiscriminants {
                 "Scanopy built this from the numeric vendor ID the device reported over CIP."
             }
             Self::SysDescrMatch => {
-                "Scanopy recognised this in the system description the device reported over SNMP."
+                "Scanopy inferred this from the system description the device reported over SNMP. The device did not report it directly."
             }
             Self::SysObjectIdMatch => {
-                "Scanopy recognised this from the system object ID the device reported over SNMP."
+                "Scanopy inferred this from the system object ID the device reported over SNMP. The device did not report it directly."
             }
             Self::LldpSysDescMatch => {
-                "Scanopy recognised this in the system description the device advertised to its neighbours over LLDP."
+                "Scanopy inferred this from the system description the device advertised to its neighbours over LLDP. The device did not report it directly."
             }
             Self::SshBannerMatch => {
-                "Scanopy recognised this in the identification string the host's SSH server sent."
+                "Scanopy inferred this from the identification string the host's SSH server sent. The host did not report it directly."
             }
             Self::HttpServerMatch => {
-                "Scanopy recognised this in the Server header the host's web server sent."
+                "Scanopy inferred this from the Server header the host's web server sent. The host did not report it directly."
             }
             Self::DnsSdDeviceInfoMatch => {
-                "Scanopy recognised this in the device-info record the host announced over mDNS."
+                "Scanopy inferred this from the device-info record the host announced over mDNS. The host did not report it directly."
             }
             Self::DnsSdInstanceName => {
                 "The device announced this name over mDNS. A person usually sets it during setup."

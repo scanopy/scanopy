@@ -19,10 +19,8 @@ pub(super) fn os(database: RecogDatabase, input: &str) -> Option<HostOs> {
             .or_else(|| net_snmp_linux_sys_descr(input))
             .or_else(|| pfsense_sys_descr(input)),
         RecogDatabase::HttpServer => iis_ten_server_header(input),
-        RecogDatabase::SnmpSysObjectId
-        | RecogDatabase::SshBanner
-        | RecogDatabase::ApacheOs
-        | RecogDatabase::MdnsDeviceInfo => None,
+        RecogDatabase::MdnsDeviceInfo => mac_model_identifier(input),
+        RecogDatabase::SnmpSysObjectId | RecogDatabase::SshBanner | RecogDatabase::ApacheOs => None,
     }
 }
 
@@ -107,6 +105,21 @@ fn pfsense_sys_descr(input: &str) -> Option<HostOs> {
     })
 }
 
+/// A Mac's mDNS device-info record, by its model identifier. Family macOS and nothing more.
+///
+/// Recog lists exact identifiers up to `MacBookPro18,x` and `iMac20,1`. Every Mac Apple has shipped
+/// since 2022 is identified as `Mac<n>,<m>`, which Recog has none of: MacBook Air `Mac14,2` to
+/// `Mac17,4`, MacBook Pro `Mac14,5` to `Mac17,9`, Mac mini `Mac14,3` to `Mac18,5`:
+/// <https://support.apple.com/en-us/102869>, <https://support.apple.com/en-us/108052>,
+/// <https://support.apple.com/en-us/102852>. The macOS release is not in the identifier, so none
+/// is claimed.
+fn mac_model_identifier(input: &str) -> Option<HostOs> {
+    static PATTERN: LazyLock<Regex> = LazyLock::new(|| pattern(r"^model=Mac\d+,\d+$"));
+    PATTERN
+        .is_match(input)
+        .then(|| HostOs::family_only(HostOsFamily::MacOs))
+}
+
 /// IIS 10.0 runs only on Windows. Family Windows and nothing more.
 ///
 /// Recog leaves `Microsoft-IIS/10.0` without OS params because IIS 10.0 spans several Windows
@@ -167,6 +180,19 @@ mod tests {
         assert_eq!(os.family, HostOsFamily::FreeBsd);
         assert_eq!(os.name.as_deref(), Some("pfSense"));
         assert_eq!(os.version.as_deref(), Some("2.7.2-RELEASE"));
+    }
+
+    #[test]
+    fn a_current_mac_identifier_reads_as_macos_and_an_older_one_stays_recogs() {
+        let os = RecogDatabase::MdnsDeviceInfo.os("model=Mac15,3").unwrap();
+        assert_eq!(os, HostOs::family_only(HostOsFamily::MacOs));
+        assert_eq!(mac_model_identifier("model=Macmini9,1"), None);
+        assert_eq!(
+            RecogDatabase::MdnsDeviceInfo
+                .os("model=Macmini9,1")
+                .map(|os| os.family),
+            Some(HostOsFamily::MacOs)
+        );
     }
 
     #[test]

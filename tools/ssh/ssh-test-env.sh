@@ -175,6 +175,10 @@ check_inventory() {
         fail "$ip" "$case_name" "hostname '$host', expected 'ssh-${case_name}' (SetEnv missing?)"
     elif [ "$n_ifaces" != "1" ]; then
         fail "$ip" "$case_name" "reports $n_ifaces interfaces; expected only the one holding $ip"
+    elif [ "$(jq -r '.os.family // ""' "$RUN_OUT")" != "Linux" ]; then
+        fail "$ip" "$case_name" "os.family is '$(jq -r '.os.family // ""' "$RUN_OUT")', expected Linux"
+    elif [ -z "$(jq -r '.os.kernel_version // ""' "$RUN_OUT")" ]; then
+        fail "$ip" "$case_name" "os.kernel_version is missing"
     elif [ -n "$unknown" ]; then
         fail "$ip" "$case_name" "prints keys outside the script contract: $unknown"
     else
@@ -271,6 +275,15 @@ cmd_verify() {
                     fail "$ip" "$case_name" "expected valid JSON with hostname and favorite_color"
                 else
                     pass "$ip" "$case_name" "valid JSON, unknown keys: $(jq -c 'keys - ["hostname","sys_descr","model","interfaces"]' "$RUN_OUT")"
+                fi
+                ;;
+            os-unknown-family)
+                if [ "$RUN_RC" != "0" ]; then
+                    fail "$ip" "$case_name" "exit $RUN_RC, expected 0"
+                elif ! jq -e '.os.family == "Plan9" and .model' "$RUN_OUT" >/dev/null 2>&1; then
+                    fail "$ip" "$case_name" "expected valid JSON with model and os.family Plan9"
+                else
+                    pass "$ip" "$case_name" "valid JSON, os.family=Plan9, which Scanopy reports invalid"
                 fi
                 ;;
             *)

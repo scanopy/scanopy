@@ -58,6 +58,7 @@ COPY --from=rust-builder /fixtures/ ./src/lib/data/
 
 # Copy downloaded service logos from rust-builder
 COPY --from=rust-builder /static/logos/services/ ./static/logos/services/
+COPY --from=rust-builder /static/logos/os-families/ ./static/logos/os-families/
 
 # Accept build-time configuration
 ARG PUBLIC_SERVER_HOSTNAME=default
@@ -117,6 +118,7 @@ COPY --from=ui-builder /app/ui/build ./static
 
 # Notices for third-party data compiled into the binary.
 COPY backend/assets/recog/LICENSE /usr/share/doc/scanopy/recog/LICENSE
+COPY backend/assets/dashboard-icons/LICENSE /usr/share/doc/scanopy/dashboard-icons/LICENSE
 
 # Verify UI files are present
 RUN ls -la /app/static && \

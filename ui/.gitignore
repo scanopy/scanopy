@@ -21,3 +21,4 @@ vite.config.ts.timestamp-*
 
 # Generated service logos (downloaded during make generate-fixtures)
 /static/logos/services/
+/static/logos/os-families/

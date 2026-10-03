@@ -8,7 +8,7 @@
 
 import type { components } from '$lib/api/schema';
 import type { TagProps } from '$lib/shared/components/data/types';
-import { metaDescriptionWith, metaNameWith } from '$lib/i18n/metadata';
+import { metaDescriptionWith, metaName, metaNameWith } from '$lib/i18n/metadata';
 import { attributeSources, clientProbes } from '$lib/shared/stores/metadata';
 import attributeMethods from '$lib/data/attribute-methods.json';
 
@@ -51,12 +51,24 @@ export function attributeSourceDescription(source: AttributeSource): string {
 	return metaDescriptionWith('attribute_sources', variant, slots(probe), fallback);
 }
 
-/** A neutral tag naming the source, with the source's description as its title. */
+/**
+ * How a value from this source reached Scanopy, led by the tier's own name when the value was
+ * inferred: "Assumed: Scanopy inferred this from …". The tier is what tells a reader to treat the
+ * value with caution, so it is said in words wherever the source is explained.
+ */
+export function attributeSourceExplanation(source: AttributeSource): string {
+	const description = attributeSourceDescription(source);
+	if (!isInferredSource(source)) return description;
+	const inferred = attributeMethods.find((method) => method.id === 'Inferred');
+	return `${metaName('attribute_methods', 'Inferred', inferred?.name ?? '')}: ${description}`;
+}
+
+/** A neutral tag naming the source, with how the value reached Scanopy as its title. */
 export function attributeSourceTag(source: AttributeSource): TagProps {
 	return {
 		label: attributeSourceLabel(source),
 		color: 'Gray',
-		title: attributeSourceDescription(source)
+		title: attributeSourceExplanation(source)
 	};
 }
 

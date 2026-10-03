@@ -11,6 +11,7 @@
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 	import { hostOsLabel } from '$lib/features/hosts/host-os';
+	import OsTag from './OsTag.svelte';
 	import { interfaceDisplayName } from '$lib/features/hosts/interface-display-name';
 	import HostEditor from './HostEditModal/HostEditor.svelte';
 	import HostConsolidationModal from './HostConsolidationModal.svelte';
@@ -641,7 +642,7 @@
 					label: common_operatingSystem(),
 					type: 'string',
 					getValue: (host) => (host.os ? hostOsLabel(host.os) : ''),
-					display: { hiddenByDefault: true }
+					display: { hiddenByDefault: true, cell: osCell }
 				},
 				{
 					key: 'hidden',
@@ -847,6 +848,14 @@
 		setEditingHost(null);
 	}
 </script>
+
+{#snippet osCell(host: Host)}
+	{#if host.os}
+		<OsTag os={host.os} source={host.os_source} />
+	{:else}
+		<span class="text-tertiary text-sm">—</span>
+	{/if}
+{/snippet}
 
 <div class="space-y-6">
 	<!-- Header -->
