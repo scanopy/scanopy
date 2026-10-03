@@ -11,7 +11,6 @@
 	} from '$lib/features/credentials/queries';
 	import { type Credential } from '$lib/features/credentials/types/base';
 	import type { DaemonOS } from '$lib/features/daemons/utils';
-	import CredentialTypeSelectStep from './CredentialTypeSelectStep.svelte';
 	import CredentialWizardStep, {
 		type PendingCredential as PendingCredentialType
 	} from './CredentialWizardStep.svelte';
@@ -24,22 +23,16 @@
 		pendingCredentials: PendingCredentialType[];
 		/** Server-side ids of credentials created/attached this session (bindable). */
 		credentialIds?: string[];
-		/** Current sub-step (bindable so parent footers can switch their buttons). */
-		subStep?: 'typeSelect' | 'wizard';
-		/** Selected integration cards (bindable, e.g. for analytics counts). */
-		selectedTypeIds?: string[];
 		/**
 		 * How auto-local capabilities (e.g. the Docker socket) behave:
-		 * - `interactive` (daemon setup): selectable + default-selected; selecting one
-		 *   seeds a wizard entry and drives the daemon install flag.
-		 * - `fixed` (editing an installed daemon): read-only, reflecting the daemon's
-		 *   actual capabilities; they don't seed wizard entries but do claim the
-		 *   daemon host for conflict prevention.
+		 * - `interactive` (daemon setup): the parent seeds them as ordinary wizard entries.
+		 * - `fixed` (editing an installed daemon): they reflect the daemon's actual
+		 *   capabilities and claim the daemon host for conflict prevention.
 		 */
 		localAutoMode?: 'interactive' | 'fixed';
 		/** In `fixed` mode, the auto-local type ids the target daemon actually has. */
 		fixedCapabilityTypeIds?: string[];
-		/** Version of the single daemon this picker targets. A credential type card is
+		/** Version of the single daemon this step targets. A credential type option is
 		 *  disabled when this version is older than the type's `minimum_daemon_version`.
 		 *  Absent/null ⇒ no version gate (e.g. create-daemon flow). */
 		daemonVersion?: string | null;
@@ -55,8 +48,6 @@
 		description,
 		pendingCredentials = $bindable([]),
 		credentialIds = $bindable([]),
-		subStep = $bindable('typeSelect'),
-		selectedTypeIds = $bindable([]),
 		localAutoMode = 'interactive',
 		fixedCapabilityTypeIds = [],
 		daemonVersion = null,
@@ -79,17 +70,11 @@
 			: []
 	);
 
-	// Move from the Integrations grid to the wizard, seeding every selected type —
-	// including daemon-host-only sockets, which are configured and assigned to the
-	// daemon host like any other credential (no special path).
-	async function continueToWizard() {
-		subStep = 'wizard';
+	// Seed the wizard with one new entry per type id — including daemon-host-only sockets,
+	// which are configured and assigned to the daemon host like any other credential.
+	async function addTypes(typeIds: string[]) {
 		await tick();
-		credentialWizardRef?.addTypes(selectedTypeIds);
-	}
-
-	function backToTypeSelect() {
-		subStep = 'typeSelect';
+		credentialWizardRef?.addTypes(typeIds);
 	}
 
 	function handleRemoveCredential(credential: Credential) {
@@ -149,30 +134,19 @@
 	// while a create/update is in flight.
 	let busy = $derived(bulkCreateCredentialsMutation.isPending);
 
-	export { busy, continueToWizard, backToTypeSelect, collectCredentialIds };
+	export { busy, addTypes, collectCredentialIds };
 </script>
 
-{#if subStep === 'typeSelect'}
-	<div class="flex min-h-0 flex-1 flex-col">
-		<CredentialTypeSelectStep
-			bind:selectedTypeIds
-			{daemonVersion}
-			{daemonName}
-			forceCheckedTypeIds={localAutoMode === 'fixed' ? fixedCapabilityTypeIds : []}
-		/>
-	</div>
-{:else}
-	<div class="flex min-h-0 flex-1 flex-col">
-		<CredentialWizardStep
-			bind:this={credentialWizardRef}
-			{networkId}
-			{description}
-			bind:pendingCredentials
-			{claimedDaemonHostIntegrations}
-			{daemonVersion}
-			{daemonName}
-			onRemoveCredential={handleRemoveCredential}
-			{daemonOs}
-		/>
-	</div>
-{/if}
+<div class="flex min-h-0 flex-1 flex-col">
+	<CredentialWizardStep
+		bind:this={credentialWizardRef}
+		{networkId}
+		{description}
+		bind:pendingCredentials
+		{claimedDaemonHostIntegrations}
+		{daemonVersion}
+		{daemonName}
+		onRemoveCredential={handleRemoveCredential}
+		{daemonOs}
+	/>
+</div>

@@ -42,7 +42,6 @@
 		type DaemonOS
 	} from '../../utils';
 	import { useNetworksQuery } from '$lib/features/networks/queries';
-	import { useCredentialsQuery } from '$lib/features/credentials/queries';
 	import { daemonSetupState, type DaemonConnectionStatus } from '../../stores/daemon-setup';
 	import ConfigureStep from './steps/ConfigureStep.svelte';
 	import InstallStep from './steps/InstallStep.svelte';
@@ -59,7 +58,6 @@
 	import {
 		common_close,
 		common_configure,
-		common_continue,
 		common_install,
 		common_integrations,
 		common_next,
@@ -95,7 +93,6 @@
 	const configQuery = useConfigQuery();
 	const organizationQuery = useOrganizationQuery();
 	const provisionDaemonMutation = useProvisionDaemonMutation();
-	const credentialsQuery = useCredentialsQuery();
 
 	// Derived data
 	let isCloudDeployment = $derived(configQuery.data ? isCloud(configQuery.data) : false);
@@ -120,21 +117,16 @@
 	let keyState = $state<string | null>(null);
 
 	// Credentials is its own stepper step (activeTab === 'credentials'); the shared
-	// CredentialsStep owns the type-grid → wizard sub-flow and persistence.
+	// CredentialsStep owns the credential list and persistence.
 	let credentialsStep: ReturnType<typeof CredentialsStep> | undefined = $state();
-	let credentialSubStep = $state<'typeSelect' | 'wizard'>('typeSelect');
-	let selectedCredentialTypeIds = $state<string[]>([]);
 	let pendingCredentials = $state<PendingCredential[]>([]);
 	let credentialIds = $state<string[]>([]);
+	// The socket defaults are seeded once per open, so a row the user removed stays removed
+	// when they go back to Setup and forward again.
+	let credentialsSeeded = $state(false);
 
-	// The integration type-select pre-step is a first-run aid; users who already
-	// have credentials go straight to the wizard (where they manage/add them).
-	let credentialEntrySubStep = $derived<'typeSelect' | 'wizard'>(
-		(credentialsQuery.data?.length ?? 0) > 0 ? 'wizard' : 'typeSelect'
-	);
-
-	// Daemon-host-only integrations (e.g. the Docker/Podman socket) are selected by default in
-	// the Integrations grid; they target only the daemon host (a `<uuid>@127.0.0.1` token).
+	// Daemon-host-only integrations (e.g. the Docker/Podman socket) are seeded by default into
+	// the Integrations list; they target only the daemon host (a `<uuid>@127.0.0.1` token).
 	function daemonHostOnlyTypeIds(): string[] {
 		return credentialTypes
 			.getItems()
@@ -148,23 +140,6 @@
 		pendingCredentials.filter((p) => !p.isExisting && !credentialIds.includes(p.credential.id))
 			.length
 	);
-
-	// Continue from the Integrations grid: with nothing selected, go straight to
-	// Install; otherwise enter the wizard.
-	async function handleContinueToWizard() {
-		if (selectedCredentialTypeIds.length === 0) {
-			trackEvent('daemon_wizard_step_completed', {
-				step: 'credentials',
-				skipped: true,
-				types_selected: 0,
-				credentials_attached: 0
-			});
-			await ensureProvisioned();
-			activeTab = 'install';
-			return;
-		}
-		await credentialsStep?.continueToWizard();
-	}
 
 	// OS selection
 	let selectedOS: DaemonOS = $state(detectOS());
@@ -533,13 +508,10 @@
 			// Advance to the Credentials step (step 2). It's optional — the user can
 			// Skip to Install (step 3), which is also unlocked.
 			activeTab = 'credentials';
-			credentialSubStep = credentialEntrySubStep;
-			// When the org already has credentials we skip the type picker and land
-			// straight in the wizard; seed the default daemon-host sockets as pending
-			// entries here too (the type-picker path does this via continueToWizard).
-			if (credentialEntrySubStep === 'wizard') {
+			if (!credentialsSeeded) {
+				credentialsSeeded = true;
 				await tick();
-				await credentialsStep?.continueToWizard();
+				await credentialsStep?.addTypes(daemonHostOnlyTypeIds());
 			}
 		}
 	}
@@ -677,8 +649,7 @@
 		activeTab = 'configure';
 		furthestReached = 0;
 		showAdvanced = false;
-		credentialSubStep = 'typeSelect';
-		selectedCredentialTypeIds = [];
+		credentialsSeeded = false;
 		pendingCredentials = [];
 		credentialIds = [];
 		connectionStatus = 'idle';
@@ -701,9 +672,7 @@
 		activeTab = 'configure';
 		furthestReached = 0;
 		showAdvanced = false;
-		credentialSubStep = 'typeSelect';
-		// Daemon-host-only integrations (the local Docker/Podman socket) are on by default.
-		selectedCredentialTypeIds = daemonHostOnlyTypeIds();
+		credentialsSeeded = false;
 		connectionStatus = 'idle';
 		startedAsFirstDaemon = isFirstDaemon;
 		serverPollReachable = null;
@@ -744,8 +713,6 @@
 				networkId={selectedNetworkId}
 				bind:pendingCredentials
 				bind:credentialIds
-				bind:subStep={credentialSubStep}
-				bind:selectedTypeIds={selectedCredentialTypeIds}
 				daemonOs={selectedOS}
 				daemonName={String(formValues.name ?? '')}
 			/>
@@ -818,12 +785,7 @@
 		<!-- Footer -->
 		<div class="modal-footer">
 			<div class="flex flex-wrap items-center justify-end gap-3">
-				{#if activeTab === 'credentials' && credentialSubStep === 'typeSelect'}
-					<button type="button" class="btn-primary" onclick={handleContinueToWizard}>
-						{common_continue()}
-						<ArrowRight class="h-4 w-4" />
-					</button>
-				{:else if activeTab === 'credentials' && credentialSubStep === 'wizard'}
+				{#if activeTab === 'credentials'}
 					<button
 						type="button"
 						class="btn-primary"
@@ -833,8 +795,10 @@
 							if (ids === null || ids === undefined) return; // validation failed
 							trackEvent('daemon_wizard_step_completed', {
 								step: 'credentials',
-								skipped: false,
-								types_selected: selectedCredentialTypeIds.length,
+								skipped: ids.length === 0,
+								types_selected: new Set(
+									pendingCredentials.map((p) => p.credential.credential_type.type)
+								).size,
 								credentials_attached: ids.length
 							});
 							// Provision after the credentials exist, so they're seeded onto the
