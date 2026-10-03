@@ -44,6 +44,7 @@
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 	import osFamilies from '$lib/data/os-families.json';
 	import {
+		common_beta,
 		common_confirmDeleteName,
 		common_create,
 		common_created,
@@ -59,6 +60,7 @@
 		credentials_deleteImpact,
 		credentials_emptySubtitle,
 		credentials_subtitle,
+		credentials_unofficialApi,
 		common_credentials,
 		common_hosts,
 		common_networks,
@@ -322,27 +324,54 @@
 				filterOptions: credentialTypes.getItems().map((t) => credentialTypes.getName(t.id)),
 				getValue: (item: Credential) => credentialTypes.getName(getCredentialTypeId(item)),
 				display: {
-					// Beta and unofficial-API ride with the type, which is what they qualify, and so
-					// land ahead of the scope column — the same order `CredentialTypeDisplay` uses in
-					// the wizard and the type dropdown. Without them a beta credential looked no
-					// different here from a stable one.
 					getItems: (item: Credential) => {
 						const typeId = getCredentialTypeId(item);
-						const meta = credentialTypes.getMetadata(typeId);
 						return [
 							{
 								id: typeId,
 								label: credentialTypes.getName(typeId),
 								color: credentialTypes.getColorHelper(typeId).color,
 								icon: credentialTypes.getIconComponent(typeId)
-							},
-							...[
-								getStabilityTagProps(meta?.stability),
-								getUpstreamSupportTagProps(meta?.upstream_support)
-							]
-								.filter((tag) => tag !== null)
-								.map((tag) => ({ id: `${typeId}-${tag.label}`, ...tag }))
+							}
 						];
+					}
+				}
+			},
+			{
+				// Beta and unofficial API are properties of the type, each with its own column so
+				// either can be grouped and filtered on its own. A cell shows the tag the wizard and
+				// the type dropdown use, and stays empty for a stable or vendor-supported type.
+				key: 'beta',
+				label: common_beta(),
+				type: 'boolean',
+				filterable: true,
+				groupable: true,
+				getValue: (item: Credential) =>
+					credentialTypes.getMetadata(getCredentialTypeId(item))?.stability === 'Beta',
+				display: {
+					getItems: (item: Credential) => {
+						const typeId = getCredentialTypeId(item);
+						const tag = getStabilityTagProps(credentialTypes.getMetadata(typeId)?.stability);
+						return tag ? [{ id: `${typeId}-beta`, ...tag }] : [];
+					}
+				}
+			},
+			{
+				key: 'unofficial_api',
+				label: credentials_unofficialApi(),
+				type: 'boolean',
+				filterable: true,
+				groupable: true,
+				getValue: (item: Credential) =>
+					credentialTypes.getMetadata(getCredentialTypeId(item))?.upstream_support ===
+					'Undocumented',
+				display: {
+					getItems: (item: Credential) => {
+						const typeId = getCredentialTypeId(item);
+						const tag = getUpstreamSupportTagProps(
+							credentialTypes.getMetadata(typeId)?.upstream_support
+						);
+						return tag ? [{ id: `${typeId}-unofficial-api`, ...tag }] : [];
 					}
 				}
 			},

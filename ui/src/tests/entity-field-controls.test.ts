@@ -319,6 +319,8 @@ const DECISIONS: Record<string, TabDecisions> = {
 			updated_at: DATE,
 			daemon_os: YES,
 			credential_type: YES,
+			beta: BOOLEAN,
+			unofficial_api: BOOLEAN,
 			description: TEXT,
 			assigned_networks: SHARED_ARRAY,
 			assigned_hosts: ownedArray(SEARCH),

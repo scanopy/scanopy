@@ -81,12 +81,20 @@
 		ports as ports_metadata
 	} from '$lib/shared/stores/metadata';
 	import { hasDaemon } from '$lib/shared/onboarding/checklist';
+	import {
+		fieldValueOptions,
+		hasEmptyFieldValue,
+		labelledFieldValueOptions,
+		useFieldValuesQuery
+	} from '$lib/shared/api/field-values';
 
 	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 	type ServiceOrderField = components['schemas']['ServiceOrderField'];
 	type OrderDirection = components['schemas']['OrderDirection'];
 	type EntitySourceType = components['schemas']['EntitySourceDiscriminants'];
 	type MatchConfidence = components['schemas']['MatchConfidence'];
+
+	const SERVICE_FIELD_VALUES = '/api/v1/services/field-values/{field}';
 
 	// Well-known port numbers for the filter panel. People look for 443, not
 	// "HTTPS", so the options are the numbers themselves. Deduplicated because
@@ -142,7 +150,7 @@
 	let filterHostIds = $state<string[]>([]);
 	let filterNetworkIds = $state<string[]>([]);
 	let filterServiceDefinitions = $state<string[]>([]);
-	let filterVirtualizationServiceIds = $state<string[]>([]);
+	let filterVirtualizationServiceNames = $state<string[]>([]);
 	let filterIncludeUncontainerized = $state(false);
 	let filterSources = $state<EntitySourceType[]>([]);
 	let filterMatchConfidences = $state<MatchConfidence[]>([]);
@@ -167,8 +175,8 @@
 		host_ids: filterHostIds.length > 0 ? filterHostIds : undefined,
 		network_ids: filterNetworkIds.length > 0 ? filterNetworkIds : undefined,
 		service_definitions: filterServiceDefinitions.length > 0 ? filterServiceDefinitions : undefined,
-		virtualization_service_ids:
-			filterVirtualizationServiceIds.length > 0 ? filterVirtualizationServiceIds : undefined,
+		virtualization_service_names:
+			filterVirtualizationServiceNames.length > 0 ? filterVirtualizationServiceNames : undefined,
 		include_uncontainerized: filterIncludeUncontainerized || undefined,
 		sources: filterSources.length > 0 ? filterSources : undefined,
 		match_confidences: filterMatchConfidences.length > 0 ? filterMatchConfidences : undefined
@@ -179,6 +187,15 @@
 	// display data, scoped to the loaded page — filter options have to come from
 	// the full sets or the panel only ever offers what is already on screen.
 	const allHostsQuery = useHostSummariesQuery({});
+	// Filter options: the values the caller's services actually hold, counted by the server.
+	// None of these takes the tab's active filters, so the options do not shrink as the user
+	// filters.
+	const hostValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'host');
+	const networkValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'network_id');
+	const definitionValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'service_definition');
+	const containerizedByValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'containerized_by');
+	const matchConfidenceValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'match_confidence');
+	const sourceValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'source');
 	const servicesCacheQuery = useServicesCacheQuery();
 	const ipAddressesQuery = useIPAddressesQuery();
 	const subnetsQuery = useSubnetsQuery();
@@ -343,12 +360,11 @@
 			}
 			case 'containerized_by': {
 				// "Not Containerized" is a choice about absence, so it is carried
-				// as its own flag rather than as an id nothing would match.
+				// as its own flag rather than as a name nothing would match. The rest are
+				// the runtimes' names, which the server filters on directly: no client
+				// cache holds every runtime.
 				filterIncludeUncontainerized = values.includes(services_notContainerized());
-				const wanted = new Set(values.filter((v) => v !== services_notContainerized()));
-				filterVirtualizationServiceIds = allServicesData
-					.filter((service) => wanted.has(service.name))
-					.map((service) => service.id);
+				filterVirtualizationServiceNames = values.filter((v) => v !== services_notContainerized());
 				break;
 			}
 			// Fixture ids are the backend enum's names, emitted from that same enum, so an id
@@ -485,14 +501,14 @@
 		return service.tags;
 	}
 
-	// Derive available service categories from metadata
-	let serviceCategories = $derived.by(() => {
-		const items = serviceDefinitions.getItems() || [];
-		const categoriesSet = new Set(items.map((i) => serviceDefinitions.getCategory(i.id)));
-		return Array.from(categoriesSet)
-			.filter((c) => c)
-			.sort();
-	});
+	// The categories of the definitions some service matched. Category has no column of its own,
+	// so it is read off the present definitions. A default exclusion whose category no service
+	// holds stays selected and excludes nothing.
+	let serviceCategories = $derived(
+		labelledFieldValueOptions(definitionValuesQuery.data, (id) =>
+			serviceDefinitions.getCategory(id)
+		)
+	);
 
 	// Define field configuration for the DataTableControls
 	// Uses defineFields to ensure all ServiceOrderField values are covered
@@ -513,8 +529,10 @@
 					searchable: true,
 					filterable: true,
 					serverFiltered: true,
-					// From the full host list, not the loaded page's hosts.
-					filterOptions: allHostsData.map(hostDisplayName),
+					// The titles of the hosts some service runs on: the server counts the same
+					// title ladder `hostDisplayName` renders, and the handler maps each back to
+					// ids through the full host list.
+					filterOptions: fieldValueOptions(hostValuesQuery.data),
 					groupable: true,
 					// The server groups on the host's title — the same full ladder rendered below —
 					// coalescing services with no host to an empty string. Both sides have to walk
@@ -550,7 +568,11 @@
 					searchable: true,
 					filterable: true,
 					serverFiltered: true,
-					filterOptions: networksData.map((n) => n.name),
+					// The networks some service is on, by name.
+					filterOptions: labelledFieldValueOptions(
+						networkValuesQuery.data,
+						(id) => networksData.find((n) => n.id === id)?.name
+					),
 					groupable: true,
 					// Displayed as a name, but grouped by id on the server.
 					getGroupValue: (item) => item.network_id,
@@ -571,11 +593,10 @@
 					searchable: true,
 					filterable: true,
 					serverFiltered: true,
-					// Every definition the registry knows, not just those on this page.
-					filterOptions: serviceDefinitions
-						.getItems()
-						.map((definition) => definition.name)
-						.filter((name): name is string => name !== null),
+					// The definitions some service matched, by name.
+					filterOptions: labelledFieldValueOptions(definitionValuesQuery.data, (id) =>
+						serviceDefinitions.getName(id)
+					),
 					groupable: true,
 					// The server groups on the raw definition id; the UI renders its
 					// friendly name, so the group key has to be supplied separately.
@@ -615,11 +636,11 @@
 					searchable: true,
 					filterable: true,
 					serverFiltered: true,
-					filterOptions: [
-						...new Set(allServicesData.map((s) => s.name).filter((name) => name.length > 0))
-					]
-						.sort((a, b) => a.localeCompare(b))
-						.concat(services_notContainerized()),
+					// The names of the runtimes that containerize some service, and "Not
+					// Containerized" only when some service has none (counted as '').
+					filterOptions: fieldValueOptions(containerizedByValuesQuery.data).concat(
+						hasEmptyFieldValue(containerizedByValuesQuery.data) ? [services_notContainerized()] : []
+					),
 					// From the full services cache: the runtime is rarely on the same page as
 					// the services it runs.
 					getValue: (item) =>
@@ -654,9 +675,10 @@
 					searchable: true,
 					filterable: true,
 					serverFiltered: true,
-					filterOptions: matchConfidences
-						.getItems()
-						.map((confidence) => matchConfidences.getName(confidence.id)),
+					// The confidences some match carries, by name.
+					filterOptions: labelledFieldValueOptions(matchConfidenceValuesQuery.data, (id) =>
+						matchConfidences.getName(id)
+					),
 					getValue: (item) =>
 						item.source.type == 'DiscoveryWithMatch'
 							? matchConfidences.getName(item.source.details.confidence)
@@ -672,8 +694,10 @@
 					type: 'string',
 					filterable: true,
 					serverFiltered: true,
-					// Every source the backend can stamp, not just those on the loaded page.
-					filterOptions: entitySources.getItems().map((source) => entitySources.getName(source.id)),
+					// The sources some service was stamped with, by name.
+					filterOptions: labelledFieldValueOptions(sourceValuesQuery.data, (id) =>
+						entitySources.getName(id)
+					),
 					getValue: (service) => entitySources.getName(service.source.type),
 					// The server groups on the raw `source.type`.
 					getGroupValue: (service) => service.source.type,

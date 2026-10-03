@@ -81,7 +81,8 @@ export const queryKeys = {
 		lists: () => [...queryKeys.hosts.all, 'list'] as const,
 		list: (filters?: Record<string, unknown>) => [...queryKeys.hosts.lists(), filters] as const,
 		details: () => [...queryKeys.hosts.all, 'detail'] as const,
-		detail: (id: string) => [...queryKeys.hosts.details(), id] as const
+		detail: (id: string) => [...queryKeys.hosts.details(), id] as const,
+		fieldValues: () => [...queryKeys.hosts.all, 'field-values'] as const
 	},
 	ipAddresses: {
 		all: ['ipAddresses'] as const,
@@ -96,7 +97,8 @@ export const queryKeys = {
 	services: {
 		all: ['services'] as const,
 		byHost: (hostId: string) => [...queryKeys.services.all, 'host', hostId] as const,
-		detail: (id: string) => [...queryKeys.services.all, 'detail', id] as const
+		detail: (id: string) => [...queryKeys.services.all, 'detail', id] as const,
+		fieldValues: () => [...queryKeys.services.all, 'field-values'] as const
 	},
 	bindings: {
 		all: ['bindings'] as const,
@@ -137,7 +139,8 @@ export const queryKeys = {
 	discovery: {
 		all: ['discovery'] as const,
 		detail: (id: string) => [...queryKeys.discovery.all, 'detail', id] as const,
-		sessions: () => [...queryKeys.discovery.all, 'sessions'] as const
+		sessions: () => [...queryKeys.discovery.all, 'sessions'] as const,
+		fieldValues: () => [...queryKeys.discovery.all, 'field-values'] as const
 	},
 	apiKeys: {
 		all: ['apiKeys'] as const,

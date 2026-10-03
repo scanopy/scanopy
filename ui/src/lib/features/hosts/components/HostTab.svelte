@@ -108,7 +108,12 @@
 	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
 	import type { components } from '$lib/api/schema';
 	import { hasDaemon } from '$lib/shared/onboarding/checklist';
-	import { fieldValueOptions, useFieldValuesQuery } from '$lib/shared/api/field-values';
+	import {
+		fieldValueOptions,
+		hasEmptyFieldValue,
+		labelledFieldValueOptions,
+		useFieldValuesQuery
+	} from '$lib/shared/api/field-values';
 
 	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 	type HostOrderField = components['schemas']['HostOrderField'];
@@ -116,6 +121,7 @@
 	type EntitySourceType = components['schemas']['EntitySourceDiscriminants'];
 
 	const HOST_FIELD_VALUES = '/api/v1/hosts/field-values/{field}';
+	const SERVICE_FIELD_VALUES = '/api/v1/services/field-values/{field}';
 
 	// Pagination state
 	let pageSize = $state(20);
@@ -138,7 +144,7 @@
 	// while the total count kept describing every match.
 	let filterNetworkIds = $state<string[]>([]);
 	let filterHidden = $state<boolean[]>([]);
-	let filterVirtualizationServiceIds = $state<string[]>([]);
+	let filterVirtualizationServiceNames = $state<string[]>([]);
 	let filterIncludeUnvirtualized = $state(false);
 	let filterServiceNames = $state<string[]>([]);
 	let filterSources = $state<EntitySourceType[]>([]);
@@ -190,8 +196,8 @@
 		network_ids: filterNetworkIds.length > 0 ? filterNetworkIds : undefined,
 		// Both values checked is no constraint, so it is sent as nothing.
 		hidden: filterHidden.length === 1 ? filterHidden : undefined,
-		virtualization_service_ids:
-			filterVirtualizationServiceIds.length > 0 ? filterVirtualizationServiceIds : undefined,
+		virtualization_service_names:
+			filterVirtualizationServiceNames.length > 0 ? filterVirtualizationServiceNames : undefined,
 		include_unvirtualized: filterIncludeUnvirtualized || undefined,
 		service_names: filterServiceNames.length > 0 ? filterServiceNames : undefined,
 		sources: filterSources.length > 0 ? filterSources : undefined,
@@ -203,11 +209,19 @@
 	const interfacesQuery = useInterfacesQuery();
 	const credentialsQuery = useCredentialsQuery();
 	const subnetsQuery = useSubnetsQuery();
-	// Options for the free-valued hardware filters: every value stored across the caller's
-	// networks. The loaded page would only offer the values that happen to appear on it.
+	// Filter options: the values the caller's hosts actually hold, counted by the server. The
+	// loaded page would only offer the values on it, and the fixtures and caches would offer values
+	// no host holds. None of these takes the tab's active filters, so the options do not shrink as
+	// the user filters.
+	const networkValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'network_id');
+	const virtualizedByValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'virtualized_by');
+	const sourceValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'source');
+	const osFamilyValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'os_family');
 	const manufacturerValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'manufacturer');
 	const modelValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'model');
 	const sysLocationValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'sys_location');
+	// Every service belongs to a host, so the services' names are the names some host runs.
+	const serviceNameValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'name');
 
 	// Selective service lookup - only fetches services needed for virtualization display
 	// Extract service IDs from visible hosts for "Virtualized By" field
@@ -305,11 +319,12 @@
 				break;
 			case 'virtualized_by':
 				// "Not Virtualized" is a choice about absence, so it is carried as
-				// its own flag rather than as an id nothing would match.
+				// its own flag rather than as a name nothing would match. The rest are the
+				// virtualizing services' names, which the server filters on directly: the
+				// options come from every host, and no client cache holds every service.
 				filterIncludeUnvirtualized = values.includes(hosts_notVirtualized());
-				filterVirtualizationServiceIds = idsForNames(
-					values.filter((value) => value !== hosts_notVirtualized()),
-					allServicesData
+				filterVirtualizationServiceNames = values.filter(
+					(value) => value !== hosts_notVirtualized()
 				);
 				break;
 			case 'services':
@@ -366,8 +381,8 @@
 		order_direction: orderDirection,
 		network_ids: filterNetworkIds.length > 0 ? filterNetworkIds : undefined,
 		hidden: filterHidden.length === 1 ? filterHidden : undefined,
-		virtualization_service_ids:
-			filterVirtualizationServiceIds.length > 0 ? filterVirtualizationServiceIds : undefined,
+		virtualization_service_names:
+			filterVirtualizationServiceNames.length > 0 ? filterVirtualizationServiceNames : undefined,
 		include_unvirtualized: filterIncludeUnvirtualized || undefined,
 		service_names: filterServiceNames.length > 0 ? filterServiceNames : undefined,
 		sources: filterSources.length > 0 ? filterSources : undefined,
@@ -471,14 +486,11 @@
 					searchable: true,
 					filterable: true,
 					serverFiltered: true,
-					// From the full services cache, not the loaded page: options
-					// derived from one page would only offer the runtimes that
-					// happen to appear on it.
-					filterOptions: [
-						...new Set(allServicesData.map((s) => s.name).filter((name) => name.length > 0))
-					]
-						.sort((a, b) => a.localeCompare(b))
-						.concat(hosts_notVirtualized()),
+					// The names of the services that virtualize some host, and "Not Virtualized"
+					// only when some host has no virtualizing service (counted as '').
+					filterOptions: fieldValueOptions(virtualizedByValuesQuery.data).concat(
+						hasEmptyFieldValue(virtualizedByValuesQuery.data) ? [hosts_notVirtualized()] : []
+					),
 					groupable: true,
 					// The server groups on the virtualizing service's name,
 					// coalescing hosts without one to an empty string.
@@ -567,7 +579,11 @@
 					filterable: true,
 					serverFiltered: true,
 					groupable: true,
-					filterOptions: networksData.map((n) => n.name),
+					// The networks some host is on, by name.
+					filterOptions: labelledFieldValueOptions(
+						networkValuesQuery.data,
+						(id) => networksData.find((n) => n.id === id)?.name
+					),
 					// Displayed as a name, but grouped by id on the server.
 					getGroupValue: (item) => item.network_id,
 					getValue: (item) =>
@@ -591,9 +607,10 @@
 					type: 'string',
 					filterable: true,
 					serverFiltered: true,
-					// Every source the backend can stamp, from the fixture rather than the loaded
-					// page, which would only offer the sources that happen to appear on it.
-					filterOptions: entitySources.getItems().map((source) => entitySources.getName(source.id)),
+					// The sources some host was stamped with, by name.
+					filterOptions: labelledFieldValueOptions(sourceValuesQuery.data, (id) =>
+						entitySources.getName(id)
+					),
 					getValue: (host) => entitySources.getName(host.source.type),
 					// The server groups on the raw `source.type`.
 					getGroupValue: (host) => host.source.type,
@@ -632,7 +649,12 @@
 					type: 'string',
 					filterable: true,
 					serverFiltered: true,
-					filterOptions: hostOsFamilyIds.map(hostOsFamilyName),
+					// The families some host runs, resolved through the same list the handler
+					// maps names back with.
+					filterOptions: labelledFieldValueOptions(osFamilyValuesQuery.data, (value) => {
+						const family = hostOsFamilyIds.find((id) => id === value);
+						return family ? hostOsFamilyName(family) : null;
+					}),
 					getValue: (host) => (host.os ? hostOsFamilyName(host.os.family) : null),
 					getGroupValue: (host) => host.os?.family ?? null,
 					display: {
@@ -732,8 +754,11 @@
 					searchable: true,
 					filterable: true,
 					serverFiltered: true,
-					// Names, resolved back to ids for the server, from every credential rather than the page.
-					filterOptions: credentialsData.map((c) => c.name),
+					// Names, resolved back to ids for the server. Only credentials assigned to some host:
+					// the rest match nothing.
+					filterOptions: credentialsData
+						.filter((c) => (c.host_assignments ?? []).length > 0)
+						.map((c) => c.name),
 					getValue: (host) => hostCredentials(host).map((c) => c.name),
 					display: {
 						order: 3,
@@ -764,12 +789,10 @@
 					searchable: true,
 					filterable: true,
 					serverFiltered: true,
-					// Names, not ids: the server matches a host's services by name,
-					// and the options come from the full cache so they are not
-					// limited to the services on the loaded page.
-					filterOptions: [
-						...new Set(allServicesData.map((s) => s.name).filter((name) => name.length > 0))
-					].sort((a, b) => a.localeCompare(b)),
+					// Names, not ids: the server matches a host's services by name. The options are
+					// every live service name the server counts; the services cache only holds the
+					// loaded page's.
+					filterOptions: fieldValueOptions(serviceNameValuesQuery.data),
 					getValue: (host) =>
 						allServicesData.filter((s) => s.host_id === host.id).map((s) => s.name),
 					display: {

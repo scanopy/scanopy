@@ -1629,6 +1629,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/discovery/field-values/{field}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the values of a Discovery field
+         * @description Every distinct value of one Discovery field across the Discoveries the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         */
+        get: operations["get_discovery_field_values"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/discovery/start-session": {
         parameters: {
             query?: never;
@@ -2625,6 +2645,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/services/field-values/{field}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the values of a Service field
+         * @description Every distinct value of one Service field across the Services the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         */
+        get: operations["get_service_field_values"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/services/{id}": {
         parameters: {
             query?: never;
@@ -3487,19 +3527,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-03T00:17:29.453951Z",
+             *       "created_at": "2026-10-03T01:36:46.963686Z",
              *       "first_discovery_id": null,
-             *       "id": "8b009eb0-f256-4128-b214-9510accef89c",
+             *       "id": "f8867031-331e-4a32-9092-c6549b3fae1d",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-03T00:17:29.453951Z",
+             *       "last_seen_at": "2026-10-03T01:36:46.963686Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-10-03T00:17:29.453951Z",
-             *       "valid_from": "2026-10-03T00:17:29.453951Z",
+             *       "updated_at": "2026-10-03T01:36:46.963686Z",
+             *       "valid_from": "2026-10-03T01:36:46.963686Z",
              *       "valid_to": null
              *     }
              */
@@ -4327,19 +4367,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-03T00:17:29.436043Z",
+             *               "created_at": "2026-10-03T01:36:46.941457Z",
              *               "first_discovery_id": null,
-             *               "id": "72ed9c0b-a88e-407b-a013-eb52dc8e9f55",
+             *               "id": "390a1a63-81f1-4b4b-a8fc-437989c4e0e6",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-03T00:17:29.436043Z",
+             *               "last_seen_at": "2026-10-03T01:36:46.941457Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-10-03T00:17:29.436043Z",
-             *               "valid_from": "2026-10-03T00:17:29.436043Z",
+             *               "updated_at": "2026-10-03T01:36:46.941457Z",
+             *               "valid_from": "2026-10-03T01:36:46.941457Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4353,7 +4393,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Rocket.Chat",
+             *           "service_definition": "ESPHome",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5272,19 +5312,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-03T00:17:29.449865Z",
+             *           "created_at": "2026-10-03T01:36:46.958916Z",
              *           "first_discovery_id": null,
-             *           "id": "55b665ba-6fb2-4df2-a29b-62c108b87a76",
+             *           "id": "6a1d749a-0fc0-4fc0-966d-7b3d31a55497",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-03T00:17:29.449865Z",
+             *           "last_seen_at": "2026-10-03T01:36:46.958916Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-10-03T00:17:29.449865Z",
-             *           "valid_from": "2026-10-03T00:17:29.449865Z",
+             *           "updated_at": "2026-10-03T01:36:46.958916Z",
+             *           "valid_from": "2026-10-03T01:36:46.958916Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5298,7 +5338,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Rocket.Chat",
+             *       "service_definition": "ESPHome",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6400,19 +6440,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-03T00:17:29.436456Z",
+         *       "created_at": "2026-10-03T01:36:46.942072Z",
          *       "first_discovery_id": null,
-         *       "id": "c1bc7c91-348a-4386-a207-9644391219c3",
+         *       "id": "ff95208b-e63f-49e3-b253-7c97c53c8a1c",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-03T00:17:29.436456Z",
+         *       "last_seen_at": "2026-10-03T01:36:46.942072Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-10-03T00:17:29.436456Z",
-         *       "valid_from": "2026-10-03T00:17:29.436456Z",
+         *       "updated_at": "2026-10-03T01:36:46.942072Z",
+         *       "valid_from": "2026-10-03T01:36:46.942072Z",
          *       "valid_to": null
          *     }
          */
@@ -6740,7 +6780,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Rocket.Chat",
+         *           "service_definition": "ESPHome",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -9251,19 +9291,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-03T00:17:29.435589Z",
+         *               "created_at": "2026-10-03T01:36:46.940775Z",
          *               "first_discovery_id": null,
-         *               "id": "7bb6ce91-ed08-43c5-9afb-f3d0eadb093a",
+         *               "id": "1963a61a-c254-4894-887a-b5e61dc49a60",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-03T00:17:29.435589Z",
+         *               "last_seen_at": "2026-10-03T01:36:46.940775Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-10-03T00:17:29.435589Z",
-         *               "valid_from": "2026-10-03T00:17:29.435589Z",
+         *               "updated_at": "2026-10-03T01:36:46.940775Z",
+         *               "valid_from": "2026-10-03T01:36:46.940775Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9277,7 +9317,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Rocket.Chat",
+         *           "service_definition": "ESPHome",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -12310,19 +12350,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-03T00:17:29.436329Z",
+         *           "created_at": "2026-10-03T01:36:46.941891Z",
          *           "first_discovery_id": null,
-         *           "id": "a0dcb1bc-4f05-4d73-ba63-16d0d1212ab6",
+         *           "id": "f0e2156c-1511-46bf-a0fc-31813d363dde",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-03T00:17:29.436329Z",
+         *           "last_seen_at": "2026-10-03T01:36:46.941891Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-10-03T00:17:29.436329Z",
-         *           "valid_from": "2026-10-03T00:17:29.436329Z",
+         *           "updated_at": "2026-10-03T01:36:46.941891Z",
+         *           "valid_from": "2026-10-03T01:36:46.941891Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12336,7 +12376,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Rocket.Chat",
+         *       "service_definition": "ESPHome",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -13094,7 +13134,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "5e1aeabc-6ae9-494e-915b-447df1d150b3",
+             *           "id": "b5c5cd1a-c2f5-4128-a883-6a202387e6e9",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13104,23 +13144,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "1ba3ec6a-af93-4bb5-bd9b-91269bb257f3",
+             *           "id": "7a00ec91-7014-4e88-aad0-32420ac4fbb3",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "67102cde-76d2-4724-a8d0-ec72af586c0e",
+             *           "id": "7447f888-8401-4a6e-aad3-d5b3416823aa",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "142a0c8a-d205-420b-bb4e-1abe73dfb0d3",
+             *           "id": "fb7c21b1-e8ef-4a0e-af4e-44507d630783",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "1ba3ec6a-af93-4bb5-bd9b-91269bb257f3",
+             *           "id": "7a00ec91-7014-4e88-aad0-32420ac4fbb3",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13133,19 +13173,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "42b63542-6d85-4c83-9b56-17d566078557",
+             *         "id": "c8771d46-f2ff-4579-9e2d-347da9b90e3f",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "07c3ecaf-e179-432b-a32b-877ad2b35166",
+             *         "id": "9077334a-a0bd-4a58-8cf6-022623269f6d",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "d9f339d4-2e54-4a95-b903-0a5f74a1de52",
+             *         "id": "acd6c721-6cf4-496e-9f28-c70e90688093",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "8a3a2443-db9f-4d8e-b451-d7e0101d07e6",
+             *         "id": "86a990ed-4fc2-4e8c-beb7-204694b23dbe",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13163,7 +13203,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "77ee3613-9faa-4219-a280-e0662ba15e78",
+             *         "id": "fe921b8c-ca8c-449a-bf31-65a0184c3990",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13172,15 +13212,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "d0a611f3-b216-456b-9d2a-5387896b83a0",
+             *         "id": "4d1042f0-8ff1-43f2-9de1-a7873429b722",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "804e4ff0-9e30-4162-aeca-8670fa5e02ed",
+             *         "id": "9663940b-2c9c-4608-b596-06476aefe457",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "4421bd6b-0ac4-4260-8d62-603300aaf137",
+             *         "id": "2e63a2f1-2649-4f5b-a243-1d6a4e6b30de",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -17216,6 +17256,70 @@ export interface operations {
             };
         };
     };
+    get_discovery_field_values: {
+        parameters: {
+            query?: {
+                /** @description Filter by network ID. Repeat the parameter to pass several. */
+                network_ids?: string[] | null;
+                /** @description Filter by daemon ID. Repeat the parameter to pass several. */
+                daemon_ids?: string[] | null;
+                /** @description Only runs of one of these discovery types. */
+                discovery_types?: string[] | null;
+                /**
+                 * @description Only runs that ended in one of these phases (`run_type.results.phase`). Repeat for
+                 *     several. Configurations, which have no recorded outcome, never match.
+                 */
+                phases?: components["schemas"]["DiscoveryPhase"][] | null;
+                /**
+                 * @description `true` returns only completed runs (the history view), `false` only the
+                 *     configurations that produce them. Omit for both.
+                 */
+                historical?: boolean | null;
+                /**
+                 * @description Free-text search across the discovery's name and the name of the daemon
+                 *     that runs it.
+                 */
+                search?: string | null;
+                /** @description Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
+                group_by?: null | components["schemas"]["DiscoveryOrderField"];
+                /** @description Secondary ordering field (sorting within groups or standalone sort). */
+                order_by?: null | components["schemas"]["DiscoveryOrderField"];
+                /** @description Direction for order_by field (group_by always uses ASC). */
+                order_direction?: null | components["schemas"]["OrderDirection"];
+                /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
+                limit?: number | null;
+                /** @description Number of results to skip. Default: 0. */
+                offset?: number | null;
+            };
+            header?: never;
+            path: {
+                /** @description The field whose values to count */
+                field: components["schemas"]["DiscoveryOrderField"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Distinct values and their Discovery counts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                };
+            };
+            /** @description Unknown field */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
     start_session: {
         parameters: {
             query?: never;
@@ -17432,6 +17536,11 @@ export interface operations {
                 /** @description Filter by the service virtualizing the host. Repeat for several. */
                 virtualization_service_ids?: string[] | null;
                 /**
+                 * @description Filter by the name of the service virtualizing the host, the value "Virtualized By"
+                 *     groups on. Repeat for several.
+                 */
+                virtualization_service_names?: string[] | null;
+                /**
                  * @description `true` also returns hosts nothing virtualizes. Set on its own it returns
                  *     only those — the "Not Virtualized" choice in the UI's filter.
                  */
@@ -17636,6 +17745,11 @@ export interface operations {
                 /** @description Filter by the service virtualizing the host. Repeat for several. */
                 virtualization_service_ids?: string[] | null;
                 /**
+                 * @description Filter by the name of the service virtualizing the host, the value "Virtualized By"
+                 *     groups on. Repeat for several.
+                 */
+                virtualization_service_names?: string[] | null;
+                /**
                  * @description `true` also returns hosts nothing virtualizes. Set on its own it returns
                  *     only those — the "Not Virtualized" choice in the UI's filter.
                  */
@@ -17731,6 +17845,11 @@ export interface operations {
                 /** @description Filter by the service virtualizing the host. Repeat for several. */
                 virtualization_service_ids?: string[] | null;
                 /**
+                 * @description Filter by the name of the service virtualizing the host, the value "Virtualized By"
+                 *     groups on. Repeat for several.
+                 */
+                virtualization_service_names?: string[] | null;
+                /**
                  * @description `true` also returns hosts nothing virtualizes. Set on its own it returns
                  *     only those — the "Not Virtualized" choice in the UI's filter.
                  */
@@ -17825,6 +17944,11 @@ export interface operations {
                 hidden?: boolean[] | null;
                 /** @description Filter by the service virtualizing the host. Repeat for several. */
                 virtualization_service_ids?: string[] | null;
+                /**
+                 * @description Filter by the name of the service virtualizing the host, the value "Virtualized By"
+                 *     groups on. Repeat for several.
+                 */
+                virtualization_service_names?: string[] | null;
                 /**
                  * @description `true` also returns hosts nothing virtualizes. Set on its own it returns
                  *     only those — the "Not Virtualized" choice in the UI's filter.
@@ -19744,6 +19868,11 @@ export interface operations {
                 /** @description Filter by the service containerizing this one. Repeat for several. */
                 virtualization_service_ids?: string[] | null;
                 /**
+                 * @description Filter by the name of the service containerizing this one, the value "Containerized"
+                 *     groups on. Repeat for several.
+                 */
+                virtualization_service_names?: string[] | null;
+                /**
                  * @description `true` also returns services nothing containerizes. Set on its own it
                  *     returns only those — the "Not Containerized" choice in the UI's filter.
                  */
@@ -19877,6 +20006,11 @@ export interface operations {
                 /** @description Filter by the service containerizing this one. Repeat for several. */
                 virtualization_service_ids?: string[] | null;
                 /**
+                 * @description Filter by the name of the service containerizing this one, the value "Containerized"
+                 *     groups on. Repeat for several.
+                 */
+                virtualization_service_names?: string[] | null;
+                /**
                  * @description `true` also returns services nothing containerizes. Set on its own it
                  *     returns only those — the "Not Containerized" choice in the UI's filter.
                  */
@@ -19934,6 +20068,98 @@ export interface operations {
                 };
                 content: {
                     "text/csv": string;
+                };
+            };
+        };
+    };
+    get_service_field_values: {
+        parameters: {
+            query?: {
+                /** @description Filter by network ID. Repeat the parameter to pass several. */
+                network_ids?: string[] | null;
+                /** @description Filter by host ID. Repeat the parameter to pass several. */
+                host_ids?: string[] | null;
+                /** @description Filter by specific entity IDs (for selective loading) */
+                ids?: string[] | null;
+                /** @description Only services with one of these definitions. */
+                service_definitions?: string[] | null;
+                /** @description Filter by the service containerizing this one. Repeat for several. */
+                virtualization_service_ids?: string[] | null;
+                /**
+                 * @description Filter by the name of the service containerizing this one, the value "Containerized"
+                 *     groups on. Repeat for several.
+                 */
+                virtualization_service_names?: string[] | null;
+                /**
+                 * @description `true` also returns services nothing containerizes. Set on its own it
+                 *     returns only those — the "Not Containerized" choice in the UI's filter.
+                 */
+                include_uncontainerized?: boolean | null;
+                /** @description Filter by how the service came to exist (`source.type`). Repeat for several. */
+                sources?: components["schemas"]["EntitySourceDiscriminants"][] | null;
+                /**
+                 * @description Filter by match confidence (`source.details.confidence`). Repeat for several. Only
+                 *     services discovery matched to a definition carry one.
+                 */
+                match_confidences?: components["schemas"]["MatchConfidence"][] | null;
+                /** @description Filter by tag IDs (returns services that have ANY of the specified tags) */
+                tag_ids?: string[] | null;
+                /**
+                 * @description Free-text search. Case-insensitive substring match against the service's
+                 *     name and definition, and against the name of the host it runs on.
+                 */
+                search?: string | null;
+                /** @description Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
+                group_by?: null | components["schemas"]["ServiceOrderField"];
+                /** @description Secondary ordering field (sorting within groups or standalone sort). */
+                order_by?: null | components["schemas"]["ServiceOrderField"];
+                /** @description Direction for order_by field (group_by always uses ASC). */
+                order_direction?: null | components["schemas"]["OrderDirection"];
+                /** @description Only services exposed on one of these port numbers, over either protocol. */
+                ports?: number[] | null;
+                /** @description Exclude services belonging to these categories. */
+                exclude_categories?: components["schemas"]["ServiceCategory"][] | null;
+                /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
+                limit?: number | null;
+                /** @description Number of results to skip. Default: 0. */
+                offset?: number | null;
+                /**
+                 * @description As-of timestamp (ISO 8601). When set, returns SCD2 state as of this
+                 *     instant (snapshot view) instead of live state.
+                 */
+                at?: string | null;
+                /**
+                 * @description `true` returns only services discovery hasn't observed within their
+                 *     network's staleness window; `false` returns only those it has. Omit for
+                 *     both. Evaluated per row against the service's own network's window.
+                 */
+                stale?: boolean | null;
+            };
+            header?: never;
+            path: {
+                /** @description The field whose values to count */
+                field: components["schemas"]["ServiceOrderField"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Distinct values and their Service counts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                };
+            };
+            /** @description Unknown field */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
         };
