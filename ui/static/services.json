@@ -4,6 +4,7 @@
     "color": "Blue",
     "description": "User invitation and management system for Jellyfin, Plex, Emby etc",
     "discovery_pattern": "Endpoint response body from <ip>:5690/static/manifest.json contains \"Wizarr\"",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/wizarr.svg",
     "name": "Wizarr"
@@ -13,6 +14,7 @@
     "color": "Blue",
     "description": "A TV collection manager for Usenet and BitTorrent users.",
     "discovery_pattern": "Endpoint response body from <ip>:8989/Content/manifest.json contains \"Sonarr\"",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/sonarr.svg",
     "name": "Sonarr"
@@ -22,6 +24,7 @@
     "color": "Blue",
     "description": "A movie collection manager for Usenet and BitTorrent users.",
     "discovery_pattern": "Any of: (Endpoint response body from <ip>:7878/Content/manifest.json contains \"Radarr\", Endpoint response body from <ip>:9898/Content/manifest.json contains \"Radarr\")",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/radarr.svg",
     "name": "Radarr"
@@ -31,6 +34,7 @@
     "color": "Blue",
     "description": "Cross-platform open-source BitTorrent client",
     "discovery_pattern": "Any of: (Endpoint response body from <ip>:8080/ contains \"qBittorrent logo\", Endpoint response body from <ip>:8090/ contains \"qBittorrent logo\")",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/qbittorrent.svg",
     "name": "qBittorrent"
@@ -40,6 +44,7 @@
     "color": "Blue",
     "description": "The Ultimate Indexer Manager.",
     "discovery_pattern": "Endpoint response body from <ip>:3232/Content/Images/Icons/manifest.json contains \"Prowlarr\"",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/prowlarr.svg",
     "name": "Prowlarr"
@@ -49,6 +54,7 @@
     "color": "Yellow",
     "description": "A Simple OIDC provider that uses passkeys for authentication",
     "discovery_pattern": "Endpoint response body from <ip>:1411/app.webmanifest contains \"Pocket ID\"",
+    "icon": "key-round",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/pocket-id-light.svg",
     "name": "Pocket ID"
@@ -58,6 +64,7 @@
     "color": "Orange",
     "description": "A tiny dashboard for Network UPS Tools",
     "discovery_pattern": "Endpoint response body from <ip>:8080/api/v1/info contains \"peanut\"",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/peanut.svg",
     "name": "PeaNUT"
@@ -67,6 +74,7 @@
     "color": "Blue",
     "description": "Community-supported document management system",
     "discovery_pattern": "Endpoint response body from <ip>:8000/static/frontend/en-US/manifest.webmanifest contains \"Paperless-ngx\"",
+    "icon": "file-text",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/paperless-ngx.svg",
     "name": "Paperless-NGX"
@@ -76,6 +84,7 @@
     "color": "Red",
     "description": "Open, extensible, user-friendly ip_address for AI",
     "discovery_pattern": "Endpoint response body from <ip>:8080/manifest.json contains \"Open WebUI\"",
+    "icon": "code",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/open-webui-light.svg",
     "name": "Open WebUI"
@@ -85,6 +94,7 @@
     "color": "Red",
     "description": "An easy way to get up and running with LLMs.",
     "discovery_pattern": "Endpoint response body from <ip>:11434/ contains \"Ollama is running\"",
+    "icon": "code",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/ollama-dark.svg",
     "name": "Ollama"
@@ -94,6 +104,7 @@
     "color": "Orange",
     "description": "Network UPS Tools",
     "discovery_pattern": "All of: (3493/tcp is open, Client probe Nut succeeded)",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/nut.svg",
     "name": "NUT"
@@ -103,6 +114,7 @@
     "color": "Green",
     "description": "PXE Boot Server",
     "discovery_pattern": "Endpoint response body from <ip>:61208/ contains \"Netbootxyz\"",
+    "icon": "hard-drive",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/netbootxyz.svg",
     "name": "Netbootxyz"
@@ -112,6 +124,7 @@
     "color": "Blue",
     "description": "An open-source, self-hosted note-taking service.",
     "discovery_pattern": "Endpoint response body from <ip>:5230/explore contains \"Memos\"",
+    "icon": "file-text",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/memos.png",
     "name": "Memos"
@@ -121,6 +134,7 @@
     "color": "Blue",
     "description": "A self-hosted recipe manager and meal planner",
     "discovery_pattern": "All of: (Endpoint response body from <ip>:9000/ contains \"Mealie\", Endpoint response body from <ip>:9000/ contains \"recipe\")",
+    "icon": "house",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/mealie.svg",
     "name": "Mealie"
@@ -130,6 +144,7 @@
     "color": "Blue",
     "description": "Self-hosted YouTube downloader",
     "discovery_pattern": "Endpoint response body from <ip>:8081/manifest.webmanifest contains \"MeTube\"",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/metube.svg",
     "name": "MeTube"
@@ -139,6 +154,7 @@
     "color": "Blue",
     "description": "Vehicle Maintenance Records and Fuel Mileage Tracker",
     "discovery_pattern": "Endpoint response body from <ip>:8080/ contains \"Garage - LubeLogger\"",
+    "icon": "house",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/lubelogger.png",
     "name": "Lubelogger"
@@ -148,6 +164,7 @@
     "color": "Blue",
     "description": "A music collection manager for Usenet and BitTorrent users.",
     "discovery_pattern": "Endpoint response body from <ip>:8686/Content/manifest.json contains \"Lidarr\"",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/lidarr.svg",
     "name": "Lidarr"
@@ -157,6 +174,7 @@
     "color": "Blue",
     "description": "The Bookmark Everything App",
     "discovery_pattern": "Endpoint response body from <ip>:3000/manifest.json contains \"Karakeep\"",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/karakeep.svg",
     "name": "Karakeep"
@@ -166,6 +184,7 @@
     "color": "Blue",
     "description": "A simple, self-hosted app for your checklists and notes",
     "discovery_pattern": "Endpoint response body from <ip>:3000/site.webmanifest contains \"jotty\"",
+    "icon": "file-text",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jotty.svg",
     "name": "Jotty"
@@ -175,6 +194,7 @@
     "color": "Blue",
     "description": "Finds missing media and upgrades your existing content.",
     "discovery_pattern": "9705/tcp is open",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/huntarr.png",
     "name": "Huntarr"
@@ -184,6 +204,7 @@
     "color": "Blue",
     "description": "Web-based self-hosted groceries & household management solution",
     "discovery_pattern": "Any of: (Endpoint response body from <ip>:80/ contains \"grocy.css\", Endpoint response body from <ip>:443/ contains \"grocy.css\")",
+    "icon": "house",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/grocy.svg",
     "name": "Grocy"
@@ -193,6 +214,7 @@
     "color": "Purple",
     "description": "A free, self-hostable news aggregator",
     "discovery_pattern": "Endpoint response body from <ip>:80/themes/manifest.json contains \"FreshRSS feed aggregator\"",
+    "icon": "pen-line",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/freshrss.svg",
     "name": "FreshRSS"
@@ -202,6 +224,7 @@
     "color": "Blue",
     "description": "Open-source personal finance manager",
     "discovery_pattern": "Any of: (Endpoint response from <ip> has header \"set-cookie\" with value \"firefly_iii_session\", Endpoint response body from <ip>:8080/ contains \"Login to Firefly III\", Endpoint response body from <ip>:80/ contains \"Login to Firefly III\", Endpoint response body from <ip>:443/ contains \"Login to Firefly III\")",
+    "icon": "file-text",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/firefly-iii.svg",
     "name": "Firefly III"
@@ -211,6 +234,7 @@
     "color": "Indigo",
     "description": "Open-source collaborative wiki and documentation platform",
     "discovery_pattern": "Any of: (Endpoint response body from <ip>:3000/ contains \"<title>Docmost</title>\", Endpoint response body from <ip>:80/ contains \"<title>Docmost</title>\", Endpoint response body from <ip>:443/ contains \"<title>Docmost</title>\")",
+    "icon": "square-kanban",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/docmost.png",
     "name": "Docmost"
@@ -220,6 +244,7 @@
     "color": "Blue",
     "description": "Torrent cleanup tool for Sonarr and Radarr",
     "discovery_pattern": "Endpoint response body from <ip>:11011/ contains \"<title>Cleanuparr</title>\"",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/cleanuperr.svg",
     "name": "Cleanuparr"
@@ -229,6 +254,7 @@
     "color": "Gray",
     "description": "Web UI and orchestrator for Restic",
     "discovery_pattern": "Endpoint response body from <ip>:9898/ contains \"BackRest\"",
+    "icon": "database-backup",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/backrest-light.svg",
     "name": "BackRest"
@@ -238,6 +264,7 @@
     "color": "Blue",
     "description": "The modern autodl-irssi replacement.",
     "discovery_pattern": "Endpoint response body from <ip>:7474/ contains \"autobrr\"",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/autobrr.svg",
     "name": "Autobrr"
@@ -247,6 +274,7 @@
     "color": "Blue",
     "description": "A local-first personal finance app",
     "discovery_pattern": "Endpoint response body from <ip>:5006/manifest.webmanifest contains \"@actual-app/web\"",
+    "icon": "file-text",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/actual-budget.svg",
     "name": "Actual Budget"
@@ -256,6 +284,7 @@
     "color": "Gray",
     "description": "A generic printing service",
     "discovery_pattern": "Endpoint response from <ip>:631 has header \"server\" with value \"CUPS\"",
+    "icon": "printer",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Print Server"
@@ -265,6 +294,7 @@
     "color": "Gray",
     "description": "HP JetDirect RAW printing protocol",
     "discovery_pattern": "9100/tcp is open",
+    "icon": "printer",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "JetDirect"
@@ -274,6 +304,7 @@
     "color": "Gray",
     "description": "An HP Printer",
     "discovery_pattern": "All of: (Any of: (Endpoint response body from <ip>:80 contains \"LaserJet\", Endpoint response body from <ip>:80 contains \"DeskJet\", Endpoint response body from <ip>:80 contains \"OfficeJet\", Endpoint response body from <ip>:8080 contains \"LaserJet\", Endpoint response body from <ip>:8080 contains \"DeskJet\", Endpoint response body from <ip>:8080 contains \"OfficeJet\"), Any of: (631/tcp is open, 515/tcp is open))",
+    "icon": "printer",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/hp.svg",
     "name": "HP Printer"
@@ -283,6 +314,7 @@
     "color": "Gray",
     "description": "Common Unix Printing System",
     "discovery_pattern": "All of: (631/tcp is open, Endpoint response body from <ip>:80/ contains \"CUPS\")",
+    "icon": "printer",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/cups.svg",
     "name": "CUPS"
@@ -292,6 +324,7 @@
     "color": "Gray",
     "description": "A network printer advertising AirPrint",
     "discovery_pattern": "Any of: (Host advertises '_ipp._tcp' over mDNS, Host advertises '_pdl-datastream._tcp' over mDNS)",
+    "icon": "printer",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/printer.svg",
     "name": "AirPrint Printer"
@@ -301,6 +334,7 @@
     "color": "Orange",
     "description": "Vendor-neutral industrial interoperability protocol for plant and process data",
     "discovery_pattern": "All of: (4840/tcp is open, Client probe OpcUa succeeded)",
+    "icon": "factory",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "OPC UA"
@@ -310,6 +344,7 @@
     "color": "Orange",
     "description": "Industrial fieldbus protocol used by PLCs, drives, and serial gateways",
     "discovery_pattern": "All of: (502/tcp is open, Client probe ModbusTcp succeeded)",
+    "icon": "factory",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Modbus TCP"
@@ -319,6 +354,7 @@
     "color": "Orange",
     "description": "CIP-based industrial protocol used by Rockwell and Allen-Bradley automation equipment",
     "discovery_pattern": "All of: (44818/udp is open, Client probe EtherNetIp succeeded)",
+    "icon": "factory",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "EtherNet/IP"
@@ -328,6 +364,7 @@
     "color": "Orange",
     "description": "Building automation and control network protocol",
     "discovery_pattern": "47808/udp is open",
+    "icon": "factory",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "BACnet"
@@ -337,6 +374,7 @@
     "color": "Yellow",
     "description": "Wiz IoT Devices",
     "discovery_pattern": "MAC Address belongs to WiZ",
+    "icon": "circuit-board",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/wiz.svg",
     "name": "Wiz"
@@ -346,6 +384,7 @@
     "color": "Yellow",
     "description": "Tuya Smart IoT Devices",
     "discovery_pattern": "All of: (MAC Address belongs to Tuya Smart Inc., 6668/tcp is open)",
+    "icon": "circuit-board",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/tuya-smart-inc.svg",
     "name": "Tuya Smart"
@@ -355,6 +394,7 @@
     "color": "Yellow",
     "description": "ESP device firmware",
     "discovery_pattern": "No match pattern provided",
+    "icon": "circuit-board",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/tasmota.svg",
     "name": "Tasmota"
@@ -364,6 +404,7 @@
     "color": "Yellow",
     "description": "Sonos wireless speaker system",
     "discovery_pattern": "All of: (MAC Address belongs to Sonos, Inc., Any of: (Host advertises '_sonos._tcp' over mDNS, 445/tcp is open, 3445/tcp is open, 1400/tcp is open, 1410/tcp is open, 1843/tcp is open, 3400/tcp is open, 3401/tcp is open, 3500/tcp is open))",
+    "icon": "circuit-board",
     "logo_needs_white_background": true,
     "logo_url": "https://simpleicons.org/icons/sonos.svg",
     "name": "Sonos Speaker"
@@ -373,6 +414,7 @@
     "color": "Yellow",
     "description": "Roku streaming device or TV",
     "discovery_pattern": "All of: (MAC Address belongs to Roku, Inc, Any of: (8060/tcp is open, Host advertises '_airplay._tcp' over mDNS))",
+    "icon": "circuit-board",
     "logo_needs_white_background": true,
     "logo_url": "https://simpleicons.org/icons/roku.svg",
     "name": "Roku Media Player"
@@ -382,6 +424,7 @@
     "color": "Yellow",
     "description": "Roborock robot vacuum cleaner",
     "discovery_pattern": "All of: (MAC Address belongs to Beijing Roborock Technology Co., Ltd., 58867/tcp is open)",
+    "icon": "circuit-board",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.prod.website-files.com/6720fa7290112f642d0a83ac/674de5c03f0d05e27b16b2cf_roborock_logo.webp",
     "name": "Roborock Vacuum"
@@ -391,6 +434,7 @@
     "color": "Yellow",
     "description": "Ring video doorbell or security camera",
     "discovery_pattern": "All of: (MAC Address belongs to Amazon Technologies Inc., Any of: (8557/tcp is open, 9998/tcp is open, 19302/tcp is open, 9999/tcp is open))",
+    "icon": "circuit-board",
     "logo_needs_white_background": true,
     "logo_url": "https://simpleicons.org/icons/ring.svg",
     "name": "Ring Doorbell"
@@ -400,6 +444,7 @@
     "color": "Yellow",
     "description": "Google Nest smart thermostat",
     "discovery_pattern": "All of: (Any of: (MAC Address belongs to Nest Labs Inc., MAC Address belongs to Google, Inc.), 9543/tcp is open)",
+    "icon": "circuit-board",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/google-home.svg",
     "name": "Nest Thermostat"
@@ -409,6 +454,7 @@
     "color": "Yellow",
     "description": "Google Nest smoke and CO detector",
     "discovery_pattern": "All of: (Any of: (MAC Address belongs to Nest Labs Inc., MAC Address belongs to Google, Inc.), 11095/tcp is open)",
+    "icon": "circuit-board",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/google-home.svg",
     "name": "Nest Protect"
@@ -418,6 +464,7 @@
     "color": "Yellow",
     "description": "A generic IoT Service",
     "discovery_pattern": "No match pattern provided",
+    "icon": "circuit-board",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "IoT"
@@ -427,6 +474,7 @@
     "color": "Blue",
     "description": "Apple smart speaker and HomeKit hub",
     "discovery_pattern": "Host advertises '_airplay._tcp' over mDNS with model=AudioAccessory…",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/apple.svg",
     "name": "HomePod"
@@ -436,6 +484,7 @@
     "color": "Yellow",
     "description": "A device speaking the HomeKit Accessory Protocol",
     "discovery_pattern": "All of: (Host advertises '_hap._tcp' over mDNS, Not (Host advertises '_airplay._tcp' over mDNS))",
+    "icon": "circuit-board",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/apple.svg",
     "name": "HomeKit Accessory"
@@ -445,6 +494,7 @@
     "color": "Yellow",
     "description": "Google Home smart speaker or display",
     "discovery_pattern": "All of: (Any of: (MAC Address belongs to Nest Labs Inc., MAC Address belongs to Google, Inc.), Any of: (All of: (8008/tcp is open, 8009/tcp is open), Host advertises '_googlecast._tcp' over mDNS))",
+    "icon": "circuit-board",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/google-home.svg",
     "name": "Google Home"
@@ -454,6 +504,7 @@
     "color": "Yellow",
     "description": "NVR with realtime object detection for IP Cameras",
     "discovery_pattern": "Any of: (Endpoint response body from <ip>:443/ contains \"<title>Frigate</title>\", Endpoint response body from <ip>:5000/ contains \"<title>Frigate</title>\")",
+    "icon": "circuit-board",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/frigate.svg",
     "name": "Frigate"
@@ -463,6 +514,7 @@
     "color": "Yellow",
     "description": "Google Chromecast streaming device",
     "discovery_pattern": "All of: (MAC Address belongs to Google, Inc., Any of: (Host advertises '_googlecast._tcp' over mDNS, All of: (8008/tcp is open, 8009/tcp is open)))",
+    "icon": "circuit-board",
     "logo_needs_white_background": true,
     "logo_url": "https://simpleicons.org/icons/googlecast.svg",
     "name": "Chromecast"
@@ -472,6 +524,7 @@
     "color": "Yellow",
     "description": "Camera with RTSP Streaming",
     "discovery_pattern": "All of: (554/tcp is open, Client probe Rtsp succeeded)",
+    "icon": "circuit-board",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "RTSP Camera"
@@ -481,6 +534,7 @@
     "color": "Blue",
     "description": "Apple set-top box and HomeKit hub",
     "discovery_pattern": "Host advertises '_airplay._tcp' over mDNS with model=AppleTV…",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/apple.svg",
     "name": "Apple TV"
@@ -490,6 +544,7 @@
     "color": "Yellow",
     "description": "Amazon Echo smart speaker",
     "discovery_pattern": "All of: (MAC Address belongs to Amazon Technologies Inc., 40317/tcp is open)",
+    "icon": "circuit-board",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/alexa.svg",
     "name": "Amazon Echo"
@@ -499,6 +554,7 @@
     "color": "Blue",
     "description": "A generic client device that initiates connections to services",
     "discovery_pattern": "No match pattern provided",
+    "icon": "smartphone",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Client"
@@ -508,6 +564,7 @@
     "color": "Green",
     "description": "Desktop computer for productivity work",
     "discovery_pattern": "All of: (Client probe Rdp succeeded, Client probe Smb succeeded)",
+    "icon": "monitor",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Workstation"
@@ -517,6 +574,7 @@
     "color": "Orange",
     "description": "Session initiation protocol",
     "discovery_pattern": "All of: (5060/tcp is open, Client probe Sip succeeded)",
+    "icon": "phone",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "SIP Server"
@@ -526,6 +584,7 @@
     "color": "Rose",
     "description": "Open-source mail server suite (Dockerized)",
     "discovery_pattern": "Endpoint response body from <ip>:443/api/v1/get/status contains \"mailcow\"",
+    "icon": "mail",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/mailcow.svg",
     "name": "mailcow"
@@ -535,6 +594,7 @@
     "color": "Teal",
     "description": "Video conferencing",
     "discovery_pattern": "Endpoint response body from <ip>:8443/ contains \"jitsilogo.png\"",
+    "icon": "video",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jitsi-meet.svg",
     "name": "Jitsi Meet"
@@ -544,6 +604,7 @@
     "color": "Orange",
     "description": "PBX web ip_address",
     "discovery_pattern": "All of: (Endpoint response body from <ip>:80/ contains \"freepbx\", 5060/tcp is open)",
+    "icon": "phone",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/freepbx.svg",
     "name": "FreePBX"
@@ -553,6 +614,7 @@
     "color": "Teal",
     "description": "Web conferencing system",
     "discovery_pattern": "Endpoint response status is between 200 and 300, and response body from <ip>:80/bigbluebutton/api contains \"\"",
+    "icon": "video",
     "logo_needs_white_background": false,
     "logo_url": "https://simpleicons.org/icons/bigbluebutton.svg",
     "name": "BigBlueButton"
@@ -562,6 +624,7 @@
     "color": "Orange",
     "description": "PBX and VoIP server",
     "discovery_pattern": "Endpoint response body from <ip>:8088/httpstatus contains \"asterisk\"",
+    "icon": "phone",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/asterisk.png",
     "name": "Asterisk"
@@ -571,6 +634,7 @@
     "color": "Orange",
     "description": "Distributed tracing system",
     "discovery_pattern": "Endpoint response body from <ip>:9411/api/v2/services contains \"\"",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Zipkin"
@@ -580,6 +644,7 @@
     "color": "Orange",
     "description": "Monitoring agent for Zabbix server",
     "discovery_pattern": "All of: (10050/tcp is open, Client probe ZabbixAgent succeeded)",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/zabbix.svg",
     "name": "Zabbix Agent"
@@ -589,6 +654,7 @@
     "color": "Orange",
     "description": "Enterprise monitoring solution",
     "discovery_pattern": "Endpoint response body from <ip>:80/zabbix contains \"zabbix\"",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/zabbix.svg",
     "name": "Zabbix"
@@ -598,6 +664,7 @@
     "color": "Orange",
     "description": "Security platform",
     "discovery_pattern": "Endpoint response body from <ip>:55000/ contains \"wazuh\"",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/wazuh.svg",
     "name": "Wazuh"
@@ -607,6 +674,7 @@
     "color": "Orange",
     "description": "Self-hosted uptime monitoring tool",
     "discovery_pattern": "Endpoint response body from <ip>:80/ contains \"Uptime Kuma\"",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/uptime-kuma.svg",
     "name": "UptimeKuma"
@@ -616,6 +684,7 @@
     "color": "Orange",
     "description": "Data analytics platform",
     "discovery_pattern": "Endpoint response body from <ip>:8000/ contains \"splunk\"",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/splunk.svg",
     "name": "Splunk"
@@ -625,6 +694,7 @@
     "color": "Orange",
     "description": "Error tracking platform",
     "discovery_pattern": "Endpoint response body from <ip>:9000/api/0/ contains \"sentry\"",
+    "icon": "activity",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/sentry.svg",
     "name": "Sentry"
@@ -634,6 +704,7 @@
     "color": "Orange",
     "description": "Monitoring framework",
     "discovery_pattern": "Endpoint response body from <ip>:4567/health contains \"sensu\"",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/sensu.svg",
     "name": "Sensu"
@@ -643,6 +714,7 @@
     "color": "Orange",
     "description": "Proxmox node/cluster/VM/LXC monitor",
     "discovery_pattern": "Endpoint response body from <ip>:7655/ contains \"Pulse\"",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/pulse.svg",
     "name": "Pulse"
@@ -652,6 +724,7 @@
     "color": "Orange",
     "description": "Agent which ships logs to Grafana Loki",
     "discovery_pattern": "Any of: (Endpoint response body from <ip>:9080/metrics contains \"promtail_build_info\", Endpoint response body from <ip>:9080/targets contains \"Promtail\")",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/loki.svg",
     "name": "Promtail"
@@ -661,6 +734,7 @@
     "color": "Orange",
     "description": "Prometheus exporter for hardware and OS metrics",
     "discovery_pattern": "Endpoint response body from <ip>:9100/metrics contains \"node_exporter\"",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/prometheus.svg",
     "name": "Prometheus Node Exporter"
@@ -670,6 +744,7 @@
     "color": "Orange",
     "description": "Time-series monitoring and alerting system",
     "discovery_pattern": "Any of: (Endpoint response body from <ip>:80/metrics contains \"Prometheus\", Endpoint response body from <ip>:80/graph contains \"Prometheus\")",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/prometheus.svg",
     "name": "Prometheus"
@@ -679,6 +754,7 @@
     "color": "Orange",
     "description": "Self-hosted network speed test application",
     "discovery_pattern": "Any of: (Endpoint response body from <ip>:3000/ contains \"OpenSpeedTest-Server\", Endpoint response body from <ip>:3001/ contains \"OpenSpeedTest-Server\")",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/openspeedtest.svg",
     "name": "OpenSpeedTest"
@@ -688,6 +764,7 @@
     "color": "Orange",
     "description": "Prometheus exporter for Nvidia GPU metrics",
     "discovery_pattern": "Endpoint response body from <ip>:9835/metrics contains \"nvidia_gpu_exporter\"",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/nvidia.svg",
     "name": "Nvidia GPU Exporter"
@@ -697,6 +774,7 @@
     "color": "Orange",
     "description": "Real-time performance monitoring",
     "discovery_pattern": "Endpoint response body from <ip>:19999/api/v1/info contains \"netdata\"",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/netdata.svg",
     "name": "Netdata"
@@ -706,6 +784,7 @@
     "color": "Orange",
     "description": "Nagios Cross-Platform Agent for monitoring",
     "discovery_pattern": "Endpoint response body from <ip>:5693/ contains \"NCPA\"",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/nagios.svg",
     "name": "NCPA Agent"
@@ -715,6 +794,7 @@
     "color": "Orange",
     "description": "Infrastructure monitoring",
     "discovery_pattern": "Endpoint response body from <ip>:80/nagios contains \"nagios\"",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/nagios.svg",
     "name": "Nagios"
@@ -724,6 +804,7 @@
     "color": "Orange",
     "description": "Log aggregation system inspired by Prometheus",
     "discovery_pattern": "Any of: (Endpoint response body from <ip>:3100/metrics contains \"loki_build_info\")",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/loki.svg",
     "name": "Loki"
@@ -733,6 +814,7 @@
     "color": "Orange",
     "description": "Distributed tracing system",
     "discovery_pattern": "Endpoint response body from <ip>:16686/ contains \"jaeger\"",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jaeger.svg",
     "name": "Jaeger"
@@ -742,6 +824,7 @@
     "color": "Orange",
     "description": "Infrastructure monitoring",
     "discovery_pattern": "Endpoint response body from <ip>:5665/v1 contains \"icinga\"",
+    "icon": "activity",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/icinga.svg",
     "name": "Icinga"
@@ -751,6 +834,7 @@
     "color": "Orange",
     "description": "Security Information and Event Management (SIEM) solution and log analytics platform",
     "discovery_pattern": "All of: (Endpoint response from <ip> has header \"content-security-policy\" with value \"graylog\", Endpoint response body from <ip>:9000/ contains \"Graylog\")",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/graylog.svg",
     "name": "Graylog"
@@ -760,6 +844,7 @@
     "color": "Orange",
     "description": "Analytics and monitoring visualization platform",
     "discovery_pattern": "Any of: (Endpoint response body from <ip>:80/login contains \"app-grafana\", Endpoint response body from <ip>:3000/login contains \"app-grafana\", Endpoint response body from <ip>:80/ contains \"grafana.com\", Endpoint response body from <ip>:3000/ contains \"grafana.com\")",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/grafana.svg",
     "name": "Grafana"
@@ -769,6 +854,7 @@
     "color": "Orange",
     "description": "An open-source system cross-platform monitoring tool.",
     "discovery_pattern": "Endpoint response body from <ip>:61208/ contains \"Glances\"",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/glances.svg",
     "name": "Glances"
@@ -778,6 +864,7 @@
     "color": "Orange",
     "description": "Automated developer-oriented status page",
     "discovery_pattern": "Endpoint response body from <ip>:8080/manifest.json contains \"Gatus\"",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/gatus.svg",
     "name": "Gatus"
@@ -787,6 +874,7 @@
     "color": "Orange",
     "description": "Application performance monitoring",
     "discovery_pattern": "Endpoint response body from <ip>:8200/ contains \"apm\"",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/elastic.svg",
     "name": "Elastic APM"
@@ -796,6 +884,7 @@
     "color": "Orange",
     "description": "Monitor temperatures, fan speeds, and power in real time.",
     "discovery_pattern": "Endpoint response body from <ip>:11987/ contains \"CoolerControl\"",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/cooler-control.svg",
     "name": "CoolerControl"
@@ -805,6 +894,7 @@
     "color": "Orange",
     "description": "Monitoring agent for CheckMK server",
     "discovery_pattern": "All of: (6556/tcp is open, Client probe CheckMkAgent succeeded)",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/checkmk.svg",
     "name": "CheckMK Agent"
@@ -814,6 +904,7 @@
     "color": "Orange",
     "description": "Monitoring for container",
     "discovery_pattern": "Endpoint response body from <ip>:8080/api/v1.0/containers/ contains \"cAdvisor\"",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/cadvisor.png",
     "name": "cAdvisor"
@@ -823,6 +914,7 @@
     "color": "Orange",
     "description": "Lightweight server monitoring agent",
     "discovery_pattern": "All of: (45876/tcp is open, Client probe BeszelAgent succeeded)",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/beszel.svg",
     "name": "Beszel Agent"
@@ -832,6 +924,7 @@
     "color": "Orange",
     "description": "APC Network-Connected UPS",
     "discovery_pattern": "Endpoint response body from <ip>:80/ contains \"Schneider Electric\"",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/apc.svg",
     "name": "APC"
@@ -841,6 +934,7 @@
     "color": "Purple",
     "description": "A single pane of glass for managing clustered & non-clustered Proxmox nodes",
     "discovery_pattern": "Endpoint response body from <ip>:8443/ contains \"pdm-ui_bundle.js\"",
+    "icon": "layout-dashboard",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/proxmox.svg",
     "name": "Proxmox Datacenter Manager"
@@ -850,6 +944,7 @@
     "color": "Purple",
     "description": "A highly customizable link sharing platform",
     "discovery_pattern": "All of: (Endpoint response from <ip> has header \"set-cookie\" with value \"linkstack_session\", Endpoint response body from <ip>:8080/ contains \"LinkStack\")",
+    "icon": "layout-dashboard",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/linkstack.svg",
     "name": "LinkStack"
@@ -859,6 +954,7 @@
     "color": "Purple",
     "description": "A self-hosted startpage and real-time status page",
     "discovery_pattern": "Endpoint response body from <ip>:8123/ contains \"Jump\"",
+    "icon": "layout-dashboard",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Jump"
@@ -868,6 +964,7 @@
     "color": "Purple",
     "description": "A self-hosted dashboard for your homelab",
     "discovery_pattern": "Endpoint response body from <ip>:3000/site.webmanifest contains \"Homepage\"",
+    "icon": "layout-dashboard",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/webp/homepage.webp",
     "name": "Homepage"
@@ -877,6 +974,7 @@
     "color": "Purple",
     "description": "A sleek, modern dashboard",
     "discovery_pattern": "Endpoint response body from <ip>:7575/ contains \"Homarr\"",
+    "icon": "layout-dashboard",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/homarr.svg",
     "name": "Homarr"
@@ -886,6 +984,7 @@
     "color": "Purple",
     "description": "A self-hosted dashboard that puts all your feeds in one place",
     "discovery_pattern": "Endpoint response body from <ip>:8080/manifest.json contains \"Glance\"",
+    "icon": "layout-dashboard",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/glance.svg",
     "name": "Glance"
@@ -895,6 +994,7 @@
     "color": "Yellow",
     "description": "Self-hosted Bitwarden-compatible server, written in Rust",
     "discovery_pattern": "Endpoint response body from <ip>:8000/manifest.json contains \"Vaultwarden Web\"",
+    "icon": "key-round",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/vaultwarden.svg",
     "name": "Vaultwarden"
@@ -904,6 +1004,7 @@
     "color": "Yellow",
     "description": "Secrets management",
     "discovery_pattern": "Endpoint response body from <ip>:8200/v1/sys/health contains \"vault\"",
+    "icon": "key-round",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/hashicorp-vault.svg",
     "name": "Vault"
@@ -913,6 +1014,7 @@
     "color": "Yellow",
     "description": "Generic LDAP directory service",
     "discovery_pattern": "All of: (389/tcp is open, Client probe Ldap succeeded)",
+    "icon": "key-round",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/openldap.svg",
     "name": "Open LDAP"
@@ -922,6 +1024,7 @@
     "color": "Yellow",
     "description": "Identity and access management",
     "discovery_pattern": "Endpoint response body from <ip>:8080/ contains \"/keycloak/\"",
+    "icon": "key-round",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/keycloak.svg",
     "name": "Keycloak"
@@ -931,6 +1034,7 @@
     "color": "Yellow",
     "description": "Kerberos authentication service",
     "discovery_pattern": "All of: (88/tcp is open, Client probe Kerberos succeeded)",
+    "icon": "key-round",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Kerberos"
@@ -940,6 +1044,7 @@
     "color": "Yellow",
     "description": "Identity management system",
     "discovery_pattern": "Endpoint response status is between 200 and 300, and response body from <ip>:80/ipa/ui contains \"\"",
+    "icon": "key-round",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/freeipa.svg",
     "name": "FreeIPA"
@@ -949,6 +1054,7 @@
     "color": "Yellow",
     "description": "Password manager",
     "discovery_pattern": "Endpoint response body from <ip>:80/api/config contains \"bitwarden\"",
+    "icon": "key-round",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/bitwarden.svg",
     "name": "Bitwarden"
@@ -958,6 +1064,7 @@
     "color": "Yellow",
     "description": "A self-hosted, open source identity provider",
     "discovery_pattern": "Any of: (Endpoint response body from <ip>:9000/ contains \"window.authentik\", Endpoint response body from <ip>:9443/ contains \"window.authentik\")",
+    "icon": "key-round",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/authentik.svg",
     "name": "Authentik"
@@ -967,6 +1074,7 @@
     "color": "Yellow",
     "description": "Microsoft directory service",
     "discovery_pattern": "All of: (Client probe Ldap succeeded, Client probe Smb succeeded, 88/tcp is open)",
+    "icon": "key-round",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/microsoft.svg",
     "name": "Active Directory"
@@ -976,6 +1084,7 @@
     "color": "Purple",
     "description": "Content management system",
     "discovery_pattern": "Endpoint response body from <ip>:80/ contains \"wp-content\"",
+    "icon": "pen-line",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/wordpress.svg",
     "name": "WordPress"
@@ -985,6 +1094,7 @@
     "color": "Gray",
     "description": "A generic web service",
     "discovery_pattern": "No match pattern provided",
+    "icon": "circle-question-mark",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Web Service"
@@ -994,6 +1104,7 @@
     "color": "Red",
     "description": "Java servlet container",
     "discovery_pattern": "Endpoint response body from <ip>:8080/ contains \"apache tomcat\"",
+    "icon": "code",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/apache-tomcat.svg",
     "name": "Tomcat"
@@ -1003,6 +1114,7 @@
     "color": "Cyan",
     "description": "Open-source AS2 server for B2B/EDI file exchange",
     "discovery_pattern": "Endpoint response body from <ip>:8443/as2/HttpReceiver contains \"mendelson opensource\"",
+    "icon": "workflow",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Mendelson AS2"
@@ -1012,6 +1124,7 @@
     "color": "Purple",
     "description": "Publishing platform",
     "discovery_pattern": "Endpoint response body from <ip>:2368/ contains \"ghost\"",
+    "icon": "pen-line",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/ghost.png",
     "name": "Ghost"
@@ -1021,6 +1134,7 @@
     "color": "Red",
     "description": "CI/CD server",
     "discovery_pattern": "Endpoint response body from <ip>:8111/ contains \"teamcity\"",
+    "icon": "code",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/teamcity-light.svg",
     "name": "TeamCity"
@@ -1030,6 +1144,7 @@
     "color": "Red",
     "description": "Multi-cloud CD platform",
     "discovery_pattern": "No match pattern provided",
+    "icon": "code",
     "logo_needs_white_background": true,
     "logo_url": "https://simpleicons.org/icons/spinnaker.svg",
     "name": "Spinnaker"
@@ -1039,6 +1154,7 @@
     "color": "Green",
     "description": "Cloud-native messaging system",
     "discovery_pattern": "Endpoint response body from <ip>:8222/varz contains \"\"",
+    "icon": "message-square-code",
     "logo_needs_white_background": true,
     "logo_url": "https://simpleicons.org/icons/natsdotio.svg",
     "name": "NATS"
@@ -1048,6 +1164,7 @@
     "color": "Red",
     "description": "Open source workflow automation platform",
     "discovery_pattern": "Endpoint response body from <ip>:5678/ contains \"n8n\"",
+    "icon": "code",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/n8n.svg",
     "name": "n8n"
@@ -1057,6 +1174,7 @@
     "color": "Red",
     "description": "Automation server for CI/CD",
     "discovery_pattern": "Any of: (Endpoint response body from <ip>:8080/ contains \"jenkins.io\", Endpoint response status is between 200 and 500, and response from <ip>:443 has header \"x-jenkins\" with value \"\")",
+    "icon": "code",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jenkins.svg",
     "name": "Jenkins"
@@ -1066,6 +1184,7 @@
     "color": "Red",
     "description": "DevOps platform",
     "discovery_pattern": "All of: (Endpoint response from <ip> has header \"content-security-policy\" with value \"gitlab\", Endpoint response body from <ip>:80/ contains \"gitlab\")",
+    "icon": "code",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/gitlab.svg",
     "name": "GitLab"
@@ -1075,6 +1194,7 @@
     "color": "Red",
     "description": "Self-hosted GitHub",
     "discovery_pattern": "No match pattern provided",
+    "icon": "code",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/github.svg",
     "name": "GitHub"
@@ -1084,6 +1204,7 @@
     "color": "Red",
     "description": "DevOps platform",
     "discovery_pattern": "Endpoint response body from <ip>:3000/explore/repos contains \"Powered by Gitea\"",
+    "icon": "code",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/gitea.svg",
     "name": "Gitea"
@@ -1093,6 +1214,7 @@
     "color": "Red",
     "description": "DevOps platform",
     "discovery_pattern": "Endpoint response body from <ip>:3000/explore/repos contains \"Powered by Forgejo\"",
+    "icon": "code",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/forgejo.svg",
     "name": "Forgejo"
@@ -1102,6 +1224,7 @@
     "color": "Red",
     "description": "Container-native CI platform",
     "discovery_pattern": "All of: (Endpoint response body from <ip>:80/ contains \"drone\", Endpoint response body from <ip>:80/api/user contains \"\")",
+    "icon": "code",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/drone.png",
     "name": "Drone"
@@ -1111,6 +1234,7 @@
     "color": "Red",
     "description": "Git repository management",
     "discovery_pattern": "Endpoint response body from <ip>:7990/ contains \"bitbucket\"",
+    "icon": "code",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/bitbucket.svg",
     "name": "Bitbucket Server"
@@ -1120,6 +1244,7 @@
     "color": "Red",
     "description": "CI/CD server",
     "discovery_pattern": "Endpoint response body from <ip>:8085/ contains \"bamboo\"",
+    "icon": "code",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/atlassian-bamboo.svg",
     "name": "Bamboo"
@@ -1129,6 +1254,7 @@
     "color": "Red",
     "description": "GitOps continuous delivery",
     "discovery_pattern": "Endpoint response body from <ip>:8080/api/version contains \"argocd\"",
+    "icon": "code",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/argo-cd.svg",
     "name": "ArgoCD"
@@ -1138,6 +1264,7 @@
     "color": "Red",
     "description": "Open-source backend-as-a-service platform",
     "discovery_pattern": "Any of: (Endpoint response body from <ip>:80/ contains \"appwrite.io\", Endpoint response body from <ip>:443/ contains \"appwrite.io\")",
+    "icon": "code",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/appwrite.svg",
     "name": "Appwrite"
@@ -1147,6 +1274,7 @@
     "color": "Red",
     "description": "Ansible automation platform",
     "discovery_pattern": "Endpoint response status is between 200 and 300, and response body from <ip>:80/api/v2/ contains \"awx\"",
+    "icon": "code",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/ansible.svg",
     "name": "AWX"
@@ -1156,6 +1284,7 @@
     "color": "Green",
     "description": "Team communication platform",
     "discovery_pattern": "Endpoint response body from <ip>:3000/api/info contains \"rocket\"",
+    "icon": "message-circle",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/rocket-chat.svg",
     "name": "Rocket.Chat"
@@ -1165,6 +1294,7 @@
     "color": "Blue",
     "description": "Free and Open-Source CalDAV and CardDAV Server",
     "discovery_pattern": "Endpoint response body from <ip>:5232/.web/ contains \"Radicale Web Interface\"",
+    "icon": "file-text",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/radicale.svg",
     "name": "Radicale"
@@ -1174,6 +1304,7 @@
     "color": "Green",
     "description": "Team messaging platform",
     "discovery_pattern": "Endpoint response body from <ip>:8065/api/v4/system/ping contains \"\"",
+    "icon": "message-circle",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/mattermost.svg",
     "name": "Mattermost"
@@ -1183,6 +1314,7 @@
     "color": "Indigo",
     "description": "Project management platform",
     "discovery_pattern": "Endpoint response status is between 200 and 300, and response body from <ip>:8080/rest/api/2/serverInfo contains \"jira\"",
+    "icon": "square-kanban",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jira.svg",
     "name": "Jira"
@@ -1192,6 +1324,7 @@
     "color": "Purple",
     "description": "Discussion platform",
     "discovery_pattern": "Endpoint response body from <ip>:80/srv/status contains \"discourse\"",
+    "icon": "pen-line",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/discourse.svg",
     "name": "Discourse"
@@ -1201,6 +1334,7 @@
     "color": "Indigo",
     "description": "Team collaboration wiki",
     "discovery_pattern": "Endpoint response body from <ip>:8090/ contains \"confluence\"",
+    "icon": "square-kanban",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/confluence.svg",
     "name": "Confluence"
@@ -1210,6 +1344,7 @@
     "color": "Green",
     "description": "Message broker",
     "discovery_pattern": "Endpoint response body from <ip>:15672/ contains \"rabbitmq\"",
+    "icon": "message-square-code",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/rabbitmq.svg",
     "name": "RabbitMQ"
@@ -1219,6 +1354,7 @@
     "color": "Green",
     "description": "Simple HTTP-based pub-sub notification service",
     "discovery_pattern": "Any of: (Endpoint response body from <ip>:80/ contains \"ntfy web\", Endpoint response body from <ip>:2856/ contains \"ntfy web\")",
+    "icon": "message-square-code",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/ntfy.svg",
     "name": "Ntfy"
@@ -1228,6 +1364,7 @@
     "color": "Green",
     "description": "Generic MQTT broker",
     "discovery_pattern": "All of: (1883/tcp is open, Client probe Mqtt succeeded)",
+    "icon": "message-square-code",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/mqtt.svg",
     "name": "MQTT"
@@ -1237,6 +1374,7 @@
     "color": "Green",
     "description": "Event streaming platform",
     "discovery_pattern": "All of: (9092/tcp is open, Client probe Kafka succeeded)",
+    "icon": "message-square-code",
     "logo_needs_white_background": true,
     "logo_url": "https://simpleicons.org/icons/apachekafka.svg",
     "name": "Kafka"
@@ -1246,6 +1384,7 @@
     "color": "Green",
     "description": "Advanced Message Queuing Protocol",
     "discovery_pattern": "All of: (5672/tcp is open, Client probe Amqp succeeded)",
+    "icon": "message-square-code",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "AMQP"
@@ -1255,6 +1394,7 @@
     "color": "Green",
     "description": "Message broker",
     "discovery_pattern": "Endpoint response body from <ip>:8161/admin contains \"activemq\"",
+    "icon": "message-square-code",
     "logo_needs_white_background": false,
     "logo_url": "https://www.vectorlogo.zone/logos/apache_activemq/apache_activemq-icon.svg",
     "name": "ActiveMQ"
@@ -1264,6 +1404,7 @@
     "color": "Gray",
     "description": "In-memory data store and cache",
     "discovery_pattern": "All of: (6379/tcp is open, Client probe Redis succeeded)",
+    "icon": "database",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/redis.svg",
     "name": "Redis"
@@ -1273,6 +1414,7 @@
     "color": "Gray",
     "description": "Open-source relational database",
     "discovery_pattern": "All of: (5432/tcp is open, Client probe PostgreSql succeeded)",
+    "icon": "database",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/postgresql.svg",
     "name": "PostgreSQL"
@@ -1282,6 +1424,7 @@
     "color": "Gray",
     "description": "Enterprise relational database",
     "discovery_pattern": "All of: (1521/tcp is open, Client probe OracleTns succeeded)",
+    "icon": "database",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/oracle.svg",
     "name": "Oracle Database"
@@ -1291,6 +1434,7 @@
     "color": "Gray",
     "description": "Graph database",
     "discovery_pattern": "Endpoint response body from <ip>:7474/ contains \"neo4j_version\"",
+    "icon": "database",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/neo4j.png",
     "name": "Neo4j"
@@ -1300,6 +1444,7 @@
     "color": "Gray",
     "description": "Open-source relational database",
     "discovery_pattern": "All of: (3306/tcp is open, Client probe MySql succeeded)",
+    "icon": "database",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/mysql.svg",
     "name": "MySQL"
@@ -1309,6 +1454,7 @@
     "color": "Gray",
     "description": "Microsoft relational database",
     "discovery_pattern": "All of: (1433/tcp is open, Client probe MsSql succeeded)",
+    "icon": "database",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/microsoft-sql-server-light.svg",
     "name": "Microsoft SQL Server"
@@ -1318,6 +1464,7 @@
     "color": "Gray",
     "description": "NoSQL document database",
     "discovery_pattern": "All of: (27017/tcp is open, Client probe MongoDb succeeded)",
+    "icon": "database",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/mongodb.svg",
     "name": "MongoDB"
@@ -1327,6 +1474,7 @@
     "color": "Gray",
     "description": "MySQL-compatible relational database",
     "discovery_pattern": "No match pattern provided",
+    "icon": "database",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/mariadb.svg",
     "name": "MariaDB"
@@ -1336,6 +1484,7 @@
     "color": "Gray",
     "description": "Time series database",
     "discovery_pattern": "Endpoint response from <ip>:8086 has header \"x-influxdb-version\" with value \"\"",
+    "icon": "database",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/influxdb.svg",
     "name": "InfluxDB"
@@ -1345,6 +1494,7 @@
     "color": "Gray",
     "description": "PC SOFT HFSQL Client-Server database (WinDev/WebDev)",
     "discovery_pattern": "4900/tcp is open",
+    "icon": "database",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "HyperFile Server"
@@ -1354,6 +1504,7 @@
     "color": "Gray",
     "description": "Distributed search and analytics engine",
     "discovery_pattern": "Endpoint response body from <ip>:9200/ contains \"lucene\"",
+    "icon": "database",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/elasticsearch.svg",
     "name": "Elasticsearch"
@@ -1363,6 +1514,7 @@
     "color": "Gray",
     "description": "Data virtualization",
     "discovery_pattern": "All of: (9990/tcp is open, 9996/tcp is open, 9090/tcp is open, 9099/tcp is open)",
+    "icon": "database",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/denodo.svg",
     "name": "Denodo"
@@ -1372,6 +1524,7 @@
     "color": "Gray",
     "description": "NoSQL document database",
     "discovery_pattern": "Endpoint response body from <ip>:5984/ contains \"couchdb\"",
+    "icon": "database",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/couchdb.svg",
     "name": "CouchDB"
@@ -1381,6 +1534,7 @@
     "color": "Gray",
     "description": "Distributed NoSQL database",
     "discovery_pattern": "All of: (9042/tcp is open, Client probe Cassandra succeeded)",
+    "icon": "database",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/apache-cassandra.svg",
     "name": "Cassandra"
@@ -1390,6 +1544,7 @@
     "color": "Amber",
     "description": "VMware vCenter Server virtualization management platform",
     "discovery_pattern": "Endpoint response body from <ip>:443/ contains \"VMware vCenter\"",
+    "icon": "monitor-cog",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/vmware.svg",
     "name": "vCenter"
@@ -1399,6 +1554,7 @@
     "color": "Purple",
     "description": "Kubernetes management",
     "discovery_pattern": "Endpoint response body from <ip>:80/v3 contains \"rancher\"",
+    "icon": "layers",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/rancher.svg",
     "name": "Rancher"
@@ -1408,6 +1564,7 @@
     "color": "Amber",
     "description": "Open-source virtualization management platform",
     "discovery_pattern": "Endpoint response body from <ip>:8006/ contains \"proxmox\"",
+    "icon": "monitor-cog",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/proxmox.svg",
     "name": "Proxmox VE"
@@ -1417,6 +1574,7 @@
     "color": "Purple",
     "description": "Orchestration platform for Docker, K8s, and Podman",
     "discovery_pattern": "Any of: (Endpoint response body from <ip>:9443/#!/auth contains \"portainer.io\", Endpoint response body from <ip>:9000/ contains \"portainer.io\")",
+    "icon": "layers",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/portainer.svg",
     "name": "Portainer"
@@ -1426,6 +1584,7 @@
     "color": "Blue",
     "description": "A generic podman container",
     "discovery_pattern": "All of: (Service is running in a container, A custom match pattern evaluated at runtime)",
+    "icon": "box",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Podman Container"
@@ -1435,6 +1594,7 @@
     "color": "Blue",
     "description": "Daemonless container runtime",
     "discovery_pattern": "Client probe Podman succeeded",
+    "icon": "box",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/podman.svg",
     "name": "Podman"
@@ -1444,6 +1604,7 @@
     "color": "Purple",
     "description": "Enterprise Kubernetes",
     "discovery_pattern": "Endpoint response body from <ip>:6443/healthz contains \"openshift\"",
+    "icon": "layers",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/openshift.svg",
     "name": "OpenShift"
@@ -1453,6 +1614,7 @@
     "color": "Purple",
     "description": "Workload orchestration",
     "discovery_pattern": "Endpoint response body from <ip>:4646/v1/status/leader contains \"\"",
+    "icon": "layers",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/nomad.svg",
     "name": "Nomad"
@@ -1462,6 +1624,7 @@
     "color": "Purple",
     "description": "Container orchestration platform",
     "discovery_pattern": "All of: (Endpoint response status is between 400 and 500, and response body from <ip>:6443/version contains \"\"kind\": \"Status\"\", Any of: (10250/tcp is open, 10259/tcp is open, 10257/tcp is open, 10256/tcp is open))",
+    "icon": "layers",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/kubernetes.svg",
     "name": "Kubernetes"
@@ -1471,6 +1634,7 @@
     "color": "Amber",
     "description": "VMware ESXi bare-metal hypervisor",
     "discovery_pattern": "Endpoint response body from <ip>:443/ contains \"VMware ESXi\"",
+    "icon": "monitor-cog",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/vmware-esxi.svg",
     "name": "ESXi"
@@ -1480,6 +1644,7 @@
     "color": "Purple",
     "description": "Docker compose stack management UI",
     "discovery_pattern": "Endpoint response body from <ip>:5001/ contains \"Dockge\"",
+    "icon": "layers",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/dockge.svg",
     "name": "Dockge"
@@ -1489,6 +1654,7 @@
     "color": "Purple",
     "description": "Docker native clustering and orchestration",
     "discovery_pattern": "All of: (2377/tcp is open, Client probe DockerSwarm succeeded)",
+    "icon": "layers",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/docker.svg",
     "name": "Docker Swarm"
@@ -1498,6 +1664,7 @@
     "color": "Blue",
     "description": "Docker",
     "discovery_pattern": "Client probe Docker succeeded",
+    "icon": "box",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/docker.svg",
     "name": "Docker"
@@ -1507,6 +1674,7 @@
     "color": "Blue",
     "description": "A generic docker container",
     "discovery_pattern": "All of: (Service is running in a container, A custom match pattern evaluated at runtime)",
+    "icon": "box",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Docker Container"
@@ -1516,6 +1684,7 @@
     "color": "Blue",
     "description": "Z-Wave controller server",
     "discovery_pattern": "Endpoint response body from <ip>:8091/health contains \"\"",
+    "icon": "house",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/z-wave-js-ui.svg",
     "name": "Z-Wave JS"
@@ -1525,6 +1694,7 @@
     "color": "Blue",
     "description": "Zigbee to MQTT bridge",
     "discovery_pattern": "Endpoint response body from <ip>:8080/ contains \"Zigbee2MQTT WindFront\"",
+    "icon": "house",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/zigbee2mqtt.svg",
     "name": "Zigbee2MQTT"
@@ -1534,6 +1704,7 @@
     "color": "Yellow",
     "description": "Philips Hue Bridge for lighting control",
     "discovery_pattern": "All of: (MAC Address belongs to Philips Lighting BV, Any of: (Endpoint response body from <ip>:80/ contains \"hue\", Host advertises '_hue._tcp' over mDNS))",
+    "icon": "circuit-board",
     "logo_needs_white_background": true,
     "logo_url": "https://simpleicons.org/icons/philipshue.svg",
     "name": "Philips Hue Bridge"
@@ -1543,6 +1714,7 @@
     "color": "Blue",
     "description": "Home automation platform",
     "discovery_pattern": "Endpoint response body from <ip>:8080/rest/ contains \"openhab\"",
+    "icon": "house",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/openhab.svg",
     "name": "openHAB"
@@ -1552,6 +1724,7 @@
     "color": "Blue",
     "description": "Open-source home automation platform",
     "discovery_pattern": "Endpoint response body from <ip>:8123/ contains \"home assistant\"",
+    "icon": "house",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/home-assistant.svg",
     "name": "Home Assistant"
@@ -1561,6 +1734,7 @@
     "color": "Blue",
     "description": "ESP device management",
     "discovery_pattern": "Endpoint response body from <ip>:6052/ contains \"esphome\"",
+    "icon": "house",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/esphome.svg",
     "name": "ESPHome"
@@ -1570,6 +1744,7 @@
     "color": "Blue",
     "description": "Home automation system",
     "discovery_pattern": "Endpoint response body from <ip>:8080/json.htm contains \"domoticz\"",
+    "icon": "house",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/domoticz.png",
     "name": "Domoticz"
@@ -1579,6 +1754,7 @@
     "color": "Blue",
     "description": "Monitor, view analytics, and receive notifications about your Plex Media Server.",
     "discovery_pattern": "Endpoint response body from <ip>:8181/ contains \"Tautulli\"",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/tautulli.svg",
     "name": "Tautulli"
@@ -1588,6 +1764,7 @@
     "color": "Blue",
     "description": "A modern client-server application for the Soulseek file-sharing network",
     "discovery_pattern": "All of: (Endpoint response body from <ip>:5030/ contains \"slskd\", Endpoint response body from <ip>:5030/api/v0/session/enabled contains \"true\")",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/slskd.svg",
     "name": "Slskd"
@@ -1597,6 +1774,7 @@
     "color": "Blue",
     "description": "DLNA media streaming server",
     "discovery_pattern": "Endpoint response body from <ip>:23423/rest/application contains \"<serviioId>\"",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/serviio.svg",
     "name": "Serviio"
@@ -1606,6 +1784,7 @@
     "color": "Blue",
     "description": "A NZB Files Downloader.",
     "discovery_pattern": "Endpoint response body from <ip>:8080/Content/manifest.json contains \"SABnzbd\"",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/sabnzbd.svg",
     "name": "SABnzbd"
@@ -1615,6 +1794,7 @@
     "color": "Blue",
     "description": "Media server for streaming personal content",
     "discovery_pattern": "Any of: (Endpoint response body from <ip>:32400/web/index.html contains \"Plex\", Endpoint response status is between 401 and 401, and response from <ip>:32400 has header \"X-Plex-Protocol\" with value \"1.0\")",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/plex.svg",
     "name": "Plex Media Server"
@@ -1624,6 +1804,7 @@
     "color": "Blue",
     "description": "Open source software application for managing requests for your media library.",
     "discovery_pattern": "All of: (Endpoint response body from <ip>:5055/site.webmanifest contains \"Overseerr\", Not (Endpoint response body from <ip>:5055/ contains \"Jellyseerr\"))",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/overseerr.svg",
     "name": "Overseerr"
@@ -1633,6 +1814,7 @@
     "color": "Blue",
     "description": "A media server for your comics, mangas, BDs, magazines and eBooks.",
     "discovery_pattern": "Endpoint response body from <ip>:25600/ contains \"Komga\"",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/komga.svg",
     "name": "Komga"
@@ -1642,6 +1824,7 @@
     "color": "Blue",
     "description": "Open source software application for managing requests for your media library.",
     "discovery_pattern": "All of: (Endpoint response body from <ip>:3000/ contains \"Jellystat\", Endpoint response body from <ip>:3000/ contains \"Jellyfin stats for the masses\")",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jellystat.svg",
     "name": "Jellystat"
@@ -1651,6 +1834,7 @@
     "color": "Blue",
     "description": "Open source software application for managing requests for your media library.",
     "discovery_pattern": "Endpoint response body from <ip>:5055/ contains \"Jellyseerr\"",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jellyseerr.svg",
     "name": "Jellyseerr"
@@ -1660,6 +1844,7 @@
     "color": "Blue",
     "description": "Free media server for personal streaming",
     "discovery_pattern": "Endpoint response body from <ip>:80/System/Info/Public contains \"Jellyfin\"",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jellyfin.svg",
     "name": "Jellyfin"
@@ -1669,6 +1854,7 @@
     "color": "Blue",
     "description": "Self-hosted photo and video management solution",
     "discovery_pattern": "Endpoint response body from <ip>:2283/photos contains \"Immich\"",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/immich.svg",
     "name": "Immich"
@@ -1678,6 +1864,7 @@
     "color": "Blue",
     "description": "Personal media server with streaming capabilities",
     "discovery_pattern": "Endpoint response body from <ip>:8096/emby/System/Info/Public contains \"Emby\"",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/emby.svg",
     "name": "Emby"
@@ -1687,6 +1874,7 @@
     "color": "Blue",
     "description": "A self-hosted, multi-user digital library.",
     "discovery_pattern": "Endpoint response body from <ip>:6060/ contains \"booklore-app\"",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/book-lore.svg",
     "name": "BookLore"
@@ -1696,6 +1884,7 @@
     "color": "Blue",
     "description": "A companion application to Sonarr and Radarr that manages and downloads subtitles",
     "discovery_pattern": "Endpoint response body from <ip>:6767/ contains \"<title>Bazarr</title>\"",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/bazarr.svg",
     "name": "Bazarr"
@@ -1705,6 +1894,7 @@
     "color": "Blue",
     "description": "Self-hosted audiobook and podcast server.",
     "discovery_pattern": "Endpoint response body from <ip>:13378/status contains \"\"app\":\"audiobookshelf\"\"",
+    "icon": "circle-play",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/audiobookshelf.svg",
     "name": "AudioBookShelf"
@@ -1714,6 +1904,7 @@
     "color": "Gray",
     "description": "Backup and replication",
     "discovery_pattern": "9392/tcp is open",
+    "icon": "database-backup",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/veeam.svg",
     "name": "Veeam"
@@ -1723,6 +1914,7 @@
     "color": "Gray",
     "description": "Network device configuration backup and change management",
     "discovery_pattern": "Endpoint response body from <ip>:8085/ contains \"<title>Unimus</title>\"",
+    "icon": "database-backup",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/unimus.svg",
     "name": "Unimus"
@@ -1732,6 +1924,7 @@
     "color": "Gray",
     "description": "Fast and secure backup program",
     "discovery_pattern": "All of: (8000/tcp is open, Endpoint response body from <ip>:80/ contains \"restic\")",
+    "icon": "database-backup",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/restic.png",
     "name": "Restic"
@@ -1741,6 +1934,7 @@
     "color": "Gray",
     "description": "Encrypted, incremental and deduplicated backups for Proxmox VMs, LXCs, and hosts",
     "discovery_pattern": "Endpoint response body from <ip>:8007/ contains \"proxmox-backup-gui\"",
+    "icon": "database-backup",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/proxmox.svg",
     "name": "Proxmox Backup Server"
@@ -1750,6 +1944,7 @@
     "color": "Gray",
     "description": "Cross-platform backup client with encryption",
     "discovery_pattern": "Endpoint response body from <ip>:8200/ngax/index.html contains \"Duplicati\"",
+    "icon": "database-backup",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/duplicati.svg",
     "name": "Duplicati"
@@ -1759,6 +1954,7 @@
     "color": "Gray",
     "description": "Network backup solution",
     "discovery_pattern": "All of: (9101/tcp is open, Client probe Bacula succeeded)",
+    "icon": "database-backup",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/bacula.png",
     "name": "Bacula"
@@ -1768,6 +1964,7 @@
     "color": "Green",
     "description": "Open-source network attached storage system",
     "discovery_pattern": "Any of: (Endpoint response body from <ip>:80/ contains \"main-page-title\", Endpoint response body from <ip>:443/ contains \"main-page-title\")",
+    "icon": "hard-drive",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/truenas.svg",
     "name": "TrueNAS"
@@ -1777,6 +1974,7 @@
     "color": "Green",
     "description": "Synology DiskStation Manager NAS system",
     "discovery_pattern": "Any of: (All of: (Endpoint response body from <ip>:80/ contains \"synology\", 21/tcp is open), Endpoint response body from <ip>:80/ contains \"Synology Web Station\")",
+    "icon": "hard-drive",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/synology.svg",
     "name": "Synology DSM"
@@ -1786,6 +1984,7 @@
     "color": "Gray",
     "description": "Continuous file synchronization service",
     "discovery_pattern": "All of: (Endpoint response body from <ip>:80/ contains \"Syncthing\", 22000/tcp is open)",
+    "icon": "database-backup",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/syncthing.svg",
     "name": "Syncthing"
@@ -1795,6 +1994,7 @@
     "color": "Blue",
     "description": "File hosting platform",
     "discovery_pattern": "Endpoint response body from <ip>:8000/api2/ping contains \"seafile\"",
+    "icon": "file-text",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/seafile.svg",
     "name": "Seafile"
@@ -1804,6 +2004,7 @@
     "color": "Green",
     "description": "Generic SMB file server",
     "discovery_pattern": "All of: (445/tcp is open, Client probe Smb succeeded)",
+    "icon": "hard-drive",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Samba"
@@ -1813,6 +2014,7 @@
     "color": "Green",
     "description": "QNAP network attached storage system",
     "discovery_pattern": "Any of: (All of: (21/tcp is open, Any of: (Endpoint response body from <ip>:80/ contains \"QNAP\", Endpoint response body from <ip>:8080/ contains \"QNAP\")), Endpoint response from <ip>:443 has header \"server\" with value \"http server\")",
+    "icon": "hard-drive",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/qnap.svg",
     "name": "QNAP NAS"
@@ -1822,6 +2024,7 @@
     "color": "Blue",
     "description": "File sync and share",
     "discovery_pattern": "Endpoint response body from <ip>:80/status.php contains \"owncloud\"",
+    "icon": "file-text",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/owncloud.svg",
     "name": "ownCloud"
@@ -1831,6 +2034,7 @@
     "color": "Green",
     "description": "Debian-based NAS solution",
     "discovery_pattern": "All of: (445/tcp is open, Endpoint response body from <ip>:80/ contains \"openmediavault\")",
+    "icon": "hard-drive",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/openmediavault.svg",
     "name": "OpenMediaVault"
@@ -1840,6 +2044,7 @@
     "color": "Green",
     "description": "Generic network file system",
     "discovery_pattern": "All of: (2049/tcp is open, Client probe Nfs succeeded)",
+    "icon": "hard-drive",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "NFS"
@@ -1849,6 +2054,7 @@
     "color": "Blue",
     "description": "Self-hosted cloud storage and collaboration platform",
     "discovery_pattern": "Endpoint response body from <ip>:80/core/css/server.css contains \"Nextcloud GmbH\"",
+    "icon": "file-text",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/nextcloud.svg",
     "name": "NextCloud"
@@ -1858,6 +2064,7 @@
     "color": "Green",
     "description": "Object storage",
     "discovery_pattern": "Endpoint response status is between 200 and 300, and response body from <ip>:9000/minio/health/live contains \"\"",
+    "icon": "hard-drive",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/minio.svg",
     "name": "MinIO"
@@ -1867,6 +2074,7 @@
     "color": "Green",
     "description": "FTP server",
     "discovery_pattern": "All of: (Client probe Ftp succeeded, 14147/tcp is open)",
+    "icon": "hard-drive",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/filezilla.svg",
     "name": "FileZilla Server"
@@ -1876,6 +2084,7 @@
     "color": "Green",
     "description": "Generic FTP file sharing service",
     "discovery_pattern": "All of: (21/tcp is open, Client probe Ftp succeeded)",
+    "icon": "hard-drive",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "FTP Server"
@@ -1885,6 +2094,7 @@
     "color": "Green",
     "description": "Distributed storage",
     "discovery_pattern": "Endpoint response body from <ip>:8080/ contains \"ceph dashboard\"",
+    "icon": "hard-drive",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/ceph.svg",
     "name": "Ceph"
@@ -1894,6 +2104,7 @@
     "color": "Emerald",
     "description": "Network-wide ad blocking DNS service",
     "discovery_pattern": "All of: (Any of: (53/udp is open, 53/tcp is open), Endpoint response body from <ip>:80/admin contains \"pi-hole\")",
+    "icon": "shield-check",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/pi-hole.svg",
     "name": "Pi-Hole"
@@ -1903,6 +2114,7 @@
     "color": "Emerald",
     "description": "Network-wide ad and tracker blocking",
     "discovery_pattern": "All of: (All of: (53/udp is open, 53/tcp is open), Endpoint response body from <ip>:80/ contains \"AdGuard Home\")",
+    "icon": "shield-check",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/adguard-home.svg",
     "name": "Adguard Home"
@@ -1912,6 +2124,7 @@
     "color": "Cyan",
     "description": "API gateway",
     "discovery_pattern": "Endpoint response status is between 200 and 300, and response body from <ip>:8080/hello contains \"tyk\"",
+    "icon": "split",
     "logo_needs_white_background": false,
     "logo_url": "https://www.vectorlogo.zone/logos/tyk/tyk-icon.svg",
     "name": "Tyk"
@@ -1921,6 +2134,7 @@
     "color": "Cyan",
     "description": "Modern reverse proxy and load balancer",
     "discovery_pattern": "Endpoint response body from <ip>:80/dashboard contains \"traefik\"",
+    "icon": "split",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/traefik.svg",
     "name": "Traefik"
@@ -1930,6 +2144,7 @@
     "color": "Cyan",
     "description": "Web-based Nginx proxy management ip_address",
     "discovery_pattern": "Endpoint response body from <ip>:80 contains \"nginx proxy manager\"",
+    "icon": "split",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/nginx-proxy-manager.svg",
     "name": "Nginx Proxy Manager"
@@ -1939,6 +2154,7 @@
     "color": "Cyan",
     "description": "API gateway",
     "discovery_pattern": "Endpoint response body from <ip>:8001/ contains \"kong\"",
+    "icon": "split",
     "logo_needs_white_background": true,
     "logo_url": "https://simpleicons.org/icons/kong.svg",
     "name": "Kong"
@@ -1948,6 +2164,7 @@
     "color": "Cyan",
     "description": "Microsoft Internet Information Services web server",
     "discovery_pattern": "Endpoint response from <ip> has header \"Server\" with value \"Microsoft-IIS\"",
+    "icon": "split",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Microsoft IIS"
@@ -1957,6 +2174,7 @@
     "color": "Cyan",
     "description": "Load balancer and proxy",
     "discovery_pattern": "Endpoint response body from <ip>:8404/stats contains \"haproxy\"",
+    "icon": "split",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/haproxy.svg",
     "name": "HAProxy"
@@ -1966,6 +2184,7 @@
     "color": "Cyan",
     "description": "Lightweight & versatile reverse proxy, web & file server",
     "discovery_pattern": "Endpoint response body from <ip>:2019/reverse_proxy/upstreams contains \"num_requests\"",
+    "icon": "split",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/caddy.svg",
     "name": "Caddy"
@@ -1975,6 +2194,7 @@
     "color": "Green",
     "description": "WireGuard VPN",
     "discovery_pattern": "No match pattern provided",
+    "icon": "venetian-mask",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/wireguard.svg",
     "name": "WireGuard"
@@ -1984,6 +2204,7 @@
     "color": "Purple",
     "description": "Wireguard dashboard for visualizing and managing wireguard clients and server",
     "discovery_pattern": "All of: (Endpoint response body from <ip>:10086/ contains \"<title>WGDashboard</title>\", Not (Subnet is type VpnTunnel))",
+    "icon": "layout-dashboard",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/wireguard.svg",
     "name": "WGDashboard"
@@ -1993,6 +2214,7 @@
     "color": "Green",
     "description": "Open-source IPsec VPN daemon (IKE / NAT-T)",
     "discovery_pattern": "All of: (500/udp is open, Client probe Ike succeeded)",
+    "icon": "venetian-mask",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "StrongSwan"
@@ -2002,6 +2224,7 @@
     "color": "Green",
     "description": "OpenVPN server",
     "discovery_pattern": "All of: (1194/udp is open, Client probe OpenVpn succeeded)",
+    "icon": "venetian-mask",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/openvpn.svg",
     "name": "OpenVPN"
@@ -2011,6 +2234,7 @@
     "color": "Cyan",
     "description": "Cloudflare tunnel daemon",
     "discovery_pattern": "Endpoint response body from <ip>:80/metrics contains \"cloudflared\"",
+    "icon": "split",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/cloudflare.svg",
     "name": "Cloudflared"
@@ -2020,6 +2244,7 @@
     "color": "Emerald",
     "description": "Recursive DNS resolver with control ip_address",
     "discovery_pattern": "All of: (53/udp is open, All of: (8953/tcp is open, Client probe Tls succeeded))",
+    "icon": "search",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/unbound.svg",
     "name": "Unbound DNS"
@@ -2029,6 +2254,7 @@
     "color": "Emerald",
     "description": "Authoritative DNS server with API",
     "discovery_pattern": "All of: (53/udp is open, Endpoint response body from <ip>:8081/ contains \"PowerDNS Authoritative Server Monitor\")",
+    "icon": "search",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/powerdns.svg",
     "name": "PowerDNS"
@@ -2038,6 +2264,7 @@
     "color": "Emerald",
     "description": "A generic DNS server",
     "discovery_pattern": "Any of: (53/udp is open, All of: (53/tcp is open, Client probe DnsTcp succeeded))",
+    "icon": "search",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "DNS Server"
@@ -2047,6 +2274,7 @@
     "color": "Emerald",
     "description": "Berkeley Internet Name Domain DNS server",
     "discovery_pattern": "All of: (53/udp is open, Endpoint response body from <ip>:8053/ contains \"/bind9.xsl\")",
+    "icon": "search",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Bind9"
@@ -2056,6 +2284,7 @@
     "color": "Red",
     "description": "Open-source firewall and router platform",
     "discovery_pattern": "All of: (22/tcp is open, Endpoint response body from <ip>:80/ contains \"pfsense\")",
+    "icon": "brick-wall",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/pfsense.svg",
     "name": "pfSense"
@@ -2065,6 +2294,7 @@
     "color": "Emerald",
     "description": "PfSense package for DNS/IP blocking",
     "discovery_pattern": "All of: (All of: (53/tcp is open, 53/udp is open), Endpoint response body from <ip>:80/pfblockerng contains \"pfblockerng\")",
+    "icon": "shield-check",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/pfsense.svg",
     "name": "pfBlockerNG"
@@ -2074,6 +2304,7 @@
     "color": "Red",
     "description": "Open-source firewall and routing platform",
     "discovery_pattern": "All of: (Any of: (Endpoint response body from <ip>:80/ contains \"opnsense\", Endpoint response body from <ip>:443/ contains \"opnsense\"), Any of: (53/tcp is open, 53/udp is open, 22/tcp is open, 123/udp is open, 67/udp is open))",
+    "icon": "brick-wall",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/opnsense.svg",
     "name": "OPNsense"
@@ -2083,6 +2314,7 @@
     "color": "Red",
     "description": "Fortinet security appliance",
     "discovery_pattern": "Endpoint response body from <ip>:80/login contains \"fortinet\"",
+    "icon": "brick-wall",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/fortinet.svg",
     "name": "Fortinet"
@@ -2092,6 +2324,7 @@
     "color": "Red",
     "description": "Generic network security appliance",
     "discovery_pattern": "No match pattern provided",
+    "icon": "brick-wall",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Firewall"
@@ -2101,6 +2334,7 @@
     "color": "Orange",
     "description": "Crowdsourced protection against malicious IPs",
     "discovery_pattern": "Endpoint response status is between 401 and 401, and response body from <ip>:8080/v1/allowlists contains \"cookie token is empty\"",
+    "icon": "activity",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/crowdsec.svg",
     "name": "CrowdSec"
@@ -2110,6 +2344,7 @@
     "color": "Green",
     "description": "Ubiquiti UniFi network controller",
     "discovery_pattern": "Any of: (Endpoint response body from <ip>:8443/manage contains \"UniFi\", Client probe UnifiController succeeded)",
+    "icon": "router",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/unifi.svg",
     "name": "UniFi Controller"
@@ -2119,6 +2354,7 @@
     "color": "Green",
     "description": "Ubiquiti UniFi wireless access point",
     "discovery_pattern": "All of: (MAC Address belongs to Ubiquiti Inc, Any of: (Endpoint response body from <ip>:80/ contains \"Unifi\", Controller reports device type 'uap'))",
+    "icon": "router",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/unifi.svg",
     "name": "Unifi Access Point"
@@ -2128,6 +2364,7 @@
     "color": "Green",
     "description": "Ubiquiti device discovery service",
     "discovery_pattern": "MAC Address belongs to Ubiquiti Inc",
+    "icon": "router",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/ubiquiti.svg",
     "name": "Ubiquiti Discovery"
@@ -2137,6 +2374,7 @@
     "color": "Green",
     "description": "TP-Link EAP wireless access point",
     "discovery_pattern": "All of: (MAC Address belongs to TP-LINK TECHNOLOGIES CO.,LTD, Endpoint response body from <ip>:80/ contains \"tp-link\")",
+    "icon": "router",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/tp-link.svg",
     "name": "TP-Link EAP"
@@ -2146,6 +2384,7 @@
     "color": "Red",
     "description": "MikroTik RouterOS network device",
     "discovery_pattern": "Endpoint response body from <ip>:80/ contains \"MikroTik RouterOS\"",
+    "icon": "brick-wall",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/mikrotik.svg",
     "name": "MikroTik"
@@ -2155,6 +2394,7 @@
     "color": "Green",
     "description": "HPE Networking Instant On switch",
     "discovery_pattern": "Any of: (Controller reports device type 'SWITCH', Controller reports device type 'STACK')",
+    "icon": "router",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/hpe.svg",
     "name": "Instant On Switch"
@@ -2164,6 +2404,7 @@
     "color": "Green",
     "description": "HPE Networking Instant On gateway",
     "discovery_pattern": "Controller reports device type 'GATEWAY'",
+    "icon": "router",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/hpe.svg",
     "name": "Instant On Gateway"
@@ -2173,6 +2414,7 @@
     "color": "Green",
     "description": "HPE Networking Instant On wireless access point",
     "discovery_pattern": "Controller reports device type 'ACCESS_POINT'",
+    "icon": "router",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/hpe.svg",
     "name": "Instant On Access Point"
@@ -2182,6 +2424,7 @@
     "color": "Green",
     "description": "Managed through the HPE Networking Instant On cloud portal",
     "discovery_pattern": "Any of: (Client probe InstantOn succeeded, Controller reports device type 'SWITCH', Controller reports device type 'STACK', Controller reports device type 'ACCESS_POINT', Controller reports device type 'GATEWAY')",
+    "icon": "router",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/hpe.svg",
     "name": "Instant On"
@@ -2191,6 +2434,7 @@
     "color": "Green",
     "description": "Google Nest Wifi router",
     "discovery_pattern": "All of: (Any of: (MAC Address belongs to Nest Labs Inc., MAC Address belongs to Google, Inc.), Host IP is a gateway in daemon's routing tables, or ends in .1 or .254., Endpoint response body from <ip>:80/ contains \"Nest Wifi\")",
+    "icon": "router",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/google-home.svg",
     "name": "Google Nest router"
@@ -2200,6 +2444,7 @@
     "color": "Green",
     "description": "Google Nest Wifi repeater",
     "discovery_pattern": "All of: (Any of: (MAC Address belongs to Nest Labs Inc., MAC Address belongs to Google, Inc.), Not (Host IP is a gateway in daemon's routing tables, or ends in .1 or .254.), Endpoint response body from <ip>:80/ contains \"Nest Wifi\")",
+    "icon": "router",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/google-home.svg",
     "name": "Google Nest repeater"
@@ -2209,6 +2454,7 @@
     "color": "Green",
     "description": "Fios device providing routing and gateway services",
     "discovery_pattern": "All of: (Endpoint response body from <ip>:80/#/login/ contains \"fios\", Host IP is a gateway in daemon's routing tables, or ends in .1 or .254.)",
+    "icon": "router",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/fios.svg",
     "name": "Fios Gateway"
@@ -2218,6 +2464,7 @@
     "color": "Green",
     "description": "Fios device providing mesh networking services",
     "discovery_pattern": "All of: (Endpoint response body from <ip>:80/#/login/ contains \"fios\", Not (Host IP is a gateway in daemon's routing tables, or ends in .1 or .254.))",
+    "icon": "router",
     "logo_needs_white_background": true,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/fios.svg",
     "name": "Fios Extender"
@@ -2227,6 +2474,7 @@
     "color": "Green",
     "description": "Eero device providing mesh network services",
     "discovery_pattern": "All of: (MAC Address belongs to eero Inc, Not (Host IP is a gateway in daemon's routing tables, or ends in .1 or .254.))",
+    "icon": "router",
     "logo_needs_white_background": true,
     "logo_url": "https://www.vectorlogo.zone/logos/eero/eero-icon.svg",
     "name": "Eero Repeater"
@@ -2236,6 +2484,7 @@
     "color": "Green",
     "description": "Eero device providing routing and gateway services",
     "discovery_pattern": "All of: (MAC Address belongs to eero Inc, Host IP is a gateway in daemon's routing tables, or ends in .1 or .254.)",
+    "icon": "router",
     "logo_needs_white_background": true,
     "logo_url": "https://www.vectorlogo.zone/logos/eero/eero-icon.svg",
     "name": "Eero Gateway"
@@ -2245,6 +2494,7 @@
     "color": "Green",
     "description": "A generic wireless access point for WiFi connectivity",
     "discovery_pattern": "No match pattern provided",
+    "icon": "router",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Access Point"
@@ -2254,6 +2504,7 @@
     "color": "Amber",
     "description": "Powered on by a magic packet before a scan",
     "discovery_pattern": "No match pattern provided",
+    "icon": "terminal",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Wake-on-LAN"
@@ -2263,6 +2514,7 @@
     "color": "Yellow",
     "description": "Ubiquiti UniFi managed switch",
     "discovery_pattern": "All of: (MAC Address belongs to Ubiquiti Inc, Controller reports device type 'usw')",
+    "icon": "network",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/unifi.svg",
     "name": "UniFi Switch"
@@ -2272,6 +2524,7 @@
     "color": "Yellow",
     "description": "Ubiquiti UniFi security gateway or Dream Machine",
     "discovery_pattern": "All of: (MAC Address belongs to Ubiquiti Inc, Any of: (Controller reports device type 'ugw', Controller reports device type 'udm'))",
+    "icon": "network",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/unifi.svg",
     "name": "UniFi Gateway"
@@ -2281,6 +2534,7 @@
     "color": "Yellow",
     "description": "Trivial file transfer, used to load device firmware and configuration",
     "discovery_pattern": "69/udp is open",
+    "icon": "network",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "TFTP Server"
@@ -2290,6 +2544,7 @@
     "color": "Amber",
     "description": "Web-based server management with SSH terminal, tunneling, and file editing",
     "discovery_pattern": "Any of: (Endpoint response body from <ip>:80/ contains \"<title>Termix</title>\", Endpoint response body from <ip>:443/ contains \"<title>Termix</title>\")",
+    "icon": "terminal",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/termix.svg",
     "name": "Termix"
@@ -2299,6 +2554,7 @@
     "color": "Amber",
     "description": "Telnet remote access",
     "discovery_pattern": "All of: (23/tcp is open, Client probe Telnet succeeded)",
+    "icon": "terminal",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Telnet"
@@ -2308,6 +2564,7 @@
     "color": "Yellow",
     "description": "Generic network switch for local area networking",
     "discovery_pattern": "All of: (Not (Host IP is a gateway in daemon's routing tables, or ends in .1 or .254.), All of: (80/tcp is open, Client probe Telnet succeeded))",
+    "icon": "network",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Switch"
@@ -2317,6 +2574,7 @@
     "color": "Amber",
     "description": "Secure Shell remote access",
     "discovery_pattern": "All of: (22/tcp is open, Client probe Ssh succeeded)",
+    "icon": "terminal",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "SSH"
@@ -2326,6 +2584,7 @@
     "color": "Yellow",
     "description": "Simple Network Management Protocol",
     "discovery_pattern": "Client probe Snmp succeeded",
+    "icon": "network",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "SNMP"
@@ -2335,6 +2594,7 @@
     "color": "Red",
     "description": "A Salt Proxy server acts as a proxy between the Salt Master and the minions.",
     "discovery_pattern": "All of: (4505/tcp is open, 4506/tcp is open, Client probe Zmtp succeeded, 8022/tcp is open)",
+    "icon": "code",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/salt-project.svg",
     "name": "Salt Proxy"
@@ -2344,6 +2604,7 @@
     "color": "Red",
     "description": "A Salt master server acts as a central control bus for the clients, which are called minions.",
     "discovery_pattern": "All of: (All of: (4505/tcp is open, Client probe Zmtp succeeded), All of: (4506/tcp is open, Client probe Zmtp succeeded), Not (8022/tcp is open))",
+    "icon": "code",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/salt-project.svg",
     "name": "Salt Master"
@@ -2353,6 +2614,7 @@
     "color": "Amber",
     "description": "Self-hosted remote desktop server",
     "discovery_pattern": "Endpoint response body from <ip>:21114/ contains \"RustDesk API Admin\"",
+    "icon": "terminal",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/rustdesk.svg",
     "name": "RustDesk"
@@ -2362,6 +2624,7 @@
     "color": "Amber",
     "description": "Remote Desktop Protocol (RDP)",
     "discovery_pattern": "All of: (3389/tcp is open, Client probe Rdp succeeded)",
+    "icon": "terminal",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Remote Desktop"
@@ -2371,6 +2634,7 @@
     "color": "Yellow",
     "description": "Network Time Protocol server",
     "discovery_pattern": "123/udp is open",
+    "icon": "network",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "NTP Server"
@@ -2380,6 +2644,7 @@
     "color": "Orange",
     "description": "Media Gateway Control Protocol, tying a voice gateway to its call agent",
     "discovery_pattern": "Any of: (2427/udp is open, 2727/udp is open)",
+    "icon": "phone",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "MGCP Endpoint"
@@ -2389,6 +2654,7 @@
     "color": "Orange",
     "description": "Voice and video call signalling over H.323",
     "discovery_pattern": "All of: (1720/tcp is open, Client probe H323 succeeded)",
+    "icon": "phone",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "H.323 Gateway"
@@ -2398,6 +2664,7 @@
     "color": "Yellow",
     "description": "Network management interface over gRPC",
     "discovery_pattern": "Client probe Gnmi succeeded",
+    "icon": "network",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "gNMI"
@@ -2407,6 +2674,7 @@
     "color": "Yellow",
     "description": "A generic gateway",
     "discovery_pattern": "All of: (Host IP is a gateway in daemon's routing tables, or ends in .1 or .254., A custom match pattern evaluated at runtime)",
+    "icon": "network",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "Gateway"
@@ -2416,6 +2684,7 @@
     "color": "Yellow",
     "description": "A generic DHCP server",
     "discovery_pattern": "67/udp is open",
+    "icon": "network",
     "logo_needs_white_background": false,
     "logo_url": "",
     "name": "DHCP Server"
@@ -2425,6 +2694,7 @@
     "color": "Amber",
     "description": "Web-based Linux server administration console",
     "discovery_pattern": "Endpoint response from <ip>:9090 has header \"set-cookie\" with value \"cockpit=\"",
+    "icon": "terminal",
     "logo_needs_white_background": false,
     "logo_url": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/cockpit.svg",
     "name": "Cockpit"
