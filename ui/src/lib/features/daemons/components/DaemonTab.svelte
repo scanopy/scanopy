@@ -6,8 +6,8 @@
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 	import type { Daemon } from '$lib/features/daemons/types/base';
 	import { hasSunsetWarning, getDaemonStatusTag, osLabel } from '$lib/features/daemons/utils';
-	import OsIcon from './OsIcon.svelte';
-	import { createColorHelper } from '$lib/shared/utils/styling';
+	import OsTag from '$lib/features/hosts/components/OsTag.svelte';
+	import { hostOsOfDaemonOs } from '$lib/features/hosts/host-os';
 	import CreateDaemonModal from './CreateDaemonModal/CreateDaemonModal.svelte';
 	import { defineFields, type CardAction } from '$lib/shared/components/data/types';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
@@ -437,16 +437,10 @@
 	);
 </script>
 
-<!-- A gray Tag with the OS's own icon: Tag takes an icon component, and OsIcon needs its `os`. -->
 {#snippet osCell(daemon: Daemon)}
-	{#if daemon.os}
-		{@const gray = createColorHelper('Gray')}
-		<span
-			class="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium {gray.bg} {gray.text}"
-		>
-			<OsIcon os={daemon.os} class="h-4 w-4 flex-shrink-0" />
-			<span class="truncate">{osLabel(daemon.os)}</span>
-		</span>
+	{@const os = daemon.os ? hostOsOfDaemonOs(daemon.os) : null}
+	{#if os}
+		<OsTag {os} />
 	{:else}
 		<span class="text-tertiary text-sm">—</span>
 	{/if}

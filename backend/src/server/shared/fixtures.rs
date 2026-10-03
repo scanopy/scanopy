@@ -71,7 +71,20 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
     // Download service logos to static directory for local serving
     // output_dir is ui/src/lib/data, static dir is ui/static/logos/services
     let static_dir = output_dir.join("../../../static/logos/services");
-    download_service_logos(&all_services, &static_dir);
+    let service_logos: Vec<(String, &str)> = all_services
+        .iter()
+        .map(|s| (logo_slug(s.name()), s.logo_url()))
+        .collect();
+    download_logos(&service_logos, &static_dir);
+
+    // Host OS family logos, beside the service logos and fetched the same way. The UI reads them
+    // from /logos/os-families/<family id>.<logo_ext>.
+    let os_family_dir = output_dir.join("../../../static/logos/os-families");
+    let os_family_logos: Vec<(String, &str)> =
+        crate::server::hosts::r#impl::os::HostOsFamily::iter()
+            .map(|f| (<&'static str>::from(f).to_string(), f.logo_url()))
+            .collect();
+    download_logos(&os_family_logos, &os_family_dir);
 
     let subnet_types: Vec<TypeMetadata> = SubnetType::iter().map(|t| t.to_metadata()).collect();
     write_fixture(&subnet_types, output_dir, "subnet-types.json");
@@ -290,7 +303,7 @@ pub fn logo_slug(name: &str) -> String {
 
 /// Derive file extension from a logo URL.
 /// "https://cdn.jsdelivr.net/.../docker.svg" → "svg"
-fn logo_ext(url: &str) -> &str {
+pub(crate) fn logo_ext(url: &str) -> &str {
     url.rsplit('.')
         .next()
         .and_then(|e| e.split('?').next())
@@ -298,10 +311,11 @@ fn logo_ext(url: &str) -> &str {
         .unwrap_or("svg")
 }
 
-/// Download service logos from CDN URLs to local static directory.
-/// Files are saved with extensions so the static server sets correct Content-Type.
-fn download_service_logos(services: &[Box<dyn ServiceDefinition>], static_dir: &Path) {
-    println!("Downloading service logos to {}...", static_dir.display());
+/// Download logos from CDN URLs to a local static directory, one `(file stem, url)` per logo.
+/// Files are saved with extensions so the static server sets correct Content-Type. Empty and
+/// already-local (`/...`) URLs are skipped.
+fn download_logos(logos: &[(String, &str)], static_dir: &Path) {
+    println!("Downloading logos to {}...", static_dir.display());
     fs::create_dir_all(static_dir).expect("Failed to create logos directory");
 
     let client = reqwest::blocking::Client::builder()
@@ -312,30 +326,30 @@ fn download_service_logos(services: &[Box<dyn ServiceDefinition>], static_dir: &
     let mut downloaded = 0;
     let mut failed = 0;
 
-    for service in services {
-        let url = service.logo_url();
+    for (stem, url) in logos {
+        let url = *url;
         if url.is_empty() || url.starts_with('/') {
             continue;
         }
 
         let ext = logo_ext(url);
-        let filename = format!("{}.{}", logo_slug(service.name()), ext);
+        let filename = format!("{stem}.{ext}");
         let path = static_dir.join(&filename);
 
         match client.get(url).send().and_then(|r| r.error_for_status()) {
             Ok(resp) => match resp.bytes() {
                 Ok(bytes) => {
                     fs::write(&path, &bytes)
-                        .unwrap_or_else(|_| panic!("Failed to write logo for {}", service.name()));
+                        .unwrap_or_else(|_| panic!("Failed to write logo {filename}"));
                     downloaded += 1;
                 }
                 Err(e) => {
-                    eprintln!("  ⚠ {} — failed to read response: {}", service.name(), e);
+                    eprintln!("  ⚠ {stem} — failed to read response: {e}");
                     failed += 1;
                 }
             },
             Err(e) => {
-                eprintln!("  ⚠ {} — {}", service.name(), e);
+                eprintln!("  ⚠ {stem} — {e}");
                 failed += 1;
             }
         }

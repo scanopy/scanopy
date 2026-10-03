@@ -64,7 +64,29 @@ add_field manufacturer "$(read_value "$dmi/sys_vendor")"
 add_field model "$(read_value "$dmi/product_name")"
 add_field serial_number "${SCANOPY_LAB_SERIAL:-$(read_value "$dmi/product_serial")}"
 add_field firmware_revision "$(read_value "$dmi/bios_version")"
-add_field software_revision "$(uname -r)"
+# The OS as an object (Scanopy's `os` key): family from the kernel's own name, the rest from
+# /etc/os-release and uname. A kernel this script has no family for reports no `os`.
+case "$(uname -s)" in
+    Linux) os_family="Linux" ;;
+    Darwin) os_family="MacOs" ;;
+    FreeBSD) os_family="FreeBsd" ;;
+    *) os_family="" ;;
+esac
+if [ -n "$os_family" ]; then
+    os_release_field() {
+        # shellcheck disable=SC1091
+        [ -r /etc/os-release ] && . /etc/os-release
+        eval "printf '%s' \"\${$1:-}\""
+    }
+    os="\"family\":\"$os_family\""
+    for pair in name:NAME version:VERSION_ID codename:VERSION_CODENAME; do
+        value=$(os_release_field "${pair#*:}")
+        [ -n "$value" ] && os="${os},\"${pair%%:*}\":\"$(json_escape "$value")\""
+    done
+    os="${os},\"kernel_version\":\"$(json_escape "$(uname -r)")\""
+    out="${out}${sep}\"os\":{${os}}"
+    sep=","
+fi
 
 # ── Interfaces ────────────────────────────────────────────────────────
 lab_addr="${SCANOPY_LAB_ADDR:-}"

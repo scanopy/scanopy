@@ -173,13 +173,99 @@ impl HasId for HostOsFamily {
     }
 }
 
+/// Where Simple Icons serves its monochrome SVGs. CC0-1.0.
+const SIMPLE_ICONS: &str = "https://simpleicons.org/icons/";
+/// Where Dashboard Icons serves its colored SVGs. Apache-2.0; its license ships with the server
+/// (`assets/dashboard-icons/LICENSE`).
+const DASHBOARD_ICONS: &str = "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/";
+
+impl HostOsFamily {
+    /// The daemon OS this family is, when a daemon can run on it. Its tag then draws the same icon
+    /// the daemon's OS tag does. Derived through `From<DaemonOs>`, so the two cannot disagree.
+    pub fn daemon_os(&self) -> Option<DaemonOs> {
+        use strum::IntoEnumIterator;
+        DaemonOs::iter().find(|os| HostOsFamily::from(*os) == *self)
+    }
+
+    /// The vendor's logo, downloaded with the service logos by `generate-fixtures`. Empty for the
+    /// daemon OS families, which draw the daemon's own icon, and for families whose vendor neither
+    /// Simple Icons nor Dashboard Icons carries (IBM, SGI, SCO, Novell, Palm, Arista, H3C, Nortel,
+    /// Check Point, eCos), which show their lucide glyph from [`EntityMetadataProvider::icon`].
+    pub fn logo_url(&self) -> &'static str {
+        use const_format::concatcp;
+        match self {
+            Self::Linux | Self::Windows | Self::MacOs | Self::FreeBsd => "",
+            Self::Ios | Self::TvOs | Self::AudioOs => concatcp!(SIMPLE_ICONS, "apple.svg"),
+            Self::OpenBsd => concatcp!(SIMPLE_ICONS, "openbsd.svg"),
+            Self::NetBsd => concatcp!(SIMPLE_ICONS, "netbsd.svg"),
+            Self::HpUx | Self::Tru64 | Self::OpenVms | Self::ProCurve => {
+                concatcp!(SIMPLE_ICONS, "hp.svg")
+            }
+            Self::Esxi => concatcp!(SIMPLE_ICONS, "vmware.svg"),
+            Self::CiscoIos
+            | Self::CiscoIosXe
+            | Self::CiscoIosXr
+            | Self::CiscoNxOs
+            | Self::CiscoCatOs
+            | Self::CiscoAsa
+            | Self::CiscoFtd => concatcp!(SIMPLE_ICONS, "cisco.svg"),
+            Self::Junos | Self::ScreenOs => concatcp!(SIMPLE_ICONS, "junipernetworks.svg"),
+            Self::RouterOs => concatcp!(SIMPLE_ICONS, "mikrotik.svg"),
+            Self::HuaweiVrp => concatcp!(SIMPLE_ICONS, "huawei.svg"),
+            Self::PanOs => concatcp!(SIMPLE_ICONS, "paloaltonetworks.svg"),
+            Self::FortiOs => concatcp!(SIMPLE_ICONS, "fortinet.svg"),
+            Self::SonicOs => concatcp!(SIMPLE_ICONS, "sonicwall.svg"),
+            Self::DataOntap => concatcp!(SIMPLE_ICONS, "netapp.svg"),
+            Self::Solaris => concatcp!(DASHBOARD_ICONS, "oracle.svg"),
+            Self::ArubaOs => concatcp!(DASHBOARD_ICONS, "aruba.svg"),
+            Self::IronWare | Self::BrocadeNetworkOs => concatcp!(DASHBOARD_ICONS, "brocade.svg"),
+            Self::Aix
+            | Self::ZOs
+            | Self::IbmI
+            | Self::Irix
+            | Self::UnixWare
+            | Self::OpenServer
+            | Self::NetWare
+            | Self::PalmOs
+            | Self::AristaEos
+            | Self::Comware
+            | Self::BayRs
+            | Self::GaiaOs
+            | Self::Ipso
+            | Self::Ecos => "",
+        }
+    }
+
+    /// Simple Icons are black, which a dark tag would swallow; the service logos from the same
+    /// source set the same flag for the same reason.
+    pub fn logo_needs_white_background(&self) -> bool {
+        self.logo_url().starts_with(SIMPLE_ICONS)
+    }
+}
+
 impl EntityMetadataProvider for HostOsFamily {
     fn color(&self) -> Color {
         EntityDiscriminants::Host.color()
     }
 
+    /// The glyph a family shows when it has neither a daemon OS icon nor a logo: what kind of
+    /// system it runs on. The others keep the host icon, which nothing draws.
     fn icon(&self) -> Icon {
-        EntityDiscriminants::Host.icon()
+        match self {
+            Self::Aix
+            | Self::ZOs
+            | Self::IbmI
+            | Self::Irix
+            | Self::UnixWare
+            | Self::OpenServer
+            | Self::NetWare => Icon::ServerCog,
+            Self::AristaEos | Self::Comware | Self::BayRs | Self::GaiaOs | Self::Ipso => {
+                Icon::Router
+            }
+            Self::PalmOs => Icon::Smartphone,
+            Self::Ecos => Icon::Cpu,
+            _ => EntityDiscriminants::Host.icon(),
+        }
     }
 }
 
@@ -236,11 +322,41 @@ impl TypeMetadataProvider for HostOsFamily {
             Self::Ecos => "eCos",
         }
     }
+
+    /// How the UI draws the family's tag: the daemon OS icon, else the downloaded logo, else the
+    /// lucide glyph in `icon`.
+    fn metadata(&self) -> serde_json::Value {
+        let url = self.logo_url();
+        serde_json::json!({
+            "daemon_os": self.daemon_os().map(<&'static str>::from),
+            "logo_ext": if url.is_empty() { "" } else { crate::server::shared::fixtures::logo_ext(url) },
+            "logo_needs_white_background": self.logo_needs_white_background(),
+        })
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn every_family_has_an_icon_to_draw() {
+        use strum::IntoEnumIterator;
+        for family in HostOsFamily::iter() {
+            let drawn = family.daemon_os().is_some()
+                || !family.logo_url().is_empty()
+                || family.icon().to_string() != EntityDiscriminants::Host.icon().to_string();
+            assert!(drawn, "{family:?} has no daemon OS icon, logo or glyph");
+        }
+    }
+
+    #[test]
+    fn each_daemon_os_is_the_family_that_names_it() {
+        use strum::IntoEnumIterator;
+        for os in DaemonOs::iter() {
+            assert_eq!(HostOsFamily::from(os).daemon_os(), Some(os));
+        }
+    }
     use crate::server::hosts::r#impl::attributes::{
         HostOsValue, HostSysDescrValue, HostSysObjectIdValue,
     };
