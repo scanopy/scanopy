@@ -150,43 +150,51 @@ pub struct GuestAddress {
     pub interface: Option<String>,
 }
 
-/// The NICs a guest's config declares: `(netN, mac, static addresses)`.
+/// The NICs a guest's config declares, with any static addresses it gives them.
 ///
-/// A QEMU NIC is `virtio=BC:24:11:..,bridge=vmbr0` — the MAC is the value of the model key, or
-/// of `macaddr`. An LXC NIC is `name=eth0,hwaddr=BC:24:11:..,ip=10.0.0.5/24` and may carry
-/// static addresses (`dhcp`, `manual` and `auto` are not addresses).
+/// A QEMU NIC is `net0: virtio=BC:24:11:..,bridge=vmbr0`: the MAC is the value of the model key,
+/// or of `macaddr`. Its static address, when cloud-init sets one, is in the matching
+/// `ipconfig0: ip=192.168.7.170/22,gw=...`. An LXC NIC carries both in one value:
+/// `name=eth0,hwaddr=BC:24:11:..,ip=10.0.0.5/24`. `dhcp`, `manual` and `auto` are not addresses.
 pub fn config_nics(config: &GuestConfig) -> Vec<ConfigNic> {
-    let mut nics: Vec<ConfigNic> = config
-        .iter()
-        .filter(|(key, _)| {
-            key.strip_prefix("net")
-                .is_some_and(|n| !n.is_empty() && n.chars().all(|c| c.is_ascii_digit()))
+    let indexed = |prefix: &'static str| {
+        config.iter().filter_map(move |(key, value)| {
+            let index = key.strip_prefix(prefix)?;
+            (!index.is_empty() && index.chars().all(|c| c.is_ascii_digit()))
+                .then(|| (index.to_string(), value.as_str()))
         })
-        .filter_map(|(key, value)| {
-            let value = value.as_str()?;
+    };
+    let pairs = |value: &str| -> Vec<(String, String)> {
+        value
+            .split(',')
+            .filter_map(|part| part.split_once('='))
+            .map(|(k, v)| (k.trim().to_string(), v.trim().to_string()))
+            .collect()
+    };
+    let static_ip = |key: &str, value: &str| -> Option<IpAddr> {
+        matches!(key, "ip" | "ip6")
+            .then(|| value.split('/').next()?.parse().ok())
+            .flatten()
+    };
+
+    let mut nics: Vec<ConfigNic> = indexed("net")
+        .filter_map(|(index, value)| {
             let mut nic = ConfigNic {
-                key: key.clone(),
+                key: format!("net{index}"),
                 name: None,
                 mac: None,
                 static_ips: vec![],
             };
-            for part in value.split(',') {
-                let Some((k, v)) = part.split_once('=') else {
-                    continue;
-                };
-                match k.trim() {
-                    "name" => nic.name = Some(v.trim().to_string()),
-                    "ip" | "ip6" => {
-                        if let Some(ip) = v.split('/').next().and_then(|ip| ip.parse().ok()) {
-                            nic.static_ips.push(ip);
-                        }
-                    }
-                    "bridge" | "tag" | "firewall" | "rate" | "mtu" | "queues" | "trunks"
-                    | "gw" | "gw6" | "type" | "link_down" => {}
+            for (k, v) in pairs(value?) {
+                match k.as_str() {
+                    "name" => nic.name = Some(v),
+                    "ip" | "ip6" => nic.static_ips.extend(static_ip(&k, &v)),
+                    "bridge" | "tag" | "firewall" | "rate" | "mtu" | "queues" | "trunks" | "gw"
+                    | "gw6" | "type" | "link_down" => {}
                     // `hwaddr` (LXC), `macaddr`, or the QEMU model key carrying the MAC.
                     _ => {
                         if nic.mac.is_none() {
-                            nic.mac = canonical_mac(v);
+                            nic.mac = canonical_mac(&v);
                         }
                     }
                 }
@@ -194,6 +202,16 @@ pub fn config_nics(config: &GuestConfig) -> Vec<ConfigNic> {
             Some(nic)
         })
         .collect();
+
+    for (index, value) in indexed("ipconfig") {
+        let Some(nic) = nics.iter_mut().find(|n| n.key == format!("net{index}")) else {
+            continue;
+        };
+        for (k, v) in pairs(value.unwrap_or_default()) {
+            nic.static_ips.extend(static_ip(&k, &v));
+        }
+    }
+
     nics.sort_by(|a, b| a.key.cmp(&b.key));
     nics
 }
@@ -250,8 +268,8 @@ pub fn lxc_addresses(interfaces: &[LxcInterface]) -> Vec<GuestAddress> {
         .collect()
 }
 
-/// Static addresses from an LXC config, for a container that is stopped or whose runtime read
-/// failed. Each carries its NIC's MAC.
+/// Static addresses from a guest's config (an LXC `ip=`, or a VM's cloud-init `ipconfigN`), for
+/// a guest that is stopped or whose runtime read gave nothing. Each carries its NIC's MAC.
 pub fn static_addresses(nics: &[ConfigNic]) -> Vec<GuestAddress> {
     nics.iter()
         .flat_map(|nic| {
@@ -316,8 +334,10 @@ pub fn guest_host(
     });
     if let Some(name) = &guest.name {
         // A person named the guest in Proxmox.
-        host.base
-            .apply_name(HostName::from_controller(name.clone(), ClientProbe::Proxmox));
+        host.base.apply_name(HostName::from_controller(
+            name.clone(),
+            ClientProbe::Proxmox,
+        ));
     }
 
     let mut seen = BTreeSet::new();
@@ -357,4 +377,124 @@ fn reported_address(
         name,
         position,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::daemon::discovery::integration::proxmox::types::{PveEnvelope, PveVersion};
+
+    // ------------------------------------------------------------------------------------
+    // Recorded from a real Proxmox VE 8.4.21 node (the `pve` lab, `tools/wol/`) with
+    // `curl -sk`, the way the daemon reads it. Only the cloud-init `sshkeys` value is scrubbed.
+    // The token that recorded `pool_scoped` holds PVEVMAdmin on one pool and no `Sys.Audit`, so
+    // `/cluster/status` answered 403: these are exactly what a narrowly granted token sees.
+    // ------------------------------------------------------------------------------------
+
+    const VERSION: &str = include_str!("../../../../tests/proxmox/pve84_version.json");
+    const RESOURCES_POOL_SCOPED: &str =
+        include_str!("../../../../tests/proxmox/pve84_cluster_resources_pool_scoped.json");
+    const QEMU_110_CONFIG: &str =
+        include_str!("../../../../tests/proxmox/pve84_qemu_110_config.json");
+
+    fn data<T: serde::de::DeserializeOwned>(json: &str) -> T {
+        serde_json::from_str::<PveEnvelope<T>>(json)
+            .expect("fixture should parse")
+            .data
+    }
+
+    fn scanned() -> IpAddr {
+        "192.168.4.10".parse().unwrap()
+    }
+
+    #[test]
+    fn version_parses() {
+        let version: PveVersion = data(VERSION);
+        assert_eq!(version.version, "8.4.21");
+        assert_eq!(version.release.as_deref(), Some("8.4"));
+    }
+
+    /// Without `/cluster/status` a lone node can only be the one that answered, so it takes the
+    /// scanned address and its guests can be linked to it.
+    #[test]
+    fn a_single_node_is_placed_at_the_scanned_address_without_cluster_status() {
+        let resources: Vec<ClusterResource> = data(RESOURCES_POOL_SCOPED);
+        assert_eq!(
+            nodes(&resources, None, scanned()),
+            vec![NodeSpec {
+                name: "pve".to_string(),
+                ip: Some(scanned()),
+                local: true,
+            }]
+        );
+    }
+
+    /// The template (vmid 9000) never runs; the running VM and nothing else is a guest.
+    #[test]
+    fn templates_and_non_guest_resources_are_not_guests() {
+        let resources: Vec<ClusterResource> = data(RESOURCES_POOL_SCOPED);
+        assert_eq!(
+            guests(&resources),
+            vec![GuestSummary {
+                node: "pve".to_string(),
+                vmid: 110,
+                name: Some("scanopy-wol-target".to_string()),
+                guest_type: ProxmoxGuestType::Qemu,
+                running: true,
+            }]
+        );
+    }
+
+    /// The VM has no guest agent, so its address comes from cloud-init's `ipconfig0`, paired with
+    /// the MAC its `net0` declares.
+    #[test]
+    fn a_vm_without_the_agent_takes_its_cloud_init_address_and_nic_mac() {
+        let config: GuestConfig = data(QEMU_110_CONFIG);
+        assert_eq!(
+            static_addresses(&config_nics(&config)),
+            vec![GuestAddress {
+                ip: "192.168.7.170".parse().unwrap(),
+                mac: Some("bc:24:11:69:a3:e1".to_string()),
+                interface: None,
+            }]
+        );
+    }
+
+    /// The guest host names its node's Proxmox VE service and says it is a QEMU VM, and the
+    /// name a person gave it in Proxmox titles it.
+    #[test]
+    fn a_guest_host_links_to_its_node_and_carries_its_proxmox_identity() {
+        let resources: Vec<ClusterResource> = data(RESOURCES_POOL_SCOPED);
+        let config: GuestConfig = data(QEMU_110_CONFIG);
+        let guest = &guests(&resources)[0];
+        let owner = Uuid::new_v4();
+        let network_id = Uuid::new_v4();
+
+        let (host, ips) = guest_host(
+            guest,
+            &static_addresses(&config_nics(&config)),
+            Some(owner),
+            network_id,
+        );
+
+        assert_eq!(host.base.virtualization_service_id, Some(owner));
+        assert_eq!(
+            host.base.virtualization_metadata,
+            Some(HostVirtualization::Proxmox(ProxmoxVirtualization {
+                vm_name: Some("scanopy-wol-target".to_string()),
+                vm_id: Some("110".to_string()),
+                guest_type: Some(ProxmoxGuestType::Qemu),
+            }))
+        );
+        assert_eq!(host.base.name.value().as_str(), "scanopy-wol-target");
+        assert_eq!(
+            host.base.name.source(),
+            AttributeSource::Authored(ClientProbe::Proxmox)
+        );
+        assert_eq!(ips.len(), 1);
+        assert_eq!(
+            ips[0].base.mac_address.as_ref().map(|m| m.source()),
+            Some(REPORTED)
+        );
+    }
 }

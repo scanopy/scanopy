@@ -1836,6 +1836,54 @@ mod tests {
         assert!(!format!("{:?}", cred.to_query_payload()).contains("portal-pw"));
     }
 
+    /// The token secret carries the same redacted round-trip risk as every other secret.
+    #[test]
+    fn merge_redacted_secrets_preserves_the_proxmox_token_secret() {
+        let token = |secret: &str| CredentialType::ProxmoxApiToken {
+            port: 8006,
+            token_id: "scanopy@pve!discovery".to_string(),
+            token_secret: inline(secret),
+        };
+        let mut updated = token(REDACTED_SECRET_SENTINEL);
+        updated.merge_redacted_secrets(&token("real-token-secret"));
+        assert_eq!(updated, token("real-token-secret"));
+    }
+
+    /// The token ID must be the full `user@realm!tokenname`: the bare user or the bare token name
+    /// is the usual paste mistake, and Proxmox answers either with a 401 that reads like a wrong
+    /// secret.
+    #[test]
+    fn proxmox_token_id_must_name_user_realm_and_token() {
+        let with_id = |token_id: &str| CredentialType::ProxmoxApiToken {
+            port: 8006,
+            token_id: token_id.to_string(),
+            token_secret: inline("secret"),
+        };
+        for valid in [
+            "scanopy@pve!discovery",
+            "root@pam!scan_01",
+            " ops@ldap!a.b-c ",
+        ] {
+            assert!(
+                with_id(valid).validate().is_ok(),
+                "{valid} should be accepted"
+            );
+        }
+        for invalid in [
+            "scanopy@pve",
+            "discovery",
+            "scanopy!discovery",
+            "scanopy@pve!",
+            "scanopy@pve!1token",
+            "scan opy@pve!discovery",
+        ] {
+            assert!(
+                with_id(invalid).validate().is_err(),
+                "{invalid} should be rejected"
+            );
+        }
+    }
+
     /// Binding is what says *which host a credential produces data about*. Instant On describes
     /// the switch it reports on — never the daemon's own machine, which runs nothing Instant On,
     /// and never a whole network, which would spray portal credentials at unrelated hosts.

@@ -159,6 +159,7 @@ pub(super) fn generate_hosts_and_services(
     let unifi_os_cred = find_cred("UniFi OS API Key");
     let instant_on_cred = find_cred("Instant On Cloud Account");
     let hypervisor_ssh_cred = find_cred("Hypervisor SSH");
+    let proxmox_api_cred = find_cred("Proxmox Cluster API");
 
     let critical_tag = find_tag("Critical");
     let production_tag = find_tag("Production");
@@ -480,22 +481,30 @@ pub(super) fn generate_hosts_and_services(
         });
     }
 
-    // 7. Uptime Kuma (pre-generated ID for dependency wiring)
+    // 7. Uptime Kuma (pre-generated ID for dependency wiring) — an LXC container on hv02, bridged
+    // onto the management VLAN it watches (vm_id=202)
     {
         let (host, ip_address) = with_mac(
-            create_host(
+            reported_by_proxmox(create_host(
                 "uptime-kuma",
                 Some("status.acme.local"),
-                Some("Uptime Kuma status page"),
+                Some("Uptime Kuma status page (LXC container on proxmox-hv02)"),
                 hq,
                 hq_mgmt,
                 Ipv4Addr::new(10, 0, 1, 52),
                 monitoring_tag.into_iter().collect(),
                 None,
-                None,
+                Some((
+                    HostVirtualization::Proxmox(ProxmoxVirtualization {
+                        vm_name: Some("uptime-kuma".to_string()),
+                        vm_id: Some("202".to_string()),
+                        guest_type: Some(ProxmoxGuestType::Lxc),
+                    }),
+                    pve_hq2_svc_id,
+                )),
                 now,
-            ),
-            [0xf8, 0xbc, 0x12, 0x10, 0x07, 0x01],
+            )),
+            [0xbc, 0x24, 0x11, 0x10, 0x07, 0x01],
         );
         let ip_addresses = vec![ip_address];
         let mut ports = Vec::new();
@@ -563,7 +572,7 @@ pub(super) fn generate_hosts_and_services(
             "Proxmox VE",
             &host,
             &ip_addresses[0],
-            Some(PortType::Https8443),
+            Some(PortType::new_tcp(8006)),
             production_tag.into_iter().collect(),
             now,
         ) {
@@ -594,7 +603,7 @@ pub(super) fn generate_hosts_and_services(
                 ports,
                 services,
             },
-            &[hypervisor_ssh_cred],
+            &[hypervisor_ssh_cred, proxmox_api_cred],
         ));
     }
 
@@ -635,7 +644,7 @@ pub(super) fn generate_hosts_and_services(
             "Proxmox VE",
             &host,
             &ip_addresses[0],
-            Some(PortType::Https8443),
+            Some(PortType::new_tcp(8006)),
             production_tag.into_iter().collect(),
             now,
         ) {
@@ -665,14 +674,14 @@ pub(super) fn generate_hosts_and_services(
                 ports,
                 services,
             },
-            &[hypervisor_ssh_cred],
+            &[hypervisor_ssh_cred, proxmox_api_cred],
         ));
     }
 
     // 10. gitlab-vm — VM on hv01 (vm_id=100)
     result.push(host_with_services!(
         with_mac(
-            create_host(
+            reported_by_proxmox(create_host(
                 "gitlab-vm",
                 Some("gitlab.acme.local"),
                 Some("GitLab instance (VM on proxmox-hv01)"),
@@ -690,7 +699,7 @@ pub(super) fn generate_hosts_and_services(
                     pve_hq1_svc_id,
                 )),
                 now
-            ),
+            )),
             [0x52, 0x54, 0x00, 0x20, 0x10, 0x01],
         ),
         now,
@@ -705,7 +714,7 @@ pub(super) fn generate_hosts_and_services(
     // 11. nextcloud-vm — VM on hv01 (vm_id=101)
     result.push(host_with_services!(
         with_mac(
-            create_host(
+            reported_by_proxmox(create_host(
                 "nextcloud-vm",
                 Some("cloud.acme.local"),
                 Some("Nextcloud file sharing (VM on proxmox-hv01)"),
@@ -723,7 +732,7 @@ pub(super) fn generate_hosts_and_services(
                     pve_hq1_svc_id,
                 )),
                 now
-            ),
+            )),
             [0x52, 0x54, 0x00, 0x20, 0x11, 0x01],
         ),
         now,
@@ -741,7 +750,7 @@ pub(super) fn generate_hosts_and_services(
     // 12. keycloak-vm — VM on hv02 (vm_id=200)
     result.push(host_with_services!(
         with_mac(
-            create_host(
+            reported_by_proxmox(create_host(
                 "keycloak-vm",
                 Some("keycloak.acme.local"),
                 Some("Keycloak SSO (VM on proxmox-hv02)"),
@@ -759,7 +768,7 @@ pub(super) fn generate_hosts_and_services(
                     pve_hq2_svc_id,
                 )),
                 now
-            ),
+            )),
             [0x52, 0x54, 0x00, 0x20, 0x12, 0x01],
         ),
         now,
@@ -1068,7 +1077,7 @@ pub(super) fn generate_hosts_and_services(
     // 16. db-vm — VM on hv02 (vm_id=201)
     result.push(host_with_services!(
         with_mac(
-            create_host(
+            reported_by_proxmox(create_host(
                 "db-vm",
                 Some("db.acme.local"),
                 Some("Database server (VM on proxmox-hv02)"),
@@ -1086,7 +1095,7 @@ pub(super) fn generate_hosts_and_services(
                     pve_hq2_svc_id,
                 )),
                 now
-            ),
+            )),
             [0x52, 0x54, 0x00, 0x40, 0x16, 0x01],
         ),
         now,
@@ -1995,7 +2004,7 @@ pub(super) fn generate_hosts_and_services(
             "Proxmox VE",
             &host,
             &ip_addresses[0],
-            Some(PortType::Https8443),
+            Some(PortType::new_tcp(8006)),
             production_tag.into_iter().collect(),
             now,
         ) {

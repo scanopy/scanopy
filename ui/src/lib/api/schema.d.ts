@@ -3488,7 +3488,7 @@ export interface components {
          * @description API metadata included in all responses
          * @example {
          *       "api_version": 1,
-         *       "server_version": "0.17.19"
+         *       "server_version": "0.17.21"
          *     }
          */
         ApiMeta: {
@@ -3499,7 +3499,7 @@ export interface components {
             api_version: number;
             /**
              * @description Server version (semver)
-             * @example 0.17.19
+             * @example 0.17.21
              */
             server_version: string;
         };
@@ -3528,19 +3528,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-03T01:53:18.411304Z",
+             *       "created_at": "2026-10-03T05:32:21.176094Z",
              *       "first_discovery_id": null,
-             *       "id": "1282642a-ef30-48d8-a0d4-3ddf450cdfda",
+             *       "id": "2e8ad17c-d229-4c12-9d85-8aaae560b18e",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-03T01:53:18.411304Z",
+             *       "last_seen_at": "2026-10-03T05:32:21.176094Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-10-03T01:53:18.411304Z",
-             *       "valid_from": "2026-10-03T01:53:18.411304Z",
+             *       "updated_at": "2026-10-03T05:32:21.176094Z",
+             *       "valid_from": "2026-10-03T05:32:21.176094Z",
              *       "valid_to": null
              *     }
              */
@@ -4368,19 +4368,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-03T01:53:18.386838Z",
+             *               "created_at": "2026-10-03T05:32:21.154047Z",
              *               "first_discovery_id": null,
-             *               "id": "184c3384-04fe-4005-af4c-44b75ed29bb2",
+             *               "id": "77ab430a-4dea-405c-a5ef-13a902b48e10",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-03T01:53:18.386838Z",
+             *               "last_seen_at": "2026-10-03T05:32:21.154047Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-10-03T01:53:18.386838Z",
-             *               "valid_from": "2026-10-03T01:53:18.386838Z",
+             *               "updated_at": "2026-10-03T05:32:21.154047Z",
+             *               "valid_from": "2026-10-03T05:32:21.154047Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4394,7 +4394,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Tomcat",
+             *           "service_definition": "Veeam",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5313,19 +5313,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-03T01:53:18.406165Z",
+             *           "created_at": "2026-10-03T05:32:21.171314Z",
              *           "first_discovery_id": null,
-             *           "id": "02858d2e-8d0b-431a-8def-1710b31e569b",
+             *           "id": "1b4062af-e1cf-48bf-b907-751d9e7742d2",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-03T01:53:18.406165Z",
+             *           "last_seen_at": "2026-10-03T05:32:21.171314Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-10-03T01:53:18.406165Z",
-             *           "valid_from": "2026-10-03T01:53:18.406165Z",
+             *           "updated_at": "2026-10-03T05:32:21.171314Z",
+             *           "valid_from": "2026-10-03T05:32:21.171314Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5339,7 +5339,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Tomcat",
+             *       "service_definition": "Veeam",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6441,19 +6441,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-03T01:53:18.387526Z",
+         *       "created_at": "2026-10-03T05:32:21.154638Z",
          *       "first_discovery_id": null,
-         *       "id": "60e95f88-aeff-495f-aa32-90a40688d0f5",
+         *       "id": "f47f0ff1-4396-49bc-84c2-788d56b1a20f",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-03T01:53:18.387526Z",
+         *       "last_seen_at": "2026-10-03T05:32:21.154638Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-10-03T01:53:18.387526Z",
-         *       "valid_from": "2026-10-03T01:53:18.387526Z",
+         *       "updated_at": "2026-10-03T05:32:21.154638Z",
+         *       "valid_from": "2026-10-03T05:32:21.154638Z",
          *       "valid_to": null
          *     }
          */
@@ -6699,7 +6699,7 @@ export interface components {
          *     `every_client_probe_variant_has_a_producer` is what now says so.
          * @enum {string}
          */
-        ClientProbe: "Docker" | "Gnmi" | "Podman" | "Snmp" | "UnifiController" | "InstantOn" | "ModbusTcp" | "OpcUa" | "EtherNetIp" | "Sip" | "Ssh" | "Ftp" | "Telnet" | "Rtsp" | "Nut" | "ZabbixAgent" | "CheckMkAgent" | "Smb" | "Ldap" | "Kerberos" | "MySql" | "PostgreSql" | "MsSql" | "MongoDb" | "Redis" | "Cassandra" | "Kafka" | "Amqp" | "Mqtt" | "OracleTns" | "Rdp" | "Nfs" | "DnsTcp" | "DockerSwarm" | "Tls" | "Ike" | "OpenVpn" | "Zmtp" | "Bacula" | "BeszelAgent" | "H323";
+        ClientProbe: "Docker" | "Gnmi" | "Podman" | "Snmp" | "UnifiController" | "InstantOn" | "Proxmox" | "ModbusTcp" | "OpcUa" | "EtherNetIp" | "Sip" | "Ssh" | "Ftp" | "Telnet" | "Rtsp" | "Nut" | "ZabbixAgent" | "CheckMkAgent" | "Smb" | "Ldap" | "Kerberos" | "MySql" | "PostgreSql" | "MsSql" | "MongoDb" | "Redis" | "Cassandra" | "Kafka" | "Amqp" | "Mqtt" | "OracleTns" | "Rdp" | "Nfs" | "DnsTcp" | "DockerSwarm" | "Tls" | "Ike" | "OpenVpn" | "Zmtp" | "Bacula" | "BeszelAgent" | "H323";
         /** @enum {string} */
         ClockFormat: "browser_default" | "twelve_hour" | "twenty_four_hour";
         /** @enum {string} */
@@ -6781,7 +6781,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Tomcat",
+         *           "service_definition": "Veeam",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -7000,7 +7000,7 @@ export interface components {
          *     messages.
          * @enum {string}
          */
-        CredentialIntegration: "Snmp" | "Gnmi" | "Docker" | "Podman" | "UnifiController" | "InstantOn" | "Ssh" | "WakeOnLan";
+        CredentialIntegration: "Snmp" | "Gnmi" | "Docker" | "Podman" | "UnifiController" | "InstantOn" | "Ssh" | "WakeOnLan" | "Proxmox";
         /** @enum {string} */
         CredentialOrderField: "created_at" | "name" | "updated_at";
         /**
@@ -7018,7 +7018,7 @@ export interface components {
             daemon: string[];
         };
         /** @enum {string} */
-        CredentialQueryPayloadDiscriminants: "Snmp" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiController" | "InstantOn" | "Gnmi" | "Ssh" | "WakeOnLan" | "Unknown";
+        CredentialQueryPayloadDiscriminants: "Snmp" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiController" | "InstantOn" | "Gnmi" | "Ssh" | "WakeOnLan" | "Proxmox" | "Unknown";
         CredentialRunOutcome: {
             /**
              * Format: int32
@@ -7253,9 +7253,21 @@ export interface components {
              * @description How long to wait for the woken hosts to answer before the sweep starts.
              */
             wait_seconds?: number;
+        } | {
+            /**
+             * Format: int32
+             * @description Proxmox VE API port (default 8006).
+             */
+            port?: number;
+            /** @description Token ID in `user@realm!tokenname` form, e.g. `scanopy@pve!discovery`. */
+            token_id: string;
+            /** @description The token's secret (a UUID), shown once when the token is created. */
+            token_secret: components["schemas"]["SecretValue"];
+            /** @enum {string} */
+            type: "ProxmoxApiToken";
         };
         /** @enum {string} */
-        CredentialTypeDiscriminants: "SnmpV1" | "SnmpV2c" | "SnmpV3" | "Gnmi" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiApiKey" | "UnifiLocalAdmin" | "InstantOnAccount" | "SshPassword" | "SshKey" | "WakeOnLan";
+        CredentialTypeDiscriminants: "SnmpV1" | "SnmpV2c" | "SnmpV3" | "Gnmi" | "DockerProxy" | "DockerSocket" | "PodmanProxy" | "PodmanSocket" | "UnifiApiKey" | "UnifiLocalAdmin" | "InstantOnAccount" | "SshPassword" | "SshKey" | "WakeOnLan" | "ProxmoxApiToken";
         Daemon: components["schemas"]["DaemonBase"] & {
             /**
              * Format: date-time
@@ -9292,19 +9304,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-03T01:53:18.386069Z",
+         *               "created_at": "2026-10-03T05:32:21.153366Z",
          *               "first_discovery_id": null,
-         *               "id": "be7ebab4-83bd-4365-8fa9-2f1dad9b9a18",
+         *               "id": "10783693-f044-4454-9485-8afcf18f0d79",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-03T01:53:18.386069Z",
+         *               "last_seen_at": "2026-10-03T05:32:21.153366Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-10-03T01:53:18.386069Z",
-         *               "valid_from": "2026-10-03T01:53:18.386069Z",
+         *               "updated_at": "2026-10-03T05:32:21.153366Z",
+         *               "valid_from": "2026-10-03T05:32:21.153366Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9318,7 +9330,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Tomcat",
+         *           "service_definition": "Veeam",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -9736,7 +9748,7 @@ export interface components {
          * @description Format hint for inline values in `PathOrInline` and `SecretPathOrInline` fields.
          * @enum {string}
          */
-        InlineFormat: "plain" | "pemprivatekey" | "pemcertificate" | "sshprivatekey" | "macaddress";
+        InlineFormat: "plain" | "pemprivatekey" | "pemcertificate" | "sshprivatekey" | "macaddress" | "proxmoxtokenid";
         /**
          * @description Visual grouping metadata for inlined entities.
          *     Entities sharing the same `group_id` are rendered together in the element card.
@@ -10865,7 +10877,7 @@ export interface components {
          *         "offset": 0,
          *         "total_count": 142
          *       },
-         *       "server_version": "0.17.19"
+         *       "server_version": "0.17.21"
          *     }
          */
         PaginatedApiMeta: {
@@ -10878,7 +10890,7 @@ export interface components {
             pagination: components["schemas"]["PaginationMeta"];
             /**
              * @description Server version (semver)
-             * @example 0.17.19
+             * @example 0.17.21
              */
             server_version: string;
         };
@@ -11882,7 +11894,14 @@ export interface components {
              */
             widened_by_vlan: boolean;
         };
+        /**
+         * @description The two kinds of guest a Proxmox VE node runs. Both are hosts with their own addresses, so
+         *     both hang off the node's Proxmox VE service the same way.
+         * @enum {string}
+         */
+        ProxmoxGuestType: "Qemu" | "Lxc";
         ProxmoxVirtualization: {
+            guest_type?: null | components["schemas"]["ProxmoxGuestType"];
             /** @description Proxmox VMID of the guest. */
             vm_id?: string | null;
             /** @description Guest name as configured in Proxmox. */
@@ -12355,19 +12374,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-03T01:53:18.387326Z",
+         *           "created_at": "2026-10-03T05:32:21.154455Z",
          *           "first_discovery_id": null,
-         *           "id": "b47c3f71-fcd5-42c2-a197-67c0f9c29460",
+         *           "id": "90b3b00e-9dc7-479a-91f4-e5c22b1cc2f5",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-03T01:53:18.387326Z",
+         *           "last_seen_at": "2026-10-03T05:32:21.154455Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-10-03T01:53:18.387326Z",
-         *           "valid_from": "2026-10-03T01:53:18.387326Z",
+         *           "updated_at": "2026-10-03T05:32:21.154455Z",
+         *           "valid_from": "2026-10-03T05:32:21.154455Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12381,7 +12400,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Tomcat",
+         *       "service_definition": "Veeam",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -13139,7 +13158,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "0d2099ab-e892-4496-8c6e-d65ef29ca1ba",
+             *           "id": "6a0b93e8-c0a0-407b-83b7-b2303f91caa1",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13149,23 +13168,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "17c64b77-77a9-4368-87b4-0ca81cdd0715",
+             *           "id": "c8506c4d-174c-4a2b-afc0-bb17ef662a1e",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "af4a6f9b-73f7-47dc-b75e-a8641b3263ed",
+             *           "id": "f2ac5782-4923-4a54-80d4-2f77bc8993a4",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "8e17f1dc-0a6e-4947-8725-8a9a6bde1c2c",
+             *           "id": "78f5dded-672d-4f60-8839-93d2c5e948ff",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "17c64b77-77a9-4368-87b4-0ca81cdd0715",
+             *           "id": "c8506c4d-174c-4a2b-afc0-bb17ef662a1e",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13178,19 +13197,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "4fd78d64-54e9-42e8-99e3-790942bfb194",
+             *         "id": "e7549cc6-da64-4f66-8b5c-65b83f07bb93",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "9ba8df56-9e9f-4682-b984-02d00f77665d",
+             *         "id": "878456cd-94f8-4807-90fa-0dfd676f59e1",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "6ebaa472-6811-4c68-a025-9c7492cd446e",
+             *         "id": "f7a8dd29-0dda-44f0-9d4d-69d998888372",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "01f32dc1-9285-424f-ab7f-1eb32764a2df",
+             *         "id": "2275d2da-ee64-4479-9cc1-da502ee78889",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13208,7 +13227,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "92c10753-6770-484c-867f-fc214b5e09c6",
+             *         "id": "d1bd4235-f201-4191-abdd-89bcca055389",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13217,15 +13236,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "3e3bda11-a72b-4f1d-9034-868869793fbc",
+             *         "id": "e7fcba94-5637-4a9e-ad55-d886585e669d",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "eea8b1a6-564a-487a-b016-6d82ce7a9092",
+             *         "id": "85b9a0e8-3bd1-4aea-b9d2-7635fd092dd7",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "65face03-3c54-4c4d-b2be-e0471b44ce27",
+             *         "id": "f55af4c8-8d7b-491d-a9c1-d3763a48e593",
              *         "rule": "ByStack"
              *       }
              *     ]

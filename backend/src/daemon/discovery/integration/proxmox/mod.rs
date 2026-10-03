@@ -36,7 +36,9 @@ use uuid::Uuid;
 use crate::server::credentials::r#impl::mapping::{
     CredentialQueryPayload, CredentialQueryPayloadDiscriminants,
 };
-use crate::server::hosts::r#impl::virtualization::{HostVirtualizationDiscriminants, ProxmoxGuestType};
+use crate::server::hosts::r#impl::virtualization::{
+    HostVirtualizationDiscriminants, ProxmoxGuestType,
+};
 use crate::server::interfaces::r#impl::base::InterfaceDataComplete;
 use crate::server::ports::r#impl::base::PortType;
 use crate::server::services::r#impl::base::ServiceMatchBaselineParams;
@@ -176,7 +178,9 @@ impl DiscoveryIntegration for ProxmoxIntegration {
                     owners.insert(node.name.clone(), service_id);
                 }
                 Ok(None) => {}
-                Err(e) => tracing::warn!(node = %node.name, error = %e, "Failed to record Proxmox VE node"),
+                Err(e) => {
+                    tracing::warn!(node = %node.name, error = %e, "Failed to record Proxmox VE node")
+                }
             }
         }
         ctx.ops.report_progress(30).await.ok();
@@ -217,7 +221,9 @@ impl DiscoveryIntegration for ProxmoxIntegration {
                 .await
             {
                 Ok(_) => created += 1,
-                Err(e) => tracing::warn!(guest = %guest_label(guest), error = %e, "Failed to record Proxmox VE guest"),
+                Err(e) => {
+                    tracing::warn!(guest = %guest_label(guest), error = %e, "Failed to record Proxmox VE guest")
+                }
             }
             if total > 0 {
                 ctx.ops
@@ -244,7 +250,10 @@ impl DiscoveryIntegration for ProxmoxIntegration {
 
         // A guest whose node has no address cannot be linked to it. That is a shortfall the
         // operator can fix (grant Sys.Audit), so it is reported as one.
-        let unplaced_nodes = nodes.iter().filter(|n| !owners.contains_key(&n.name)).count();
+        let unplaced_nodes = nodes
+            .iter()
+            .filter(|n| !owners.contains_key(&n.name))
+            .count();
         if unplaced_nodes > 0 {
             return Ok(Completeness::Partial(CollectionShortfall {
                 what: "Proxmox VE nodes",
@@ -265,8 +274,8 @@ fn guest_label(guest: &GuestSummary) -> String {
 }
 
 /// The addresses a guest holds: read from inside it when it runs (the QEMU guest agent, or the
-/// container's interfaces), else an LXC container's static config. A NIC MAC from the config
-/// fills in where the runtime read gave none.
+/// container's interfaces), else the static addresses its config sets (an LXC `ip=`, or a VM's
+/// cloud-init `ipconfigN`). A NIC MAC from the config fills in where the runtime read gave none.
 async fn guest_addresses(client: &ProxmoxClient, guest: &GuestSummary) -> Vec<GuestAddress> {
     let path = guest.path();
     let nics = client
@@ -278,9 +287,7 @@ async fn guest_addresses(client: &ProxmoxClient, guest: &GuestSummary) -> Vec<Gu
     let runtime = if guest.running {
         match guest.guest_type {
             ProxmoxGuestType::Qemu => client
-                .get_best_effort::<AgentInterfaces>(&format!(
-                    "{path}/agent/network-get-interfaces"
-                ))
+                .get_best_effort::<AgentInterfaces>(&format!("{path}/agent/network-get-interfaces"))
                 .await
                 .map(|agent| mapping::agent_addresses(&agent))
                 .unwrap_or_default(),
@@ -382,5 +389,90 @@ async fn create_node_host(
 }
 
 fn is_proxmox_ve(role: Option<VirtualizationRole>) -> bool {
-    role == Some(VirtualizationRole::Vms(HostVirtualizationDiscriminants::Proxmox))
+    role == Some(VirtualizationRole::Vms(
+        HostVirtualizationDiscriminants::Proxmox,
+    ))
+}
+
+#[cfg(test)]
+mod lab_tests {
+    use super::*;
+    use crate::server::credentials::r#impl::mapping::{ProxmoxQueryCredential, ResolvableSecret};
+
+    /// Reads the lab's API live, through the same client and mapping `execute` uses, and prints
+    /// what a scan would record. Needs `~/.config/scanopy-lab/proxmox.env` (see `tools/wol/`);
+    /// prefers the read-only `PROXMOX_DISCOVERY_TOKEN_*` and falls back to the lab token.
+    ///
+    /// `cargo test --lib -- --ignored proxmox::lab_tests --nocapture`
+    #[tokio::test]
+    #[ignore = "reads a live Proxmox VE lab"]
+    async fn reads_the_lab_cluster() {
+        let path = std::env::var("PROXMOX_ENV_FILE").unwrap_or_else(|_| {
+            format!(
+                "{}/.config/scanopy-lab/proxmox.env",
+                std::env::var("HOME").unwrap()
+            )
+        });
+        let env: HashMap<String, String> = std::fs::read_to_string(&path)
+            .expect("lab env file")
+            .lines()
+            .filter_map(|l| l.split_once('='))
+            .map(|(k, v)| {
+                (
+                    k.trim().to_string(),
+                    v.trim().trim_matches(['"', '\'']).to_string(),
+                )
+            })
+            .collect();
+        let var = |names: &[&str]| {
+            names
+                .iter()
+                .find_map(|n| env.get(*n).filter(|v| !v.is_empty()).cloned())
+                .unwrap_or_else(|| panic!("{names:?} not set in {path}"))
+        };
+        let host = var(&["PROXMOX_HOST"]);
+        let credential = ProxmoxQueryCredential {
+            port: crate::server::credentials::r#impl::types::default_proxmox_port(),
+            token_id: var(&["PROXMOX_DISCOVERY_TOKEN_ID", "PROXMOX_TOKEN_ID"]),
+            token_secret: ResolvableSecret::Value {
+                value: var(&["PROXMOX_DISCOVERY_TOKEN_SECRET", "PROXMOX_TOKEN_SECRET"]),
+            },
+        };
+
+        let (client, version) = ProxmoxClient::connect(&host, &credential, true, None)
+            .await
+            .expect("token accepted");
+        let resources: Vec<ClusterResource> = client
+            .get("/cluster/resources")
+            .await
+            .unwrap()
+            .expect("token may read /cluster/resources");
+        let status: Option<Vec<ClusterStatusEntry>> = client.get("/cluster/status").await.unwrap();
+        let scanned: std::net::IpAddr = host.parse().expect("PROXMOX_HOST is an address");
+
+        let nodes = mapping::nodes(&resources, status.as_deref(), scanned);
+        let guests = mapping::guests(&resources);
+        println!(
+            "PVE {}; /cluster/status {}",
+            version.version,
+            if status.is_some() {
+                "readable"
+            } else {
+                "denied"
+            }
+        );
+        for node in &nodes {
+            println!("node {node:?}");
+        }
+        for guest in &guests {
+            let addresses = guest_addresses(&client, guest).await;
+            println!(
+                "guest {} {:?} {addresses:?}",
+                guest_label(guest),
+                guest.guest_type
+            );
+        }
+        assert!(!nodes.is_empty(), "the lab has a node");
+        assert!(!guests.is_empty(), "the lab has a guest");
+    }
 }

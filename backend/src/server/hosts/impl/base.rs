@@ -843,8 +843,14 @@ mod tests {
         // the owner and its metadata alone.
         let before = existing.clone();
         assert!(!existing.fill_virtualization_from(&proxmox_guest(Some(other), "elsewhere")));
-        assert_eq!(existing.virtualization_service_id, before.virtualization_service_id);
-        assert_eq!(existing.virtualization_metadata, before.virtualization_metadata);
+        assert_eq!(
+            existing.virtualization_service_id,
+            before.virtualization_service_id
+        );
+        assert_eq!(
+            existing.virtualization_metadata,
+            before.virtualization_metadata
+        );
 
         // A report that names no owner (any non-Proxmox scan) changes nothing.
         assert!(!existing.fill_virtualization_from(&HostBase::default()));

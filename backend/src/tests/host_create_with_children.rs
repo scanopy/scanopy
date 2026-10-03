@@ -565,7 +565,10 @@ async fn guest_links_to_a_stored_hypervisor_service() {
     let linked = submit(&services, reported)
         .await
         .expect("guest report persists");
-    assert_eq!(linked.id, found_first.id, "the report must land on the same host");
+    assert_eq!(
+        linked.id, found_first.id,
+        "the report must land on the same host"
+    );
     assert_eq!(linked.virtualization_service_id, Some(owner));
 }
 

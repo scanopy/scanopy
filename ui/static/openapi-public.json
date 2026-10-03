@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Scanopy API",
-    "description": "\nNetwork topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.19\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.19\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.17.19)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **network(s)**:\n\n- You can only access entities within your organization\n- Network-level entities (hosts, services, etc.) are filtered to networks you have access to\n- Use `?network_id=<UUID>` to filter list endpoints to a specific network\n- API keys can be scoped to a subset of your accessible networks\n",
+    "description": "\nNetwork topology discovery and visualization API.\n\n## Authentication\n\nTwo authentication methods are supported:\n\n| Method | Header | Use Case |\n|--------|--------|----------|\n| User API key | `Authorization: Bearer scp_u_...` | Programmatic access, integrations |\n| Session cookie | `Cookie: session_id=...` | Web UI (via `/api/auth/login`) |\n\nUser API keys require your organization to have API access enabled. Create keys at **Platform > API Keys**.\n\n## Rate Limiting\n\nLimit: 300 requests/minute\n\nBurst: 150\n\nResponse headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`\n\nWhen rate limited, you'll receive HTTP `429 Too Many Requests` with a `Retry-After` header.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Type | Default | Description |\n|-----------|------|---------|-------------|\n| `limit` | integer | 50 | Maximum results to return (1-1000). Use 0 for no limit. |\n| `offset` | integer | 0 | Number of results to skip |\n\nExample: `GET /api/v1/hosts?limit=10&offset=20`\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.21\"\n  }\n}\n```\n\n**Paginated list responses** include pagination metadata:\n\n```json\n{\n  \"success\": true,\n  \"data\": [ ... ],\n  \"meta\": {\n    \"api_version\": 1,\n    \"server_version\": \"0.17.21\",\n    \"pagination\": {\n      \"total_count\": 142,\n      \"limit\": 50,\n      \"offset\": 0,\n      \"has_more\": true\n    }\n  }\n}\n```\n\n| Field | Description |\n|-------|-------------|\n| `total_count` | Total items matching your query (ignoring pagination) |\n| `limit` | Applied limit (your request or default) |\n| `offset` | Applied offset |\n| `has_more` | `true` if more results exist beyond this page |\n\n**Error responses** include an `error` field instead of `data`:\n\n```json\n{\n  \"success\": false,\n  \"error\": \"Resource not found\",\n  \"meta\": { ... }\n}\n```\n\n**Common status codes:** `400` validation error, `401` unauthorized, `403` forbidden, `404` not found, `409` conflict, `429` rate limited.\n\n## Versioning\n\nEndpoints are prefixed with `/api/v1/`. The API version is an integer (`api_version: 1`) returned in every response, versioned independently from the application. Check `GET /api/version` for current versions.\n\n**While Scanopy is pre-v1.0 (current: 0.17.21)**, the API should be considered unstable. Breaking changes may be introduced in any release without incrementing the API version. We recommend pinning to a specific Scanopy release if you depend on API stability, and reviewing the [changelog](/changelog) before upgrading. After Scanopy reaches v1.0, breaking API changes will only occur with an API version increment.\n\n## Multi-Tenancy\n\nResources are scoped to your **organization** and **network(s)**:\n\n- You can only access entities within your organization\n- Network-level entities (hosts, services, etc.) are filtered to networks you have access to\n- Use `?network_id=<UUID>` to filter list endpoints to a specific network\n- API keys can be scoped to a subset of your accessible networks\n",
     "license": {
       "name": "Dual (AGPL3.0, Commercial License Available)"
     },
@@ -13883,12 +13883,12 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.17.19"
+            "example": "0.17.21"
           }
         },
         "example": {
           "api_version": 1,
-          "server_version": "0.17.19"
+          "server_version": "0.17.21"
         }
       },
       "ApiResponse": {
@@ -14020,19 +14020,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-03T01:53:18.467629Z",
+              "created_at": "2026-10-03T05:32:21.234154Z",
               "first_discovery_id": null,
-              "id": "a7d0e0c3-9943-4b09-ac17-0281eb035cfa",
+              "id": "335a9ad9-1f19-4c35-b8a3-fc8de47db35f",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-03T01:53:18.467629Z",
+              "last_seen_at": "2026-10-03T05:32:21.234154Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-03T01:53:18.467629Z",
-              "valid_from": "2026-10-03T01:53:18.467629Z",
+              "updated_at": "2026-10-03T05:32:21.234154Z",
+              "valid_from": "2026-10-03T05:32:21.234154Z",
               "valid_to": null
             }
           },
@@ -15629,19 +15629,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-03T01:53:18.452395Z",
+                      "created_at": "2026-10-03T05:32:21.218654Z",
                       "first_discovery_id": null,
-                      "id": "6ae22e1e-2f3c-4223-91ef-74ad4461fe7f",
+                      "id": "a4dfc234-90b1-4103-8360-250b90fde390",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-03T01:53:18.452395Z",
+                      "last_seen_at": "2026-10-03T05:32:21.218654Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-03T01:53:18.452395Z",
-                      "valid_from": "2026-10-03T01:53:18.452395Z",
+                      "updated_at": "2026-10-03T05:32:21.218654Z",
+                      "valid_from": "2026-10-03T05:32:21.218654Z",
                       "valid_to": null
                     }
                   ],
@@ -15655,7 +15655,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Tomcat",
+                  "service_definition": "Veeam",
                   "source": {
                     "type": "Manual"
                   },
@@ -17053,19 +17053,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-03T01:53:18.463999Z",
+                  "created_at": "2026-10-03T05:32:21.230398Z",
                   "first_discovery_id": null,
-                  "id": "fd51fa40-afb5-4cd2-a0d6-04c25f05c63a",
+                  "id": "62d62834-1859-447b-be33-ba4b7f9c2ad3",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-03T01:53:18.463999Z",
+                  "last_seen_at": "2026-10-03T05:32:21.230398Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-03T01:53:18.463999Z",
-                  "valid_from": "2026-10-03T01:53:18.463999Z",
+                  "updated_at": "2026-10-03T05:32:21.230398Z",
+                  "valid_from": "2026-10-03T05:32:21.230398Z",
                   "valid_to": null
                 }
               ],
@@ -17079,7 +17079,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Tomcat",
+              "service_definition": "Veeam",
               "source": {
                 "type": "Manual"
               },
@@ -19556,19 +19556,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-03T01:53:18.452782Z",
+          "created_at": "2026-10-03T05:32:21.219053Z",
           "first_discovery_id": null,
-          "id": "ddbb69a5-16ca-4cdd-bca2-f0f19ecf80cf",
+          "id": "75c876b5-c67c-4309-88c1-ba2e5f6a4408",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-03T01:53:18.452782Z",
+          "last_seen_at": "2026-10-03T05:32:21.219053Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-03T01:53:18.452782Z",
-          "valid_from": "2026-10-03T01:53:18.452782Z",
+          "updated_at": "2026-10-03T05:32:21.219053Z",
+          "valid_from": "2026-10-03T05:32:21.219053Z",
           "valid_to": null
         }
       },
@@ -19944,6 +19944,7 @@
           "Snmp",
           "UnifiController",
           "InstantOn",
+          "Proxmox",
           "ModbusTcp",
           "OpcUa",
           "EtherNetIp",
@@ -20284,7 +20285,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Tomcat",
+              "service_definition": "Veeam",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -20633,7 +20634,8 @@
           "UnifiController",
           "InstantOn",
           "Ssh",
-          "WakeOnLan"
+          "WakeOnLan",
+          "Proxmox"
         ]
       },
       "CredentialOrderField": {
@@ -20673,6 +20675,7 @@
           "Gnmi",
           "Ssh",
           "WakeOnLan",
+          "Proxmox",
           "Unknown"
         ]
       },
@@ -21363,6 +21366,38 @@
                 "minimum": 0
               }
             }
+          },
+          {
+            "type": "object",
+            "title": "ProxmoxApiToken",
+            "description": "Proxmox VE API token. Any node's API answers for its whole cluster, so one credential on\none node reports every node, VM and LXC container. Use a read-only token: the PVEAuditor\nrole on `/`, plus guest-agent read access for VM addresses.",
+            "required": [
+              "token_id",
+              "token_secret",
+              "type"
+            ],
+            "properties": {
+              "port": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Proxmox VE API port (default 8006).",
+                "minimum": 0
+              },
+              "token_id": {
+                "type": "string",
+                "description": "Token ID in `user@realm!tokenname` form, e.g. `scanopy@pve!discovery`."
+              },
+              "token_secret": {
+                "$ref": "#/components/schemas/SecretValue",
+                "description": "The token's secret (a UUID), shown once when the token is created."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "ProxmoxApiToken"
+                ]
+              }
+            }
           }
         ],
         "description": "Universal credential type — tagged enum stored as JSONB.\nEach variant represents a different credential protocol/method."
@@ -21383,7 +21418,8 @@
           "InstantOnAccount",
           "SshPassword",
           "SshKey",
-          "WakeOnLan"
+          "WakeOnLan",
+          "ProxmoxApiToken"
         ]
       },
       "Daemon": {
@@ -26573,19 +26609,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-03T01:53:18.451958Z",
+                  "created_at": "2026-10-03T05:32:21.218203Z",
                   "first_discovery_id": null,
-                  "id": "a484bb48-49ce-4978-9741-e74104567e8f",
+                  "id": "bc70e56a-2bbb-43a6-89a3-d415e8988009",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-03T01:53:18.451958Z",
+                  "last_seen_at": "2026-10-03T05:32:21.218203Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-03T01:53:18.451958Z",
-                  "valid_from": "2026-10-03T01:53:18.451958Z",
+                  "updated_at": "2026-10-03T05:32:21.218203Z",
+                  "valid_from": "2026-10-03T05:32:21.218203Z",
                   "valid_to": null
                 }
               ],
@@ -26599,7 +26635,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Tomcat",
+              "service_definition": "Veeam",
               "source": {
                 "type": "Manual"
               },
@@ -27206,7 +27242,8 @@
           "pemprivatekey",
           "pemcertificate",
           "sshprivatekey",
-          "macaddress"
+          "macaddress",
+          "proxmoxtokenid"
         ]
       },
       "InlineGroup": {
@@ -29508,7 +29545,7 @@
           "server_version": {
             "type": "string",
             "description": "Server version (semver)",
-            "example": "0.17.19"
+            "example": "0.17.21"
           }
         },
         "example": {
@@ -29519,7 +29556,7 @@
             "offset": 0,
             "total_count": 142
           },
-          "server_version": "0.17.19"
+          "server_version": "0.17.21"
         }
       },
       "PaginatedApiResponse_Credential": {
@@ -30315,19 +30352,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-03T01:53:18.445617Z",
+                        "created_at": "2026-10-03T05:32:21.211610Z",
                         "first_discovery_id": null,
-                        "id": "bb5d7613-5c16-4152-8b72-0c510fdfeb5a",
+                        "id": "4643aac7-7de5-4aa2-91ca-a01df41d2b28",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-03T01:53:18.445617Z",
+                        "last_seen_at": "2026-10-03T05:32:21.211610Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-03T01:53:18.445617Z",
-                        "valid_from": "2026-10-03T01:53:18.445617Z",
+                        "updated_at": "2026-10-03T05:32:21.211610Z",
+                        "valid_from": "2026-10-03T05:32:21.211610Z",
                         "valid_to": null
                       }
                     ],
@@ -30341,7 +30378,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Tomcat",
+                    "service_definition": "Veeam",
                     "source": {
                       "type": "Manual"
                     },
@@ -30484,19 +30521,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-03T01:53:18.463328Z",
+                    "created_at": "2026-10-03T05:32:21.229656Z",
                     "first_discovery_id": null,
-                    "id": "c1fd29cf-3d7d-4d51-890c-1109d28786c1",
+                    "id": "5a2b0a84-12a0-4d1d-8504-00bd6703fbc7",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-03T01:53:18.463328Z",
+                    "last_seen_at": "2026-10-03T05:32:21.229656Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-03T01:53:18.463328Z",
-                    "valid_from": "2026-10-03T01:53:18.463328Z",
+                    "updated_at": "2026-10-03T05:32:21.229656Z",
+                    "valid_from": "2026-10-03T05:32:21.229656Z",
                     "valid_to": null
                   }
                 ],
@@ -30510,7 +30547,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Tomcat",
+                "service_definition": "Veeam",
                 "source": {
                   "type": "Manual"
                 },
@@ -31782,9 +31819,28 @@
           }
         }
       },
+      "ProxmoxGuestType": {
+        "type": "string",
+        "description": "The two kinds of guest a Proxmox VE node runs. Both are hosts with their own addresses, so\nboth hang off the node's Proxmox VE service the same way.",
+        "enum": [
+          "Qemu",
+          "Lxc"
+        ]
+      },
       "ProxmoxVirtualization": {
         "type": "object",
         "properties": {
+          "guest_type": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProxmoxGuestType",
+                "description": "Whether the guest is a QEMU virtual machine or an LXC container. `None` when the guest was\nassigned by hand or recorded before the Proxmox integration reported it."
+              }
+            ]
+          },
           "vm_id": {
             "type": [
               "string",
@@ -32722,19 +32778,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-03T01:53:18.452669Z",
+              "created_at": "2026-10-03T05:32:21.218930Z",
               "first_discovery_id": null,
-              "id": "92de8531-abad-46ca-afb6-e65a641545e1",
+              "id": "a6297366-3a00-4166-9502-c5f200608bd0",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-03T01:53:18.452669Z",
+              "last_seen_at": "2026-10-03T05:32:21.218930Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-03T01:53:18.452669Z",
-              "valid_from": "2026-10-03T01:53:18.452669Z",
+              "updated_at": "2026-10-03T05:32:21.218930Z",
+              "valid_from": "2026-10-03T05:32:21.218930Z",
               "valid_to": null
             }
           ],
@@ -32748,7 +32804,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Tomcat",
+          "service_definition": "Veeam",
           "source": {
             "type": "Manual"
           },
@@ -34195,7 +34251,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "a03b8351-5fb1-4bc0-9be4-9a8fe71d3ac3",
+                  "id": "a12369a5-58f0-4f43-b226-4be9007cf397",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -34205,23 +34261,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "2daae7ab-7f98-4991-bff5-dde26970e4a3",
+                  "id": "e4c06800-98de-46b3-8931-6aeffdb4a58d",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "ae3fbcbc-e8e1-4198-bb37-d6f7689402bb",
+                  "id": "3df78673-b8b1-4887-a943-321ef3fd3d64",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "fafb0745-82f8-45e2-a083-49b839b7c8b4",
+                  "id": "df8577aa-0204-4502-96fd-e27c90a1b755",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "2daae7ab-7f98-4991-bff5-dde26970e4a3",
+                  "id": "e4c06800-98de-46b3-8931-6aeffdb4a58d",
                   "rule": "ByHost"
                 }
               ]
@@ -34251,19 +34307,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "e9f95816-7f10-419a-97de-48ed15cafac2",
+                "id": "a44c1892-61c0-4381-b2db-898a04294dc2",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "22a70594-d1b3-4fa3-9c1b-6cbecd5ccb96",
+                "id": "c6808ea5-f8ed-41f8-bd3c-124cbc088e7e",
                 "rule": "ByVLAN"
               },
               {
-                "id": "33616395-0c62-45ba-9995-974ffeafe255",
+                "id": "641adf01-e332-475b-a4db-2c894a1a7c59",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "6a466a3f-d937-4aec-8c31-f598b3ed23e7",
+                "id": "45ad9fbc-cacb-473e-99cc-08109e258eb7",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -34281,7 +34337,7 @@
                 }
               },
               {
-                "id": "b444855d-a10b-48e7-af4a-cb9beac6da58",
+                "id": "55c59d34-e383-452f-a9dd-0db6c6a0db8d",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -34290,15 +34346,15 @@
                 }
               },
               {
-                "id": "1f225a97-1d7e-42cb-8381-177ebec54ae3",
+                "id": "94630ec6-9893-478d-8a9c-c0ea3fcccc22",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "dcce350c-9971-47f3-908f-7d3ea3c006c4",
+                "id": "2129e220-4ed2-428f-ae5d-aa6baed4d010",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "06c949f1-7166-4df0-b3b6-3f33d223bcc4",
+                "id": "bf3c0c2c-42c4-48ce-b6dc-b8b9d3e42dea",
                 "rule": "ByStack"
               }
             ]

@@ -205,7 +205,8 @@ fn is_proxmox_token_id(value: &str) -> bool {
     let Some((user, realm)) = userid.split_once('@') else {
         return false;
     };
-    let plain = |s: &str| !s.is_empty() && !s.contains(['@', '!']) && !s.contains(char::is_whitespace);
+    let plain =
+        |s: &str| !s.is_empty() && !s.contains(['@', '!']) && !s.contains(char::is_whitespace);
     let mut token_chars = token.chars();
     plain(user)
         && plain(realm)

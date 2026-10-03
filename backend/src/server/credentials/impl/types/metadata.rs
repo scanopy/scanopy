@@ -17,8 +17,7 @@ use crate::server::{
 use super::{
     CredentialType, CredentialTypeDiscriminants, OsFamily, ScriptSource, SecretValue,
     default_docker_port, default_gnmi_port, default_proxmox_port, default_ssh_port,
-    default_ssh_timeout_seconds,
-    default_unifi_port, default_unifi_site, default_wake_on_lan_port,
+    default_ssh_timeout_seconds, default_unifi_port, default_unifi_site, default_wake_on_lan_port,
     default_wake_on_lan_wait_seconds,
 };
 

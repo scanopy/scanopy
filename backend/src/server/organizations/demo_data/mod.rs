@@ -486,6 +486,20 @@ fn unnamed((mut host, ip_address): (Host, IPAddress)) -> (Host, IPAddress) {
     (host, ip_address)
 }
 
+/// Wraps a `create_host()` result for a Proxmox guest to read as the Proxmox VE integration records
+/// it: discovered, and titled by the name a person gave the guest in Proxmox.
+fn reported_by_proxmox((mut host, ip_address): (Host, IPAddress)) -> (Host, IPAddress) {
+    host.base.source = EntitySource::Discovery;
+    if let Some(HostVirtualization::Proxmox(ProxmoxVirtualization {
+        vm_name: Some(vm_name),
+        ..
+    })) = &host.base.virtualization_metadata
+    {
+        host.base.name = HostName::from_controller(vm_name.clone(), ClientProbe::Proxmox);
+    }
+    (host, ip_address)
+}
+
 /// Pins credentials to a host, covering all of its addresses. A `None` id (a credential the demo
 /// set no longer defines) is skipped.
 fn with_credentials(

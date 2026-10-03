@@ -528,9 +528,7 @@ impl CredentialType {
                     placeholder_by: None,
                     secret: true,
                     optional: false,
-                    help_text: Some(
-                        "The secret shown once when the token is created, a UUID.",
-                    ),
+                    help_text: Some("The secret shown once when the token is created, a UUID."),
                     options: None,
                     default_value: None,
                     inline_format: Some(InlineFormat::Plain),
