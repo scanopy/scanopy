@@ -274,8 +274,9 @@ fn guest_label(guest: &GuestSummary) -> String {
 }
 
 /// The addresses a guest holds: read from inside it when it runs (the QEMU guest agent, or the
-/// container's interfaces), else the static addresses its config sets (an LXC `ip=`, or a VM's
-/// cloud-init `ipconfigN`). A NIC MAC from the config fills in where the runtime read gave none.
+/// container's interfaces), kept only where they sit on one of its configured NICs; else the
+/// static addresses its config sets (an LXC `ip=`, or a VM's cloud-init `ipconfigN`). See
+/// [`mapping::select_addresses`].
 async fn guest_addresses(client: &ProxmoxClient, guest: &GuestSummary) -> Vec<GuestAddress> {
     let path = guest.path();
     let nics = client
@@ -301,24 +302,7 @@ async fn guest_addresses(client: &ProxmoxClient, guest: &GuestSummary) -> Vec<Gu
         vec![]
     };
 
-    if runtime.is_empty() {
-        return mapping::static_addresses(&nics);
-    }
-    // Only a single-NIC guest's MAC can be attached to an address the runtime read left
-    // without one; with several NICs there is no telling which.
-    let only_mac = match nics.as_slice() {
-        [nic] => nic.mac.clone(),
-        _ => None,
-    };
-    runtime
-        .into_iter()
-        .map(|mut a| {
-            if a.mac.is_none() {
-                a.mac = only_mac.clone();
-            }
-            a
-        })
-        .collect()
+    mapping::select_addresses(&nics, runtime)
 }
 
 /// Record a node's host with its Proxmox VE service, returning that service's stored id.

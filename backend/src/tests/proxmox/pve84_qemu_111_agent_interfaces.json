@@ -1,0 +1,68 @@
+{
+  "data": {
+    "result": [
+      {
+        "statistics": {
+          "rx-bytes": 6480,
+          "tx-bytes": 6480,
+          "rx-packets": 80,
+          "tx-packets": 80,
+          "rx-dropped": 0,
+          "tx-dropped": 0,
+          "rx-errs": 0,
+          "tx-errs": 0
+        },
+        "ip-addresses": [
+          {
+            "ip-address-type": "ipv4",
+            "prefix": 8,
+            "ip-address": "127.0.0.1"
+          },
+          {
+            "ip-address": "::1",
+            "prefix": 128,
+            "ip-address-type": "ipv6"
+          }
+        ],
+        "name": "lo",
+        "hardware-address": "00:00:00:00:00:00"
+      },
+      {
+        "hardware-address": "bc:24:11:b3:e9:53",
+        "name": "eth0",
+        "ip-addresses": [
+          {
+            "ip-address-type": "ipv4",
+            "prefix": 22,
+            "ip-address": "192.168.7.171"
+          },
+          {
+            "ip-address-type": "ipv6",
+            "ip-address": "2001:db8:58d0:3a00:be24:11ff:feb3:e953",
+            "prefix": 64
+          },
+          {
+            "ip-address-type": "ipv6",
+            "prefix": 64,
+            "ip-address": "fd0b:d38d:98f6:1:be24:11ff:feb3:e953"
+          },
+          {
+            "prefix": 64,
+            "ip-address": "fe80::be24:11ff:feb3:e953",
+            "ip-address-type": "ipv6"
+          }
+        ],
+        "statistics": {
+          "tx-bytes": 42935,
+          "rx-bytes": 1039033,
+          "rx-packets": 3516,
+          "tx-packets": 320,
+          "tx-dropped": 0,
+          "rx-dropped": 988,
+          "rx-errs": 0,
+          "tx-errs": 0
+        }
+      }
+    ]
+  }
+}

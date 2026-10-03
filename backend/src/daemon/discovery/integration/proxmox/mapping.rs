@@ -251,21 +251,53 @@ pub fn lxc_addresses(interfaces: &[LxcInterface]) -> Vec<GuestAddress> {
         .iter()
         .flat_map(|iface| {
             let mac = iface.hwaddr.as_deref().and_then(canonical_mac);
-            [iface.inet.as_deref(), iface.inet6.as_deref()]
-                .into_iter()
-                .flatten()
-                .flat_map(|list| list.split([' ', ',']))
-                .filter_map(move |cidr| {
-                    let ip: IpAddr = cidr.split('/').next()?.trim().parse().ok()?;
-                    Some(GuestAddress {
-                        ip,
-                        mac: mac.clone(),
-                        interface: Some(iface.name.clone()),
-                    })
-                })
+            let ips: Vec<IpAddr> = if iface.ip_addresses.is_empty() {
+                [iface.inet.as_deref(), iface.inet6.as_deref()]
+                    .into_iter()
+                    .flatten()
+                    .flat_map(|list| list.split([' ', ',']))
+                    .filter_map(|cidr| cidr.split('/').next()?.trim().parse().ok())
+                    .collect()
+            } else {
+                iface
+                    .ip_addresses
+                    .iter()
+                    .filter_map(|a| a.ip_address.trim().parse().ok())
+                    .collect()
+            };
+            ips.into_iter().map(move |ip| GuestAddress {
+                ip,
+                mac: mac.clone(),
+                interface: Some(iface.name.clone()),
+            })
         })
         .filter(|a| reachable(a.ip))
         .collect()
+}
+
+/// The addresses that identify a guest: those on its own virtual NICs, else its config's static
+/// ones.
+///
+/// What runs inside a guest reports every interface it has, and most of those are the guest's own
+/// internals: a Docker host's `docker0` (172.17.0.1 on every Docker host there is) and its
+/// `br-*` networks, Home Assistant's `hassio`, a WireGuard `wg0`. Submitted as the guest's
+/// addresses they would merge unrelated guests on the server, which matches hosts by address. An
+/// interface counts only when its MAC is one the guest's config gives a `netN` NIC, which is the
+/// one thing that ties it to the hypervisor's view of the guest.
+pub fn select_addresses(nics: &[ConfigNic], runtime: Vec<GuestAddress>) -> Vec<GuestAddress> {
+    let on_a_nic: Vec<GuestAddress> = runtime
+        .into_iter()
+        .filter(|a| {
+            a.mac
+                .as_ref()
+                .is_some_and(|mac| nics.iter().any(|n| n.mac.as_ref() == Some(mac)))
+        })
+        .collect();
+    if on_a_nic.is_empty() {
+        static_addresses(nics)
+    } else {
+        on_a_nic
+    }
 }
 
 /// Static addresses from a guest's config (an LXC `ip=`, or a VM's cloud-init `ipconfigN`), for
@@ -396,6 +428,112 @@ mod tests {
         include_str!("../../../../tests/proxmox/pve84_cluster_resources_pool_scoped.json");
     const QEMU_110_CONFIG: &str =
         include_str!("../../../../tests/proxmox/pve84_qemu_110_config.json");
+
+    // Recorded later from the same node with the read-only discovery token (PVEAuditor on `/`
+    // plus VM.Monitor), so `/cluster/status` answers and the whole node is visible. The public
+    // IPv6 prefix is rewritten to 2001:db8::/32 and cloud-init `sshkeys` scrubbed.
+    const STATUS: &str = include_str!("../../../../tests/proxmox/pve84_cluster_status.json");
+    const RESOURCES: &str = include_str!("../../../../tests/proxmox/pve84_cluster_resources.json");
+    /// A Docker host VM: the agent reports `docker0` and three `br-*` bridges beside `ens18`.
+    const QEMU_103_CONFIG: &str =
+        include_str!("../../../../tests/proxmox/pve84_qemu_103_config.json");
+    const QEMU_103_AGENT: &str =
+        include_str!("../../../../tests/proxmox/pve84_qemu_103_agent_interfaces.json");
+    /// A plain VM with the guest agent.
+    const QEMU_111_CONFIG: &str =
+        include_str!("../../../../tests/proxmox/pve84_qemu_111_config.json");
+    const QEMU_111_AGENT: &str =
+        include_str!("../../../../tests/proxmox/pve84_qemu_111_agent_interfaces.json");
+    /// A WireGuard container: `eth0` plus a `wg0` tunnel with no MAC.
+    const LXC_104_CONFIG: &str =
+        include_str!("../../../../tests/proxmox/pve84_lxc_104_config.json");
+    const LXC_104_INTERFACES: &str =
+        include_str!("../../../../tests/proxmox/pve84_lxc_104_interfaces.json");
+
+    fn ips(addresses: &[GuestAddress]) -> Vec<String> {
+        addresses.iter().map(|a| a.ip.to_string()).collect()
+    }
+
+    /// With `/cluster/status` readable, the node that answered is flagged `local` and takes the
+    /// address it was scanned at, which is the one the daemon can reach.
+    #[test]
+    fn cluster_status_places_the_answering_node_at_the_scanned_address() {
+        let resources: Vec<ClusterResource> = data(RESOURCES);
+        let status: Vec<ClusterStatusEntry> = data(STATUS);
+        let reached: IpAddr = "10.9.9.9".parse().unwrap();
+        assert_eq!(
+            nodes(&resources, Some(&status), reached),
+            vec![NodeSpec {
+                name: "pve".to_string(),
+                ip: Some(reached),
+                local: true,
+            }]
+        );
+    }
+
+    /// The node runs both kinds of guest; every one is reported with its type, and the template
+    /// is the only thing left out.
+    #[test]
+    fn a_whole_node_yields_vms_and_containers_but_no_template() {
+        let resources: Vec<ClusterResource> = data(RESOURCES);
+        let found = guests(&resources);
+        assert!(found.iter().any(|g| g.guest_type == ProxmoxGuestType::Qemu));
+        assert!(found.iter().any(|g| g.guest_type == ProxmoxGuestType::Lxc));
+        assert!(!found.iter().any(|g| g.vmid == 9000), "9000 is a template");
+        let listed = resources
+            .iter()
+            .filter(|r| matches!(r.resource_type.as_str(), "qemu" | "lxc"))
+            .count();
+        assert_eq!(found.len(), listed - 1);
+    }
+
+    /// The Docker host's agent reports `docker0` (172.17.0.1, on every Docker host) and its
+    /// bridges. Only `ens18`, the NIC its config declares, identifies the VM.
+    #[test]
+    fn a_docker_hosts_bridges_are_not_its_addresses() {
+        let nics = config_nics(&data(QEMU_103_CONFIG));
+        let reported = agent_addresses(&data(QEMU_103_AGENT));
+        assert!(
+            ips(&reported).contains(&"172.17.0.1".to_string()),
+            "the capture carries docker0"
+        );
+
+        let kept = select_addresses(&nics, reported);
+        assert!(!kept.is_empty());
+        assert!(kept.iter().all(|a| a.interface.as_deref() == Some("ens18")));
+        assert!(ips(&kept).contains(&"192.168.4.126".to_string()));
+    }
+
+    /// The `wg0` tunnel has an address and no MAC; it is not the container's. Its global IPv6
+    /// addresses come from `ip-addresses`, which `inet6` (link-local only) does not carry.
+    #[test]
+    fn a_containers_tunnel_is_dropped_and_its_global_ipv6_kept() {
+        let nics = config_nics(&data(LXC_104_CONFIG));
+        let interfaces: Vec<LxcInterface> = data(LXC_104_INTERFACES);
+        let kept = select_addresses(&nics, lxc_addresses(&interfaces));
+        assert_eq!(
+            ips(&kept),
+            vec![
+                "192.168.4.191",
+                "2001:db8:58d0:3a00:be24:11ff:fe71:ef5c",
+                "fd0b:d38d:98f6:1:be24:11ff:fe71:ef5c",
+            ]
+        );
+        assert!(
+            kept.iter()
+                .all(|a| a.mac.as_deref() == Some("bc:24:11:71:ef:5c"))
+        );
+    }
+
+    /// With the agent running, its reading wins over the cloud-init static address, and both
+    /// agree on the NIC.
+    #[test]
+    fn an_agent_reading_is_preferred_over_cloud_init() {
+        let nics = config_nics(&data(QEMU_111_CONFIG));
+        let kept = select_addresses(&nics, agent_addresses(&data(QEMU_111_AGENT)));
+        assert!(ips(&kept).contains(&"192.168.7.171".to_string()));
+        assert!(kept.iter().all(|a| a.interface.as_deref() == Some("eth0")));
+    }
 
     fn data<T: serde::de::DeserializeOwned>(json: &str) -> T {
         serde_json::from_str::<PveEnvelope<T>>(json)

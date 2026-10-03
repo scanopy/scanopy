@@ -1,0 +1,25 @@
+{
+  "data": {
+    "onboot": 1,
+    "cores": 2,
+    "description": "<div align='center'>\n  <a href='https://Helper-Scripts.com' target='_blank' rel='noopener noreferrer'>\n    <img src='https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/images/logo-81x112.png' alt='Logo' style='width:81px;height:112px;'/>\n  </a>\n\n  <h2 style='font-size: 24px; margin: 20px 0;'>Docker VM</h2>\n\n  <p style='margin: 16px 0;'>\n    <a href='https://ko-fi.com/community_scripts' target='_blank' rel='noopener noreferrer'>\n      <img src='https://img.shields.io/badge/&#x2615;-Buy us a coffee-blue' alt='spend Coffee' />\n    </a>\n  </p>\n\n  <span style='margin: 0 10px;'>\n    <i class=\"fa fa-github fa-fw\" style=\"color: #f5f5f5;\"></i>\n    <a href='https://github.com/community-scripts/ProxmoxVE' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>GitHub</a>\n  </span>\n  <span style='margin: 0 10px;'>\n    <i class=\"fa fa-comments fa-fw\" style=\"color: #f5f5f5;\"></i>\n    <a href='https://github.com/community-scripts/ProxmoxVE/discussions' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Discussions</a>\n  </span>\n  <span style='margin: 0 10px;'>\n    <i class=\"fa fa-exclamation-circle fa-fw\" style=\"color: #f5f5f5;\"></i>\n    <a href='https://github.com/community-scripts/ProxmoxVE/issues' target='_blank' rel='noopener noreferrer' style='text-decoration: none; color: #00617f;'>Issues</a>\n  </span>\n</div>",
+    "vmgenid": "ca48b66f-f1d1-45c8-8429-e885b6e2d534",
+    "ostype": "l26",
+    "scsihw": "virtio-scsi-pci",
+    "net0": "virtio=02:1C:65:32:E5:DD,bridge=vmbr0",
+    "bios": "ovmf",
+    "boot": "order=scsi0",
+    "agent": "enabled=1",
+    "meta": "creation-qemu=9.2.0,ctime=1759079795",
+    "localtime": 1,
+    "digest": "eb08e3dc2640350a3f05074f3334522e6c116e65",
+    "scsi0": "local-lvm:vm-103-disk-1,discard=on,size=14G,ssd=1",
+    "serial0": "socket",
+    "efidisk0": "local-lvm:vm-103-disk-0,efitype=4m,size=4M",
+    "tablet": 0,
+    "smbios1": "uuid=6bc9fdd9-596e-4aec-b2da-1d95c4dcacac",
+    "name": "docker",
+    "tags": "community-script",
+    "memory": "4096"
+  }
+}
