@@ -1,5 +1,5 @@
 <script lang="ts" generics="T">
-	import { Filter, Layers } from 'lucide-svelte';
+	import { Filter, Group } from 'lucide-svelte';
 	import Popover from '../Popover.svelte';
 	import FieldFilter from '../controls/FieldFilter.svelte';
 	import { getFieldKey, type FieldConfig } from '../types';
@@ -68,7 +68,7 @@
 	{#if filtersHere}
 		<Filter class="h-3.5 w-3.5" aria-hidden="true" />
 	{:else}
-		<Layers class="h-3.5 w-3.5" aria-hidden="true" />
+		<Group class="h-3.5 w-3.5" aria-hidden="true" />
 	{/if}
 	{#if active}
 		<span
@@ -118,7 +118,7 @@
 					aria-pressed={status.grouped}
 					class="btn-secondary flex w-full items-center justify-center gap-2 text-sm"
 				>
-					<Layers class="h-4 w-4" aria-hidden="true" />
+					<Group class="h-4 w-4" aria-hidden="true" />
 					{status.grouped ? common_clearGrouping() : common_groupByColumn({ column: label })}
 				</button>
 			</div>
