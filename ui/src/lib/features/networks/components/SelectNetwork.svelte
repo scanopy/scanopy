@@ -2,7 +2,7 @@
 	import { useNetworksQuery } from '$lib/features/networks/queries';
 	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
 	import { NetworkDisplay } from '$lib/shared/components/forms/selection/display/NetworkDisplay.svelte';
-	import { common_network, networks_selectNetwork } from '$lib/paraglide/messages';
+	import { common_network } from '$lib/paraglide/messages';
 
 	/**
 	 * Network picker for TanStack Form fields:
@@ -24,7 +24,7 @@
 		onNetworkChange
 	}: Props = $props();
 
-	let helpText = $derived(disabled && disabledReason ? disabledReason : networks_selectNetwork());
+	let helpText = $derived(disabled ? disabledReason : '');
 
 	const networksQuery = useNetworksQuery();
 	let networksData = $derived(networksQuery.data ?? []);
