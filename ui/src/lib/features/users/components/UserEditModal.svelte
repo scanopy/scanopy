@@ -4,11 +4,10 @@
 	import { required } from '$lib/shared/components/forms/validators';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
 	import ModalHeaderIcon from '$lib/shared/components/layout/ModalHeaderIcon.svelte';
-	import SelectInput from '$lib/shared/components/forms/input/SelectInput.svelte';
+	import PermissionSelect from '$lib/shared/components/api-keys/PermissionSelect.svelte';
 	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
 	import { NetworkDisplay } from '$lib/shared/components/forms/selection/display/NetworkDisplay.svelte';
 	import { entities, permissions, metadata } from '$lib/shared/stores/metadata';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useNetworksQuery } from '$lib/features/networks/queries';
 	import { useUpdateUserAsAdminMutation } from '$lib/features/users/queries';
 	import { pushSuccess } from '$lib/shared/stores/feedback';
@@ -43,10 +42,6 @@
 		name?: string;
 	} = $props();
 
-	// TanStack Query for current user
-	const currentUserQuery = useCurrentUserQuery();
-	let currentUser = $derived(currentUserQuery.data);
-
 	const networksQuery = useNetworksQuery();
 	let networksData = $derived(networksQuery.data ?? []);
 
@@ -56,7 +51,6 @@
 	// Force Svelte to track reactivity
 	$effect(() => {
 		void $metadata;
-		void currentUser;
 	});
 
 	let loading = $derived(updateUserMutation.isPending);
@@ -69,21 +63,6 @@
 
 	// Selected networks state
 	let selectedNetworks: Network[] = $state([]);
-
-	// Filter permission options to only those the current user can manage
-	let permissionOptions = $derived(
-		permissions
-			.getItems()
-			.filter((p) => {
-				if (!currentUser) return false;
-				const canManage =
-					permissions
-						.getMetadata(currentUser.permissions)
-						?.grantable_user_permissions?.includes(p.id) ?? false;
-				return canManage;
-			})
-			.map((p) => ({ value: p.id, label: p.name ?? '', description: p.description ?? '' }))
-	);
 
 	// Available networks for selection
 	let networkOptions = $derived(
@@ -206,15 +185,14 @@
 					<form.Field
 						name="permissions"
 						validators={{
-							onBlur: ({ value }) => required(value)
+							onChange: ({ value }) => required(value)
 						}}
 					>
 						{#snippet children(field)}
-							<SelectInput
-								label={users_permissionsLevel()}
-								id="permissions"
+							<PermissionSelect
 								{field}
-								options={permissionOptions}
+								label={users_permissionsLevel()}
+								context="user"
 								helpText={users_permissionsLevelHelp()}
 							/>
 						{/snippet}

@@ -5,9 +5,14 @@
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 	import type { Daemon } from '$lib/features/daemons/types/base';
-	import { hasSunsetWarning, getDaemonStatusTag, osLabel } from '$lib/features/daemons/utils';
-	import OsIcon from './OsIcon.svelte';
-	import { createColorHelper } from '$lib/shared/utils/styling';
+	import {
+		hasSunsetWarning,
+		getDaemonStatusTag,
+		osLabel,
+		daemonOsIds
+	} from '$lib/features/daemons/utils';
+	import OsTag from '$lib/features/hosts/components/OsTag.svelte';
+	import { hostOsOfDaemonOs } from '$lib/features/hosts/host-os';
 	import CreateDaemonModal from './CreateDaemonModal/CreateDaemonModal.svelte';
 	import { defineFields, type CardAction } from '$lib/shared/components/data/types';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
@@ -58,6 +63,7 @@
 		common_unknownNetwork,
 		common_update,
 		common_updated,
+		common_url,
 		daemons_retryConnection,
 		common_version,
 		daemons_config_mode,
@@ -318,12 +324,11 @@
 					// them here is what makes them exist for both views at once.
 					// Display-only: none is a DaemonOrderField, so the server cannot
 					// order on them and defineFields rightly refuses them above.
+					// One daemon per host, so the host neither groups nor filters; search finds it.
 					key: 'host_id',
 					label: common_host(),
 					type: 'string',
 					searchable: true,
-					filterable: true,
-					groupable: true,
 					getValue: (daemon) => {
 						const host = daemonHosts.find((h) => h.id === daemon.host_id);
 						return host ? hostDisplayName(host) : common_unknownEntity({ entity: common_host() });
@@ -356,6 +361,7 @@
 					searchable: true,
 					filterable: true,
 					groupable: true,
+					sortable: true,
 					getValue: (daemon) => getDaemonStatusTag(daemon).label,
 					display: {
 						order: 1,
@@ -373,7 +379,9 @@
 					searchable: true,
 					filterable: true,
 					groupable: true,
-					getValue: (daemon) => (daemon.os ? osLabel(daemon.os) : ''),
+					sortable: true,
+					filterOptions: daemonOsIds.map(osLabel),
+					getValue: (daemon) => (daemon.os ? osLabel(daemon.os) : null),
 					display: { order: 4.5, cell: osCell }
 				},
 				{
@@ -383,6 +391,7 @@
 					searchable: true,
 					filterable: true,
 					groupable: true,
+					sortable: true,
 					getValue: (daemon) =>
 						daemon.mode === 'server_poll' ? daemons_mode_serverPoll() : daemons_mode_daemonPoll(),
 					display: {
@@ -404,14 +413,29 @@
 					type: 'string',
 					searchable: true,
 					filterable: true,
+					// Numeric collation orders 0.17.10 after 0.17.9.
+					sortable: true,
+					groupable: true,
 					getValue: (daemon) => daemon.version ?? '',
 					display: { order: 4 }
+				},
+				{
+					// The address the server dials. A DaemonPoll daemon dials out instead, so
+					// its stored url is unused and the cell stays empty.
+					key: 'url',
+					label: common_url(),
+					type: 'string',
+					searchable: true,
+					getValue: (daemon) => (daemon.mode === 'server_poll' ? daemon.url : null),
+					display: { hiddenByDefault: true }
 				},
 				{
 					key: 'interfaced_subnet_ids',
 					label: daemons_interfacesWith(),
 					type: 'array',
 					searchable: true,
+					// Daemons share subnets, so this filters; as an array it neither sorts nor groups.
+					filterable: true,
 					getValue: (daemon) => interfacedSubnets(daemon).map((s) => s.name),
 					display: {
 						order: 6,
@@ -437,16 +461,10 @@
 	);
 </script>
 
-<!-- A gray Tag with the OS's own icon: Tag takes an icon component, and OsIcon needs its `os`. -->
 {#snippet osCell(daemon: Daemon)}
-	{#if daemon.os}
-		{@const gray = createColorHelper('Gray')}
-		<span
-			class="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium {gray.bg} {gray.text}"
-		>
-			<OsIcon os={daemon.os} class="h-4 w-4 flex-shrink-0" />
-			<span class="truncate">{osLabel(daemon.os)}</span>
-		</span>
+	{@const os = daemon.os ? hostOsOfDaemonOs(daemon.os) : null}
+	{#if os}
+		<OsTag {os} />
 	{:else}
 		<span class="text-tertiary text-sm">—</span>
 	{/if}

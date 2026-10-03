@@ -1412,14 +1412,15 @@ export interface paths {
         /**
          * Generate daemon install command
          * @description A pure, idempotent builder — it never mints or persists anything. The api key in an `install`
-         *     command is a placeholder (`<API_KEY>`) the caller substitutes from the plaintext it holds; a
+         *     or `rekey` command is a placeholder (`<API_KEY>`) the caller substitutes from the plaintext it holds; a
          *     `reconfigure` command carries no key at all. Minting is a separate mutation
          *     (`POST /provision`), so regenerating a command here (advanced-setting change, OS switch, the
          *     Details reconfigure view) never rotates the daemon's key.
          *
          *     The server derives the exact command shape from the record: DaemonPoll vs ServerPoll for the
-         *     flags, and — for `install` — whether the daemon has checked in (`last_seen`) to decide between
-         *     a first-install and a minimal re-key command.
+         *     flags, and — for `rekey` — whether the daemon has checked in (`last_seen`) to decide whether
+         *     the command names the existing install it re-keys. An `install` command reads the same before
+         *     and after the daemon's first handshake.
          */
         get: operations["get_daemon_install_command"];
         put?: never;
@@ -1629,6 +1630,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/discovery/field-values/{field}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the values of a Discovery field
+         * @description Every distinct value of one Discovery field across the Discoveries the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         */
+        get: operations["get_discovery_field_values"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/discovery/start-session": {
         parameters: {
             query?: never;
@@ -1817,6 +1838,26 @@ export interface paths {
          *     separate CSV files for each entity type.
          */
         get: operations["export_hosts_zip"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hosts/field-values/{field}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the values of a Host field
+         * @description Every distinct value of one Host field across the Hosts the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         */
+        get: operations["get_host_field_values"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2597,6 +2638,26 @@ export interface paths {
          * @description Export all Services matching the filter criteria to CSV format. Ignores pagination parameters (limit/offset) and exports all matching records.
          */
         get: operations["export_services_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/services/field-values/{field}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the values of a Service field
+         * @description Every distinct value of one Service field across the Services the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         */
+        get: operations["get_service_field_values"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3467,19 +3528,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-02T12:58:48.562150Z",
+             *       "created_at": "2026-10-03T01:53:18.411304Z",
              *       "first_discovery_id": null,
-             *       "id": "755b0dd3-8d4b-4aaf-9a1c-dd060a5cd9a1",
+             *       "id": "1282642a-ef30-48d8-a0d4-3ddf450cdfda",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-02T12:58:48.562150Z",
+             *       "last_seen_at": "2026-10-03T01:53:18.411304Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-10-02T12:58:48.562150Z",
-             *       "valid_from": "2026-10-02T12:58:48.562150Z",
+             *       "updated_at": "2026-10-03T01:53:18.411304Z",
+             *       "valid_from": "2026-10-03T01:53:18.411304Z",
              *       "valid_to": null
              *     }
              */
@@ -4282,6 +4343,8 @@ export interface components {
              *       ],
              *       "name_source": "Manual",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
+             *       "os": null,
+             *       "os_source": "Unspecified",
              *       "ports": [
              *         {
              *           "created_at": "2026-01-15T10:30:00Z",
@@ -4305,19 +4368,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-02T12:58:48.538570Z",
+             *               "created_at": "2026-10-03T01:53:18.386838Z",
              *               "first_discovery_id": null,
-             *               "id": "4ff0e77a-55a5-4160-862a-798374ca464e",
+             *               "id": "184c3384-04fe-4005-af4c-44b75ed29bb2",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-02T12:58:48.538570Z",
+             *               "last_seen_at": "2026-10-03T01:53:18.386838Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-10-02T12:58:48.538570Z",
-             *               "valid_from": "2026-10-02T12:58:48.538570Z",
+             *               "updated_at": "2026-10-03T01:53:18.386838Z",
+             *               "valid_from": "2026-10-03T01:53:18.386838Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4331,7 +4394,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Tuya Smart",
+             *           "service_definition": "Tomcat",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4440,6 +4503,12 @@ export interface components {
                  * @description The network this entity belongs to.
                  */
                 network_id: string;
+                os: null | components["schemas"]["HostOs"];
+                /**
+                 * @description What produced the OS. Read-only, as above. A source whose method is `Inferred` matched the OS
+                 *     in a string the host emitted rather than reading it off the host.
+                 */
+                os_source?: components["schemas"]["AttributeSource"];
                 /** @description Open ports on this host. */
                 ports: components["schemas"]["Port"][];
                 /** @description ENTITY-MIB entPhysicalSerialNum — hardware serial number. Read-only, as above. */
@@ -5244,19 +5313,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-02T12:58:48.556453Z",
+             *           "created_at": "2026-10-03T01:53:18.406165Z",
              *           "first_discovery_id": null,
-             *           "id": "d4fd1f77-7253-4fcd-9cf8-83f7b88a9a02",
+             *           "id": "02858d2e-8d0b-431a-8def-1710b31e569b",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-02T12:58:48.556453Z",
+             *           "last_seen_at": "2026-10-03T01:53:18.406165Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-10-02T12:58:48.556453Z",
-             *           "valid_from": "2026-10-02T12:58:48.556453Z",
+             *           "updated_at": "2026-10-03T01:53:18.406165Z",
+             *           "valid_from": "2026-10-03T01:53:18.406165Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5270,7 +5339,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Tuya Smart",
+             *       "service_definition": "Tomcat",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6117,6 +6186,34 @@ export interface components {
          * @description Envelope for a successful response. Failures are sent with a non-2xx status
          *     and an `ApiErrorResponse` body instead.
          */
+        ApiResponse_Vec_GroupCount: {
+            /** @description The result payload. Omitted on failure. */
+            data?: {
+                /**
+                 * Format: int64
+                 * @description How many rows fall in this group in total, not just on this page.
+                 */
+                count: number;
+                /**
+                 * @description The group's value, rendered as text. `null` for rows whose group key is
+                 *     NULL (the "ungrouped" bucket).
+                 */
+                value?: string | null;
+            }[];
+            /**
+             * @description Not sent on a successful response. Failure messages arrive in an
+             *     `ApiErrorResponse`.
+             */
+            error?: string | null;
+            /** @description API and server version metadata. */
+            meta: components["schemas"]["ApiMeta"];
+            /** @description Always `true` on a successful response. */
+            success: boolean;
+        };
+        /**
+         * @description Envelope for a successful response. Failures are sent with a non-2xx status
+         *     and an `ApiErrorResponse` body instead.
+         */
         ApiResponse_Vec_Invite: {
             /** @description The result payload. Omitted on failure. */
             data?: (components["schemas"]["InviteBase"] & {
@@ -6295,7 +6392,7 @@ export interface components {
          *     that do carry a [`ClientProbe`] keep it under their own name, `{"Probe":"Snmp"}`, which tells them
          *     apart from each other and from every bare name.
          */
-        AttributeSource: "Unspecified" | "OwnAddress" | "ServiceMatch" | "LldpNeighbourAddress" | "CipVendorId" | "DnsSdInstanceName" | "DnsSdHostname" | "LldpChassisId" | "ReverseDns" | "ForwardingTable" | "ArpReply" | "DaemonSelfReport" | "ProfinetDcp" | "SshScript" | {
+        AttributeSource: "Unspecified" | "OwnAddress" | "ServiceMatch" | "LldpNeighbourAddress" | "CipVendorId" | "SysDescrMatch" | "SysObjectIdMatch" | "LldpSysDescMatch" | "SshBannerMatch" | "HttpServerMatch" | "DnsSdDeviceInfoMatch" | "DnsSdAirPlayMatch" | "DnsSdInstanceName" | "DnsSdHostname" | "LldpChassisId" | "ReverseDns" | "ForwardingTable" | "ArpReply" | "DaemonSelfReport" | "ProfinetDcp" | "ContainerRuntimeInfo" | "SshScript" | {
             /** @description A value the thing emitted about itself, over whatever transport [`ClientProbe`] names. */
             Probe: components["schemas"]["ClientProbe"];
         } | {
@@ -6344,19 +6441,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-02T12:58:48.538996Z",
+         *       "created_at": "2026-10-03T01:53:18.387526Z",
          *       "first_discovery_id": null,
-         *       "id": "18931ccd-18d8-4769-ae01-9df30227ad18",
+         *       "id": "60e95f88-aeff-495f-aa32-90a40688d0f5",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-02T12:58:48.538996Z",
+         *       "last_seen_at": "2026-10-03T01:53:18.387526Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-10-02T12:58:48.538996Z",
-         *       "valid_from": "2026-10-02T12:58:48.538996Z",
+         *       "updated_at": "2026-10-03T01:53:18.387526Z",
+         *       "valid_from": "2026-10-03T01:53:18.387526Z",
          *       "valid_to": null
          *     }
          */
@@ -6684,7 +6781,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Tuya Smart",
+         *           "service_definition": "Tomcat",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -7376,6 +7473,7 @@ export interface components {
              * @description The network this entity belongs to.
              */
             network_id: string;
+            os?: null | components["schemas"]["DaemonOs"];
             /**
              * @description URL is ignored by server - kept for backwards compat with old daemons.
              *     URL is only set via admin provisioning for ServerPoll daemons.
@@ -7438,6 +7536,7 @@ export interface components {
         DaemonStartupRequest: {
             /** @description Daemon software version (semver format) */
             daemon_version: string;
+            os?: null | components["schemas"]["DaemonOs"];
         };
         /** @description Lightweight daemon status for polling responses. */
         DaemonStatus: {
@@ -7453,6 +7552,7 @@ export interface components {
             mode: components["schemas"]["DaemonMode"];
             /** @description Name the daemon reports for itself. */
             name: string;
+            os?: null | components["schemas"]["DaemonOs"];
             /**
              * @description Whether the daemon can accept a new discovery session.
              *     Both DaemonPoll and ServerPoll use this to avoid dispatching work to a busy daemon.
@@ -7478,6 +7578,11 @@ export interface components {
              *     UI can render a countdown from the same value the email uses.
              */
             sunset_date?: string | null;
+            /**
+             * @description Whether this daemon reports its OS on every handshake. When it does, the daemon's `os` is
+             *     what it runs on; when it does not, `os` is the OS picked at creation, or absent.
+             */
+            supports_os_reporting?: boolean;
             /**
              * @description Whether this daemon can run a single-host rescan. Server-computed so the
              *     frontend never has to hardcode a version floor.
@@ -7772,7 +7877,7 @@ export interface components {
          * @description Fields that discoveries can be ordered/grouped by.
          * @enum {string}
          */
-        DiscoveryOrderField: "created_at" | "name" | "updated_at" | "daemon_id" | "network_id" | "discovery_type";
+        DiscoveryOrderField: "created_at" | "name" | "updated_at" | "daemon_id" | "network_id" | "discovery_type" | "phase" | "started_at" | "finished_at" | "duration" | "warnings";
         /** @enum {string} */
         DiscoveryPhase: "AwaitingSnapshot" | "Queued" | "Pending" | "Starting" | "Started" | "Scanning" | "Complete" | "Failed" | "Cancelled";
         /**
@@ -8931,7 +9036,7 @@ export interface components {
          *     Child entities (ip_addresses, ports, services) are stored in their own tables
          *     and queried by `host_id`. They are NOT stored on the host.
          */
-        HostBase: components["schemas"]["HostName"] & components["schemas"]["HostHostname"] & components["schemas"]["HostSysDescr"] & components["schemas"]["HostSysObjectId"] & components["schemas"]["HostSysLocation"] & components["schemas"]["HostSysContact"] & components["schemas"]["HostManagementUrl"] & components["schemas"]["HostChassisId"] & components["schemas"]["HostSysName"] & components["schemas"]["HostManufacturer"] & components["schemas"]["HostModel"] & components["schemas"]["HostSerialNumber"] & components["schemas"]["HostFirmwareRevision"] & components["schemas"]["HostSoftwareRevision"] & {
+        HostBase: components["schemas"]["HostName"] & components["schemas"]["HostHostname"] & components["schemas"]["HostSysDescr"] & components["schemas"]["HostSysObjectId"] & components["schemas"]["HostSysLocation"] & components["schemas"]["HostSysContact"] & components["schemas"]["HostManagementUrl"] & components["schemas"]["HostChassisId"] & components["schemas"]["HostSysName"] & components["schemas"]["HostManufacturer"] & components["schemas"]["HostModel"] & components["schemas"]["HostSerialNumber"] & components["schemas"]["HostFirmwareRevision"] & components["schemas"]["HostSoftwareRevision"] & components["schemas"]["HostOperatingSystem"] & {
             /** @description Credential assignments for this host (hydrated from junction table). */
             credential_assignments: components["schemas"]["CredentialAssignment"][];
             /** @description Free-text notes about the host. */
@@ -9011,11 +9116,55 @@ export interface components {
         HostNameRung: "Name" | "Hostname" | "SysName" | "ChassisId" | "Address";
         /** @enum {string} */
         HostNamingFallback: "Ip" | "BestService";
+        HostOperatingSystem: {
+            /** @description Operating system of a host, as one source read or inferred it. */
+            os?: {
+                /** @description Release codename, such as "noble". */
+                codename?: string | null;
+                /** @description Edition, such as "LTS" or "Datacenter". */
+                edition?: string | null;
+                /** @description The operating system family. */
+                family: components["schemas"]["HostOsFamily"];
+                /** @description Kernel release, such as "6.8.0-45-generic". */
+                kernel_version?: string | null;
+                /** @description Product or distribution, such as "Ubuntu", "Windows Server 2022" or "IOS-XE". */
+                name?: string | null;
+                /** @description Release, such as "24.04", "10.0.20348" or "15.2(4)M". */
+                version?: string | null;
+            };
+            os_source?: components["schemas"]["AttributeSource"];
+        };
         /**
          * @description Fields that hosts can be ordered/grouped by.
          * @enum {string}
          */
-        HostOrderField: "created_at" | "name" | "hostname" | "updated_at" | "virtualized_by" | "network_id" | "interface_ip" | "last_seen_at" | "mac_address";
+        HostOrderField: "created_at" | "name" | "hostname" | "updated_at" | "virtualized_by" | "network_id" | "interface_ip" | "last_seen_at" | "mac_address" | "source" | "manufacturer" | "model" | "sys_location" | "os_family" | "hidden";
+        /** @description Operating system of a host, as one source read or inferred it. */
+        HostOs: {
+            /** @description Release codename, such as "noble". */
+            codename?: string | null;
+            /** @description Edition, such as "LTS" or "Datacenter". */
+            edition?: string | null;
+            /** @description The operating system family. */
+            family: components["schemas"]["HostOsFamily"];
+            /** @description Kernel release, such as "6.8.0-45-generic". */
+            kernel_version?: string | null;
+            /** @description Product or distribution, such as "Ubuntu", "Windows Server 2022" or "IOS-XE". */
+            name?: string | null;
+            /** @description Release, such as "24.04", "10.0.20348" or "15.2(4)M". */
+            version?: string | null;
+        };
+        /**
+         * @description Operating system family of a host.
+         *
+         *     No catch-all variant. A source that names something outside this list writes no OS at all, so
+         *     nothing downstream has to handle a family that says nothing. The list covers every OS family the
+         *     vendored Recog fingerprints name (`recog::tests::every_vendored_family_is_classified` keeps it
+         *     that way), plus every OS a daemon can report about its own host. Linux distributions are `Linux`
+         *     with the distribution as the name; variants exist for families, not distributions.
+         * @enum {string}
+         */
+        HostOsFamily: "Linux" | "Windows" | "MacOs" | "Ios" | "TvOs" | "AudioOs" | "FreeBsd" | "OpenBsd" | "NetBsd" | "Solaris" | "Aix" | "HpUx" | "Irix" | "Tru64" | "OpenVms" | "ZOs" | "IbmI" | "UnixWare" | "OpenServer" | "NetWare" | "PalmOs" | "Esxi" | "CiscoIos" | "CiscoIosXe" | "CiscoIosXr" | "CiscoNxOs" | "CiscoCatOs" | "CiscoAsa" | "CiscoFtd" | "Junos" | "ScreenOs" | "ArubaOs" | "Comware" | "ProCurve" | "AristaEos" | "RouterOs" | "HuaweiVrp" | "IronWare" | "BrocadeNetworkOs" | "BayRs" | "PanOs" | "FortiOs" | "SonicOs" | "GaiaOs" | "Ipso" | "DataOntap" | "Ecos";
         /** @description A file on the scanned host, executed there over SSH. Never read by the daemon. */
         HostPath: string;
         /**
@@ -9118,6 +9267,8 @@ export interface components {
          *       ],
          *       "name_source": "Manual",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
+         *       "os": null,
+         *       "os_source": "Unspecified",
          *       "ports": [
          *         {
          *           "created_at": "2026-01-15T10:30:00Z",
@@ -9141,19 +9292,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-02T12:58:48.538111Z",
+         *               "created_at": "2026-10-03T01:53:18.386069Z",
          *               "first_discovery_id": null,
-         *               "id": "fd6159b4-b34f-4da3-b2dc-5c7a5c6fa7d4",
+         *               "id": "be7ebab4-83bd-4365-8fa9-2f1dad9b9a18",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-02T12:58:48.538111Z",
+         *               "last_seen_at": "2026-10-03T01:53:18.386069Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-10-02T12:58:48.538111Z",
-         *               "valid_from": "2026-10-02T12:58:48.538111Z",
+         *               "updated_at": "2026-10-03T01:53:18.386069Z",
+         *               "valid_from": "2026-10-03T01:53:18.386069Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9167,7 +9318,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Tuya Smart",
+         *           "service_definition": "Tomcat",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -9276,6 +9427,12 @@ export interface components {
              * @description The network this entity belongs to.
              */
             network_id: string;
+            os: null | components["schemas"]["HostOs"];
+            /**
+             * @description What produced the OS. Read-only, as above. A source whose method is `Inferred` matched the OS
+             *     in a string the host emitted rather than reading it off the host.
+             */
+            os_source?: components["schemas"]["AttributeSource"];
             /** @description Open ports on this host. */
             ports: components["schemas"]["Port"][];
             /** @description ENTITY-MIB entPhysicalSerialNum — hardware serial number. Read-only, as above. */
@@ -9631,15 +9788,19 @@ export interface components {
         /**
          * @description What the caller wants the command to do — the one axis that actually varies.
          *
-         *     `install` brings a daemon up (or re-keys a legacy one): it carries the api-key placeholder,
-         *     fetches the binary, and spells out the connectivity + advanced config. `reconfigure` adjusts
-         *     an already-installed daemon in place: no key, no fetch, just the server-held connectivity —
-         *     `scanopy-daemon install` layers it over the existing `config.json`. There is no third case:
-         *     re-asserting the record's (correct) values on an installed daemon is harmless, so a first
-         *     install and a re-key are the same command.
+         *     `install` brings a new daemon up: it carries the api-key placeholder, fetches the binary, and
+         *     spells out the connectivity + advanced config, and nothing else. `rekey` is the same command
+         *     for a daemon that already exists on a host (a legacy daemon getting its first bound key), so
+         *     once that daemon has connected it also names the install to act on. `reconfigure` adjusts an
+         *     already-installed daemon in place: no key, no fetch, just the server-held connectivity —
+         *     `scanopy-daemon install` layers it over the existing `config.json`.
+         *
+         *     `install` and `rekey` are separate because the record can't tell them apart: a daemon created
+         *     in the wizard has `last_seen` set as soon as it connects, and the wizard refetches its command
+         *     after that, which must not change shape.
          * @enum {string}
          */
-        InstallCommandType: "install" | "reconfigure";
+        InstallCommandType: "install" | "rekey" | "reconfigure";
         /**
          * @description Per-daemon integration targeting, stored on the `Discovery` entity and delivered via the
          *     init command at registration. Each entry references exactly one stored credential and says
@@ -10956,6 +11117,12 @@ export interface components {
                  * @description The network this entity belongs to.
                  */
                 network_id: string;
+                os: null | components["schemas"]["HostOs"];
+                /**
+                 * @description What produced the OS. Read-only, as above. A source whose method is `Inferred` matched the OS
+                 *     in a string the host emitted rather than reading it off the host.
+                 */
+                os_source?: components["schemas"]["AttributeSource"];
                 /** @description Open ports on this host. */
                 ports: components["schemas"]["Port"][];
                 /** @description ENTITY-MIB entPhysicalSerialNum — hardware serial number. Read-only, as above. */
@@ -12188,19 +12355,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-02T12:58:48.538872Z",
+         *           "created_at": "2026-10-03T01:53:18.387326Z",
          *           "first_discovery_id": null,
-         *           "id": "d755d9cf-9d34-4736-9a49-466bb018855f",
+         *           "id": "b47c3f71-fcd5-42c2-a197-67c0f9c29460",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-02T12:58:48.538872Z",
+         *           "last_seen_at": "2026-10-03T01:53:18.387326Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-10-02T12:58:48.538872Z",
-         *           "valid_from": "2026-10-02T12:58:48.538872Z",
+         *           "updated_at": "2026-10-03T01:53:18.387326Z",
+         *           "valid_from": "2026-10-03T01:53:18.387326Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12214,7 +12381,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Tuya Smart",
+         *       "service_definition": "Tomcat",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12347,7 +12514,7 @@ export interface components {
          * @description Fields that services can be ordered/grouped by.
          * @enum {string}
          */
-        ServiceOrderField: "created_at" | "name" | "updated_at" | "host" | "network_id" | "position" | "service_definition" | "last_seen_at";
+        ServiceOrderField: "created_at" | "name" | "updated_at" | "host" | "network_id" | "position" | "service_definition" | "last_seen_at" | "containerized_by" | "match_confidence" | "source";
         /** ServiceVirtualization */
         ServiceVirtualization: {
             details: components["schemas"]["DockerVirtualization"];
@@ -12972,7 +13139,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "2ace4c98-2018-450f-8509-aef120243b43",
+             *           "id": "0d2099ab-e892-4496-8c6e-d65ef29ca1ba",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -12982,23 +13149,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "a178580f-9a5d-4ee9-a0d7-300deba50d0a",
+             *           "id": "17c64b77-77a9-4368-87b4-0ca81cdd0715",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "62666c60-a387-49ee-b99d-eb1128bcb00e",
+             *           "id": "af4a6f9b-73f7-47dc-b75e-a8641b3263ed",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "8379a56d-c564-45f2-82bf-1fb1284696ec",
+             *           "id": "8e17f1dc-0a6e-4947-8725-8a9a6bde1c2c",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "a178580f-9a5d-4ee9-a0d7-300deba50d0a",
+             *           "id": "17c64b77-77a9-4368-87b4-0ca81cdd0715",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13011,19 +13178,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "0911d61d-a33d-4277-9bd6-6ee84e722911",
+             *         "id": "4fd78d64-54e9-42e8-99e3-790942bfb194",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "b0c6fbda-77bb-4408-9f2d-9ba9d1e69b2e",
+             *         "id": "9ba8df56-9e9f-4682-b984-02d00f77665d",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "e9186178-7c44-432d-8a7d-2f0e8a3977ee",
+             *         "id": "6ebaa472-6811-4c68-a025-9c7492cd446e",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "f6ce9aa5-e5e0-4e6a-a1de-e1de24b7a7c7",
+             *         "id": "01f32dc1-9285-424f-ab7f-1eb32764a2df",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13041,7 +13208,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "87a3af18-4aaf-444c-b41c-a1a2cbb8c82b",
+             *         "id": "92c10753-6770-484c-867f-fc214b5e09c6",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13050,15 +13217,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "27292996-d771-44dd-8aae-059de039895e",
+             *         "id": "3e3bda11-a72b-4f1d-9034-868869793fbc",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "d17e36ce-a6e3-4eed-bc47-a32dfc7fa023",
+             *         "id": "eea8b1a6-564a-487a-b016-6d82ce7a9092",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "4191a4ed-7a0a-4651-aa5c-3ac2d82aff16",
+             *         "id": "65face03-3c54-4c4d-b2be-e0471b44ce27",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -16551,7 +16718,7 @@ export interface operations {
     get_daemon_install_command: {
         parameters: {
             query: {
-                /** @description `install` (with the api-key placeholder) or `reconfigure` (credential-free). */
+                /** @description `install` or `rekey` (with the api-key placeholder), or `reconfigure` (credential-free). */
                 purpose: components["schemas"]["InstallCommandType"];
                 /** @description Log verbosity the daemon should run at (e.g. `info`, `debug`). */
                 log_level?: string | null;
@@ -16913,6 +17080,11 @@ export interface operations {
                 /** @description Only runs of one of these discovery types. */
                 discovery_types?: string[] | null;
                 /**
+                 * @description Only runs that ended in one of these phases (`run_type.results.phase`). Repeat for
+                 *     several. Configurations, which have no recorded outcome, never match.
+                 */
+                phases?: components["schemas"]["DiscoveryPhase"][] | null;
+                /**
                  * @description `true` returns only completed runs (the history view), `false` only the
                  *     configurations that produce them. Omit for both.
                  */
@@ -17047,6 +17219,11 @@ export interface operations {
                 /** @description Only runs of one of these discovery types. */
                 discovery_types?: string[] | null;
                 /**
+                 * @description Only runs that ended in one of these phases (`run_type.results.phase`). Repeat for
+                 *     several. Configurations, which have no recorded outcome, never match.
+                 */
+                phases?: components["schemas"]["DiscoveryPhase"][] | null;
+                /**
                  * @description `true` returns only completed runs (the history view), `false` only the
                  *     configurations that produce them. Omit for both.
                  */
@@ -17080,6 +17257,70 @@ export interface operations {
                 };
                 content: {
                     "text/csv": string;
+                };
+            };
+        };
+    };
+    get_discovery_field_values: {
+        parameters: {
+            query?: {
+                /** @description Filter by network ID. Repeat the parameter to pass several. */
+                network_ids?: string[] | null;
+                /** @description Filter by daemon ID. Repeat the parameter to pass several. */
+                daemon_ids?: string[] | null;
+                /** @description Only runs of one of these discovery types. */
+                discovery_types?: string[] | null;
+                /**
+                 * @description Only runs that ended in one of these phases (`run_type.results.phase`). Repeat for
+                 *     several. Configurations, which have no recorded outcome, never match.
+                 */
+                phases?: components["schemas"]["DiscoveryPhase"][] | null;
+                /**
+                 * @description `true` returns only completed runs (the history view), `false` only the
+                 *     configurations that produce them. Omit for both.
+                 */
+                historical?: boolean | null;
+                /**
+                 * @description Free-text search across the discovery's name and the name of the daemon
+                 *     that runs it.
+                 */
+                search?: string | null;
+                /** @description Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
+                group_by?: null | components["schemas"]["DiscoveryOrderField"];
+                /** @description Secondary ordering field (sorting within groups or standalone sort). */
+                order_by?: null | components["schemas"]["DiscoveryOrderField"];
+                /** @description Direction for order_by field (group_by always uses ASC). */
+                order_direction?: null | components["schemas"]["OrderDirection"];
+                /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
+                limit?: number | null;
+                /** @description Number of results to skip. Default: 0. */
+                offset?: number | null;
+            };
+            header?: never;
+            path: {
+                /** @description The field whose values to count */
+                field: components["schemas"]["DiscoveryOrderField"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Distinct values and their Discovery counts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                };
+            };
+            /** @description Unknown field */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
         };
@@ -17300,6 +17541,11 @@ export interface operations {
                 /** @description Filter by the service virtualizing the host. Repeat for several. */
                 virtualization_service_ids?: string[] | null;
                 /**
+                 * @description Filter by the name of the service virtualizing the host, the value "Virtualized By"
+                 *     groups on. Repeat for several.
+                 */
+                virtualization_service_names?: string[] | null;
+                /**
                  * @description `true` also returns hosts nothing virtualizes. Set on its own it returns
                  *     only those — the "Not Virtualized" choice in the UI's filter.
                  */
@@ -17311,6 +17557,16 @@ export interface operations {
                  *     `Inferred` alone lists the hosts only a neighbour advertised.
                  */
                 sources?: components["schemas"]["EntitySourceDiscriminants"][] | null;
+                /** @description Filter by hardware manufacturer. Repeat for several. */
+                manufacturers?: string[] | null;
+                /** @description Filter by hardware model. Repeat for several. */
+                models?: string[] | null;
+                /** @description Filter by SNMP sysLocation. Repeat for several. */
+                sys_locations?: string[] | null;
+                /** @description Filter by operating system family. Repeat for several. */
+                os_families?: components["schemas"]["HostOsFamily"][] | null;
+                /** @description Filter to hosts assigned one of these credentials. Repeat for several. */
+                credential_ids?: string[] | null;
                 /** @description Filter by tag IDs (returns hosts that have ANY of the specified tags) */
                 tag_ids?: string[] | null;
                 /**
@@ -17494,6 +17750,11 @@ export interface operations {
                 /** @description Filter by the service virtualizing the host. Repeat for several. */
                 virtualization_service_ids?: string[] | null;
                 /**
+                 * @description Filter by the name of the service virtualizing the host, the value "Virtualized By"
+                 *     groups on. Repeat for several.
+                 */
+                virtualization_service_names?: string[] | null;
+                /**
                  * @description `true` also returns hosts nothing virtualizes. Set on its own it returns
                  *     only those — the "Not Virtualized" choice in the UI's filter.
                  */
@@ -17505,6 +17766,16 @@ export interface operations {
                  *     `Inferred` alone lists the hosts only a neighbour advertised.
                  */
                 sources?: components["schemas"]["EntitySourceDiscriminants"][] | null;
+                /** @description Filter by hardware manufacturer. Repeat for several. */
+                manufacturers?: string[] | null;
+                /** @description Filter by hardware model. Repeat for several. */
+                models?: string[] | null;
+                /** @description Filter by SNMP sysLocation. Repeat for several. */
+                sys_locations?: string[] | null;
+                /** @description Filter by operating system family. Repeat for several. */
+                os_families?: components["schemas"]["HostOsFamily"][] | null;
+                /** @description Filter to hosts assigned one of these credentials. Repeat for several. */
+                credential_ids?: string[] | null;
                 /** @description Filter by tag IDs (returns hosts that have ANY of the specified tags) */
                 tag_ids?: string[] | null;
                 /**
@@ -17579,6 +17850,11 @@ export interface operations {
                 /** @description Filter by the service virtualizing the host. Repeat for several. */
                 virtualization_service_ids?: string[] | null;
                 /**
+                 * @description Filter by the name of the service virtualizing the host, the value "Virtualized By"
+                 *     groups on. Repeat for several.
+                 */
+                virtualization_service_names?: string[] | null;
+                /**
                  * @description `true` also returns hosts nothing virtualizes. Set on its own it returns
                  *     only those — the "Not Virtualized" choice in the UI's filter.
                  */
@@ -17590,6 +17866,16 @@ export interface operations {
                  *     `Inferred` alone lists the hosts only a neighbour advertised.
                  */
                 sources?: components["schemas"]["EntitySourceDiscriminants"][] | null;
+                /** @description Filter by hardware manufacturer. Repeat for several. */
+                manufacturers?: string[] | null;
+                /** @description Filter by hardware model. Repeat for several. */
+                models?: string[] | null;
+                /** @description Filter by SNMP sysLocation. Repeat for several. */
+                sys_locations?: string[] | null;
+                /** @description Filter by operating system family. Repeat for several. */
+                os_families?: components["schemas"]["HostOsFamily"][] | null;
+                /** @description Filter to hosts assigned one of these credentials. Repeat for several. */
+                credential_ids?: string[] | null;
                 /** @description Filter by tag IDs (returns hosts that have ANY of the specified tags) */
                 tag_ids?: string[] | null;
                 /**
@@ -17645,6 +17931,118 @@ export interface operations {
                 };
                 content: {
                     "application/zip": string;
+                };
+            };
+        };
+    };
+    get_host_field_values: {
+        parameters: {
+            query?: {
+                /** @description Filter by network ID. Repeat the parameter to pass several. */
+                network_ids?: string[] | null;
+                /** @description Filter by specific entity IDs (for selective loading) */
+                ids?: string[] | null;
+                /**
+                 * @description Filter by the `hidden` flag. Repeat the parameter to accept both values;
+                 *     omit it for no constraint.
+                 */
+                hidden?: boolean[] | null;
+                /** @description Filter by the service virtualizing the host. Repeat for several. */
+                virtualization_service_ids?: string[] | null;
+                /**
+                 * @description Filter by the name of the service virtualizing the host, the value "Virtualized By"
+                 *     groups on. Repeat for several.
+                 */
+                virtualization_service_names?: string[] | null;
+                /**
+                 * @description `true` also returns hosts nothing virtualizes. Set on its own it returns
+                 *     only those — the "Not Virtualized" choice in the UI's filter.
+                 */
+                include_unvirtualized?: boolean | null;
+                /** @description Filter to hosts running a service with one of these names. */
+                service_names?: string[] | null;
+                /**
+                 * @description Filter by how the host came to exist (`source.type`). Repeat for several;
+                 *     `Inferred` alone lists the hosts only a neighbour advertised.
+                 */
+                sources?: components["schemas"]["EntitySourceDiscriminants"][] | null;
+                /** @description Filter by hardware manufacturer. Repeat for several. */
+                manufacturers?: string[] | null;
+                /** @description Filter by hardware model. Repeat for several. */
+                models?: string[] | null;
+                /** @description Filter by SNMP sysLocation. Repeat for several. */
+                sys_locations?: string[] | null;
+                /** @description Filter by operating system family. Repeat for several. */
+                os_families?: components["schemas"]["HostOsFamily"][] | null;
+                /** @description Filter to hosts assigned one of these credentials. Repeat for several. */
+                credential_ids?: string[] | null;
+                /** @description Filter by tag IDs (returns hosts that have ANY of the specified tags) */
+                tag_ids?: string[] | null;
+                /**
+                 * @description Free-text search. Case-insensitive substring match against the host's
+                 *     name, hostname, sysName, chassis id and description, and against its IP
+                 *     addresses and the names of services running on it.
+                 *
+                 *     sysName and chassis id are in there because they are rungs of the title
+                 *     ladder: a host with no name of its own is *shown* under one of them, and
+                 *     a title you can read but cannot search for is a dead end.
+                 */
+                search?: string | null;
+                /** @description Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
+                group_by?: null | components["schemas"]["HostOrderField"];
+                /** @description Secondary ordering field (sorting within groups or standalone sort). */
+                order_by?: null | components["schemas"]["HostOrderField"];
+                /** @description Direction for order_by field (group_by always uses ASC). */
+                order_direction?: null | components["schemas"]["OrderDirection"];
+                /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
+                limit?: number | null;
+                /** @description Number of results to skip. Default: 0. */
+                offset?: number | null;
+                /**
+                 * @description As-of timestamp (ISO 8601). When set, returns SCD2 state as of this
+                 *     instant (snapshot view) instead of live state.
+                 */
+                at?: string | null;
+                /**
+                 * @description `true` returns only hosts discovery hasn't observed within their
+                 *     network's staleness window; `false` returns only those it has. Omit for
+                 *     both. Evaluated per row against the host's own network's window.
+                 */
+                stale?: boolean | null;
+                /**
+                 * @description `false` returns hosts with empty `ports`/`services`/`interfaces`.
+                 *     `ip_addresses` is always populated: the host's title can come from its
+                 *     address. The children dominate the payload, so callers that only need
+                 *     host identity — name pickers, id→name lookups, counts — should pass
+                 *     `false`. Defaults to `true`, so existing callers are unaffected.
+                 */
+                include_children?: boolean | null;
+            };
+            header?: never;
+            path: {
+                /** @description The field whose values to count */
+                field: components["schemas"]["HostOrderField"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Distinct values and their Host counts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                };
+            };
+            /** @description Unknown field */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
         };
@@ -19475,10 +19873,22 @@ export interface operations {
                 /** @description Filter by the service containerizing this one. Repeat for several. */
                 virtualization_service_ids?: string[] | null;
                 /**
+                 * @description Filter by the name of the service containerizing this one, the value "Containerized"
+                 *     groups on. Repeat for several.
+                 */
+                virtualization_service_names?: string[] | null;
+                /**
                  * @description `true` also returns services nothing containerizes. Set on its own it
                  *     returns only those — the "Not Containerized" choice in the UI's filter.
                  */
                 include_uncontainerized?: boolean | null;
+                /** @description Filter by how the service came to exist (`source.type`). Repeat for several. */
+                sources?: components["schemas"]["EntitySourceDiscriminants"][] | null;
+                /**
+                 * @description Filter by match confidence (`source.details.confidence`). Repeat for several. Only
+                 *     services discovery matched to a definition carry one.
+                 */
+                match_confidences?: components["schemas"]["MatchConfidence"][] | null;
                 /** @description Filter by tag IDs (returns services that have ANY of the specified tags) */
                 tag_ids?: string[] | null;
                 /**
@@ -19601,10 +20011,22 @@ export interface operations {
                 /** @description Filter by the service containerizing this one. Repeat for several. */
                 virtualization_service_ids?: string[] | null;
                 /**
+                 * @description Filter by the name of the service containerizing this one, the value "Containerized"
+                 *     groups on. Repeat for several.
+                 */
+                virtualization_service_names?: string[] | null;
+                /**
                  * @description `true` also returns services nothing containerizes. Set on its own it
                  *     returns only those — the "Not Containerized" choice in the UI's filter.
                  */
                 include_uncontainerized?: boolean | null;
+                /** @description Filter by how the service came to exist (`source.type`). Repeat for several. */
+                sources?: components["schemas"]["EntitySourceDiscriminants"][] | null;
+                /**
+                 * @description Filter by match confidence (`source.details.confidence`). Repeat for several. Only
+                 *     services discovery matched to a definition carry one.
+                 */
+                match_confidences?: components["schemas"]["MatchConfidence"][] | null;
                 /** @description Filter by tag IDs (returns services that have ANY of the specified tags) */
                 tag_ids?: string[] | null;
                 /**
@@ -19651,6 +20073,98 @@ export interface operations {
                 };
                 content: {
                     "text/csv": string;
+                };
+            };
+        };
+    };
+    get_service_field_values: {
+        parameters: {
+            query?: {
+                /** @description Filter by network ID. Repeat the parameter to pass several. */
+                network_ids?: string[] | null;
+                /** @description Filter by host ID. Repeat the parameter to pass several. */
+                host_ids?: string[] | null;
+                /** @description Filter by specific entity IDs (for selective loading) */
+                ids?: string[] | null;
+                /** @description Only services with one of these definitions. */
+                service_definitions?: string[] | null;
+                /** @description Filter by the service containerizing this one. Repeat for several. */
+                virtualization_service_ids?: string[] | null;
+                /**
+                 * @description Filter by the name of the service containerizing this one, the value "Containerized"
+                 *     groups on. Repeat for several.
+                 */
+                virtualization_service_names?: string[] | null;
+                /**
+                 * @description `true` also returns services nothing containerizes. Set on its own it
+                 *     returns only those — the "Not Containerized" choice in the UI's filter.
+                 */
+                include_uncontainerized?: boolean | null;
+                /** @description Filter by how the service came to exist (`source.type`). Repeat for several. */
+                sources?: components["schemas"]["EntitySourceDiscriminants"][] | null;
+                /**
+                 * @description Filter by match confidence (`source.details.confidence`). Repeat for several. Only
+                 *     services discovery matched to a definition carry one.
+                 */
+                match_confidences?: components["schemas"]["MatchConfidence"][] | null;
+                /** @description Filter by tag IDs (returns services that have ANY of the specified tags) */
+                tag_ids?: string[] | null;
+                /**
+                 * @description Free-text search. Case-insensitive substring match against the service's
+                 *     name and definition, and against the name of the host it runs on.
+                 */
+                search?: string | null;
+                /** @description Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
+                group_by?: null | components["schemas"]["ServiceOrderField"];
+                /** @description Secondary ordering field (sorting within groups or standalone sort). */
+                order_by?: null | components["schemas"]["ServiceOrderField"];
+                /** @description Direction for order_by field (group_by always uses ASC). */
+                order_direction?: null | components["schemas"]["OrderDirection"];
+                /** @description Only services exposed on one of these port numbers, over either protocol. */
+                ports?: number[] | null;
+                /** @description Exclude services belonging to these categories. */
+                exclude_categories?: components["schemas"]["ServiceCategory"][] | null;
+                /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
+                limit?: number | null;
+                /** @description Number of results to skip. Default: 0. */
+                offset?: number | null;
+                /**
+                 * @description As-of timestamp (ISO 8601). When set, returns SCD2 state as of this
+                 *     instant (snapshot view) instead of live state.
+                 */
+                at?: string | null;
+                /**
+                 * @description `true` returns only services discovery hasn't observed within their
+                 *     network's staleness window; `false` returns only those it has. Omit for
+                 *     both. Evaluated per row against the service's own network's window.
+                 */
+                stale?: boolean | null;
+            };
+            header?: never;
+            path: {
+                /** @description The field whose values to count */
+                field: components["schemas"]["ServiceOrderField"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Distinct values and their Service counts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                };
+            };
+            /** @description Unknown field */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
         };

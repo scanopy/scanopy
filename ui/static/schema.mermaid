@@ -129,6 +129,7 @@ erDiagram
   text pending_email
   jsonb email_settings
   bigint session_epoch
+  jsonb display_settings
 }
 "public.networks" {
   uuid id
@@ -183,6 +184,8 @@ erDiagram
   text software_revision
   jsonb software_revision_source
   jsonb hostname_source
+  jsonb os
+  jsonb os_source
 }
 "public.subnets" {
   uuid id
@@ -237,6 +240,7 @@ erDiagram
   boolean is_unreachable
   boolean standby
   timestamp_with_time_zone standby_cleared_at
+  text os
 }
 "public.services" {
   uuid id
@@ -501,6 +505,8 @@ erDiagram
   jsonb credential_type
   timestamp_with_time_zone created_at
   timestamp_with_time_zone updated_at
+  text daemon_os
+  text description
 }
 "public.network_credentials" {
   uuid network_id FK

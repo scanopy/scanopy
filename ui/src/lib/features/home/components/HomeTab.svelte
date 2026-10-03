@@ -14,6 +14,8 @@
 	import PlanUsage from './PlanUsage.svelte';
 	import ProfilePrompt from './ProfilePrompt.svelte';
 	import ReferralSourcePrompt from './ReferralSourcePrompt.svelte';
+	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
+	import { homeDaemonPrompt } from '$lib/shared/onboarding/checklist';
 	import type { TabProps } from '$lib/shared/types';
 	import type { components } from '$lib/api/schema';
 	import { onMount } from 'svelte';
@@ -22,11 +24,11 @@
 	import {
 		home_demoEmbedTitle,
 		home_demoEmbedSubtitle,
-		home_demoNetworkTopology
+		home_demoNetworkTopology,
+		gettingStarted_stepDaemonDescription
 	} from '$lib/paraglide/messages';
 	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	let { isReadOnly = false, isActive = false }: TabProps = $props();
 
 	const dashboardQuery = useDashboardQuery();
@@ -77,6 +79,9 @@
 	);
 	let showProfile = $derived(!showReferralSource);
 
+	// Fills the checklist's slot once it is dismissed before the first daemon
+	let daemonPrompt = $derived(homeDaemonPrompt(onboarding, checklistDismissed, isReadOnly));
+
 	// Navigation handler — sets the active tab via the URL hash
 	function navigateTo(tab: string) {
 		if (typeof window !== 'undefined') {
@@ -100,7 +105,20 @@
 	{:else if dashboard && organization}
 		<!-- Getting Started Checklist -->
 		{#if !checklistDismissed}
-			<GettingStartedChecklist {onboarding} {organization} onNavigate={navigateTo} {isActive} />
+			<GettingStartedChecklist
+				{onboarding}
+				{organization}
+				onNavigate={navigateTo}
+				onDismiss={() => (checklistDismissed = true)}
+				{isActive}
+			/>
+		{:else if daemonPrompt}
+			<section class="card card-static">
+				<PreDaemonEmptyState
+					title={gettingStarted_stepDaemonDescription()}
+					isReadOnly={daemonPrompt === 'readOnly'}
+				/>
+			</section>
 		{/if}
 
 		<!-- Onboarding prompts — one at a time -->

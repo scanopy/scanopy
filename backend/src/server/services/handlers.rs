@@ -2,6 +2,7 @@ use crate::server::auth::middleware::permissions::{Authorized, Member, Viewer};
 use crate::server::hosts::r#impl::base::{Host, host_primary_address_join};
 use crate::server::services::definitions::ServiceDefinitionRegistry;
 use crate::server::services::r#impl::categories::ServiceCategory;
+use crate::server::services::r#impl::patterns::MatchConfidence;
 use crate::server::shared::handlers::ordering::OrderField;
 use crate::server::shared::handlers::query::{
     FilterQueryExtractor, OrderDirection, PaginationParams,
@@ -14,7 +15,8 @@ use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::api::{
     ApiError, ApiErrorResponse, ApiResponse, ApiResult, PaginatedApiResponse,
 };
-use crate::server::shared::types::entities::EntitySource;
+use crate::server::shared::types::entities::{EntitySource, EntitySourceDiscriminants};
+use crate::server::shared::types::metadata::HasId;
 use crate::server::shared::validation::validate_network_access;
 use crate::server::{
     config::AppState,
@@ -33,7 +35,9 @@ use uuid::Uuid;
 // ============================================================================
 
 /// Fields that services can be ordered/grouped by.
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, Default, utoipa::ToSchema)]
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Copy, Default, utoipa::ToSchema, strum::EnumIter,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum ServiceOrderField {
     #[default]
@@ -54,10 +58,19 @@ pub enum ServiceOrderField {
     NetworkId,
     Position,
     /// Sort by what the service *is* (Postgres, Nginx, ...) rather than what it
-    /// was named. Plain text column, no JOIN.
+    /// was named. Plain text column, no JOIN. The column holds the JSON-encoded id (`"Postgres"`),
+    /// so the expression strips the quotes: a group value or field value is then the bare id the
+    /// client groups and filters on.
     ServiceDefinition,
     /// Sort by when discovery last observed the service. Surfaces stale assets.
     LastSeenAt,
+    /// Sort by the containerizing service's name. Requires JOIN to services table.
+    ContainerizedBy,
+    /// Sort by how confident discovery was in the match (`source.details.confidence`). Services
+    /// matched without a confidence sort last.
+    MatchConfidence,
+    /// Sort by how the service came to exist (`source.type`).
+    Source,
 }
 
 /// The owning host's title in SQL, built once: `to_sql` hands out `&'static str`.
@@ -73,10 +86,17 @@ impl OrderField for ServiceOrderField {
             Self::UpdatedAt => "services.updated_at",
             Self::NetworkId => "services.network_id",
             Self::Position => "services.position",
-            Self::ServiceDefinition => "services.service_definition",
+            Self::ServiceDefinition => r#"btrim(services.service_definition, '"')"#,
             Self::LastSeenAt => "services.last_seen_at",
             Self::Host => SERVICE_HOST_TITLE_SQL.as_str(),
+            Self::ContainerizedBy => "COALESCE(container_service.name, '')",
+            Self::MatchConfidence => "services.source->'details'->>'confidence'",
+            Self::Source => "services.source->>'type'",
         }
+    }
+
+    fn nulls_last(&self) -> bool {
+        matches!(self, Self::MatchConfidence)
     }
 
     fn join_sql(&self) -> Option<&'static str> {
@@ -85,6 +105,10 @@ impl OrderField for ServiceOrderField {
                 "LEFT JOIN hosts AS service_host ON services.host_id = service_host.id ",
                 host_primary_address_join!("service_host")
             )),
+            Self::ContainerizedBy => Some(
+                "LEFT JOIN services AS container_service ON \
+                 services.virtualization_service_id = container_service.id",
+            ),
             _ => None,
         }
     }
@@ -109,9 +133,17 @@ pub struct ServiceFilterQuery {
     pub service_definitions: Option<Vec<String>>,
     /// Filter by the service containerizing this one. Repeat for several.
     pub virtualization_service_ids: Option<Vec<Uuid>>,
+    /// Filter by the name of the service containerizing this one, the value "Containerized"
+    /// groups on. Repeat for several.
+    pub virtualization_service_names: Option<Vec<String>>,
     /// `true` also returns services nothing containerizes. Set on its own it
     /// returns only those — the "Not Containerized" choice in the UI's filter.
     pub include_uncontainerized: Option<bool>,
+    /// Filter by how the service came to exist (`source.type`). Repeat for several.
+    pub sources: Option<Vec<EntitySourceDiscriminants>>,
+    /// Filter by match confidence (`source.details.confidence`). Repeat for several. Only
+    /// services discovery matched to a definition carry one.
+    pub match_confidences: Option<Vec<MatchConfidence>>,
     /// Filter by tag IDs (returns services that have ANY of the specified tags)
     pub tag_ids: Option<Vec<Uuid>>,
     /// Free-text search. Case-insensitive substring match against the service's
@@ -192,6 +224,10 @@ impl FilterQueryExtractor for ServiceFilterQuery {
         }
     }
 
+    fn at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
+        self.at
+    }
+
     fn pagination(&self) -> PaginationParams {
         PaginationParams {
             limit: self.limit,
@@ -207,6 +243,7 @@ mod generated {
     crate::crud_delete_handler!(Service);
     crate::crud_bulk_delete_handler!(Service);
     crate::crud_export_csv_handler!(Service);
+    crate::crud_get_field_values_handler!(Service);
 }
 
 pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
@@ -219,6 +256,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
         ))
         .routes(routes!(generated::bulk_delete))
         .routes(routes!(generated::export_csv))
+        .routes(routes!(generated::get_field_values))
 }
 
 /// List all services
@@ -308,13 +346,24 @@ async fn get_all_services(
     };
 
     // "Not Containerized" is a choice about absence, so it can arrive without
-    // any service ids beside it.
-    let include_uncontainerized = query.include_uncontainerized.unwrap_or(false);
-    let containerized_by = query.virtualization_service_ids.as_deref().unwrap_or(&[]);
-    let filter = if include_uncontainerized || !containerized_by.is_empty() {
-        filter.virtualization_service_in(containerized_by, include_uncontainerized)
-    } else {
-        filter
+    // any service ids or names beside it.
+    let filter = filter.virtualization_parent(
+        query.virtualization_service_ids.as_deref().unwrap_or(&[]),
+        query.virtualization_service_names.as_deref().unwrap_or(&[]),
+        query.include_uncontainerized.unwrap_or(false),
+    );
+
+    let filter = match &query.sources {
+        Some(sources) if !sources.is_empty() => filter.source_type_in(sources),
+        _ => filter,
+    };
+
+    let filter = match &query.match_confidences {
+        Some(confidences) if !confidences.is_empty() => {
+            let ids: Vec<&str> = confidences.iter().map(|c| c.id()).collect();
+            filter.json_text_in("source", &["details", "confidence"], &ids)
+        }
+        _ => filter,
     };
 
     // Staleness is per-network, so resolve each accessible network's cutoff and

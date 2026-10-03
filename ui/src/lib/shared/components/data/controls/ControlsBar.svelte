@@ -38,7 +38,7 @@
 		sortState = $bindable({ field: null, direction: 'asc' }),
 		viewMode = $bindable(DEFAULT_VIEW_MODE),
 		showFilters = $bindable(false),
-		fields,
+		canFilter,
 		groupableFields,
 		sortableFields,
 		hasActiveFilters,
@@ -46,8 +46,6 @@
 		hasActiveGrouping,
 		showSelectAll,
 		allSelected,
-		hasExportHandler,
-		isExporting,
 		onToggleSort,
 		onClearSearch,
 		onClearGrouping,
@@ -55,14 +53,17 @@
 		onSelectNone,
 		onExport,
 		/** Column menu, rendered only in table mode. */
-		columnMenu
+		columnMenu,
+		/** Table mode's stand-in for the filter, group and sort controls. */
+		tableControls = undefined
 	}: {
 		searchQuery: string;
 		selectedGroupField: string | null;
 		sortState: SortState;
 		viewMode: ViewMode;
 		showFilters: boolean;
-		fields: FieldConfig<T>[];
+		/** Some rendered column has a filter, so the pane has something to show. */
+		canFilter: boolean;
 		groupableFields: FieldConfig<T>[];
 		sortableFields: FieldConfig<T>[];
 		hasActiveFilters: boolean;
@@ -70,16 +71,28 @@
 		hasActiveGrouping: boolean;
 		showSelectAll: boolean;
 		allSelected: boolean;
-		hasExportHandler: boolean;
-		isExporting: boolean;
 		onToggleSort: (fieldKey: string) => void;
 		onClearSearch: () => void;
 		onClearGrouping: () => void;
 		onSelectAll: () => void;
 		onSelectNone: () => void;
-		onExport: () => void;
+		/** Export handler; the button shows only when there is one. */
+		onExport: (() => void | Promise<void>) | null;
 		columnMenu?: Snippet;
+		tableControls?: Snippet;
 	} = $props();
+
+	let isExporting = $state(false);
+
+	async function runExport() {
+		if (!onExport || isExporting) return;
+		isExporting = true;
+		try {
+			await onExport();
+		} finally {
+			isExporting = false;
+		}
+	}
 </script>
 
 <!--
@@ -111,78 +124,87 @@
 			{/if}
 		</div>
 
-		<!-- Data Controls Group (Filter, Group, Sort) -->
-		<div class="flex items-end gap-3">
-			<!-- Filter Toggle -->
-			{#if fields.some((f) => f.filterable)}
-				<button
-					onclick={() => (showFilters = !showFilters)}
-					class="btn-secondary flex h-[42px] items-center gap-2"
-				>
-					<Filter class="h-4 w-4" />
-					{#if hasActiveFilters}
-						<Tag label={common_active()} color="Blue" />
-					{/if}
-				</button>
+		<!--
+			Card view only. The table puts each column's filter and group control in
+			its header and sorts on a header click, so these would be a second copy.
+		-->
+		{#if viewMode === 'table'}
+			{#if tableControls}
+				{@render tableControls()}
 			{/if}
-
-			<!-- Group By Dropdown -->
-			{#if groupableFields.length > 0}
-				<div class="flex flex-col gap-1">
-					<span class="text-tertiary text-xs">{common_groupByLabel()}</span>
-					<div class="relative">
-						<select bind:value={selectedGroupField} class="input-secondary pr-8">
-							<option value={null}>{common_none()}</option>
-							{#each groupableFields as field (getFieldKey(field))}
-								<option value={getFieldKey(field)}>{field.label}</option>
-							{/each}
-						</select>
-						{#if hasActiveGrouping}
-							<button
-								onclick={onClearGrouping}
-								class="text-tertiary hover:text-secondary absolute right-8 top-1/2 -translate-y-1/2 transition-colors"
-							>
-								<X class="h-3 w-3" />
-							</button>
+		{:else}
+			<div class="flex items-end gap-3">
+				<!-- Filter Toggle -->
+				{#if canFilter}
+					<button
+						onclick={() => (showFilters = !showFilters)}
+						class="btn-secondary flex h-[42px] items-center gap-2"
+					>
+						<Filter class="h-4 w-4" />
+						{#if hasActiveFilters}
+							<Tag label={common_active()} color="Blue" />
 						{/if}
-					</div>
-				</div>
-			{/if}
+					</button>
+				{/if}
 
-			<!-- Sort Dropdown + Direction -->
-			{#if sortableFields.length > 0}
-				<div class="flex flex-col gap-1">
-					<span class="text-tertiary text-xs">{common_sortByLabel()}</span>
-					<div class="flex items-center gap-1">
-						<select
-							bind:value={sortState.field}
-							onchange={() => {
-								if (!sortState.field) sortState = { ...sortState, direction: 'asc' };
-							}}
-							class="input-secondary pr-8"
-						>
-							<option value={null}>{common_none()}</option>
-							{#each sortableFields as field (getFieldKey(field))}
-								<option value={getFieldKey(field)}>{field.label}</option>
-							{/each}
-						</select>
-						{#if sortState.field}
-							<button
-								onclick={() => onToggleSort(sortState.field || '')}
-								class="btn-secondary h-[42px]"
-								title={sortState.direction === 'asc' ? common_ascending() : common_descending()}
-							>
-								{#if sortState.direction === 'asc'}
-									<ArrowUpNarrowWide class="h-5 w-5" />
-								{:else}
-									<ArrowDownWideNarrow class="h-5 w-5" />
-								{/if}
-							</button>
-						{/if}
+				<!-- Group By Dropdown -->
+				{#if groupableFields.length > 0}
+					<div class="flex flex-col gap-1">
+						<span class="text-tertiary text-xs">{common_groupByLabel()}</span>
+						<div class="relative">
+							<select bind:value={selectedGroupField} class="input-secondary pr-8">
+								<option value={null}>{common_none()}</option>
+								{#each groupableFields as field (getFieldKey(field))}
+									<option value={getFieldKey(field)}>{field.label}</option>
+								{/each}
+							</select>
+							{#if hasActiveGrouping}
+								<button
+									onclick={onClearGrouping}
+									class="text-tertiary hover:text-secondary absolute right-8 top-1/2 -translate-y-1/2 transition-colors"
+								>
+									<X class="h-3 w-3" />
+								</button>
+							{/if}
+						</div>
 					</div>
-				</div>
-			{/if}
-		</div>
+				{/if}
+
+				<!-- Sort Dropdown + Direction -->
+				{#if sortableFields.length > 0}
+					<div class="flex flex-col gap-1">
+						<span class="text-tertiary text-xs">{common_sortByLabel()}</span>
+						<div class="flex items-center gap-1">
+							<select
+								bind:value={sortState.field}
+								onchange={() => {
+									if (!sortState.field) sortState = { ...sortState, direction: 'asc' };
+								}}
+								class="input-secondary pr-8"
+							>
+								<option value={null}>{common_none()}</option>
+								{#each sortableFields as field (getFieldKey(field))}
+									<option value={getFieldKey(field)}>{field.label}</option>
+								{/each}
+							</select>
+							{#if sortState.field}
+								<button
+									onclick={() => onToggleSort(sortState.field || '')}
+									class="btn-secondary h-[42px]"
+									title={sortState.direction === 'asc' ? common_ascending() : common_descending()}
+								>
+									{#if sortState.direction === 'asc'}
+										<ArrowUpNarrowWide class="h-5 w-5" />
+									{:else}
+										<ArrowDownWideNarrow class="h-5 w-5" />
+									{/if}
+								</button>
+							{/if}
+						</div>
+					</div>
+				{/if}
+			</div>
+		{/if}
 	</div>
 
 	<!-- Right: View & Actions Group -->
@@ -225,9 +247,9 @@
 		{/if}
 
 		<!-- Export Button -->
-		{#if hasExportHandler}
+		{#if onExport}
 			<button
-				onclick={onExport}
+				onclick={runExport}
 				disabled={isExporting}
 				class="btn-secondary h-[42px] disabled:cursor-not-allowed disabled:opacity-50"
 				title={isExporting ? common_exporting() : common_export()}

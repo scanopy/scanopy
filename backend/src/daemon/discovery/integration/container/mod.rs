@@ -35,7 +35,9 @@ use super::{
     Checkpoint, CollectionShortfall, Completeness, ProbeContext, ProbeFailure, ProbeSuccess,
 };
 use crate::daemon::discovery::service::warnings::AttemptOutcome;
-use crate::server::shared::attribution::AttributeSource;
+use crate::server::hosts::r#impl::attributes::HostOsValue;
+use crate::server::hosts::r#impl::os::{HostOs, HostOsFamily};
+use crate::server::shared::attribution::{AttributeSource, Attributed};
 
 const CONTAINER_PROBE_MAX_ATTEMPTS: u32 = 3;
 
@@ -419,6 +421,16 @@ pub async fn execute(
     let bridge_subnets = scanner.create_bridge_subnets().await?;
     ctx.ops.report_progress(10).await.ok();
 
+    // The engine reports the machine it runs on. Read before the scan so a slow container pass
+    // cannot time it out; a failed read only means no OS from this source.
+    let engine_os = match handle.client.info().await {
+        Ok(info) => engine_host_os(&info),
+        Err(e) => {
+            tracing::debug!(error = %e, runtime = runtime.label(), "Container engine info unavailable");
+            None
+        }
+    };
+
     let containers = scanner.get_containers_and_summaries().await?;
     let container_count = containers.len();
     ctx.ops.report_progress(20).await.ok();
@@ -456,6 +468,12 @@ pub async fn execute(
     // match it.
     for subnet in bridge_subnets {
         host_data.add_subnet(subnet);
+    }
+    if let Some(os) = engine_os {
+        host_data.offer_os(Attributed::new(
+            HostOsValue(os),
+            AttributeSource::ContainerRuntimeInfo,
+        ));
     }
     for result in scan.results {
         for service in result.services {
@@ -605,5 +623,87 @@ mod tests {
             None,
         );
         assert!(matches!(podman, ServiceVirtualization::Podman(_)));
+    }
+}
+
+/// The OS of the machine a container engine runs on, from its `info` response.
+///
+/// `OSType` is the Go runtime's `GOOS`, which says the family; `OperatingSystem` names the product
+/// ("Ubuntu 24.04.1 LTS", or "Docker Desktop" for the VM Docker Desktop runs in) and `OSVersion` the
+/// release. A type other than `linux` or `windows` names no family this build knows, so it writes
+/// no OS.
+fn engine_host_os(info: &bollard::models::SystemInfo) -> Option<HostOs> {
+    let family = match info.os_type.as_deref()? {
+        "linux" => HostOsFamily::Linux,
+        "windows" => HostOsFamily::Windows,
+        _ => return None,
+    };
+    let present = |s: &Option<String>| {
+        s.as_ref()
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .map(str::to_string)
+    };
+    let name = present(&info.operating_system);
+    // `OperatingSystem` usually already carries the release ("Ubuntu 24.04.1 LTS" beside "24.04"),
+    // so a second copy would only repeat it.
+    let version = present(&info.os_version)
+        .filter(|v| !name.as_deref().is_some_and(|n| n.contains(v.as_str())));
+    Some(HostOs {
+        family,
+        name,
+        version,
+        edition: None,
+        codename: None,
+        kernel_version: present(&info.kernel_version),
+    })
+}
+
+#[cfg(test)]
+mod engine_os_tests {
+    use super::*;
+
+    fn info(
+        os_type: &str,
+        operating_system: &str,
+        os_version: &str,
+    ) -> bollard::models::SystemInfo {
+        bollard::models::SystemInfo {
+            os_type: Some(os_type.to_string()),
+            operating_system: Some(operating_system.to_string()),
+            os_version: Some(os_version.to_string()),
+            kernel_version: Some("6.8.0-45-generic".to_string()),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn the_engine_names_its_host_without_repeating_the_release() {
+        let os = engine_host_os(&info("linux", "Ubuntu 24.04.1 LTS", "24.04")).unwrap();
+        assert_eq!(os.family, HostOsFamily::Linux);
+        assert_eq!(os.name.as_deref(), Some("Ubuntu 24.04.1 LTS"));
+        assert_eq!(os.version, None);
+        assert_eq!(os.kernel_version.as_deref(), Some("6.8.0-45-generic"));
+    }
+
+    #[test]
+    fn a_windows_engine_keeps_a_release_its_name_does_not_carry() {
+        let os = engine_host_os(&info(
+            "windows",
+            "Windows Server 2022 Datacenter",
+            "10.0 20348",
+        ))
+        .unwrap();
+        assert_eq!(os.family, HostOsFamily::Windows);
+        assert_eq!(os.version.as_deref(), Some("10.0 20348"));
+    }
+
+    #[test]
+    fn an_unknown_os_type_or_a_missing_one_writes_no_os() {
+        assert_eq!(engine_host_os(&info("plan9", "Plan 9", "4")), None);
+        assert_eq!(
+            engine_host_os(&bollard::models::SystemInfo::default()),
+            None
+        );
     }
 }

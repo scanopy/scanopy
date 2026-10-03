@@ -7,7 +7,8 @@
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
 	import { defineFields, entityRef } from '$lib/shared/components/data/types';
 	import { networkItems } from '$lib/features/networks/columns';
-	import { entities } from '$lib/shared/stores/metadata';
+	import { entities, entitySources } from '$lib/shared/stores/metadata';
+	import { entitySourceItems } from '$lib/shared/utils/entity-source';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { useNetworksQuery } from '$lib/features/networks/queries';
 	import { isUserManagedSubnet, useSubnetsQuery } from '$lib/features/subnets/queries';
@@ -23,6 +24,7 @@
 		common_name,
 		common_network,
 		common_noEntityYet,
+		common_source,
 		common_subnets,
 		common_unknownNetwork,
 		common_updated,
@@ -96,12 +98,28 @@
 			[
 				{ key: 'description', label: common_description(), type: 'string', searchable: true },
 				{
+					key: 'source',
+					label: common_source(),
+					type: 'string',
+					filterable: true,
+					groupable: true,
+					sortable: true,
+					// Every source the backend can stamp, named the way the column renders them.
+					filterOptions: entitySources.getItems().map((source) => entitySources.getName(source.id)),
+					getValue: (vlan) => (vlan.source ? entitySources.getName(vlan.source.type) : null),
+					display: {
+						hiddenByDefault: true,
+						getItems: (vlan) => (vlan.source ? entitySourceItems(vlan.source) : [])
+					}
+				},
+				{
 					key: 'network_id',
 					label: common_network(),
 					type: 'string',
 					searchable: true,
 					filterable: true,
 					groupable: true,
+					sortable: true,
 					getValue: (item) =>
 						networksData.find((n) => n.id == item.network_id)?.name || common_unknownNetwork(),
 					display: { getItems: (item) => networkItems(item.network_id, networksData) }

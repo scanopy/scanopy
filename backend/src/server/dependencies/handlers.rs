@@ -30,7 +30,9 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 // ============================================================================
 
 /// Fields that dependencies can be ordered/grouped by.
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, Default, utoipa::ToSchema)]
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Copy, Default, utoipa::ToSchema, strum::EnumIter,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum DependencyOrderField {
     #[default]

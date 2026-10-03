@@ -7,6 +7,7 @@ use crate::server::{
 impl CrudHandlers for Subnet {
     type Service = SubnetService;
     type FilterQuery = SubnetFilterQuery;
+    type OrderField = crate::server::subnets::handlers::SubnetOrderField;
 
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.subnet_service

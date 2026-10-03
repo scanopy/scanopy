@@ -73,10 +73,11 @@
 		return Math.max(0, Math.ceil(ms / 86_400_000));
 	});
 
-	// OS selection: the daemon's recorded OS when it has one, which also hides the OS picker;
-	// otherwise the user picks, starting from the browser's OS.
-	let pickedOS: DaemonOS = $state(detectOS());
-	let selectedOS = $derived<DaemonOS>(daemon.os ?? pickedOS);
+	// OS selection: the daemon's recorded OS, reported by the daemon or picked at creation, which
+	// also hides the OS picker; with none recorded the user picks, starting from the browser's OS.
+	let recordedOS = $derived(daemon.os ?? null);
+	let pickedOS = $state<DaemonOS | null>(null);
+	let selectedOS = $derived<DaemonOS>(recordedOS ?? pickedOS ?? detectOS());
 
 	type LinuxMethod = 'binary' | 'docker';
 	let linuxMethod: LinuxMethod = $state('binary');
@@ -162,7 +163,7 @@ docker compose up -d`;
 				<OsSelector
 					{selectedOS}
 					onOsSelect={handleOsSelect}
-					showOs={!daemon.os}
+					showOs={!recordedOS}
 					{linuxMethod}
 					onLinuxMethodChange={(method) => (linuxMethod = method)}
 				>

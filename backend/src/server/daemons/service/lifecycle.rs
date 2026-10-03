@@ -71,6 +71,21 @@ impl DaemonService {
             })
     }
 
+    /// Replace this daemon's set of interfaced subnets in the
+    /// `daemon_interfaced_subnets` junction. Every subnet id must already exist.
+    pub async fn set_interfaced_subnet_ids(
+        &self,
+        daemon_id: &Uuid,
+        subnet_ids: &[Uuid],
+    ) -> Result<(), ApiError> {
+        self.interfaced_subnet_storage
+            .save_interfaced_subnets_for_daemon(daemon_id, subnet_ids)
+            .await
+            .map_err(|e| {
+                ApiError::internal_error(&format!("Failed to save interfaced subnets: {e}"))
+            })
+    }
+
     /// Check if an unverified org has reached its daemon limit (1 daemon).
     /// Allows first daemon so users can experience core product value.
     pub async fn check_unverified_daemon_limit(&self, org_id: Uuid) -> Result<(), ApiError> {

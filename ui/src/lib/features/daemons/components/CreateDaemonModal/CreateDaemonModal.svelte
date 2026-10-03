@@ -21,7 +21,7 @@
 	} from 'lucide-svelte';
 	import confetti from 'canvas-confetti';
 	import type { DaemonMode } from '../../types/base';
-	import { fillInstallArtifactsKey, osInstallCommand } from '../../types/base';
+	import { fillInstallArtifactsKey, installStepCommand } from '../../types/base';
 	import {
 		useProvisionDaemonMutation,
 		useDaemonQuery,
@@ -30,21 +30,18 @@
 		type InstallCommandParams
 	} from '../../queries';
 	import { useConfigQuery, isCloud } from '$lib/shared/stores/config-query';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { useTestReachabilityMutation } from '../../queries';
 	import { getVisibleFieldIds } from '../../config';
 	import {
 		buildDefaultValues,
 		buildInstallConfig,
-		buildRunCommand,
 		constructDaemonUrl,
 		detectOS,
 		slugifyNetworkName,
 		type DaemonOS
 	} from '../../utils';
 	import { useNetworksQuery } from '$lib/features/networks/queries';
-	import { useCredentialsQuery } from '$lib/features/credentials/queries';
 	import { daemonSetupState, type DaemonConnectionStatus } from '../../stores/daemon-setup';
 	import ConfigureStep from './steps/ConfigureStep.svelte';
 	import InstallStep from './steps/InstallStep.svelte';
@@ -61,7 +58,6 @@
 	import {
 		common_close,
 		common_configure,
-		common_continue,
 		common_install,
 		common_integrations,
 		common_next,
@@ -95,15 +91,11 @@
 
 	// Queries & mutations
 	const configQuery = useConfigQuery();
-	const currentUserQuery = useCurrentUserQuery();
 	const organizationQuery = useOrganizationQuery();
 	const provisionDaemonMutation = useProvisionDaemonMutation();
-	const credentialsQuery = useCredentialsQuery();
 
 	// Derived data
-	let serverUrl = $derived(configQuery.data?.public_url ?? '');
 	let isCloudDeployment = $derived(configQuery.data ? isCloud(configQuery.data) : false);
-	let currentUserId = $derived(currentUserQuery.data?.id ?? null);
 	let org = $derived(organizationQuery.data);
 	let isFirstDaemon = $derived(!org?.onboarding?.includes('FirstDaemonRegistered'));
 	// Snapshot: tracks whether wizard was opened as first-daemon flow.
@@ -113,22 +105,6 @@
 	// Email install command
 	let hasEmail = $derived(configQuery.data?.has_email_service ?? false);
 	const emailInstallMutation = useEmailInstallCommandMutation();
-	const installScript = `bash -c "$(curl -fsSL https://raw.githubusercontent.com/scanopy/scanopy/refs/heads/main/install.sh)"`;
-	const windowsDownloadUrl =
-		'https://github.com/scanopy/scanopy/releases/latest/download/scanopy-daemon-windows-amd64.exe';
-	let currentInstallCommand = $derived.by(() => {
-		// Prefer the server-assembled artifact for this method (single source of truth).
-		const serverCmd =
-			installArtifacts &&
-			(selectedOS === 'linux' && linuxMethod === 'docker'
-				? (installArtifacts.docker.compose ?? undefined)
-				: osInstallCommand(installArtifacts, selectedOS));
-		if (serverCmd) return serverCmd;
-		// Fallback (e.g. before provisioning completes) to the client-built command.
-		if (selectedOS === 'windows')
-			return `Invoke-WebRequest -Uri "${windowsDownloadUrl}" -OutFile "scanopy-daemon-windows-amd64.exe"; ${runCommand}`;
-		return `${installScript} && ${runCommand}`;
-	});
 	// Networks
 	const networksQuery = useNetworksQuery();
 	let networksData = $derived(networksQuery.data ?? []);
@@ -139,24 +115,18 @@
 
 	// API key state
 	let keyState = $state<string | null>(null);
-	let key = $derived(keyState);
 
 	// Credentials is its own stepper step (activeTab === 'credentials'); the shared
-	// CredentialsStep owns the type-grid → wizard sub-flow and persistence.
+	// CredentialsStep owns the credential list and persistence.
 	let credentialsStep: ReturnType<typeof CredentialsStep> | undefined = $state();
-	let credentialSubStep = $state<'typeSelect' | 'wizard'>('typeSelect');
-	let selectedCredentialTypeIds = $state<string[]>([]);
 	let pendingCredentials = $state<PendingCredential[]>([]);
 	let credentialIds = $state<string[]>([]);
+	// The socket defaults are seeded once per open, so a row the user removed stays removed
+	// when they go back to Setup and forward again.
+	let credentialsSeeded = $state(false);
 
-	// The integration type-select pre-step is a first-run aid; users who already
-	// have credentials go straight to the wizard (where they manage/add them).
-	let credentialEntrySubStep = $derived<'typeSelect' | 'wizard'>(
-		(credentialsQuery.data?.length ?? 0) > 0 ? 'wizard' : 'typeSelect'
-	);
-
-	// Daemon-host-only integrations (e.g. the Docker/Podman socket) are selected by default in
-	// the Integrations grid; they target only the daemon host (a `<uuid>@127.0.0.1` token).
+	// Daemon-host-only integrations (e.g. the Docker/Podman socket) are seeded by default into
+	// the Integrations list; they target only the daemon host (a `<uuid>@127.0.0.1` token).
 	function daemonHostOnlyTypeIds(): string[] {
 		return credentialTypes
 			.getItems()
@@ -170,23 +140,6 @@
 		pendingCredentials.filter((p) => !p.isExisting && !credentialIds.includes(p.credential.id))
 			.length
 	);
-
-	// Continue from the Integrations grid: with nothing selected, go straight to
-	// Install; otherwise enter the wizard.
-	async function handleContinueToWizard() {
-		if (selectedCredentialTypeIds.length === 0) {
-			trackEvent('daemon_wizard_step_completed', {
-				step: 'credentials',
-				skipped: true,
-				types_selected: 0,
-				credentials_attached: 0
-			});
-			await ensureProvisioned();
-			activeTab = 'install';
-			return;
-		}
-		await credentialsStep?.continueToWizard();
-	}
 
 	// OS selection
 	let selectedOS: DaemonOS = $state(detectOS());
@@ -207,7 +160,7 @@
 	// Reset hasCopied when the install command changes (Advanced settings, credentials, etc.)
 	let prevInstallCommand = $state('');
 	$effect(() => {
-		const cmd = currentInstallCommand;
+		const cmd = currentInstallCommand ?? '';
 		if (hasCopied && prevInstallCommand && cmd !== prevInstallCommand) {
 			hasCopied = false;
 		}
@@ -246,6 +199,10 @@
 		installCommandQuery.data && keyState
 			? fillInstallArtifactsKey(installCommandQuery.data, keyState)
 			: null
+	);
+	// The server's command for the chosen method, or null until it and the key both exist.
+	let currentInstallCommand = $derived(
+		installStepCommand(installCommandQuery.data, keyState, selectedOS, linuxMethod)
 	);
 	let connectionStatus = $state<DaemonConnectionStatus>('idle');
 	let troubleTimeoutId = $state<ReturnType<typeof setTimeout> | null>(null);
@@ -344,10 +301,6 @@
 			)
 			.map((p) => p.credential.name)
 	);
-	let runCommand = $derived(
-		buildRunCommand(serverUrl, selectedNetworkId, key, formValues, null, currentUserId, selectedOS)
-	);
-
 	// Check for form validation errors (only visible fields)
 	let visibleFields = $derived(getVisibleFieldIds(formValues));
 	let hasErrors = $derived.by(() => {
@@ -482,8 +435,8 @@
 	}
 
 	/** The advanced settings the builder should fold into the install command. */
-	function installCommandParams(): InstallCommandParams {
-		const cfg = buildInstallConfig(formValues);
+	function installCommandParams(values = formValues): InstallCommandParams {
+		const cfg = buildInstallConfig(values);
 		return {
 			purpose: 'install',
 			log_level: cfg.log_level ?? undefined,
@@ -555,13 +508,10 @@
 			// Advance to the Credentials step (step 2). It's optional — the user can
 			// Skip to Install (step 3), which is also unlocked.
 			activeTab = 'credentials';
-			credentialSubStep = credentialEntrySubStep;
-			// When the org already has credentials we skip the type picker and land
-			// straight in the wizard; seed the default daemon-host sockets as pending
-			// entries here too (the type-picker path does this via continueToWizard).
-			if (credentialEntrySubStep === 'wizard') {
+			if (!credentialsSeeded) {
+				credentialsSeeded = true;
 				await tick();
-				await credentialsStep?.continueToWizard();
+				await credentialsStep?.addTypes(daemonHostOnlyTypeIds());
 			}
 		}
 	}
@@ -634,6 +584,11 @@
 
 	function handleEnableSelfSigned() {
 		form.setFieldValue('allowSelfSignedCerts', true);
+		// Read from the form directly: `formValues` syncs through the store subscription.
+		committedInstallParams = installCommandParams({
+			...form.state.values,
+			allowSelfSignedCerts: true
+		} as Record<string, string | number | boolean>);
 		connectionStatus = 'idle';
 		trackEvent('daemon_trouble_enable_self_signed');
 	}
@@ -683,15 +638,18 @@
 			troubleTimeoutId = null;
 		}
 
+		// The key and the daemon it is bound to go together: keeping the daemon id while dropping
+		// the key left a reopened wizard skipping provisioning with no key to show.
 		keyState = null;
+		provisionedDaemonId = '';
+		committedInstallParams = null;
 		isProvisioning = false;
 		configureCommitted = false;
 		nameManuallyEdited = false;
 		activeTab = 'configure';
 		furthestReached = 0;
 		showAdvanced = false;
-		credentialSubStep = 'typeSelect';
-		selectedCredentialTypeIds = [];
+		credentialsSeeded = false;
 		pendingCredentials = [];
 		credentialIds = [];
 		connectionStatus = 'idle';
@@ -714,9 +672,7 @@
 		activeTab = 'configure';
 		furthestReached = 0;
 		showAdvanced = false;
-		credentialSubStep = 'typeSelect';
-		// Daemon-host-only integrations (the local Docker/Podman socket) are on by default.
-		selectedCredentialTypeIds = daemonHostOnlyTypeIds();
+		credentialsSeeded = false;
 		connectionStatus = 'idle';
 		startedAsFirstDaemon = isFirstDaemon;
 		serverPollReachable = null;
@@ -757,8 +713,6 @@
 				networkId={selectedNetworkId}
 				bind:pendingCredentials
 				bind:credentialIds
-				bind:subStep={credentialSubStep}
-				bind:selectedTypeIds={selectedCredentialTypeIds}
 				daemonOs={selectedOS}
 				daemonName={String(formValues.name ?? '')}
 			/>
@@ -783,14 +737,7 @@
 							}}
 							bind:reachabilityResult={serverPollReachabilityResult}
 						/>
-					{:else if activeTab === 'install' && !provisionedDaemonId}
-						<!-- Provisioning is in flight (reaching Install via the tab strip doesn't
-						     await it). Hold the commands back rather than render one without a key. -->
-						<div class="text-muted flex flex-1 items-center justify-center gap-3 p-6">
-							<Loader2 class="h-4 w-4 animate-spin" />
-							{daemons_provisioningDaemon()}
-						</div>
-					{:else if activeTab === 'install'}
+					{:else if activeTab === 'install' && currentInstallCommand}
 						<InstallStep
 							{selectedOS}
 							onOsSelect={(os) => (selectedOS = os)}
@@ -798,7 +745,7 @@
 							onLinuxMethodChange={(method) => (linuxMethod = method)}
 							{windowsMethod}
 							onWindowsMethodChange={(method) => (windowsMethod = method)}
-							{runCommand}
+							command={currentInstallCommand}
 							{hasErrors}
 							isFirstDaemon={startedAsFirstDaemon}
 							{connectionStatus}
@@ -822,6 +769,14 @@
 								pushSuccess(getCopiedToastMessage());
 							}}
 						/>
+					{:else if activeTab === 'install'}
+						<!-- Provisioning or the install-command fetch is in flight (reaching Install via
+						     the tab strip doesn't await it). Show nothing until the server's command and
+						     the key both exist. -->
+						<div class="text-muted flex flex-1 items-center justify-center gap-3 p-6">
+							<Loader2 class="h-4 w-4 animate-spin" />
+							{daemons_provisioningDaemon()}
+						</div>
 					{/if}
 				{/key}
 			</div>
@@ -830,12 +785,7 @@
 		<!-- Footer -->
 		<div class="modal-footer">
 			<div class="flex flex-wrap items-center justify-end gap-3">
-				{#if activeTab === 'credentials' && credentialSubStep === 'typeSelect'}
-					<button type="button" class="btn-primary" onclick={handleContinueToWizard}>
-						{common_continue()}
-						<ArrowRight class="h-4 w-4" />
-					</button>
-				{:else if activeTab === 'credentials' && credentialSubStep === 'wizard'}
+				{#if activeTab === 'credentials'}
 					<button
 						type="button"
 						class="btn-primary"
@@ -845,8 +795,10 @@
 							if (ids === null || ids === undefined) return; // validation failed
 							trackEvent('daemon_wizard_step_completed', {
 								step: 'credentials',
-								skipped: false,
-								types_selected: selectedCredentialTypeIds.length,
+								skipped: ids.length === 0,
+								types_selected: new Set(
+									pendingCredentials.map((p) => p.credential.credential_type.type)
+								).size,
 								credentials_attached: ids.length
 							});
 							// Provision after the credentials exist, so they're seeded onto the

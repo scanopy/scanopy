@@ -76,6 +76,13 @@ pub struct DaemonRegistrationRequest {
     /// is handled in the daemon's env parser, never on the wire.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub integration_targets: Vec<IntegrationTarget>,
+    /// The OS this daemon binary runs on. Absent from daemons up to 0.17.19.
+    #[serde(
+        default,
+        deserialize_with = "crate::server::daemons::r#impl::base::lenient_daemon_os",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub os: Option<DaemonOs>,
 }
 
 /// Daemon registration response from server to daemon
@@ -398,6 +405,13 @@ pub struct DaemonStartupRequest {
     /// Daemon software version (semver format)
     #[schema(value_type = String)]
     pub daemon_version: Version,
+    /// The OS this daemon binary runs on. Absent from daemons up to 0.17.19.
+    #[serde(
+        default,
+        deserialize_with = "crate::server::daemons::r#impl::base::lenient_daemon_os",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub os: Option<DaemonOs>,
 }
 
 /// Server capabilities returned on startup/registration

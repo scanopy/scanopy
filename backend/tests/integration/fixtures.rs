@@ -284,6 +284,7 @@ async fn generate_services_json() -> Result<(), Box<dyn std::error::Error>> {
                     "discovery_pattern": s.discovery_pattern().to_string(),
                     "category": s.category(),
                     "color": s.color(),
+                    "icon": s.icon(),
                     "logo_needs_white_background": s.logo_needs_white_background()
                 }))
             } else {

@@ -185,6 +185,8 @@ fn parse_identity_item(data: &[u8]) -> Option<DeviceIdentity> {
             Some(format!("{revision_major}.{revision_minor}")),
             probe,
         ),
+        // The identity object names a product, not the OS running it.
+        os: None,
     })
 }
 

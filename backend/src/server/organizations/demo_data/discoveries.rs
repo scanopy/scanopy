@@ -55,9 +55,9 @@ pub(super) fn generate_discoveries(
         .find(|c| c.base.name == "Network Devices")
         .unwrap()
         .id;
-    let docker_proxy_cred_id = credentials
+    let docker_socket_cred_id = credentials
         .iter()
-        .find(|c| c.base.name == "Docker TLS Proxy")
+        .find(|c| c.base.name == "Local Docker Socket")
         .unwrap()
         .id;
 
@@ -77,7 +77,7 @@ pub(super) fn generate_discoveries(
     let snmp_and_docker_targets = || {
         let mut targets = snmp_network_targets();
         targets.push(IntegrationTarget::DaemonHost {
-            credential_id: docker_proxy_cred_id,
+            credential_id: docker_socket_cred_id,
         });
         targets
     };

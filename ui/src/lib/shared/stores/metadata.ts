@@ -22,6 +22,7 @@ import viewsJson from '$lib/data/views.json';
 import serviceCategoriesJson from '$lib/data/service-categories.json';
 import attributeSourcesJson from '$lib/data/attribute-sources.json';
 import clientProbesJson from '$lib/data/client-probes.json';
+import matchConfidencesJson from '$lib/data/match-confidences.json';
 import {
 	createColorHelper,
 	createIconComponent,
@@ -117,6 +118,7 @@ export interface MetadataRegistry {
 	service_categories: TypeMetadata[];
 	attribute_sources: TypeMetadata[];
 	client_probes: TypeMetadata[];
+	match_confidences: TypeMetadata[];
 }
 
 // Utility type to add proper typing to the metadata field
@@ -236,8 +238,10 @@ export interface DiscoveryTypeMetadata {
 	is_legacy: boolean;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface DiscoveryPhaseMetadata {}
+export interface DiscoveryPhaseMetadata {
+	/** A run ends in this phase: complete, failed or cancelled. */
+	is_terminal: boolean;
+}
 
 export interface DiscoveryTerminalReasonMetadata {
 	/** The run stopped making progress rather than failing outright. */
@@ -277,7 +281,8 @@ export const metadata = writable<MetadataRegistry>({
 	views: viewsJson,
 	service_categories: serviceCategoriesJson,
 	attribute_sources: attributeSourcesJson,
-	client_probes: clientProbesJson
+	client_probes: clientProbesJson,
+	match_confidences: matchConfidencesJson
 } as unknown as MetadataRegistry);
 
 // Shared color helper functions that work for both TypeMetadata and EntityMetadata
@@ -463,6 +468,10 @@ export const attributeSources = createTypeMetadataHelpers<'attribute_sources', o
 /** The probe names that fill `attributeSources`' `{probe}` slot. */
 export const clientProbes = createTypeMetadataHelpers<'client_probes', object>('client_probes');
 export const ports = createTypeMetadataHelpers<'ports', PortTypeMetadata>('ports');
+/** How confidently discovery matched a service to its definition, keyed by `MatchConfidence`. */
+export const matchConfidences = createTypeMetadataHelpers<'match_confidences', object>(
+	'match_confidences'
+);
 export const discoveryTypes = createTypeMetadataHelpers<'discovery_types', DiscoveryTypeMetadata>(
 	'discovery_types'
 );

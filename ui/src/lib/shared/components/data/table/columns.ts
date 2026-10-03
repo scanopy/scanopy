@@ -1,10 +1,5 @@
-import {
-	getFieldKey,
-	isDisplayField,
-	isOrderableField,
-	type DisplayConfig,
-	type FieldConfig
-} from '../types';
+import { getFieldKey, type DisplayConfig, type FieldConfig } from '../types';
+import { isSortableField } from '../controls/sorting';
 
 /**
  * A table column, derived from the field that already describes this data.
@@ -52,8 +47,14 @@ export interface ColumnState {
  *
  * Fields marked `display.hidden` produce nothing — they exist only to drive a
  * filter (a port number, say) and have no value worth a column of its own.
+ *
+ * `serverPaginated` limits header sorting to server-orderable fields, the same
+ * rule the sort control applies.
  */
-export function fieldsToColumns<T>(fields: FieldConfig<T>[]): EntityColumn<T>[] {
+export function fieldsToColumns<T>(
+	fields: FieldConfig<T>[],
+	serverPaginated = false
+): EntityColumn<T>[] {
 	return (
 		fields
 			// A `tags` field still drives search and the filter panel, but the list
@@ -66,9 +67,7 @@ export function fieldsToColumns<T>(fields: FieldConfig<T>[]): EntityColumn<T>[] 
 					label: field.label,
 					field,
 					display,
-					// Mirrors the sort dropdown's rule, so a header can never offer a sort
-					// the dropdown doesn't and vice versa.
-					sortable: isOrderableField(field) || (isDisplayField(field) && field.sortable === true),
+					sortable: isSortableField(field, serverPaginated),
 					align: display.align ?? 'left',
 					width: display.width,
 					primary: display.primary === true
@@ -106,11 +105,37 @@ export function defaultColumnOrder<T>(columns: EntityColumn<T>[]): string[] {
 }
 
 /**
+ * Whether the user can move this column.
+ *
+ * The pinning rule, enforced here and in `reconcileColumnState`: the primary
+ * column always leads, because it carries the row's identity and checkbox;
+ * `trailing` columns always end the row, because they read as its live state;
+ * and the tags column, which is never in the order at all, sits between the
+ * two (`withTagColumn`). Everything else is the user's to arrange.
+ */
+export function isMovableColumn<T>(column: EntityColumn<T>): boolean {
+	return !column.primary && column.display.trailing !== true;
+}
+
+/** Primary columns first, trailing ones last, the rest in the order given. */
+function pinColumns<T>(order: string[], columns: EntityColumn<T>[]): string[] {
+	const byId = new Map(columns.map((c) => [c.id, c]));
+	const rank = (id: string) => {
+		const column = byId.get(id);
+		if (column?.primary) return 0;
+		if (column?.display.trailing) return 2;
+		return 1;
+	};
+	// A stable sort, so each group keeps the order it arrived in.
+	return [...order].sort((a, b) => rank(a) - rank(b));
+}
+
+/**
  * Fold persisted column state onto the columns that exist now.
  *
  * Renaming or removing a field must not leave a stale entry deciding anything,
- * and a newly added field must appear where it was declared rather than being
- * appended after the date columns at the end.
+ * a stored order cannot unpin a pinned column, and a newly added field lands
+ * beside the column it is declared after rather than at the end.
  */
 export function reconcileColumnState<T>(
 	columns: EntityColumn<T>[],
@@ -126,19 +151,73 @@ export function reconcileColumnState<T>(
 
 	const defaultOrder = defaultColumnOrder(columns);
 	const known = new Set(defaultOrder);
-	const storedOrder = (stored?.order ?? []).filter((id) => known.has(id));
-	const alreadyOrdered = new Set(storedOrder);
+	const order = (stored?.order ?? []).filter((id) => known.has(id));
+	const placed = new Set(order);
 
-	// Splice columns the stored order never knew about back in at the position
-	// they would occupy by default, so adding a field mid-list doesn't push it to
-	// the end for everyone who already has a saved order.
-	const order: string[] = [...storedOrder];
+	// A column the stored order never knew about goes straight after its nearest
+	// default-order predecessor, wherever the user has since moved that one. Its
+	// default index would mean nothing in an order the user rearranged.
 	defaultOrder.forEach((id, index) => {
-		if (alreadyOrdered.has(id)) return;
-		order.splice(Math.min(index, order.length), 0, id);
+		if (placed.has(id)) return;
+		const anchor = defaultOrder
+			.slice(0, index)
+			.reverse()
+			.find((candidate) => placed.has(candidate));
+		order.splice(anchor === undefined ? 0 : order.indexOf(anchor) + 1, 0, id);
+		placed.add(id);
 	});
 
-	return { visibility, order };
+	return { visibility, order: pinColumns(order, columns) };
+}
+
+/**
+ * Move a column one step among the movable columns (`delta` of -1 or 1).
+ *
+ * Returns the order unchanged for a pinned column or a step past either end.
+ */
+export function moveColumn<T>(
+	order: string[],
+	columns: EntityColumn<T>[],
+	id: string,
+	delta: -1 | 1
+): string[] {
+	const movable = movableIds(order, columns);
+	const index = movable.indexOf(id);
+	const target = movable[index + delta];
+	if (index === -1 || target === undefined) return order;
+
+	return moveColumnTo(order, columns, id, target, delta < 0 ? 'before' : 'after');
+}
+
+/**
+ * Drop a column before or after another one.
+ *
+ * Returns the order unchanged when either column is pinned, so a drag can
+ * never move the primary column or put something on the far side of it.
+ */
+export function moveColumnTo<T>(
+	order: string[],
+	columns: EntityColumn<T>[],
+	id: string,
+	targetId: string,
+	position: 'before' | 'after'
+): string[] {
+	const movable = new Set(movableIds(order, columns));
+	if (id === targetId || !movable.has(id) || !movable.has(targetId)) return order;
+
+	const without = order.filter((candidate) => candidate !== id);
+	const targetIndex = without.indexOf(targetId);
+	without.splice(position === 'before' ? targetIndex : targetIndex + 1, 0, id);
+	return without;
+}
+
+/** The ids in `order` the user can move, in that order. */
+export function movableIds<T>(order: string[], columns: EntityColumn<T>[]): string[] {
+	const byId = new Map(columns.map((c) => [c.id, c]));
+	return order.filter((id) => {
+		const column = byId.get(id);
+		return column !== undefined && isMovableColumn(column);
+	});
 }
 
 /** Columns to render, in persisted order, minus the hidden ones. */

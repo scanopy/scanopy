@@ -27,6 +27,7 @@ use uuid::Uuid;
 impl CrudHandlers for IPAddress {
     type Service = IPAddressService;
     type FilterQuery = IPAddressQuery;
+    type OrderField = crate::server::shared::handlers::ordering::NoOrderField;
 
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.ip_address_service

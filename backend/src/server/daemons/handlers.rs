@@ -60,7 +60,9 @@ use uuid::Uuid;
 // ============================================================================
 
 /// Fields that daemons can be ordered/grouped by.
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, Default, utoipa::ToSchema)]
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Copy, Default, utoipa::ToSchema, strum::EnumIter,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum DaemonOrderField {
     #[default]
@@ -219,7 +221,7 @@ async fn update_daemon(
 /// (`interfaces`, `credential_refs`).
 #[derive(Deserialize, Debug, Clone, IntoParams)]
 pub struct InstallCommandQuery {
-    /// `install` (with the api-key placeholder) or `reconfigure` (credential-free).
+    /// `install` or `rekey` (with the api-key placeholder), or `reconfigure` (credential-free).
     pub purpose: InstallCommandType,
     /// Log verbosity the daemon should run at (e.g. `info`, `debug`).
     pub log_level: Option<String>,
@@ -277,14 +279,15 @@ impl InstallCommandQuery {
 /// Generate a Daemon install command
 ///
 /// A pure, idempotent builder — it never mints or persists anything. The api key in an `install`
-/// command is a placeholder (`<API_KEY>`) the caller substitutes from the plaintext it holds; a
+/// or `rekey` command is a placeholder (`<API_KEY>`) the caller substitutes from the plaintext it holds; a
 /// `reconfigure` command carries no key at all. Minting is a separate mutation
 /// (`POST /provision`), so regenerating a command here (advanced-setting change, OS switch, the
 /// Details reconfigure view) never rotates the daemon's key.
 ///
 /// The server derives the exact command shape from the record: DaemonPoll vs ServerPoll for the
-/// flags, and — for `install` — whether the daemon has checked in (`last_seen`) to decide between
-/// a first-install and a minimal re-key command.
+/// flags, and — for `rekey` — whether the daemon has checked in (`last_seen`) to decide whether
+/// the command names the existing install it re-keys. An `install` command reads the same before
+/// and after the daemon's first handshake.
 #[utoipa::path(
     get,
     path = "/{id}/install-command",
@@ -756,7 +759,7 @@ async fn daemon_startup(
     let capabilities = state
         .services
         .daemon_service
-        .process_startup(id, request.daemon_version, auth.into_entity())
+        .process_startup(id, request.daemon_version, request.os, auth.into_entity())
         .await?;
 
     Ok(Json(ApiResponse::success(capabilities)))
@@ -1016,6 +1019,7 @@ async fn receive_heartbeat(
         capabilities: LegacyCapabilities::default(),
         interfaced_subnets: Vec::new(),
         ready_for_work: true,
+        os: None, // Old daemons don't report their OS
     };
     state
         .services

@@ -8,6 +8,7 @@ use crate::server::{
 impl CrudHandlers for Discovery {
     type Service = DiscoveryService;
     type FilterQuery = DiscoveryFilterQuery;
+    type OrderField = crate::server::discovery::handlers::DiscoveryOrderField;
 
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.discovery_service

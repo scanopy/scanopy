@@ -42,27 +42,35 @@
 	import { useHostsByIds } from '$lib/features/hosts/queries';
 	import type { Host } from '$lib/features/hosts/types/base';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
+	import osFamilies from '$lib/data/os-families.json';
 	import {
+		common_beta,
 		common_confirmDeleteName,
 		common_create,
 		common_created,
 		common_delete,
+		common_description,
 		common_edit,
 		common_name,
 		common_type,
 		common_updated,
 		credentials_bulkDeleteConfirm,
 		credentials_bulkDeleteImpact,
+		credentials_daemonOs,
 		credentials_deleteImpact,
 		credentials_emptySubtitle,
 		credentials_subtitle,
+		credentials_unofficialApi,
 		common_credentials,
 		common_hosts,
 		common_networks,
 		common_notApplicable,
 		common_noEntityYet,
+		common_tags,
 		common_targets
 	} from '$lib/paraglide/messages';
+	import { useTagsQuery } from '$lib/features/tags/queries';
+	import { tagNames } from '$lib/features/tags/columns';
 
 	let { isReadOnly = false }: TabProps = $props();
 
@@ -96,6 +104,9 @@
 	const updateCredentialMutation = useUpdateCredentialMutation();
 	const deleteCredentialMutation = useDeleteCredentialMutation();
 	const bulkDeleteCredentialsMutation = useBulkDeleteCredentialsMutation();
+
+	const tagsQuery = useTagsQuery();
+	let tagsData = $derived(tagsQuery.data ?? []);
 
 	// Networks for delete impact preview
 	const networksQuery = useNetworksQuery();
@@ -285,6 +296,22 @@
 		},
 		[
 			{
+				// Set only on credentials that read files or sockets on the daemon; empty otherwise.
+				key: 'daemon_os',
+				label: credentials_daemonOs(),
+				type: 'string',
+				filterable: true,
+				groupable: true,
+				sortable: true,
+				// The field holds an OS family, so the options are every family, named the same way.
+				filterOptions: osFamilies.map((family) => family.name),
+				getValue: (item: Credential) =>
+					item.daemon_os
+						? (osFamilies.find((family) => family.id === item.daemon_os)?.name ?? item.daemon_os)
+						: null,
+				display: { hiddenByDefault: true }
+			},
+			{
 				key: 'credential_type',
 				label: common_type(),
 				type: 'string',
@@ -294,33 +321,61 @@
 				groupable: true,
 				sortable: true,
 				filterMode: 'include',
-				filterOptions: credentialTypes.getItems().map((t) => t.name ?? t.id),
+				filterOptions: credentialTypes.getItems().map((t) => credentialTypes.getName(t.id)),
 				getValue: (item: Credential) => credentialTypes.getName(getCredentialTypeId(item)),
 				display: {
-					// Beta and unofficial-API ride with the type, which is what they qualify, and so
-					// land ahead of the scope column — the same order `CredentialTypeDisplay` uses in
-					// the wizard and the type dropdown. Without them a beta credential looked no
-					// different here from a stable one.
 					getItems: (item: Credential) => {
 						const typeId = getCredentialTypeId(item);
-						const meta = credentialTypes.getMetadata(typeId);
 						return [
 							{
 								id: typeId,
 								label: credentialTypes.getName(typeId),
 								color: credentialTypes.getColorHelper(typeId).color,
 								icon: credentialTypes.getIconComponent(typeId)
-							},
-							...[
-								getStabilityTagProps(meta?.stability),
-								getUpstreamSupportTagProps(meta?.upstream_support)
-							]
-								.filter((tag) => tag !== null)
-								.map((tag) => ({ id: `${typeId}-${tag.label}`, ...tag }))
+							}
 						];
 					}
 				}
 			},
+			{
+				// Beta and unofficial API are properties of the type, each with its own column so
+				// either can be grouped and filtered on its own. A cell shows the tag the wizard and
+				// the type dropdown use, and stays empty for a stable or vendor-supported type.
+				key: 'beta',
+				label: common_beta(),
+				type: 'boolean',
+				filterable: true,
+				groupable: true,
+				getValue: (item: Credential) =>
+					credentialTypes.getMetadata(getCredentialTypeId(item))?.stability === 'Beta',
+				display: {
+					getItems: (item: Credential) => {
+						const typeId = getCredentialTypeId(item);
+						const tag = getStabilityTagProps(credentialTypes.getMetadata(typeId)?.stability);
+						return tag ? [{ id: `${typeId}-beta`, ...tag }] : [];
+					}
+				}
+			},
+			{
+				key: 'unofficial_api',
+				label: credentials_unofficialApi(),
+				type: 'boolean',
+				filterable: true,
+				groupable: true,
+				getValue: (item: Credential) =>
+					credentialTypes.getMetadata(getCredentialTypeId(item))?.upstream_support ===
+					'Undocumented',
+				display: {
+					getItems: (item: Credential) => {
+						const typeId = getCredentialTypeId(item);
+						const tag = getUpstreamSupportTagProps(
+							credentialTypes.getMetadata(typeId)?.upstream_support
+						);
+						return tag ? [{ id: `${typeId}-unofficial-api`, ...tag }] : [];
+					}
+				}
+			},
+			{ key: 'description', label: common_description(), type: 'string', searchable: true },
 			{
 				// Assignments were card-only, so the credentials table could not show
 				// what a credential actually applies to.
@@ -328,6 +383,9 @@
 				label: common_networks(),
 				type: 'array',
 				searchable: true,
+				// Credentials share networks, so this filters. Hosts are near-unique per credential,
+				// so search covers those.
+				filterable: true,
 				getValue: (item: Credential) => networksForCredential(item).map((n) => n.name),
 				display: {
 					getItems: (item: Credential) =>
@@ -373,9 +431,15 @@
 				type: 'array',
 				searchable: true,
 				filterable: true,
-				groupable: true,
 				filterMode: 'include',
-				filterOptions: ['Network', 'Hosts', 'DaemonHost'],
+				// Every scope a credential type declares, read from the type metadata.
+				filterOptions: [
+					...new Set(
+						credentialTypes
+							.getItems()
+							.flatMap((t) => credentialTypes.getMetadata(t.id).targets ?? [])
+					)
+				],
 				getValue: (item: Credential) => {
 					const typeId = getCredentialTypeId(item);
 					const meta = credentialTypes.getMetadata(typeId);
@@ -384,8 +448,8 @@
 				display: {
 					// Off by default: the target set is a property of the credential *type*, so it repeats
 					// down the column for every credential of the same type and earns its width
-					// only when someone is actually sorting or filtering by it. Still filterable
-					// and groupable, and still shown on the cards.
+					// only when someone is actually filtering by it. Still filterable, and still shown
+					// on the cards. An array, so it neither sorts nor groups.
 					hiddenByDefault: true,
 					// Same chip props the card uses, so a target reads identically in
 					// both views rather than falling back to undifferentiated grey.
@@ -397,6 +461,14 @@
 						}));
 					}
 				}
+			},
+			{
+				key: 'tags',
+				label: common_tags(),
+				type: 'array',
+				searchable: true,
+				filterable: true,
+				getValue: (entity: Credential) => tagNames(entity.tags, tagsData)
 			}
 		]
 	);

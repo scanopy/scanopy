@@ -15,7 +15,8 @@
     "ProfinetDcp",
     "Probe",
     "Authored",
-    "Manual"
+    "Manual",
+    "SshScript"
   ],
   "AuthenticatedEntity": [
     "User",
@@ -115,7 +116,9 @@
     "UnifiController",
     "InstantOn",
     "Unknown",
-    "Gnmi"
+    "Gnmi",
+    "Ssh",
+    "WakeOnLan"
   ],
   "CredentialType": [
     "SnmpV2c",
@@ -128,11 +131,20 @@
     "UnifiApiKey",
     "UnifiLocalAdmin",
     "InstantOnAccount",
-    "Gnmi"
+    "Gnmi",
+    "SshPassword",
+    "SshKey",
+    "WakeOnLan"
   ],
   "DaemonMode": [
     "ServerPoll",
     "DaemonPoll"
+  ],
+  "DaemonOs": [
+    "linux",
+    "macos",
+    "windows",
+    "freebsd"
   ],
   "DiscoveryType": [
     "SelfReport",
@@ -193,7 +205,8 @@
     "EqualReachIntegrationsMerged",
     "DcpSweepTimedOut",
     "IcmpSweepTimedOut",
-    "ReverseDnsTimedOut"
+    "ReverseDnsTimedOut",
+    "CredentialDaemonOsMismatch"
   ],
   "EdgeStyle": [
     "Straight",
@@ -287,6 +300,10 @@
     "ReferralSourceCompleted",
     "DaemonPromptDismissed",
     "DaemonPromptAccepted"
+  ],
+  "OsFamily": [
+    "Unix",
+    "Windows"
   ],
   "RunType": [
     "Scheduled",

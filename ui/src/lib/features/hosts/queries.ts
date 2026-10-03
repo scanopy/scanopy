@@ -76,7 +76,8 @@ export function toHostPrimitive(response: HostResponse): Host {
 		model: hostFields.model ?? undefined,
 		serial_number: hostFields.serial_number ?? undefined,
 		firmware_revision: hostFields.firmware_revision ?? undefined,
-		software_revision: hostFields.software_revision ?? undefined
+		software_revision: hostFields.software_revision ?? undefined,
+		os: hostFields.os ?? undefined
 	};
 }
 
@@ -165,14 +166,24 @@ export interface HostQueryOptions {
 	network_ids?: string[];
 	/** Filter by the `hidden` flag. Omit for no constraint. */
 	hidden?: boolean[];
-	/** Filter by the service virtualizing the host. */
-	virtualization_service_ids?: string[];
+	/** Filter by the name of the service virtualizing the host, the value "Virtualized By" groups on. */
+	virtualization_service_names?: string[];
 	/** Also return hosts nothing virtualizes; on its own, only those. */
 	include_unvirtualized?: boolean;
 	/** Filter to hosts running a service with one of these names. */
 	service_names?: string[];
 	/** Filter by how the host came to exist (`source.type`). */
 	sources?: components['schemas']['EntitySourceDiscriminants'][];
+	/** Filter by hardware manufacturer. */
+	manufacturers?: string[];
+	/** Filter by hardware model. */
+	models?: string[];
+	/** Filter by SNMP sysLocation. */
+	sys_locations?: string[];
+	/** Filter by operating system family. */
+	os_families?: components['schemas']['HostOsFamily'][];
+	/** Filter to hosts assigned one of these credentials. */
+	credential_ids?: string[];
 	/** Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
 	group_by?: components['schemas']['HostOrderField'];
 	/** Secondary ordering field (sorting within groups or standalone sort). */
@@ -239,10 +250,15 @@ export function useHostsQuery(optionsOrGetter: HostQueryOptions | (() => HostQue
 								search: options.search,
 								at: options.at,
 								hidden: options.hidden,
-								virtualization_service_ids: options.virtualization_service_ids,
+								virtualization_service_names: options.virtualization_service_names,
 								include_unvirtualized: options.include_unvirtualized,
 								service_names: options.service_names,
-								sources: options.sources
+								sources: options.sources,
+								manufacturers: options.manufacturers,
+								models: options.models,
+								sys_locations: options.sys_locations,
+								os_families: options.os_families,
+								credential_ids: options.credential_ids
 							}
 						}
 					})
@@ -493,6 +509,16 @@ export function useHostsByIds(idsGetter: () => string[]) {
 }
 
 /**
+ * Refetch every host list and the field values the list filters offer. A host write also moves
+ * the services' field values: the host titles services group under, and the services a host runs.
+ */
+function invalidateHostLists(queryClient: ReturnType<typeof useQueryClient>) {
+	queryClient.invalidateQueries({ queryKey: queryKeys.hosts.lists() });
+	queryClient.invalidateQueries({ queryKey: queryKeys.hosts.fieldValues() });
+	queryClient.invalidateQueries({ queryKey: queryKeys.services.fieldValues() });
+}
+
+/**
  * Mutation hook for creating a host
  */
 export function useCreateHostMutation() {
@@ -505,7 +531,7 @@ export function useCreateHostMutation() {
 		},
 		onSuccess: (response: HostResponse) => {
 			// Invalidate all host list queries to refetch with updated data
-			queryClient.invalidateQueries({ queryKey: queryKeys.hosts.lists() });
+			invalidateHostLists(queryClient);
 			// credential_assignments changes are reflected on credentials' host_assignments
 			queryClient.invalidateQueries({ queryKey: queryKeys.credentials.all });
 
@@ -592,7 +618,7 @@ export function useUpdateHostMutation() {
 			const hostId = response.id;
 
 			// Invalidate all host list queries to refetch with updated data
-			queryClient.invalidateQueries({ queryKey: queryKeys.hosts.lists() });
+			invalidateHostLists(queryClient);
 			// credential_assignments changes are reflected on credentials' host_assignments
 			queryClient.invalidateQueries({ queryKey: queryKeys.credentials.all });
 
@@ -672,7 +698,7 @@ export function useDeleteHostMutation() {
 		},
 		onSuccess: (id: string) => {
 			// Invalidate all host list queries to refetch with updated data
-			queryClient.invalidateQueries({ queryKey: queryKeys.hosts.lists() });
+			invalidateHostLists(queryClient);
 
 			// Remove children from their caches
 			queryClient.setQueryData<IPAddress[]>(
@@ -710,7 +736,7 @@ export function useBulkDeleteHostsMutation() {
 			const idSet = new Set(ids);
 
 			// Invalidate all host list queries to refetch with updated data
-			queryClient.invalidateQueries({ queryKey: queryKeys.hosts.lists() });
+			invalidateHostLists(queryClient);
 
 			// Remove children from their caches
 			queryClient.setQueryData<IPAddress[]>(
@@ -758,7 +784,7 @@ export function useConsolidateHostsMutation() {
 		},
 		onSuccess: ({ response, otherHostId, otherHostName }) => {
 			// Invalidate all host list queries to refetch with updated data
-			queryClient.invalidateQueries({ queryKey: queryKeys.hosts.lists() });
+			invalidateHostLists(queryClient);
 
 			// Remove children of consolidated host and update destination host children
 			queryClient.setQueryData<IPAddress[]>(queryKeys.ipAddresses.all, (old) => {
@@ -891,6 +917,7 @@ export function hydrateHostToFormData(
 		serial_number: host.serial_number,
 		firmware_revision: host.firmware_revision,
 		software_revision: host.software_revision,
+		os: host.os ?? undefined,
 		credential_assignments: host.credential_assignments ?? []
 	};
 }

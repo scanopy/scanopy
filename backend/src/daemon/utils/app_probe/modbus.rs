@@ -251,6 +251,8 @@ fn parse_identity(pdu: &[u8]) -> Option<DeviceIdentity> {
         model: identity_field(product_code, source),
         serial_number: None,
         firmware_revision: identity_field(revision, source),
+        // Modbus `0x2B` names a product, not the OS running it.
+        os: None,
     })
 }
 
@@ -313,6 +315,7 @@ mod tests {
                 model: identity_field(Some("BMXP342020".to_string()), MODBUS),
                 serial_number: None,
                 firmware_revision: identity_field(Some("2.70".to_string()), MODBUS),
+                os: None,
             })
         );
     }
@@ -371,6 +374,7 @@ mod tests {
                 model: None,
                 serial_number: None,
                 firmware_revision: None,
+                os: None,
             })
         );
     }

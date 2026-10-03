@@ -3,6 +3,8 @@
 //! Provides the `OrderField` trait and `apply_ordering` function to eliminate
 //! duplicated ordering logic across entity handlers.
 
+use serde::{Deserialize, Serialize};
+
 use crate::server::shared::storage::{filter::StorableFilter, traits::Storable};
 
 use super::query::OrderDirection;
@@ -43,6 +45,27 @@ pub trait OrderField: Clone + Copy + Default + Send + Sync + 'static {
             format!("{} {} NULLS LAST", self.to_sql(), dir)
         } else {
             format!("{} {}", self.to_sql(), dir)
+        }
+    }
+}
+
+/// The order field of an entity with no server-side ordering.
+///
+/// Its one variant is the order the generic `get_all_handler` already lists by, unqualified
+/// because that handler's query carries no JOIN.
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Copy, Default, utoipa::ToSchema, strum::EnumIter,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum NoOrderField {
+    #[default]
+    CreatedAt,
+}
+
+impl OrderField for NoOrderField {
+    fn to_sql(&self) -> &'static str {
+        match self {
+            Self::CreatedAt => "created_at",
         }
     }
 }

@@ -5,8 +5,15 @@ import {
 	nextSortState,
 	sortableFields,
 	groupableFields,
+	serverOrderViolations,
 	type SortState
 } from '$lib/shared/components/data/controls/sorting';
+import {
+	groupItems,
+	computeGroupOffsets,
+	serverGroupKey
+} from '$lib/shared/components/data/controls/grouping';
+import { fieldsToColumns } from '$lib/shared/components/data/table/columns';
 import type { FieldConfig } from '$lib/shared/components/data/types';
 
 interface Row {
@@ -151,11 +158,21 @@ describe('sorting', () => {
 		);
 	});
 
-	it('still sorts an opted-in display field when the server orders the list', () => {
+	it('sorts an opted-in display field when the server orders a list it loaded whole', () => {
+		// Every row is present, so the client order is the order of the whole list.
 		const opted: FieldConfig<Row> = { ...nameField, sortable: true };
 		const items = [row({ name: 'b' }), row({ name: 'a' })];
 
 		expect(sortItems(items, [opted], asc, true).map((r) => r.name)).toEqual(['a', 'b']);
+	});
+
+	it('sorts nothing on a server-paginated page, display field or not', () => {
+		// Sorting one page here would present that page's order as the list's.
+		const opted: FieldConfig<Row> = { ...nameField, sortable: true };
+		const items = [row({ name: 'b' }), row({ name: 'a' })];
+
+		expect(sortItems(items, [opted], asc, true, true).map((r) => r.name)).toEqual(['b', 'a']);
+		expect(sortItems(items, [opted], asc, false, true).map((r) => r.name)).toEqual(['b', 'a']);
 	});
 
 	it('signs the comparison by direction for non-null values', () => {
@@ -215,15 +232,124 @@ describe('field capability selectors', () => {
 		expect(sortableFields(mixed).map((f) => f.label)).toEqual(['Name', 'Opted']);
 	});
 
-	it('groups string orderable fields by default but honours an opt-out', () => {
-		const mixed: FieldConfig<Row, 'name' | 'seen'>[] = [
+	it('groups string and boolean orderable fields by default but honours an opt-out', () => {
+		const mixed: FieldConfig<Row, 'name' | 'seen' | 'active' | 'hidden'>[] = [
 			{ orderField: 'name', label: 'Name', type: 'string' },
 			{ orderField: 'seen', label: 'Seen', type: 'date' },
+			{ orderField: 'active', label: 'Active', type: 'boolean' },
+			{ orderField: 'hidden', label: 'Hidden', type: 'boolean', groupable: false },
 			{ key: 'noGroup', label: 'NoGroup', type: 'string' },
-			{ key: 'opted', label: 'Opted', type: 'string', groupable: true }
+			{ key: 'opted', label: 'Opted', type: 'string', groupable: true },
+			{ key: 'optedBool', label: 'OptedBool', type: 'boolean', groupable: true }
 		];
 
 		// A date field is not groupable, and a display field must opt in.
-		expect(groupableFields(mixed).map((f) => f.label)).toEqual(['Name', 'Opted']);
+		expect(groupableFields(mixed).map((f) => f.label)).toEqual([
+			'Name',
+			'Active',
+			'Opted',
+			'OptedBool'
+		]);
+	});
+
+	it('never groups an array field, even one that opts in', () => {
+		// Grouping would bucket rows by the stringified, comma-joined list.
+		const arrays: FieldConfig<Row, 'tags'>[] = [
+			{ orderField: 'tags', label: 'Ordered', type: 'array' },
+			{ key: 'targets', label: 'Opted', type: 'array', groupable: true }
+		];
+
+		expect(groupableFields(arrays)).toEqual([]);
+	});
+
+	it('offers only orderable fields on a server-paginated list', () => {
+		const mixed: FieldConfig<Row, 'name' | 'active'>[] = [
+			{ orderField: 'name', label: 'Name', type: 'string' },
+			{ orderField: 'active', label: 'Active', type: 'boolean' },
+			{ key: 'opted', label: 'Opted', type: 'string', sortable: true, groupable: true }
+		];
+
+		expect(sortableFields(mixed, true).map((f) => f.label)).toEqual(['Name', 'Active']);
+		expect(groupableFields(mixed, true).map((f) => f.label)).toEqual(['Name', 'Active']);
+		expect(fieldsToColumns(mixed, true).map((c) => [c.id, c.sortable])).toEqual([
+			['name', true],
+			['active', true],
+			['opted', false]
+		]);
+	});
+});
+
+describe('serverOrderViolations', () => {
+	const opted: FieldConfig<Row, 'name'>[] = [
+		{ orderField: 'name', label: 'Name', type: 'string' },
+		{ key: 'sortOnly', label: 'SortOnly', type: 'string', sortable: true },
+		{ key: 'groupOnly', label: 'GroupOnly', type: 'string', groupable: true },
+		{ key: 'plain', label: 'Plain', type: 'string' }
+	];
+
+	it('names display fields opted into client-side ordering on a server-paginated list', () => {
+		expect(serverOrderViolations(opted, true)).toEqual(['sortOnly', 'groupOnly']);
+	});
+
+	it('says nothing about a client-paginated list, where ordering here is correct', () => {
+		expect(serverOrderViolations(opted, false)).toEqual([]);
+	});
+
+	it('reports exactly the fields the server-paginated selectors withhold', () => {
+		// The guard and the selectors read one rule: a field the guard names is an
+		// opted-in field the controls stopped offering. Were they to drift, the
+		// guard would either cry wolf or miss a field silently dropped.
+		const offered = new Set(
+			[...sortableFields(opted, false), ...groupableFields(opted, false)].map((f) => f.label)
+		);
+		const offeredPaginated = new Set(
+			[...sortableFields(opted, true), ...groupableFields(opted, true)].map((f) => f.label)
+		);
+		const withheld = opted
+			.filter((f) => offered.has(f.label) && !offeredPaginated.has(f.label))
+			.map((f) => ('key' in f ? f.key : f.orderField));
+
+		expect(serverOrderViolations(opted, true)).toEqual(withheld);
+	});
+});
+
+describe('boolean grouping', () => {
+	const labels = { ungrouped: 'Ungrouped', yes: 'Yes', no: 'No' };
+	const activeField: FieldConfig<Row, 'active'> = {
+		orderField: 'active',
+		label: 'Active',
+		type: 'boolean',
+		getValue: (r) => r.active
+	};
+
+	it('heads boolean groups with the yes/no labels', () => {
+		const items = [
+			row({ name: 'a', active: true }),
+			row({ name: 'b', active: false }),
+			row({ name: 'c', active: null })
+		];
+
+		const groups = groupItems(items, [activeField], 'active', labels, false);
+
+		expect([...groups.keys()].sort()).toEqual(['No', 'Ungrouped', 'Yes']);
+		expect(groups.get('Yes')!.map((r) => r.name)).toEqual(['a']);
+	});
+
+	it('finds each boolean group in server counts keyed "true" and "false"', () => {
+		// count_by_group casts the grouped column to text, so a boolean group comes
+		// back as "true"/"false" while its header reads Yes/No.
+		const items = [row({ name: 'f', active: false }), row({ name: 't', active: true })];
+		const offsets = computeGroupOffsets([
+			{ value: 'false', count: 30 },
+			{ value: 'true', count: 12 },
+			{ value: null, count: 4 }
+		]);
+
+		const groups = groupItems(items, [activeField], 'active', labels, true);
+		const yes = offsets.get(serverGroupKey(groups.get('Yes')!, [activeField], 'active'));
+		const no = offsets.get(serverGroupKey(groups.get('No')!, [activeField], 'active'));
+
+		expect(yes).toEqual({ start: 30, count: 12 });
+		expect(no).toEqual({ start: 0, count: 30 });
 	});
 });

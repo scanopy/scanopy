@@ -88,6 +88,7 @@ impl Display for Snapshot {
 impl CrudHandlers for Snapshot {
     type Service = SnapshotService;
     type FilterQuery = NetworkFilterQuery;
+    type OrderField = crate::server::shared::handlers::ordering::NoOrderField;
 
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.snapshot_service

@@ -2,6 +2,8 @@
 	import type { HostFormData } from '$lib/features/hosts/types/base';
 	import type { AttributeSource } from '$lib/shared/utils/attribute-source';
 	import AttributeSourceTag from '$lib/shared/components/data/AttributeSourceTag.svelte';
+	import { hostOsLabel, type HostOs } from '$lib/features/hosts/host-os';
+	import OsTag from '../../OsTag.svelte';
 	import {
 		common_contact,
 		common_firmwareRevision,
@@ -10,6 +12,7 @@
 		common_location,
 		common_manufacturer,
 		common_model,
+		common_operatingSystem,
 		common_serialNumber,
 		common_softwareRevision,
 		hosts_deviceFacts_firmwareGroup,
@@ -31,6 +34,8 @@
 		source: AttributeSource | null | undefined;
 		mono?: boolean;
 		link?: boolean;
+		/** Drawn as an OS tag rather than text. */
+		os?: HostOs;
 	}
 
 	// Grouped by what each value describes, not by the protocol that carried it. A model arrives
@@ -81,6 +86,12 @@
 			{
 				title: hosts_deviceFacts_firmwareGroup(),
 				facts: [
+					{
+						label: common_operatingSystem(),
+						value: host.os ? hostOsLabel(host.os) : undefined,
+						source: host.os_source,
+						os: host.os
+					},
 					{
 						label: common_firmwareRevision(),
 						value: host.firmware_revision,
@@ -133,7 +144,10 @@
 								class="text-primary min-w-0 flex-1 break-words text-sm"
 								class:font-mono={fact.mono}
 							>
-								{#if fact.link}
+								{#if fact.os}
+									<!-- The same tooltip the hosts table shows: every detail and the source. -->
+									<OsTag os={fact.os} source={fact.source} />
+								{:else if fact.link}
 									<!-- eslint-disable svelte/no-navigation-without-resolve -->
 									<a
 										href={fact.value}

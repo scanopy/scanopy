@@ -12,7 +12,11 @@
 	import TagPicker from '$lib/features/tags/components/TagPicker.svelte';
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
 	import TextArea from '$lib/shared/components/forms/input/TextArea.svelte';
-	import SelectInput from '$lib/shared/components/forms/input/SelectInput.svelte';
+	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
+	import {
+		SimpleOptionDisplay,
+		type SimpleOption
+	} from '$lib/shared/components/forms/selection/display/SimpleOptionDisplay';
 	import { useNetworksQuery } from '$lib/features/networks/queries';
 	import {
 		common_cancel,
@@ -125,10 +129,12 @@
 	let colorHelper = entities.getColorHelper('Subnet');
 
 	// Prepare subnet type options
-	let subnetTypeOptions = $derived(
+	let subnetTypeOptions: SimpleOption[] = $derived(
 		subnetTypes.getItems().map((st) => ({
 			value: st.id,
-			label: st.name ?? st.id
+			label: st.name ?? st.id,
+			icon: subnetTypes.getIconComponent(st.id),
+			iconColor: subnetTypes.getColorHelper(st.id).icon
 		}))
 	);
 </script>
@@ -212,11 +218,13 @@
 					<!-- Subnet Type -->
 					<form.Field name="subnet_type">
 						{#snippet children(field)}
-							<SelectInput
+							<RichSelect
 								label={subnets_subnetType()}
-								id="subnet_type"
-								{field}
+								selectedValue={field.state.value}
 								options={subnetTypeOptions}
+								displayComponent={SimpleOptionDisplay}
+								showSearch={true}
+								onSelect={(value) => field.handleChange(value as Subnet['subnet_type'])}
 							/>
 						{/snippet}
 					</form.Field>

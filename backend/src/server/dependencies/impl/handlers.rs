@@ -9,6 +9,7 @@ use crate::server::{
 impl CrudHandlers for Dependency {
     type Service = DependencyService;
     type FilterQuery = DependencyFilterQuery;
+    type OrderField = crate::server::dependencies::handlers::DependencyOrderField;
 
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.dependency_service

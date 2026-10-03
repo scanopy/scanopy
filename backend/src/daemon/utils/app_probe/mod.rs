@@ -76,7 +76,7 @@ use crate::daemon::discovery::types::base::DiscoveryCriticalError;
 use crate::daemon::utils::scanner::{SCAN_TIMEOUT, ScanConcurrencyController, batch_scan};
 use crate::server::hosts::r#impl::attributes::{
     HostFirmwareRevisionAttributed, HostManufacturerAttributed, HostModelAttributed,
-    HostSerialNumberAttributed,
+    HostOsAttributed, HostSerialNumberAttributed,
 };
 use crate::server::ports::r#impl::base::PortType;
 use crate::server::services::definitions::ServiceDefinitionRegistry;
@@ -149,6 +149,11 @@ pub struct DeviceIdentity {
     /// Firmware or product revision, as the device words it — Modbus MajorMinorRevision,
     /// EtherNet/IP `<major>.<minor>`.
     pub firmware_revision: Option<HostFirmwareRevisionAttributed>,
+    /// The operating system, when the protocol names it: the distribution an SSH banner carries,
+    /// or the Windows build in an SMB challenge.
+    /// Boxed: an OS reading is several times the size of the other fields, and inline it makes
+    /// every enum carrying an identity (`AppProbeOutcome`, `ModbusReply`) needlessly large.
+    pub os: Option<Box<HostOsAttributed>>,
 }
 
 impl DeviceIdentity {
@@ -165,6 +170,7 @@ impl DeviceIdentity {
             model,
             serial_number,
             firmware_revision,
+            os,
         } = self.clone();
 
         if let Some(manufacturer) = manufacturer {
@@ -181,6 +187,9 @@ impl DeviceIdentity {
                 &mut host_data.host.base.firmware_revision,
                 firmware_revision,
             );
+        }
+        if let Some(os) = os {
+            host_data.offer_os(*os);
         }
     }
 }

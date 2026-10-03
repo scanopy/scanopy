@@ -7,11 +7,22 @@
 	export interface IPAddressDisplayContext {
 		subnets: Subnet[];
 		compact?: boolean;
+		/** A non-null `disabledReason` renders the option disabled with that tooltip. */
+		disabledReason?: string | null;
 	}
 
-	export const IPAddressDisplay: EntityDisplayComponent<IPAddress, IPAddressDisplayContext> = {
-		getId: (iface: IPAddress) => iface.id,
-		getLabel: (iface: IPAddress, context?: IPAddressDisplayContext) => {
+	/** Option id for the `ALL_IP_ADDRESSES` entry, whose own id is null. */
+	export const ALL_IP_ADDRESSES_ID = '__ALL_INTERFACES__';
+
+	export const IPAddressDisplay: EntityDisplayComponent<
+		IPAddress | AllIPAddresses,
+		IPAddressDisplayContext
+	> = {
+		getId: (iface) => iface.id ?? ALL_IP_ADDRESSES_ID,
+		getDisabled: (_iface, context) => !!context?.disabledReason,
+		getDisabledReason: (_iface, context) => context?.disabledReason ?? null,
+		getLabel: (iface, context?: IPAddressDisplayContext) => {
+			if (iface.id == null) return iface.name;
 			// Align with formatIPAddress(): "name: IP" or just "IP" (or name-only for containers)
 			const subnetsData = context?.subnets ?? [];
 			const subnet = getSubnetById(subnetsData, iface.subnet_id);
@@ -20,13 +31,14 @@
 			}
 			return (iface.name ? iface.name + ': ' : '') + iface.ip_address;
 		},
-		getDescription: (iface: IPAddress) => {
+		getDescription: (iface) => {
+			if (iface.id == null) return '';
 			return iface.mac_address ?? 'No MAC';
 		},
 		getIcon: () => entities.getIconComponent('IPAddress'),
 		getIconColor: () => entities.getColorHelper('IPAddress').icon,
-		getTags: (iface: IPAddress, context: IPAddressDisplayContext) => {
-			if (context?.compact) return [];
+		getTags: (iface, context: IPAddressDisplayContext) => {
+			if (context?.compact || iface.id == null) return [];
 			const subnetsData = context?.subnets ?? [];
 			const subnet = getSubnetById(subnetsData, iface.subnet_id);
 			const tags = [];
@@ -45,7 +57,7 @@
 
 <script lang="ts">
 	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
-	import type { IPAddress } from '$lib/features/hosts/types/base';
+	import type { AllIPAddresses, IPAddress } from '$lib/features/hosts/types/base';
 	import type { EntityDisplayComponent } from '../types';
 	import { entities } from '$lib/shared/stores/metadata';
 

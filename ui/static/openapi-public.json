@@ -2881,7 +2881,7 @@
           "Daemons"
         ],
         "summary": "Generate daemon install command",
-        "description": "A pure, idempotent builder — it never mints or persists anything. The api key in an `install`\ncommand is a placeholder (`<API_KEY>`) the caller substitutes from the plaintext it holds; a\n`reconfigure` command carries no key at all. Minting is a separate mutation\n(`POST /provision`), so regenerating a command here (advanced-setting change, OS switch, the\nDetails reconfigure view) never rotates the daemon's key.\n\nThe server derives the exact command shape from the record: DaemonPoll vs ServerPoll for the\nflags, and — for `install` — whether the daemon has checked in (`last_seen`) to decide between\na first-install and a minimal re-key command.",
+        "description": "A pure, idempotent builder — it never mints or persists anything. The api key in an `install`\nor `rekey` command is a placeholder (`<API_KEY>`) the caller substitutes from the plaintext it holds; a\n`reconfigure` command carries no key at all. Minting is a separate mutation\n(`POST /provision`), so regenerating a command here (advanced-setting change, OS switch, the\nDetails reconfigure view) never rotates the daemon's key.\n\nThe server derives the exact command shape from the record: DaemonPoll vs ServerPoll for the\nflags, and — for `rekey` — whether the daemon has checked in (`last_seen`) to decide whether\nthe command names the existing install it re-keys. An `install` command reads the same before\nand after the daemon's first handshake.",
         "operationId": "get_daemon_install_command",
         "parameters": [
           {
@@ -2897,7 +2897,7 @@
           {
             "name": "purpose",
             "in": "query",
-            "description": "`install` (with the api-key placeholder) or `reconfigure` (credential-free).",
+            "description": "`install` or `rekey` (with the api-key placeholder), or `reconfigure` (credential-free).",
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/InstallCommandType"
@@ -3683,6 +3683,21 @@
             }
           },
           {
+            "name": "phases",
+            "in": "query",
+            "description": "Only runs that ended in one of these phases (`run_type.results.phase`). Repeat for\nseveral. Configurations, which have no recorded outcome, never match.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/DiscoveryPhase"
+              }
+            }
+          },
+          {
             "name": "historical",
             "in": "query",
             "description": "`true` returns only completed runs (the history view), `false` only the\nconfigurations that produce them. Omit for both.",
@@ -3993,6 +4008,21 @@
             }
           },
           {
+            "name": "phases",
+            "in": "query",
+            "description": "Only runs that ended in one of these phases (`run_type.results.phase`). Repeat for\nseveral. Configurations, which have no recorded outcome, never match.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/DiscoveryPhase"
+              }
+            }
+          },
+          {
             "name": "historical",
             "in": "query",
             "description": "`true` returns only completed runs (the history view), `false` only the\nconfigurations that produce them. Omit for both.",
@@ -4101,6 +4131,220 @@
               "text/csv": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "user_api_key": []
+          },
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/discovery/field-values/{field}": {
+      "get": {
+        "tags": [
+          "Discoveries"
+        ],
+        "summary": "List the values of a Discovery field",
+        "description": "Every distinct value of one Discovery field across the Discoveries the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.",
+        "operationId": "get_discovery_field_values",
+        "parameters": [
+          {
+            "name": "field",
+            "in": "path",
+            "description": "The field whose values to count",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/DiscoveryOrderField"
+            }
+          },
+          {
+            "name": "network_ids",
+            "in": "query",
+            "description": "Filter by network ID. Repeat the parameter to pass several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "daemon_ids",
+            "in": "query",
+            "description": "Filter by daemon ID. Repeat the parameter to pass several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "discovery_types",
+            "in": "query",
+            "description": "Only runs of one of these discovery types.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "phases",
+            "in": "query",
+            "description": "Only runs that ended in one of these phases (`run_type.results.phase`). Repeat for\nseveral. Configurations, which have no recorded outcome, never match.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/DiscoveryPhase"
+              }
+            }
+          },
+          {
+            "name": "historical",
+            "in": "query",
+            "description": "`true` returns only completed runs (the history view), `false` only the\nconfigurations that produce them. Omit for both.",
+            "required": false,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Free-text search across the discovery's name and the name of the daemon\nthat runs it.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "group_by",
+            "in": "query",
+            "description": "Primary ordering field (used for grouping). Always sorts ASC to keep groups together.",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/DiscoveryOrderField"
+                }
+              ]
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "description": "Secondary ordering field (sorting within groups or standalone sort).",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/DiscoveryOrderField"
+                }
+              ]
+            }
+          },
+          {
+            "name": "order_direction",
+            "in": "query",
+            "description": "Direction for order_by field (group_by always uses ASC).",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/OrderDirection"
+                }
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of results to return (1-1000, default: 50). Use 0 for no limit.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "maximum": 1000,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of results to skip. Default: 0.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Distinct values and their Discovery counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_Vec_GroupCount"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown field",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -4459,6 +4703,21 @@
             }
           },
           {
+            "name": "virtualization_service_names",
+            "in": "query",
+            "description": "Filter by the name of the service virtualizing the host, the value \"Virtualized By\"\ngroups on. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
             "name": "include_unvirtualized",
             "in": "query",
             "description": "`true` also returns hosts nothing virtualizes. Set on its own it returns\nonly those — the \"Not Virtualized\" choice in the UI's filter.",
@@ -4497,6 +4756,82 @@
               ],
               "items": {
                 "$ref": "#/components/schemas/EntitySourceDiscriminants"
+              }
+            }
+          },
+          {
+            "name": "manufacturers",
+            "in": "query",
+            "description": "Filter by hardware manufacturer. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "models",
+            "in": "query",
+            "description": "Filter by hardware model. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "sys_locations",
+            "in": "query",
+            "description": "Filter by SNMP sysLocation. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "os_families",
+            "in": "query",
+            "description": "Filter by operating system family. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/HostOsFamily"
+              }
+            }
+          },
+          {
+            "name": "credential_ids",
+            "in": "query",
+            "description": "Filter to hosts assigned one of these credentials. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
               }
             }
           },
@@ -4854,6 +5189,21 @@
             }
           },
           {
+            "name": "virtualization_service_names",
+            "in": "query",
+            "description": "Filter by the name of the service virtualizing the host, the value \"Virtualized By\"\ngroups on. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
             "name": "include_unvirtualized",
             "in": "query",
             "description": "`true` also returns hosts nothing virtualizes. Set on its own it returns\nonly those — the \"Not Virtualized\" choice in the UI's filter.",
@@ -4892,6 +5242,82 @@
               ],
               "items": {
                 "$ref": "#/components/schemas/EntitySourceDiscriminants"
+              }
+            }
+          },
+          {
+            "name": "manufacturers",
+            "in": "query",
+            "description": "Filter by hardware manufacturer. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "models",
+            "in": "query",
+            "description": "Filter by hardware model. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "sys_locations",
+            "in": "query",
+            "description": "Filter by SNMP sysLocation. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "os_families",
+            "in": "query",
+            "description": "Filter by operating system family. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/HostOsFamily"
+              }
+            }
+          },
+          {
+            "name": "credential_ids",
+            "in": "query",
+            "description": "Filter to hosts assigned one of these credentials. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
               }
             }
           },
@@ -5133,6 +5559,21 @@
             }
           },
           {
+            "name": "virtualization_service_names",
+            "in": "query",
+            "description": "Filter by the name of the service virtualizing the host, the value \"Virtualized By\"\ngroups on. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
             "name": "include_unvirtualized",
             "in": "query",
             "description": "`true` also returns hosts nothing virtualizes. Set on its own it returns\nonly those — the \"Not Virtualized\" choice in the UI's filter.",
@@ -5171,6 +5612,82 @@
               ],
               "items": {
                 "$ref": "#/components/schemas/EntitySourceDiscriminants"
+              }
+            }
+          },
+          {
+            "name": "manufacturers",
+            "in": "query",
+            "description": "Filter by hardware manufacturer. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "models",
+            "in": "query",
+            "description": "Filter by hardware model. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "sys_locations",
+            "in": "query",
+            "description": "Filter by SNMP sysLocation. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "os_families",
+            "in": "query",
+            "description": "Filter by operating system family. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/HostOsFamily"
+              }
+            }
+          },
+          {
+            "name": "credential_ids",
+            "in": "query",
+            "description": "Filter to hosts assigned one of these credentials. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
               }
             }
           },
@@ -5324,6 +5841,395 @@
               "application/zip": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "user_api_key": []
+          },
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/hosts/field-values/{field}": {
+      "get": {
+        "tags": [
+          "Hosts"
+        ],
+        "summary": "List the values of a Host field",
+        "description": "Every distinct value of one Host field across the Hosts the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.",
+        "operationId": "get_host_field_values",
+        "parameters": [
+          {
+            "name": "field",
+            "in": "path",
+            "description": "The field whose values to count",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/HostOrderField"
+            }
+          },
+          {
+            "name": "network_ids",
+            "in": "query",
+            "description": "Filter by network ID. Repeat the parameter to pass several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "ids",
+            "in": "query",
+            "description": "Filter by specific entity IDs (for selective loading)",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "hidden",
+            "in": "query",
+            "description": "Filter by the `hidden` flag. Repeat the parameter to accept both values;\nomit it for no constraint.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "boolean"
+              }
+            }
+          },
+          {
+            "name": "virtualization_service_ids",
+            "in": "query",
+            "description": "Filter by the service virtualizing the host. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "virtualization_service_names",
+            "in": "query",
+            "description": "Filter by the name of the service virtualizing the host, the value \"Virtualized By\"\ngroups on. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "include_unvirtualized",
+            "in": "query",
+            "description": "`true` also returns hosts nothing virtualizes. Set on its own it returns\nonly those — the \"Not Virtualized\" choice in the UI's filter.",
+            "required": false,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "service_names",
+            "in": "query",
+            "description": "Filter to hosts running a service with one of these names.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "sources",
+            "in": "query",
+            "description": "Filter by how the host came to exist (`source.type`). Repeat for several;\n`Inferred` alone lists the hosts only a neighbour advertised.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/EntitySourceDiscriminants"
+              }
+            }
+          },
+          {
+            "name": "manufacturers",
+            "in": "query",
+            "description": "Filter by hardware manufacturer. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "models",
+            "in": "query",
+            "description": "Filter by hardware model. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "sys_locations",
+            "in": "query",
+            "description": "Filter by SNMP sysLocation. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "os_families",
+            "in": "query",
+            "description": "Filter by operating system family. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/HostOsFamily"
+              }
+            }
+          },
+          {
+            "name": "credential_ids",
+            "in": "query",
+            "description": "Filter to hosts assigned one of these credentials. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "tag_ids",
+            "in": "query",
+            "description": "Filter by tag IDs (returns hosts that have ANY of the specified tags)",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Free-text search. Case-insensitive substring match against the host's\nname, hostname, sysName, chassis id and description, and against its IP\naddresses and the names of services running on it.\n\nsysName and chassis id are in there because they are rungs of the title\nladder: a host with no name of its own is *shown* under one of them, and\na title you can read but cannot search for is a dead end.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "group_by",
+            "in": "query",
+            "description": "Primary ordering field (used for grouping). Always sorts ASC to keep groups together.",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/HostOrderField"
+                }
+              ]
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "description": "Secondary ordering field (sorting within groups or standalone sort).",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/HostOrderField"
+                }
+              ]
+            }
+          },
+          {
+            "name": "order_direction",
+            "in": "query",
+            "description": "Direction for order_by field (group_by always uses ASC).",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/OrderDirection"
+                }
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of results to return (1-1000, default: 50). Use 0 for no limit.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "maximum": 1000,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of results to skip. Default: 0.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "at",
+            "in": "query",
+            "description": "As-of timestamp (ISO 8601). When set, returns SCD2 state as of this\ninstant (snapshot view) instead of live state.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "stale",
+            "in": "query",
+            "description": "`true` returns only hosts discovery hasn't observed within their\nnetwork's staleness window; `false` returns only those it has. Omit for\nboth. Evaluated per row against the host's own network's window.",
+            "required": false,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "include_children",
+            "in": "query",
+            "description": "`false` returns hosts with empty `ports`/`services`/`interfaces`.\n`ip_addresses` is always populated: the host's title can come from its\naddress. The children dominate the payload, so callers that only need\nhost identity — name pickers, id→name lookups, counts — should pass\n`false`. Defaults to `true`, so existing callers are unaffected.",
+            "required": false,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Distinct values and their Host counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_Vec_GroupCount"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown field",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -8246,6 +9152,21 @@
             }
           },
           {
+            "name": "virtualization_service_names",
+            "in": "query",
+            "description": "Filter by the name of the service containerizing this one, the value \"Containerized\"\ngroups on. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
             "name": "include_uncontainerized",
             "in": "query",
             "description": "`true` also returns services nothing containerizes. Set on its own it\nreturns only those — the \"Not Containerized\" choice in the UI's filter.",
@@ -8255,6 +9176,36 @@
                 "boolean",
                 "null"
               ]
+            }
+          },
+          {
+            "name": "sources",
+            "in": "query",
+            "description": "Filter by how the service came to exist (`source.type`). Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/EntitySourceDiscriminants"
+              }
+            }
+          },
+          {
+            "name": "match_confidences",
+            "in": "query",
+            "description": "Filter by match confidence (`source.details.confidence`). Repeat for several. Only\nservices discovery matched to a definition carry one.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/MatchConfidence"
+              }
             }
           },
           {
@@ -8623,6 +9574,21 @@
             }
           },
           {
+            "name": "virtualization_service_names",
+            "in": "query",
+            "description": "Filter by the name of the service containerizing this one, the value \"Containerized\"\ngroups on. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
             "name": "include_uncontainerized",
             "in": "query",
             "description": "`true` also returns services nothing containerizes. Set on its own it\nreturns only those — the \"Not Containerized\" choice in the UI's filter.",
@@ -8632,6 +9598,36 @@
                 "boolean",
                 "null"
               ]
+            }
+          },
+          {
+            "name": "sources",
+            "in": "query",
+            "description": "Filter by how the service came to exist (`source.type`). Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/EntitySourceDiscriminants"
+              }
+            }
+          },
+          {
+            "name": "match_confidences",
+            "in": "query",
+            "description": "Filter by match confidence (`source.details.confidence`). Repeat for several. Only\nservices discovery matched to a definition carry one.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/MatchConfidence"
+              }
             }
           },
           {
@@ -8804,6 +9800,355 @@
               "text/csv": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "user_api_key": []
+          },
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/services/field-values/{field}": {
+      "get": {
+        "tags": [
+          "Services"
+        ],
+        "summary": "List the values of a Service field",
+        "description": "Every distinct value of one Service field across the Services the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.",
+        "operationId": "get_service_field_values",
+        "parameters": [
+          {
+            "name": "field",
+            "in": "path",
+            "description": "The field whose values to count",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ServiceOrderField"
+            }
+          },
+          {
+            "name": "network_ids",
+            "in": "query",
+            "description": "Filter by network ID. Repeat the parameter to pass several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "host_ids",
+            "in": "query",
+            "description": "Filter by host ID. Repeat the parameter to pass several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "ids",
+            "in": "query",
+            "description": "Filter by specific entity IDs (for selective loading)",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "service_definitions",
+            "in": "query",
+            "description": "Only services with one of these definitions.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "virtualization_service_ids",
+            "in": "query",
+            "description": "Filter by the service containerizing this one. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "virtualization_service_names",
+            "in": "query",
+            "description": "Filter by the name of the service containerizing this one, the value \"Containerized\"\ngroups on. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "include_uncontainerized",
+            "in": "query",
+            "description": "`true` also returns services nothing containerizes. Set on its own it\nreturns only those — the \"Not Containerized\" choice in the UI's filter.",
+            "required": false,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "sources",
+            "in": "query",
+            "description": "Filter by how the service came to exist (`source.type`). Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/EntitySourceDiscriminants"
+              }
+            }
+          },
+          {
+            "name": "match_confidences",
+            "in": "query",
+            "description": "Filter by match confidence (`source.details.confidence`). Repeat for several. Only\nservices discovery matched to a definition carry one.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/MatchConfidence"
+              }
+            }
+          },
+          {
+            "name": "tag_ids",
+            "in": "query",
+            "description": "Filter by tag IDs (returns services that have ANY of the specified tags)",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Free-text search. Case-insensitive substring match against the service's\nname and definition, and against the name of the host it runs on.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "group_by",
+            "in": "query",
+            "description": "Primary ordering field (used for grouping). Always sorts ASC to keep groups together.",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/ServiceOrderField"
+                }
+              ]
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "description": "Secondary ordering field (sorting within groups or standalone sort).",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/ServiceOrderField"
+                }
+              ]
+            }
+          },
+          {
+            "name": "order_direction",
+            "in": "query",
+            "description": "Direction for order_by field (group_by always uses ASC).",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/OrderDirection"
+                }
+              ]
+            }
+          },
+          {
+            "name": "ports",
+            "in": "query",
+            "description": "Only services exposed on one of these port numbers, over either protocol.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "name": "exclude_categories",
+            "in": "query",
+            "description": "Exclude services belonging to these categories.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/ServiceCategory"
+              }
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of results to return (1-1000, default: 50). Use 0 for no limit.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "maximum": 1000,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of results to skip. Default: 0.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "at",
+            "in": "query",
+            "description": "As-of timestamp (ISO 8601). When set, returns SCD2 state as of this\ninstant (snapshot view) instead of live state.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "stale",
+            "in": "query",
+            "description": "`true` returns only services discovery hasn't observed within their\nnetwork's staleness window; `false` returns only those it has. Omit for\nboth. Evaluated per row against the service's own network's window.",
+            "required": false,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Distinct values and their Service counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_Vec_GroupCount"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown field",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -12675,19 +14020,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-02T12:58:48.621633Z",
+              "created_at": "2026-10-03T01:53:18.467629Z",
               "first_discovery_id": null,
-              "id": "f6a24c3b-d9dd-45b3-b7ae-ddc6dacfeeb2",
+              "id": "a7d0e0c3-9943-4b09-ac17-0281eb035cfa",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-02T12:58:48.621633Z",
+              "last_seen_at": "2026-10-03T01:53:18.467629Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-02T12:58:48.621633Z",
-              "valid_from": "2026-10-02T12:58:48.621633Z",
+              "updated_at": "2026-10-03T01:53:18.467629Z",
+              "valid_from": "2026-10-03T01:53:18.467629Z",
               "valid_to": null
             }
           },
@@ -13854,6 +15199,7 @@
               "tags",
               "firmware_revision",
               "software_revision",
+              "os",
               "ip_addresses",
               "ports",
               "services",
@@ -14014,6 +15360,21 @@
                 "type": "string",
                 "format": "uuid",
                 "description": "The network this entity belongs to."
+              },
+              "os": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/HostOs",
+                    "description": "The host's operating system. Read-only: written by whichever source read or matched it.\nLenient, so a daemon tolerates a family added on a newer server."
+                  }
+                ]
+              },
+              "os_source": {
+                "$ref": "#/components/schemas/AttributeSource",
+                "description": "What produced the OS. Read-only, as above. A source whose method is `Inferred` matched the OS\nin a string the host emitted rather than reading it off the host."
               },
               "ports": {
                 "type": "array",
@@ -14243,6 +15604,8 @@
               ],
               "name_source": "Manual",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
+              "os": null,
+              "os_source": "Unspecified",
               "ports": [
                 {
                   "created_at": "2026-01-15T10:30:00Z",
@@ -14266,19 +15629,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-02T12:58:48.606911Z",
+                      "created_at": "2026-10-03T01:53:18.452395Z",
                       "first_discovery_id": null,
-                      "id": "38a87ce3-dfa2-40f7-8d52-eb068e0bf635",
+                      "id": "6ae22e1e-2f3c-4223-91ef-74ad4461fe7f",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-02T12:58:48.606911Z",
+                      "last_seen_at": "2026-10-03T01:53:18.452395Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-02T12:58:48.606911Z",
-                      "valid_from": "2026-10-02T12:58:48.606911Z",
+                      "updated_at": "2026-10-03T01:53:18.452395Z",
+                      "valid_from": "2026-10-03T01:53:18.452395Z",
                       "valid_to": null
                     }
                   ],
@@ -14292,7 +15655,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Tuya Smart",
+                  "service_definition": "Tomcat",
                   "source": {
                     "type": "Manual"
                   },
@@ -15690,19 +17053,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-02T12:58:48.618146Z",
+                  "created_at": "2026-10-03T01:53:18.463999Z",
                   "first_discovery_id": null,
-                  "id": "e628f85d-2b75-4299-9855-b04a697cddaf",
+                  "id": "fd51fa40-afb5-4cd2-a0d6-04c25f05c63a",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-02T12:58:48.618146Z",
+                  "last_seen_at": "2026-10-03T01:53:18.463999Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-02T12:58:48.618146Z",
-                  "valid_from": "2026-10-02T12:58:48.618146Z",
+                  "updated_at": "2026-10-03T01:53:18.463999Z",
+                  "valid_from": "2026-10-03T01:53:18.463999Z",
                   "valid_to": null
                 }
               ],
@@ -15716,7 +17079,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Tuya Smart",
+              "service_definition": "Tomcat",
               "source": {
                 "type": "Manual"
               },
@@ -17313,6 +18676,57 @@
           }
         }
       },
+      "ApiResponse_Vec_GroupCount": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "Size of one group in a grouped list, across every page.",
+              "required": [
+                "count"
+              ],
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "How many rows fall in this group in total, not just on this page.",
+                  "minimum": 0
+                },
+                "value": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "The group's value, rendered as text. `null` for rows whose group key is\nNULL (the \"ungrouped\" bucket)."
+                }
+              }
+            },
+            "description": "The result payload. Omitted on failure."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
       "ApiResponse_Vec_Invite": {
         "type": "object",
         "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
@@ -17650,6 +19064,55 @@
           },
           {
             "type": "string",
+            "description": "An operating system matched in SNMP `sysDescr` against a Recog fingerprint. The text is the\ndevice's own, but the OS is our reading of it, so it ranks below anything read off the host.",
+            "enum": [
+              "SysDescrMatch"
+            ]
+          },
+          {
+            "type": "string",
+            "description": "An operating system implied by an SNMP `sysObjectID` a Recog fingerprint names. Inferred for\nthe same reason as [`Self::SysDescrMatch`].",
+            "enum": [
+              "SysObjectIdMatch"
+            ]
+          },
+          {
+            "type": "string",
+            "description": "An operating system matched in the system description an LLDP neighbour advertised for itself\n(`lldpRemSysDesc`). Inferred for the same reason as [`Self::SysDescrMatch`].",
+            "enum": [
+              "LldpSysDescMatch"
+            ]
+          },
+          {
+            "type": "string",
+            "description": "An operating system matched in an SSH server's identification string, such as the\n`Ubuntu-3ubuntu13` a distribution's OpenSSH package appends.",
+            "enum": [
+              "SshBannerMatch"
+            ]
+          },
+          {
+            "type": "string",
+            "description": "An operating system matched in an HTTP `Server` header, such as `Microsoft-IIS/10.0`.",
+            "enum": [
+              "HttpServerMatch"
+            ]
+          },
+          {
+            "type": "string",
+            "description": "An operating system matched in an mDNS `_device-info._tcp` record, such as a Mac's\n`model=MacBookPro18,3`.",
+            "enum": [
+              "DnsSdDeviceInfoMatch"
+            ]
+          },
+          {
+            "type": "string",
+            "description": "An operating system matched in the `model` an mDNS `_airplay._tcp` record carries, such as a\nMac's `model=Mac17,2`. Macs that share nothing still advertise AirPlay.",
+            "enum": [
+              "DnsSdAirPlayMatch"
+            ]
+          },
+          {
+            "type": "string",
             "description": "A DNS-SD instance label — the Chromecast `fn=Living Room TV`, typed by a person during\ndevice setup.",
             "enum": [
               "DnsSdInstanceName"
@@ -17702,6 +19165,13 @@
             "description": "A PROFINET DCP Identify exchange: we sent the request and the transport correlated the\nreply to the station that sent it. `Native`, not merely `Queried` — like [`Self::Probe`]\nover [`ClientProbe::ModbusTcp`]/`EtherNetIp`/`OpcUa`, the protocol is the device's own\nrather than a generic MIB approximating it. A bare variant rather than `Probe(ClientProbe)`\non purpose: [`ClientProbe`] is scoped to application probes reached over an already-open\nTCP/UDP port (`every_client_probe_variant_has_a_producer` enforces that every variant has an\n`AppProbe` producer), and DCP is raw Ethernet with no port at all.",
             "enum": [
               "ProfinetDcp"
+            ]
+          },
+          {
+            "type": "string",
+            "description": "A container engine (Docker, Podman) reporting the machine it runs on, from its `info`\nendpoint: the host OS, its release and kernel. `Native` for the reason [`Self::ProfinetDcp`]\nis: the engine reads its own host, and that is what the answer means. A bare variant rather\nthan `Probe(Docker)`, which is the container listing; this is a different exchange.",
+            "enum": [
+              "ContainerRuntimeInfo"
             ]
           },
           {
@@ -18086,19 +19556,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-02T12:58:48.607253Z",
+          "created_at": "2026-10-03T01:53:18.452782Z",
           "first_discovery_id": null,
-          "id": "04f32d9e-cffa-4aef-912c-44426a5a9848",
+          "id": "ddbb69a5-16ca-4cdd-bca2-f0f19ecf80cf",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-02T12:58:48.607253Z",
+          "last_seen_at": "2026-10-03T01:53:18.452782Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-02T12:58:48.607253Z",
-          "valid_from": "2026-10-02T12:58:48.607253Z",
+          "updated_at": "2026-10-03T01:53:18.452782Z",
+          "valid_from": "2026-10-03T01:53:18.452782Z",
           "valid_to": null
         }
       },
@@ -18814,7 +20284,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Tuya Smart",
+              "service_definition": "Tomcat",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -20128,7 +21598,7 @@
               },
               {
                 "$ref": "#/components/schemas/DaemonOs",
-                "description": "The operating system chosen when the daemon was created. Credentials set up for another\nOS's file paths cannot be used by it. `None` for daemons created before this was recorded."
+                "description": "The operating system the daemon runs on. Picked when the daemon is created, then checked\nagainst what the daemon reports on every handshake once it is new enough to report (see\n`version_status.supports_os_reporting`); a daemon on another OS is refused. Credentials\nset up for another OS's file paths cannot be used by it. `None` for a daemon created\nbefore this was recorded that has not yet reported."
               }
             ]
           },
@@ -20292,6 +21762,17 @@
             "format": "uuid",
             "description": "The network this entity belongs to."
           },
+          "os": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DaemonOs",
+                "description": "The OS this daemon binary runs on. Absent from daemons up to 0.17.19."
+              }
+            ]
+          },
           "url": {
             "type": [
               "string",
@@ -20404,6 +21885,17 @@
           "daemon_version": {
             "type": "string",
             "description": "Daemon software version (semver format)"
+          },
+          "os": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DaemonOs",
+                "description": "The OS this daemon binary runs on. Absent from daemons up to 0.17.19."
+              }
+            ]
           }
         }
       },
@@ -20433,6 +21925,17 @@
           "name": {
             "type": "string",
             "description": "Name the daemon reports for itself."
+          },
+          "os": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DaemonOs",
+                "description": "The OS this daemon binary runs on. Absent from daemons up to 0.17.19."
+              }
+            ]
           },
           "ready_for_work": {
             "type": "boolean",
@@ -20475,6 +21978,10 @@
               "null"
             ],
             "description": "The date this daemon's version stops being supported, if a sunset is\nscheduled for it. Surfaced top-level (not only inside `warnings`) so the\nUI can render a countdown from the same value the email uses."
+          },
+          "supports_os_reporting": {
+            "type": "boolean",
+            "description": "Whether this daemon reports its OS on every handshake. When it does, the daemon's `os` is\nwhat it runs on; when it does not, `os` is the OS picked at creation, or absent."
           },
           "supports_targeted_rescan": {
             "type": "boolean",
@@ -21062,7 +22569,12 @@
           "updated_at",
           "daemon_id",
           "network_id",
-          "discovery_type"
+          "discovery_type",
+          "phase",
+          "started_at",
+          "finished_at",
+          "duration",
+          "warnings"
         ]
       },
       "DiscoveryPhase": {
@@ -24222,6 +25734,10 @@
             "description": "Software revision of the device as a whole — ENTITY-MIB `entPhysicalSoftwareRev`.\n\nIts own field rather than sharing `firmware_revision`, because RFC 4133 defines `.9` and\n`.10` as distinct objects: on a Cisco chassis they are the bootloader and the IOS version,\nand one column holding either with nothing recording which cannot tell them apart. Only\nENTITY-MIB writes it — every other source reports a single version, which is the firmware."
           },
           {
+            "$ref": "#/components/schemas/HostOperatingSystem",
+            "description": "The host's operating system, from whichever source read or matched it. See\n[`HostOsValue`](super::attributes::HostOsValue) for who writes it and how they rank."
+          },
+          {
             "type": "object",
             "required": [
               "network_id",
@@ -24430,6 +25946,62 @@
           "BestService"
         ]
       },
+      "HostOperatingSystem": {
+        "type": "object",
+        "properties": {
+          "os": {
+            "type": "object",
+            "description": "Operating system of a host, as one source read or inferred it.",
+            "required": [
+              "family"
+            ],
+            "properties": {
+              "codename": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Release codename, such as \"noble\"."
+              },
+              "edition": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Edition, such as \"LTS\" or \"Datacenter\"."
+              },
+              "family": {
+                "$ref": "#/components/schemas/HostOsFamily",
+                "description": "The operating system family."
+              },
+              "kernel_version": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Kernel release, such as \"6.8.0-45-generic\"."
+              },
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Product or distribution, such as \"Ubuntu\", \"Windows Server 2022\" or \"IOS-XE\"."
+              },
+              "version": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Release, such as \"24.04\", \"10.0.20348\" or \"15.2(4)M\"."
+              }
+            }
+          },
+          "os_source": {
+            "$ref": "#/components/schemas/AttributeSource"
+          }
+        }
+      },
       "HostOrderField": {
         "type": "string",
         "description": "Fields that hosts can be ordered/grouped by.",
@@ -24442,7 +26014,114 @@
           "network_id",
           "interface_ip",
           "last_seen_at",
-          "mac_address"
+          "mac_address",
+          "source",
+          "manufacturer",
+          "model",
+          "sys_location",
+          "os_family",
+          "hidden"
+        ]
+      },
+      "HostOs": {
+        "type": "object",
+        "description": "Operating system of a host, as one source read or inferred it.",
+        "required": [
+          "family"
+        ],
+        "properties": {
+          "codename": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Release codename, such as \"noble\"."
+          },
+          "edition": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Edition, such as \"LTS\" or \"Datacenter\"."
+          },
+          "family": {
+            "$ref": "#/components/schemas/HostOsFamily",
+            "description": "The operating system family."
+          },
+          "kernel_version": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Kernel release, such as \"6.8.0-45-generic\"."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Product or distribution, such as \"Ubuntu\", \"Windows Server 2022\" or \"IOS-XE\"."
+          },
+          "version": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Release, such as \"24.04\", \"10.0.20348\" or \"15.2(4)M\"."
+          }
+        }
+      },
+      "HostOsFamily": {
+        "type": "string",
+        "description": "Operating system family of a host.\n\nNo catch-all variant. A source that names something outside this list writes no OS at all, so\nnothing downstream has to handle a family that says nothing. The list covers every OS family the\nvendored Recog fingerprints name (`recog::tests::every_vendored_family_is_classified` keeps it\nthat way), plus every OS a daemon can report about its own host. Linux distributions are `Linux`\nwith the distribution as the name; variants exist for families, not distributions.",
+        "enum": [
+          "Linux",
+          "Windows",
+          "MacOs",
+          "Ios",
+          "TvOs",
+          "AudioOs",
+          "FreeBsd",
+          "OpenBsd",
+          "NetBsd",
+          "Solaris",
+          "Aix",
+          "HpUx",
+          "Irix",
+          "Tru64",
+          "OpenVms",
+          "ZOs",
+          "IbmI",
+          "UnixWare",
+          "OpenServer",
+          "NetWare",
+          "PalmOs",
+          "Esxi",
+          "CiscoIos",
+          "CiscoIosXe",
+          "CiscoIosXr",
+          "CiscoNxOs",
+          "CiscoCatOs",
+          "CiscoAsa",
+          "CiscoFtd",
+          "Junos",
+          "ScreenOs",
+          "ArubaOs",
+          "Comware",
+          "ProCurve",
+          "AristaEos",
+          "RouterOs",
+          "HuaweiVrp",
+          "IronWare",
+          "BrocadeNetworkOs",
+          "BayRs",
+          "PanOs",
+          "FortiOs",
+          "SonicOs",
+          "GaiaOs",
+          "Ipso",
+          "DataOntap",
+          "Ecos"
         ]
       },
       "HostPath": {
@@ -24464,6 +26143,7 @@
           "tags",
           "firmware_revision",
           "software_revision",
+          "os",
           "ip_addresses",
           "ports",
           "services",
@@ -24624,6 +26304,21 @@
             "type": "string",
             "format": "uuid",
             "description": "The network this entity belongs to."
+          },
+          "os": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/HostOs",
+                "description": "The host's operating system. Read-only: written by whichever source read or matched it.\nLenient, so a daemon tolerates a family added on a newer server."
+              }
+            ]
+          },
+          "os_source": {
+            "$ref": "#/components/schemas/AttributeSource",
+            "description": "What produced the OS. Read-only, as above. A source whose method is `Inferred` matched the OS\nin a string the host emitted rather than reading it off the host."
           },
           "ports": {
             "type": "array",
@@ -24853,6 +26548,8 @@
           ],
           "name_source": "Manual",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
+          "os": null,
+          "os_source": "Unspecified",
           "ports": [
             {
               "created_at": "2026-01-15T10:30:00Z",
@@ -24876,19 +26573,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-02T12:58:48.606534Z",
+                  "created_at": "2026-10-03T01:53:18.451958Z",
                   "first_discovery_id": null,
-                  "id": "2f963f7e-b557-4c8a-8649-2928f804172b",
+                  "id": "a484bb48-49ce-4978-9741-e74104567e8f",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-02T12:58:48.606534Z",
+                  "last_seen_at": "2026-10-03T01:53:18.451958Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-02T12:58:48.606534Z",
-                  "valid_from": "2026-10-02T12:58:48.606534Z",
+                  "updated_at": "2026-10-03T01:53:18.451958Z",
+                  "valid_from": "2026-10-03T01:53:18.451958Z",
                   "valid_to": null
                 }
               ],
@@ -24902,7 +26599,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Tuya Smart",
+              "service_definition": "Tomcat",
               "source": {
                 "type": "Manual"
               },
@@ -25595,9 +27292,10 @@
       },
       "InstallCommandType": {
         "type": "string",
-        "description": "What the caller wants the command to do — the one axis that actually varies.\n\n`install` brings a daemon up (or re-keys a legacy one): it carries the api-key placeholder,\nfetches the binary, and spells out the connectivity + advanced config. `reconfigure` adjusts\nan already-installed daemon in place: no key, no fetch, just the server-held connectivity —\n`scanopy-daemon install` layers it over the existing `config.json`. There is no third case:\nre-asserting the record's (correct) values on an installed daemon is harmless, so a first\ninstall and a re-key are the same command.",
+        "description": "What the caller wants the command to do — the one axis that actually varies.\n\n`install` brings a new daemon up: it carries the api-key placeholder, fetches the binary, and\nspells out the connectivity + advanced config, and nothing else. `rekey` is the same command\nfor a daemon that already exists on a host (a legacy daemon getting its first bound key), so\nonce that daemon has connected it also names the install to act on. `reconfigure` adjusts an\nalready-installed daemon in place: no key, no fetch, just the server-held connectivity —\n`scanopy-daemon install` layers it over the existing `config.json`.\n\n`install` and `rekey` are separate because the record can't tell them apart: a daemon created\nin the wizard has `last_seen` set as soon as it connects, and the wizard refetches its command\nafter that, which must not change shape.",
         "enum": [
           "install",
+          "rekey",
           "reconfigure"
         ]
       },
@@ -28187,6 +29885,7 @@
                 "tags",
                 "firmware_revision",
                 "software_revision",
+                "os",
                 "ip_addresses",
                 "ports",
                 "services",
@@ -28347,6 +30046,21 @@
                   "type": "string",
                   "format": "uuid",
                   "description": "The network this entity belongs to."
+                },
+                "os": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/components/schemas/HostOs",
+                      "description": "The host's operating system. Read-only: written by whichever source read or matched it.\nLenient, so a daemon tolerates a family added on a newer server."
+                    }
+                  ]
+                },
+                "os_source": {
+                  "$ref": "#/components/schemas/AttributeSource",
+                  "description": "What produced the OS. Read-only, as above. A source whose method is `Inferred` matched the OS\nin a string the host emitted rather than reading it off the host."
                 },
                 "ports": {
                   "type": "array",
@@ -28576,6 +30290,8 @@
                 ],
                 "name_source": "Manual",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
+                "os": null,
+                "os_source": "Unspecified",
                 "ports": [
                   {
                     "created_at": "2026-01-15T10:30:00Z",
@@ -28599,19 +30315,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-02T12:58:48.600947Z",
+                        "created_at": "2026-10-03T01:53:18.445617Z",
                         "first_discovery_id": null,
-                        "id": "76cfc58c-b994-4256-967f-86b4e1d044cb",
+                        "id": "bb5d7613-5c16-4152-8b72-0c510fdfeb5a",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-02T12:58:48.600947Z",
+                        "last_seen_at": "2026-10-03T01:53:18.445617Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-02T12:58:48.600947Z",
-                        "valid_from": "2026-10-02T12:58:48.600947Z",
+                        "updated_at": "2026-10-03T01:53:18.445617Z",
+                        "valid_from": "2026-10-03T01:53:18.445617Z",
                         "valid_to": null
                       }
                     ],
@@ -28625,7 +30341,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Tuya Smart",
+                    "service_definition": "Tomcat",
                     "source": {
                       "type": "Manual"
                     },
@@ -28768,19 +30484,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-02T12:58:48.617490Z",
+                    "created_at": "2026-10-03T01:53:18.463328Z",
                     "first_discovery_id": null,
-                    "id": "413d83aa-6880-4218-8801-201800400655",
+                    "id": "c1fd29cf-3d7d-4d51-890c-1109d28786c1",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-02T12:58:48.617490Z",
+                    "last_seen_at": "2026-10-03T01:53:18.463328Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-02T12:58:48.617490Z",
-                    "valid_from": "2026-10-02T12:58:48.617490Z",
+                    "updated_at": "2026-10-03T01:53:18.463328Z",
+                    "valid_from": "2026-10-03T01:53:18.463328Z",
                     "valid_to": null
                   }
                 ],
@@ -28794,7 +30510,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Tuya Smart",
+                "service_definition": "Tomcat",
                 "source": {
                   "type": "Manual"
                 },
@@ -31006,19 +32722,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-02T12:58:48.607150Z",
+              "created_at": "2026-10-03T01:53:18.452669Z",
               "first_discovery_id": null,
-              "id": "33616bbf-8225-4480-86d9-72fc3d5de4b7",
+              "id": "92de8531-abad-46ca-afb6-e65a641545e1",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-02T12:58:48.607150Z",
+              "last_seen_at": "2026-10-03T01:53:18.452669Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-02T12:58:48.607150Z",
-              "valid_from": "2026-10-02T12:58:48.607150Z",
+              "updated_at": "2026-10-03T01:53:18.452669Z",
+              "valid_from": "2026-10-03T01:53:18.452669Z",
               "valid_to": null
             }
           ],
@@ -31032,7 +32748,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Tuya Smart",
+          "service_definition": "Tomcat",
           "source": {
             "type": "Manual"
           },
@@ -31242,7 +32958,10 @@
           "network_id",
           "position",
           "service_definition",
-          "last_seen_at"
+          "last_seen_at",
+          "containerized_by",
+          "match_confidence",
+          "source"
         ]
       },
       "ServiceVirtualization": {
@@ -32476,7 +34195,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "b796c809-394a-4d87-8eb7-7b4ea0519c09",
+                  "id": "a03b8351-5fb1-4bc0-9be4-9a8fe71d3ac3",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -32486,23 +34205,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "0ae8dd98-a5cb-4301-9691-f9010f395b5d",
+                  "id": "2daae7ab-7f98-4991-bff5-dde26970e4a3",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "25bd4e58-85eb-47c3-8a7e-83e1543a8bd0",
+                  "id": "ae3fbcbc-e8e1-4198-bb37-d6f7689402bb",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "7fd49195-168f-4dd8-b2d5-f57a47c15e1c",
+                  "id": "fafb0745-82f8-45e2-a083-49b839b7c8b4",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "0ae8dd98-a5cb-4301-9691-f9010f395b5d",
+                  "id": "2daae7ab-7f98-4991-bff5-dde26970e4a3",
                   "rule": "ByHost"
                 }
               ]
@@ -32532,19 +34251,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "59c26293-6e93-4165-951a-fa22641348ce",
+                "id": "e9f95816-7f10-419a-97de-48ed15cafac2",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "3637cde1-74bb-495a-af0b-e83e7266d545",
+                "id": "22a70594-d1b3-4fa3-9c1b-6cbecd5ccb96",
                 "rule": "ByVLAN"
               },
               {
-                "id": "a3530de5-c657-4684-aa31-6810b29ccf49",
+                "id": "33616395-0c62-45ba-9995-974ffeafe255",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "43e42f80-0c52-45fe-8981-58d1c5ecf575",
+                "id": "6a466a3f-d937-4aec-8c31-f598b3ed23e7",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -32562,7 +34281,7 @@
                 }
               },
               {
-                "id": "11a2e2ae-c496-4e50-8fe8-15ff719fbf78",
+                "id": "b444855d-a10b-48e7-af4a-cb9beac6da58",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -32571,15 +34290,15 @@
                 }
               },
               {
-                "id": "ba93ee9c-ace7-4864-aa63-604f5d9b8e09",
+                "id": "1f225a97-1d7e-42cb-8381-177ebec54ae3",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "ee1ac771-eb54-4f95-90de-4ca40d6460a3",
+                "id": "dcce350c-9971-47f3-908f-7d3ea3c006c4",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "fd648d6a-8aa5-4637-bad7-c4cb27145be8",
+                "id": "06c949f1-7166-4df0-b3b6-3f33d223bcc4",
                 "rule": "ByStack"
               }
             ]

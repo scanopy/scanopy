@@ -180,6 +180,8 @@ pub enum ErrorCode {
         daemon_version: String,
         server_version: String,
     },
+    /// Daemon runs on a different OS from the one it was created for
+    DaemonOsMismatch { expected: String, actual: String },
 
     // === User ===
     /// Email is already in use
@@ -346,6 +348,9 @@ impl ErrorCode {
             Self::DaemonVersionTooOld { .. } => {
                 "Daemon version {daemon_version} is older than server version {server_version}. Update the daemon to match the server version."
             }
+            Self::DaemonOsMismatch { .. } => {
+                "This daemon was created for {expected} but is running on {actual}. Create a new daemon for this OS, or install this one on the OS it was created for."
+            }
 
             // User
             Self::UserEmailInUse { .. } => "Email '{email}' is already in use",
@@ -501,6 +506,9 @@ impl ErrorCode {
             } => Some(
                 json_map! { "daemon_version" => daemon_version, "server_version" => server_version },
             ),
+            Self::DaemonOsMismatch { expected, actual } => {
+                Some(json_map! { "expected" => expected, "actual" => actual })
+            }
             Self::UserEmailInUse { email } => Some(json_map! { "email" => email }),
             Self::BillingPlanLimitReached { resource, limit } => {
                 Some(json_map! { "resource" => resource, "limit" => limit })

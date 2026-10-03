@@ -249,6 +249,8 @@ impl DaemonResponse for HostResponse {
             firmware_revision_source: _,
             software_revision: _,
             software_revision_source: _,
+            os: _,
+            os_source: _,
             credential_assignments: _,
             ip_addresses: _,
             ports: _,
@@ -259,6 +261,8 @@ impl DaemonResponse for HostResponse {
         let mut v = serde_json::to_value(&instance).expect("HostResponse serializes");
         v["source"] = EntitySource::skewed();
         v["virtualization"] = HostVirtualization::skewed();
+        // A family a newer server knows and this daemon does not.
+        v["os"] = serde_json::json!({ "family": "SomeFutureOs" });
         // The example carries one service; skew its tolerant enums too so the
         // child tree is exercised. `ServiceBase` is `#[serde(flatten)]`.
         if let Some(service) = v["services"].get_mut(0) {

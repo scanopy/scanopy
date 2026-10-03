@@ -48,7 +48,11 @@
 
 	let isServerPoll = $derived(daemon.mode === 'server_poll');
 	let associating = $state(false);
-	let selectedOS = $state<DaemonOS>('linux');
+	// The daemon's recorded OS, reported by the daemon or picked at creation, which also hides the
+	// OS picker; with none recorded the user picks.
+	let recordedOS = $derived(daemon.os ?? null);
+	let pickedOS = $state<DaemonOS | null>(null);
+	let selectedOS = $derived<DaemonOS>(recordedOS ?? pickedOS ?? 'linux');
 	let linuxMethod = $state<'binary' | 'docker'>('binary');
 
 	// Docker is another install target alongside the OS methods.
@@ -65,7 +69,7 @@
 
 	const installCommandQuery = useDaemonInstallCommandQuery(
 		() => daemon.id,
-		() => ({ purpose: 'install' }),
+		() => ({ purpose: 'rekey' }),
 		{ enabled: () => mintedKey != null }
 	);
 
@@ -102,7 +106,8 @@
 
 		<OsSelector
 			{selectedOS}
-			onOsSelect={(os) => (selectedOS = os)}
+			onOsSelect={(os) => (pickedOS = os)}
+			showOs={!recordedOS}
 			{linuxMethod}
 			onLinuxMethodChange={(method) => (linuxMethod = method)}
 		>

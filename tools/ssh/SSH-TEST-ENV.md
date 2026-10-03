@@ -1,9 +1,9 @@
 # SSH Test Environment
 
-Eight SSH targets for testing the SshPassword and SshKey credentials end to end. The daemon logs
+Nine SSH targets for testing the SshPassword and SshKey credentials end to end. The daemon logs
 in, runs the credential's script on the target, and applies the JSON object the script prints to
 the host's fields. Each target is a dedicated `sshd` on its own address, `192.168.7.160` to
-`.167`, all running on the SNMP lab VM (`root@192.168.4.21`, see `tools/snmp/SNMP-TEST-ENV.md`).
+`.168`, all running on the SNMP lab VM (`root@192.168.4.21`, see `tools/snmp/SNMP-TEST-ENV.md`).
 
 Each case is set by the script on the credential. The targets differ in their identity (hostname,
 serial, address) and, for `password`, in which login method they accept. Each case has its own
@@ -21,6 +21,7 @@ address so each shows up as its own host in Scanopy.
 | 192.168.7.165 | oversized | key | `scripts/oversized.sh` |
 | 192.168.7.166 | unknown-keys | key | `scripts/unknown-keys.sh` |
 | 192.168.7.167 | hostkey-rotate | key | `scripts/inventory-ok.sh` |
+| 192.168.7.168 | os-unknown-family | key | `scripts/os-unknown-family.sh` |
 
 Every target logs in user `scanopy-ssh`. The key-only targets refuse passwords, so an SshPassword
 credential assigned to one of them tests an authentication failure. The `password` target
@@ -34,7 +35,7 @@ refusal on every address that moved.
 
 | Case | Expected outcome |
 |---|---|
-| inventory-ok | Host named `ssh-inventory-ok`. `sys_descr` is the VM's OS and kernel (`Ubuntu ..., Linux ... x86_64`). `manufacturer`, `model` and `firmware_revision` come from the VM's DMI data (QEMU values). `serial_number` is `SSHLAB-007160`. `sys_location` and `sys_contact` are set. One interface, `mv-ssh0`, with its own MAC and `192.168.7.160/22`; `chassis_id` is that MAC. |
+| inventory-ok | Host named `ssh-inventory-ok`. `sys_descr` is the VM's OS and kernel (`Ubuntu ..., Linux ... x86_64`). `manufacturer`, `model` and `firmware_revision` come from the VM's DMI data (QEMU values). `serial_number` is `SSHLAB-007160`. The host's operating system comes from the script's `os` object, with source SSH script: the VM's distribution and version from `/etc/os-release`, and its kernel. `sys_location` and `sys_contact` are set. One interface, `mv-ssh0`, with its own MAC and `192.168.7.160/22`; `chassis_id` is that MAC. |
 | password | Same as inventory-ok, as `ssh-password` with serial `SSHLAB-007161`. An SshKey credential fails authentication here. |
 | exit-nonzero | The run fails with exit status 3 and the stderr line `scanopy-ssh-lab: simulated failure, exiting 3`. Nothing is applied. The script prints valid JSON first, so a host renamed `applied-despite-exit-3` means the exit status was ignored. |
 | bad-json | Exit 0, output fails to parse. Reported as a parse failure, nothing applied. A host renamed `applied-from-bad-json` means a partial parse was applied. |
@@ -42,6 +43,7 @@ refusal on every address that moved.
 | oversized | The script prints about 80 KiB of valid JSON. The daemon stops at its 64 KiB cap, reports the output as oversized, and applies nothing. A host renamed `applied-from-oversized` means the cap was not enforced. |
 | unknown-keys | `hostname` (`ssh-unknown-keys`), `sys_descr`, `model` and the interface `lab0` with `192.168.7.166/22` are applied. `favorite_color`, `rack_units` and `extra_info` are reported as unknown keys and not applied. |
 | hostkey-rotate | The first scan succeeds like inventory-ok (as `ssh-hostkey-rotate`) and pins the host key. After `make ssh-lab-rotate-hostkey IP=192.168.7.167`, the next scan refuses the changed key, applies nothing, and keeps the original pin. |
+| os-unknown-family | Host named `ssh-os-unknown-family` with model `Lab Model O`. The run reports `os` as invalid because `Plan9` is not one of Scanopy's OS families, and the host gets no OS from the script. Needs a daemon from v0.17.20; an older daemon lists `os` under not applied instead. |
 
 ## How the lab is built
 
@@ -88,7 +90,7 @@ one.
 
 ### Target identity
 
-All eight targets run on one VM. Without help, `inventory-ok.sh` would report the same hostname,
+All nine targets run on one VM. Without help, `inventory-ok.sh` would report the same hostname,
 serial and full interface list (the VM's management address and every lab address) from every
 target, and Scanopy would merge them into one host. Each target's sshd sets `SCANOPY_LAB_ADDR`,
 `SCANOPY_LAB_HOSTNAME`, `SCANOPY_LAB_SERIAL`, `SCANOPY_LAB_LOCATION` and `SCANOPY_LAB_CONTACT`
@@ -135,12 +137,13 @@ will (`ssh ... 'sh -s' < script`), and checks the result for that case:
 
 | Case | Check |
 |---|---|
-| inventory-ok, password, hostkey-rotate | exit 0, valid JSON, hostname `ssh-<case>`, exactly one address, the target's own |
+| inventory-ok, password, hostkey-rotate | exit 0, valid JSON, hostname `ssh-<case>`, exactly one address, the target's own, `os.family` Linux with a kernel version |
 | exit-nonzero | exit 3 |
 | bad-json | exit 0, output does not parse |
 | timeout | still running after 8 s (`SSH_LAB_VERIFY_WAIT`) |
 | oversized | exit 0, more than 65536 bytes, valid JSON |
 | unknown-keys | exit 0, valid JSON with `hostname` and `favorite_color` |
+| os-unknown-family | exit 0, valid JSON with `model` and `os.family` of `Plan9` |
 
 It also checks that the `password` target refuses the key. Verify keeps its own host key pins in
 `~/.config/scanopy-lab/ssh/known_hosts`, separate from Scanopy's.
@@ -170,7 +173,7 @@ To accept the new key in Scanopy afterwards, clear the pin the way the feature p
 
 ## Create the credentials in Scanopy
 
-1. Scan the lab network once without SSH credentials, so the eight targets exist as hosts (each
+1. Scan the lab network once without SSH credentials, so the nine targets exist as hosts (each
    has port 22 open).
 2. Create one credential per case, assigned to that case's host (`host_assignments`). A
    network-wide assignment would run every script on every target.

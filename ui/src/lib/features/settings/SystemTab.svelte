@@ -22,6 +22,7 @@
 		common_theme,
 		common_timezone,
 		common_light,
+		common_license,
 		common_dark,
 		common_monday,
 		common_source,
@@ -30,6 +31,7 @@
 		common_12Hour,
 		common_24Hour,
 		settings_system_copyright,
+		settings_system_dashboardIconsAttribution,
 		settings_system_dateAndTime,
 		settings_system_dateAndTimeDesc,
 		settings_system_dateOrder,
@@ -40,6 +42,8 @@
 		settings_system_license,
 		settings_system_licenseLinkText,
 		settings_system_preview,
+		settings_system_recogAttribution,
+		settings_system_simpleIconsAttribution,
 		settings_system_themeDesc,
 		settings_system_timeZoneBrowser,
 		settings_system_timestamps,
@@ -239,6 +243,21 @@
 			text={settings_system_tuxAttribution()}
 			href="https://commons.wikimedia.org/wiki/File:Tux.svg"
 			linkText={common_source()}
+		/>
+		<DocsHint
+			text={settings_system_recogAttribution()}
+			href="https://github.com/scanopy/scanopy/blob/main/backend/assets/recog/LICENSE"
+			linkText={common_license()}
+		/>
+		<DocsHint
+			text={settings_system_dashboardIconsAttribution()}
+			href="https://github.com/scanopy/scanopy/blob/main/backend/assets/dashboard-icons/LICENSE"
+			linkText={common_license()}
+		/>
+		<DocsHint
+			text={settings_system_simpleIconsAttribution()}
+			href="https://github.com/simple-icons/simple-icons/blob/develop/LICENSE.md"
+			linkText={common_license()}
 		/>
 	</div>
 </div>

@@ -42,6 +42,7 @@
 		common_network,
 		common_noEntityYet,
 		common_delete,
+		common_source,
 		common_edit,
 		common_subnets,
 		common_tags,
@@ -52,7 +53,8 @@
 		subnets_subnetType
 	} from '$lib/paraglide/messages';
 	import { hasDaemon } from '$lib/shared/onboarding/checklist';
-	import { subnetTypes } from '$lib/shared/stores/metadata';
+	import { entitySources, subnetTypes } from '$lib/shared/stores/metadata';
+	import { entitySourceItems } from '$lib/shared/utils/entity-source';
 
 	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 	type SubnetOrderField = components['schemas']['SubnetOrderField'];
@@ -312,6 +314,9 @@
 					type: 'string',
 					searchable: true,
 					filterable: true,
+					// Every type the backend defines, named the way the chip renders them.
+					filterOptions: subnetTypes.getItems().map((type) => subnetTypes.getName(type.id)),
+					getValue: (subnet) => subnetTypes.getName(subnet.subnet_type),
 					display: {
 						order: 4,
 						getItems: (subnet) => [
@@ -339,6 +344,7 @@
 				last_seen_at: {
 					label: common_lastSeen(),
 					type: 'date',
+					staleFilter: true,
 					display: {
 						recency: true,
 						order: 1,
@@ -353,6 +359,21 @@
 					type: 'string',
 					searchable: true,
 					display: { hiddenByDefault: true }
+				},
+				{
+					key: 'source',
+					label: common_source(),
+					type: 'string',
+					filterable: true,
+					groupable: true,
+					sortable: true,
+					// Every source the backend can stamp, named the way the column renders them.
+					filterOptions: entitySources.getItems().map((source) => entitySources.getName(source.id)),
+					getValue: (subnet) => entitySources.getName(subnet.source.type),
+					display: {
+						hiddenByDefault: true,
+						getItems: (subnet) => entitySourceItems(subnet.source)
+					}
 				},
 				{
 					key: 'tags',
@@ -380,7 +401,7 @@
 	</TabHeader>
 
 	{#if !hasDaemon(onboarding)}
-		<PreDaemonEmptyState title={daemons_installPromptSubnets()} />
+		<PreDaemonEmptyState title={daemons_installPromptSubnets()} {isReadOnly} />
 	{:else if isLoading}
 		<!-- Loading state -->
 		<Loading />

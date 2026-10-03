@@ -1,0 +1,2286 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<fingerprints matches="ssh.banner" protocol="ssh" database_type="service" preference="0.90">
+  <!--
+  SSH "software revision and comment" strings (official RFC nomenclature for the part of
+  the identification string after "SSH-x.x-") are matched against these patterns to
+  fingerprint SSH servers.
+  -->
+
+  <fingerprint pattern="^ArrayOS$">
+    <description>Array Networks device</description>
+    <example>ArrayOS</example>
+    <param pos="0" name="service.vendor" value="Array Networks"/>
+  </fingerprint>
+
+  <fingerprint pattern="^RomSShell_([\d\.]+)$">
+    <description>Allegro RomSShell SSH</description>
+    <example service.version="4.62">RomSShell_4.62</example>
+    <param pos="0" name="service.vendor" value="Allegro Software"/>
+    <param pos="0" name="service.product" value="RomSShell"/>
+    <param pos="1" name="service.version"/>
+  </fingerprint>
+
+  <fingerprint pattern="(?i)^DraySSH_\S+$">
+    <description>DrayTek generic</description>
+    <example>DraySSH_2.0</example>
+    <param pos="0" name="hw.vendor" value="DrayTek"/>
+  </fingerprint>
+
+  <fingerprint pattern="^mpSSH_([\d\.]+)$">
+    <description>HP Integrated Lights Out (iLO) usually bundled with HP servers</description>
+    <example service.version="0.0.1">mpSSH_0.0.1</example>
+    <param pos="0" name="service.vendor" value="HP"/>
+    <param pos="0" name="service.product" value="iLO"/>
+    <param pos="0" name="service.family" value="iLO"/>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="hw.vendor" value="HP"/>
+    <param pos="0" name="os.vendor" value="HP"/>
+    <param pos="0" name="os.product" value="iLO"/>
+    <param pos="0" name="os.family" value="iLO"/>
+    <param pos="0" name="os.device" value="Lights Out Management"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:hp:integrated_lights-out_firmware:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^Serv-U_([\d\.]+)$">
+    <description>Serv-U SSH</description>
+    <example service.version="7.4.0.1">Serv-U_7.4.0.1</example>
+    <param pos="0" name="service.vendor" value="Rhino Software"/>
+    <param pos="0" name="service.product" value="Serv-U"/>
+    <param pos="1" name="service.version"/>
+  </fingerprint>
+
+  <fingerprint pattern="WS_FTP-SSH_([\d\.]+)$">
+    <description>WS_FTP Server with SSH</description>
+    <example service.version="6.1.1">WS_FTP-SSH_6.1.1</example>
+    <example service.version="7.0">WS_FTP-SSH_7.0</example>
+    <param pos="0" name="service.vendor" value="Ipswitch"/>
+    <param pos="0" name="service.product" value="WS_FTP"/>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:ipswitch:ws_ftp:{service.version}"/>
+  </fingerprint>
+
+  <fingerprint pattern="IPSSH[-_]([\d\.p]+)">
+    <description>VxWorks with version information</description>
+    <example os.version="6.9.0">IPSSH-6.9.0</example>
+    <param pos="0" name="os.vendor" value="Wind River"/>
+    <param pos="0" name="os.product" value="VxWorks"/>
+    <param pos="1" name="os.version"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:windriver:vxworks:{os.version}"/>
+  </fingerprint>
+
+  <!-- FreeBSD -->
+
+  <fingerprint pattern="^OpenSSH_(2\.3\.0) (green@FreeBSD.org 20010321)$">
+    <description>OpenSSH running on FreeBSD 4.3</description>
+    <example service.version="2.3.0" openssh.comment="green@FreeBSD.org 20010321">OpenSSH_2.3.0 green@FreeBSD.org 20010321</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="4.3"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:4.3"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(2\.3\.0) (FreeBSD localisations 20010713)$">
+    <description>OpenSSH running on FreeBSD 4.4</description>
+    <example service.version="2.3.0" openssh.comment="FreeBSD localisations 20010713">OpenSSH_2.3.0 FreeBSD localisations 20010713</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="4.4"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:4.4"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(2\.9) (FreeBSD localisations 20011202)$">
+    <description>OpenSSH running on FreeBSD 4.5</description>
+    <example service.version="2.9" openssh.comment="FreeBSD localisations 20011202">OpenSSH_2.9 FreeBSD localisations 20011202</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="4.5"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:4.5"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(3\.4p1) (FreeBSD 20020702)$">
+    <description>OpenSSH running on FreeBSD 4.6.2</description>
+    <example service.version="3.4p1" openssh.comment="FreeBSD 20020702">OpenSSH_3.4p1 FreeBSD 20020702</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="4.6.2"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:4.6.2"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(2\.9) (FreeBSD localisations 20020307)$">
+    <description>OpenSSH running on FreeBSD 4.6</description>
+    <example service.version="2.9" openssh.comment="FreeBSD localisations 20020307">OpenSSH_2.9 FreeBSD localisations 20020307</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="4.6"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:4.6"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(3\.4p1) (FreeBSD-20020702)$">
+    <description>OpenSSH running on FreeBSD 4.7</description>
+    <example service.version="3.4p1" openssh.comment="FreeBSD-20020702">OpenSSH_3.4p1 FreeBSD-20020702</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="4.7"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:4.7"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(3\.5p1) (FreeBSD-20030201)$">
+    <description>OpenSSH running on FreeBSD 4.8</description>
+    <example service.version="3.5p1" openssh.comment="FreeBSD-20030201">OpenSSH_3.5p1 FreeBSD-20030201</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="4.8"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:4.8"/>
+  </fingerprint>
+
+  <!-- Multiple minor version match, assert the oldest version -->
+
+  <fingerprint pattern="^OpenSSH_(3\.5p1) (FreeBSD-20030924)$">
+    <description>OpenSSH running on FreeBSD 4.9/4.10 (sometimes 4.11)</description>
+    <example service.version="3.5p1" openssh.comment="FreeBSD-20030924">OpenSSH_3.5p1 FreeBSD-20030924</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="4.9"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:4.9"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(3\.5p1) (FreeBSD-20060930)$">
+    <description>OpenSSH running on FreeBSD 4.11</description>
+    <example service.version="3.5p1" openssh.comment="FreeBSD-20060930">OpenSSH_3.5p1 FreeBSD-20060930</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="4.11"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:4.11"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(3\.5p1) (FreeBSD-20021029)$">
+    <description>OpenSSH running on FreeBSD 5.0</description>
+    <example service.version="3.5p1" openssh.comment="FreeBSD-20021029">OpenSSH_3.5p1 FreeBSD-20021029</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="5.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:5.0"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(3\.6\.1p1) (FreeBSD-20030423)$">
+    <description>OpenSSH running on FreeBSD 5.1</description>
+    <example service.version="3.6.1p1" openssh.comment="FreeBSD-20030423">OpenSSH_3.6.1p1 FreeBSD-20030423</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="5.1"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:5.1"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(3\.6\.1p1) (FreeBSD-20030924)$">
+    <description>OpenSSH running on FreeBSD 5.2</description>
+    <example service.version="3.6.1p1" openssh.comment="FreeBSD-20030924">OpenSSH_3.6.1p1 FreeBSD-20030924</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="5.2"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:5.2"/>
+  </fingerprint>
+
+  <!-- Multiple minor version match, assert the oldest version -->
+
+  <fingerprint pattern="^OpenSSH_(3\.8\.1p1) (FreeBSD-20040419)$">
+    <description>OpenSSH running on FreeBSD 5.3/5.4</description>
+    <example service.version="3.8.1p1" openssh.comment="FreeBSD-20040419">OpenSSH_3.8.1p1 FreeBSD-20040419</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="5.3"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:5.3"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(3\.8\.1p1) (FreeBSD-20060123)$">
+    <description>OpenSSH running on FreeBSD 5.5</description>
+    <example service.version="3.8.1p1" openssh.comment="FreeBSD-20060123">OpenSSH_3.8.1p1 FreeBSD-20060123</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="5.5"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:5.5"/>
+  </fingerprint>
+
+  <!-- Multiple minor version match, assert the oldest version -->
+
+  <fingerprint pattern="^OpenSSH_(4\.2p1) (FreeBSD-20050903)$">
+    <description>OpenSSH running on FreeBSD 6.0/6.1</description>
+    <example service.version="4.2p1" openssh.comment="FreeBSD-20050903">OpenSSH_4.2p1 FreeBSD-20050903</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="6.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:6.0"/>
+  </fingerprint>
+
+  <!-- Spans major versions, do not assert a version number -->
+
+  <fingerprint pattern="^OpenSSH_(4\.5p1) (FreeBSD-20061110)$">
+    <description>OpenSSH running on FreeBSD 6.2/6.3/6.4/7.0</description>
+    <example service.version="4.5p1" openssh.comment="FreeBSD-20061110">OpenSSH_4.5p1 FreeBSD-20061110</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:-"/>
+  </fingerprint>
+
+  <!-- Multiple minor version match, assert the oldest version -->
+
+  <fingerprint pattern="^OpenSSH_(5\.1p1) (FreeBSD-20080901)$">
+    <description>OpenSSH running on FreeBSD 7.1/7.2/7.3/7.4</description>
+    <example service.version="5.1p1" openssh.comment="FreeBSD-20080901">OpenSSH_5.1p1 FreeBSD-20080901</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="7.1"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:7.1"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(5\.2p1) (FreeBSD-20090522)$">
+    <description>OpenSSH running on FreeBSD 8.0</description>
+    <example service.version="5.2p1" openssh.comment="FreeBSD-20090522">OpenSSH_5.2p1 FreeBSD-20090522</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="8.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:8.0"/>
+  </fingerprint>
+
+  <!-- Multiple minor version match, assert the oldest version -->
+
+  <fingerprint pattern="^OpenSSH_(5\.4p1) (FreeBSD-20100308)$">
+    <description>OpenSSH running on FreeBSD 8.1/8.2</description>
+    <example service.version="5.4p1" openssh.comment="FreeBSD-20100308">OpenSSH_5.4p1 FreeBSD-20100308</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="8.1"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:8.1"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(5\.4p1_hpn13v11) (FreeBSD-20100308)$">
+    <description>OpenSSH running on FreeBSD 8.3</description>
+    <example service.version="5.4p1_hpn13v11" openssh.comment="FreeBSD-20100308">OpenSSH_5.4p1_hpn13v11 FreeBSD-20100308</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="8.3"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:8.3"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(6\.1_hpn13v11) (FreeBSD-20120901)$">
+    <description>OpenSSH running on FreeBSD 8.4</description>
+    <example service.version="6.1_hpn13v11" openssh.comment="FreeBSD-20120901">OpenSSH_6.1_hpn13v11 FreeBSD-20120901</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="8.4"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:8.4"/>
+  </fingerprint>
+
+  <!-- Multiple minor version match, assert the oldest version -->
+
+  <fingerprint pattern="^OpenSSH_(5\.8p2_hpn13v11) (FreeBSD-20110503)$">
+    <description>OpenSSH running on FreeBSD 9.0/9.1</description>
+    <example service.version="5.8p2_hpn13v11" openssh.comment="FreeBSD-20110503">OpenSSH_5.8p2_hpn13v11 FreeBSD-20110503</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="9.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:9.0"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(6\.2_hpn13v11) (FreeBSD-20130515)$">
+    <description>OpenSSH running on FreeBSD 9.2</description>
+    <example service.version="6.2_hpn13v11" openssh.comment="FreeBSD-20130515">OpenSSH_6.2_hpn13v11 FreeBSD-20130515</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="9.2"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:9.2"/>
+  </fingerprint>
+
+  <!-- Spans major versions, do not assert a version number -->
+
+  <fingerprint pattern="^OpenSSH_(6\.6\.1_hpn13v11) (FreeBSD-20140420)$">
+    <description>OpenSSH running on FreeBSD 9.3/10.1/10.2</description>
+    <example service.version="6.6.1_hpn13v11" openssh.comment="FreeBSD-20140420">OpenSSH_6.6.1_hpn13v11 FreeBSD-20140420</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(6\.4_hpn13v11) (FreeBSD-20131111)$">
+    <description>OpenSSH running on FreeBSD 10.0</description>
+    <example service.version="6.4_hpn13v11" openssh.comment="FreeBSD-20131111">OpenSSH_6.4_hpn13v11 FreeBSD-20131111</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="10.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:10.0"/>
+  </fingerprint>
+
+  <!-- Spans major versions, do not assert a version number -->
+
+  <fingerprint pattern="^OpenSSH_(7\.2) (FreeBSD-20160310)$">
+    <description>OpenSSH running on FreeBSD 10.3/11.0</description>
+    <example service.version="7.2" openssh.comment="FreeBSD-20160310">OpenSSH_7.2 FreeBSD-20160310</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(7\.3) (FreeBSD-20170902)$">
+    <description>OpenSSH running on FreeBSD 10.4</description>
+    <example service.version="7.3" openssh.comment="FreeBSD-20170902">OpenSSH_7.3 FreeBSD-20170902</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="10.4"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:10.4"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(7\.2) (FreeBSD-20161230)$">
+    <description>OpenSSH running on FreeBSD 11.1</description>
+    <example service.version="7.2" openssh.comment="FreeBSD-20161230">OpenSSH_7.2 FreeBSD-20161230</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="11.1"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:11.1"/>
+  </fingerprint>
+
+  <!-- Multiple minor version match, assert the oldest version -->
+
+  <fingerprint pattern="^OpenSSH_(7\.5) (FreeBSD-20170903)$">
+    <description>OpenSSH running on FreeBSD 11.2/11.3</description>
+    <example service.version="7.5" openssh.comment="FreeBSD-20170903">OpenSSH_7.5 FreeBSD-20170903</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="11.2"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:11.2"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(7\.8) (FreeBSD-20180909)$">
+    <description>OpenSSH running on FreeBSD 12.0/12.1</description>
+    <example service.version="7.8" openssh.comment="FreeBSD-20180909">OpenSSH_7.8 FreeBSD-20180909</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.version" value="12.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:12.0"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_([^\s]+)\s+(FreeBSD[ -].*)$">
+    <description>OpenSSH running on FreeBSD</description>
+    <example service.version="7.2" openssh.comment="FreeBSD-20160311">OpenSSH_7.2 FreeBSD-20160311</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="FreeBSD"/>
+    <param pos="0" name="os.family" value="FreeBSD"/>
+    <param pos="0" name="os.product" value="FreeBSD"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:freebsd:freebsd:-"/>
+  </fingerprint>
+
+  <!-- NetBSD -->
+
+  <fingerprint pattern="^OpenSSH_([^\s]+)\s+(NetBSD(?:_Secure_Shell)?[ -].*)$">
+    <description>OpenSSH running on NetBSD</description>
+    <example service.version="7.2" openssh.comment="NetBSD-20100308">OpenSSH_7.2 NetBSD-20100308</example>
+    <example service.version="4.4" openssh.comment="NetBSD_Secure_Shell-20061114">OpenSSH_4.4 NetBSD_Secure_Shell-20061114</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="NetBSD"/>
+    <param pos="0" name="os.family" value="NetBSD"/>
+    <param pos="0" name="os.product" value="NetBSD"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:netbsd:netbsd:-"/>
+  </fingerprint>
+
+  <!-- Ubuntu -->
+
+  <fingerprint pattern="^OpenSSH_(3\.8\.1p1) (Debian-11ubuntu\d+(?:\.\d+)?)$">
+    <description>OpenSSH running on Ubuntu 4.10</description>
+    <example service.version="3.8.1p1" openssh.comment="Debian-11ubuntu3">OpenSSH_3.8.1p1 Debian-11ubuntu3</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="4.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:4.10"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(3\.9p1) (Debian-1ubuntu\d+(?:\.\d+)?)$">
+    <description>OpenSSH running on Ubuntu 5.04</description>
+    <example service.version="3.9p1" openssh.comment="Debian-1ubuntu2">OpenSSH_3.9p1 Debian-1ubuntu2</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="5.04"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:5.04"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(4\.1p1) (Debian-7ubuntu\d+(?:\.\d+)?)$">
+    <description>OpenSSH running on Ubuntu 5.10</description>
+    <example service.version="4.1p1" openssh.comment="Debian-7ubuntu4">OpenSSH_4.1p1 Debian-7ubuntu4</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="5.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:5.10"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(4\.2p1) (Debian-7ubuntu\d+(?:\.\d+)?)$">
+    <description>OpenSSH running on Ubuntu 6.04</description>
+    <example service.version="4.2p1" openssh.comment="Debian-7ubuntu3.1">OpenSSH_4.2p1 Debian-7ubuntu3.1</example>
+    <example service.version="4.2p1" openssh.comment="Debian-7ubuntu3.2">OpenSSH_4.2p1 Debian-7ubuntu3.2</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="6.04"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:6.04"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(4\.3p2) (Debian-8ubuntu\d+(?:\.\d+)?)$">
+    <description>OpenSSH running on Ubuntu 7.04</description>
+    <example service.version="4.3p2" openssh.comment="Debian-8ubuntu1.4">OpenSSH_4.3p2 Debian-8ubuntu1.4</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="7.04"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:7.04"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(4\.6p1) (Debian-5ubuntu\d+(?:\.\d+)?)$">
+    <description>OpenSSH running on Ubuntu 7.10</description>
+    <example service.version="4.6p1" openssh.comment="Debian-5ubuntu0.2">OpenSSH_4.6p1 Debian-5ubuntu0.2</example>
+    <example service.version="4.6p1" openssh.comment="Debian-5ubuntu0.5">OpenSSH_4.6p1 Debian-5ubuntu0.5</example>
+    <example service.version="4.6p1" openssh.comment="Debian-5ubuntu0.6">OpenSSH_4.6p1 Debian-5ubuntu0.6</example>
+    <example service.version="4.6p1" openssh.comment="Debian-5ubuntu0">OpenSSH_4.6p1 Debian-5ubuntu0</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="7.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:7.10"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(4\.7p1) (Debian-8ubuntu\d+(?:\.\d+)?)$">
+    <description>OpenSSH running on Ubuntu 8.04</description>
+    <example service.version="4.7p1" openssh.comment="Debian-8ubuntu1.2">OpenSSH_4.7p1 Debian-8ubuntu1.2</example>
+    <example service.version="4.7p1" openssh.comment="Debian-8ubuntu3">OpenSSH_4.7p1 Debian-8ubuntu3</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="8.04"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:8.04"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(5\.1p1) (Debian-3ubuntu\d+(?:\.\d+)?)$">
+    <description>OpenSSH running on Ubuntu 8.10</description>
+    <example service.version="5.1p1" openssh.comment="Debian-3ubuntu1">OpenSSH_5.1p1 Debian-3ubuntu1</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="8.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:8.10"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(5\.1p1) (Debian-5ubuntu\d+(?:\.\d+)?)$">
+    <description>OpenSSH running on Ubuntu 9.04</description>
+    <example service.version="5.1p1" openssh.comment="Debian-5ubuntu1">OpenSSH_5.1p1 Debian-5ubuntu1</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="9.04"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:9.04"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(5\.1p1) (Debian-6ubuntu\d+(?:\.\d+)?)$">
+    <description>OpenSSH running on Ubuntu 9.10</description>
+    <example service.version="5.1p1" openssh.comment="Debian-6ubuntu2">OpenSSH_5.1p1 Debian-6ubuntu2</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="9.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:9.10"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(5\.3p1) (Debian-3ubuntu\d+(?:\.\d+)?)$">
+    <description>OpenSSH running on Ubuntu 10.04 (lucid)</description>
+    <example service.version="5.3p1" openssh.comment="Debian-3ubuntu3">OpenSSH_5.3p1 Debian-3ubuntu3</example>
+    <example service.version="5.3p1" openssh.comment="Debian-3ubuntu4">OpenSSH_5.3p1 Debian-3ubuntu4</example>
+    <example service.version="5.3p1" openssh.comment="Debian-3ubuntu5">OpenSSH_5.3p1 Debian-3ubuntu5</example>
+    <example service.version="5.3p1" openssh.comment="Debian-3ubuntu6">OpenSSH_5.3p1 Debian-3ubuntu6</example>
+    <example service.version="5.3p1" openssh.comment="Debian-3ubuntu7">OpenSSH_5.3p1 Debian-3ubuntu7</example>
+    <example service.version="5.3p1" openssh.comment="Debian-3ubuntu7.1">OpenSSH_5.3p1 Debian-3ubuntu7.1</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="10.04"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:10.04"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(5\.5p1) (Debian-4ubuntu\d+(?:\.\d+)?)$">
+    <description>OpenSSH running on Ubuntu 10.10</description>
+    <example service.version="5.5p1" openssh.comment="Debian-4ubuntu4">OpenSSH_5.5p1 Debian-4ubuntu4</example>
+    <example service.version="5.5p1" openssh.comment="Debian-4ubuntu5">OpenSSH_5.5p1 Debian-4ubuntu5</example>
+    <example service.version="5.5p1" openssh.comment="Debian-4ubuntu6">OpenSSH_5.5p1 Debian-4ubuntu6</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="10.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:10.10"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(5\.8p1) (Debian-1ubuntu\d(?:\.\d)?)$">
+    <description>OpenSSH running on Ubuntu 11.04</description>
+    <example service.version="5.8p1" openssh.comment="Debian-1ubuntu3">OpenSSH_5.8p1 Debian-1ubuntu3</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="11.04"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:11.04"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(5\.8p1) (Debian-7ubuntu\d(?:\.\d)?)$">
+    <description>OpenSSH running on Ubuntu 11.10</description>
+    <example service.version="5.8p1" openssh.comment="Debian-7ubuntu1">OpenSSH_5.8p1 Debian-7ubuntu1</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="11.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:11.10"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(5\.9p1) (Debian-5ubuntu\d(?:\.\d)?)$">
+    <description>OpenSSH running on Ubuntu 12.04</description>
+    <example service.version="5.9p1" openssh.comment="Debian-5ubuntu1">OpenSSH_5.9p1 Debian-5ubuntu1</example>
+    <example service.version="5.9p1" openssh.comment="Debian-5ubuntu1.4">OpenSSH_5.9p1 Debian-5ubuntu1.4</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="12.04"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:12.04"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(6\.0p1) (Debian-3ubuntu\d(?:\.\d)?)$">
+    <description>OpenSSH running on Ubuntu 12.10</description>
+    <example service.version="6.0p1" openssh.comment="Debian-3ubuntu1">OpenSSH_6.0p1 Debian-3ubuntu1</example>
+    <example service.version="6.0p1" openssh.comment="Debian-3ubuntu1.2">OpenSSH_6.0p1 Debian-3ubuntu1.2</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="12.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:12.10"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(6\.1p1) (Debian-4)$">
+    <description>OpenSSH running on Ubuntu 13.04</description>
+    <example service.version="6.1p1" openssh.comment="Debian-4">OpenSSH_6.1p1 Debian-4</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="13.04"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:13.04"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(6\.2p2) (Ubuntu-6\S*)$">
+    <description>OpenSSH running on Ubuntu 13.10</description>
+    <example service.version="6.2p2" openssh.comment="Ubuntu-6unbuntu0.4">OpenSSH_6.2p2 Ubuntu-6unbuntu0.4</example>
+    <example service.version="6.2p2" openssh.comment="Ubuntu-6">OpenSSH_6.2p2 Ubuntu-6</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="13.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:13.10"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(\d+\.\d+(?:\.\d+)?(?:p\d+)?)[_|-](hpn\d+v\d+)$">
+    <description>OpenSSH with HPN patches</description>
+    <example service.version="6.1" openssh.comment="hpn13v11">OpenSSH_6.1_hpn13v11</example>
+    <example service.version="5.8p1" openssh.comment="hpn13v11">OpenSSH_5.8p1-hpn13v11</example>
+    <example service.version="5.8p1" openssh.comment="hpn14v9">OpenSSH_5.8p1-hpn14v9</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(6\.6(?:\.1)?p1) (Ubuntu-2\S*)$">
+    <description>OpenSSH running on Ubuntu 14.04</description>
+    <example service.version="6.6p1" openssh.comment="Ubuntu-2ubuntu1">OpenSSH_6.6p1 Ubuntu-2ubuntu1</example>
+    <example service.version="6.6.1p1" openssh.comment="Ubuntu-2ubuntu2">OpenSSH_6.6.1p1 Ubuntu-2ubuntu2</example>
+    <example service.version="6.6.1p1" openssh.comment="Ubuntu-2ubuntu2.13">OpenSSH_6.6.1p1 Ubuntu-2ubuntu2.13</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="14.04"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:14.04"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(6\.6\.1p1) (Ubuntu-8)$">
+    <description>OpenSSH running on Ubuntu 14.10</description>
+    <example service.version="6.6.1p1" openssh.comment="Ubuntu-8">OpenSSH_6.6.1p1 Ubuntu-8</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="14.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:14.10"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(6\.7p1) (Ubuntu-5\S*)$">
+    <description>OpenSSH running on Ubuntu 15.04 (vivid)</description>
+    <example service.version="6.7p1" openssh.comment="Ubuntu-5ubuntu1">OpenSSH_6.7p1 Ubuntu-5ubuntu1</example>
+    <example service.version="6.7p1" openssh.comment="Ubuntu-5ubuntu1.4">OpenSSH_6.7p1 Ubuntu-5ubuntu1.4</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="15.04"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:15.04"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(6\.9p1) (Ubuntu-2\S*)$">
+    <description>OpenSSH running on Ubuntu 15.10</description>
+    <example service.version="6.9p1" openssh.comment="Ubuntu-2">OpenSSH_6.9p1 Ubuntu-2</example>
+    <example service.version="6.9p1" openssh.comment="Ubuntu-2ubuntu0.2">OpenSSH_6.9p1 Ubuntu-2ubuntu0.2</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="15.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:15.10"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(7\.2p2) (Ubuntu-4\S*)$">
+    <description>OpenSSH running on Ubuntu 16.04 (vivid)</description>
+    <example service.version="7.2p2" openssh.comment="Ubuntu-4ubuntu2.7">OpenSSH_7.2p2 Ubuntu-4ubuntu2.7</example>
+    <example service.version="7.2p2" openssh.comment="Ubuntu-4ubuntu1">OpenSSH_7.2p2 Ubuntu-4ubuntu1</example>
+    <example service.version="7.2p2" openssh.comment="Ubuntu-4">OpenSSH_7.2p2 Ubuntu-4</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="16.04"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:16.04"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(7\.3p1) (Ubuntu-1)$">
+    <description>OpenSSH running on Ubuntu 16.10</description>
+    <example service.version="7.3p1" openssh.comment="Ubuntu-1">OpenSSH_7.3p1 Ubuntu-1</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="16.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:16.10"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(7\.4p1) (Ubuntu-10)$">
+    <description>OpenSSH running on Ubuntu 17.04</description>
+    <example service.version="7.4p1" openssh.comment="Ubuntu-10">OpenSSH_7.4p1 Ubuntu-10</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="17.04"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:17.04"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(7\.5p1) (Ubuntu-10\S*)$">
+    <description>OpenSSH running on Ubuntu 17.10</description>
+    <example service.version="7.5p1" openssh.comment="Ubuntu-10ubuntu0.1">OpenSSH_7.5p1 Ubuntu-10ubuntu0.1</example>
+    <example service.version="7.5p1" openssh.comment="Ubuntu-10">OpenSSH_7.5p1 Ubuntu-10</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="17.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:17.10"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(7\.6p1) (Ubuntu-4\S*)$">
+    <description>OpenSSH running on Ubuntu 18.04</description>
+    <example service.version="7.6p1" openssh.comment="Ubuntu-4ubuntu0.3">OpenSSH_7.6p1 Ubuntu-4ubuntu0.3</example>
+    <example service.version="7.6p1" openssh.comment="Ubuntu-4">OpenSSH_7.6p1 Ubuntu-4</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="18.04"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:18.04"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(7\.7p1) (Ubuntu-4\S*)$">
+    <description>OpenSSH running on Ubuntu 18.10</description>
+    <example service.version="7.7p1" openssh.comment="Ubuntu-4">OpenSSH_7.7p1 Ubuntu-4</example>
+    <example service.version="7.7p1" openssh.comment="Ubuntu-4ubuntu0.3">OpenSSH_7.7p1 Ubuntu-4ubuntu0.3</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="18.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:18.10"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(7\.9p1) (Ubuntu-10)$">
+    <description>OpenSSH running on Ubuntu 19.04</description>
+    <example service.version="7.9p1" openssh.comment="Ubuntu-10">OpenSSH_7.9p1 Ubuntu-10</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="19.04"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:19.04"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(8\.0p1) (Ubuntu-6build1)$">
+    <description>OpenSSH running on Ubuntu 19.10</description>
+    <example service.version="8.0p1" openssh.comment="Ubuntu-6build1">OpenSSH_8.0p1 Ubuntu-6build1</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="19.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:19.10"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(8\.2p1) (Ubuntu-4\S*)$">
+    <description>OpenSSH running on Ubuntu 20.04</description>
+    <example service.version="8.2p1" openssh.comment="Ubuntu-4ubuntu0.1">OpenSSH_8.2p1 Ubuntu-4ubuntu0.1</example>
+    <example service.version="8.2p1" openssh.comment="Ubuntu-4">OpenSSH_8.2p1 Ubuntu-4</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="20.04"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:20.04"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(8\.3p1) (Ubuntu-1\S*)$">
+    <description>OpenSSH running on Ubuntu 20.10</description>
+    <example service.version="8.3p1" openssh.comment="Ubuntu-1">OpenSSH_8.3p1 Ubuntu-1</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="20.10"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:20.10"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_([^\s]+)\s+(Ubuntu-\d\d?)$">
+    <description>OpenSSH running on Ubuntu (unknown release)</description>
+    <example service.version="7.6p1" openssh.comment="Ubuntu-2">OpenSSH_7.6p1 Ubuntu-2</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_([^\s]+)\s+((?:Debian|Ubuntu).+ubuntu.*)$">
+    <description>OpenSSH running on Ubuntu</description>
+    <example service.version="7.2p3" openssh.comment="Ubuntu-4ubuntu2.2">OpenSSH_7.2p3 Ubuntu-4ubuntu2.2</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Ubuntu"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.certainty" value="0.75"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:canonical:ubuntu_linux:-"/>
+  </fingerprint>
+
+  <!-- Debian -->
+
+  <fingerprint pattern="^OpenSSH_([^\s]+)\s+(Debian.+woody.*)$">
+    <description>OpenSSH running on Debian 3.0 (woody)</description>
+    <example service.version="3.4p1" openssh.comment="Debian 1:3.4p1-1.woody.3">OpenSSH_3.4p1 Debian 1:3.4p1-1.woody.3</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Debian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="3.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:debian:debian_linux:3.0"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_([^\s]+)\s+(Debian.+sarge.*)$">
+    <description>OpenSSH running on Debian 3.1 (sarge)</description>
+    <example service.version="3.8.1p1" openssh.comment="Debian-8.sarge.4">OpenSSH_3.8.1p1 Debian-8.sarge.4</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Debian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="3.1"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:debian:debian_linux:3.1"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(4\.3p2) (Debian-9.*)$">
+    <description>OpenSSH running on Debian 4.0 (etch)</description>
+    <example service.version="4.3p2" openssh.comment="Debian-9">OpenSSH_4.3p2 Debian-9</example>
+    <example service.version="4.3p2" openssh.comment="Debian-9etch3">OpenSSH_4.3p2 Debian-9etch3</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Debian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="4.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:debian:debian_linux:4.0"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(5\.1p1) (Debian-5)$">
+    <description>OpenSSH running on Debian 5.0 (also 5.10)</description>
+    <example service.version="5.1p1" openssh.comment="Debian-5">OpenSSH_5.1p1 Debian-5</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Debian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="5.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:debian:debian_linux:5.0"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_([^\s]+)\s+(Debian-\d+[+~]squeeze.*)$">
+    <description>OpenSSH running on Debian 6.0 (squeeze)</description>
+    <example service.version="5.5p1" openssh.comment="Debian-6+squeeze4">OpenSSH_5.5p1 Debian-6+squeeze4</example>
+    <example service.version="5.5p1" openssh.comment="Debian-26+squeeze7">OpenSSH_5.5p1 Debian-26+squeeze7</example>
+    <example service.version="5.8p1" openssh.comment="Debian-4~squeeze+1">OpenSSH_5.8p1 Debian-4~squeeze+1</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Debian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="6.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:debian:debian_linux:6.0"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(5\.5p1) (Debian-6)$">
+    <description>OpenSSH running on Debian 6.0 (w/o squeeze in banner)</description>
+    <example service.version="5.5p1" openssh.comment="Debian-6">OpenSSH_5.5p1 Debian-6</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Debian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="6.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:debian:debian_linux:6.0"/>
+  </fingerprint>
+
+  <!-- More specific than and should preceed the 7.0 match -->
+
+  <fingerprint pattern="^OpenSSH_([^\s]+)\s+(Debian-4\+deb7u2)$">
+    <description>OpenSSH running on Debian 7.8 (wheezy)</description>
+    <example service.version="6.0p1" openssh.comment="Debian-4+deb7u2">OpenSSH_6.0p1 Debian-4+deb7u2</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Debian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="7.8"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:debian:debian_linux:7.8"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_([^\s]+)\s+(Debian-4(?:\+deb7u\d+)?)$">
+    <description>OpenSSH running on Debian 7.x (wheezy)</description>
+    <example service.version="6.0p1" openssh.comment="Debian-4">OpenSSH_6.0p1 Debian-4</example>
+    <example service.version="6.0p1" openssh.comment="Debian-4+deb7u1">OpenSSH_6.0p1 Debian-4+deb7u1</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Debian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="7.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:debian:debian_linux:7.0"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_([^\s]+)\s+(Debian-\d~bpo7\d?\+\d+)$">
+    <description>OpenSSH backport running on Debian 7.x (wheezy)</description>
+    <example service.version="6.6.1p1" openssh.comment="Debian-4~bpo70+1">OpenSSH_6.6.1p1 Debian-4~bpo70+1</example>
+    <example service.version="6.4p1" openssh.comment="Debian-1~bpo70+2">OpenSSH_6.4p1 Debian-1~bpo70+2</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Debian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="7.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:debian:debian_linux:7.0"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_([^\s]+)\s+(Debian-5\+deb8u\d+.*)$">
+    <description>OpenSSH running on Debian 8.x (jessie)</description>
+    <example service.version="6.7p1" openssh.comment="Debian-5+deb8u2">OpenSSH_6.7p1 Debian-5+deb8u2</example>
+    <example service.version="6.7p1" openssh.comment="Debian-5+deb8u1~ui80+7">OpenSSH_6.7p1 Debian-5+deb8u1~ui80+7</example>
+    <example service.version="6.7p1" openssh.comment="Debian-5+deb8u8">OpenSSH_6.7p1 Debian-5+deb8u8</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Debian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="8.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:debian:debian_linux:8.0"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_([^\s]+)\s+(Debian-\d\d?\+deb9u\d+)$">
+    <description>OpenSSH running on Debian 9.x (stretch)</description>
+    <example service.version="7.4p1" openssh.comment="Debian-10+deb9u1">OpenSSH_7.4p1 Debian-10+deb9u1</example>
+    <example service.version="6.0p1" openssh.comment="Debian-4+deb9u6">OpenSSH_6.0p1 Debian-4+deb9u6</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Debian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="9.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:debian:debian_linux:9.0"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(7\.9p1) (Debian-10)$">
+    <description>OpenSSH running on Debian 10.0 (buster)</description>
+    <example service.version="7.9p1" openssh.comment="Debian-10">OpenSSH_7.9p1 Debian-10</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Debian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="10.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:debian:debian_linux:10.0"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(7\.9p1) (Debian-10\+deb10u1)$">
+    <description>OpenSSH running on Debian 10.1 (buster)</description>
+    <example service.version="7.9p1" openssh.comment="Debian-10+deb10u1">OpenSSH_7.9p1 Debian-10+deb10u1</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Debian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="10.1"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:debian:debian_linux:10.1"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(7\.9p1) (Debian-10\+deb10u2)$">
+    <description>OpenSSH running on Debian 10.2 (buster)</description>
+    <example service.version="7.9p1" openssh.comment="Debian-10+deb10u2">OpenSSH_7.9p1 Debian-10+deb10u2</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Debian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="10.2"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:debian:debian_linux:10.2"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(7\.9p1) (Debian-10\S+)$">
+    <description>OpenSSH running on Debian 10.x (buster catchall)</description>
+    <example service.version="7.9p1" openssh.comment="Debian-10+deb10u6">OpenSSH_7.9p1 Debian-10+deb10u6</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Debian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="10.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:debian:debian_linux:10.0"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(8\.1p1) (Debian-1|Debian-\d\d?\+deb11u\d+)$">
+    <description>OpenSSH running on Debian 11.x (bullseye)</description>
+    <example service.version="8.1p1" openssh.comment="Debian-1">OpenSSH_8.1p1 Debian-1</example>
+    <example service.version="8.1p1" openssh.comment="Debian-1+deb11u1">OpenSSH_8.1p1 Debian-1+deb11u1</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Debian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="11.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:debian:debian_linux:11.0"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(9\.2p1) (Debian-\d\d?\+deb12u\d+)$">
+    <description>OpenSSH running on Debian 12.x (bookworm)</description>
+    <example service.version="9.2p1" openssh.comment="Debian-2+deb12u3">OpenSSH_9.2p1 Debian-2+deb12u3</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Debian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="12.0"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:debian:debian_linux:12.0"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_([^\s]+)\s+(Debian-\d+(?:[~]?bpo[.]?\d+)?)$">
+    <description>OpenSSH running on Debian (unknown release)</description>
+    <example service.version="4.3p2" openssh.comment="Debian-5~bpo.1">OpenSSH_4.3p2 Debian-5~bpo.1</example>
+    <example service.version="4.2p1" openssh.comment="Debian-4bpo1">OpenSSH_4.2p1 Debian-4bpo1</example>
+    <example service.version="7.4p1" openssh.comment="Debian-10">OpenSSH_7.4p1 Debian-10</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Debian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:debian:debian_linux:-"/>
+  </fingerprint>
+
+  <!-- Raspbian -->
+
+  <fingerprint pattern="^OpenSSH_([^\s]+)\s+(Raspbian-5\+deb8u\d+)$">
+    <description>OpenSSH running on Raspbian (Debian 8 "Jessie" based)</description>
+    <example service.version="6.7p1" openssh.comment="Raspbian-5+deb8u1">OpenSSH_6.7p1 Raspbian-5+deb8u1</example>
+    <example service.version="6.7p1" openssh.comment="Raspbian-5+deb8u2">OpenSSH_6.7p1 Raspbian-5+deb8u2</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Raspbian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="8.0"/>
+    <param pos="0" name="hw.product" value="Raspberry Pi"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_([^\s]+)\s+(Raspbian-\d\d?\+deb9u\d+)$">
+    <description>OpenSSH running on Raspbian (Debian 9 "Stretch" based)</description>
+    <example service.version="7.4p1" openssh.comment="Raspbian-10+deb9u1">OpenSSH_7.4p1 Raspbian-10+deb9u1</example>
+    <example service.version="7.4p1" openssh.comment="Raspbian-10+deb9u7">OpenSSH_7.4p1 Raspbian-10+deb9u7</example>
+    <example service.version="7.4p1" openssh.comment="Raspbian-9+deb9u1">OpenSSH_7.4p1 Raspbian-9+deb9u1</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Raspbian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="9.0"/>
+    <param pos="0" name="hw.product" value="Raspberry Pi"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(7\.9p1)\s+(Raspbian-(?:10|\d\d?\+deb10u\d+)(?:\+rpt\d)?)$">
+    <description>OpenSSH running on Raspbian (Debian 10 "Buster" based)</description>
+    <example service.version="7.9p1" openssh.comment="Raspbian-10">OpenSSH_7.9p1 Raspbian-10</example>
+    <example service.version="7.9p1" openssh.comment="Raspbian-10+deb10u1">OpenSSH_7.9p1 Raspbian-10+deb10u1</example>
+    <example service.version="7.9p1" openssh.comment="Raspbian-10+deb10u2+rpt1">OpenSSH_7.9p1 Raspbian-10+deb10u2+rpt1</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Raspbian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="10.0"/>
+    <param pos="0" name="hw.product" value="Raspberry Pi"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(8\.1p1)\s+(Raspbian-(?:1|\d\d?\+deb11u\d+))$">
+    <description>OpenSSH running on Raspbian (Debian 11 "Bullseye" based)</description>
+    <example service.version="8.1p1" openssh.comment="Raspbian-1">OpenSSH_8.1p1 Raspbian-1</example>
+    <example service.version="8.1p1" openssh.comment="Raspbian-1+deb11u1">OpenSSH_8.1p1 Raspbian-1+deb11u1</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Raspbian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="os.version" value="11.0"/>
+    <param pos="0" name="hw.product" value="Raspberry Pi"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_([^\s]+)\s+(Raspbian-\d\d?)$">
+    <description>OpenSSH running on Raspbian (Debian, unknown release)</description>
+    <example service.version="7.5p1" openssh.comment="Raspbian-10">OpenSSH_7.5p1 Raspbian-10</example>
+    <example service.version="6.9p1" openssh.comment="Raspbian-3">OpenSSH_6.9p1 Raspbian-3</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Raspbian"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="Linux"/>
+    <param pos="0" name="hw.product" value="Raspberry Pi"/>
+  </fingerprint>
+
+  <!-- Miscellaneous -->
+
+  <fingerprint pattern="^OpenSSH_(.*)\+(CAN-[0-9]{4}-[0-9]{4})$">
+    <description>OpenSSH with CVE patch, as seen in Mac OS X</description>
+    <example service.version="3.4p1" openssh.cvepatch="CAN-2004-0175">OpenSSH_3.4p1+CAN-2004-0175</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.cvepatch"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Apple"/>
+    <param pos="0" name="os.family" value="Mac OS X"/>
+    <param pos="0" name="os.product" value="Mac OS X"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:apple:mac_os_x:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(.*)_Mikrotik_v(.*)$">
+    <description>OpenSSH on MikroTik</description>
+    <example service.version="2.3.0" os.version="2.9">OpenSSH_2.3.0_Mikrotik_v2.9</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="os.version"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="MikroTik"/>
+    <param pos="0" name="os.device" value="Router"/>
+    <param pos="0" name="os.family" value="RouterOS"/>
+    <param pos="0" name="os.product" value="RouterOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:mikrotik:routeros:{os.version}"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(.*)-HipServ$">
+    <description>OpenSSH on HipServ</description>
+    <example service.version="4.3">OpenSSH_4.3-HipServ</example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="HipServ"/>
+    <param pos="0" name="os.device" value="NAS"/>
+    <param pos="0" name="os.family" value="Linux"/>
+    <param pos="0" name="os.product" value="HipServ"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_for_Windows_([\d.]+)$">
+    <description>OpenSSH running on Windows</description>
+    <example service.version="7.7">OpenSSH_for_Windows_7.7</example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Microsoft"/>
+    <param pos="0" name="os.family" value="Windows"/>
+    <param pos="0" name="os.product" value="Windows"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:microsoft:windows:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(.*) in DesktopAuthority (?:.*)$">
+    <description>DesktopAuthority SSH</description>
+    <example service.version="3.8">OpenSSH_3.8 in DesktopAuthority 7.1.091</example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Microsoft"/>
+    <param pos="0" name="os.family" value="Windows"/>
+    <param pos="0" name="os.product" value="Windows"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:microsoft:windows:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(\d+\.\d+(?:\.\d+)?(?:p\d+)?) ((?:PKIX\s+)?FIPS)$">
+    <description>OpenSSH with a version and FIPS mode enabled</description>
+    <example service.version="5.9" openssh.comment="FIPS">OpenSSH_5.9 FIPS</example>
+    <example service.version="6.2" openssh.comment="PKIX FIPS">OpenSSH_6.2 PKIX FIPS</example>
+    <example service.version="3.8.1p1" openssh.comment="FIPS">OpenSSH_3.8.1p1 FIPS</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="openssh.comment"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH_(\d+\.\d+(?:\.\d+)?(?:p\d+)?) *$">
+    <description>OpenSSH with just a version, no comment by vendor</description>
+    <example service.version="5.9p1">OpenSSH_5.9p1</example>
+    <example service.version="5.9">OpenSSH_5.9</example>
+    <example service.version="3.8.1p1">OpenSSH_3.8.1p1 </example>
+    <example service.version="6.6.1">OpenSSH_6.6.1</example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:{service.version}"/>
+  </fingerprint>
+
+  <fingerprint pattern="^OpenSSH$">
+    <description>OpenSSH w/o version or comment</description>
+    <example>OpenSSH</example>
+    <param pos="0" name="service.vendor" value="OpenBSD"/>
+    <param pos="0" name="service.family" value="OpenSSH"/>
+    <param pos="0" name="service.product" value="OpenSSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:openbsd:openssh:-"/>
+  </fingerprint>
+
+  <!-- SSH-1.99-OpenSSH_4.3p2-4.cern-hpn-CERN-4.3p2-4.cern -->
+
+  <!--<fingerprint pattern="^OpenSSH_?([^\s]*)\s*(.*)$">
+      <description>Catch all for OpenSSH based SSH servers
+      ******************** NOTE ********************
+      Be sure to put any specific OpenSSH derivative
+      checks above this block.
+      ******************** NOTE ********************
+      </description>
+      <param pos="1" name="service.version"/>
+      <param pos="2" name="openssh.comment"/>
+      <param pos="0" name="service.vendor" value="OpenBSD"/>
+      <param pos="0" name="service.family" value="OpenSSH"/>
+      <param pos="0" name="service.product" value="OpenSSH"/>
+   </fingerprint>
+
+-->
+
+  <!-- TODO: Handle "vpn3" banners for Cisco 3000 VPN Concentrators (need example banners first) -->
+
+  <fingerprint pattern="^Cisco-(.*)$">
+    <description>Cisco SSH banner (could be IOS or PIX), The version always seems to be 1.25</description>
+    <example service.version="1.25">Cisco-1.25</example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.vendor" value="Cisco"/>
+    <param pos="0" name="service.product" value="SSH"/>
+    <param pos="0" name="os.vendor" value="Cisco"/>
+    <param pos="0" name="os.product" value="IOS"/>
+    <param pos="0" name="os.certainty" value="0.8"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:cisco:ios:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^CISCO_WLC$">
+    <description>SSH banner from a Cisco WLC (WLC)</description>
+    <example>CISCO_WLC</example>
+    <param pos="0" name="service.vendor" value="Cisco"/>
+    <param pos="0" name="service.product" value="SSH"/>
+    <param pos="0" name="os.vendor" value="Cisco"/>
+    <param pos="0" name="os.product" value="Wireless LAN Controller"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:cisco:wireless_lan_controller_software:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="(?i)^Cleo (\S+)/(\S+) SSH FTP server$">
+    <description>Cleo networks Harmony, VLProxy, VLTrader, others</description>
+    <example service.product="Harmony" service.version="5.5.0.3">Cleo Harmony/5.5.0.3 SSH FTP server</example>
+    <example service.product="VLProxy" service.version="3.2">Cleo VLProxy/3.2 SSH FTP server</example>
+    <param pos="0" name="service.vendor" value="Cleo"/>
+    <param pos="1" name="service.product"/>
+    <param pos="2" name="service.version"/>
+  </fingerprint>
+
+  <fingerprint pattern="^Sun_SSH_(.*)$">
+    <description>Sun SSH banner</description>
+    <example service.version="1.1">Sun_SSH_1.1</example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.vendor" value="Sun"/>
+    <param pos="0" name="service.product" value="SSH"/>
+    <param pos="0" name="os.vendor" value="Sun"/>
+    <param pos="0" name="os.family" value="Solaris"/>
+    <param pos="0" name="os.product" value="Solaris"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:sun:solaris:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^SSH Protocol Compatible Server SCS (.*)$">
+    <description>Netscreen with version</description>
+    <example service.version="2.0">SSH Protocol Compatible Server SCS 2.0</example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.vendor" value="Juniper"/>
+    <param pos="0" name="service.family" value="NetScreen"/>
+    <param pos="0" name="service.product" value="NetScreen"/>
+    <param pos="0" name="os.vendor" value="Juniper"/>
+    <param pos="0" name="os.device" value="Firewall"/>
+    <param pos="0" name="os.family" value="ScreenOS"/>
+    <param pos="0" name="os.product" value="ScreenOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:juniper:screenos:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^NetScreen$">
+    <description>Netscreen generic</description>
+    <example>NetScreen</example>
+    <param pos="0" name="service.vendor" value="Juniper"/>
+    <param pos="0" name="service.family" value="NetScreen"/>
+    <param pos="0" name="service.product" value="NetScreen"/>
+    <param pos="0" name="os.vendor" value="Juniper"/>
+    <param pos="0" name="os.device" value="Firewall"/>
+    <param pos="0" name="os.family" value="ScreenOS"/>
+    <param pos="0" name="os.product" value="ScreenOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:juniper:screenos:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^HUAWEI-(?:[\d\.]+)$">
+    <description>Huawei generic</description>
+    <example>HUAWEI-1.5</example>
+    <param pos="0" name="hw.vendor" value="Huawei"/>
+  </fingerprint>
+
+  <fingerprint pattern="^HUAWEI-UMG(\d+)">
+    <description>Huawei Universal Media Gateway</description>
+    <example hw.model="8900">HUAWEI-UMG8900</example>
+    <param pos="0" name="hw.vendor" value="Huawei"/>
+    <param pos="0" name="hw.product" value="Universal Media Gateway"/>
+    <param pos="0" name="hw.device" value="Telecom"/>
+    <param pos="1" name="hw.model"/>
+  </fingerprint>
+
+  <fingerprint pattern="^HUAWEI.VRP.([\d\.]+)$">
+    <description>Huawei Versatile Routing Platform (VRP)</description>
+    <example os.version="3.10" service.version="3.10">HUAWEI-VRP-3.10</example>
+    <example os.version="8.0" service.version="8.0">HUAWEI_VRPV8.0</example>
+    <param pos="0" name="service.vendor" value="Huawei"/>
+    <param pos="0" name="service.family" value="VRP"/>
+    <param pos="0" name="service.product" value="VRP"/>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="os.vendor" value="Huawei"/>
+    <param pos="0" name="os.device" value="Router"/>
+    <param pos="0" name="os.family" value="VRP"/>
+    <param pos="0" name="os.product" value="VRP"/>
+    <param pos="1" name="os.version"/>
+  </fingerprint>
+
+  <fingerprint pattern="(?i)^([\d.]{1,8})[ _]sshlib:? GlobalScape$">
+    <description>GlobalScape SSH (which uses Bitvise sshlib)</description>
+    <example service.component.version="1.36">1.36_sshlib GlobalSCAPE</example>
+    <example service.component.version="1.82">1.82_sshlib Globalscape</example>
+    <example service.component.version="1.36">1.36 sshlib: GlobalScape</example>
+    <param pos="1" name="service.component.version"/>
+    <param pos="0" name="service.component.vendor" value="Bitvise"/>
+    <param pos="0" name="service.component.family" value="sshlib"/>
+    <param pos="0" name="service.component.product" value="sshlib"/>
+    <param pos="0" name="service.vendor" value="GlobalScape"/>
+    <param pos="0" name="service.family" value="Secure FTP Server"/>
+    <param pos="0" name="service.product" value="Secure FTP Server"/>
+    <param pos="0" name="os.vendor" value="Microsoft"/>
+    <param pos="0" name="os.family" value="Windows"/>
+    <param pos="0" name="os.product" value="Windows"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:microsoft:windows:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^([\d.]{1,8}) sshlib: WinSSHD ([\w.-]*)$">
+    <description>Bitvise WinSSHD (which uses Bitvise sshlib)</description>
+    <example service.component.version="1.78" service.version="4.15a">1.78 sshlib: WinSSHD 4.15a</example>
+    <param pos="1" name="service.component.version"/>
+    <param pos="2" name="service.version"/>
+    <param pos="0" name="service.component.vendor" value="Bitvise"/>
+    <param pos="0" name="service.component.family" value="sshlib"/>
+    <param pos="0" name="service.component.product" value="sshlib"/>
+    <param pos="0" name="service.vendor" value="Bitvise"/>
+    <param pos="0" name="service.family" value="WinSSHD"/>
+    <param pos="0" name="service.product" value="WinSSHD"/>
+    <param pos="0" name="os.vendor" value="Microsoft"/>
+    <param pos="0" name="os.family" value="Windows"/>
+    <param pos="0" name="os.product" value="Windows"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:microsoft:windows:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^([\d.]{1,8}) FlowSsh: (?:Bitvise SSH Server \(WinSSHD\)|WinSSHD) ([\d\.]+):?">
+    <description>Bitvise WinSSHD (which uses Bitvise flowssh) with version</description>
+    <example service.version="5.09" service.component.version="1.03">1.03 FlowSsh: WinSSHD 5.09</example>
+    <example service.version="5.20" service.component.version="1.07">1.07 FlowSsh: WinSSHD 5.20: free only for personal non-commercial use</example>
+    <example service.version="6.03" service.component.version="5.21">5.21 FlowSsh: Bitvise SSH Server (WinSSHD) 6.03: free only for personal non-commercial use</example>
+    <param pos="1" name="service.component.version"/>
+    <param pos="2" name="service.version"/>
+    <param pos="0" name="service.component.vendor" value="Bitvise"/>
+    <param pos="0" name="service.component.family" value="flowssh"/>
+    <param pos="0" name="service.component.product" value="flowssh"/>
+    <param pos="0" name="service.vendor" value="Bitvise"/>
+    <param pos="0" name="service.family" value="WinSSHD"/>
+    <param pos="0" name="service.product" value="WinSSHD"/>
+    <param pos="0" name="os.vendor" value="Microsoft"/>
+    <param pos="0" name="os.family" value="Windows"/>
+    <param pos="0" name="os.product" value="Windows"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:microsoft:windows:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^([\d.]{1,8}) FlowSsh: (?:Bitvise SSH Server \(WinSSHD\)|WinSSHD)(?: :.*)?$">
+    <description>Bitvise WinSSHD (which uses Bitvise flowssh) without version</description>
+    <example service.component.version="9.99">9.99 FlowSsh: Bitvise SSH Server (WinSSHD)</example>
+    <example service.component.version="9.99">9.99 FlowSsh: Bitvise SSH Server (WinSSHD) : free only for personal non-commercial use</example>
+    <param pos="1" name="service.component.version"/>
+    <param pos="0" name="service.component.vendor" value="Bitvise"/>
+    <param pos="0" name="service.component.family" value="flowssh"/>
+    <param pos="0" name="service.component.product" value="flowssh"/>
+    <param pos="0" name="service.vendor" value="Bitvise"/>
+    <param pos="0" name="service.family" value="WinSSHD"/>
+    <param pos="0" name="service.product" value="WinSSHD"/>
+    <param pos="0" name="os.vendor" value="Microsoft"/>
+    <param pos="0" name="os.family" value="Windows"/>
+    <param pos="0" name="os.product" value="Windows"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:microsoft:windows:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^([\d.]{1,8}) sshlib: MOVEit DMZ SSH (.*)$">
+    <description>MOVEit DMZ (which uses Bitvise sshlib)</description>
+    <example service.component.version="1.29" service.version="3.0.5.0">1.29 sshlib: MOVEit DMZ SSH 3.0.5.0</example>
+    <param pos="1" name="service.component.version"/>
+    <param pos="2" name="service.version"/>
+    <param pos="0" name="service.component.vendor" value="Bitvise"/>
+    <param pos="0" name="service.component.family" value="sshlib"/>
+    <param pos="0" name="service.component.product" value="sshlib"/>
+    <param pos="0" name="service.vendor" value="Standard Networks"/>
+    <param pos="0" name="service.family" value="MOVEit DMZ"/>
+    <param pos="0" name="service.product" value="MOVEit DMZ"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:ipswitch:moveit_dmz:{service.version}"/>
+    <param pos="0" name="os.vendor" value="Microsoft"/>
+    <param pos="0" name="os.family" value="Windows"/>
+    <param pos="0" name="os.product" value="Windows"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:microsoft:windows:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^MOVEit Transfer SFTP$">
+    <description>Progress MOVEit Transfer (formerly MOVEit DMZ, MOVEit File Transfer)</description>
+    <example>MOVEit Transfer SFTP</example>
+    <param pos="0" name="service.vendor" value="Progress"/>
+    <param pos="0" name="service.product" value="MOVEit Transfer"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:progress:moveit_transfer:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^paramiko_([\d\.]+)">
+    <description>Paramiko</description>
+    <example service.version="2.1.3">paramiko_2.1.3 501 command not implemented ERROR</example>
+    <example service.version="2.1.4">paramiko_2.1.4</example>
+    <param pos="0" name="service.vendor" value="Paramiko"/>
+    <param pos="0" name="service.product" value="Paramiko"/>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:paramiko:paramiko:{service.version}"/>
+  </fingerprint>
+
+  <fingerprint pattern="^Pragma SecureShell\s*(.*)$">
+    <description>Pragma SecureShell</description>
+    <example service.version="3.0">Pragma SecureShell 3.0</example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.vendor" value="Pragma Systems"/>
+    <param pos="0" name="service.family" value="FortressSSH Server"/>
+    <param pos="0" name="service.product" value="FortressSSH Server"/>
+    <param pos="0" name="os.vendor" value="Microsoft"/>
+    <param pos="0" name="os.family" value="Windows"/>
+    <param pos="0" name="os.product" value="Windows"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:microsoft:windows:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^Pragma FortressSSH\s+([\d.]+)(?:\s+\[([\d.:]+)\])?$">
+    <description>Pragma FortressSSH</description>
+    <example service.version="5.0.9.2031">Pragma FortressSSH 5.0.9.2031</example>
+    <example service.version="5.0.9.2680" host.ip="10.10.10.10">Pragma FortressSSH 5.0.9.2680 [10.10.10.10]</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="host.ip"/>
+    <param pos="0" name="service.vendor" value="Pragma Systems"/>
+    <param pos="0" name="service.family" value="FortressSSH Server"/>
+    <param pos="0" name="service.product" value="FortressSSH Server"/>
+    <param pos="0" name="os.vendor" value="Microsoft"/>
+    <param pos="0" name="os.family" value="Windows"/>
+    <param pos="0" name="os.product" value="Windows"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:microsoft:windows:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^RebexSSH_([\d\.]+)$">
+    <description>Rbex SSH</description>
+    <example service.version="1.0.5.25508">RebexSSH_1.0.5.25508</example>
+    <param pos="0" name="service.vendor" value="Ruijie"/>
+    <param pos="0" name="service.product" value="SSH"/>
+    <param pos="1" name="service.version"/>
+  </fingerprint>
+
+  <fingerprint pattern="^RGOS_\S+$">
+    <description>Ruijie Networks SSH</description>
+    <example>RGOS_SSH_1.0</example>
+    <example>RGOS_PK3223</example>
+    <param pos="0" name="hw.vendor" value="Ruijie"/>
+  </fingerprint>
+
+  <fingerprint pattern="^VShell_(?:Special_Edition_)?(\d+)_(\d+)_(\d+)_(\d+) VShell$">
+    <description>VanDyke VShell - detailed variant</description>
+    <example service.version="3" service.version.version="6" service.version.version.version="2" service.version.version.version.version="446">VShell_3_6_2_446 VShell</example>
+    <example service.version="2" service.version.version="5" service.version.version.version="0" service.version.version.version.version="204">VShell_Special_Edition_2_5_0_204 VShell</example>
+    <param pos="1" name="service.version"/>
+    <param pos="2" name="service.version.version"/>
+    <param pos="3" name="service.version.version.version"/>
+    <param pos="4" name="service.version.version.version.version"/>
+    <param pos="0" name="service.vendor" value="VanDyke Software"/>
+    <param pos="0" name="service.family" value="VShell"/>
+    <param pos="0" name="service.product" value="VShell"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:vandyke:vshell:{service.version}"/>
+  </fingerprint>
+
+  <fingerprint pattern="^([\d.]{0,8})\s{1,8}VShell$">
+    <description>VanDyke VShell</description>
+    <example service.version="1.0.2">1.0.2 VShell</example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.vendor" value="VanDyke Software"/>
+    <param pos="0" name="service.family" value="VShell"/>
+    <param pos="0" name="service.product" value="VShell"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:vandyke:vshell:{service.version}"/>
+  </fingerprint>
+
+  <fingerprint pattern="^WRQReflection[Ff]orSecureIT_(.*)$">
+    <description>Attachmate Reflection (formerly WRQ Reflection for Secure IT)</description>
+    <example service.version="6.1 Build 21">WRQReflectionForSecureIT_6.1 Build 21</example>
+    <example service.version="8.2 Build 117">WRQReflectionforSecureIT_8.2 Build 117</example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.vendor" value="Attachmate"/>
+    <param pos="0" name="service.family" value="Reflection"/>
+    <param pos="0" name="service.product" value="Reflection for Secure IT"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:attachmate:reflection_for_secure_it:{service.version}"/>
+  </fingerprint>
+
+  <fingerprint pattern="^(\S{0,256})\s{0,256}F-Secure SSH ">
+    <description>Attachmate Reflection (formerly F-Secure SSH)</description>
+    <example service.version="3.2.3">3.2.3 F-Secure SSH Windows NT Server</example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.vendor" value="Attachmate"/>
+    <param pos="0" name="service.family" value="Reflection"/>
+    <param pos="0" name="service.product" value="Reflection"/>
+  </fingerprint>
+
+  <fingerprint pattern="^(\S{0,256})\s{0,256}SSH Tectia Server$">
+    <description>SSH Communications Security Tectia Server - branded</description>
+    <example service.version="6.4.12.353">6.4.12.353 SSH Tectia Server</example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.vendor" value="SSH Communications Security"/>
+    <param pos="0" name="service.family" value="SSH Tectia Server"/>
+    <param pos="0" name="service.product" value="SSH Tectia Server"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:ssh:tectia_server:{service.version}"/>
+  </fingerprint>
+
+  <fingerprint pattern="^([0-9\.]{1,8}) SSH Secure Shell(?: \(non-commercial\))?$">
+    <description>SSH Communications Security Tectia Server</description>
+    <example service.version="3.2.9.1">3.2.9.1 SSH Secure Shell (non-commercial)</example>
+    <example service.version="4.0.3">4.0.3 SSH Secure Shell</example>
+    <example service.version="4.4.2.3">4.4.2.3 SSH Secure Shell</example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.vendor" value="SSH Communications Security"/>
+    <param pos="0" name="service.family" value="SSH Tectia Server"/>
+    <param pos="0" name="service.product" value="SSH Tectia Server"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:ssh:tectia_server:{service.version}"/>
+  </fingerprint>
+
+  <fingerprint pattern="^([0-9\.]{1,8}) SSH Secure Shell Windows NT Server$">
+    <description>Unknown Windows SSH server</description>
+    <example service.version="4.0.3">4.0.3 SSH Secure Shell Windows NT Server</example>
+    <param pos="0" name="os.vendor" value="Microsoft"/>
+    <param pos="0" name="os.family" value="Windows"/>
+    <param pos="0" name="os.product" value="Windows"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:microsoft:windows:-"/>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.vendor" value="SSH Communications Security"/>
+    <param pos="0" name="service.family" value="SSH Tectia Server"/>
+    <param pos="0" name="service.product" value="SSH Tectia Server"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:ssh:tectia_server:{service.version}"/>
+  </fingerprint>
+
+  <fingerprint pattern="^ARRIS_(.*)$">
+    <description>ARRIS device (though not clear which) - www.arrisi.com</description>
+    <example service.version="0.50">ARRIS_0.50</example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.vendor" value="ARRIS"/>
+    <param pos="0" name="service.product" value="ARRIS"/>
+    <param pos="0" name="os.vendor" value="ARRIS"/>
+  </fingerprint>
+
+  <fingerprint pattern="^Mocana SSH\s?(?:([\d.]+))?$">
+    <description>Mocana Embedded SSH</description>
+    <example service.version="5.3.1">Mocana SSH 5.3.1</example>
+    <example>Mocana SSH </example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.vendor" value="Mocana"/>
+    <param pos="0" name="service.family" value="Embedded SSH Server"/>
+    <param pos="0" name="service.product" value="Embedded SSH Server"/>
+  </fingerprint>
+
+  <fingerprint pattern="^FreSSH\.(.*)$">
+    <description>FreSSH</description>
+    <example service.version="0.8">FreSSH.0.8</example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.family" value="FreSSH"/>
+    <param pos="0" name="service.product" value="FreSSH"/>
+  </fingerprint>
+
+  <fingerprint pattern="^RomCliSecure_(.*)$">
+    <description>RomCliSecure appears to be the Adtran NetVanta products</description>
+    <example service.version="4.12">RomCliSecure_4.12</example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.vendor" value="Adtran"/>
+    <param pos="0" name="service.family" value="NetVanta"/>
+    <param pos="0" name="service.product" value="NetVanta"/>
+    <param pos="0" name="os.vendor" value="Adtran"/>
+    <param pos="0" name="os.family" value="NetVanta"/>
+    <param pos="0" name="os.product" value="NetVanta"/>
+  </fingerprint>
+
+  <fingerprint pattern="MultiNet">
+    <description>Process Software MultiNet is a suite of network apps for OpenVMS</description>
+    <example>Process Software SSH 6.1.5.0 MultiNet</example>
+    <param pos="0" name="service.vendor" value="Process Software"/>
+    <param pos="0" name="service.family" value="MultiNet"/>
+    <param pos="0" name="service.product" value="MultiNet"/>
+    <param pos="0" name="os.vendor" value="HP"/>
+    <param pos="0" name="os.family" value="OpenVMS"/>
+    <param pos="0" name="os.product" value="OpenVMS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:hp:openvms:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^dropbear$">
+    <description>Dropbear w/o version - http://matt.ucc.asn.au/dropbear/dropbear.html</description>
+    <example>dropbear</example>
+    <param pos="0" name="service.vendor" value="Dropbear SSH Project"/>
+    <param pos="0" name="service.family" value="Dropbear"/>
+    <param pos="0" name="service.product" value="Dropbear SSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:dropbear_ssh_project:dropbear_ssh:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^dropbear_(.*)$">
+    <description>Dropbear - http://matt.ucc.asn.au/dropbear/dropbear.html</description>
+    <example service.version="2015.67">dropbear_2015.67</example>
+    <example service.version="0.49">dropbear_0.49</example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.vendor" value="Dropbear SSH Project"/>
+    <param pos="0" name="service.family" value="Dropbear"/>
+    <param pos="0" name="service.product" value="Dropbear SSH"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:dropbear_ssh_project:dropbear_ssh:{service.version}"/>
+  </fingerprint>
+
+  <fingerprint pattern="^lancom$">
+    <description>LANCOM Systems - http://www.lancom-systems.de/</description>
+    <example>lancom</example>
+    <param pos="0" name="service.vendor" value="LANCOM Systems"/>
+    <param pos="0" name="service.family" value="SSH"/>
+    <param pos="0" name="service.product" value="SSH"/>
+    <param pos="0" name="os.vendor" value="LANCOM Systems"/>
+  </fingerprint>
+
+  <fingerprint pattern="^0$">
+    <description>MOVEit DMZ</description>
+    <example>0</example>
+    <param pos="0" name="service.vendor" value="Standard Networks"/>
+    <param pos="0" name="service.family" value="MOVEit DMZ"/>
+    <param pos="0" name="service.product" value="MOVEit DMZ"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:ipswitch:moveit_dmz:-"/>
+    <param pos="0" name="os.vendor" value="Microsoft"/>
+    <param pos="0" name="os.family" value="Windows"/>
+    <param pos="0" name="os.product" value="Windows"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:microsoft:windows:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^Comware-(\d+\.?\d*\.?\d*)$">
+    <description>SSH on H3C Comware</description>
+    <example os.version="5.20.105">Comware-5.20.105</example>
+    <example os.version="5.20">Comware-5.20</example>
+    <param pos="0" name="service.vendor" value="H3C"/>
+    <param pos="0" name="service.product" value="SSH"/>
+    <param pos="0" name="os.vendor" value="H3C"/>
+    <param pos="0" name="os.device" value="Network"/>
+    <param pos="0" name="os.product" value="Comware"/>
+    <param pos="0" name="os.family" value="Comware"/>
+    <param pos="1" name="os.version"/>
+  </fingerprint>
+
+  <fingerprint pattern="^Data ONTAP SSH [\d\.]+$">
+    <description>SSH NetApp appliances</description>
+    <example>Data ONTAP SSH 1.0</example>
+    <param pos="0" name="os.vendor" value="NetApp"/>
+    <param pos="0" name="os.family" value="Data ONTAP"/>
+    <param pos="0" name="os.product" value="Data ONTAP"/>
+    <param pos="0" name="os.device" value="NAS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:netapp:data_ontap:-"/>
+    <param pos="0" name="hw.vendor" value="NetApp"/>
+    <param pos="0" name="hw.family" value="Data ONTAP"/>
+    <param pos="0" name="hw.product" value="Data ONTAP"/>
+    <param pos="0" name="hw.device" value="NAS"/>
+  </fingerprint>
+
+  <fingerprint pattern="^(\d\.\d+\.\d+) SSH Secure Shell OpenVMS V\d+\.\d+$">
+    <description>SSH for OpenVMS</description>
+    <example service.component.version="3.2.0">3.2.0 SSH Secure Shell OpenVMS V5.5</example>
+    <example service.component.version="2.4.1">2.4.1 SSH Secure Shell OpenVMS V1.0</example>
+    <param pos="1" name="service.component.version"/>
+    <param pos="0" name="service.component.vendor" value="SSH Communications Security"/>
+    <param pos="0" name="service.component.family" value="SSH Secure Shell"/>
+    <param pos="0" name="service.component.product" value="SSH Secure Shell"/>
+    <param pos="0" name="service.vendor" value="HP"/>
+    <param pos="0" name="service.family" value="OpenVMS"/>
+    <param pos="0" name="service.product" value="SSH Server"/>
+    <param pos="0" name="os.vendor" value="HP"/>
+    <param pos="0" name="os.family" value="OpenVMS"/>
+    <param pos="0" name="os.product" value="OpenVMS"/>
+    <param pos="0" name="os.certainty" value="0.75"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:hp:openvms:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^(\d\.\d+\.\d+) SSH (?:Secure Shell )?OpenVMS V\d\.\d VMS_sftp_version (\d)$">
+    <description>SSH for OpenVMS sftp</description>
+    <example service.component.version="3.2.0" service.version="3">3.2.0 SSH Secure Shell OpenVMS V5.5 VMS_sftp_version 3</example>
+    <example service.component.version="3.2.0" service.version="3">3.2.0 SSH OpenVMS V5.5 VMS_sftp_version 3</example>
+    <param pos="1" name="service.component.version"/>
+    <param pos="0" name="service.component.vendor" value="SSH Communications Security"/>
+    <param pos="0" name="service.component.family" value="SSH Secure Shell"/>
+    <param pos="0" name="service.component.product" value="SSH Secure Shell"/>
+    <param pos="0" name="service.vendor" value="HP"/>
+    <param pos="0" name="service.family" value="OpenVMS"/>
+    <param pos="0" name="service.product" value="VMS SFTP Server"/>
+    <param pos="2" name="service.version"/>
+    <param pos="0" name="os.vendor" value="HP"/>
+    <param pos="0" name="os.family" value="OpenVMS"/>
+    <param pos="0" name="os.certainty" value="0.75"/>
+  </fingerprint>
+
+  <fingerprint pattern="^\S{1,16} SSH Secure Shell Tru64 UNIX$">
+    <description>Digital/Compaq/HP Tru64 Unix</description>
+    <example>3.2.0 SSH Secure Shell Tru64 UNIX</example>
+    <param pos="0" name="os.vendor" value="HP"/>
+    <param pos="0" name="os.family" value="Unix"/>
+    <param pos="0" name="os.product" value="Tru64 Unix"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:hp:tru64_unix:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^ROSSSH$">
+    <description>MikroTik RouterOS sshd</description>
+    <example>ROSSSH</example>
+    <param pos="0" name="os.vendor" value="MikroTik"/>
+    <param pos="0" name="os.device" value="Router"/>
+    <param pos="0" name="os.family" value="RouterOS"/>
+    <param pos="0" name="os.product" value="RouterOS"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:mikrotik:routeros:-"/>
+  </fingerprint>
+
+  <!-- xlightftpd is an ftp server that also supports SFTP. The SFTP
+       server appears in ssh studies, thus this banner is here, and
+       not in ftp_banners.xml-->
+
+  <fingerprint pattern="^xlightftpd_release_([\d.]+)$">
+    <description>Xlight FTP Server</description>
+    <example service.version="3.8.3.6.1">xlightftpd_release_3.8.3.6.1</example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.vendor" value="Xlight"/>
+    <param pos="0" name="service.family" value="FTP Server"/>
+    <param pos="0" name="service.product" value="FTP Server"/>
+    <param pos="0" name="os.vendor" value="Microsoft"/>
+    <param pos="0" name="os.family" value="Windows"/>
+    <param pos="0" name="os.product" value="Windows"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:microsoft:windows:-"/>
+  </fingerprint>
+
+  <fingerprint pattern="^libssh[-_]([\d.]+)$">
+    <description>SSH server utilising libssh</description>
+    <example service.version="0.6.0">libssh-0.6.0</example>
+    <example service.version="0.8.0">libssh_0.8.0</example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.family" value="libssh"/>
+    <param pos="0" name="service.product" value="libssh"/>
+    <param pos="0" name="service.vendor" value="libssh"/>
+    <param pos="0" name="service.cpe23" value="cpe:/a:libssh:libssh:{service.version}"/>
+  </fingerprint>
+
+  <fingerprint pattern="^WeOnlyDo ([\d.]+)$">
+    <description>WeOnlyDo with version</description>
+    <example service.version="1.2.7">WeOnlyDo 1.2.7</example>
+    <example service.version="2.0.1">WeOnlyDo 2.0.1</example>
+    <example service.version="2.5.4">WeOnlyDo 2.5.4</example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.family" value="WeOnlyDo"/>
+    <param pos="0" name="service.vendor" value="WeOnlyDo"/>
+    <param pos="0" name="service.product" value="WeOnlyDo SSH Server"/>
+  </fingerprint>
+
+  <fingerprint pattern="^WeOnlyDo ([\d.]+) \(FIPS\)$">
+    <description>WeOnlyDo with version with FIPS mode enabled</description>
+    <example service.version="2.2.9">WeOnlyDo 2.2.9 (FIPS)</example>
+    <example service.version="2.4.3">WeOnlyDo 2.4.3 (FIPS)</example>
+    <param pos="1" name="service.version"/>
+    <param pos="0" name="service.family" value="WeOnlyDo"/>
+    <param pos="0" name="service.vendor" value="WeOnlyDo"/>
+    <param pos="0" name="service.product" value="WeOnlyDo SSH Server"/>
+  </fingerprint>
+
+  <fingerprint pattern="^Zyxel SSH server$">
+    <description>Zyxel Firewall SSH service</description>
+    <example>Zyxel SSH server</example>
+    <param pos="0" name="service.vendor" value="Zyxel"/>
+    <param pos="0" name="service.family" value="Zywall"/>
+    <param pos="0" name="os.vendor" value="Zyxel"/>
+    <param pos="0" name="os.product" value="ZyNOS firmware"/>
+    <param pos="0" name="os.cpe23" value="cpe:/o:zyxel:zynos_firmware:-"/>
+    <param pos="0" name="hw.vendor" value="Zyxel"/>
+    <param pos="0" name="hw.device" value="Firewall"/>
+    <param pos="0" name="hw.family" value="Unified Security Gateway"/>
+  </fingerprint>
+
+  <!--
+1.2.22j4rad
+2.40
+2.0.12
+Server-VII
+9.9.1
+IPSSH-1.10.0
+-->
+
+  <!--
+Possibly Nortel Passport
+SSH_2.1.1
+-->
+
+</fingerprints>

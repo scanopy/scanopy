@@ -1,73 +1,58 @@
 <script lang="ts">
 	import { useNetworksQuery } from '$lib/features/networks/queries';
-	import { common_network, networks_selectNetwork } from '$lib/paraglide/messages';
+	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
+	import { NetworkDisplay } from '$lib/shared/components/forms/selection/display/NetworkDisplay.svelte';
+	import { common_network } from '$lib/paraglide/messages';
 
 	/**
-	 * SelectNetwork supports two usage patterns:
+	 * Network picker for TanStack Form fields:
+	 *    <SelectNetwork selectedNetworkId={field.state.value} onNetworkChange={(id) => field.handleChange(id)} />
 	 *
-	 * 1. Binding (for svelte-forms): Use when parent prop is bindable
-	 *    <SelectNetwork bind:selectedNetworkId />
-	 *
-	 * 2. Callback (for TanStack Form): Use when you need to handle changes manually
-	 *    <SelectNetwork selectedNetworkId={value} onNetworkChange={(id) => handleChange(id)} />
+	 * Selects the first network when none is selected.
 	 */
 	interface Props {
 		selectedNetworkId?: string | null;
 		disabled?: boolean;
 		disabledReason?: string;
-		onNetworkChange?: (networkId: string) => void;
+		onNetworkChange: (networkId: string) => void;
 	}
 
 	let {
-		selectedNetworkId = $bindable(null),
+		selectedNetworkId = null,
 		disabled = false,
 		disabledReason = '',
 		onNetworkChange
 	}: Props = $props();
 
-	let helpText = $derived(disabled && disabledReason ? disabledReason : networks_selectNetwork());
+	let helpText = $derived(disabled ? disabledReason : '');
 
 	const networksQuery = useNetworksQuery();
 	let networksData = $derived(networksQuery.data ?? []);
 
+	// The displayed value. Callers hand in a form-store value that Svelte doesn't track, so a
+	// programmatic change (the auto-select below) would update the store but not the trigger.
+	let currentId = $derived(selectedNetworkId);
+
+	function select(networkId: string) {
+		currentId = networkId;
+		onNetworkChange(networkId);
+	}
+
 	// Auto-select first network if none selected
 	$effect(() => {
-		if (!selectedNetworkId && networksData.length > 0) {
-			const defaultId = networksData[0].id;
-			// When using callback mode (TanStack Form), only call the callback
-			// When using binding mode (svelte-forms), only set the bindable
-			if (onNetworkChange) {
-				onNetworkChange(defaultId);
-			} else {
-				selectedNetworkId = defaultId;
-			}
+		if (!currentId && networksData.length > 0) {
+			select(networksData[0].id);
 		}
 	});
-
-	function handleChange(event: Event) {
-		const value = (event.target as HTMLSelectElement).value;
-		if (onNetworkChange) {
-			onNetworkChange(value);
-		} else {
-			selectedNetworkId = value;
-		}
-	}
 </script>
 
-<div>
-	<label for="network" class="text-secondary mb-2 block text-sm font-medium">
-		{common_network()}</label
-	>
-	<select
-		id="network"
-		{disabled}
-		value={selectedNetworkId}
-		onchange={handleChange}
-		class="input-field"
-	>
-		{#each networksData as network (network.id)}
-			<option class="select-option" value={network.id}>{network.name}</option>
-		{/each}
-	</select>
-	<p class="text-tertiary mt-2 text-xs">{helpText}</p>
-</div>
+<RichSelect
+	label={common_network()}
+	selectedValue={currentId}
+	options={networksData}
+	displayComponent={NetworkDisplay}
+	onSelect={select}
+	{disabled}
+	loading={networksQuery.isPending}
+	{helpText}
+/>

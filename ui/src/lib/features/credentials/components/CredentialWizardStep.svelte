@@ -335,8 +335,8 @@
 	}
 
 	/**
-	 * Seed the wizard with one new credential per given type id (used to prefill
-	 * from the credential-type selection step). Types already present as a new
+	 * Seed the wizard with one new credential per given type id (the create-daemon
+	 * modal's daemon-host socket defaults). Types already present as a new
 	 * (non-existing) pending credential are skipped to avoid duplicates.
 	 */
 	export function addTypes(typeIds: string[]) {
@@ -346,13 +346,6 @@
 			);
 			if (!alreadyPending) handleAddCredential(typeId);
 		}
-		// Reconcile daemon-host-only entries (the local socket) with the grid selection: drop
-		// any that were deselected. Configurable creds added in the wizard are kept.
-		pendingCredentials = pendingCredentials.filter(
-			(p) =>
-				!isDaemonHostOnly(p.credential.credential_type.type) ||
-				typeIds.includes(p.credential.credential_type.type)
-		);
 	}
 
 	function handleAddExistingCredential(credentialId: string) {

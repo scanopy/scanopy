@@ -37,6 +37,7 @@
 		common_network,
 		common_noEntityYet,
 		common_tags,
+		common_updated,
 		common_unknownNetwork,
 		daemonApiKeys_title,
 		daemonApiKeys_provisionOnlyHint,
@@ -160,6 +161,7 @@
 			searchable: true,
 			filterable: true,
 			groupable: true,
+			sortable: true,
 			getValue(item) {
 				return networksData.find((n) => n.id == item.network_id)?.name || common_unknownNetwork();
 			},
@@ -170,6 +172,7 @@
 			label: common_enabled(),
 			type: 'boolean',
 			filterable: true,
+			groupable: true,
 			getValue: (key) => key.is_enabled ?? false
 		},
 		{
@@ -215,6 +218,13 @@
 			label: common_created(),
 			type: 'date',
 			sortable: true
+		},
+		{
+			key: 'updated_at',
+			label: common_updated(),
+			type: 'date',
+			sortable: true,
+			display: { hiddenByDefault: true }
 		}
 	];
 </script>

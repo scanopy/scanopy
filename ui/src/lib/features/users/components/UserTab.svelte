@@ -42,6 +42,7 @@
 		common_role,
 		common_status,
 		common_unknownEntity,
+		common_updated,
 		common_url,
 		common_user,
 		common_users,
@@ -51,10 +52,13 @@
 		invites_pendingInvite,
 		users_authMethod,
 		users_confirmDeleteUser,
+		users_emailVerified,
 		users_inviteUser,
 		users_noUsersFound,
 		users_noUsersSubtitle,
+		users_providerLinked,
 		users_subtitle,
+		users_termsAccepted,
 		users_verifyEmailToInvite
 	} from '$lib/paraglide/messages';
 
@@ -265,6 +269,7 @@
 			type: 'string',
 			filterable: true,
 			groupable: true,
+			sortable: true,
 			getValue: (item) =>
 				!isUser(item)
 					? invites_pendingInvite()
@@ -290,8 +295,11 @@
 			searchable: true,
 			filterable: true,
 			groupable: true,
+			sortable: true,
+			// Every role the backend defines, named the way the chip renders them.
+			filterOptions: permissions.getItems().map((role) => permissions.getName(role.id)),
 			getValue(item) {
-				return item.data.permissions;
+				return permissions.getName(item.data.permissions) || item.data.permissions;
 			},
 			display: {
 				getItems: (item) => {
@@ -311,6 +319,8 @@
 			label: common_networks(),
 			type: 'array',
 			searchable: true,
+			// Users share networks, so this filters; as an array it neither sorts nor groups.
+			filterable: true,
 			getValue: (item) => userNetworkItems(item).map((n) => n.label),
 			display: { getItems: userNetworkItems }
 		},
@@ -321,8 +331,9 @@
 			searchable: true,
 			filterable: true,
 			groupable: true,
+			sortable: true,
 			getValue(item) {
-				return isUser(item) ? item.data.oidc_provider || common_emailAndPassword() : '';
+				return isUser(item) ? item.data.oidc_provider || common_emailAndPassword() : null;
 			}
 		},
 		{
@@ -345,9 +356,12 @@
 			label: invites_createdBy(),
 			type: 'string',
 			searchable: true,
+			sortable: true,
+			groupable: true,
+			filterable: true,
 			getValue: (item) =>
 				isUser(item)
-					? ''
+					? null
 					: usersData.find((u) => u.id == item.data.created_by)?.email ||
 						common_unknownEntity({ entity: common_user() }),
 			display: { hiddenByDefault: true }
@@ -357,7 +371,41 @@
 			label: common_expires(),
 			type: 'date',
 			sortable: true,
-			getValue: (item) => (isUser(item) ? '' : item.data.expires_at),
+			getValue: (item) => (isUser(item) ? null : item.data.expires_at),
+			display: { hiddenByDefault: true }
+		},
+		{
+			key: 'updated_at',
+			label: common_updated(),
+			type: 'date',
+			sortable: true,
+			getValue: (item) => item.data.updated_at,
+			display: { hiddenByDefault: true }
+		},
+		// Account facts an invite does not have yet, so its cells stay empty.
+		{
+			key: 'email_verified',
+			label: users_emailVerified(),
+			type: 'boolean',
+			filterable: true,
+			groupable: true,
+			getValue: (item) => (isUser(item) ? (item.data.email_verified ?? null) : null),
+			display: { hiddenByDefault: true }
+		},
+		{
+			key: 'oidc_linked_at',
+			label: users_providerLinked(),
+			type: 'date',
+			sortable: true,
+			getValue: (item) => (isUser(item) ? (item.data.oidc_linked_at ?? null) : null),
+			display: { hiddenByDefault: true }
+		},
+		{
+			key: 'terms_accepted_at',
+			label: users_termsAccepted(),
+			type: 'date',
+			sortable: true,
+			getValue: (item) => (isUser(item) ? (item.data.terms_accepted_at ?? null) : null),
 			display: { hiddenByDefault: true }
 		}
 	];

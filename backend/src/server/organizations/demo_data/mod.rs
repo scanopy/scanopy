@@ -30,18 +30,19 @@ use crate::server::{
     hosts::r#impl::{
         attributes::{
             HostChassisIdValue, HostFirmwareRevisionValue, HostManufacturerValue, HostModelValue,
-            HostSerialNumberValue, HostSoftwareRevisionValue, HostSysContactValue,
+            HostOsValue, HostSerialNumberValue, HostSoftwareRevisionValue, HostSysContactValue,
             HostSysDescrValue, HostSysLocationValue, HostSysNameValue, HostSysObjectIdValue,
         },
         base::{Host, HostBase},
         name::{HostName, HostNameSources},
+        os::{HostOs, HostOsFamily},
         virtualization::{HostVirtualization, ProxmoxVirtualization},
     },
     interfaces::r#impl::base::{IfAdminStatus, IfOperStatus, Interface, InterfaceBase},
     ip_addresses::r#impl::base::{IPAddress, IPAddressBase},
     networks::r#impl::{Network, NetworkBase},
     ports::r#impl::base::{Port, PortType},
-    services::r#impl::patterns::ClientProbe,
+    services::r#impl::patterns::{ClientProbe, MatchConfidence, MatchDetails, MatchReason},
     services::{
         definitions::ServiceDefinitionRegistry,
         r#impl::{
@@ -159,6 +160,9 @@ pub struct DemoData {
     pub interfaces: Vec<Interface>,
     pub neighbor_updates: Vec<NeighborUpdate>,
     pub daemons: Vec<Daemon>,
+    /// (daemon id, subnet ids) for the `daemon_interfaced_subnets` junction, derived from the
+    /// daemon host's IP addresses. See [`generate_daemon_interfaced_subnets`].
+    pub daemon_interfaced_subnets: Vec<(Uuid, Vec<Uuid>)>,
     pub api_keys: Vec<DaemonApiKey>,
     pub dependencies: Vec<Dependency>,
     pub topologies: Vec<Topology>,
@@ -207,7 +211,7 @@ impl DemoData {
         );
         let network_credential_assignments =
             generate_network_credential_assignments(&networks, &credentials);
-        let hosts_with_services = generate_hosts_and_services(
+        let mut hosts_with_services = generate_hosts_and_services(
             &networks,
             &subnets,
             &tags,
@@ -215,6 +219,11 @@ impl DemoData {
             &dep_svc_ids,
             now,
         );
+        // The server matches an OS in what SNMP reported when a host is ingested, after the daemon
+        // has offered its own readings (an SSH banner, say), so the demo matches last too.
+        for host in &mut hosts_with_services {
+            host.host.base.match_os_from_system_strings();
+        }
         let recent_hosts_with_services = generate_recent_hosts(&networks, &subnets, now);
 
         // Collect hosts for daemon generation and interface generation
@@ -229,7 +238,8 @@ impl DemoData {
             generate_interfaces(&networks, &hosts, &ip_addresses, &vlans, now);
         let subnet_vlan_records =
             generate_subnet_vlan_records(&interfaces, &hosts_with_services, now);
-        let daemons = generate_daemons(&networks, &hosts, &subnets, now, user_id);
+        let daemons = generate_daemons(&networks, &hosts, now, user_id);
+        let daemon_interfaced_subnets = generate_daemon_interfaced_subnets(&daemons, &ip_addresses);
         let api_keys = generate_api_keys(&networks, now);
         let topologies = generate_topologies(&networks, &tags, now);
         let discoveries =
@@ -252,6 +262,7 @@ impl DemoData {
             interfaces,
             neighbor_updates,
             daemons,
+            daemon_interfaced_subnets,
             api_keys,
             dependencies,
             topologies,
@@ -282,7 +293,7 @@ mod vlans;
 
 use api_keys::{generate_api_keys, generate_user_api_keys};
 use credentials::{generate_credentials, generate_network_credential_assignments};
-use daemons::generate_daemons;
+use daemons::{generate_daemon_interfaced_subnets, generate_daemons};
 use dependencies::generate_dependencies;
 use discoveries::generate_discoveries;
 use hosts::{generate_hosts_and_services, generate_recent_hosts};
@@ -382,6 +393,7 @@ fn create_host(
             serial_number: None,
             firmware_revision: None,
             software_revision: None,
+            os: None,
             credential_assignments: vec![],
         },
     };
@@ -428,7 +440,7 @@ fn with_snmp(
 }
 
 /// Wraps a `create_host()` result to add what the "Linux Inventory" SSH credential's script
-/// reports: OS and hardware identity, attributed to the script as a real scan would.
+/// reports: the OS and hardware identity, attributed to the script as a real scan would.
 fn with_ssh_inventory(
     (mut host, ip_address): (Host, IPAddress),
     sys_descr: &str,
@@ -436,7 +448,7 @@ fn with_ssh_inventory(
     model: &str,
     serial_number: &str,
     firmware_revision: &str,
-    software_revision: &str,
+    os: HostOs,
 ) -> (Host, IPAddress) {
     let source = AttributeSource::SshScript;
     host.base.sys_descr = Some(Attributed::new(HostSysDescrValue(sys_descr.into()), source));
@@ -453,10 +465,7 @@ fn with_ssh_inventory(
         HostFirmwareRevisionValue(firmware_revision.into()),
         source,
     ));
-    host.base.software_revision = Some(Attributed::new(
-        HostSoftwareRevisionValue(software_revision.into()),
-        source,
-    ));
+    host.base.os = Some(Attributed::new(HostOsValue(os), source));
     (host, ip_address)
 }
 
@@ -475,6 +484,27 @@ fn with_mac((host, mut ip_address): (Host, IPAddress), mac: [u8; 6]) -> (Host, I
 fn unnamed((mut host, ip_address): (Host, IPAddress)) -> (Host, IPAddress) {
     host.base.name = HostName::unnamed();
     (host, ip_address)
+}
+
+/// Pins credentials to a host, covering all of its addresses. A `None` id (a credential the demo
+/// set no longer defines) is skipped.
+fn with_credentials(
+    mut hws: HostWithServices,
+    credential_ids: &[Option<Uuid>],
+) -> HostWithServices {
+    hws.host
+        .base
+        .credential_assignments
+        .extend(
+            credential_ids
+                .iter()
+                .flatten()
+                .map(|&credential_id| CredentialAssignment {
+                    credential_id,
+                    ip_address_ids: None,
+                }),
+        );
+    hws
 }
 
 /// Turns a host into a discovered device that has since dropped off the network: first seen at
@@ -508,6 +538,47 @@ fn gone_quiet(
         }
     }
     hws
+}
+
+/// Marks a host as a scan found it, and each of its services as the service matcher records one:
+/// matched to its definition, with the reason and confidence that definition's pattern produces.
+/// A service whose match [`scan_match`] does not reproduce stays plain `Discovery`.
+fn found_by_scan(mut hws: HostWithServices) -> HostWithServices {
+    hws.host.base.source = EntitySource::Discovery;
+    for svc in &mut hws.services {
+        svc.base.source = match scan_match(svc.base.service_definition.id()) {
+            Some(details) => EntitySource::DiscoveryWithMatch { details },
+            None => EntitySource::Discovery,
+        };
+    }
+    hws
+}
+
+/// The match details the service matcher records for a definition, built the way it builds them:
+/// an open well-known port alone is `Low`, a completed client probe is `Certain`, and an `AllOf`
+/// takes the strongest of its parts.
+fn scan_match(service_definition_id: &str) -> Option<MatchDetails> {
+    use MatchConfidence::{Certain, Low};
+    let port_open = |port: PortType| MatchReason::Reason(format!("Port {port} is open"));
+    let probe =
+        |probe: ClientProbe| MatchReason::Reason(format!("Client probe {probe:?} succeeded"));
+    let all_of = |reasons: Vec<MatchReason>| MatchReason::Container("All of".to_string(), reasons);
+    // `probe_pattern`: the app probe's port, then the probe itself.
+    let probed = |port: PortType, client_probe: ClientProbe| {
+        (all_of(vec![port_open(port), probe(client_probe)]), Certain)
+    };
+    let (reason, confidence) = match service_definition_id {
+        "SSH" => probed(PortType::Ssh, ClientProbe::Ssh),
+        "OpenVPN" => probed(PortType::OpenVPN, ClientProbe::OpenVpn),
+        "Modbus TCP" => probed(PortType::ModbusTcp, ClientProbe::ModbusTcp),
+        "Workstation" => (
+            all_of(vec![probe(ClientProbe::Rdp), probe(ClientProbe::Smb)]),
+            Certain,
+        ),
+        "BACnet" => (port_open(PortType::BACnet), Low),
+        _ => return None,
+    };
+    Some(MatchDetails { reason, confidence })
 }
 
 /// Helper to create a service for a host.
@@ -697,216 +768,39 @@ macro_rules! host_with_services {
 use host_with_services;
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use std::collections::{HashMap, HashSet};
+mod tests;
 
-    #[test]
-    fn subnet_vlan_records_are_derived_and_reference_valid_entities() {
-        let demo = DemoData::generate(Uuid::new_v4(), Uuid::new_v4());
+/// What the Docker engine on a demo Docker host reports about the machine it runs on. The daemon
+/// there runs in the published image and self-reports that image's OS (Debian 12); the Docker
+/// integration's engine reading replaces it by rank, so this is what a scan leaves on the host.
+fn docker_engine_host_os() -> Option<crate::server::hosts::r#impl::attributes::HostOsAttributed> {
+    Some(Attributed::new(
+        HostOsValue(HostOs {
+            family: HostOsFamily::Linux,
+            name: Some("Ubuntu 24.04.1 LTS".to_string()),
+            version: None,
+            edition: None,
+            codename: None,
+            kernel_version: Some("6.8.0-45-generic".to_string()),
+        }),
+        AttributeSource::ContainerRuntimeInfo,
+    ))
+}
 
-        // The derivation should link at least the subnets whose hosts carry a
-        // native VLAN (otherwise the junction is silently empty and demo
-        // subnets show no VLANs).
-        assert!(
-            !demo.subnet_vlan_records.is_empty(),
-            "expected derived subnet↔vlan links"
-        );
+/// The identification string a Proxmox VE 8 node's SSH server sends, after the `SSH-2.0-` prefix.
+const PROXMOX_SSH_BANNER: &str = "OpenSSH_9.2p1 Debian-2+deb12u3";
 
-        let subnet_ids: HashSet<Uuid> = demo.subnets.iter().map(|s| s.id).collect();
-        let vlan_ids: HashSet<Uuid> = demo.vlans.iter().map(|v| v.id).collect();
-        let mut pairs: HashSet<(Uuid, Uuid)> = HashSet::new();
-        for r in &demo.subnet_vlan_records {
-            assert!(
-                subnet_ids.contains(&r.base.subnet_id),
-                "subnet_vlan references unknown subnet"
-            );
-            assert!(
-                vlan_ids.contains(&r.base.vlan_id),
-                "subnet_vlan references unknown vlan"
-            );
-            assert!(
-                pairs.insert((r.base.subnet_id, r.base.vlan_id)),
-                "duplicate subnet↔vlan link"
-            );
-        }
-    }
+/// The identification string Windows' bundled OpenSSH Server sends.
+const WINDOWS_SSH_BANNER: &str = "OpenSSH_for_Windows_9.5";
 
-    #[test]
-    fn a_subnet_carries_a_provisional_cidr_source() {
-        use crate::server::shared::attribution::AttributeMethod;
-
-        let demo = DemoData::generate(Uuid::new_v4(), Uuid::new_v4());
-        assert!(
-            demo.subnets
-                .iter()
-                .any(|s| s.base.cidr.source().method() == AttributeMethod::Inferred),
-            "expected at least one subnet whose cidr_source is Inferred-tier (a provisional range)"
+/// Wraps a `create_host()` result with the OS its SSH banner names, matched the way the daemon's
+/// SSH probe matches it, so the demo carries an inferred OS beside the ones read off a host.
+fn with_ssh_banner((mut host, ip_address): (Host, IPAddress), banner: &str) -> (Host, IPAddress) {
+    if let Some(os) = crate::server::hosts::r#impl::os::recog::RecogDatabase::SshBanner.os(banner) {
+        Attributed::apply(
+            &mut host.base.os,
+            Attributed::new(HostOsValue(os), AttributeSource::SshBannerMatch),
         );
     }
-
-    /// Some demo hosts read as stale from the moment the org is created, and each one reads as
-    /// stale as a whole: its addresses, ports, services and bindings go stale with it, and no
-    /// child of a current host does.
-    #[test]
-    fn stale_demo_hosts_are_stale_together_with_their_children() {
-        use crate::server::shared::storage::snapshot::DiscoveryTracked;
-        use crate::server::shared::types::entities::EntityFreshness;
-
-        let demo = DemoData::generate(Uuid::new_v4(), Uuid::new_v4());
-        let now = Utc::now();
-        let cutoffs: HashMap<Uuid, DateTime<Utc>> = demo
-            .networks
-            .iter()
-            .map(|n| (n.id, n.stale_cutoff(now)))
-            .collect();
-
-        let mut stale_hosts = 0;
-        for hws in demo
-            .hosts_with_services
-            .iter()
-            .chain(&demo.recent_hosts_with_services)
-        {
-            let cutoff = cutoffs[&hws.host.base.network_id];
-            let host_freshness = hws.host.freshness(cutoff);
-            if host_freshness == EntityFreshness::Stale {
-                stale_hosts += 1;
-            }
-            let name = format!("{:?}", hws.host.base.name);
-
-            let mut children: Vec<(EntityFreshness, DateTime<Utc>, DateTime<Utc>)> = Vec::new();
-            children.extend(
-                hws.ip_addresses
-                    .iter()
-                    .map(|e| (e.freshness(cutoff), e.created_at, e.last_seen_at)),
-            );
-            children.extend(
-                hws.ports
-                    .iter()
-                    .map(|e| (e.freshness(cutoff), e.created_at, e.last_seen_at)),
-            );
-            for svc in &hws.services {
-                children.push((svc.freshness(cutoff), svc.created_at, svc.last_seen_at));
-                children.extend(
-                    svc.base
-                        .bindings
-                        .iter()
-                        .map(|e| (e.freshness(cutoff), e.created_at, e.last_seen_at)),
-                );
-            }
-
-            assert!(
-                hws.host.created_at <= hws.host.last_seen_at,
-                "{name}: last seen before it was created"
-            );
-            for (freshness, created_at, last_seen_at) in children {
-                assert_eq!(
-                    freshness, host_freshness,
-                    "{name}: a child's freshness differs from its host's"
-                );
-                assert!(
-                    created_at <= last_seen_at,
-                    "{name}: a child was last seen before it was created"
-                );
-            }
-        }
-        assert!(stale_hosts > 0, "expected at least one stale demo host");
-    }
-
-    #[test]
-    fn a_host_is_known_only_by_inference() {
-        let demo = DemoData::generate(Uuid::new_v4(), Uuid::new_v4());
-        assert!(
-            demo.hosts_with_services
-                .iter()
-                .any(|hws| hws.host.base.source == EntitySource::Inferred),
-            "expected at least one host with EntitySource::Inferred (never contacted directly)"
-        );
-    }
-
-    #[test]
-    fn a_discovery_carries_warnings_from_more_than_one_remedy_group() {
-        use crate::daemon::discovery::types::warnings::DiscoveryWarning;
-        use crate::server::discovery::r#impl::types::RunType;
-        use crate::server::shared::types::metadata::TypeMetadataProvider;
-
-        let demo = DemoData::generate(Uuid::new_v4(), Uuid::new_v4());
-        let warnings: Vec<&DiscoveryWarning> = demo
-            .discoveries
-            .iter()
-            .filter_map(|d| match &d.base.run_type {
-                RunType::Historical { results } => Some(&results.warnings),
-                _ => None,
-            })
-            .flatten()
-            .collect();
-        assert!(
-            !warnings.is_empty(),
-            "expected at least one seeded discovery warning"
-        );
-
-        let remedy_groups: HashSet<&'static str> =
-            warnings.iter().map(|w| w.code().category()).collect();
-        assert!(
-            remedy_groups.len() > 1,
-            "expected seeded warnings to span more than one WarningRemedy group, got {remedy_groups:?}"
-        );
-    }
-
-    #[test]
-    fn a_service_is_in_the_industrial_category() {
-        use crate::server::services::r#impl::categories::ServiceCategory;
-
-        let demo = DemoData::generate(Uuid::new_v4(), Uuid::new_v4());
-        assert!(
-            demo.hosts_with_services
-                .iter()
-                .flat_map(|hws| &hws.services)
-                .any(|svc| svc.base.service_definition.category() == ServiceCategory::Industrial),
-            "expected at least one seeded service in the Industrial category"
-        );
-    }
-
-    /// The host editor explains each host's title by the rung that produced it, so the demo has a
-    /// host titled from each: a named host, and nameless ones titled by their hostname, sysName,
-    /// chassis ID and address.
-    #[test]
-    fn demo_hosts_are_titled_from_every_rung() {
-        use crate::server::hosts::r#impl::name_ladder::HostNameRung;
-
-        let demo = DemoData::generate(Uuid::new_v4(), Uuid::new_v4());
-        let rungs: HashSet<HostNameRung> = demo
-            .hosts_with_services
-            .iter()
-            .filter_map(|hws| hws.host.resolved_name(&hws.ip_addresses))
-            .map(|(_, rung)| rung)
-            .collect();
-
-        for rung in [
-            HostNameRung::Name,
-            HostNameRung::Hostname,
-            HostNameRung::SysName,
-            HostNameRung::ChassisId,
-            HostNameRung::Address,
-        ] {
-            assert!(rungs.contains(&rung), "no demo host is titled by {rung:?}");
-        }
-    }
-
-    #[test]
-    fn a_host_shows_distinct_firmware_and_software_revisions() {
-        let demo = DemoData::generate(Uuid::new_v4(), Uuid::new_v4());
-        assert!(
-            demo.hosts_with_services.iter().any(|hws| {
-                match (
-                    &hws.host.base.firmware_revision,
-                    &hws.host.base.software_revision,
-                ) {
-                    (Some(firmware), Some(software)) => firmware.value().0 != software.value().0,
-                    _ => false,
-                }
-            }),
-            "expected at least one host with distinct, populated firmware and software revisions"
-        );
-    }
+    (host, ip_address)
 }

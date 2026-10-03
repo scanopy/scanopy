@@ -650,7 +650,7 @@
 
 <SvelteFlowProvider>
 	{#if !hasDaemon(onboarding)}
-		<PreDaemonEmptyState title={daemons_installPromptTopology()} />
+		<PreDaemonEmptyState title={daemons_installPromptTopology()} {isReadOnly} />
 	{:else}
 		<div class="space-y-3">
 			<!-- Header -->

@@ -7,6 +7,7 @@ use crate::server::{
 impl CrudHandlers for Daemon {
     type Service = DaemonService;
     type FilterQuery = DaemonFilterQuery;
+    type OrderField = crate::server::daemons::handlers::DaemonOrderField;
 
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.daemon_service

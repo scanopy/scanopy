@@ -15,6 +15,8 @@ use strum::IntoEnumIterator;
 use crate::server::services::r#impl::definitions::{ServiceDefinition, ServiceDefinitionExt};
 use crate::server::shared::fixtures::logo_slug;
 use crate::server::shared::types::field_definition::FieldDefinition;
+use crate::server::shared::types::metadata::EntityMetadataProvider;
+use crate::server::shared::types::{Color, Icon};
 
 use super::types::{CredentialStability, CredentialTypeDiscriminants, Target, UpstreamSupport};
 
@@ -34,6 +36,13 @@ pub struct Integration {
     /// Filename stem of the service logo under `logos/services/`.
     pub logo_slug: String,
     pub logo_needs_white_background: bool,
+    /// Whether the service is a protocol rather than a vendor's product (SNMP, SSH).
+    /// Generic integrations sort after vendor ones.
+    pub is_generic: bool,
+    /// Lucide icon shown in place of the logo when `has_logo` is false.
+    pub icon: Icon,
+    /// Colour the app tints that fallback icon with.
+    pub color: Color,
     /// Canonical "what's discovered" text — the single source shared by every
     /// transport of this integration.
     pub discovers: String,
@@ -86,8 +95,9 @@ pub struct IntegrationTransport {
 }
 
 /// Build every integration by grouping credential discriminants on their
-/// associated service. Output is deterministic (sorted by integration id, then
-/// transport id) so re-running `generate-fixtures` yields no diff.
+/// associated service. Output is deterministic (vendor integrations before generic
+/// ones, then by integration id, then transport id) so re-running
+/// `generate-fixtures` yields no diff.
 pub fn all_integrations() -> Vec<Integration> {
     let mut integrations: Vec<Integration> = Vec::new();
 
@@ -125,6 +135,9 @@ pub fn all_integrations() -> Vec<Integration> {
             logo_ext: disc.integration().logo_ext().to_string(),
             logo_slug: logo_slug(ServiceDefinition::name(&*service)),
             logo_needs_white_background: service.logo_needs_white_background(),
+            is_generic: ServiceDefinition::is_generic(&*service),
+            icon: disc.integration().icon(),
+            color: disc.integration().color(),
             discovers: disc.integration().discovers().to_string(),
             docs_path: disc.integration().docs_path().to_string(),
             summary: String::new(), // filled in after all transports are collected
@@ -146,7 +159,8 @@ pub fn all_integrations() -> Vec<Integration> {
         );
     }
 
-    integrations.sort_by(|a, b| a.id.cmp(&b.id));
+    // Vendor integrations first, generic protocols (SNMP, SSH, gNMI) after.
+    integrations.sort_by(|a, b| (a.is_generic, &a.id).cmp(&(b.is_generic, &b.id)));
     integrations
 }
 

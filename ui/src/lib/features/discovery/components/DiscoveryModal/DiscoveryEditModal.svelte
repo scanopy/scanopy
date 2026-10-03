@@ -128,10 +128,6 @@
 	let furthestReached = $state(0);
 	let pendingCredentials = $state<PendingCredential[]>([]);
 	let credentialsStep: ReturnType<typeof CredentialsStep> | undefined = $state();
-	// The discovery modal always opens on the credential wizard; the Integrations-grid
-	// type picker is skipped (it couldn't advance in edit mode, and the wizard's own
-	// type dropdown adds any credential type, sockets included).
-	let credentialSubStep = $state<'typeSelect' | 'wizard'>('wizard');
 	let credentialIds = $state<string[]>([]);
 	const allCredentialsQuery = useCredentialsQuery();
 
@@ -333,10 +329,6 @@
 		return types.filter((t, i) => types.indexOf(t) === i);
 	});
 
-	// User-chosen configurable integrations (the fixed socket card is shown checked
-	// via the step's read-only handling, not via this selection).
-	let selectedCredentialTypeIds = $state<string[]>([]);
-
 	let hasTargetsTab = $derived(
 		formData.discovery_type.type === 'Network' || formData.discovery_type.type === 'Unified'
 	);
@@ -511,12 +503,6 @@
 			if (furthestReached < 2) furthestReached = 2;
 			nextTab();
 		} else if (activeTab === 'credentials') {
-			// Credentials has a sub-flow: the Integrations grid → the wizard. Advance
-			// within it before moving on to the next tab.
-			if (credentialSubStep === 'typeSelect') {
-				await credentialsStep?.continueToWizard();
-				return;
-			}
 			if (furthestReached < 3) furthestReached = 3;
 			nextTab();
 		} else if (activeTab === 'detection') {
@@ -682,8 +668,6 @@
 			});
 			pendingCredentials = editable;
 		}
-		// Always open straight on the wizard (the Integrations-grid picker is skipped).
-		credentialSubStep = 'wizard';
 
 		// Parse schedule fields from cron
 		let scheduleDaysOfWeek = '0';
@@ -868,8 +852,6 @@
 						description={discovery_credentialsDescription()}
 						bind:pendingCredentials
 						bind:credentialIds
-						bind:subStep={credentialSubStep}
-						bind:selectedTypeIds={selectedCredentialTypeIds}
 						localAutoMode="fixed"
 						fixedCapabilityTypeIds={daemonHostCredentialTypeIds}
 						daemonVersion={daemon?.version ?? null}

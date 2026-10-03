@@ -9,6 +9,8 @@
 		currentServices: Service[];
 		ip_addresses: IPAddress[];
 		isContainerSubnet: (subnetId: string) => boolean;
+		/** A non-null `disabledReason` renders the option disabled with that tooltip. */
+		disabledReason?: string | null;
 	}
 
 	// Helper to format IP address for display
@@ -24,6 +26,8 @@
 
 	export const PortDisplay: EntityDisplayComponent<Port, PortDisplayContext> = {
 		getId: (port: Port) => `${port.id}`,
+		getDisabled: (_port, context) => !!context?.disabledReason,
+		getDisabledReason: (_port, context) => context?.disabledReason ?? null,
 		getLabel: (port: Port) => {
 			let metadata = ports.getMetadata(port.type ?? null);
 			let name = ports.getName(port.type ?? null);

@@ -8,6 +8,8 @@
 		onClose,
 		onMouseEnter,
 		onMouseLeave,
+		role = 'tooltip',
+		ariaLabel = undefined,
 		children
 	}: {
 		triggerElement?: HTMLElement | null;
@@ -15,8 +17,18 @@
 		onClose: () => void;
 		onMouseEnter?: () => void;
 		onMouseLeave?: () => void;
+		/**
+		 * `dialog` for a popover holding controls: it takes focus when it opens,
+		 * hands it back to the trigger on Escape, and closes when focus leaves it.
+		 * The popover is portalled to the end of the body, so without this a
+		 * keyboard user could open it and never reach what is inside.
+		 */
+		role?: 'tooltip' | 'dialog';
+		ariaLabel?: string;
 		children: Snippet;
 	} = $props();
+
+	const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), select, [tabindex]';
 
 	let portalContainer: HTMLDivElement | null = $state(null);
 	let popoverEl: HTMLDivElement | undefined = $state();
@@ -77,14 +89,27 @@
 	$effect(() => {
 		if (isOpen && triggerElement && popoverEl) {
 			updatePosition();
+			if (role === 'dialog') popoverEl.querySelector<HTMLElement>(FOCUSABLE)?.focus();
 		}
 	});
+
+	function handleFocusOut(e: FocusEvent) {
+		if (role !== 'dialog') return;
+		// No related target is a click on non-focusable content, such as a
+		// checkbox's label text; a click outside is handled on mousedown.
+		const next = e.relatedTarget as Node | null;
+		if (!next || popoverEl?.contains(next) || triggerElement?.contains(next)) return;
+		onClose();
+	}
 
 	// Close on scroll or click outside
 	$effect(() => {
 		if (!isOpen) return;
 
-		function handleScroll() {
+		function handleScroll(e: Event) {
+			// A scrollable list inside the popover scrolls too; that is not the
+			// page moving out from under it.
+			if (popoverEl?.contains(e.target as Node)) return;
 			onClose();
 		}
 
@@ -100,7 +125,9 @@
 		}
 
 		function handleKeydown(e: KeyboardEvent) {
-			if (e.key === 'Escape') onClose();
+			if (e.key !== 'Escape') return;
+			onClose();
+			if (role === 'dialog') triggerElement?.focus();
 		}
 
 		// Use capture to catch scroll on any ancestor
@@ -122,7 +149,9 @@
 		bind:this={popoverEl}
 		class="fixed z-[9999] rounded-lg border p-2 shadow-[0_4px_24px_rgba(0,0,0,0.15)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
 		style="border-color: var(--color-border); background: var(--color-bg-elevated); top: {position.top}px; left: {position.left}px; min-width: 200px; max-width: 350px;"
-		role="tooltip"
+		{role}
+		aria-label={ariaLabel}
+		onfocusout={handleFocusOut}
 		onmouseenter={onMouseEnter}
 		onmouseleave={onMouseLeave}
 	>

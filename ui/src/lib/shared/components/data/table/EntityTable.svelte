@@ -1,7 +1,14 @@
 <script lang="ts" generics="T">
-	import { ArrowUpNarrowWide, ArrowDownWideNarrow, ChevronDown, ChevronRight } from 'lucide-svelte';
+	import {
+		ArrowUpDown,
+		ArrowUpNarrowWide,
+		ArrowDownWideNarrow,
+		ChevronDown,
+		ChevronRight
+	} from 'lucide-svelte';
 	import { getCoreRowModel, type ColumnDef, type Row } from '@tanstack/table-core';
 	import { createSvelteTable } from './createSvelteTable.svelte';
+	import type { Snippet } from 'svelte';
 	import type { EntityColumn } from './columns';
 	import FieldValue from '../FieldValue.svelte';
 	import { tooltip } from '$lib/shared/actions/tooltip';
@@ -32,7 +39,8 @@
 		caption,
 		onToggleSort,
 		onToggleRow,
-		onToggleAll
+		onToggleAll,
+		headerControl = undefined
 	}: {
 		/** Ungrouped rows. Null when the list is grouped. */
 		items: T[] | null;
@@ -54,6 +62,11 @@
 		onToggleSort: (fieldKey: string) => void;
 		onToggleRow: (id: string, selected: boolean) => void;
 		onToggleAll: () => void;
+		/**
+		 * A column's filter and group control, rendered beside its label. Owned by
+		 * the caller, which holds the filter state, so the table stays a renderer.
+		 */
+		headerControl?: Snippet<[EntityColumn<T>]>;
 	} = $props();
 
 	/**
@@ -195,29 +208,16 @@
 								? 'text-right'
 								: 'text-left'}"
 						>
-							{#if header.column.getCanSort()}
-								<!--
-									A real button: Enter and Space work natively, and the direction
-									is announced through aria-sort rather than repeated in the name.
-								-->
-								<button
-									type="button"
-									onclick={() => onToggleSort(column.id)}
-									aria-label={common_sortByColumn({ column: column.label })}
-									class="hover:text-primary inline-flex items-center gap-1 transition-colors"
-								>
-									<span>{column.label}</span>
-									{#if sortState.field === column.id}
-										{#if sortState.direction === 'asc'}
-											<ArrowUpNarrowWide class="h-3.5 w-3.5" aria-hidden="true" />
-										{:else}
-											<ArrowDownWideNarrow class="h-3.5 w-3.5" aria-hidden="true" />
-										{/if}
-									{/if}
-								</button>
-							{:else}
-								<span>{column.label}</span>
-							{/if}
+							<div
+								class="inline-flex items-center gap-1 {column.align === 'right'
+									? 'flex-row-reverse'
+									: ''}"
+							>
+								{@render headerLabel(column, header.column.getCanSort())}
+								{#if headerControl}
+									{@render headerControl(column)}
+								{/if}
+							</div>
 						</th>
 					{/if}
 				{/each}
@@ -367,4 +367,39 @@
 			</td>
 		{/if}
 	</tr>
+{/snippet}
+
+{#snippet headerLabel(column: EntityColumn<T>, canSort: boolean)}
+	{#if canSort}
+		<!--
+			A real button: Enter and Space work natively, and the direction
+			is announced through aria-sort rather than repeated in the name.
+		-->
+		<button
+			type="button"
+			onclick={() => onToggleSort(column.id)}
+			aria-label={common_sortByColumn({ column: column.label })}
+			class="hover:text-primary group inline-flex items-center gap-1 transition-colors"
+		>
+			<span>{column.label}</span>
+			<!--
+				Every sortable header carries an icon, so it reads as sortable
+				before anyone clicks it. A header without one cannot sort.
+			-->
+			{#if sortState.field === column.id}
+				{#if sortState.direction === 'asc'}
+					<ArrowUpNarrowWide class="text-accent h-3.5 w-3.5" aria-hidden="true" />
+				{:else}
+					<ArrowDownWideNarrow class="text-accent h-3.5 w-3.5" aria-hidden="true" />
+				{/if}
+			{:else}
+				<ArrowUpDown
+					class="text-tertiary group-hover:text-secondary group-focus-visible:text-secondary h-3.5 w-3.5"
+					aria-hidden="true"
+				/>
+			{/if}
+		</button>
+	{:else}
+		<span>{column.label}</span>
+	{/if}
 {/snippet}

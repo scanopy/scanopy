@@ -45,11 +45,13 @@ use crate::{
             attributes::{
                 HostChassisIdValue, HostFirmwareRevisionValue, HostHostnameAttributed,
                 HostHostnameValue, HostManagementUrlValue, HostManufacturerValue, HostModelValue,
-                HostSerialNumberValue, HostSoftwareRevisionValue, HostSysContactValue,
-                HostSysDescrValue, HostSysLocationValue, HostSysNameValue, HostSysObjectIdValue,
+                HostOsAttributed, HostOsValue, HostSerialNumberValue, HostSoftwareRevisionValue,
+                HostSysContactValue, HostSysDescrValue, HostSysLocationValue, HostSysNameValue,
+                HostSysObjectIdValue,
             },
             base::{Host, HostBase},
             name::{HostName, HostNameSources},
+            os::HostOs,
             virtualization::HostVirtualization,
         },
         interfaces::{
@@ -70,7 +72,7 @@ use crate::{
             },
         },
         shared::{
-            attribution::{AttributeSource, Attributed},
+            attribution::{AttributeMethod, AttributeSource, Attributed},
             types::api::ApiErrorResponse,
             types::entities::EntitySource,
             types::metadata::HasId,
@@ -171,6 +173,9 @@ pub struct HostData {
         CredentialQueryPayloadDiscriminants,
         CredentialQueryPayloadDiscriminants,
     )>,
+    /// Set once two OS matches for this host named different families. Not sent to the server:
+    /// it keeps a later match from writing an OS the earlier ones already contradicted.
+    matched_os_conflict: bool,
 }
 
 /// One integration's interface set, as offered.
@@ -202,6 +207,7 @@ impl HostData {
             interface_data_complete: InterfaceDataComplete::default(),
             contributions: Vec::new(),
             equal_reach_integrations: None,
+            matched_os_conflict: false,
         }
     }
 
@@ -297,6 +303,41 @@ impl HostData {
             &mut self.host.base.software_revision,
             Attributed::new(HostSoftwareRevisionValue(v), source),
         );
+        self
+    }
+
+    pub fn with_os(&mut self, os: HostOs, source: AttributeSource) -> &mut Self {
+        Attributed::apply(
+            &mut self.host.base.os,
+            Attributed::new(HostOsValue(os), source),
+        );
+        self
+    }
+
+    /// Offer an OS for this host, combining matches rather than letting the first one win.
+    ///
+    /// A reading off the host (a script, the daemon itself, a protocol's own version field) applies
+    /// by rank like any attribute. An OS matched in a string the host emitted (a banner, a header,
+    /// an mDNS record) is weaker: two of them naming different families mean at least one is
+    /// wrong and nothing says which, so the host gets no matched OS at all.
+    pub fn offer_os(&mut self, os: HostOsAttributed) -> &mut Self {
+        let source = os.source();
+        if source.method() != AttributeMethod::Inferred {
+            Attributed::apply(&mut self.host.base.os, os);
+            return self;
+        }
+        if self.matched_os_conflict {
+            return self;
+        }
+        if let Some(held) = &self.host.base.os
+            && held.source().method() == AttributeMethod::Inferred
+            && held.value().0.family != os.value().0.family
+        {
+            self.host.base.os = None;
+            self.matched_os_conflict = true;
+            return self;
+        }
+        Attributed::apply(&mut self.host.base.os, os);
         self
     }
 
@@ -1617,6 +1658,7 @@ impl DiscoveryOps {
             serial_number: None,
             firmware_revision: None,
             software_revision: None,
+            os: None,
             credential_assignments: vec![],
         });
 

@@ -104,9 +104,11 @@
 		() => ({ purpose: 'reconfigure' }),
 		{ enabled: () => isOpen && daemon?.last_seen != null }
 	);
-	// The daemon's recorded OS when it has one, which also hides the OS picker.
-	let pickedSyncOs = $state<DaemonOS>('linux');
-	let syncOs = $derived<DaemonOS>(daemon?.os ?? pickedSyncOs);
+	// The daemon's recorded OS, reported by the daemon or picked at creation, which also hides the
+	// OS picker; with none recorded the user picks.
+	let recordedSyncOs = $derived(daemon?.os ?? null);
+	let pickedSyncOs = $state<DaemonOS | null>(null);
+	let syncOs = $derived<DaemonOS>(recordedSyncOs ?? pickedSyncOs ?? 'linux');
 	let syncLinuxMethod = $state<'binary' | 'docker'>('binary');
 	let syncIsDocker = $derived(syncOs === 'linux' && syncLinuxMethod === 'docker');
 	let hasReconfigure = $derived(installCommandQuery.data != null);
@@ -346,7 +348,7 @@
 							<OsSelector
 								selectedOS={syncOs}
 								onOsSelect={(os) => (pickedSyncOs = os)}
-								showOs={!daemon?.os}
+								showOs={!recordedSyncOs}
 								linuxMethod={syncLinuxMethod}
 								onLinuxMethodChange={(method) => (syncLinuxMethod = method)}
 							>

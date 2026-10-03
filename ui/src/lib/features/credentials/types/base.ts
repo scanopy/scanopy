@@ -88,12 +88,14 @@ export function getCredentialSummary(credential: Credential): string {
 }
 
 /**
- * Get the associated service name for display in credential lists and popovers.
- * Returns the service name from the associated ServiceDefinition (e.g. "SNMP", "Docker").
+ * Description shown under a credential in pickers and popovers: the one the user wrote, or the
+ * credential type's description when there is none.
  */
 export function getCredentialDescription(credential: Credential): string {
-	const ct = credential.credential_type;
-	return credentialTypes.getDescription(ct.type);
+	return (
+		credential.description?.trim() ||
+		credentialTypes.getDescription(credential.credential_type.type)
+	);
 }
 
 /**

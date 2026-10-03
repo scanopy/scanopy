@@ -260,6 +260,25 @@ pub fn last_legacy_neighbor_wire() -> Version {
     Version::new(0, 17, 14)
 }
 
+/// The last release whose daemon does not report its OS on the handshake. Later daemons send
+/// [`DaemonOs::current`](super::base::DaemonOs::current) on registration, startup and every
+/// status, and the server enforces the recorded `os` against it.
+///
+/// A ceiling rather than a floor, for the reason [`last_legacy_neighbor_wire`] gives: the first
+/// release that reports is unpublished, and a floor naming it would fail
+/// `capability_floors_within_server_version`. A build of this branch still calls itself this
+/// version, so until the version is bumped its daemons are treated as not having reported before,
+/// which only means a mismatch is adopted rather than refused.
+pub fn last_os_unreporting() -> Version {
+    Version::new(0, 17, 19)
+}
+
+/// Whether a daemon at this version reports its OS on every handshake. A daemon without a recorded
+/// version is assumed not to.
+pub fn supports_os_reporting(version: Option<&Version>) -> bool {
+    version.is_some_and(|v| v > &last_os_unreporting())
+}
+
 /// Every capability floor this build enforces, labelled so a failure names the
 /// offender. The rot-guard test asserts each is ≤ the current server version, so
 /// a floor can never quietly reference a version this build doesn't know about.
@@ -373,6 +392,7 @@ impl DaemonVersionPolicy {
         let supports_unified = supports_unified_discovery(version);
         let has_correct_mount = has_correct_docker_volume_mount(version);
         let supports_rescan = supports_targeted_rescan(version);
+        let reports_os = supports_os_reporting(version);
 
         let (status, warnings, sunset_date) = self.lifecycle(version);
 
@@ -384,6 +404,7 @@ impl DaemonVersionPolicy {
             supports_unified_discovery: supports_unified,
             has_correct_docker_volume_mount: has_correct_mount,
             supports_targeted_rescan: supports_rescan,
+            supports_os_reporting: reports_os,
         }
     }
 
@@ -537,6 +558,10 @@ pub struct DaemonVersionStatus {
     /// frontend never has to hardcode a version floor.
     #[serde(default)]
     pub supports_targeted_rescan: bool,
+    /// Whether this daemon reports its OS on every handshake. When it does, the daemon's `os` is
+    /// what it runs on; when it does not, `os` is the OS picked at creation, or absent.
+    #[serde(default)]
+    pub supports_os_reporting: bool,
 }
 
 /// Health status for daemon versions.

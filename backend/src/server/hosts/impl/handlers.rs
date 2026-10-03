@@ -7,6 +7,7 @@ use crate::server::{
 impl CrudHandlers for Host {
     type Service = HostService;
     type FilterQuery = HostFilterQuery;
+    type OrderField = crate::server::hosts::handlers::HostOrderField;
 
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.host_service

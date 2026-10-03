@@ -8,8 +8,9 @@
 
 import type { components } from '$lib/api/schema';
 import type { TagProps } from '$lib/shared/components/data/types';
-import { metaDescriptionWith, metaNameWith } from '$lib/i18n/metadata';
+import { metaDescriptionWith, metaName, metaNameWith } from '$lib/i18n/metadata';
 import { attributeSources, clientProbes } from '$lib/shared/stores/metadata';
+import attributeMethods from '$lib/data/attribute-methods.json';
 
 /** Derived from the backend enum rather than restated, so a new source cannot drift out of sync. */
 export type AttributeSource = components['schemas']['AttributeSource'];
@@ -50,11 +51,43 @@ export function attributeSourceDescription(source: AttributeSource): string {
 	return metaDescriptionWith('attribute_sources', variant, slots(probe), fallback);
 }
 
-/** A neutral tag naming the source, with the source's description as its title. */
+/**
+ * How a value from this source reached Scanopy, led by the tier's own name when the value was
+ * inferred: "Assumed: Scanopy inferred this from …". The tier is what tells a reader to treat the
+ * value with caution, so it is said in words wherever the source is explained.
+ */
+export function attributeSourceExplanation(source: AttributeSource): string {
+	const description = attributeSourceDescription(source);
+	if (!isInferredSource(source)) return description;
+	const inferred = attributeMethods.find((method) => method.id === 'Inferred');
+	return `${metaName('attribute_methods', 'Inferred', inferred?.name ?? '')}: ${description}`;
+}
+
+/** A neutral tag naming the source, with how the value reached Scanopy as its title. */
 export function attributeSourceTag(source: AttributeSource): TagProps {
 	return {
 		label: attributeSourceLabel(source),
 		color: 'Gray',
-		title: attributeSourceDescription(source)
+		title: attributeSourceExplanation(source)
 	};
+}
+
+/**
+ * Every source that sits at the `Inferred` tier, as the backend groups them.
+ *
+ * Read from the metadata fixture rather than matched against a variant name: the tier a source
+ * belongs to is a backend decision, the same `AttributeSource::method()` the applier orders by.
+ * Keyed on the whole source, probe included, because `Probe(Snmp)` and `Probe(Docker)` sit at
+ * different tiers.
+ */
+const INFERRED_SOURCES: ReadonlySet<string> = new Set(
+	(
+		(attributeMethods.find((method) => method.id === 'Inferred')?.metadata?.sources ??
+			[]) as AttributeSource[]
+	).map(sourceKey)
+);
+
+/** Whether a value from this source was derived rather than read: a guess, not evidence. */
+export function isInferredSource(source: AttributeSource | null | undefined): boolean {
+	return source ? INFERRED_SOURCES.has(sourceKey(source)) : false;
 }

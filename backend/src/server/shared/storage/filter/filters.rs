@@ -997,6 +997,57 @@ impl<T: Storable> StorableFilter<T> {
         self
     }
 
+    /// Entities whose virtualization parent is named one of `names`, and — when `include_null`
+    /// is set — those with no parent at all.
+    ///
+    /// The name-keyed twin of [`Self::virtualization_service_in`]. "Virtualized By" and
+    /// "Containerized" group and count on the parent's name (`COALESCE(parent.name, '')`), so a
+    /// filter option is a name, and several runtimes can share one. The subquery reads the same
+    /// row the ordering JOIN does, by id, without a validity condition, so a name the field-values
+    /// count offers always matches the rows it counted. `IN (subquery)` keeps each entity one row.
+    pub fn virtualization_service_named(mut self, names: &[String], include_null: bool) -> Self {
+        let col = self.qualify_column("virtualization_service_id");
+
+        if names.is_empty() {
+            self.conditions.push(if include_null {
+                format!("{} IS NULL", col)
+            } else {
+                "FALSE".to_string()
+            });
+            return self;
+        }
+
+        let in_clause = format!(
+            "{} IN (SELECT parent.id FROM services parent WHERE parent.name = ANY(${}))",
+            col,
+            self.values.len() + 1
+        );
+        self.conditions.push(if include_null {
+            format!("({} OR {} IS NULL)", in_clause, col)
+        } else {
+            in_clause
+        });
+        self.values.push(SqlValue::StringArray(names.to_vec()));
+
+        self
+    }
+
+    /// The "Virtualized By" / "Containerized" filter as the list queries take it: parent ids,
+    /// parent names and the "no parent" choice, each optional. With nothing selected the filter
+    /// is unchanged. Ids and names given together must both hold.
+    pub fn virtualization_parent(self, ids: &[Uuid], names: &[String], include_null: bool) -> Self {
+        let filter = if names.is_empty() {
+            self
+        } else {
+            self.virtualization_service_named(names, include_null)
+        };
+        if !ids.is_empty() || (include_null && names.is_empty()) {
+            filter.virtualization_service_in(ids, include_null)
+        } else {
+            filter
+        }
+    }
+
     /// Hosts running a service named one of `names`.
     ///
     /// `IN (subquery)` rather than a JOIN so a host running several matching

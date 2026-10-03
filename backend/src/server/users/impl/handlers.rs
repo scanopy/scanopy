@@ -7,6 +7,7 @@ use crate::server::{
 impl CrudHandlers for User {
     type Service = UserService;
     type FilterQuery = NoFilterQuery;
+    type OrderField = crate::server::shared::handlers::ordering::NoOrderField;
 
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.user_service

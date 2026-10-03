@@ -15,7 +15,12 @@ export interface OutcomeReason {
 	description: string;
 }
 
-const TERMINAL_PHASES: DiscoveryUpdatePayload['phase'][] = ['Complete', 'Failed', 'Cancelled'];
+/** The phases a run ends in, as the backend's `DiscoveryPhase::is_terminal` defines them. Fixture
+ *  ids are `DiscoveryPhase` names, emitted from that enum, so each is a valid phase by construction. */
+export const TERMINAL_PHASES = discoveryPhases
+	.getItems()
+	.filter((phase) => discoveryPhases.getMetadata(phase.id).is_terminal)
+	.map((phase) => phase.id as DiscoveryUpdatePayload['phase']);
 
 /**
  * How a run ended: one of three statuses, with the reason behind it as the hover.

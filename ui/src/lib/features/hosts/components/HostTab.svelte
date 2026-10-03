@@ -10,6 +10,12 @@
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
+	import {
+		hostOsFamilyIds,
+		hostOsFamilyName,
+		type HostOsFamily
+	} from '$lib/features/hosts/host-os';
+	import OsTag from './OsTag.svelte';
 	import { interfaceDisplayName } from '$lib/features/hosts/interface-display-name';
 	import HostEditor from './HostEditModal/HostEditor.svelte';
 	import HostConsolidationModal from './HostConsolidationModal.svelte';
@@ -58,16 +64,25 @@
 		common_source,
 		common_firmwareRevision,
 		common_softwareRevision,
+		common_operatingSystem,
 		common_service,
 		common_services,
 		common_tags,
 		common_unknownEntity,
 		common_unknownNetwork,
 		common_updated,
+		common_contact,
+		common_location,
 		daemons_installPromptHosts,
 		hosts_fields_virtualizedBy,
-		hosts_notVirtualized
+		hosts_notVirtualized,
+		hosts_snmp_chassisId,
+		hosts_snmp_managementUrl,
+		hosts_snmp_sysDescr,
+		hosts_snmp_sysName,
+		hosts_snmp_sysObjectId
 	} from '$lib/paraglide/messages';
+	import { entitySourceItems } from '$lib/shared/utils/entity-source';
 
 	let { isReadOnly = false }: TabProps = $props();
 	import {
@@ -93,11 +108,20 @@
 	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
 	import type { components } from '$lib/api/schema';
 	import { hasDaemon } from '$lib/shared/onboarding/checklist';
+	import {
+		fieldValueOptions,
+		hasEmptyFieldValue,
+		labelledFieldValueOptions,
+		useFieldValuesQuery
+	} from '$lib/shared/api/field-values';
 
 	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 	type HostOrderField = components['schemas']['HostOrderField'];
 	type OrderDirection = components['schemas']['OrderDirection'];
 	type EntitySourceType = components['schemas']['EntitySourceDiscriminants'];
+
+	const HOST_FIELD_VALUES = '/api/v1/hosts/field-values/{field}';
+	const SERVICE_FIELD_VALUES = '/api/v1/services/field-values/{field}';
 
 	// Pagination state
 	let pageSize = $state(20);
@@ -120,10 +144,26 @@
 	// while the total count kept describing every match.
 	let filterNetworkIds = $state<string[]>([]);
 	let filterHidden = $state<boolean[]>([]);
-	let filterVirtualizationServiceIds = $state<string[]>([]);
+	let filterVirtualizationServiceNames = $state<string[]>([]);
 	let filterIncludeUnvirtualized = $state(false);
 	let filterServiceNames = $state<string[]>([]);
 	let filterSources = $state<EntitySourceType[]>([]);
+	let filterManufacturers = $state<string[]>([]);
+	let filterModels = $state<string[]>([]);
+	let filterSysLocations = $state<string[]>([]);
+	let filterOsFamilies = $state<HostOsFamily[]>([]);
+	let filterCredentialIds = $state<string[]>([]);
+
+	/** The hardware, OS and credential filters, shared by the list and the export. */
+	function fieldFilterParams() {
+		return {
+			manufacturers: filterManufacturers.length > 0 ? filterManufacturers : undefined,
+			models: filterModels.length > 0 ? filterModels : undefined,
+			sys_locations: filterSysLocations.length > 0 ? filterSysLocations : undefined,
+			os_families: filterOsFamilies.length > 0 ? filterOsFamilies : undefined,
+			credential_ids: filterCredentialIds.length > 0 ? filterCredentialIds : undefined
+		};
+	}
 
 	// Queries
 	const organizationQuery = useOrganizationQuery();
@@ -156,11 +196,12 @@
 		network_ids: filterNetworkIds.length > 0 ? filterNetworkIds : undefined,
 		// Both values checked is no constraint, so it is sent as nothing.
 		hidden: filterHidden.length === 1 ? filterHidden : undefined,
-		virtualization_service_ids:
-			filterVirtualizationServiceIds.length > 0 ? filterVirtualizationServiceIds : undefined,
+		virtualization_service_names:
+			filterVirtualizationServiceNames.length > 0 ? filterVirtualizationServiceNames : undefined,
 		include_unvirtualized: filterIncludeUnvirtualized || undefined,
 		service_names: filterServiceNames.length > 0 ? filterServiceNames : undefined,
-		sources: filterSources.length > 0 ? filterSources : undefined
+		sources: filterSources.length > 0 ? filterSources : undefined,
+		...fieldFilterParams()
 	}));
 	const networksQuery = useNetworksQuery();
 	useDaemonsQuery();
@@ -168,6 +209,19 @@
 	const interfacesQuery = useInterfacesQuery();
 	const credentialsQuery = useCredentialsQuery();
 	const subnetsQuery = useSubnetsQuery();
+	// Filter options: the values the caller's hosts actually hold, counted by the server. The
+	// loaded page would only offer the values on it, and the fixtures and caches would offer values
+	// no host holds. None of these takes the tab's active filters, so the options do not shrink as
+	// the user filters.
+	const networkValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'network_id');
+	const virtualizedByValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'virtualized_by');
+	const sourceValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'source');
+	const osFamilyValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'os_family');
+	const manufacturerValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'manufacturer');
+	const modelValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'model');
+	const sysLocationValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'sys_location');
+	// Every service belongs to a host, so the services' names are the names some host runs.
+	const serviceNameValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'name');
 
 	// Selective service lookup - only fetches services needed for virtualization display
 	// Extract service IDs from visible hosts for "Virtualized By" field
@@ -265,11 +319,12 @@
 				break;
 			case 'virtualized_by':
 				// "Not Virtualized" is a choice about absence, so it is carried as
-				// its own flag rather than as an id nothing would match.
+				// its own flag rather than as a name nothing would match. The rest are the
+				// virtualizing services' names, which the server filters on directly: the
+				// options come from every host, and no client cache holds every service.
 				filterIncludeUnvirtualized = values.includes(hosts_notVirtualized());
-				filterVirtualizationServiceIds = idsForNames(
-					values.filter((value) => value !== hosts_notVirtualized()),
-					allServicesData
+				filterVirtualizationServiceNames = values.filter(
+					(value) => value !== hosts_notVirtualized()
 				);
 				break;
 			case 'services':
@@ -282,6 +337,24 @@
 					.getItems()
 					.filter((source) => values.includes(entitySources.getName(source.id)))
 					.map((source) => source.id as EntitySourceType);
+				break;
+			// The field-values options are the stored strings themselves, so they pass through.
+			case 'manufacturer':
+				filterManufacturers = values;
+				break;
+			case 'model':
+				filterModels = values;
+				break;
+			case 'sys_location':
+				filterSysLocations = values;
+				break;
+			case 'os_family':
+				filterOsFamilies = hostOsFamilyIds.filter((family) =>
+					values.includes(hostOsFamilyName(family))
+				);
+				break;
+			case 'credentials':
+				filterCredentialIds = idsForNames(values, credentialsData);
 				break;
 			default:
 				throw new Error(
@@ -308,11 +381,12 @@
 		order_direction: orderDirection,
 		network_ids: filterNetworkIds.length > 0 ? filterNetworkIds : undefined,
 		hidden: filterHidden.length === 1 ? filterHidden : undefined,
-		virtualization_service_ids:
-			filterVirtualizationServiceIds.length > 0 ? filterVirtualizationServiceIds : undefined,
+		virtualization_service_names:
+			filterVirtualizationServiceNames.length > 0 ? filterVirtualizationServiceNames : undefined,
 		include_unvirtualized: filterIncludeUnvirtualized || undefined,
 		service_names: filterServiceNames.length > 0 ? filterServiceNames : undefined,
-		sources: filterSources.length > 0 ? filterSources : undefined
+		sources: filterSources.length > 0 ? filterSources : undefined,
+		...fieldFilterParams()
 	});
 
 	let showHostEditor = $state(false);
@@ -412,14 +486,11 @@
 					searchable: true,
 					filterable: true,
 					serverFiltered: true,
-					// From the full services cache, not the loaded page: options
-					// derived from one page would only offer the runtimes that
-					// happen to appear on it.
-					filterOptions: [
-						...new Set(allServicesData.map((s) => s.name).filter((name) => name.length > 0))
-					]
-						.sort((a, b) => a.localeCompare(b))
-						.concat(hosts_notVirtualized()),
+					// The names of the services that virtualize some host, and "Not Virtualized"
+					// only when some host has no virtualizing service (counted as '').
+					filterOptions: fieldValueOptions(virtualizedByValuesQuery.data).concat(
+						hasEmptyFieldValue(virtualizedByValuesQuery.data) ? [hosts_notVirtualized()] : []
+					),
 					groupable: true,
 					// The server groups on the virtualizing service's name,
 					// coalescing hosts without one to an empty string.
@@ -508,7 +579,11 @@
 					filterable: true,
 					serverFiltered: true,
 					groupable: true,
-					filterOptions: networksData.map((n) => n.name),
+					// The networks some host is on, by name.
+					filterOptions: labelledFieldValueOptions(
+						networkValuesQuery.data,
+						(id) => networksData.find((n) => n.id === id)?.name
+					),
 					// Displayed as a name, but grouped by id on the server.
 					getGroupValue: (item) => item.network_id,
 					getValue: (item) =>
@@ -522,36 +597,80 @@
 				last_seen_at: {
 					label: common_lastSeen(),
 					type: 'date',
+					staleFilter: true,
 					display: { recency: true, order: 1, getItems: lastSeenItems(() => networksData, 'Host') }
-				}
-			},
-			[
+				},
 				// How the host came to exist, read from `source.type`. An inferred host (one a
 				// neighbour advertised and nothing scanned) looks the same as a down device by its
 				// ports and services, so the chip and filter read the stamped source, never those.
-				{
-					key: 'source',
+				source: {
 					label: common_source(),
 					type: 'string',
 					filterable: true,
 					serverFiltered: true,
-					// Every source the backend can stamp, from the fixture rather than the loaded
-					// page, which would only offer the sources that happen to appear on it.
-					filterOptions: entitySources.getItems().map((source) => entitySources.getName(source.id)),
+					// The sources some host was stamped with, by name.
+					filterOptions: labelledFieldValueOptions(sourceValuesQuery.data, (id) =>
+						entitySources.getName(id)
+					),
 					getValue: (host) => entitySources.getName(host.source.type),
-					display: {
-						order: 1,
-						getItems: (host) => [
-							{
-								id: host.source.type,
-								label: entitySources.getName(host.source.type),
-								color: entitySources.getColorHelper(host.source.type).color,
-								icon: entitySources.getIconComponent(host.source.type),
-								title: entitySources.getDescription(host.source.type)
-							}
-						]
-					}
+					// The server groups on the raw `source.type`.
+					getGroupValue: (host) => host.source.type,
+					display: { order: 1, getItems: (host) => entitySourceItems(host.source) }
 				},
+				// Hardware identity, off by default: populated only for hosts a credentialed scan
+				// reached. The options come from every stored value, and the server groups on the
+				// stored string, which is also what renders.
+				manufacturer: {
+					label: common_manufacturer(),
+					type: 'string',
+					filterable: true,
+					serverFiltered: true,
+					filterOptions: fieldValueOptions(manufacturerValuesQuery.data),
+					display: { hiddenByDefault: true }
+				},
+				model: {
+					label: common_model(),
+					type: 'string',
+					filterable: true,
+					serverFiltered: true,
+					filterOptions: fieldValueOptions(modelValuesQuery.data),
+					display: { hiddenByDefault: true }
+				},
+				sys_location: {
+					label: common_location(),
+					type: 'string',
+					filterable: true,
+					serverFiltered: true,
+					filterOptions: fieldValueOptions(sysLocationValuesQuery.data),
+					display: { hiddenByDefault: true }
+				},
+				// Sorted, grouped and filtered by family; the cell shows the full product and release.
+				os_family: {
+					label: common_operatingSystem(),
+					type: 'string',
+					filterable: true,
+					serverFiltered: true,
+					// The families some host runs, resolved through the same list the handler
+					// maps names back with.
+					filterOptions: labelledFieldValueOptions(osFamilyValuesQuery.data, (value) => {
+						const family = hostOsFamilyIds.find((id) => id === value);
+						return family ? hostOsFamilyName(family) : null;
+					}),
+					getValue: (host) => (host.os ? hostOsFamilyName(host.os.family) : null),
+					getGroupValue: (host) => host.os?.family ?? null,
+					display: { hiddenByDefault: true, cell: osCell }
+				},
+				hidden: {
+					label: common_hidden(),
+					type: 'boolean',
+					filterable: true,
+					serverFiltered: true,
+					// Useful as a filter, but almost always false — a column of "false"
+					// earns none of the width it takes.
+					display: { hiddenByDefault: true }
+				}
+			},
+			[
 				{
 					key: 'description',
 					label: common_description(),
@@ -559,22 +678,8 @@
 					searchable: true,
 					display: { hiddenByDefault: true }
 				},
-				// Hardware identity, off by default: populated only for hosts a credentialed scan
-				// reached. Neither searchable nor filterable — host search predicates and the
-				// filter query params cover none of these columns, and a control the server
-				// disagrees with is worse than no control.
-				{
-					key: 'manufacturer',
-					label: common_manufacturer(),
-					type: 'string',
-					display: { hiddenByDefault: true }
-				},
-				{
-					key: 'model',
-					label: common_model(),
-					type: 'string',
-					display: { hiddenByDefault: true }
-				},
+				// Off by default: populated only for hosts a credentialed scan reached. Identifiers,
+				// vendor version strings, opaque OIDs and free text, so none sorts, groups or filters.
 				{
 					key: 'serial_number',
 					label: common_serialNumber(),
@@ -594,13 +699,39 @@
 					display: { hiddenByDefault: true }
 				},
 				{
-					key: 'hidden',
-					label: common_hidden(),
-					type: 'boolean',
-					filterable: true,
-					serverFiltered: true,
-					// Useful as a filter, but almost always false — a column of "false"
-					// earns none of the width it takes.
+					key: 'sys_name',
+					label: hosts_snmp_sysName(),
+					type: 'string',
+					display: { hiddenByDefault: true }
+				},
+				{
+					key: 'sys_descr',
+					label: hosts_snmp_sysDescr(),
+					type: 'string',
+					display: { hiddenByDefault: true }
+				},
+				{
+					key: 'sys_object_id',
+					label: hosts_snmp_sysObjectId(),
+					type: 'string',
+					display: { hiddenByDefault: true }
+				},
+				{
+					key: 'sys_contact',
+					label: common_contact(),
+					type: 'string',
+					display: { hiddenByDefault: true }
+				},
+				{
+					key: 'chassis_id',
+					label: hosts_snmp_chassisId(),
+					type: 'string',
+					display: { hiddenByDefault: true }
+				},
+				{
+					key: 'management_url',
+					label: hosts_snmp_managementUrl(),
+					type: 'string',
 					display: { hiddenByDefault: true }
 				},
 				{
@@ -618,6 +749,13 @@
 					label: common_credentials(),
 					type: 'array',
 					searchable: true,
+					filterable: true,
+					serverFiltered: true,
+					// Names, resolved back to ids for the server. Only credentials assigned to some host:
+					// the rest match nothing.
+					filterOptions: credentialsData
+						.filter((c) => (c.host_assignments ?? []).length > 0)
+						.map((c) => c.name),
 					getValue: (host) => hostCredentials(host).map((c) => c.name),
 					display: {
 						order: 3,
@@ -648,12 +786,10 @@
 					searchable: true,
 					filterable: true,
 					serverFiltered: true,
-					// Names, not ids: the server matches a host's services by name,
-					// and the options come from the full cache so they are not
-					// limited to the services on the loaded page.
-					filterOptions: [
-						...new Set(allServicesData.map((s) => s.name).filter((name) => name.length > 0))
-					].sort((a, b) => a.localeCompare(b)),
+					// Names, not ids: the server matches a host's services by name. The options are
+					// every live service name the server counts; the services cache only holds the
+					// loaded page's.
+					filterOptions: fieldValueOptions(serviceNameValuesQuery.data),
 					getValue: (host) =>
 						allServicesData.filter((s) => s.host_id === host.id).map((s) => s.name),
 					display: {
@@ -798,6 +934,14 @@
 	}
 </script>
 
+{#snippet osCell(host: Host)}
+	{#if host.os}
+		<OsTag os={host.os} source={host.os_source} />
+	{:else}
+		<span class="text-tertiary text-sm">—</span>
+	{/if}
+{/snippet}
+
 <div class="space-y-6">
 	<!-- Header -->
 	<TabHeader title={common_hosts()}>
@@ -833,7 +977,7 @@
 	</TabHeader>
 
 	{#if !hasDaemon(onboarding)}
-		<PreDaemonEmptyState title={daemons_installPromptHosts()} />
+		<PreDaemonEmptyState title={daemons_installPromptHosts()} {isReadOnly} />
 	{:else if isInitialLoading}
 		<!-- Loading state (only on initial load) -->
 		<Loading />
