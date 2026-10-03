@@ -1087,6 +1087,7 @@ fn every_client_probe_variant_has_a_producer() {
         ClientProbe::Podman,
         ClientProbe::UnifiController,
         ClientProbe::InstantOn,
+        ClientProbe::Proxmox,
     ];
 
     // Known to have no producer. gNMI's definition matches on `ClientResponse(Gnmi)` and nothing

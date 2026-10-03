@@ -16,6 +16,7 @@ use utoipa::ToSchema;
 pub mod container_proxy;
 pub mod instant_on;
 pub mod paths;
+pub mod proxmox;
 pub mod snmp;
 pub mod ssh;
 pub mod ssh_script;
@@ -46,6 +47,7 @@ pub use secrets::{
 pub use snmp::{SnmpV3AuthProtocol, SnmpV3PrivProtocol, SnmpVersion};
 
 pub use instant_on::InstantOnQueryCredential;
+pub use proxmox::{ProxmoxQueryCredential, default_proxmox_port};
 pub use ssh::{
     ScriptSource, SshAuth, SshQueryCredential, default_ssh_port, default_ssh_timeout_seconds,
 };
@@ -339,6 +341,19 @@ pub enum CredentialType {
         )]
         secure_on_password: Option<SecretValue>,
     },
+    /// Proxmox VE API token. Any node's API answers for its whole cluster, so one credential on
+    /// one node reports every node, VM and LXC container. Use a read-only token: the PVEAuditor
+    /// role on `/`, plus guest-agent read access for VM addresses.
+    #[schema(title = "ProxmoxApiToken")]
+    ProxmoxApiToken {
+        /// Proxmox VE API port (default 8006).
+        #[serde(default = "default_proxmox_port")]
+        port: u16,
+        /// Token ID in `user@realm!tokenname` form, e.g. `scanopy@pve!discovery`.
+        token_id: String,
+        /// The token's secret (a UUID), shown once when the token is created.
+        token_secret: SecretValue,
+    },
 }
 
 /// Convert a stored `SecretValue` into a daemon-bound `ResolvableSecret`,
@@ -512,6 +527,17 @@ impl CredentialType {
                     *secure_on_password = existing_password.clone();
                 }
             }
+            (
+                Self::ProxmoxApiToken { token_secret, .. },
+                Self::ProxmoxApiToken {
+                    token_secret: existing_secret,
+                    ..
+                },
+            ) => {
+                if token_secret.is_redacted_sentinel() {
+                    *token_secret = existing_secret.clone();
+                }
+            }
             // Every remaining arm is "nothing to merge": either the variant holds no secret, or
             // the credential's type was changed in this edit so there is no prior secret of the
             // same shape to restore.
@@ -533,7 +559,8 @@ impl CredentialType {
             | (Self::InstantOnAccount { .. }, _)
             | (Self::SshPassword { .. }, _)
             | (Self::SshKey { .. }, _)
-            | (Self::WakeOnLan { .. }, _) => {}
+            | (Self::WakeOnLan { .. }, _)
+            | (Self::ProxmoxApiToken { .. }, _) => {}
         }
     }
 
@@ -581,6 +608,9 @@ impl CredentialType {
             // Named hosts only. A network assignment would wake every device on the subnet the
             // server holds a MAC for, which nobody asking to wake a NAS intends.
             Self::WakeOnLan { .. } => vec![Target::Hosts],
+            // One API endpoint per node, like a controller: a daemon running on a node, or a
+            // named node. Not `Network`, for the same reason as UniFi.
+            Self::ProxmoxApiToken { .. } => vec![Target::DaemonHost, Target::Hosts],
         }
     }
 
@@ -612,7 +642,9 @@ impl CredentialType {
             | Self::UnifiApiKey { .. }
             | Self::UnifiLocalAdmin { .. }
             // One Instant On site reports a given switch, and there is one way to reach it.
-            | Self::InstantOnAccount { .. } => true,
+            | Self::InstantOnAccount { .. }
+            // One Proxmox VE API per node, with one way in.
+            | Self::ProxmoxApiToken { .. } => true,
             Self::SnmpV1 { .. } | Self::SnmpV2c { .. } | Self::SnmpV3 { .. } => false,
             // Try-many like SNMP: two gNMI credentials (Arista on 6030, ArcOS on 9339) must be
             // broadcastable on one network, which `true` would forbid.
@@ -696,6 +728,15 @@ impl CredentialType {
                 secure_on_password, ..
             } => match field_id {
                 "secure_on_password" => inline_secret(secure_on_password.as_ref()?),
+                _ => None,
+            },
+            Self::ProxmoxApiToken {
+                token_id,
+                token_secret,
+                ..
+            } => match field_id {
+                "token_id" => Some(token_id.clone()),
+                "token_secret" => inline_secret(token_secret),
                 _ => None,
             },
             Self::DockerSocket { .. } | Self::PodmanSocket { .. } => None,
@@ -800,6 +841,9 @@ impl CredentialType {
                     .as_ref()
                     .and_then(|s| secret("secure_on_password", s)),
             ],
+            Self::ProxmoxApiToken { token_secret, .. } => {
+                vec![secret("token_secret", token_secret)]
+            }
         };
         paths.into_iter().flatten().collect()
     }
@@ -1040,6 +1084,15 @@ impl CredentialType {
                 wait_seconds: *wait_seconds,
                 broadcast_address: *broadcast_address,
                 secure_on_password: secure_on_password.as_ref().map(secret_to_resolvable),
+            }),
+            CredentialType::ProxmoxApiToken {
+                port,
+                token_id,
+                token_secret,
+            } => CredentialQueryPayload::Proxmox(ProxmoxQueryCredential {
+                port: *port,
+                token_id: token_id.trim().to_string(),
+                token_secret: secret_to_resolvable(token_secret),
             }),
         }
     }

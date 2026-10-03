@@ -197,6 +197,8 @@ pub enum ClientProbe {
     /// Unlike the others this proves nothing is listening *on* the host — it proves the portal
     /// account works, which is what gates the integration's `execute`.
     InstantOn,
+    /// The Proxmox VE API answered `/version` with the credential's API token.
+    Proxmox,
     /// A well-formed MBAP frame came back with our transaction ID echoed. Says nothing about
     /// whether the device answered `0x2B` — a `0xAB` exception is still Modbus.
     ModbusTcp,
@@ -286,7 +288,11 @@ impl ClientProbe {
         match self {
             // A runtime or controller describing something it manages: known speaker, not the
             // subject.
-            Self::Docker | Self::Podman | Self::UnifiController | Self::InstantOn => M::Reported,
+            Self::Docker
+            | Self::Podman
+            | Self::UnifiController
+            | Self::InstantOn
+            | Self::Proxmox => M::Reported,
             // We chose the address and the transport correlated the answer.
             Self::Snmp | Self::Gnmi => M::Queried,
             // Same, over the device's own product protocol.

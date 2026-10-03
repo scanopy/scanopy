@@ -9,6 +9,7 @@
 		pemPrivateKey,
 		sshPrivateKey,
 		macAddress,
+		proxmoxTokenId,
 		ipAddressFormat
 	} from '$lib/shared/components/forms/validators';
 	import SegmentedControl from '$lib/shared/components/forms/SegmentedControl.svelte';
@@ -793,6 +794,9 @@
 			}
 			if (field.inline_format === 'macaddress' && effectiveValue !== '********') {
 				return macAddress(effectiveValue);
+			}
+			if (field.inline_format === 'proxmoxtokenid') {
+				return proxmoxTokenId(effectiveValue);
 			}
 			return undefined;
 		};

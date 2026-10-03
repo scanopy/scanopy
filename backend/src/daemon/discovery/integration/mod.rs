@@ -17,6 +17,7 @@ pub mod flex;
 pub mod gnmi;
 pub mod instant_on;
 pub mod podman;
+pub mod proxmox;
 pub mod snmp;
 pub mod ssh;
 pub mod unifi;
@@ -438,6 +439,7 @@ impl IntegrationRegistry {
             CredentialQueryPayloadDiscriminants::WakeOnLan => {
                 Box::new(wake_on_lan::WakeOnLanIntegration)
             }
+            CredentialQueryPayloadDiscriminants::Proxmox => Box::new(proxmox::ProxmoxIntegration),
             CredentialQueryPayloadDiscriminants::Unknown => return None,
         })
     }

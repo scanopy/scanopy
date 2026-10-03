@@ -36,7 +36,7 @@ use crate::server::{
         base::{Host, HostBase},
         name::{HostName, HostNameSources},
         os::{HostOs, HostOsFamily},
-        virtualization::{HostVirtualization, ProxmoxVirtualization},
+        virtualization::{HostVirtualization, ProxmoxGuestType, ProxmoxVirtualization},
     },
     interfaces::r#impl::base::{IfAdminStatus, IfOperStatus, Interface, InterfaceBase},
     ip_addresses::r#impl::base::{IPAddress, IPAddressBase},

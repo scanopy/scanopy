@@ -637,6 +637,7 @@ impl TypeMetadataProvider for ClientProbe {
             Self::Snmp => "SNMP",
             Self::UnifiController => "UniFi controller",
             Self::InstantOn => "HPE Instant On",
+            Self::Proxmox => "Proxmox VE",
             Self::ModbusTcp => "Modbus TCP",
             Self::OpcUa => "OPC UA",
             Self::EtherNetIp => "EtherNet/IP",

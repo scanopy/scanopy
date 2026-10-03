@@ -62,7 +62,8 @@ impl CredentialRunOutcome {
             | D::PodmanProxy
             | D::PodmanSocket
             | D::UnifiController
-            | D::InstantOn => Self::Collected { hosts: 0 },
+            | D::InstantOn
+            | D::Proxmox => Self::Collected { hosts: 0 },
             D::Ssh => Self::SshScript { runs: Vec::new() },
             D::WakeOnLan => Self::WakeOnLan { hosts: Vec::new() },
             D::Unknown => Self::Unknown,

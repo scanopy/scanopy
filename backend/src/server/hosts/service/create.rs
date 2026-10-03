@@ -49,11 +49,43 @@ pub(crate) fn resolve_owner_service_id(
 }
 
 impl HostService {
+    /// Keep a discovery-supplied hypervisor service only if it is a real service on the host's
+    /// own network; otherwise drop it and say so.
+    ///
+    /// An integration that reports guests (Proxmox) creates the hypervisor's host first and reads
+    /// the service id back from the create response, so a well-behaved daemon only ever sends a
+    /// stored id. The network check is tenant isolation: the handler has already pinned the host
+    /// to the daemon's network, and the hypervisor must sit on that same network. A daemon-minted
+    /// id (never stored) or one from elsewhere degrades to `None` rather than reaching Postgres as
+    /// a foreign-key failure that would abort the whole host.
+    pub(crate) async fn accept_discovered_virtualization_service(&self, host: &mut Host) {
+        let Some(id) = host.base.virtualization_service_id else {
+            return;
+        };
+        let keep = match self.service_service.get_by_id(&id).await {
+            Ok(Some(service)) => service.base.network_id == host.base.network_id,
+            Ok(None) => false,
+            Err(e) => {
+                tracing::warn!(error = ?e, %id, "Could not look up a discovered hypervisor service");
+                false
+            }
+        };
+        if !keep {
+            host.base.virtualization_service_id = None;
+            tracing::warn!(
+                host_name = %host.base.name,
+                %id,
+                "Discovery payload named a hypervisor service that is not a stored service on \
+                 this host's network; ignoring it"
+            );
+        }
+    }
+
     /// Reject an API-supplied virtualizing service that does not exist.
     ///
-    /// Only the API sets this — discovery's copy is stripped in `discover_host`, since a
-    /// daemon-minted service id cannot be resolved across submissions. Left unchecked, a bad id
-    /// reaches Postgres and comes back as an opaque foreign-key 500.
+    /// Discovery's copy goes through `accept_discovered_virtualization_service` instead, which
+    /// drops a bad id rather than failing the host. Left unchecked, a bad id reaches Postgres and
+    /// comes back as an opaque foreign-key 500.
     pub(crate) async fn validate_virtualization_service(
         &self,
         virtualization_service_id: Option<Uuid>,

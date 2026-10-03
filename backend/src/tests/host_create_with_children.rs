@@ -472,15 +472,60 @@ async fn container_service_owner_survives_a_rescan() {
     );
 }
 
-/// `hosts.virtualization_service_id` is server-authoritative.
-///
-/// A VM guest names a hypervisor service on a different host, submitted in a different call, so
-/// no ordering inside a submission could resolve it — and `CreatedEntitiesPayload` never returns
-/// service mappings, so a daemon cannot learn the real id to send. Anything the payload carries
-/// is therefore dropped rather than written, which is what keeps the FK satisfiable when the
-/// Proxmox integration starts populating this field.
+/// A guest host on the LAN the container host's submission persisted, naming `owner` as its
+/// hypervisor service.
+fn guest(network_id: Uuid, lan_id: Uuid, last_octet: u8, owner: Option<Uuid>) -> Submission {
+    let host = Host::new(HostBase {
+        name: HostName::manual(format!("guest-{last_octet}")),
+        network_id,
+        source: EntitySource::Discovery,
+        virtualization_service_id: owner,
+        ..Default::default()
+    });
+    let ip = IPAddress::new(IPAddressBase {
+        network_id,
+        subnet_id: lan_id,
+        ip_address: IpAddr::V4(Ipv4Addr::new(192, 168, 1, last_octet)),
+        mac_address: None,
+        position: 0,
+        name: Some("eth0".to_string()),
+        host_id: host.id,
+    });
+    Submission {
+        host,
+        ip_addresses: vec![ip],
+        ports: vec![],
+        services: vec![],
+        subnets: vec![],
+    }
+}
+
+/// Persist the container host and return its stored runtime service id and LAN subnet id, which
+/// stand in for a hypervisor node's service and network in the guest tests below.
+async fn stored_owner_and_lan(services: &ServiceFactory, network_id: Uuid) -> (Uuid, Uuid) {
+    let response = submit(services, Submission::container_host(network_id))
+        .await
+        .expect("the owner's host persists");
+    let owner = response
+        .services
+        .iter()
+        .find(|s| s.base.service_definition.name() == "Docker")
+        .expect("owner service persisted")
+        .id;
+    let lan = response
+        .ip_addresses
+        .iter()
+        .find(|ip| ip.base.ip_address == IpAddr::V4(Ipv4Addr::new(192, 168, 1, 50)))
+        .expect("LAN address persisted")
+        .base
+        .subnet_id;
+    (owner, lan)
+}
+
+/// A daemon-minted id names nothing the server stored, so discovery drops it rather than failing
+/// the host on the foreign key.
 #[tokio::test]
-async fn daemon_supplied_host_owner_is_ignored() {
+async fn daemon_supplied_unknown_host_owner_is_dropped() {
     harness!(services, network_id, _container);
 
     let mut submission = Submission::container_host(network_id);
@@ -488,12 +533,71 @@ async fn daemon_supplied_host_owner_is_ignored() {
 
     let response = submit(&services, submission)
         .await
-        .expect("a daemon-supplied host owner must not fail the host");
+        .expect("an unknown host owner must not fail the host");
 
     assert_eq!(
         response.virtualization_service_id, None,
-        "discovery must not write a host virtualizer it cannot resolve"
+        "discovery must not write a host virtualizer that is not a stored service"
     );
+}
+
+/// The Proxmox integration creates a node first and sends its stored service id with each guest.
+/// A new guest keeps it; a guest already on file without an owner (found by a plain scan first)
+/// gains it on the next report.
+#[tokio::test]
+async fn guest_links_to_a_stored_hypervisor_service() {
+    harness!(services, network_id, _container);
+    let (owner, lan) = stored_owner_and_lan(&services, network_id).await;
+
+    let created = submit(&services, guest(network_id, lan, 60, Some(owner)))
+        .await
+        .expect("guest persists");
+    assert_eq!(created.virtualization_service_id, Some(owner));
+
+    let found_first = submit(&services, guest(network_id, lan, 61, None))
+        .await
+        .expect("guest found by a plain scan persists");
+    assert_eq!(found_first.virtualization_service_id, None);
+
+    let mut reported = guest(network_id, lan, 61, Some(owner));
+    reported.host.id = found_first.id;
+    reported.ip_addresses[0].base.host_id = found_first.id;
+    let linked = submit(&services, reported)
+        .await
+        .expect("guest report persists");
+    assert_eq!(linked.id, found_first.id, "the report must land on the same host");
+    assert_eq!(linked.virtualization_service_id, Some(owner));
+}
+
+/// Tenant isolation: a guest can only be linked to a hypervisor service on its own network.
+#[tokio::test]
+async fn guest_cannot_link_to_another_networks_service() {
+    harness!(services, network_id, _container);
+    let (_, lan) = stored_owner_and_lan(&services, network_id).await;
+
+    let other_network = services
+        .network_service
+        .create(
+            Network::new(NetworkBase::new(
+                services
+                    .network_service
+                    .get_by_id(&network_id)
+                    .await
+                    .unwrap()
+                    .unwrap()
+                    .base
+                    .organization_id,
+            )),
+            AuthenticatedEntity::System,
+        )
+        .await
+        .unwrap();
+    let (foreign_owner, _) = stored_owner_and_lan(&services, other_network.id).await;
+
+    let response = submit(&services, guest(network_id, lan, 62, Some(foreign_owner)))
+        .await
+        .expect("a cross-network owner must not fail the host");
+    assert_eq!(response.virtualization_service_id, None);
 }
 
 /// The API *does* own this field — the UI sets it when a user assigns a VM to a hypervisor — so

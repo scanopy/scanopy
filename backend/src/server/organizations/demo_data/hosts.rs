@@ -685,6 +685,7 @@ pub(super) fn generate_hosts_and_services(
                     HostVirtualization::Proxmox(ProxmoxVirtualization {
                         vm_name: Some("gitlab-vm".to_string()),
                         vm_id: Some("100".to_string()),
+                        guest_type: Some(ProxmoxGuestType::Qemu),
                     }),
                     pve_hq1_svc_id,
                 )),
@@ -717,6 +718,7 @@ pub(super) fn generate_hosts_and_services(
                     HostVirtualization::Proxmox(ProxmoxVirtualization {
                         vm_name: Some("nextcloud-vm".to_string()),
                         vm_id: Some("101".to_string()),
+                        guest_type: Some(ProxmoxGuestType::Qemu),
                     }),
                     pve_hq1_svc_id,
                 )),
@@ -752,6 +754,7 @@ pub(super) fn generate_hosts_and_services(
                     HostVirtualization::Proxmox(ProxmoxVirtualization {
                         vm_name: Some("keycloak-vm".to_string()),
                         vm_id: Some("200".to_string()),
+                        guest_type: Some(ProxmoxGuestType::Qemu),
                     }),
                     pve_hq2_svc_id,
                 )),
@@ -1078,6 +1081,7 @@ pub(super) fn generate_hosts_and_services(
                     HostVirtualization::Proxmox(ProxmoxVirtualization {
                         vm_name: Some("db-vm".to_string()),
                         vm_id: Some("201".to_string()),
+                        guest_type: Some(ProxmoxGuestType::Qemu),
                     }),
                     pve_hq2_svc_id,
                 )),
@@ -2038,6 +2042,7 @@ pub(super) fn generate_hosts_and_services(
                     HostVirtualization::Proxmox(ProxmoxVirtualization {
                         vm_name: Some("argocd-vm".to_string()),
                         vm_id: Some("300".to_string()),
+                        guest_type: Some(ProxmoxGuestType::Qemu),
                     }),
                     pve_dc_svc_id,
                 )),
@@ -2070,6 +2075,7 @@ pub(super) fn generate_hosts_and_services(
                     HostVirtualization::Proxmox(ProxmoxVirtualization {
                         vm_name: Some("graylog-vm".to_string()),
                         vm_id: Some("301".to_string()),
+                        guest_type: Some(ProxmoxGuestType::Qemu),
                     }),
                     pve_dc_svc_id,
                 )),
@@ -2103,6 +2109,7 @@ pub(super) fn generate_hosts_and_services(
                     HostVirtualization::Proxmox(ProxmoxVirtualization {
                         vm_name: Some("mariadb-vm".to_string()),
                         vm_id: Some("302".to_string()),
+                        guest_type: Some(ProxmoxGuestType::Qemu),
                     }),
                     pve_dc_svc_id,
                 )),
