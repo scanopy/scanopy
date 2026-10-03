@@ -188,34 +188,34 @@ impl DiscoveryIntegration for ProxmoxIntegration {
         let network_id = ctx.ops.network_id().await?;
         let total = guests.len();
         let mut created = 0usize;
-        let mut without_address: Vec<String> = vec![];
+        let mut unidentifiable: Vec<String> = vec![];
         for (i, guest) in guests.iter().enumerate() {
             if ctx.cancel.is_cancelled() {
                 return Err(IntegrationFailure::cancelled());
             }
-            let addresses = guest_addresses(client, guest).await;
-            if addresses.is_empty() {
-                without_address.push(guest_label(guest));
-                continue;
-            }
-            let (host, ips) = mapping::guest_host(
+            let (nics, addresses) = guest_addresses(client, guest).await;
+            let Some(record) = mapping::guest_host(
                 guest,
                 &addresses,
+                &nics,
                 owners.get(&guest.node).copied(),
                 network_id,
-            );
+            ) else {
+                unidentifiable.push(guest_label(guest));
+                continue;
+            };
             match ctx
                 .ops
                 .create_host(
-                    host,
-                    ips,
+                    record.host,
+                    record.ip_addresses,
                     vec![],
                     vec![],
+                    record.interfaces,
                     vec![],
-                    vec![],
-                    // The API reports addresses, never the guest's interface table.
+                    // The API reports addresses and NIC MACs, never the guest's interface table.
                     false,
-                    InterfaceDataComplete::default(),
+                    InterfaceDataComplete::none(),
                     ctx.cancel,
                 )
                 .await
@@ -233,18 +233,14 @@ impl DiscoveryIntegration for ProxmoxIntegration {
             }
         }
 
-        tracing::info!(
-            created,
-            without_address = without_address.len(),
-            "Proxmox VE guest sync complete"
-        );
-        if !without_address.is_empty() {
-            // A stopped guest, or a VM without the guest agent, has no address the API can
-            // report. Nothing is wrong, so this is a log line rather than a scan warning; the
-            // guest appears once it runs with an address.
+        tracing::info!(created, "Proxmox VE guest sync complete");
+        if !unidentifiable.is_empty() {
+            // No address and no NIC: nothing on the network to find, and nothing that would keep
+            // it one host from scan to scan. A log line rather than a scan warning, since the
+            // guest is configured that way on purpose.
             tracing::info!(
-                guests = %without_address.join(", "),
-                "Proxmox VE guests with no reported address were not recorded"
+                guests = %unidentifiable.join(", "),
+                "Proxmox VE guests with no network interface were not recorded"
             );
         }
 
@@ -276,8 +272,12 @@ fn guest_label(guest: &GuestSummary) -> String {
 /// The addresses a guest holds: read from inside it when it runs (the QEMU guest agent, or the
 /// container's interfaces), kept only where they sit on one of its configured NICs; else the
 /// static addresses its config sets (an LXC `ip=`, or a VM's cloud-init `ipconfigN`). See
-/// [`mapping::select_addresses`].
-async fn guest_addresses(client: &ProxmoxClient, guest: &GuestSummary) -> Vec<GuestAddress> {
+/// [`mapping::select_addresses`]. Returned with the NICs the config declares, which identify a
+/// guest no address is reported for.
+async fn guest_addresses(
+    client: &ProxmoxClient,
+    guest: &GuestSummary,
+) -> (Vec<mapping::ConfigNic>, Vec<GuestAddress>) {
     let path = guest.path();
     let nics = client
         .get_best_effort::<GuestConfig>(&format!("{path}/config"))
@@ -302,7 +302,8 @@ async fn guest_addresses(client: &ProxmoxClient, guest: &GuestSummary) -> Vec<Gu
         vec![]
     };
 
-    mapping::select_addresses(&nics, runtime)
+    let addresses = mapping::select_addresses(&nics, runtime);
+    (nics, addresses)
 }
 
 /// Record a node's host with its Proxmox VE service, returning that service's stored id.
@@ -360,7 +361,7 @@ async fn create_node_host(
             vec![],
             // The API never reports the node's interface table.
             false,
-            InterfaceDataComplete::default(),
+            InterfaceDataComplete::none(),
             ctx.cancel,
         )
         .await?;
@@ -449,11 +450,19 @@ mod lab_tests {
             println!("node {node:?}");
         }
         for guest in &guests {
-            let addresses = guest_addresses(&client, guest).await;
+            let (nics, addresses) = guest_addresses(&client, guest).await;
+            let record = mapping::guest_host(guest, &addresses, &nics, None, uuid::Uuid::nil());
             println!(
-                "guest {} {:?} {addresses:?}",
+                "guest {} {:?} addresses {:?} interfaces {:?}",
                 guest_label(guest),
-                guest.guest_type
+                guest.guest_type,
+                addresses.iter().map(|a| a.ip).collect::<Vec<_>>(),
+                record.map(|r| {
+                    r.interfaces
+                        .iter()
+                        .map(|i| i.base.mac_address.as_ref().map(|m| m.value().0.to_string()))
+                        .collect::<Vec<_>>()
+                })
             );
         }
         assert!(!nodes.is_empty(), "the lab has a node");

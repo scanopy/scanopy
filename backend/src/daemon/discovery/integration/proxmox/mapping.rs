@@ -12,6 +12,8 @@ use crate::server::hosts::r#impl::{
     name::{HostName, HostNameSources},
     virtualization::{HostVirtualization, ProxmoxGuestType, ProxmoxVirtualization},
 };
+use crate::server::hosts::service::mac_identity::identity_permits_minting;
+use crate::server::interfaces::r#impl::base::{Interface, InterfaceBase};
 use crate::server::ip_addresses::r#impl::base::{
     IPAddress, IPAddressBase, MacEvidence, MacEvidenceValue,
 };
@@ -24,8 +26,10 @@ use super::types::{
     AgentInterfaces, ClusterResource, ClusterStatusEntry, GuestConfig, LxcInterface,
 };
 
-/// Everything Proxmox reports carries this as its source: the hypervisor describing what it runs.
-const REPORTED: AttributeSource = AttributeSource::Probe(ClientProbe::Proxmox);
+/// The source of a guest NIC's MAC. Every MAC this integration submits is one a guest's config
+/// declares (see [`select_addresses`]), so it is the hypervisor's own assignment rather than a
+/// report about the guest — which is what lets a guest with no address still be one host.
+const NIC_MAC: AttributeSource = AttributeSource::HypervisorConfig;
 
 /// A node of the cluster, as far as the API places it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -346,13 +350,34 @@ pub fn node_host(node: &NodeSpec, ip: IpAddr, network_id: Uuid) -> (Host, IPAddr
     )
 }
 
+/// What a guest is submitted as: its host, its addresses, and, for a guest the API reports no
+/// address for, one interface per configured NIC.
+pub struct GuestRecord {
+    pub host: Host,
+    pub ip_addresses: Vec<IPAddress>,
+    pub interfaces: Vec<Interface>,
+}
+
 /// A guest's host, linked to its node's Proxmox VE service when `owner` is known.
+///
+/// A guest is a workload whether or not anything reports an address for it (a stopped VM, one
+/// without the guest agent). Without an address its NICs' MACs identify it, carried as bare
+/// interfaces the way a PROFINET station's is, so every scan lands on the same host and a later
+/// sweep that finds the guest's address joins it by MAC. `None` only for a guest with neither an
+/// address nor a NIC whose MAC can anchor a host: nothing would keep it one host from scan to
+/// scan.
 pub fn guest_host(
     guest: &GuestSummary,
     addresses: &[GuestAddress],
+    nics: &[ConfigNic],
     owner: Option<Uuid>,
     network_id: Uuid,
-) -> (Host, Vec<IPAddress>) {
+) -> Option<GuestRecord> {
+    let nic_macs: Vec<&ConfigNic> = nics.iter().filter(|n| n.mac.is_some()).collect();
+    if addresses.is_empty() && nic_macs.is_empty() {
+        return None;
+    }
+
     let mut host = Host::new(HostBase {
         network_id,
         source: EntitySource::Discovery,
@@ -373,7 +398,7 @@ pub fn guest_host(
     }
 
     let mut seen = BTreeSet::new();
-    let ips = addresses
+    let ip_addresses: Vec<IPAddress> = addresses
         .iter()
         .filter(|a| seen.insert(a.ip))
         .enumerate()
@@ -387,7 +412,42 @@ pub fn guest_host(
             )
         })
         .collect();
-    (host, ips)
+
+    let interfaces: Vec<Interface> = if ip_addresses.is_empty() {
+        nic_macs
+            .into_iter()
+            .map(|nic| {
+                Interface::new(InterfaceBase {
+                    host_id: Uuid::nil(), // Server assigns.
+                    network_id,
+                    // LXC names the NIC (`eth0`); a QEMU config does not, and no name is invented.
+                    if_name: nic.name.clone(),
+                    mac_address: mac_evidence(nic.mac.as_deref()),
+                    ..Default::default()
+                })
+            })
+            .collect()
+    } else {
+        vec![]
+    };
+
+    // The server's own rule for a payload with no address: its MAC must be able to anchor a host.
+    // A locally administered MAC (one set by hand, like `02:…`) cannot, because the server never
+    // matches on one either, so sending it would be refused or duplicate every scan.
+    if !identity_permits_minting(&host, &ip_addresses, &interfaces) {
+        return None;
+    }
+
+    Some(GuestRecord {
+        host,
+        ip_addresses,
+        interfaces,
+    })
+}
+
+fn mac_evidence(mac: Option<&str>) -> Option<MacEvidence> {
+    mac.and_then(|m| m.parse().ok())
+        .map(|m| MacEvidence::new(MacEvidenceValue(m), NIC_MAC))
 }
 
 /// An address the hypervisor reports, left for the server to attach and place.
@@ -403,9 +463,7 @@ fn reported_address(
         host_id: Uuid::nil(),
         subnet_id: Uuid::nil(),
         ip_address: ip,
-        mac_address: mac
-            .and_then(|m| m.parse().ok())
-            .map(|m| MacEvidence::new(MacEvidenceValue(m), REPORTED)),
+        mac_address: mac_evidence(mac),
         name,
         position,
     })
@@ -608,13 +666,21 @@ mod tests {
         let owner = Uuid::new_v4();
         let network_id = Uuid::new_v4();
 
-        let (host, ips) = guest_host(
+        let nics = config_nics(&config);
+        let GuestRecord {
+            host,
+            ip_addresses: ips,
+            interfaces,
+        } = guest_host(
             guest,
-            &static_addresses(&config_nics(&config)),
+            &static_addresses(&nics),
+            &nics,
             Some(owner),
             network_id,
-        );
+        )
+        .expect("a guest with an address is recorded");
 
+        assert!(interfaces.is_empty(), "the address row carries the MAC");
         assert_eq!(host.base.virtualization_service_id, Some(owner));
         assert_eq!(
             host.base.virtualization_metadata,
@@ -632,7 +698,62 @@ mod tests {
         assert_eq!(ips.len(), 1);
         assert_eq!(
             ips[0].base.mac_address.as_ref().map(|m| m.source()),
-            Some(REPORTED)
+            Some(NIC_MAC)
         );
+    }
+
+    fn guest(resources: &[ClusterResource], vmid: i64) -> GuestSummary {
+        GuestSummary {
+            running: false,
+            ..guests(resources)
+                .into_iter()
+                .find(|g| g.vmid == vmid)
+                .expect("guest is listed")
+        }
+    }
+
+    /// The WireGuard container stopped: DHCP in its config, so no address anywhere. It is still a
+    /// workload, recorded by its NIC, whose Proxmox-assigned MAC the server accepts a host from.
+    #[test]
+    fn a_guest_without_an_address_is_recorded_by_its_nic() {
+        let resources: Vec<ClusterResource> = data(RESOURCES);
+        let nics = config_nics(&data(LXC_104_CONFIG));
+        let addresses = select_addresses(&nics, vec![]);
+        assert!(addresses.is_empty(), "ip=dhcp is not an address");
+
+        let record = guest_host(
+            &guest(&resources, 104),
+            &addresses,
+            &nics,
+            None,
+            Uuid::new_v4(),
+        )
+        .expect("a guest with a NIC is recorded");
+        assert!(record.ip_addresses.is_empty());
+        let interface = &record.interfaces[..];
+        assert_eq!(interface.len(), 1);
+        assert_eq!(interface[0].base.if_name.as_deref(), Some("eth0"));
+        assert_eq!(
+            interface[0].base.mac_address.as_ref().map(|m| m.source()),
+            Some(NIC_MAC)
+        );
+    }
+
+    /// The Docker-host VM's NIC carries a hand-set, locally administered MAC (`02:…`), which the
+    /// server never matches on. Stopped, with no address, nothing would keep it one host, so it
+    /// is not sent.
+    #[test]
+    fn a_guest_known_only_by_a_locally_administered_mac_is_not_recorded() {
+        let resources: Vec<ClusterResource> = data(RESOURCES);
+        let nics = config_nics(&data(QEMU_103_CONFIG));
+        assert!(guest_host(&guest(&resources, 103), &[], &nics, None, Uuid::new_v4()).is_none());
+    }
+
+    /// No address and no NIC: nothing would keep it one host across scans, so it is not sent.
+    #[test]
+    fn a_guest_with_no_nic_and_no_address_is_not_recorded() {
+        let resources: Vec<ClusterResource> = data(RESOURCES);
+        let guest = &guests(&resources)[0];
+        assert!(guest_host(guest, &[], &[], None, Uuid::new_v4()).is_none());
     }
 }

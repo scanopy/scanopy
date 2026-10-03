@@ -3528,19 +3528,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-03T05:32:21.176094Z",
+             *       "created_at": "2026-10-03T16:32:30.278264Z",
              *       "first_discovery_id": null,
-             *       "id": "2e8ad17c-d229-4c12-9d85-8aaae560b18e",
+             *       "id": "1e599424-43cf-42c6-80b8-1aa8e1ac3710",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-03T05:32:21.176094Z",
+             *       "last_seen_at": "2026-10-03T16:32:30.278264Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-10-03T05:32:21.176094Z",
-             *       "valid_from": "2026-10-03T05:32:21.176094Z",
+             *       "updated_at": "2026-10-03T16:32:30.278264Z",
+             *       "valid_from": "2026-10-03T16:32:30.278264Z",
              *       "valid_to": null
              *     }
              */
@@ -4368,19 +4368,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-03T05:32:21.154047Z",
+             *               "created_at": "2026-10-03T16:32:30.253844Z",
              *               "first_discovery_id": null,
-             *               "id": "77ab430a-4dea-405c-a5ef-13a902b48e10",
+             *               "id": "f95c08dd-74ef-454b-8c8a-7cdb94858bae",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-03T05:32:21.154047Z",
+             *               "last_seen_at": "2026-10-03T16:32:30.253844Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-10-03T05:32:21.154047Z",
-             *               "valid_from": "2026-10-03T05:32:21.154047Z",
+             *               "updated_at": "2026-10-03T16:32:30.253844Z",
+             *               "valid_from": "2026-10-03T16:32:30.253844Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4394,7 +4394,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Veeam",
+             *           "service_definition": "Philips Hue Bridge",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5313,19 +5313,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-03T05:32:21.171314Z",
+             *           "created_at": "2026-10-03T16:32:30.273200Z",
              *           "first_discovery_id": null,
-             *           "id": "1b4062af-e1cf-48bf-b907-751d9e7742d2",
+             *           "id": "aa8d57c4-dfd3-4996-b4a0-2295bc532a8a",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-03T05:32:21.171314Z",
+             *           "last_seen_at": "2026-10-03T16:32:30.273200Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-10-03T05:32:21.171314Z",
-             *           "valid_from": "2026-10-03T05:32:21.171314Z",
+             *           "updated_at": "2026-10-03T16:32:30.273200Z",
+             *           "valid_from": "2026-10-03T16:32:30.273200Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5339,7 +5339,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Veeam",
+             *       "service_definition": "Philips Hue Bridge",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6392,7 +6392,7 @@ export interface components {
          *     that do carry a [`ClientProbe`] keep it under their own name, `{"Probe":"Snmp"}`, which tells them
          *     apart from each other and from every bare name.
          */
-        AttributeSource: "Unspecified" | "OwnAddress" | "ServiceMatch" | "LldpNeighbourAddress" | "CipVendorId" | "SysDescrMatch" | "SysObjectIdMatch" | "LldpSysDescMatch" | "SshBannerMatch" | "HttpServerMatch" | "DnsSdDeviceInfoMatch" | "DnsSdAirPlayMatch" | "DnsSdInstanceName" | "DnsSdHostname" | "LldpChassisId" | "ReverseDns" | "ForwardingTable" | "ArpReply" | "DaemonSelfReport" | "ProfinetDcp" | "ContainerRuntimeInfo" | "SshScript" | {
+        AttributeSource: "Unspecified" | "OwnAddress" | "ServiceMatch" | "LldpNeighbourAddress" | "CipVendorId" | "SysDescrMatch" | "SysObjectIdMatch" | "LldpSysDescMatch" | "SshBannerMatch" | "HttpServerMatch" | "DnsSdDeviceInfoMatch" | "DnsSdAirPlayMatch" | "DnsSdInstanceName" | "DnsSdHostname" | "LldpChassisId" | "ReverseDns" | "ForwardingTable" | "ArpReply" | "DaemonSelfReport" | "ProfinetDcp" | "ContainerRuntimeInfo" | "HypervisorConfig" | "SshScript" | {
             /** @description A value the thing emitted about itself, over whatever transport [`ClientProbe`] names. */
             Probe: components["schemas"]["ClientProbe"];
         } | {
@@ -6441,19 +6441,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-03T05:32:21.154638Z",
+         *       "created_at": "2026-10-03T16:32:30.254556Z",
          *       "first_discovery_id": null,
-         *       "id": "f47f0ff1-4396-49bc-84c2-788d56b1a20f",
+         *       "id": "d775b89b-3950-43bf-bd1e-e15c913073f6",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-03T05:32:21.154638Z",
+         *       "last_seen_at": "2026-10-03T16:32:30.254556Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-10-03T05:32:21.154638Z",
-         *       "valid_from": "2026-10-03T05:32:21.154638Z",
+         *       "updated_at": "2026-10-03T16:32:30.254556Z",
+         *       "valid_from": "2026-10-03T16:32:30.254556Z",
          *       "valid_to": null
          *     }
          */
@@ -6781,7 +6781,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Veeam",
+         *           "service_definition": "Philips Hue Bridge",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -9304,19 +9304,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-03T05:32:21.153366Z",
+         *               "created_at": "2026-10-03T16:32:30.253065Z",
          *               "first_discovery_id": null,
-         *               "id": "10783693-f044-4454-9485-8afcf18f0d79",
+         *               "id": "bb9fe49f-8734-4d2e-b96b-f0892e7e2dae",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-03T05:32:21.153366Z",
+         *               "last_seen_at": "2026-10-03T16:32:30.253065Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-10-03T05:32:21.153366Z",
-         *               "valid_from": "2026-10-03T05:32:21.153366Z",
+         *               "updated_at": "2026-10-03T16:32:30.253065Z",
+         *               "valid_from": "2026-10-03T16:32:30.253065Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9330,7 +9330,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Veeam",
+         *           "service_definition": "Philips Hue Bridge",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -12374,19 +12374,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-03T05:32:21.154455Z",
+         *           "created_at": "2026-10-03T16:32:30.254347Z",
          *           "first_discovery_id": null,
-         *           "id": "90b3b00e-9dc7-479a-91f4-e5c22b1cc2f5",
+         *           "id": "de74a308-63d3-4e23-9994-e333aca4a5ed",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-03T05:32:21.154455Z",
+         *           "last_seen_at": "2026-10-03T16:32:30.254347Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-10-03T05:32:21.154455Z",
-         *           "valid_from": "2026-10-03T05:32:21.154455Z",
+         *           "updated_at": "2026-10-03T16:32:30.254347Z",
+         *           "valid_from": "2026-10-03T16:32:30.254347Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12400,7 +12400,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Veeam",
+         *       "service_definition": "Philips Hue Bridge",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -13158,7 +13158,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "6a0b93e8-c0a0-407b-83b7-b2303f91caa1",
+             *           "id": "7694e962-aa99-4ac0-9f44-d10ef1963443",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13168,23 +13168,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "c8506c4d-174c-4a2b-afc0-bb17ef662a1e",
+             *           "id": "7e2ceef7-577d-49e4-a400-a051aba105f1",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "f2ac5782-4923-4a54-80d4-2f77bc8993a4",
+             *           "id": "ee67030b-b334-40b7-a2a1-79dc9c503f5e",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "78f5dded-672d-4f60-8839-93d2c5e948ff",
+             *           "id": "41c4ad81-698d-45e3-bb7c-d98875ac5b7c",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "c8506c4d-174c-4a2b-afc0-bb17ef662a1e",
+             *           "id": "7e2ceef7-577d-49e4-a400-a051aba105f1",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13197,19 +13197,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "e7549cc6-da64-4f66-8b5c-65b83f07bb93",
+             *         "id": "02e25a5e-780c-4b83-b939-a7c161392622",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "878456cd-94f8-4807-90fa-0dfd676f59e1",
+             *         "id": "74edbcf8-01a8-46a9-b527-06b53887ce5e",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "f7a8dd29-0dda-44f0-9d4d-69d998888372",
+             *         "id": "3615a447-bd78-4c44-ac4f-1942cae97cbb",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "2275d2da-ee64-4479-9cc1-da502ee78889",
+             *         "id": "aa1d2d76-2cea-418c-891c-94a1899df234",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13227,7 +13227,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "d1bd4235-f201-4191-abdd-89bcca055389",
+             *         "id": "1116fecb-739c-44bc-b597-8343107bae65",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13236,15 +13236,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "e7fcba94-5637-4a9e-ad55-d886585e669d",
+             *         "id": "fa0c11d0-ae22-44e7-9e1d-4e82fcbd2ba8",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "85b9a0e8-3bd1-4aea-b9d2-7635fd092dd7",
+             *         "id": "985fbfd3-830d-4c0a-a433-0374b852b330",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "f55af4c8-8d7b-491d-a9c1-d3763a48e593",
+             *         "id": "c679f9ac-c23a-449a-9219-b5422b80353c",
              *         "rule": "ByStack"
              *       }
              *     ]

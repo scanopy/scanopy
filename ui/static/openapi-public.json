@@ -14020,19 +14020,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-03T05:32:21.234154Z",
+              "created_at": "2026-10-03T16:32:30.337741Z",
               "first_discovery_id": null,
-              "id": "335a9ad9-1f19-4c35-b8a3-fc8de47db35f",
+              "id": "86d29158-3b35-4339-8949-06192a211984",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-03T05:32:21.234154Z",
+              "last_seen_at": "2026-10-03T16:32:30.337741Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-03T05:32:21.234154Z",
-              "valid_from": "2026-10-03T05:32:21.234154Z",
+              "updated_at": "2026-10-03T16:32:30.337741Z",
+              "valid_from": "2026-10-03T16:32:30.337741Z",
               "valid_to": null
             }
           },
@@ -15629,19 +15629,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-03T05:32:21.218654Z",
+                      "created_at": "2026-10-03T16:32:30.322713Z",
                       "first_discovery_id": null,
-                      "id": "a4dfc234-90b1-4103-8360-250b90fde390",
+                      "id": "7e583a3e-e69e-41fa-8738-314fe9372547",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-03T05:32:21.218654Z",
+                      "last_seen_at": "2026-10-03T16:32:30.322713Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-03T05:32:21.218654Z",
-                      "valid_from": "2026-10-03T05:32:21.218654Z",
+                      "updated_at": "2026-10-03T16:32:30.322713Z",
+                      "valid_from": "2026-10-03T16:32:30.322713Z",
                       "valid_to": null
                     }
                   ],
@@ -15655,7 +15655,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Veeam",
+                  "service_definition": "Philips Hue Bridge",
                   "source": {
                     "type": "Manual"
                   },
@@ -17053,19 +17053,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-03T05:32:21.230398Z",
+                  "created_at": "2026-10-03T16:32:30.334171Z",
                   "first_discovery_id": null,
-                  "id": "62d62834-1859-447b-be33-ba4b7f9c2ad3",
+                  "id": "ec591345-e4cf-44b3-8ed7-6f3130479441",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-03T05:32:21.230398Z",
+                  "last_seen_at": "2026-10-03T16:32:30.334171Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-03T05:32:21.230398Z",
-                  "valid_from": "2026-10-03T05:32:21.230398Z",
+                  "updated_at": "2026-10-03T16:32:30.334171Z",
+                  "valid_from": "2026-10-03T16:32:30.334171Z",
                   "valid_to": null
                 }
               ],
@@ -17079,7 +17079,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Veeam",
+              "service_definition": "Philips Hue Bridge",
               "source": {
                 "type": "Manual"
               },
@@ -19176,6 +19176,13 @@
           },
           {
             "type": "string",
+            "description": "A hypervisor's own configuration for a guest it runs, read through its API: the MAC of a\nvirtual NIC it emulates. `Native` for the reason [`Self::ContainerRuntimeInfo`] is: the\nhypervisor assigned that MAC and puts it on the wire for the guest, so its record is the\nNIC's own identity, not a third party's report of it. That is what lets a guest with no\naddress still be identified by its NIC. A bare variant rather than `Probe(Proxmox)`, which\ncovers everything else the API reports and stays `Reported`.",
+            "enum": [
+              "HypervisorConfig"
+            ]
+          },
+          {
+            "type": "string",
             "description": "A script the operator wrote, run on the host over SSH, printed it. Queried: we chose the\nhost, authenticated to it and read the answer from its own shell. Human-authored, because\nthe operator chose what the script reports, which is what puts it above the machine values\nSNMP and LLDP emit about the same fields.",
             "enum": [
               "SshScript"
@@ -19556,19 +19563,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-03T05:32:21.219053Z",
+          "created_at": "2026-10-03T16:32:30.323104Z",
           "first_discovery_id": null,
-          "id": "75c876b5-c67c-4309-88c1-ba2e5f6a4408",
+          "id": "857cc940-0227-4bda-b2c4-51a71e76f4c0",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-03T05:32:21.219053Z",
+          "last_seen_at": "2026-10-03T16:32:30.323104Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-03T05:32:21.219053Z",
-          "valid_from": "2026-10-03T05:32:21.219053Z",
+          "updated_at": "2026-10-03T16:32:30.323104Z",
+          "valid_from": "2026-10-03T16:32:30.323104Z",
           "valid_to": null
         }
       },
@@ -20285,7 +20292,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Veeam",
+              "service_definition": "Philips Hue Bridge",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -26609,19 +26616,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-03T05:32:21.218203Z",
+                  "created_at": "2026-10-03T16:32:30.322262Z",
                   "first_discovery_id": null,
-                  "id": "bc70e56a-2bbb-43a6-89a3-d415e8988009",
+                  "id": "3657b138-0933-4e8c-ba83-086a940b45c5",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-03T05:32:21.218203Z",
+                  "last_seen_at": "2026-10-03T16:32:30.322262Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-03T05:32:21.218203Z",
-                  "valid_from": "2026-10-03T05:32:21.218203Z",
+                  "updated_at": "2026-10-03T16:32:30.322262Z",
+                  "valid_from": "2026-10-03T16:32:30.322262Z",
                   "valid_to": null
                 }
               ],
@@ -26635,7 +26642,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Veeam",
+              "service_definition": "Philips Hue Bridge",
               "source": {
                 "type": "Manual"
               },
@@ -30352,19 +30359,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-03T05:32:21.211610Z",
+                        "created_at": "2026-10-03T16:32:30.315882Z",
                         "first_discovery_id": null,
-                        "id": "4643aac7-7de5-4aa2-91ca-a01df41d2b28",
+                        "id": "f8e4cb9a-a5fb-4ddb-a591-e1fa057b58e7",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-03T05:32:21.211610Z",
+                        "last_seen_at": "2026-10-03T16:32:30.315882Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-03T05:32:21.211610Z",
-                        "valid_from": "2026-10-03T05:32:21.211610Z",
+                        "updated_at": "2026-10-03T16:32:30.315882Z",
+                        "valid_from": "2026-10-03T16:32:30.315882Z",
                         "valid_to": null
                       }
                     ],
@@ -30378,7 +30385,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Veeam",
+                    "service_definition": "Philips Hue Bridge",
                     "source": {
                       "type": "Manual"
                     },
@@ -30521,19 +30528,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-03T05:32:21.229656Z",
+                    "created_at": "2026-10-03T16:32:30.333522Z",
                     "first_discovery_id": null,
-                    "id": "5a2b0a84-12a0-4d1d-8504-00bd6703fbc7",
+                    "id": "09d4d511-4856-4601-ad5b-2d6d5df17b54",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-03T05:32:21.229656Z",
+                    "last_seen_at": "2026-10-03T16:32:30.333522Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-03T05:32:21.229656Z",
-                    "valid_from": "2026-10-03T05:32:21.229656Z",
+                    "updated_at": "2026-10-03T16:32:30.333522Z",
+                    "valid_from": "2026-10-03T16:32:30.333522Z",
                     "valid_to": null
                   }
                 ],
@@ -30547,7 +30554,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Veeam",
+                "service_definition": "Philips Hue Bridge",
                 "source": {
                   "type": "Manual"
                 },
@@ -32778,19 +32785,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-03T05:32:21.218930Z",
+              "created_at": "2026-10-03T16:32:30.322993Z",
               "first_discovery_id": null,
-              "id": "a6297366-3a00-4166-9502-c5f200608bd0",
+              "id": "816365bb-d9af-4441-b45c-fa0498a01408",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-03T05:32:21.218930Z",
+              "last_seen_at": "2026-10-03T16:32:30.322993Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-03T05:32:21.218930Z",
-              "valid_from": "2026-10-03T05:32:21.218930Z",
+              "updated_at": "2026-10-03T16:32:30.322993Z",
+              "valid_from": "2026-10-03T16:32:30.322993Z",
               "valid_to": null
             }
           ],
@@ -32804,7 +32811,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Veeam",
+          "service_definition": "Philips Hue Bridge",
           "source": {
             "type": "Manual"
           },
@@ -34251,7 +34258,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "a12369a5-58f0-4f43-b226-4be9007cf397",
+                  "id": "45b0508c-06bd-4c41-a701-6ff7cfb60309",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -34261,23 +34268,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "e4c06800-98de-46b3-8931-6aeffdb4a58d",
+                  "id": "a575dde8-65b7-4758-959d-879bc43ec914",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "3df78673-b8b1-4887-a943-321ef3fd3d64",
+                  "id": "ed843ee3-5a2f-41ca-ace9-d018b6e6ddf2",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "df8577aa-0204-4502-96fd-e27c90a1b755",
+                  "id": "c1fce59e-7253-4fa2-acbc-6b0c648cce77",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "e4c06800-98de-46b3-8931-6aeffdb4a58d",
+                  "id": "a575dde8-65b7-4758-959d-879bc43ec914",
                   "rule": "ByHost"
                 }
               ]
@@ -34307,19 +34314,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "a44c1892-61c0-4381-b2db-898a04294dc2",
+                "id": "3d4bae0b-2be2-4eb3-b32f-976cf2ccaf73",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "c6808ea5-f8ed-41f8-bd3c-124cbc088e7e",
+                "id": "cf9c6c6d-b562-46b5-8d08-f82824582b41",
                 "rule": "ByVLAN"
               },
               {
-                "id": "641adf01-e332-475b-a4db-2c894a1a7c59",
+                "id": "454b9576-269b-41f0-b929-0eacc1452ad9",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "45ad9fbc-cacb-473e-99cc-08109e258eb7",
+                "id": "a63e966d-e256-45d4-9138-bc5c5a928b6c",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -34337,7 +34344,7 @@
                 }
               },
               {
-                "id": "55c59d34-e383-452f-a9dd-0db6c6a0db8d",
+                "id": "eb028f44-9b8d-4bfb-bd34-c6c9165b9161",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -34346,15 +34353,15 @@
                 }
               },
               {
-                "id": "94630ec6-9893-478d-8a9c-c0ea3fcccc22",
+                "id": "bf425636-d650-45df-8b84-010b4acc654d",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "2129e220-4ed2-428f-ae5d-aa6baed4d010",
+                "id": "7702853b-cfae-487f-9b8b-1dfbc7f50c16",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "bf3c0c2c-42c4-48ce-b6dc-b8b9d3e42dea",
+                "id": "4e41733e-d0ce-41dd-aa20-97befc5456c3",
                 "rule": "ByStack"
               }
             ]

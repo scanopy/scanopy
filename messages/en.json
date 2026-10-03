@@ -1351,6 +1351,8 @@
 	"meta_attribute_sources_ForwardingTable_name": "Another device's ARP or forwarding table",
 	"meta_attribute_sources_HttpServerMatch_description": "Scanopy inferred this from the Server header the host's web server sent. The host did not report it directly.",
 	"meta_attribute_sources_HttpServerMatch_name": "HTTP server header",
+	"meta_attribute_sources_HypervisorConfig_description": "The hypervisor running this guest assigned it, in the guest's configuration.",
+	"meta_attribute_sources_HypervisorConfig_name": "Hypervisor configuration",
 	"meta_attribute_sources_LldpChassisId_description": "The device advertised this about itself over LLDP.",
 	"meta_attribute_sources_LldpChassisId_name": "LLDP",
 	"meta_attribute_sources_LldpNeighbourAddress_description": "Scanopy assumed this range around an address a neighbour advertised over LLDP.",
