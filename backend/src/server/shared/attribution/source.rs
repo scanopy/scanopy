@@ -164,6 +164,9 @@ pub enum AttributeSource {
     /// An operating system matched in an mDNS `_device-info._tcp` record, such as a Mac's
     /// `model=MacBookPro18,3`.
     DnsSdDeviceInfoMatch,
+    /// An operating system matched in the `model` an mDNS `_airplay._tcp` record carries, such as a
+    /// Mac's `model=Mac17,2`. Macs that share nothing still advertise AirPlay.
+    DnsSdAirPlayMatch,
 
     // --- Claims that arrive on the link without a directed exchange. ---
     /// A DNS-SD instance label — the Chromecast `fn=Living Room TV`, typed by a person during
@@ -236,7 +239,8 @@ impl AttributeSource {
             | Self::LldpSysDescMatch
             | Self::SshBannerMatch
             | Self::HttpServerMatch
-            | Self::DnsSdDeviceInfoMatch => M::Inferred,
+            | Self::DnsSdDeviceInfoMatch
+            | Self::DnsSdAirPlayMatch => M::Inferred,
 
             Self::DnsSdInstanceName | Self::DnsSdHostname | Self::LldpChassisId => M::Announced,
 
@@ -275,6 +279,7 @@ impl AttributeSource {
             | Self::SshBannerMatch
             | Self::HttpServerMatch
             | Self::DnsSdDeviceInfoMatch
+            | Self::DnsSdAirPlayMatch
             | Self::DnsSdHostname
             | Self::LldpChassisId
             | Self::ReverseDns
@@ -345,6 +350,7 @@ impl AttributeSource {
                 AttributeSourceDiscriminants::DnsSdDeviceInfoMatch => {
                     vec![Self::DnsSdDeviceInfoMatch]
                 }
+                AttributeSourceDiscriminants::DnsSdAirPlayMatch => vec![Self::DnsSdAirPlayMatch],
                 AttributeSourceDiscriminants::DnsSdInstanceName => vec![Self::DnsSdInstanceName],
                 AttributeSourceDiscriminants::DnsSdHostname => vec![Self::DnsSdHostname],
                 AttributeSourceDiscriminants::LldpChassisId => vec![Self::LldpChassisId],
@@ -409,6 +415,7 @@ impl AttributeSource {
             AttributeSourceDiscriminants::SshBannerMatch => Self::SshBannerMatch,
             AttributeSourceDiscriminants::HttpServerMatch => Self::HttpServerMatch,
             AttributeSourceDiscriminants::DnsSdDeviceInfoMatch => Self::DnsSdDeviceInfoMatch,
+            AttributeSourceDiscriminants::DnsSdAirPlayMatch => Self::DnsSdAirPlayMatch,
             AttributeSourceDiscriminants::DnsSdInstanceName => Self::DnsSdInstanceName,
             AttributeSourceDiscriminants::DnsSdHostname => Self::DnsSdHostname,
             AttributeSourceDiscriminants::LldpChassisId => Self::LldpChassisId,
@@ -527,6 +534,7 @@ impl TypeMetadataProvider for AttributeSourceDiscriminants {
             Self::SshBannerMatch => "SSH banner",
             Self::HttpServerMatch => "HTTP server header",
             Self::DnsSdDeviceInfoMatch => "mDNS device info",
+            Self::DnsSdAirPlayMatch => "mDNS AirPlay",
             Self::DnsSdInstanceName => "mDNS name",
             Self::DnsSdHostname => "mDNS",
             Self::LldpChassisId => "LLDP",
@@ -571,6 +579,9 @@ impl TypeMetadataProvider for AttributeSourceDiscriminants {
             }
             Self::DnsSdDeviceInfoMatch => {
                 "Scanopy inferred this from the device-info record the host announced over mDNS. The host did not report it directly."
+            }
+            Self::DnsSdAirPlayMatch => {
+                "Scanopy inferred this from the model the host announced in its AirPlay record over mDNS. The host did not report it directly."
             }
             Self::DnsSdInstanceName => {
                 "The device announced this name over mDNS. A person usually sets it during setup."

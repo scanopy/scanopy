@@ -17710,6 +17710,13 @@
           },
           {
             "type": "string",
+            "description": "An operating system matched in the `model` an mDNS `_airplay._tcp` record carries, such as a\nMac's `model=Mac17,2`. Macs that share nothing still advertise AirPlay.",
+            "enum": [
+              "DnsSdAirPlayMatch"
+            ]
+          },
+          {
+            "type": "string",
             "description": "A DNS-SD instance label — the Chromecast `fn=Living Room TV`, typed by a person during\ndevice setup.",
             "enum": [
               "DnsSdInstanceName"
