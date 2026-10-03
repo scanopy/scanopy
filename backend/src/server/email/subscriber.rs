@@ -116,40 +116,10 @@ impl Subscriber<BillingOperation> for EmailService {
                 }
                 BillingOperation::TrialEnded {
                     plan,
-                    converted,
                     next_renewal_at: _,
                 } => {
-                    if converted {
-                        self.send_trial_converted_email(
-                            org_owner,
-                            plan.name(),
-                            plan.billing_period(),
-                        )
+                    self.send_trial_converted_email(org_owner, plan.name(), plan.billing_period())
                         .await?;
-                    } else if plan.license_plan().is_some() {
-                        // Air-gapped keys are not issued during a trial.
-                        let key_expires = self
-                            .license_key_expires(event.scope.organization_id)
-                            .await?;
-                        // A trial that ran out was never invoiced, so there is
-                        // nothing to have defaulted on.
-                        self.send_self_hosted_license_ended_email(
-                            org_owner,
-                            plan.name(),
-                            true,
-                            false,
-                            &key_expires,
-                            false,
-                        )
-                        .await?;
-                    } else {
-                        self.send_trial_expired_email(
-                            org_owner,
-                            plan.name(),
-                            plan.billing_period(),
-                        )
-                        .await?;
-                    }
                 }
                 BillingOperation::PlanChanged {
                     from,

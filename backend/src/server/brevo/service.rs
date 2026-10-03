@@ -141,6 +141,12 @@ impl BrevoService {
             // isn't the system of record for self-hosted plan state; the org
             // subscriber owns the plan write. No CRM sync needed.
             | BillingOperation::LicenseReconciled { .. }
+            // Customer-server telemetry for PostHog; nothing for the CRM.
+            | BillingOperation::LicenseKeyIssued
+            | BillingOperation::LicenseActivated { .. }
+            | BillingOperation::LicenseServerUpgraded { .. }
+            | BillingOperation::LicenseCheckInsStopped { .. }
+            | BillingOperation::LicenseCheckInsResumed { .. }
             | BillingOperation::StripeCustomerCreated { .. } => {}
         }
         Ok(())
@@ -693,17 +699,9 @@ impl BrevoService {
     }
 
     async fn handle_trial_ended(&self, event: &Event<BillingOperation>) -> Result<()> {
-        let BillingOperation::TrialEnded { converted, .. } = &event.operation else {
-            return Ok(());
-        };
-        let converted = *converted;
-
-        use PlanStatus;
-        let company_attrs = CompanyAttributes::new().with_plan_status(if converted {
-            PlanStatus::Active
-        } else {
-            PlanStatus::Cancelled
-        });
+        // Fires only for a converted trial; an unconverted one arrives as
+        // `SubscriptionCancelled { was_trialing: true }`.
+        let company_attrs = CompanyAttributes::new().with_plan_status(PlanStatus::Active);
 
         self.update_company_by_org(event.scope.organization_id, company_attrs)
             .await?;
@@ -723,7 +721,6 @@ impl BrevoService {
 
         tracing::debug!(
             organization_id = %event.scope.organization_id,
-            converted = %converted,
             "Updated Brevo: trial ended"
         );
         Ok(())

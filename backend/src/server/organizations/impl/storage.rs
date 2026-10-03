@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use semver::Version;
 use serde::Serialize;
 use sqlx::Row;
 use sqlx::postgres::PgRow;
@@ -82,6 +83,7 @@ impl Storable for Organization {
                     license_key_version,
                     license_key_issued_at,
                     license_key_type,
+                    license_server_version,
                     // Computed on read from the two fields above, so it has no
                     // column and nothing to write. Named rather than swallowed
                     // by a `..` rest pattern: this destructuring is what forces
@@ -122,6 +124,7 @@ impl Storable for Organization {
                 "license_key_version",
                 "license_key_issued_at",
                 "license_key_type",
+                "license_server_version",
             ],
             vec![
                 SqlValue::Uuid(id),
@@ -158,6 +161,7 @@ impl Storable for Organization {
                 SqlValue::I64(license_key_version),
                 SqlValue::OptionTimestamp(license_key_issued_at),
                 SqlValue::OptionalString(license_key_type.map(|t| t.to_string())),
+                SqlValue::OptionalString(license_server_version.map(|v| v.to_string())),
             ],
         ))
     }
@@ -233,6 +237,13 @@ impl Storable for Organization {
                     .ok()
                     .flatten()
                     .and_then(|s| s.parse::<LicenseKeyType>().ok()),
+                // Written only from a parsed `Version`, so a value that fails
+                // to parse back is treated as never reported.
+                license_server_version: row
+                    .try_get::<Option<String>, _>("license_server_version")
+                    .ok()
+                    .flatten()
+                    .and_then(|s| Version::parse(&s).ok()),
                 // Derived from the two fields above, never read from a column:
                 // `to_params` does not write it. Filled in below, because the
                 // rule lives on `Organization` rather than being copied here.
@@ -323,5 +334,6 @@ impl Entity for Organization {
         self.base.license_entitlement_at = existing.base.license_entitlement_at;
         self.base.license_key_issued_at = existing.base.license_key_issued_at;
         self.base.license_key_type = existing.base.license_key_type;
+        self.base.license_server_version = existing.base.license_server_version.clone();
     }
 }

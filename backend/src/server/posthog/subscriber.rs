@@ -22,10 +22,9 @@ use crate::{
                 registry::SubscriberRegistration,
                 traits::{EntityEventFilter, Event, EventFilter, NonRetryable, Subscriber},
                 types::{
-                    AnalyticsOperation, AnalyticsOperationDiscriminants, AuthOperation,
-                    AuthOperationDiscriminants, BillingOperation, EntityOperation,
-                    EntityOperationDiscriminants, OnboardingOperation,
-                    OnboardingOperationDiscriminants,
+                    AnalyticsOperation, AuthOperation, AuthOperationDiscriminants,
+                    BillingOperation, EntityOperation, EntityOperationDiscriminants,
+                    OnboardingOperation, OnboardingOperationDiscriminants,
                 },
             },
             types::metadata::TypeMetadataProvider,
@@ -244,6 +243,16 @@ impl Subscriber<AuthOperation> for PosthogService {
 }
 inventory::submit!(SubscriberRegistration::new::<PosthogService, AuthOperation>());
 
+/// Capture properties of a billing event: the full payload under `metadata`,
+/// grouped on the organization the event is scoped to.
+fn billing_properties(event: &Event<BillingOperation>) -> serde_json::Value {
+    let mut props = auth_properties(&event.authentication);
+    props["organization_id"] = json!(event.scope.organization_id.to_string());
+    props["metadata"] = serde_json::to_value(&event.operation).unwrap_or(serde_json::Value::Null);
+    inject_org_group(&mut props);
+    props
+}
+
 #[async_trait]
 impl Subscriber<BillingOperation> for PosthogService {
     fn filter(&self) -> EventFilter<BillingOperation> {
@@ -277,13 +286,7 @@ impl Subscriber<BillingOperation> for PosthogService {
 
             let event_name = event.operation.to_string();
             let org_id_str = org_id.to_string();
-
-            let mut props = auth_properties(&event.authentication);
-            props["organization_id"] = json!(&org_id_str);
-            props["metadata"] =
-                serde_json::to_value(&event.operation).unwrap_or(serde_json::Value::Null);
-
-            inject_org_group(&mut props);
+            let props = billing_properties(&event);
             failures.extend(self.capture(&event_name, &distinct_id, props).await.err());
 
             // Update person and group properties from the plan the org lands
@@ -415,10 +418,11 @@ inventory::submit!(SubscriberRegistration::new::<
 #[async_trait]
 impl Subscriber<AnalyticsOperation> for PosthogService {
     fn filter(&self) -> EventFilter<AnalyticsOperation> {
-        EventFilter::ops(vec![
-            AnalyticsOperationDiscriminants::TopologyShareViewed,
-            AnalyticsOperationDiscriminants::TopologyEmbedViewed,
-        ])
+        // Forward every analytics event: the person comes from
+        // `AnalyticsOperation::distinct_id`, an exhaustive match, and the
+        // payload is flattened generically, so a new variant needs no change
+        // here. Same reasoning as the billing filter.
+        EventFilter::all()
     }
 
     async fn handle(&self, events: Vec<Event<AnalyticsOperation>>) -> Result<(), Error> {
@@ -428,18 +432,12 @@ impl Subscriber<AnalyticsOperation> for PosthogService {
                 continue;
             }
             let org_id = event.scope.organization_id;
-            // Skip share/embed view events from the demo org to avoid skewing metrics
-            if org_id == DEMO_ORG_ID
-                && matches!(
-                    event.operation,
-                    AnalyticsOperation::TopologyShareViewed { .. }
-                        | AnalyticsOperation::TopologyEmbedViewed { .. }
-                )
-            {
+            // Skip the demo org's share views and emails to avoid skewing metrics
+            if org_id == DEMO_ORG_ID {
                 continue;
             }
 
-            let distinct_id = format!("org:{}", org_id);
+            let distinct_id = event.operation.distinct_id(org_id);
             let event_name = event.operation.to_string();
 
             let mut props = auth_properties(&event.authentication);
@@ -672,6 +670,52 @@ mod tests {
         assert!(entity_filter().matches(&event(EntityOperation::Deleted)));
         // Creation is `org_created` from onboarding; forwarding it too would double-count.
         assert!(!entity_filter().matches(&event(EntityOperation::Created)));
+    }
+
+    /// License events come from the system, never a user, so the org group
+    /// is the only thing that joins them to the rest of the org's funnel.
+    #[test]
+    fn license_events_are_grouped_on_their_organization() {
+        use crate::server::shared::events::traits::OrgScope;
+
+        let organization_id = Uuid::new_v4();
+        let event = Event::new(
+            OrgScope { organization_id },
+            BillingOperation::LicenseActivated {
+                server_version: Some("0.17.20".to_string()),
+            },
+            AuthenticatedEntity::System,
+        );
+
+        let props = billing_properties(&event);
+        assert_eq!(
+            props["$groups"],
+            json!({"organization": organization_id.to_string()})
+        );
+        assert_eq!(props["metadata"]["server_version"], json!("0.17.20"));
+    }
+
+    /// A send and the click it produces have to land on the same PostHog
+    /// person; share views have no viewer and stay on the org.
+    #[test]
+    fn an_email_send_belongs_to_its_recipient_and_a_share_view_to_the_org() {
+        let organization_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let sent = AnalyticsOperation::EmailSent {
+            utm_campaign: "self_hosted_welcome".to_string(),
+            utm_medium: "billing".to_string(),
+            user_id,
+        };
+        let viewed = AnalyticsOperation::TopologyShareViewed {
+            share_id: Uuid::new_v4(),
+            has_password: false,
+        };
+
+        assert_eq!(sent.distinct_id(organization_id), user_id.to_string());
+        assert_eq!(
+            viewed.distinct_id(organization_id),
+            format!("org:{organization_id}")
+        );
     }
 
     #[test]

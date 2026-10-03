@@ -35,10 +35,15 @@ use crate::server::{
     },
     services::service::ServiceService,
     shared::{
-        services::traits::CrudService, storage::filter::StorableFilter,
+        events::{
+            traits::{Event, OrgScope},
+            types::AnalyticsOperation,
+        },
+        services::traits::{CrudService, EventBusService},
+        storage::filter::StorableFilter,
         types::metadata::TypeMetadataProvider,
     },
-    users::service::UserService,
+    users::{r#impl::base::User, service::UserService},
 };
 
 /// How far ahead an air-gapped organization is warned that its licence period
@@ -148,8 +153,9 @@ impl EmailService {
     /// Required emails always send, and a recipient with no account yet
     /// (pre-signup) defaults to sending.
     async fn dispatch(&self, to: EmailAddress, email: &dyn Email) -> Result<()> {
+        let recipient = self.user_service.get_by_email(&to).await?;
         if matches!(email.preference(), EmailPreference::Pausable(_))
-            && let Some(user) = self.user_service.get_by_email(&to).await?
+            && let Some(user) = &recipient
             && !user.base.email_settings.allows(email.preference())
         {
             return Ok(());
@@ -161,7 +167,41 @@ impl EmailService {
                 &self.public_url,
                 self.deployment_type.is_self_hosted(),
             )
+            .await?;
+
+        // A recipient without an account (verification, invite) has no org
+        // to attribute the send to.
+        if let Some(user) = recipient {
+            self.publish_email_sent(&user, email).await;
+        }
+        Ok(())
+    }
+
+    /// Record a send for analytics. Best-effort: the email has already gone.
+    async fn publish_email_sent(&self, user: &User, email: &dyn Email) {
+        if let Err(e) = self
+            .organization_service
+            .event_bus()
+            .publish(Event::new(
+                OrgScope {
+                    organization_id: user.base.organization_id,
+                },
+                AnalyticsOperation::EmailSent {
+                    utm_campaign: email.campaign().to_string(),
+                    utm_medium: email.utm_medium().to_string(),
+                    user_id: user.id,
+                },
+                AuthenticatedEntity::System,
+            ))
             .await
+        {
+            tracing::warn!(
+                user_id = %user.id,
+                campaign = email.campaign(),
+                error = %e,
+                "Failed to publish email send",
+            );
+        }
     }
 
     /// True when an org on `plan` is locked out of this cloud app because it

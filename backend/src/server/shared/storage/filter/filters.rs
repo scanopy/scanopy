@@ -619,6 +619,16 @@ impl<T: Storable> StorableFilter<T> {
         self
     }
 
+    /// Organizations whose online license key last checked in before
+    /// `timestamp`. Never-checked-in rows (NULL) don't match.
+    pub fn license_checkin_before(mut self, timestamp: DateTime<Utc>) -> Self {
+        let col = self.qualify_column("license_checkin_at");
+        self.conditions
+            .push(format!("{} < ${}", col, self.values.len() + 1));
+        self.values.push(SqlValue::Timestamp(timestamp));
+        self
+    }
+
     /// SQL form of the staleness verdict, evaluated per row against **its own**
     /// network's cutoff.
     ///
