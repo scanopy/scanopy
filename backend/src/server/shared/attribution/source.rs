@@ -204,6 +204,13 @@ pub enum AttributeSource {
     /// is: the engine reads its own host, and that is what the answer means. A bare variant rather
     /// than `Probe(Docker)`, which is the container listing; this is a different exchange.
     ContainerRuntimeInfo,
+    /// A hypervisor's own configuration for a guest it runs, read through its API: the MAC of a
+    /// virtual NIC it emulates. `Native` for the reason [`Self::ContainerRuntimeInfo`] is: the
+    /// hypervisor assigned that MAC and puts it on the wire for the guest, so its record is the
+    /// NIC's own identity, not a third party's report of it. That is what lets a guest with no
+    /// address still be identified by its NIC. A bare variant rather than `Probe(Proxmox)`, which
+    /// covers everything else the API reports and stays `Reported`.
+    HypervisorConfig,
     /// A script the operator wrote, run on the host over SSH, printed it. Queried: we chose the
     /// host, authenticated to it and read the answer from its own shell. Human-authored, because
     /// the operator chose what the script reports, which is what puts it above the machine values
@@ -251,7 +258,7 @@ impl AttributeSource {
             // The protocol is the device's own, not a generic transport a MIB approximates —
             // same reasoning as `ClientProbe::method()`'s `Native` arms, just not delegated (see
             // the variant's own doc comment for why).
-            Self::ProfinetDcp | Self::ContainerRuntimeInfo => M::Native,
+            Self::ProfinetDcp | Self::ContainerRuntimeInfo | Self::HypervisorConfig => M::Native,
 
             // Delegated, not because probes are special, but so that adding a probe forces the
             // tier decision at the probe's own definition instead of here — where it would be easy
@@ -288,6 +295,7 @@ impl AttributeSource {
             | Self::DaemonSelfReport
             | Self::ProfinetDcp
             | Self::ContainerRuntimeInfo
+            | Self::HypervisorConfig
             | Self::Probe(_) => Authorship::Machine,
         }
     }
@@ -362,6 +370,7 @@ impl AttributeSource {
                 AttributeSourceDiscriminants::ContainerRuntimeInfo => {
                     vec![Self::ContainerRuntimeInfo]
                 }
+                AttributeSourceDiscriminants::HypervisorConfig => vec![Self::HypervisorConfig],
                 AttributeSourceDiscriminants::SshScript => vec![Self::SshScript],
                 AttributeSourceDiscriminants::Manual => vec![Self::Manual],
             })
@@ -425,6 +434,7 @@ impl AttributeSource {
             AttributeSourceDiscriminants::DaemonSelfReport => Self::DaemonSelfReport,
             AttributeSourceDiscriminants::ProfinetDcp => Self::ProfinetDcp,
             AttributeSourceDiscriminants::ContainerRuntimeInfo => Self::ContainerRuntimeInfo,
+            AttributeSourceDiscriminants::HypervisorConfig => Self::HypervisorConfig,
             AttributeSourceDiscriminants::SshScript => Self::SshScript,
             AttributeSourceDiscriminants::Manual => Self::Manual,
         }
@@ -544,6 +554,7 @@ impl TypeMetadataProvider for AttributeSourceDiscriminants {
             Self::DaemonSelfReport => "The daemon on this host",
             Self::ProfinetDcp => "PROFINET DCP",
             Self::ContainerRuntimeInfo => "Container engine",
+            Self::HypervisorConfig => "Hypervisor configuration",
             Self::SshScript => "SSH script",
             Self::Probe => "{probe}",
             Self::Authored => "{probe}, set by a person",
@@ -597,6 +608,9 @@ impl TypeMetadataProvider for AttributeSourceDiscriminants {
             Self::ProfinetDcp => "The device answered a PROFINET DCP identify request.",
             Self::ContainerRuntimeInfo => {
                 "The Docker or Podman engine on this host reported the machine it runs on."
+            }
+            Self::HypervisorConfig => {
+                "The hypervisor running this guest assigned it, in the guest's configuration."
             }
             Self::SshScript => {
                 "A script you configured on an SSH credential ran on the host and printed this."

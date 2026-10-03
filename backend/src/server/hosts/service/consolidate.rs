@@ -117,11 +117,12 @@ impl HostService {
         incoming_macs: &[MacEvidence],
         candidates: &[HostCandidate],
     ) -> Result<Option<Uuid>> {
-        // Only the addresses that may anchor identity are worth a query — a locally administered
-        // or virtual-router MAC would be discarded by the matcher anyway.
+        // Every NIC address is worth a query except a group or virtual-router MAC, which is never
+        // a NIC. A weak (locally administered) incoming MAC still matches a row whose stored copy
+        // came from a hypervisor's config; `select_matching_host_by_mac` decides that per pair.
         let anchors: Vec<MacAddress> = incoming_macs
             .iter()
-            .filter(|e| mac_identity::may_match(e))
+            .filter(|e| mac_identity::grade(e) != mac_identity::MacQuality::Excluded)
             .map(|e| e.value().0)
             .collect();
         if anchors.is_empty() {
@@ -146,13 +147,13 @@ impl HostService {
             .await?;
 
         let live_host_ids: HashSet<Uuid> = candidates.iter().map(|c| c.id).collect();
-        let carriers: Vec<(Uuid, MacAddress)> = ip_rows
+        let carriers: Vec<(Uuid, MacEvidence)> = ip_rows
             .iter()
-            .filter_map(|r| mac_of(&r.base.mac_address).map(|m| (r.base.host_id, m)))
+            .filter_map(|r| r.base.mac_address.clone().map(|m| (r.base.host_id, m)))
             .chain(
                 interface_rows
                     .iter()
-                    .filter_map(|r| mac_of(&r.base.mac_address).map(|m| (r.base.host_id, m))),
+                    .filter_map(|r| r.base.mac_address.clone().map(|m| (r.base.host_id, m))),
             )
             .filter(|(host_id, _)| live_host_ids.contains(host_id))
             .collect();

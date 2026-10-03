@@ -103,7 +103,13 @@ pub struct LxcInterface {
     pub name: String,
     #[serde(default)]
     pub hwaddr: Option<String>,
-    /// IPv4 in CIDR form, e.g. `192.168.4.50/24`.
+    /// Every address on the interface. Recorded on PVE 8.4; the `inet`/`inet6` strings beside it
+    /// carry one address each (`inet6` is the link-local one), so this is the list to read when
+    /// present.
+    #[serde(rename = "ip-addresses", default)]
+    pub ip_addresses: Vec<AgentIpAddress>,
+    /// IPv4 in CIDR form, e.g. `192.168.4.50/24`. The only address source on releases without
+    /// `ip-addresses`.
     #[serde(default)]
     pub inet: Option<String>,
     /// IPv6 in CIDR form.

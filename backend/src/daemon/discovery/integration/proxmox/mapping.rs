@@ -12,6 +12,8 @@ use crate::server::hosts::r#impl::{
     name::{HostName, HostNameSources},
     virtualization::{HostVirtualization, ProxmoxGuestType, ProxmoxVirtualization},
 };
+use crate::server::hosts::service::mac_identity::identity_permits_minting;
+use crate::server::interfaces::r#impl::base::{Interface, InterfaceBase};
 use crate::server::ip_addresses::r#impl::base::{
     IPAddress, IPAddressBase, MacEvidence, MacEvidenceValue,
 };
@@ -24,8 +26,10 @@ use super::types::{
     AgentInterfaces, ClusterResource, ClusterStatusEntry, GuestConfig, LxcInterface,
 };
 
-/// Everything Proxmox reports carries this as its source: the hypervisor describing what it runs.
-const REPORTED: AttributeSource = AttributeSource::Probe(ClientProbe::Proxmox);
+/// The source of a guest NIC's MAC. Every MAC this integration submits is one a guest's config
+/// declares (see [`select_addresses`]), so it is the hypervisor's own assignment rather than a
+/// report about the guest — which is what lets a guest with no address still be one host.
+const NIC_MAC: AttributeSource = AttributeSource::HypervisorConfig;
 
 /// A node of the cluster, as far as the API places it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -251,21 +255,53 @@ pub fn lxc_addresses(interfaces: &[LxcInterface]) -> Vec<GuestAddress> {
         .iter()
         .flat_map(|iface| {
             let mac = iface.hwaddr.as_deref().and_then(canonical_mac);
-            [iface.inet.as_deref(), iface.inet6.as_deref()]
-                .into_iter()
-                .flatten()
-                .flat_map(|list| list.split([' ', ',']))
-                .filter_map(move |cidr| {
-                    let ip: IpAddr = cidr.split('/').next()?.trim().parse().ok()?;
-                    Some(GuestAddress {
-                        ip,
-                        mac: mac.clone(),
-                        interface: Some(iface.name.clone()),
-                    })
-                })
+            let ips: Vec<IpAddr> = if iface.ip_addresses.is_empty() {
+                [iface.inet.as_deref(), iface.inet6.as_deref()]
+                    .into_iter()
+                    .flatten()
+                    .flat_map(|list| list.split([' ', ',']))
+                    .filter_map(|cidr| cidr.split('/').next()?.trim().parse().ok())
+                    .collect()
+            } else {
+                iface
+                    .ip_addresses
+                    .iter()
+                    .filter_map(|a| a.ip_address.trim().parse().ok())
+                    .collect()
+            };
+            ips.into_iter().map(move |ip| GuestAddress {
+                ip,
+                mac: mac.clone(),
+                interface: Some(iface.name.clone()),
+            })
         })
         .filter(|a| reachable(a.ip))
         .collect()
+}
+
+/// The addresses that identify a guest: those on its own virtual NICs, else its config's static
+/// ones.
+///
+/// What runs inside a guest reports every interface it has, and most of those are the guest's own
+/// internals: a Docker host's `docker0` (172.17.0.1 on every Docker host there is) and its
+/// `br-*` networks, Home Assistant's `hassio`, a WireGuard `wg0`. Submitted as the guest's
+/// addresses they would merge unrelated guests on the server, which matches hosts by address. An
+/// interface counts only when its MAC is one the guest's config gives a `netN` NIC, which is the
+/// one thing that ties it to the hypervisor's view of the guest.
+pub fn select_addresses(nics: &[ConfigNic], runtime: Vec<GuestAddress>) -> Vec<GuestAddress> {
+    let on_a_nic: Vec<GuestAddress> = runtime
+        .into_iter()
+        .filter(|a| {
+            a.mac
+                .as_ref()
+                .is_some_and(|mac| nics.iter().any(|n| n.mac.as_ref() == Some(mac)))
+        })
+        .collect();
+    if on_a_nic.is_empty() {
+        static_addresses(nics)
+    } else {
+        on_a_nic
+    }
 }
 
 /// Static addresses from a guest's config (an LXC `ip=`, or a VM's cloud-init `ipconfigN`), for
@@ -314,13 +350,34 @@ pub fn node_host(node: &NodeSpec, ip: IpAddr, network_id: Uuid) -> (Host, IPAddr
     )
 }
 
+/// What a guest is submitted as: its host, its addresses, and, for a guest the API reports no
+/// address for, one interface per configured NIC.
+pub struct GuestRecord {
+    pub host: Host,
+    pub ip_addresses: Vec<IPAddress>,
+    pub interfaces: Vec<Interface>,
+}
+
 /// A guest's host, linked to its node's Proxmox VE service when `owner` is known.
+///
+/// A guest is a workload whether or not anything reports an address for it (a stopped VM, one
+/// without the guest agent). Without an address its NICs' MACs identify it, carried as bare
+/// interfaces the way a PROFINET station's is, so every scan lands on the same host and a later
+/// sweep that finds the guest's address joins it by MAC. `None` only for a guest with neither an
+/// address nor a NIC whose MAC can anchor a host: nothing would keep it one host from scan to
+/// scan.
 pub fn guest_host(
     guest: &GuestSummary,
     addresses: &[GuestAddress],
+    nics: &[ConfigNic],
     owner: Option<Uuid>,
     network_id: Uuid,
-) -> (Host, Vec<IPAddress>) {
+) -> Option<GuestRecord> {
+    let nic_macs: Vec<&ConfigNic> = nics.iter().filter(|n| n.mac.is_some()).collect();
+    if addresses.is_empty() && nic_macs.is_empty() {
+        return None;
+    }
+
     let mut host = Host::new(HostBase {
         network_id,
         source: EntitySource::Discovery,
@@ -341,7 +398,7 @@ pub fn guest_host(
     }
 
     let mut seen = BTreeSet::new();
-    let ips = addresses
+    let ip_addresses: Vec<IPAddress> = addresses
         .iter()
         .filter(|a| seen.insert(a.ip))
         .enumerate()
@@ -355,7 +412,42 @@ pub fn guest_host(
             )
         })
         .collect();
-    (host, ips)
+
+    let interfaces: Vec<Interface> = if ip_addresses.is_empty() {
+        nic_macs
+            .into_iter()
+            .map(|nic| {
+                Interface::new(InterfaceBase {
+                    host_id: Uuid::nil(), // Server assigns.
+                    network_id,
+                    // LXC names the NIC (`eth0`); a QEMU config does not, and no name is invented.
+                    if_name: nic.name.clone(),
+                    mac_address: mac_evidence(nic.mac.as_deref()),
+                    ..Default::default()
+                })
+            })
+            .collect()
+    } else {
+        vec![]
+    };
+
+    // The server's own rule for a payload with no address: its MAC must be able to anchor a host.
+    // A locally administered MAC (one set by hand, like `02:…`) cannot, because the server never
+    // matches on one either, so sending it would be refused or duplicate every scan.
+    if !identity_permits_minting(&host, &ip_addresses, &interfaces) {
+        return None;
+    }
+
+    Some(GuestRecord {
+        host,
+        ip_addresses,
+        interfaces,
+    })
+}
+
+fn mac_evidence(mac: Option<&str>) -> Option<MacEvidence> {
+    mac.and_then(|m| m.parse().ok())
+        .map(|m| MacEvidence::new(MacEvidenceValue(m), NIC_MAC))
 }
 
 /// An address the hypervisor reports, left for the server to attach and place.
@@ -371,9 +463,7 @@ fn reported_address(
         host_id: Uuid::nil(),
         subnet_id: Uuid::nil(),
         ip_address: ip,
-        mac_address: mac
-            .and_then(|m| m.parse().ok())
-            .map(|m| MacEvidence::new(MacEvidenceValue(m), REPORTED)),
+        mac_address: mac_evidence(mac),
         name,
         position,
     })
@@ -396,6 +486,112 @@ mod tests {
         include_str!("../../../../tests/proxmox/pve84_cluster_resources_pool_scoped.json");
     const QEMU_110_CONFIG: &str =
         include_str!("../../../../tests/proxmox/pve84_qemu_110_config.json");
+
+    // Recorded later from the same node with the read-only discovery token (PVEAuditor on `/`
+    // plus VM.Monitor), so `/cluster/status` answers and the whole node is visible. The public
+    // IPv6 prefix is rewritten to 2001:db8::/32 and cloud-init `sshkeys` scrubbed.
+    const STATUS: &str = include_str!("../../../../tests/proxmox/pve84_cluster_status.json");
+    const RESOURCES: &str = include_str!("../../../../tests/proxmox/pve84_cluster_resources.json");
+    /// A Docker host VM: the agent reports `docker0` and three `br-*` bridges beside `ens18`.
+    const QEMU_103_CONFIG: &str =
+        include_str!("../../../../tests/proxmox/pve84_qemu_103_config.json");
+    const QEMU_103_AGENT: &str =
+        include_str!("../../../../tests/proxmox/pve84_qemu_103_agent_interfaces.json");
+    /// A plain VM with the guest agent.
+    const QEMU_111_CONFIG: &str =
+        include_str!("../../../../tests/proxmox/pve84_qemu_111_config.json");
+    const QEMU_111_AGENT: &str =
+        include_str!("../../../../tests/proxmox/pve84_qemu_111_agent_interfaces.json");
+    /// A WireGuard container: `eth0` plus a `wg0` tunnel with no MAC.
+    const LXC_104_CONFIG: &str =
+        include_str!("../../../../tests/proxmox/pve84_lxc_104_config.json");
+    const LXC_104_INTERFACES: &str =
+        include_str!("../../../../tests/proxmox/pve84_lxc_104_interfaces.json");
+
+    fn ips(addresses: &[GuestAddress]) -> Vec<String> {
+        addresses.iter().map(|a| a.ip.to_string()).collect()
+    }
+
+    /// With `/cluster/status` readable, the node that answered is flagged `local` and takes the
+    /// address it was scanned at, which is the one the daemon can reach.
+    #[test]
+    fn cluster_status_places_the_answering_node_at_the_scanned_address() {
+        let resources: Vec<ClusterResource> = data(RESOURCES);
+        let status: Vec<ClusterStatusEntry> = data(STATUS);
+        let reached: IpAddr = "10.9.9.9".parse().unwrap();
+        assert_eq!(
+            nodes(&resources, Some(&status), reached),
+            vec![NodeSpec {
+                name: "pve".to_string(),
+                ip: Some(reached),
+                local: true,
+            }]
+        );
+    }
+
+    /// The node runs both kinds of guest; every one is reported with its type, and the template
+    /// is the only thing left out.
+    #[test]
+    fn a_whole_node_yields_vms_and_containers_but_no_template() {
+        let resources: Vec<ClusterResource> = data(RESOURCES);
+        let found = guests(&resources);
+        assert!(found.iter().any(|g| g.guest_type == ProxmoxGuestType::Qemu));
+        assert!(found.iter().any(|g| g.guest_type == ProxmoxGuestType::Lxc));
+        assert!(!found.iter().any(|g| g.vmid == 9000), "9000 is a template");
+        let listed = resources
+            .iter()
+            .filter(|r| matches!(r.resource_type.as_str(), "qemu" | "lxc"))
+            .count();
+        assert_eq!(found.len(), listed - 1);
+    }
+
+    /// The Docker host's agent reports `docker0` (172.17.0.1, on every Docker host) and its
+    /// bridges. Only `ens18`, the NIC its config declares, identifies the VM.
+    #[test]
+    fn a_docker_hosts_bridges_are_not_its_addresses() {
+        let nics = config_nics(&data(QEMU_103_CONFIG));
+        let reported = agent_addresses(&data(QEMU_103_AGENT));
+        assert!(
+            ips(&reported).contains(&"172.17.0.1".to_string()),
+            "the capture carries docker0"
+        );
+
+        let kept = select_addresses(&nics, reported);
+        assert!(!kept.is_empty());
+        assert!(kept.iter().all(|a| a.interface.as_deref() == Some("ens18")));
+        assert!(ips(&kept).contains(&"192.168.4.126".to_string()));
+    }
+
+    /// The `wg0` tunnel has an address and no MAC; it is not the container's. Its global IPv6
+    /// addresses come from `ip-addresses`, which `inet6` (link-local only) does not carry.
+    #[test]
+    fn a_containers_tunnel_is_dropped_and_its_global_ipv6_kept() {
+        let nics = config_nics(&data(LXC_104_CONFIG));
+        let interfaces: Vec<LxcInterface> = data(LXC_104_INTERFACES);
+        let kept = select_addresses(&nics, lxc_addresses(&interfaces));
+        assert_eq!(
+            ips(&kept),
+            vec![
+                "192.168.4.191",
+                "2001:db8:58d0:3a00:be24:11ff:fe71:ef5c",
+                "fd0b:d38d:98f6:1:be24:11ff:fe71:ef5c",
+            ]
+        );
+        assert!(
+            kept.iter()
+                .all(|a| a.mac.as_deref() == Some("bc:24:11:71:ef:5c"))
+        );
+    }
+
+    /// With the agent running, its reading wins over the cloud-init static address, and both
+    /// agree on the NIC.
+    #[test]
+    fn an_agent_reading_is_preferred_over_cloud_init() {
+        let nics = config_nics(&data(QEMU_111_CONFIG));
+        let kept = select_addresses(&nics, agent_addresses(&data(QEMU_111_AGENT)));
+        assert!(ips(&kept).contains(&"192.168.7.171".to_string()));
+        assert!(kept.iter().all(|a| a.interface.as_deref() == Some("eth0")));
+    }
 
     fn data<T: serde::de::DeserializeOwned>(json: &str) -> T {
         serde_json::from_str::<PveEnvelope<T>>(json)
@@ -470,13 +666,21 @@ mod tests {
         let owner = Uuid::new_v4();
         let network_id = Uuid::new_v4();
 
-        let (host, ips) = guest_host(
+        let nics = config_nics(&config);
+        let GuestRecord {
+            host,
+            ip_addresses: ips,
+            interfaces,
+        } = guest_host(
             guest,
-            &static_addresses(&config_nics(&config)),
+            &static_addresses(&nics),
+            &nics,
             Some(owner),
             network_id,
-        );
+        )
+        .expect("a guest with an address is recorded");
 
+        assert!(interfaces.is_empty(), "the address row carries the MAC");
         assert_eq!(host.base.virtualization_service_id, Some(owner));
         assert_eq!(
             host.base.virtualization_metadata,
@@ -494,7 +698,64 @@ mod tests {
         assert_eq!(ips.len(), 1);
         assert_eq!(
             ips[0].base.mac_address.as_ref().map(|m| m.source()),
-            Some(REPORTED)
+            Some(NIC_MAC)
         );
+    }
+
+    fn guest(resources: &[ClusterResource], vmid: i64) -> GuestSummary {
+        GuestSummary {
+            running: false,
+            ..guests(resources)
+                .into_iter()
+                .find(|g| g.vmid == vmid)
+                .expect("guest is listed")
+        }
+    }
+
+    /// The WireGuard container stopped: DHCP in its config, so no address anywhere. It is still a
+    /// workload, recorded by its NIC, whose Proxmox-assigned MAC the server accepts a host from.
+    #[test]
+    fn a_guest_without_an_address_is_recorded_by_its_nic() {
+        let resources: Vec<ClusterResource> = data(RESOURCES);
+        let nics = config_nics(&data(LXC_104_CONFIG));
+        let addresses = select_addresses(&nics, vec![]);
+        assert!(addresses.is_empty(), "ip=dhcp is not an address");
+
+        let record = guest_host(
+            &guest(&resources, 104),
+            &addresses,
+            &nics,
+            None,
+            Uuid::new_v4(),
+        )
+        .expect("a guest with a NIC is recorded");
+        assert!(record.ip_addresses.is_empty());
+        let interface = &record.interfaces[..];
+        assert_eq!(interface.len(), 1);
+        assert_eq!(interface[0].base.if_name.as_deref(), Some("eth0"));
+        assert_eq!(
+            interface[0].base.mac_address.as_ref().map(|m| m.source()),
+            Some(NIC_MAC)
+        );
+    }
+
+    /// The Docker-host VM's NIC carries a locally administered MAC (`02:…`, as the community
+    /// helper scripts assign). Fixed in its config, it identifies the stopped VM like a stock
+    /// Proxmox MAC would.
+    #[test]
+    fn a_guest_known_only_by_a_locally_administered_mac_is_recorded() {
+        let resources: Vec<ClusterResource> = data(RESOURCES);
+        let nics = config_nics(&data(QEMU_103_CONFIG));
+        let record = guest_host(&guest(&resources, 103), &[], &nics, None, Uuid::new_v4())
+            .expect("its configured NIC identifies it");
+        assert_eq!(record.interfaces.len(), 1);
+    }
+
+    /// No address and no NIC: nothing would keep it one host across scans, so it is not sent.
+    #[test]
+    fn a_guest_with_no_nic_and_no_address_is_not_recorded() {
+        let resources: Vec<ClusterResource> = data(RESOURCES);
+        let guest = &guests(&resources)[0];
+        assert!(guest_host(guest, &[], &[], None, Uuid::new_v4()).is_none());
     }
 }

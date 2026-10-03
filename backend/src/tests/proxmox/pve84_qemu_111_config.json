@@ -1,0 +1,24 @@
+{
+  "data": {
+    "memory": "1024",
+    "name": "scanopy-lab-agent",
+    "smbios1": "uuid=b6e05e6c-f802-43c6-95d0-14a6f9d970e9",
+    "ipconfig0": "ip=192.168.7.171/22,gw=192.168.4.1",
+    "ide2": "local-lvm:vm-111-cloudinit,media=cdrom,size=4M",
+    "scsi0": "local-lvm:vm-111-disk-0,size=3G",
+    "sshkeys": "%0Assh-ed25519%20REDACTED%20scrubbed%40capture%0A",
+    "serial0": "socket",
+    "digest": "9d12d594f5bdcb209210f0c393b7e74aa7210a97",
+    "ciuser": "debian",
+    "agent": "enabled=1",
+    "meta": "creation-qemu=9.2.0,ctime=1790889735",
+    "net0": "virtio=BC:24:11:B3:E9:53,bridge=vmbr0",
+    "boot": "order=scsi0",
+    "nameserver": "192.168.4.1",
+    "vmgenid": "c598648f-bcd2-4003-8c87-d041412c8a31",
+    "scsihw": "virtio-scsi-pci",
+    "ostype": "l26",
+    "cores": 1,
+    "vga": "serial0"
+  }
+}
