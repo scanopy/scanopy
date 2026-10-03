@@ -2250,6 +2250,15 @@
     "name": "Access Point"
   },
   {
+    "category": "RemoteAccess",
+    "color": "Amber",
+    "description": "Powered on by a magic packet before a scan",
+    "discovery_pattern": "No match pattern provided",
+    "logo_needs_white_background": false,
+    "logo_url": "",
+    "name": "Wake-on-LAN"
+  },
+  {
     "category": "NetworkCore",
     "color": "Yellow",
     "description": "Ubiquiti UniFi managed switch",
