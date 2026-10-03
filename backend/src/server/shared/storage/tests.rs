@@ -1004,6 +1004,13 @@ async fn server_side_field_filters_are_valid_sql_against_the_live_schema() {
                 .to_where_clause(),
         ),
         (
+            "hosts.virtualized_by (by name)",
+            Host::table_name(),
+            StorableFilter::<Host>::new_unfiltered()
+                .virtualization_parent(&[], &named(), true)
+                .to_where_clause(),
+        ),
+        (
             "hosts.virtualized_by (absence only)",
             Host::table_name(),
             StorableFilter::<Host>::new_unfiltered()
@@ -1029,6 +1036,13 @@ async fn server_side_field_filters_are_valid_sql_against_the_live_schema() {
             Service::table_name(),
             StorableFilter::<Service>::new_unfiltered()
                 .virtualization_service_in(&[id], true)
+                .to_where_clause(),
+        ),
+        (
+            "services.containerized_by (by name)",
+            Service::table_name(),
+            StorableFilter::<Service>::new_unfiltered()
+                .virtualization_parent(&[], &named(), false)
                 .to_where_clause(),
         ),
         (

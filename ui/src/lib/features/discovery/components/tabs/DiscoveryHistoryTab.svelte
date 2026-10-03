@@ -21,6 +21,7 @@
 	import { useHostsByIds } from '$lib/features/hosts/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { hasDaemon } from '$lib/shared/onboarding/checklist';
+	import { labelledFieldValueOptions, useFieldValuesQuery } from '$lib/shared/api/field-values';
 	import type { components } from '$lib/api/schema';
 	import type { TabProps } from '$lib/shared/types';
 	import { downloadCsv } from '$lib/shared/utils/csvExport';
@@ -59,6 +60,8 @@
 	type DiscoveryOrderField = components['schemas']['DiscoveryOrderField'];
 	type OrderDirection = components['schemas']['OrderDirection'];
 	type DiscoveryPhase = components['schemas']['DiscoveryPhase'];
+
+	const DISCOVERY_FIELD_VALUES = '/api/v1/discovery/field-values/{field}';
 
 	let { isReadOnly = false, isActive = false }: TabProps = $props();
 
@@ -105,6 +108,34 @@
 			discovery_types: filterDiscoveryTypes.length > 0 ? filterDiscoveryTypes : undefined,
 			phases: filterPhases.length > 0 ? filterPhases : undefined
 		}),
+		() => isActive
+	);
+	// Filter options: the values the run history actually holds. Scoped to history rows the way
+	// the list is, so scheduled configurations add none, and never narrowed by the active filters,
+	// so the options do not shrink as the user filters. Gated like the list.
+	const historyScope = () => ({ historical: true });
+	const daemonValuesQuery = useFieldValuesQuery(
+		DISCOVERY_FIELD_VALUES,
+		'daemon_id',
+		historyScope,
+		() => isActive
+	);
+	const networkValuesQuery = useFieldValuesQuery(
+		DISCOVERY_FIELD_VALUES,
+		'network_id',
+		historyScope,
+		() => isActive
+	);
+	const typeValuesQuery = useFieldValuesQuery(
+		DISCOVERY_FIELD_VALUES,
+		'discovery_type',
+		historyScope,
+		() => isActive
+	);
+	const phaseValuesQuery = useFieldValuesQuery(
+		DISCOVERY_FIELD_VALUES,
+		'phase',
+		historyScope,
 		() => isActive
 	);
 	const daemonsQuery = useDaemonsQuery();
@@ -287,7 +318,11 @@
 				searchable: true,
 				filterable: true,
 				serverFiltered: true,
-				filterOptions: daemonsData.map((d) => d.name),
+				// The daemons some run was made by, by name.
+				filterOptions: labelledFieldValueOptions(
+					daemonValuesQuery.data,
+					(id) => daemonsData.find((d) => d.id === id)?.name
+				),
 				groupable: true,
 				// Displayed as a name, but grouped by id on the server.
 				getGroupValue: (item) => item.daemon_id,
@@ -302,7 +337,11 @@
 				searchable: true,
 				filterable: true,
 				serverFiltered: true,
-				filterOptions: networksData.map((n) => n.name),
+				// The networks some run scanned, by name.
+				filterOptions: labelledFieldValueOptions(
+					networkValuesQuery.data,
+					(id) => networksData.find((n) => n.id === id)?.name
+				),
 				groupable: true,
 				getGroupValue: (item) => item.network_id,
 				getValue: (item) =>
@@ -315,7 +354,10 @@
 				searchable: true,
 				filterable: true,
 				serverFiltered: true,
-				filterOptions: discoveryTypes.getItems().map((type) => discoveryTypes.getName(type.id)),
+				// The types some run had, by name.
+				filterOptions: labelledFieldValueOptions(typeValuesQuery.data, (id) =>
+					discoveryTypes.getName(id)
+				),
 				groupable: true,
 				// The server groups on the raw discriminant; the column renders its name.
 				getGroupValue: (item) => item.discovery_type.type,
@@ -333,8 +375,10 @@
 				searchable: true,
 				filterable: true,
 				serverFiltered: true,
-				// Only the phases a run ends in: the history holds no other.
-				filterOptions: TERMINAL_PHASES.map((phase) => discoveryPhases.getName(phase)),
+				// The phases some run ended in, by name.
+				filterOptions: labelledFieldValueOptions(phaseValuesQuery.data, (id) =>
+					discoveryPhases.getName(id)
+				),
 				getValue: (item) => {
 					const phase = resultsOf(item)?.phase;
 					return phase ? discoveryPhases.getName(phase) : null;

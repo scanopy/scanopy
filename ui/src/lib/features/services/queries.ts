@@ -33,8 +33,8 @@ export interface ServicesQueryParams {
 	host_ids?: string[];
 	/** Only services with one of these definitions (raw definition ids). */
 	service_definitions?: string[];
-	/** Filter by the service containerizing this one. */
-	virtualization_service_ids?: string[];
+	/** Filter by the name of the service containerizing this one, the value "Containerized" groups on. */
+	virtualization_service_names?: string[];
 	/** Also return services nothing containerizes; on its own, only those. */
 	include_uncontainerized?: boolean;
 	/** Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
@@ -95,7 +95,7 @@ export function useServicesQuery(
 			network_ids,
 			host_ids,
 			service_definitions,
-			virtualization_service_ids,
+			virtualization_service_names,
 			include_uncontainerized,
 			group_by,
 			order_by,
@@ -119,7 +119,7 @@ export function useServicesQuery(
 					network_ids,
 					host_ids,
 					service_definitions,
-					virtualization_service_ids,
+					virtualization_service_names,
 					include_uncontainerized,
 					group_by,
 					order_by,
@@ -143,7 +143,7 @@ export function useServicesQuery(
 								network_ids,
 								host_ids,
 								service_definitions,
-								virtualization_service_ids,
+								virtualization_service_names,
 								include_uncontainerized,
 								group_by,
 								order_by,
@@ -260,6 +260,8 @@ export function useUpdateServiceMutation() {
 			);
 			// Invalidate paginated service queries so ServiceTab reflects the update
 			queryClient.invalidateQueries({ queryKey: queryKeys.services.all });
+			// The hosts tab offers virtualizing services by name.
+			queryClient.invalidateQueries({ queryKey: queryKeys.hosts.fieldValues() });
 		}
 	}));
 }
@@ -281,6 +283,8 @@ export function useDeleteServiceMutation() {
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: queryKeys.services.all });
+			// The hosts tab offers virtualizing services by name.
+			queryClient.invalidateQueries({ queryKey: queryKeys.hosts.fieldValues() });
 		}
 	}));
 }
@@ -298,6 +302,8 @@ export function useBulkDeleteServicesMutation() {
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: queryKeys.services.all });
+			// The hosts tab offers virtualizing services by name.
+			queryClient.invalidateQueries({ queryKey: queryKeys.hosts.fieldValues() });
 		}
 	}));
 }

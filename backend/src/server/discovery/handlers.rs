@@ -300,6 +300,7 @@ mod generated {
     crate::crud_delete_handler!(Discovery);
     crate::crud_bulk_delete_handler!(Discovery);
     crate::crud_export_csv_handler!(Discovery);
+    crate::crud_get_field_values_handler!(Discovery);
 }
 
 fn active_session_error() -> ApiError {
@@ -322,6 +323,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
         ))
         .routes(routes!(bulk_delete_discoveries))
         .routes(routes!(generated::export_csv))
+        .routes(routes!(generated::get_field_values))
         .routes(routes!(start_session))
         .routes(routes!(get_active_sessions))
         .routes(routes!(cancel_discovery))

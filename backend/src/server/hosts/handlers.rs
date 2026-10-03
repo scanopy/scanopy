@@ -172,6 +172,9 @@ pub struct HostFilterQuery {
     pub hidden: Option<Vec<bool>>,
     /// Filter by the service virtualizing the host. Repeat for several.
     pub virtualization_service_ids: Option<Vec<Uuid>>,
+    /// Filter by the name of the service virtualizing the host, the value "Virtualized By"
+    /// groups on. Repeat for several.
+    pub virtualization_service_names: Option<Vec<String>>,
     /// `true` also returns hosts nothing virtualizes. Set on its own it returns
     /// only those — the "Not Virtualized" choice in the UI's filter.
     pub include_unvirtualized: Option<bool>,
@@ -254,14 +257,12 @@ impl HostFilterQuery {
         };
 
         // "Not Virtualized" is a choice about absence, so it can arrive without
-        // any service ids beside it.
-        let include_unvirtualized = self.include_unvirtualized.unwrap_or(false);
-        let virtualization_ids = self.virtualization_service_ids.as_deref().unwrap_or(&[]);
-        let filter = if include_unvirtualized || !virtualization_ids.is_empty() {
-            filter.virtualization_service_in(virtualization_ids, include_unvirtualized)
-        } else {
-            filter
-        };
+        // any service ids or names beside it.
+        let filter = filter.virtualization_parent(
+            self.virtualization_service_ids.as_deref().unwrap_or(&[]),
+            self.virtualization_service_names.as_deref().unwrap_or(&[]),
+            self.include_unvirtualized.unwrap_or(false),
+        );
 
         let filter = match &self.service_names {
             Some(names) if !names.is_empty() => filter.has_service_named(names),

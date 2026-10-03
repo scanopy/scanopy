@@ -58,7 +58,9 @@ pub enum ServiceOrderField {
     NetworkId,
     Position,
     /// Sort by what the service *is* (Postgres, Nginx, ...) rather than what it
-    /// was named. Plain text column, no JOIN.
+    /// was named. Plain text column, no JOIN. The column holds the JSON-encoded id (`"Postgres"`),
+    /// so the expression strips the quotes: a group value or field value is then the bare id the
+    /// client groups and filters on.
     ServiceDefinition,
     /// Sort by when discovery last observed the service. Surfaces stale assets.
     LastSeenAt,
@@ -84,7 +86,7 @@ impl OrderField for ServiceOrderField {
             Self::UpdatedAt => "services.updated_at",
             Self::NetworkId => "services.network_id",
             Self::Position => "services.position",
-            Self::ServiceDefinition => "services.service_definition",
+            Self::ServiceDefinition => r#"btrim(services.service_definition, '"')"#,
             Self::LastSeenAt => "services.last_seen_at",
             Self::Host => SERVICE_HOST_TITLE_SQL.as_str(),
             Self::ContainerizedBy => "COALESCE(container_service.name, '')",
@@ -131,6 +133,9 @@ pub struct ServiceFilterQuery {
     pub service_definitions: Option<Vec<String>>,
     /// Filter by the service containerizing this one. Repeat for several.
     pub virtualization_service_ids: Option<Vec<Uuid>>,
+    /// Filter by the name of the service containerizing this one, the value "Containerized"
+    /// groups on. Repeat for several.
+    pub virtualization_service_names: Option<Vec<String>>,
     /// `true` also returns services nothing containerizes. Set on its own it
     /// returns only those — the "Not Containerized" choice in the UI's filter.
     pub include_uncontainerized: Option<bool>,
@@ -219,6 +224,10 @@ impl FilterQueryExtractor for ServiceFilterQuery {
         }
     }
 
+    fn at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
+        self.at
+    }
+
     fn pagination(&self) -> PaginationParams {
         PaginationParams {
             limit: self.limit,
@@ -234,6 +243,7 @@ mod generated {
     crate::crud_delete_handler!(Service);
     crate::crud_bulk_delete_handler!(Service);
     crate::crud_export_csv_handler!(Service);
+    crate::crud_get_field_values_handler!(Service);
 }
 
 pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
@@ -246,6 +256,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
         ))
         .routes(routes!(generated::bulk_delete))
         .routes(routes!(generated::export_csv))
+        .routes(routes!(generated::get_field_values))
 }
 
 /// List all services
@@ -335,14 +346,12 @@ async fn get_all_services(
     };
 
     // "Not Containerized" is a choice about absence, so it can arrive without
-    // any service ids beside it.
-    let include_uncontainerized = query.include_uncontainerized.unwrap_or(false);
-    let containerized_by = query.virtualization_service_ids.as_deref().unwrap_or(&[]);
-    let filter = if include_uncontainerized || !containerized_by.is_empty() {
-        filter.virtualization_service_in(containerized_by, include_uncontainerized)
-    } else {
-        filter
-    };
+    // any service ids or names beside it.
+    let filter = filter.virtualization_parent(
+        query.virtualization_service_ids.as_deref().unwrap_or(&[]),
+        query.virtualization_service_names.as_deref().unwrap_or(&[]),
+        query.include_uncontainerized.unwrap_or(false),
+    );
 
     let filter = match &query.sources {
         Some(sources) if !sources.is_empty() => filter.source_type_in(sources),
