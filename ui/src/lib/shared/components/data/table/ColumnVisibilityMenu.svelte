@@ -135,8 +135,15 @@
 	</button>
 
 	{#if open}
+		<!--
+			Focusable but out of the tab order, so a mousedown on something that is not
+			focusable — a drag grip, row padding — moves focus here instead of nowhere.
+			Nowhere reads to `handleFocusOut` as leaving the menu, and closed it before
+			a drag could start.
+		-->
 		<div
-			class="card absolute right-0 z-30 mt-1 max-h-96 w-72 overflow-y-auto !rounded-lg !p-3 shadow-lg"
+			tabindex="-1"
+			class="card absolute right-0 z-30 mt-1 max-h-96 w-72 overflow-y-auto !rounded-lg !p-3 shadow-lg outline-none"
 		>
 			<div class="mb-2 flex items-center justify-between">
 				<span class="text-primary text-sm font-semibold">{common_fields()}</span>
