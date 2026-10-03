@@ -2195,7 +2195,6 @@
 	"networks_credentialHelpLinkText": "Learn about credential targets",
 	"networks_networkNamePlaceholder": "e.g Home Network",
 	"networks_noCredentialsAssigned": "No credentials assigned",
-	"networks_selectNetwork": "Select network",
 	"networks_staleAfter": "Stale after",
 	"networks_staleAfterHours": "Consider entities stale after",
 	"networks_staleAfterHoursHelp": "How long discovery can go without seeing a host, service or subnet on this network before it's flagged as stale. Set this to comfortably exceed your scan interval. Leave blank to use the default.",
