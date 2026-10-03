@@ -1,8 +1,10 @@
 //! An operating system named in what a scanned host sent of its own accord: its web servers'
-//! `Server` headers and its mDNS `_device-info._tcp` record.
+//! `Server` headers and its mDNS `_device-info._tcp` and `_airplay._tcp` records.
 //!
 //! Each match is offered through [`HostData::offer_os`], which combines them: two naming different
 //! families leave the host with no matched OS. The SSH banner arrives the same way, from its probe.
+
+use std::collections::BTreeMap;
 
 use crate::daemon::discovery::service::network::mdns::types::DnsSdHost;
 use crate::daemon::discovery::service::ops::HostData;
@@ -13,8 +15,10 @@ use crate::server::shared::attribution::{AttributeSource, Attributed};
 
 /// The DNS-SD service whose TXT record describes the device itself.
 const DEVICE_INFO_SERVICE: &str = "_device-info._tcp";
+/// The AirPlay receiver service, whose TXT record carries the device's model.
+const AIRPLAY_SERVICE: &str = "_airplay._tcp";
 
-/// Offer the OS each `Server` header and the device-info record name.
+/// Offer the OS each `Server` header and the device-info and AirPlay records name.
 pub(super) fn offer_emitted_os(
     host_data: &mut HostData,
     endpoint_responses: &[EndpointResponse],
@@ -37,32 +41,55 @@ pub(super) fn offer_emitted_os(
         }
     }
 
-    let device_info = dns_sd.and_then(|host| {
-        host.services
-            .iter()
-            .find(|(name, _)| name.eq_ignore_ascii_case(DEVICE_INFO_SERVICE))
-            .map(|(_, txt)| txt)
-    });
-    let Some(device_info) = device_info else {
+    let Some(dns_sd) = dns_sd else {
         return;
     };
+    // The device-info record describes the device itself; read every pair, which is how Recog's
+    // database is keyed (`model=…`, `osxvers=…`).
+    if let Some(txt) = service_txt(dns_sd, DEVICE_INFO_SERVICE) {
+        let pairs = txt.iter().map(|(key, value)| format!("{key}={value}"));
+        offer_mdns_matches(host_data, pairs, AttributeSource::DnsSdDeviceInfoMatch, txt);
+    }
+    // A Mac that shares nothing publishes no device-info record but still advertises AirPlay, and
+    // that record's `model` is the same Apple model identifier (`model=Mac17,2` from a MacBook Pro,
+    // captured 2026-10-02). Only `model` is read: the other AirPlay keys are protocol details.
+    if let Some(txt) = service_txt(dns_sd, AIRPLAY_SERVICE) {
+        let pairs = txt.get("model").map(|model| format!("model={model}"));
+        offer_mdns_matches(host_data, pairs, AttributeSource::DnsSdAirPlayMatch, txt);
+    }
+}
+
+/// The TXT pairs a host advertised for one DNS-SD service type, if it advertised it.
+fn service_txt<'a>(dns_sd: &'a DnsSdHost, service: &str) -> Option<&'a BTreeMap<String, String>> {
+    dns_sd
+        .services
+        .iter()
+        .find(|(name, _)| name.eq_ignore_ascii_case(service))
+        .map(|(_, txt)| txt)
+}
+
+/// Offer the OS each `key=value` pair names. A record that arrived and named nothing is logged with
+/// what it held, so a device the fingerprints do not cover can be identified from the log rather
+/// than guessed at.
+fn offer_mdns_matches(
+    host_data: &mut HostData,
+    pairs: impl IntoIterator<Item = String>,
+    source: AttributeSource,
+    txt: &BTreeMap<String, String>,
+) {
     let mut named = false;
-    for (key, value) in device_info {
-        if let Some(os) = RecogDatabase::MdnsDeviceInfo.os(&format!("{key}={value}")) {
+    for pair in pairs {
+        if let Some(os) = RecogDatabase::MdnsDeviceInfo.os(&pair) {
             named = true;
-            host_data.offer_os(Attributed::new(
-                HostOsValue(os),
-                AttributeSource::DnsSdDeviceInfoMatch,
-            ));
+            host_data.offer_os(Attributed::new(HostOsValue(os), source));
         }
     }
-    // The record arrived and nothing in it named an OS: say what it held, so a device the
-    // fingerprints do not cover can be identified from the log rather than guessed at.
     if !named {
         tracing::debug!(
             address = ?host_data.ip_addresses.first().map(|ip| ip.base.ip_address),
-            device_info = ?device_info,
-            "mDNS device-info record named no OS"
+            %source,
+            txt = ?txt,
+            "mDNS record named no OS"
         );
     }
 }
@@ -110,6 +137,39 @@ mod tests {
             )]),
             ..Default::default()
         }
+    }
+
+    /// An AirPlay record as a Mac or a speaker announces it: `model` plus protocol keys.
+    fn airplay(model: &str) -> DnsSdHost {
+        DnsSdHost {
+            services: BTreeMap::from([(
+                AIRPLAY_SERVICE.to_string(),
+                BTreeMap::from([
+                    ("model".to_string(), model.to_string()),
+                    ("srcvers".to_string(), "980.77.5".to_string()),
+                ]),
+            )]),
+            ..Default::default()
+        }
+    }
+
+    /// The record a MacBook Pro advertised on a live LAN, with no device-info record beside it.
+    #[test]
+    fn a_mac_that_only_advertises_airplay_names_macos() {
+        let mut host_data = host();
+        offer_emitted_os(&mut host_data, &[], Some(&airplay("Mac17,2")));
+        assert_eq!(family(&host_data), Some(HostOsFamily::MacOs));
+        assert_eq!(
+            host_data.host.base.os.as_ref().unwrap().source(),
+            AttributeSource::DnsSdAirPlayMatch
+        );
+    }
+
+    #[test]
+    fn an_airplay_speaker_model_names_no_os() {
+        let mut host_data = host();
+        offer_emitted_os(&mut host_data, &[], Some(&airplay("Five")));
+        assert_eq!(family(&host_data), None);
     }
 
     fn family(host_data: &HostData) -> Option<HostOsFamily> {

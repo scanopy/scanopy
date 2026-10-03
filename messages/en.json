@@ -1338,6 +1338,8 @@
 	"meta_attribute_sources_ContainerRuntimeInfo_name": "Container engine",
 	"meta_attribute_sources_DaemonSelfReport_description": "The Scanopy daemon running on this host read it locally.",
 	"meta_attribute_sources_DaemonSelfReport_name": "The daemon on this host",
+	"meta_attribute_sources_DnsSdAirPlayMatch_description": "Scanopy inferred this from the model the host announced in its AirPlay record over mDNS. The host did not report it directly.",
+	"meta_attribute_sources_DnsSdAirPlayMatch_name": "mDNS AirPlay",
 	"meta_attribute_sources_DnsSdDeviceInfoMatch_description": "Scanopy inferred this from the device-info record the host announced over mDNS. The host did not report it directly.",
 	"meta_attribute_sources_DnsSdDeviceInfoMatch_name": "mDNS device info",
 	"meta_attribute_sources_DnsSdHostname_description": "The device announced this hostname for itself over mDNS.",
