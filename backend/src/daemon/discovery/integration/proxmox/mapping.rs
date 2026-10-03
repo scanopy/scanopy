@@ -739,14 +739,16 @@ mod tests {
         );
     }
 
-    /// The Docker-host VM's NIC carries a hand-set, locally administered MAC (`02:…`), which the
-    /// server never matches on. Stopped, with no address, nothing would keep it one host, so it
-    /// is not sent.
+    /// The Docker-host VM's NIC carries a locally administered MAC (`02:…`, as the community
+    /// helper scripts assign). Fixed in its config, it identifies the stopped VM like a stock
+    /// Proxmox MAC would.
     #[test]
-    fn a_guest_known_only_by_a_locally_administered_mac_is_not_recorded() {
+    fn a_guest_known_only_by_a_locally_administered_mac_is_recorded() {
         let resources: Vec<ClusterResource> = data(RESOURCES);
         let nics = config_nics(&data(QEMU_103_CONFIG));
-        assert!(guest_host(&guest(&resources, 103), &[], &nics, None, Uuid::new_v4()).is_none());
+        let record = guest_host(&guest(&resources, 103), &[], &nics, None, Uuid::new_v4())
+            .expect("its configured NIC identifies it");
+        assert_eq!(record.interfaces.len(), 1);
     }
 
     /// No address and no NIC: nothing would keep it one host across scans, so it is not sent.
