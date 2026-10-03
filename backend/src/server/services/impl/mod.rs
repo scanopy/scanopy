@@ -1,6 +1,7 @@
 pub mod api;
 pub mod base;
 pub mod categories;
+pub mod confidence;
 pub mod definitions;
 pub mod endpoints;
 pub mod handlers;

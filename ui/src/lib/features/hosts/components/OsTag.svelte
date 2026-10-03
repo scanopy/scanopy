@@ -19,7 +19,7 @@
 	class="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium {gray.bg} {gray.text}"
 	title={hostOsTooltip(os, source)}
 >
-	{#if icon.kind === 'daemonOs'}
+	{#if icon.type === 'daemonOs'}
 		<OsIcon os={icon.os} class="h-4 w-4 flex-shrink-0" />
 	{:else}
 		<icon.component class="h-4 w-4 flex-shrink-0" />

@@ -161,6 +161,7 @@
 			searchable: true,
 			filterable: true,
 			groupable: true,
+			sortable: true,
 			getValue(item) {
 				return networksData.find((n) => n.id == item.network_id)?.name || common_unknownNetwork();
 			},
@@ -171,6 +172,7 @@
 			label: common_enabled(),
 			type: 'boolean',
 			filterable: true,
+			groupable: true,
 			getValue: (key) => key.is_enabled ?? false
 		},
 		{

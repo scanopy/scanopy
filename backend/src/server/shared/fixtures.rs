@@ -151,6 +151,13 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
             .collect();
     write_fixture(&host_os_families, output_dir, "host-os-families.json");
 
+    // A service match's confidence: its label and colour, and the services filter's options.
+    let match_confidences: Vec<TypeMetadata> =
+        crate::server::services::r#impl::patterns::MatchConfidence::iter()
+            .map(|c| c.to_metadata())
+            .collect();
+    write_fixture(&match_confidences, output_dir, "match-confidences.json");
+
     // Keyed by `CredentialQueryPayloadDiscriminants`, which is what a coded warning carries.
     // Neither `integrations.json` (keyed by display name) nor `credential-types.json` (keyed by
     // `CredentialType`) can resolve those eight values.

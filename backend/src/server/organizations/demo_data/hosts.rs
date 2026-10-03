@@ -31,26 +31,30 @@ pub(super) fn generate_recent_hosts(
     let dc = find_network("Data Center");
 
     vec![
-        // HQ: a new employee workstation on the office LAN.
-        host_with_services!(
-            create_host(
-                "hq-ws-jmartin",
-                Some("jmartin-pc.acme.local"),
-                Some("Workstation — J. Martin (new hire)"),
-                hq,
-                find_subnet("HQ Office LAN"),
-                Ipv4Addr::new(10, 0, 10, 201),
-                vec![],
-                None,
-                None,
-                now,
+        // HQ: a new employee workstation on the office LAN. Windows ships OpenSSH Server as an
+        // optional feature, and its banner names the OS.
+        found_by_scan(host_with_services!(
+            with_ssh_banner(
+                create_host(
+                    "hq-ws-jmartin",
+                    Some("jmartin-pc.acme.local"),
+                    Some("Workstation — J. Martin (new hire)"),
+                    hq,
+                    find_subnet("HQ Office LAN"),
+                    Ipv4Addr::new(10, 0, 10, 201),
+                    vec![],
+                    None,
+                    None,
+                    now,
+                ),
+                WINDOWS_SSH_BANNER,
             ),
             now,
             ("Workstation", "Remote Desktop", Some(PortType::Rdp), vec![]),
             ("SSH", "SSH", Some(PortType::Ssh), vec![]),
-        ),
+        )),
         // HQ: a newly stood-up secondary DNS resolver.
-        host_with_services!(
+        found_by_scan(host_with_services!(
             create_host(
                 "hq-dns-secondary",
                 Some("dns2.acme.local"),
@@ -66,9 +70,9 @@ pub(super) fn generate_recent_hosts(
             now,
             ("Bind9", "BIND DNS", Some(PortType::DnsUdp), vec![]),
             ("SSH", "SSH", Some(PortType::Ssh), vec![]),
-        ),
+        )),
         // DC: a new VPN gateway.
-        host_with_services!(
+        found_by_scan(host_with_services!(
             create_host(
                 "dc-vpn-gw02",
                 Some("vpn2.dc.acme.local"),
@@ -84,9 +88,9 @@ pub(super) fn generate_recent_hosts(
             now,
             ("OpenVPN", "OpenVPN", Some(PortType::OpenVPN), vec![]),
             ("SSH", "SSH", Some(PortType::Ssh), vec![]),
-        ),
+        )),
         // DC: a new compute node.
-        host_with_services!(
+        found_by_scan(host_with_services!(
             create_host(
                 "dc-node07",
                 Some("node07.dc.acme.local"),
@@ -101,7 +105,7 @@ pub(super) fn generate_recent_hosts(
             ),
             now,
             ("SSH", "SSH", Some(PortType::Ssh), vec![]),
-        ),
+        )),
     ]
 }
 
@@ -1338,8 +1342,8 @@ pub(super) fn generate_hosts_and_services(
         ),
     ));
 
-    // 25. Hue Bridge
-    result.push(host_with_services!(
+    // 25. Hue Bridge. Hidden from the topology: the lobby lighting has no bearing on the network.
+    let mut hue_bridge = host_with_services!(
         with_mac(
             create_host(
                 "hue-bridge",
@@ -1362,7 +1366,9 @@ pub(super) fn generate_hosts_and_services(
             Some(PortType::Https),
             iot_tag.into_iter().collect()
         ),
-    ));
+    );
+    hue_bridge.host.base.hidden = true;
+    result.push(hue_bridge);
 
     // 26. HP Printer. Never named in Scanopy, so it is titled by the sysName it reports. Unplugged
     // when the copy room got a replacement; it has not answered a scan since. Old enough to speak
@@ -1462,8 +1468,9 @@ pub(super) fn generate_hosts_and_services(
     ));
 
     // 29. HVAC Controller (BACnet) — building automation, not a factory floor: the OT
-    // positioning this demo needs shows up just as plausibly on the building's own HVAC.
-    result.push(host_with_services!(
+    // positioning this demo needs shows up just as plausibly on the building's own HVAC. Found by a
+    // scan, which matched BACnet on its well-known port alone, the weakest match there is.
+    result.push(found_by_scan(host_with_services!(
         with_mac(
             create_host(
                 "hvac-controller01",
@@ -1486,12 +1493,13 @@ pub(super) fn generate_hosts_and_services(
             Some(PortType::BACnet),
             iot_tag.into_iter().collect()
         ),
-    ));
+    )));
 
     // 30. Facility UPS (Modbus TCP) — power monitoring, the other common source of an
     // industrial protocol in an office building. Modbus device identification yields a
-    // firmware revision but nothing that maps to a separate software revision.
-    let mut facility_ups = host_with_services!(
+    // firmware revision but nothing that maps to a separate software revision. Found by a scan,
+    // whose Modbus probe matched the service outright.
+    let mut facility_ups = found_by_scan(host_with_services!(
         with_mac(
             create_host(
                 "facility-ups01",
@@ -1514,7 +1522,7 @@ pub(super) fn generate_hosts_and_services(
             Some(PortType::ModbusTcp),
             iot_tag.into_iter().collect()
         ),
-    );
+    ));
     facility_ups.host.base.firmware_revision = Some(Attributed::new(
         HostFirmwareRevisionValue("2.1.3".to_string()),
         AttributeSource::Probe(ClientProbe::ModbusTcp),
@@ -1753,7 +1761,9 @@ pub(super) fn generate_hosts_and_services(
                 ),
                 [0x00, 0x1c, 0x73, 0xdc, 0x02, 0x01],
             ),
-            Some("Arista DCS-7050SX3-48YC12, EOS-4.32.0F"),
+            Some(
+                "Arista Networks EOS version 4.32.0F running on an Arista Networks DCS-7050SX3-48YC12"
+            ),
             Some("1.3.6.1.4.1.30065.1.3011.7050.3735.48.3328.12"),
             Some("DC-East, Cage 4, Rack 2"),
             Some("netops@acme-corp.com"),
@@ -2591,22 +2601,26 @@ pub(super) fn generate_hosts_and_services(
         ),
     ));
 
-    // 20. DC Admin Workstation (Compute)
+    // 20. DC Admin Workstation (Compute). A Windows jump box with OpenSSH Server enabled, whose
+    // banner names the OS.
     result.push(host_with_services!(
-        with_mac(
-            create_host(
-                "dc-ws-admin",
-                Some("ws-admin.dc.acme.io"),
-                Some("DC admin workstation"),
-                dc,
-                dc_compute,
-                Ipv4Addr::new(172, 16, 10, 100),
-                vec![],
-                None,
-                None,
-                now
+        with_ssh_banner(
+            with_mac(
+                create_host(
+                    "dc-ws-admin",
+                    Some("ws-admin.dc.acme.io"),
+                    Some("DC admin workstation"),
+                    dc,
+                    dc_compute,
+                    Ipv4Addr::new(172, 16, 10, 100),
+                    vec![],
+                    None,
+                    None,
+                    now
+                ),
+                [0xf8, 0xbc, 0x12, 0xdc, 0x20, 0x01],
             ),
-            [0xf8, 0xbc, 0x12, 0xdc, 0x20, 0x01],
+            WINDOWS_SSH_BANNER,
         ),
         now,
         ("Workstation", "Workstation", Some(PortType::Rdp), vec![]),

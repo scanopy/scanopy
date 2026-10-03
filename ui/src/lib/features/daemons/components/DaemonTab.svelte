@@ -5,7 +5,12 @@
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
 	import type { Daemon } from '$lib/features/daemons/types/base';
-	import { hasSunsetWarning, getDaemonStatusTag, osLabel } from '$lib/features/daemons/utils';
+	import {
+		hasSunsetWarning,
+		getDaemonStatusTag,
+		osLabel,
+		daemonOsIds
+	} from '$lib/features/daemons/utils';
 	import OsTag from '$lib/features/hosts/components/OsTag.svelte';
 	import { hostOsOfDaemonOs } from '$lib/features/hosts/host-os';
 	import CreateDaemonModal from './CreateDaemonModal/CreateDaemonModal.svelte';
@@ -319,12 +324,11 @@
 					// them here is what makes them exist for both views at once.
 					// Display-only: none is a DaemonOrderField, so the server cannot
 					// order on them and defineFields rightly refuses them above.
+					// One daemon per host, so the host neither groups nor filters; search finds it.
 					key: 'host_id',
 					label: common_host(),
 					type: 'string',
 					searchable: true,
-					filterable: true,
-					groupable: true,
 					getValue: (daemon) => {
 						const host = daemonHosts.find((h) => h.id === daemon.host_id);
 						return host ? hostDisplayName(host) : common_unknownEntity({ entity: common_host() });
@@ -357,6 +361,7 @@
 					searchable: true,
 					filterable: true,
 					groupable: true,
+					sortable: true,
 					getValue: (daemon) => getDaemonStatusTag(daemon).label,
 					display: {
 						order: 1,
@@ -374,7 +379,9 @@
 					searchable: true,
 					filterable: true,
 					groupable: true,
-					getValue: (daemon) => (daemon.os ? osLabel(daemon.os) : ''),
+					sortable: true,
+					filterOptions: daemonOsIds.map(osLabel),
+					getValue: (daemon) => (daemon.os ? osLabel(daemon.os) : null),
 					display: { order: 4.5, cell: osCell }
 				},
 				{
@@ -384,6 +391,7 @@
 					searchable: true,
 					filterable: true,
 					groupable: true,
+					sortable: true,
 					getValue: (daemon) =>
 						daemon.mode === 'server_poll' ? daemons_mode_serverPoll() : daemons_mode_daemonPoll(),
 					display: {
@@ -405,6 +413,9 @@
 					type: 'string',
 					searchable: true,
 					filterable: true,
+					// Numeric collation orders 0.17.10 after 0.17.9.
+					sortable: true,
+					groupable: true,
 					getValue: (daemon) => daemon.version ?? '',
 					display: { order: 4 }
 				},
@@ -423,6 +434,8 @@
 					label: daemons_interfacesWith(),
 					type: 'array',
 					searchable: true,
+					// Daemons share subnets, so this filters; as an array it neither sorts nor groups.
+					filterable: true,
 					getValue: (daemon) => interfacedSubnets(daemon).map((s) => s.name),
 					display: {
 						order: 6,

@@ -7,6 +7,7 @@ use crate::server::{
 impl CrudHandlers for Vlan {
     type Service = VlanService;
     type FilterQuery = VlanFilterQuery;
+    type OrderField = crate::server::vlans::handlers::VlanOrderField;
 
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.vlan_service

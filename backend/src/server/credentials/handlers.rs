@@ -38,6 +38,7 @@ use uuid::Uuid;
 impl CrudHandlers for Credential {
     type Service = CredentialService;
     type FilterQuery = CredentialFilterQuery;
+    type OrderField = CredentialOrderField;
 
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.credential_service
@@ -48,7 +49,9 @@ impl CrudHandlers for Credential {
 // Credential Ordering
 // ============================================================================
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, Default, utoipa::ToSchema)]
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Copy, Default, utoipa::ToSchema, strum::EnumIter,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum CredentialOrderField {
     #[default]

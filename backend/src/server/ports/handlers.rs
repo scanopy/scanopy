@@ -18,6 +18,7 @@ use crate::server::shared::types::api::{ApiError, ApiErrorResponse, ApiResponse,
 impl CrudHandlers for Port {
     type Service = PortService;
     type FilterQuery = HostChildQuery;
+    type OrderField = crate::server::shared::handlers::ordering::NoOrderField;
 
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.port_service

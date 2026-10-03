@@ -126,6 +126,38 @@ describe('matchesFilters — array fields', () => {
 	});
 });
 
+describe('matchesFilters — client-side tag filter', () => {
+	// Tabs give the tags field a getValue returning tag *names*, so search can
+	// match them, while the filter panel stores tag *ids*. Comparing the two hid
+	// every row the moment a tag was selected.
+	const tagNames: Record<string, string> = { 'id-prod': 'prod', 'id-db': 'db' };
+	const namedTagsField: FieldConfig<Row> = {
+		key: 'tags',
+		label: 'Tags',
+		type: 'array',
+		searchable: true,
+		filterable: true,
+		getValue: (r) => r.tags.map((id) => tagNames[id])
+	};
+	const getItemTags = (r: Row) => r.tags;
+	const state: FilterState = { tags: { type: 'array', values: new Set(['id-prod']) } };
+
+	it('matches selected tag ids against the item tag ids', () => {
+		const fields = [namedTagsField];
+
+		expect(
+			matchesFilters(row({ tags: ['id-prod', 'id-db'] }), fields, state, CLIENT_ONLY, getItemTags)
+		).toBe(true);
+		expect(matchesFilters(row({ tags: ['id-db'] }), fields, state, CLIENT_ONLY, getItemTags)).toBe(
+			false
+		);
+	});
+
+	it('keeps search matching the tag names', () => {
+		expect(matchesSearch(row({ tags: ['id-prod'] }), [namedTagsField], 'prod')).toBe(true);
+	});
+});
+
 describe('matchesFilters — server-side handover', () => {
 	it('skips a serverFiltered field only when the parent handles it', () => {
 		// Filtering a server-paginated list on the client would only ever narrow

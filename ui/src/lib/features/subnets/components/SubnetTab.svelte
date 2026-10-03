@@ -314,6 +314,9 @@
 					type: 'string',
 					searchable: true,
 					filterable: true,
+					// Every type the backend defines, named the way the chip renders them.
+					filterOptions: subnetTypes.getItems().map((type) => subnetTypes.getName(type.id)),
+					getValue: (subnet) => subnetTypes.getName(subnet.subnet_type),
 					display: {
 						order: 4,
 						getItems: (subnet) => [
@@ -362,6 +365,9 @@
 					type: 'string',
 					filterable: true,
 					groupable: true,
+					sortable: true,
+					// Every source the backend can stamp, named the way the column renders them.
+					filterOptions: entitySources.getItems().map((source) => entitySources.getName(source.id)),
 					getValue: (subnet) => entitySources.getName(subnet.source.type),
 					display: {
 						hiddenByDefault: true,

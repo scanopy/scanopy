@@ -128,7 +128,19 @@ impl utoipa::ToSchema for MatchReason {
 }
 
 #[derive(
-    Debug, Clone, Hash, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, ToSchema,
+    Debug,
+    Clone,
+    Hash,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    ToSchema,
+    strum::EnumIter,
+    IntoStaticStr,
 )]
 pub enum MatchConfidence {
     NotApplicable = 0,

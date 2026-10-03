@@ -19,6 +19,7 @@ use crate::server::shared::types::api::{ApiError, ApiErrorResponse, ApiResponse,
 impl CrudHandlers for Interface {
     type Service = InterfaceService;
     type FilterQuery = HostChildQuery;
+    type OrderField = crate::server::shared::handlers::ordering::NoOrderField;
 
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.interface_service

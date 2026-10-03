@@ -54,26 +54,55 @@ pub(super) fn generate_user_api_keys(
     use super::super::handlers::DEMO_USER_ID;
 
     let network_ids: Vec<Uuid> = networks.iter().map(|n| n.id).collect();
+    let hq_id = networks
+        .iter()
+        .find(|n| n.base.name.contains("Headquarters"))
+        .map(|n| n.id)
+        .unwrap();
     let (_plaintext, hashed) = generate_api_key_for_storage(ApiKeyType::User);
+    let (_plaintext, asset_export_hashed) = generate_api_key_for_storage(ApiKeyType::User);
 
-    vec![(
-        UserApiKey {
-            id: Uuid::new_v4(),
-            created_at: now,
-            updated_at: now,
-            base: UserApiKeyBase {
-                key: hashed,
-                name: "Monitoring Integration Key".to_string(),
-                user_id: DEMO_USER_ID,
-                organization_id,
-                permissions: UserOrgPermissions::Member,
-                last_used: None,
-                expires_at: None,
-                is_enabled: true,
-                tags: vec![],
-                network_ids: vec![], // hydrated by create_with_networks
+    vec![
+        // Read-only, and limited to HQ: the office asset register only tracks HQ equipment.
+        (
+            UserApiKey {
+                id: Uuid::new_v4(),
+                created_at: now,
+                updated_at: now,
+                base: UserApiKeyBase {
+                    key: asset_export_hashed,
+                    name: "HQ Asset Register Export".to_string(),
+                    user_id: DEMO_USER_ID,
+                    organization_id,
+                    permissions: UserOrgPermissions::Viewer,
+                    last_used: Some(now - Duration::days(1)),
+                    expires_at: Some(now + Duration::days(180)),
+                    is_enabled: true,
+                    tags: vec![],
+                    network_ids: vec![], // hydrated by create_with_networks
+                },
             },
-        },
-        network_ids,
-    )]
+            vec![hq_id],
+        ),
+        (
+            UserApiKey {
+                id: Uuid::new_v4(),
+                created_at: now,
+                updated_at: now,
+                base: UserApiKeyBase {
+                    key: hashed,
+                    name: "Monitoring Integration Key".to_string(),
+                    user_id: DEMO_USER_ID,
+                    organization_id,
+                    permissions: UserOrgPermissions::Member,
+                    last_used: None,
+                    expires_at: None,
+                    is_enabled: true,
+                    tags: vec![],
+                    network_ids: vec![], // hydrated by create_with_networks
+                },
+            },
+            network_ids,
+        ),
+    ]
 }

@@ -10,7 +10,11 @@
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-	import { hostOsLabel } from '$lib/features/hosts/host-os';
+	import {
+		hostOsFamilyIds,
+		hostOsFamilyName,
+		type HostOsFamily
+	} from '$lib/features/hosts/host-os';
 	import OsTag from './OsTag.svelte';
 	import { interfaceDisplayName } from '$lib/features/hosts/interface-display-name';
 	import HostEditor from './HostEditModal/HostEditor.svelte';
@@ -104,11 +108,14 @@
 	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
 	import type { components } from '$lib/api/schema';
 	import { hasDaemon } from '$lib/shared/onboarding/checklist';
+	import { fieldValueOptions, useFieldValuesQuery } from '$lib/shared/api/field-values';
 
 	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 	type HostOrderField = components['schemas']['HostOrderField'];
 	type OrderDirection = components['schemas']['OrderDirection'];
 	type EntitySourceType = components['schemas']['EntitySourceDiscriminants'];
+
+	const HOST_FIELD_VALUES = '/api/v1/hosts/field-values/{field}';
 
 	// Pagination state
 	let pageSize = $state(20);
@@ -135,6 +142,22 @@
 	let filterIncludeUnvirtualized = $state(false);
 	let filterServiceNames = $state<string[]>([]);
 	let filterSources = $state<EntitySourceType[]>([]);
+	let filterManufacturers = $state<string[]>([]);
+	let filterModels = $state<string[]>([]);
+	let filterSysLocations = $state<string[]>([]);
+	let filterOsFamilies = $state<HostOsFamily[]>([]);
+	let filterCredentialIds = $state<string[]>([]);
+
+	/** The hardware, OS and credential filters, shared by the list and the export. */
+	function fieldFilterParams() {
+		return {
+			manufacturers: filterManufacturers.length > 0 ? filterManufacturers : undefined,
+			models: filterModels.length > 0 ? filterModels : undefined,
+			sys_locations: filterSysLocations.length > 0 ? filterSysLocations : undefined,
+			os_families: filterOsFamilies.length > 0 ? filterOsFamilies : undefined,
+			credential_ids: filterCredentialIds.length > 0 ? filterCredentialIds : undefined
+		};
+	}
 
 	// Queries
 	const organizationQuery = useOrganizationQuery();
@@ -171,7 +194,8 @@
 			filterVirtualizationServiceIds.length > 0 ? filterVirtualizationServiceIds : undefined,
 		include_unvirtualized: filterIncludeUnvirtualized || undefined,
 		service_names: filterServiceNames.length > 0 ? filterServiceNames : undefined,
-		sources: filterSources.length > 0 ? filterSources : undefined
+		sources: filterSources.length > 0 ? filterSources : undefined,
+		...fieldFilterParams()
 	}));
 	const networksQuery = useNetworksQuery();
 	useDaemonsQuery();
@@ -179,6 +203,11 @@
 	const interfacesQuery = useInterfacesQuery();
 	const credentialsQuery = useCredentialsQuery();
 	const subnetsQuery = useSubnetsQuery();
+	// Options for the free-valued hardware filters: every value stored across the caller's
+	// networks. The loaded page would only offer the values that happen to appear on it.
+	const manufacturerValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'manufacturer');
+	const modelValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'model');
+	const sysLocationValuesQuery = useFieldValuesQuery(HOST_FIELD_VALUES, 'sys_location');
 
 	// Selective service lookup - only fetches services needed for virtualization display
 	// Extract service IDs from visible hosts for "Virtualized By" field
@@ -294,6 +323,24 @@
 					.filter((source) => values.includes(entitySources.getName(source.id)))
 					.map((source) => source.id as EntitySourceType);
 				break;
+			// The field-values options are the stored strings themselves, so they pass through.
+			case 'manufacturer':
+				filterManufacturers = values;
+				break;
+			case 'model':
+				filterModels = values;
+				break;
+			case 'sys_location':
+				filterSysLocations = values;
+				break;
+			case 'os_family':
+				filterOsFamilies = hostOsFamilyIds.filter((family) =>
+					values.includes(hostOsFamilyName(family))
+				);
+				break;
+			case 'credentials':
+				filterCredentialIds = idsForNames(values, credentialsData);
+				break;
 			default:
 				throw new Error(
 					`HostTab: no server-side filter handles "${fieldKey}". A serverFiltered field ` +
@@ -323,7 +370,8 @@
 			filterVirtualizationServiceIds.length > 0 ? filterVirtualizationServiceIds : undefined,
 		include_unvirtualized: filterIncludeUnvirtualized || undefined,
 		service_names: filterServiceNames.length > 0 ? filterServiceNames : undefined,
-		sources: filterSources.length > 0 ? filterSources : undefined
+		sources: filterSources.length > 0 ? filterSources : undefined,
+		...fieldFilterParams()
 	});
 
 	let showHostEditor = $state(false);
@@ -534,14 +582,11 @@
 					label: common_lastSeen(),
 					type: 'date',
 					display: { recency: true, order: 1, getItems: lastSeenItems(() => networksData, 'Host') }
-				}
-			},
-			[
+				},
 				// How the host came to exist, read from `source.type`. An inferred host (one a
 				// neighbour advertised and nothing scanned) looks the same as a down device by its
 				// ports and services, so the chip and filter read the stamped source, never those.
-				{
-					key: 'source',
+				source: {
 					label: common_source(),
 					type: 'string',
 					filterable: true,
@@ -550,8 +595,59 @@
 					// page, which would only offer the sources that happen to appear on it.
 					filterOptions: entitySources.getItems().map((source) => entitySources.getName(source.id)),
 					getValue: (host) => entitySources.getName(host.source.type),
+					// The server groups on the raw `source.type`.
+					getGroupValue: (host) => host.source.type,
 					display: { order: 1, getItems: (host) => entitySourceItems(host.source) }
 				},
+				// Hardware identity, off by default: populated only for hosts a credentialed scan
+				// reached. The options come from every stored value, and the server groups on the
+				// stored string, which is also what renders.
+				manufacturer: {
+					label: common_manufacturer(),
+					type: 'string',
+					filterable: true,
+					serverFiltered: true,
+					filterOptions: fieldValueOptions(manufacturerValuesQuery.data),
+					display: { hiddenByDefault: true }
+				},
+				model: {
+					label: common_model(),
+					type: 'string',
+					filterable: true,
+					serverFiltered: true,
+					filterOptions: fieldValueOptions(modelValuesQuery.data),
+					display: { hiddenByDefault: true }
+				},
+				sys_location: {
+					label: common_location(),
+					type: 'string',
+					filterable: true,
+					serverFiltered: true,
+					filterOptions: fieldValueOptions(sysLocationValuesQuery.data),
+					display: { hiddenByDefault: true }
+				},
+				// Sorted, grouped and filtered by family; the cell shows the full product and release.
+				os_family: {
+					label: common_operatingSystem(),
+					type: 'string',
+					filterable: true,
+					serverFiltered: true,
+					filterOptions: hostOsFamilyIds.map(hostOsFamilyName),
+					getValue: (host) => (host.os ? hostOsFamilyName(host.os.family) : null),
+					getGroupValue: (host) => host.os?.family ?? null,
+					display: { hiddenByDefault: true, cell: osCell }
+				},
+				hidden: {
+					label: common_hidden(),
+					type: 'boolean',
+					filterable: true,
+					serverFiltered: true,
+					// Useful as a filter, but almost always false — a column of "false"
+					// earns none of the width it takes.
+					display: { hiddenByDefault: true }
+				}
+			},
+			[
 				{
 					key: 'description',
 					label: common_description(),
@@ -559,22 +655,8 @@
 					searchable: true,
 					display: { hiddenByDefault: true }
 				},
-				// Hardware identity, off by default: populated only for hosts a credentialed scan
-				// reached. Neither searchable nor filterable — host search predicates and the
-				// filter query params cover none of these columns, and a control the server
-				// disagrees with is worse than no control.
-				{
-					key: 'manufacturer',
-					label: common_manufacturer(),
-					type: 'string',
-					display: { hiddenByDefault: true }
-				},
-				{
-					key: 'model',
-					label: common_model(),
-					type: 'string',
-					display: { hiddenByDefault: true }
-				},
+				// Off by default: populated only for hosts a credentialed scan reached. Identifiers,
+				// vendor version strings, opaque OIDs and free text, so none sorts, groups or filters.
 				{
 					key: 'serial_number',
 					label: common_serialNumber(),
@@ -593,8 +675,6 @@
 					type: 'string',
 					display: { hiddenByDefault: true }
 				},
-				// Device facts from SNMP and LLDP, off by default for the same reason as the
-				// hardware identity above, and likewise neither searchable nor filterable.
 				{
 					key: 'sys_name',
 					label: hosts_snmp_sysName(),
@@ -610,12 +690,6 @@
 				{
 					key: 'sys_object_id',
 					label: hosts_snmp_sysObjectId(),
-					type: 'string',
-					display: { hiddenByDefault: true }
-				},
-				{
-					key: 'sys_location',
-					label: common_location(),
 					type: 'string',
 					display: { hiddenByDefault: true }
 				},
@@ -638,23 +712,6 @@
 					display: { hiddenByDefault: true }
 				},
 				{
-					key: 'os',
-					label: common_operatingSystem(),
-					type: 'string',
-					getValue: (host) => (host.os ? hostOsLabel(host.os) : ''),
-					display: { hiddenByDefault: true, cell: osCell }
-				},
-				{
-					key: 'hidden',
-					label: common_hidden(),
-					type: 'boolean',
-					filterable: true,
-					serverFiltered: true,
-					// Useful as a filter, but almost always false — a column of "false"
-					// earns none of the width it takes.
-					display: { hiddenByDefault: true }
-				},
-				{
 					key: 'tags',
 					label: common_tags(),
 					type: 'array',
@@ -669,6 +726,10 @@
 					label: common_credentials(),
 					type: 'array',
 					searchable: true,
+					filterable: true,
+					serverFiltered: true,
+					// Names, resolved back to ids for the server, from every credential rather than the page.
+					filterOptions: credentialsData.map((c) => c.name),
 					getValue: (host) => hostCredentials(host).map((c) => c.name),
 					display: {
 						order: 3,

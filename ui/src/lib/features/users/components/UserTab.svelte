@@ -269,6 +269,7 @@
 			type: 'string',
 			filterable: true,
 			groupable: true,
+			sortable: true,
 			getValue: (item) =>
 				!isUser(item)
 					? invites_pendingInvite()
@@ -294,8 +295,11 @@
 			searchable: true,
 			filterable: true,
 			groupable: true,
+			sortable: true,
+			// Every role the backend defines, named the way the chip renders them.
+			filterOptions: permissions.getItems().map((role) => permissions.getName(role.id)),
 			getValue(item) {
-				return item.data.permissions;
+				return permissions.getName(item.data.permissions) || item.data.permissions;
 			},
 			display: {
 				getItems: (item) => {
@@ -315,6 +319,8 @@
 			label: common_networks(),
 			type: 'array',
 			searchable: true,
+			// Users share networks, so this filters; as an array it neither sorts nor groups.
+			filterable: true,
 			getValue: (item) => userNetworkItems(item).map((n) => n.label),
 			display: { getItems: userNetworkItems }
 		},
@@ -325,8 +331,9 @@
 			searchable: true,
 			filterable: true,
 			groupable: true,
+			sortable: true,
 			getValue(item) {
-				return isUser(item) ? item.data.oidc_provider || common_emailAndPassword() : '';
+				return isUser(item) ? item.data.oidc_provider || common_emailAndPassword() : null;
 			}
 		},
 		{
@@ -349,9 +356,12 @@
 			label: invites_createdBy(),
 			type: 'string',
 			searchable: true,
+			sortable: true,
+			groupable: true,
+			filterable: true,
 			getValue: (item) =>
 				isUser(item)
-					? ''
+					? null
 					: usersData.find((u) => u.id == item.data.created_by)?.email ||
 						common_unknownEntity({ entity: common_user() }),
 			display: { hiddenByDefault: true }
@@ -361,7 +371,7 @@
 			label: common_expires(),
 			type: 'date',
 			sortable: true,
-			getValue: (item) => (isUser(item) ? '' : item.data.expires_at),
+			getValue: (item) => (isUser(item) ? null : item.data.expires_at),
 			display: { hiddenByDefault: true }
 		},
 		{
@@ -378,6 +388,7 @@
 			label: users_emailVerified(),
 			type: 'boolean',
 			filterable: true,
+			groupable: true,
 			getValue: (item) => (isUser(item) ? (item.data.email_verified ?? null) : null),
 			display: { hiddenByDefault: true }
 		},

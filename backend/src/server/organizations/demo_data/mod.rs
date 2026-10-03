@@ -42,7 +42,7 @@ use crate::server::{
     ip_addresses::r#impl::base::{IPAddress, IPAddressBase},
     networks::r#impl::{Network, NetworkBase},
     ports::r#impl::base::{Port, PortType},
-    services::r#impl::patterns::ClientProbe,
+    services::r#impl::patterns::{ClientProbe, MatchConfidence, MatchDetails, MatchReason},
     services::{
         definitions::ServiceDefinitionRegistry,
         r#impl::{
@@ -540,6 +540,47 @@ fn gone_quiet(
     hws
 }
 
+/// Marks a host as a scan found it, and each of its services as the service matcher records one:
+/// matched to its definition, with the reason and confidence that definition's pattern produces.
+/// A service whose match [`scan_match`] does not reproduce stays plain `Discovery`.
+fn found_by_scan(mut hws: HostWithServices) -> HostWithServices {
+    hws.host.base.source = EntitySource::Discovery;
+    for svc in &mut hws.services {
+        svc.base.source = match scan_match(svc.base.service_definition.id()) {
+            Some(details) => EntitySource::DiscoveryWithMatch { details },
+            None => EntitySource::Discovery,
+        };
+    }
+    hws
+}
+
+/// The match details the service matcher records for a definition, built the way it builds them:
+/// an open well-known port alone is `Low`, a completed client probe is `Certain`, and an `AllOf`
+/// takes the strongest of its parts.
+fn scan_match(service_definition_id: &str) -> Option<MatchDetails> {
+    use MatchConfidence::{Certain, Low};
+    let port_open = |port: PortType| MatchReason::Reason(format!("Port {port} is open"));
+    let probe =
+        |probe: ClientProbe| MatchReason::Reason(format!("Client probe {probe:?} succeeded"));
+    let all_of = |reasons: Vec<MatchReason>| MatchReason::Container("All of".to_string(), reasons);
+    // `probe_pattern`: the app probe's port, then the probe itself.
+    let probed = |port: PortType, client_probe: ClientProbe| {
+        (all_of(vec![port_open(port), probe(client_probe)]), Certain)
+    };
+    let (reason, confidence) = match service_definition_id {
+        "SSH" => probed(PortType::Ssh, ClientProbe::Ssh),
+        "OpenVPN" => probed(PortType::OpenVPN, ClientProbe::OpenVpn),
+        "Modbus TCP" => probed(PortType::ModbusTcp, ClientProbe::ModbusTcp),
+        "Workstation" => (
+            all_of(vec![probe(ClientProbe::Rdp), probe(ClientProbe::Smb)]),
+            Certain,
+        ),
+        "BACnet" => (port_open(PortType::BACnet), Low),
+        _ => return None,
+    };
+    Some(MatchDetails { reason, confidence })
+}
+
 /// Helper to create a service for a host.
 /// Returns (Service, Option<Port>) - the port must be added to the host's ports list.
 fn create_service(
@@ -748,6 +789,9 @@ fn docker_engine_host_os() -> Option<crate::server::hosts::r#impl::attributes::H
 
 /// The identification string a Proxmox VE 8 node's SSH server sends, after the `SSH-2.0-` prefix.
 const PROXMOX_SSH_BANNER: &str = "OpenSSH_9.2p1 Debian-2+deb12u3";
+
+/// The identification string Windows' bundled OpenSSH Server sends.
+const WINDOWS_SSH_BANNER: &str = "OpenSSH_for_Windows_9.5";
 
 /// Wraps a `create_host()` result with the OS its SSH banner names, matched the way the daemon's
 /// SSH probe matches it, so the demo carries an inferred OS beside the ones read off a host.

@@ -19,6 +19,7 @@ use crate::server::shared::validation::validate_network_access;
 impl CrudHandlers for Binding {
     type Service = BindingService;
     type FilterQuery = BindingQuery;
+    type OrderField = crate::server::shared::handlers::ordering::NoOrderField;
 
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.binding_service

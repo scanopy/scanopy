@@ -1,5 +1,5 @@
 import { getFieldKey, type FieldConfig, type GroupPosition } from '../types';
-import { getFieldValue } from './fieldValues';
+import { getFieldValue, type FieldValue } from './fieldValues';
 
 /**
  * Stands in for a null group key, which has no string form of its own.
@@ -16,8 +16,22 @@ export interface ServerGroupCount {
 	count: number;
 }
 
+/** The translated headers for groups whose raw value has no readable form. */
+export interface GroupLabels {
+	/** Rows with no value for the grouped field. */
+	ungrouped: string;
+	/** A boolean field's `true` group. */
+	yes: string;
+	/** A boolean field's `false` group. */
+	no: string;
+}
+
 /**
- * Bucket items by the grouped field.
+ * Bucket items by the grouped field, keyed by the header each group shows.
+ *
+ * A boolean field's groups read as the `yes`/`no` labels rather than the
+ * stringified `true`/`false`. The header is only a display key: matching a group
+ * to its server total goes through `serverGroupKey`, which reads the raw value.
  *
  * When the server supplied group totals the rows already arrive in the server's
  * group order, so the buckets are left in insertion order — re-sorting here
@@ -27,7 +41,7 @@ export function groupItems<T>(
 	items: T[],
 	fields: FieldConfig<T>[],
 	groupFieldKey: string | null,
-	ungroupedLabel: string,
+	labels: GroupLabels,
 	preserveOrder: boolean
 ): Map<string, T[]> {
 	if (!groupFieldKey) return new Map();
@@ -39,7 +53,7 @@ export function groupItems<T>(
 
 	items.forEach((item) => {
 		const value = getFieldValue(item, field);
-		const groupKey = value !== null && value !== undefined ? String(value) : ungroupedLabel;
+		const groupKey = groupLabel(value, field, labels);
 
 		if (!groups.has(groupKey)) {
 			groups.set(groupKey, []);
@@ -50,6 +64,12 @@ export function groupItems<T>(
 	if (preserveOrder) return groups;
 
 	return new Map([...groups.entries()].sort((a, b) => a[0].localeCompare(b[0])));
+}
+
+function groupLabel<T>(value: FieldValue, field: FieldConfig<T>, labels: GroupLabels): string {
+	if (value === null || value === undefined) return labels.ungrouped;
+	if (field.type === 'boolean') return value ? labels.yes : labels.no;
+	return String(value);
 }
 
 /**

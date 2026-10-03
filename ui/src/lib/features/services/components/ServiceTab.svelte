@@ -19,11 +19,10 @@
 	import type { IPAddress, Port } from '$lib/features/hosts/types/base';
 	import { tagNames } from '$lib/features/tags/columns';
 	import { networkItems } from '$lib/features/networks/columns';
-	import { entities, entitySources } from '$lib/shared/stores/metadata';
+	import { entities, entitySources, matchConfidences } from '$lib/shared/stores/metadata';
 	import { entitySourceItems } from '$lib/shared/utils/entity-source';
 	import { Trash2, Edit } from 'lucide-svelte';
 	import type { Service } from '../types/base';
-	import { matchConfidenceLabel } from '$lib/shared/types';
 	import ServiceEditModal from './ServiceEditModal.svelte';
 	import { useTagsQuery } from '$lib/features/tags/queries';
 	import {
@@ -86,6 +85,8 @@
 	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 	type ServiceOrderField = components['schemas']['ServiceOrderField'];
 	type OrderDirection = components['schemas']['OrderDirection'];
+	type EntitySourceType = components['schemas']['EntitySourceDiscriminants'];
+	type MatchConfidence = components['schemas']['MatchConfidence'];
 
 	// Well-known port numbers for the filter panel. People look for 443, not
 	// "HTTPS", so the options are the numbers themselves. Deduplicated because
@@ -143,6 +144,8 @@
 	let filterServiceDefinitions = $state<string[]>([]);
 	let filterVirtualizationServiceIds = $state<string[]>([]);
 	let filterIncludeUncontainerized = $state(false);
+	let filterSources = $state<EntitySourceType[]>([]);
+	let filterMatchConfidences = $state<MatchConfidence[]>([]);
 
 	// Queries
 	const tagsQuery = useTagsQuery();
@@ -166,7 +169,9 @@
 		service_definitions: filterServiceDefinitions.length > 0 ? filterServiceDefinitions : undefined,
 		virtualization_service_ids:
 			filterVirtualizationServiceIds.length > 0 ? filterVirtualizationServiceIds : undefined,
-		include_uncontainerized: filterIncludeUncontainerized || undefined
+		include_uncontainerized: filterIncludeUncontainerized || undefined,
+		sources: filterSources.length > 0 ? filterSources : undefined,
+		match_confidences: filterMatchConfidences.length > 0 ? filterMatchConfidences : undefined
 	}));
 	const networksQuery = useNetworksQuery();
 	const portsQuery = usePortsQuery();
@@ -346,6 +351,20 @@
 					.map((service) => service.id);
 				break;
 			}
+			// Fixture ids are the backend enum's names, emitted from that same enum, so an id
+			// is a valid filter value by construction.
+			case 'source':
+				filterSources = entitySources
+					.getItems()
+					.filter((source) => values.includes(entitySources.getName(source.id)))
+					.map((source) => source.id as EntitySourceType);
+				break;
+			case 'match_confidence':
+				filterMatchConfidences = matchConfidences
+					.getItems()
+					.filter((confidence) => values.includes(matchConfidences.getName(confidence.id)))
+					.map((confidence) => confidence.id as MatchConfidence);
+				break;
 			default:
 				throw new Error(
 					`ServiceTab: no server-side filter handles "${fieldKey}". A serverFiltered field ` +
@@ -589,6 +608,79 @@
 						order: 1,
 						getItems: lastSeenItems(() => networksData, 'Service')
 					}
+				},
+				containerized_by: {
+					type: 'string',
+					label: common_containerized(),
+					searchable: true,
+					filterable: true,
+					serverFiltered: true,
+					filterOptions: [
+						...new Set(allServicesData.map((s) => s.name).filter((name) => name.length > 0))
+					]
+						.sort((a, b) => a.localeCompare(b))
+						.concat(services_notContainerized()),
+					// From the full services cache: the runtime is rarely on the same page as
+					// the services it runs.
+					getValue: (item) =>
+						allServicesData.find((s) => s.id == item.virtualization_service_id)?.name ||
+						services_notContainerized(),
+					// The server groups on the containerizing service's name, coalescing
+					// services without one to an empty string.
+					getGroupValue: (item) =>
+						allServicesData.find((s) => s.id == item.virtualization_service_id)?.name ?? '',
+					display: {
+						hiddenByDefault: true,
+						// No chip when a service isn't containerized, so the cell shows an
+						// em dash rather than repeating the phrase down the column. The
+						// phrase stays in `getValue`, so the filter still offers it.
+						getItems: (item) => {
+							const runtime = allServicesData.find((s) => s.id == item.virtualization_service_id);
+							if (!runtime) return [];
+							return [
+								{
+									id: runtime.id,
+									label: runtime.name,
+									color: concepts.getColorHelper('Containerization').color,
+									entityRef: entityRef('Service', runtime.id, runtime)
+								}
+							];
+						}
+					}
+				},
+				match_confidence: {
+					label: services_matchConfidence(),
+					type: 'string',
+					searchable: true,
+					filterable: true,
+					serverFiltered: true,
+					filterOptions: matchConfidences
+						.getItems()
+						.map((confidence) => matchConfidences.getName(confidence.id)),
+					getValue: (item) =>
+						item.source.type == 'DiscoveryWithMatch'
+							? matchConfidences.getName(item.source.details.confidence)
+							: services_notDiscovered(),
+					// The server groups on the raw confidence id, null for services matched
+					// without one.
+					getGroupValue: (item) =>
+						item.source.type == 'DiscoveryWithMatch' ? item.source.details.confidence : null,
+					display: { hiddenByDefault: true }
+				},
+				source: {
+					label: common_source(),
+					type: 'string',
+					filterable: true,
+					serverFiltered: true,
+					// Every source the backend can stamp, not just those on the loaded page.
+					filterOptions: entitySources.getItems().map((source) => entitySources.getName(source.id)),
+					getValue: (service) => entitySources.getName(service.source.type),
+					// The server groups on the raw `source.type`.
+					getGroupValue: (service) => service.source.type,
+					display: {
+						hiddenByDefault: true,
+						getItems: (service) => entitySourceItems(service.source)
+					}
 				}
 			},
 			[
@@ -636,70 +728,6 @@
 								}
 							];
 						}
-					}
-				},
-				{
-					key: 'containerized_by',
-					type: 'string',
-					label: common_containerized(),
-					searchable: true,
-					filterable: true,
-					serverFiltered: true,
-					filterOptions: [
-						...new Set(allServicesData.map((s) => s.name).filter((name) => name.length > 0))
-					]
-						.sort((a, b) => a.localeCompare(b))
-						.concat(services_notContainerized()),
-					getValue: (item) =>
-						servicesData.find((s) => s.id == item.virtualization_service_id)?.name ||
-						services_notContainerized(),
-					display: {
-						hiddenByDefault: true,
-						// No chip when a service isn't containerized, so the cell shows an
-						// em dash rather than repeating the phrase down the column. The
-						// phrase stays in `getValue`, so the filter still offers it.
-						getItems: (item) => {
-							const runtime = servicesData.find((s) => s.id == item.virtualization_service_id);
-							if (!runtime) return [];
-							return [
-								{
-									id: runtime.id,
-									label: runtime.name,
-									color: concepts.getColorHelper('Containerization').color,
-									entityRef: entityRef('Service', runtime.id, runtime)
-								}
-							];
-						}
-					}
-				},
-				{
-					key: 'confidence',
-					label: services_matchConfidence(),
-					type: 'string',
-					searchable: true,
-					// Deliberately not filterable. The value is derived from the
-					// `source` JSONB through `matchConfidenceLabel`, a mapping that
-					// exists only in TypeScript, so the server cannot filter on it —
-					// and this list is server-paginated, where a client-side filter
-					// would narrow the loaded page while the count kept describing
-					// every match. Restoring the filter means moving the label
-					// mapping to the backend (TypeMetadataProvider + fixture) first.
-					display: { hiddenByDefault: true },
-					getValue: (item) =>
-						item.source.type == 'DiscoveryWithMatch'
-							? matchConfidenceLabel(item.source.details.confidence)
-							: services_notDiscovered()
-				},
-				{
-					key: 'source',
-					label: common_source(),
-					type: 'string',
-					// Not filterable: the services list filters server-side, and the server
-					// has no source filter for services.
-					getValue: (service) => entitySources.getName(service.source.type),
-					display: {
-						hiddenByDefault: true,
-						getItems: (service) => entitySourceItems(service.source)
 					}
 				},
 				{

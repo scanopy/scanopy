@@ -7,6 +7,7 @@ use crate::server::daemons::r#impl::version::{minimum_targeted_rescan, supports_
 use crate::server::discovery::r#impl::base::{Discovery, DiscoveryBase};
 use crate::server::discovery::r#impl::scan_settings::{RescanSettings, ScanSettings};
 use crate::server::discovery::r#impl::types::{DiscoveryType, RunType};
+use crate::server::hosts::r#impl::os::HostOsFamily;
 use crate::server::interfaces::r#impl::base::Interface;
 use crate::server::ip_addresses::r#impl::base::IPAddress;
 use crate::server::networks::r#impl::Network;
@@ -31,6 +32,7 @@ use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::api::{ApiErrorResponse, EmptyApiResponse};
 use crate::server::shared::types::entities::EntitySourceDiscriminants;
 use crate::server::shared::types::error_codes::ErrorCode;
+use crate::server::shared::types::metadata::HasId;
 use crate::server::shared::validation::{validate_network_access, validate_read_access};
 use crate::server::{
     config::AppState,
@@ -63,7 +65,9 @@ use zip::write::SimpleFileOptions;
 // ============================================================================
 
 /// Fields that hosts can be ordered/grouped by.
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, Default, utoipa::ToSchema)]
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Copy, Default, utoipa::ToSchema, strum::EnumIter,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum HostOrderField {
     #[default]
@@ -84,6 +88,18 @@ pub enum HostOrderField {
     /// Sort by the host's lowest MAC across its live IP addresses and interfaces. Hosts with no
     /// MAC sort last in both directions. Requires the [`HOST_MAC_JOIN`].
     MacAddress,
+    /// Sort by how the host came to exist (`source.type`).
+    Source,
+    /// Sort by hardware manufacturer. Hosts with none sort last.
+    Manufacturer,
+    /// Sort by hardware model. Hosts with none sort last.
+    Model,
+    /// Sort by SNMP sysLocation. Hosts with none sort last.
+    SysLocation,
+    /// Sort by operating system family (`os.family`). Hosts with no OS sort last.
+    OsFamily,
+    /// Sort by the `hidden` flag.
+    Hidden,
 }
 
 /// The host title in SQL, built once: `to_sql` hands out `&'static str`.
@@ -103,11 +119,24 @@ impl OrderField for HostOrderField {
             Self::VirtualizedBy => "COALESCE(virt_service.name, '')",
             Self::InterfaceIp => "primary_interface.ip_address",
             Self::MacAddress => "host_mac.mac_address",
+            Self::Source => "hosts.source->>'type'",
+            Self::Manufacturer => "hosts.manufacturer",
+            Self::Model => "hosts.model",
+            Self::SysLocation => "hosts.sys_location",
+            Self::OsFamily => "hosts.os->>'family'",
+            Self::Hidden => "hosts.hidden",
         }
     }
 
     fn nulls_last(&self) -> bool {
-        matches!(self, Self::MacAddress)
+        matches!(
+            self,
+            Self::MacAddress
+                | Self::Manufacturer
+                | Self::Model
+                | Self::SysLocation
+                | Self::OsFamily
+        )
     }
 
     fn join_sql(&self) -> Option<&'static str> {
@@ -151,6 +180,16 @@ pub struct HostFilterQuery {
     /// Filter by how the host came to exist (`source.type`). Repeat for several;
     /// `Inferred` alone lists the hosts only a neighbour advertised.
     pub sources: Option<Vec<EntitySourceDiscriminants>>,
+    /// Filter by hardware manufacturer. Repeat for several.
+    pub manufacturers: Option<Vec<String>>,
+    /// Filter by hardware model. Repeat for several.
+    pub models: Option<Vec<String>>,
+    /// Filter by SNMP sysLocation. Repeat for several.
+    pub sys_locations: Option<Vec<String>>,
+    /// Filter by operating system family. Repeat for several.
+    pub os_families: Option<Vec<HostOsFamily>>,
+    /// Filter to hosts assigned one of these credentials. Repeat for several.
+    pub credential_ids: Option<Vec<Uuid>>,
     /// Filter by tag IDs (returns hosts that have ANY of the specified tags)
     pub tag_ids: Option<Vec<Uuid>>,
     /// Free-text search. Case-insensitive substring match against the host's
@@ -229,8 +268,36 @@ impl HostFilterQuery {
             _ => filter,
         };
 
-        match &self.sources {
+        let filter = match &self.sources {
             Some(sources) if !sources.is_empty() => filter.source_type_in(sources),
+            _ => filter,
+        };
+
+        let filter = match &self.manufacturers {
+            Some(values) if !values.is_empty() => filter.text_column_in("manufacturer", values),
+            _ => filter,
+        };
+
+        let filter = match &self.models {
+            Some(values) if !values.is_empty() => filter.text_column_in("model", values),
+            _ => filter,
+        };
+
+        let filter = match &self.sys_locations {
+            Some(values) if !values.is_empty() => filter.text_column_in("sys_location", values),
+            _ => filter,
+        };
+
+        let filter = match &self.os_families {
+            Some(families) if !families.is_empty() => {
+                let ids: Vec<&str> = families.iter().map(|f| f.id()).collect();
+                filter.json_text_in("os", &["family"], &ids)
+            }
+            _ => filter,
+        };
+
+        match &self.credential_ids {
+            Some(ids) if !ids.is_empty() => filter.has_credential(ids),
             _ => filter,
         }
     }
@@ -276,6 +343,7 @@ impl FilterQueryExtractor for HostFilterQuery {
 mod generated {
     use super::*;
     crate::crud_export_csv_handler!(Host);
+    crate::crud_get_field_values_handler!(Host);
 }
 
 pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
@@ -284,6 +352,7 @@ pub fn create_router() -> OpenApiRouter<Arc<AppState>> {
         .routes(routes!(get_host_by_id, update_host, delete_host))
         .routes(routes!(bulk_delete_hosts))
         .routes(routes!(generated::export_csv))
+        .routes(routes!(generated::get_field_values))
         .routes(routes!(export_hosts_zip))
         .routes(routes!(consolidate_hosts))
         .routes(routes!(create_host_discovery))

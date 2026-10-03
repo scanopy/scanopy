@@ -103,6 +103,9 @@
 					type: 'string',
 					filterable: true,
 					groupable: true,
+					sortable: true,
+					// Every source the backend can stamp, named the way the column renders them.
+					filterOptions: entitySources.getItems().map((source) => entitySources.getName(source.id)),
 					getValue: (vlan) => (vlan.source ? entitySources.getName(vlan.source.type) : null),
 					display: {
 						hiddenByDefault: true,
@@ -116,6 +119,7 @@
 					searchable: true,
 					filterable: true,
 					groupable: true,
+					sortable: true,
 					getValue: (item) =>
 						networksData.find((n) => n.id == item.network_id)?.name || common_unknownNetwork(),
 					display: { getItems: (item) => networkItems(item.network_id, networksData) }

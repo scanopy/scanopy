@@ -159,6 +159,10 @@ impl TypeMetadataProvider for DiscoveryPhase {
             DiscoveryPhase::Cancelled => "Discovery cancelled",
         }
     }
+
+    fn metadata(&self) -> serde_json::Value {
+        serde_json::json!({ "is_terminal": self.is_terminal() })
+    }
 }
 
 /// Why a session reached its terminal phase.

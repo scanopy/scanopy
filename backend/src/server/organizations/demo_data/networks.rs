@@ -2,9 +2,14 @@
 
 use super::*;
 
-/// Every demo network uses a 365-day staleness window, so a demo org reads as fresh for a year
-/// after it is created. Only the hosts `gone_quiet` backdates past the window read as stale.
+/// Every demo network uses a staleness window of at least 365 days, so a demo org reads as fresh
+/// for a year after it is created. Only the hosts `gone_quiet` backdates past the window read as
+/// stale.
 const DEMO_STALE_AFTER_HOURS: i64 = 24 * 365;
+
+/// The data center keeps entities a little longer before calling them stale. Still shorter than
+/// the 410 days since its decommissioned InfluxDB host last answered.
+const DEMO_DC_STALE_AFTER_HOURS: i64 = 24 * 400;
 
 pub(super) fn generate_networks(
     organization_id: Uuid,
@@ -44,9 +49,9 @@ pub(super) fn generate_networks(
                 organization_id,
                 tags: production_tag.into_iter().collect(),
                 credential_ids: vec![],
-                stale_after_hours: Some(DEMO_STALE_AFTER_HOURS),
+                stale_after_hours: Some(DEMO_DC_STALE_AFTER_HOURS),
             },
-            effective_stale_after_hours: DEMO_STALE_AFTER_HOURS,
+            effective_stale_after_hours: DEMO_DC_STALE_AFTER_HOURS,
         },
     ]
 }

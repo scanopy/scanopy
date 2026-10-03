@@ -79,6 +79,8 @@ export const COVERED_FIXTURES = [
 	// How an entity came to exist, keyed by its `source.type`. The descriptions are operator-facing
 	// explanations (the Inferred one is the notice on an inferred host), not internal notes.
 	{ file: 'entity-sources.json', key: 'entity_sources', kind: 'typeMetadata' },
+	// How confidently discovery matched a service to its definition, keyed by `MatchConfidence`.
+	{ file: 'match-confidences.json', key: 'match_confidences', kind: 'typeMetadata' },
 	// Scan warnings. Descriptions here are templates with `{named}` slots, unlike every other
 	// entry above: the values are copied through verbatim, paraglide compiles them into functions
 	// that take an inputs object, and `metaDescriptionWith` in src/lib/i18n/metadata.ts is what

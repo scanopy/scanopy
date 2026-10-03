@@ -31,7 +31,7 @@ export function hostOsLabel(os: HostOs): string {
 
 /** How a family's tag draws its icon: the daemon OS icon, a downloaded vendor logo, or a glyph. */
 export type HostOsIcon =
-	{ kind: 'daemonOs'; os: DaemonOS } | { kind: 'component'; component: IconComponent };
+	{ type: 'daemonOs'; os: DaemonOS } | { type: 'component'; component: IconComponent };
 
 /** The icon for a family, from `host-os-families.json`; nothing here names a family. */
 export function hostOsIcon(family: HostOsFamily): HostOsIcon {
@@ -39,10 +39,10 @@ export function hostOsIcon(family: HostOsFamily): HostOsIcon {
 	const meta = entry?.metadata as
 		| { daemon_os?: DaemonOS | null; logo_ext?: string; logo_needs_white_background?: boolean }
 		| undefined;
-	if (meta?.daemon_os) return { kind: 'daemonOs', os: meta.daemon_os };
+	if (meta?.daemon_os) return { type: 'daemonOs', os: meta.daemon_os };
 	if (meta?.logo_ext) {
 		return {
-			kind: 'component',
+			type: 'component',
 			component: createLogoIconComponent(
 				entry?.icon ?? null,
 				`/logos/os-families/${family}.${meta.logo_ext}`,
@@ -50,7 +50,7 @@ export function hostOsIcon(family: HostOsFamily): HostOsIcon {
 			)
 		};
 	}
-	return { kind: 'component', component: createIconComponent(entry?.icon ?? null) };
+	return { type: 'component', component: createIconComponent(entry?.icon ?? null) };
 }
 
 /**
@@ -79,3 +79,9 @@ export function hostOsOfDaemonOs(os: DaemonOS): HostOs | null {
 	);
 	return entry ? { family: entry.id as HostOsFamily } : null;
 }
+
+/** Every family the backend can report. Fixture ids are `HostOsFamily` names, emitted from that
+ *  enum, so each is a valid filter value by construction. */
+export const hostOsFamilyIds: HostOsFamily[] = hostOsFamilies.map(
+	(entry) => entry.id as HostOsFamily
+);

@@ -177,7 +177,7 @@ pub(super) fn generate_subnets(
                 description: Some("Docker container network".to_string()),
                 subnet_type: SubnetType::DockerBridge,
                 virtualization_service_id: Some(docker_hq_svc_id),
-                source: EntitySource::Manual,
+                source: EntitySource::Discovery,
                 tags: vec![],
             },
         },
@@ -210,7 +210,8 @@ pub(super) fn generate_subnets(
         // HQ Annex: only known so far because the HQ core switch's LLDP table
         // advertises a neighbor on this range. Nothing here has been scanned
         // directly yet, so the range itself is provisional (cidr_source is
-        // Inferred-tier rather than a daemon self-report or manual entry).
+        // Inferred-tier rather than a daemon self-report or manual entry), and
+        // so is the subnet's own source.
         Subnet {
             valid_from: now,
             valid_to: None,
@@ -235,7 +236,7 @@ pub(super) fn generate_subnets(
                 ),
                 subnet_type: SubnetType::Lan,
                 virtualization_service_id: None,
-                source: EntitySource::Manual,
+                source: EntitySource::Inferred,
                 tags: vec![],
             },
         },
@@ -366,7 +367,7 @@ pub(super) fn generate_subnets(
                 description: Some("Docker container network".to_string()),
                 subnet_type: SubnetType::DockerBridge,
                 virtualization_service_id: Some(docker_dc_svc_id),
-                source: EntitySource::Manual,
+                source: EntitySource::Discovery,
                 tags: vec![],
             },
         },

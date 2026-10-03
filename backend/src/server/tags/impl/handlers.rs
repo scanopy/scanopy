@@ -7,6 +7,7 @@ use crate::server::{
 impl CrudHandlers for Tag {
     type Service = TagService;
     type FilterQuery = TagFilterQuery;
+    type OrderField = crate::server::tags::handlers::TagOrderField;
 
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.tag_service

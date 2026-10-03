@@ -174,6 +174,16 @@ export interface HostQueryOptions {
 	service_names?: string[];
 	/** Filter by how the host came to exist (`source.type`). */
 	sources?: components['schemas']['EntitySourceDiscriminants'][];
+	/** Filter by hardware manufacturer. */
+	manufacturers?: string[];
+	/** Filter by hardware model. */
+	models?: string[];
+	/** Filter by SNMP sysLocation. */
+	sys_locations?: string[];
+	/** Filter by operating system family. */
+	os_families?: components['schemas']['HostOsFamily'][];
+	/** Filter to hosts assigned one of these credentials. */
+	credential_ids?: string[];
 	/** Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
 	group_by?: components['schemas']['HostOrderField'];
 	/** Secondary ordering field (sorting within groups or standalone sort). */
@@ -243,7 +253,12 @@ export function useHostsQuery(optionsOrGetter: HostQueryOptions | (() => HostQue
 								virtualization_service_ids: options.virtualization_service_ids,
 								include_unvirtualized: options.include_unvirtualized,
 								service_names: options.service_names,
-								sources: options.sources
+								sources: options.sources,
+								manufacturers: options.manufacturers,
+								models: options.models,
+								sys_locations: options.sys_locations,
+								os_families: options.os_families,
+								credential_ids: options.credential_ids
 							}
 						}
 					})

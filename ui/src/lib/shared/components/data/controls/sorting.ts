@@ -64,16 +64,22 @@ export function compareByField<T>(
  *
  * With `serverOrdered`, an orderable field is left in arrival order: the server
  * already sorted every page by it, and this comparator can disagree (it reads a
- * MAC's leading `14` as a number, and knows nothing of the server's SQL). Display
- * fields opted in with `sortable` still sort here, since the server never saw them.
+ * MAC's leading `14` as a number, and knows nothing of the server's SQL). A
+ * display field opted in with `sortable` still sorts here when the list holds
+ * every row, since the server never saw it.
+ *
+ * With `serverPaginated`, nothing sorts here. The client holds one page, so
+ * sorting it would reorder that page alone and present it as the order of the
+ * whole list.
  */
 export function sortItems<T>(
 	items: T[],
 	fields: FieldConfig<T>[],
 	sort: SortState,
-	serverOrdered = false
+	serverOrdered = false,
+	serverPaginated = false
 ): T[] {
-	if (!sort.field) return items;
+	if (!sort.field || serverPaginated) return items;
 
 	const field = fields.find((f) => getFieldKey(f) === sort.field);
 	if (!field) return items;
@@ -96,16 +102,71 @@ export function nextSortState(current: SortState, fieldKey: string): SortState {
 	return { field: fieldKey, direction: 'asc' };
 }
 
-/** Fields offered in the sort control: server-orderable, or opted in client-side. */
-export function sortableFields<T>(fields: FieldConfig<T>[]): FieldConfig<T>[] {
-	return fields.filter((f) => isOrderableField(f) || (isDisplayField(f) && f.sortable === true));
+/**
+ * Whether the user can sort by this field: server-orderable, or a display field
+ * opted in with `sortable` on a list that holds every row.
+ *
+ * The sort control and the table headers both read this, so a header can never
+ * offer a sort the control doesn't, and vice versa.
+ */
+export function isSortableField<T>(field: FieldConfig<T>, serverPaginated: boolean): boolean {
+	if (isOrderableField(field)) return true;
+	return !serverPaginated && field.sortable === true;
 }
 
-/** Fields offered in the group-by control. String orderable fields group by default. */
-export function groupableFields<T>(fields: FieldConfig<T>[]): FieldConfig<T>[] {
-	return fields.filter(
-		(f) =>
-			(f.type === 'string' && isOrderableField(f) && f.groupable !== false) ||
-			(isDisplayField(f) && f.groupable === true)
-	);
+/**
+ * Whether the user can group by this field.
+ *
+ * String and boolean orderable fields group by default, unless `groupable:
+ * false`. A display field must opt in with `groupable: true`, and only on a list
+ * that holds every row. An array field never groups: its value has no single
+ * bucket, and stringifying it would bucket by the joined list.
+ */
+export function isGroupableField<T>(field: FieldConfig<T>, serverPaginated: boolean): boolean {
+	if (field.type === 'array') return false;
+	if (isOrderableField(field)) {
+		return (field.type === 'string' || field.type === 'boolean') && field.groupable !== false;
+	}
+	return !serverPaginated && field.groupable === true;
+}
+
+/** Fields offered in the sort control. */
+export function sortableFields<T>(
+	fields: FieldConfig<T>[],
+	serverPaginated = false
+): FieldConfig<T>[] {
+	return fields.filter((f) => isSortableField(f, serverPaginated));
+}
+
+/** Fields offered in the group-by control. */
+export function groupableFields<T>(
+	fields: FieldConfig<T>[],
+	serverPaginated = false
+): FieldConfig<T>[] {
+	return fields.filter((f) => isGroupableField(f, serverPaginated));
+}
+
+/**
+ * Display fields a server-paginated list would wrongly sort or group client-side.
+ *
+ * Under server pagination the client holds one page, so a client-side sort
+ * reorders that page alone and a client-side group buckets it alone, while the
+ * pager walks the server's order. Only an orderable field, which the server
+ * sorts and groups across every page, is coherent there.
+ *
+ * Returns the offending field keys so a caller can name them; empty when the
+ * list is not server-paginated, where client-side sorting and grouping are
+ * correct.
+ */
+export function serverOrderViolations<T>(
+	fields: FieldConfig<T>[],
+	serverPaginated: boolean
+): string[] {
+	if (!serverPaginated) return [];
+
+	return fields
+		.filter(
+			(field) => isDisplayField(field) && (field.sortable === true || field.groupable === true)
+		)
+		.map(getFieldKey);
 }

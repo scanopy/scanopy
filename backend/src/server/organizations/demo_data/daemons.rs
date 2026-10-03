@@ -71,9 +71,10 @@ pub(super) fn generate_daemons(
                 os: Some(DaemonOs::Linux),
                 name: "DC Daemon".to_string(),
                 tags: vec![],
-                version: Version::parse(env!("CARGO_PKG_VERSION"))
-                    .map(Some)
-                    .unwrap_or_default(),
+                // The data center daemon is two releases behind HQ. Its credentials (SNMP, gNMI,
+                // Podman) all run on this version; the SSH and Wake-on-LAN ones that need newer
+                // daemons are pinned to HQ hosts.
+                version: Some(Version::new(0, 17, 17)),
                 user_id,
                 api_key_id: None,
                 is_unreachable: false,

@@ -10,9 +10,8 @@
 		formatScheduleDisplay,
 		cancellingSessions,
 		type DiscoveryFieldEntry,
-		type DiscoveryOrderField
+		type DiscoveryConfigOrderField
 	} from '../../queries';
-	import { formatRelativeTime } from '$lib/shared/utils/formatting';
 	import SessionProgress from '../cards/SessionProgress.svelte';
 	import DiscoveryEstimation from '../DiscoveryEstimation.svelte';
 	import DiscoveryEditModal from '../DiscoveryModal/DiscoveryEditModal.svelte';
@@ -55,7 +54,6 @@
 		common_lastRun,
 		common_legacy,
 		common_manual,
-		common_never,
 		common_none,
 		common_phase,
 		common_progress,
@@ -318,21 +316,22 @@
 	 * on every scheduled scan, so it is off by default and serves mostly as a filter
 	 * and group axis. The audit dates stay available from the column menu.
 	 */
-	const SHARED_FIELD_DISPLAY: Partial<Record<DiscoveryOrderField, DisplayConfig<Discovery>>> = {
-		name: { order: 0 },
-		network_id: { order: 2 },
-		daemon_id: { order: 3 },
-		discovery_type: { hiddenByDefault: true },
-		created_at: { hiddenByDefault: true },
-		updated_at: { hiddenByDefault: true }
-	};
+	const SHARED_FIELD_DISPLAY: Partial<Record<DiscoveryConfigOrderField, DisplayConfig<Discovery>>> =
+		{
+			name: { order: 0 },
+			network_id: { order: 2 },
+			daemon_id: { order: 3 },
+			discovery_type: { hiddenByDefault: true },
+			created_at: { hiddenByDefault: true },
+			updated_at: { hiddenByDefault: true }
+		};
 
 	function withSharedDisplay(
-		shared: Record<DiscoveryOrderField, DiscoveryFieldEntry>
-	): Record<DiscoveryOrderField, DiscoveryFieldEntry> {
+		shared: Record<DiscoveryConfigOrderField, DiscoveryFieldEntry>
+	): Record<DiscoveryConfigOrderField, DiscoveryFieldEntry> {
 		const fields = { ...shared };
 		for (const [key, overrides] of Object.entries(SHARED_FIELD_DISPLAY)) {
-			const orderField = key as DiscoveryOrderField;
+			const orderField = key as DiscoveryConfigOrderField;
 			fields[orderField] = {
 				...fields[orderField],
 				display: { ...fields[orderField].display, ...overrides }
@@ -342,13 +341,15 @@
 	}
 
 	let fields = $derived(
-		defineFields<Discovery, DiscoveryOrderField>(
+		defineFields<Discovery, DiscoveryConfigOrderField>(
 			withSharedDisplay(discoveryFields(daemonsData, networksData)),
 			[
 				{
 					key: 'scan_count',
 					label: discovery_completedScans(),
 					type: 'string',
+					// A count: it sorts, but every value would be its own group.
+					sortable: true,
 					getValue: (item) => String(item.scan_count ?? 0),
 					display: { hiddenByDefault: true, align: 'right' }
 				},
@@ -357,6 +358,7 @@
 					label: discovery_forceFullScan(),
 					type: 'boolean',
 					filterable: true,
+					groupable: true,
 					getValue: (item) => item.force_full_scan ?? false,
 					display: { hiddenByDefault: true }
 				},
@@ -366,6 +368,7 @@
 					type: 'string',
 					filterable: true,
 					groupable: true,
+					sortable: true,
 					// Legacy-ness comes from the backend's own `is_legacy`, not a local list —
 					// a `!== 'Unified'` check flagged Rescan, which is new rather than frozen.
 					getValue: (item) =>
@@ -385,6 +388,7 @@
 					searchable: true,
 					filterable: true,
 					groupable: true,
+					sortable: true,
 					getValue: (item) => item.run_type.type,
 					display: { order: 1 }
 				},
@@ -406,12 +410,15 @@
 				{
 					key: 'last_run',
 					label: common_lastRun(),
-					type: 'string',
+					// A date column so it sorts by time. The ISO string rather than a Date, so the cell
+					// renders it as recent activity (a Date renders as a compact date).
+					type: 'date',
+					sortable: true,
 					getValue: (item) =>
 						item.run_type.type !== 'Historical' && item.run_type.last_run
-							? formatRelativeTime(item.run_type.last_run)
-							: common_never(),
-					display: { hiddenByDefault: true }
+							? item.run_type.last_run
+							: null,
+					display: { hiddenByDefault: true, recency: true }
 				},
 				{
 					key: 'progress',

@@ -296,6 +296,9 @@
 			label: common_credentials(),
 			type: 'array',
 			searchable: true,
+			// Credentials are shared across networks, so this filters. The other arrays here hold
+			// members of one network each, which search already finds.
+			filterable: true,
 			getValue: (network) => networkCredentials(network).map((c) => c.name),
 			display: {
 				order: 4,
@@ -339,6 +342,10 @@
 			key: 'effective_stale_after_hours',
 			label: networks_staleAfter(),
 			type: 'string',
+			// A handful of values across networks; numeric collation orders 24 before 168.
+			sortable: true,
+			groupable: true,
+			filterable: true,
 			getValue: (network) =>
 				network.effective_stale_after_hours == null
 					? null
