@@ -4,6 +4,7 @@
 //! terminal nor root.
 
 use super::*;
+use prompt::installed_line;
 
 /// Write a daemon `config.json` for `slot` under `base`, as an installed daemon would have after
 /// its handshake (server-assigned name and id cached, plus the key it authenticates with).
@@ -264,4 +265,75 @@ fn uninstall_falls_through_to_a_selector_that_matches_nothing_installed() {
     let targets = uninstall_targets(&[], &uninstall_args(Some("edge-01"), false)).unwrap();
 
     assert_eq!(targets, vec!["edge-01".to_string()]);
+}
+
+fn installed_entry(slot: &str, name: Option<&str>) -> Installed {
+    Installed {
+        slot: slot.to_string(),
+        config_path: PathBuf::from(format!("/etc/scanopy/{slot}/config.json")),
+        name: name.map(str::to_string),
+        daemon_id: name.map(|_| Uuid::new_v4()),
+        api_key: Some("key".to_string()),
+        daemon_port: None,
+    }
+}
+
+/// The choices a prompt offers, read from its `x) …` lines.
+fn offered_choices(prompt: &str) -> Vec<String> {
+    let choices = prompt.split("What do you want to do?").nth(1).unwrap();
+    choices
+        .lines()
+        .filter_map(|line| line.trim_start().split_once(") "))
+        .map(|(choice, _)| choice.to_string())
+        .collect()
+}
+
+/// The prompt offers exactly the answers `choose_ambiguous_target` accepts — `n` and each listed
+/// number, one line apiece — and never collapses them into a range like `[1-1]`.
+#[test]
+fn ambiguous_target_prompt_offers_exactly_the_accepted_answers() {
+    for count in 1..=3 {
+        let installed: Vec<Installed> = (1..=count)
+            .map(|i| installed_entry(&format!("scanopy-daemon-{i}"), Some("edge")))
+            .collect();
+        let prompt = ambiguous_target_prompt(&installed);
+
+        let mut expected = vec!["n".to_string()];
+        expected.extend((1..=count).map(|i| i.to_string()));
+        assert_eq!(offered_choices(&prompt), expected, "{prompt}");
+
+        for (index, entry) in installed.iter().enumerate() {
+            assert!(
+                prompt.contains(&format!("{}) {}", index + 1, installed_line(entry))),
+                "install {} is not listed: {prompt}",
+                index + 1
+            );
+        }
+        assert!(!prompt.contains("1-1") && !prompt.contains(&format!("1-{count}")));
+        assert!(!prompt.to_lowercase().contains("re-key"), "{prompt}");
+        assert!(prompt.trim_end().ends_with("Choice [n]:"));
+    }
+}
+
+/// A connected install is named by its server-assigned name; one that never connected has only
+/// its slot, and says so rather than presenting the default name as a daemon the operator chose.
+#[test]
+fn ambiguous_target_prompt_names_connected_and_never_connected_installs() {
+    let connected = installed_entry("scanopy-daemon-2", Some("edge-02"));
+    let fresh = installed_entry(DEFAULT_NAME, None);
+    let prompt = ambiguous_target_prompt(&[connected, fresh]);
+
+    let lines: Vec<&str> = prompt
+        .lines()
+        .filter(|l| l.starts_with("  1) ") || l.starts_with("  2) "))
+        .collect();
+    assert!(lines[0].contains("edge-02") && !lines[0].contains("never connected"));
+    assert!(lines[1].contains(DEFAULT_NAME) && lines[1].contains("never connected"));
+    // The slot name appears once on the connected line, through the service id, not twice.
+    assert_eq!(
+        lines[0].matches("scanopy-daemon-2").count(),
+        1,
+        "{}",
+        lines[0]
+    );
 }
