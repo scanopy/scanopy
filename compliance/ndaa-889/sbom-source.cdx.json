@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:f710e431-9ae0-4dac-8868-c8ddf9e6d622",
+  "serialNumber": "urn:uuid:9ca040ee-2475-4a0d-a6b1-bf1dde1b558b",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-10-02T15:18:53Z",
+    "timestamp": "2026-10-03T05:28:50Z",
     "tools": {
       "components": [
         {
@@ -35345,6 +35345,150 @@
       ]
     },
     {
+      "bom-ref": "pkg:cargo/objc2-cloud-kit@0.3.2?package-id=fb00f16b689273c2",
+      "type": "library",
+      "name": "objc2-cloud-kit",
+      "version": "0.3.2",
+      "cpe": "cpe:2.3:a:objc2-cloud-kit:objc2-cloud-kit:0.3.2:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/objc2-cloud-kit@0.3.2",
+      "externalReferences": [
+        {
+          "url": "registry+https://github.com/rust-lang/crates.io-index",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "rust-cargo-lock-cataloger"
+        },
+        {
+          "name": "syft:package:language",
+          "value": "rust"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "rust-crate"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "rust-cargo-lock-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-cloud-kit:objc2_cloud_kit:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_cloud_kit:objc2-cloud-kit:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_cloud_kit:objc2_cloud_kit:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-cloud:objc2-cloud-kit:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-cloud:objc2_cloud_kit:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_cloud:objc2-cloud-kit:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_cloud:objc2_cloud_kit:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2-cloud-kit:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2_cloud_kit:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/backend/Cargo.lock"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:cargo/objc2-core-data@0.3.2?package-id=4ce1b105bb99dfdf",
+      "type": "library",
+      "name": "objc2-core-data",
+      "version": "0.3.2",
+      "cpe": "cpe:2.3:a:objc2-core-data:objc2-core-data:0.3.2:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/objc2-core-data@0.3.2",
+      "externalReferences": [
+        {
+          "url": "registry+https://github.com/rust-lang/crates.io-index",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "rust-cargo-lock-cataloger"
+        },
+        {
+          "name": "syft:package:language",
+          "value": "rust"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "rust-crate"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "rust-cargo-lock-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-core-data:objc2_core_data:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_core_data:objc2-core-data:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_core_data:objc2_core_data:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-core:objc2-core-data:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-core:objc2_core_data:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_core:objc2-core-data:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_core:objc2_core_data:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2-core-data:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2_core_data:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/backend/Cargo.lock"
+        }
+      ]
+    },
+    {
       "bom-ref": "pkg:cargo/objc2-core-foundation@0.3.2?package-id=19bbe6bcaba3b4e8",
       "type": "library",
       "name": "objc2-core-foundation",
@@ -35417,6 +35561,294 @@
       ]
     },
     {
+      "bom-ref": "pkg:cargo/objc2-core-graphics@0.3.2?package-id=b115309cede04ced",
+      "type": "library",
+      "name": "objc2-core-graphics",
+      "version": "0.3.2",
+      "cpe": "cpe:2.3:a:objc2-core-graphics:objc2-core-graphics:0.3.2:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/objc2-core-graphics@0.3.2",
+      "externalReferences": [
+        {
+          "url": "registry+https://github.com/rust-lang/crates.io-index",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "rust-cargo-lock-cataloger"
+        },
+        {
+          "name": "syft:package:language",
+          "value": "rust"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "rust-crate"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "rust-cargo-lock-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-core-graphics:objc2_core_graphics:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_core_graphics:objc2-core-graphics:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_core_graphics:objc2_core_graphics:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-core:objc2-core-graphics:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-core:objc2_core_graphics:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_core:objc2-core-graphics:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_core:objc2_core_graphics:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2-core-graphics:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2_core_graphics:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/backend/Cargo.lock"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:cargo/objc2-core-image@0.3.2?package-id=fc006a519d8f76c6",
+      "type": "library",
+      "name": "objc2-core-image",
+      "version": "0.3.2",
+      "cpe": "cpe:2.3:a:objc2-core-image:objc2-core-image:0.3.2:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/objc2-core-image@0.3.2",
+      "externalReferences": [
+        {
+          "url": "registry+https://github.com/rust-lang/crates.io-index",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "rust-cargo-lock-cataloger"
+        },
+        {
+          "name": "syft:package:language",
+          "value": "rust"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "rust-crate"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "rust-cargo-lock-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-core-image:objc2_core_image:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_core_image:objc2-core-image:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_core_image:objc2_core_image:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-core:objc2-core-image:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-core:objc2_core_image:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_core:objc2-core-image:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_core:objc2_core_image:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2-core-image:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2_core_image:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/backend/Cargo.lock"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:cargo/objc2-core-location@0.3.2?package-id=f7099277b3b5243d",
+      "type": "library",
+      "name": "objc2-core-location",
+      "version": "0.3.2",
+      "cpe": "cpe:2.3:a:objc2-core-location:objc2-core-location:0.3.2:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/objc2-core-location@0.3.2",
+      "externalReferences": [
+        {
+          "url": "registry+https://github.com/rust-lang/crates.io-index",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "rust-cargo-lock-cataloger"
+        },
+        {
+          "name": "syft:package:language",
+          "value": "rust"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "rust-crate"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "rust-cargo-lock-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-core-location:objc2_core_location:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_core_location:objc2-core-location:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_core_location:objc2_core_location:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-core:objc2-core-location:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-core:objc2_core_location:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_core:objc2-core-location:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_core:objc2_core_location:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2-core-location:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2_core_location:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/backend/Cargo.lock"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:cargo/objc2-core-text@0.3.2?package-id=319ceac75774673f",
+      "type": "library",
+      "name": "objc2-core-text",
+      "version": "0.3.2",
+      "cpe": "cpe:2.3:a:objc2-core-text:objc2-core-text:0.3.2:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/objc2-core-text@0.3.2",
+      "externalReferences": [
+        {
+          "url": "registry+https://github.com/rust-lang/crates.io-index",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "rust-cargo-lock-cataloger"
+        },
+        {
+          "name": "syft:package:language",
+          "value": "rust"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "rust-crate"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "rust-cargo-lock-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-core-text:objc2_core_text:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_core_text:objc2-core-text:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_core_text:objc2_core_text:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-core:objc2-core-text:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-core:objc2_core_text:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_core:objc2-core-text:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_core:objc2_core_text:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2-core-text:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2_core_text:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/backend/Cargo.lock"
+        }
+      ]
+    },
+    {
       "bom-ref": "pkg:cargo/objc2-encode@4.1.0?package-id=cb26370253dd6aaf",
       "type": "library",
       "name": "objc2-encode",
@@ -35465,6 +35897,206 @@
         {
           "name": "syft:cpe23",
           "value": "cpe:2.3:a:objc2:objc2_encode:4.1.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/backend/Cargo.lock"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:cargo/objc2-foundation@0.3.2?package-id=68bb8ad6723dbba5",
+      "type": "library",
+      "name": "objc2-foundation",
+      "version": "0.3.2",
+      "cpe": "cpe:2.3:a:objc2-foundation:objc2-foundation:0.3.2:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/objc2-foundation@0.3.2",
+      "externalReferences": [
+        {
+          "url": "registry+https://github.com/rust-lang/crates.io-index",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "rust-cargo-lock-cataloger"
+        },
+        {
+          "name": "syft:package:language",
+          "value": "rust"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "rust-crate"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "rust-cargo-lock-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-foundation:objc2_foundation:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_foundation:objc2-foundation:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_foundation:objc2_foundation:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2-foundation:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2_foundation:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/backend/Cargo.lock"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:cargo/objc2-io-surface@0.3.2?package-id=b966281584740baf",
+      "type": "library",
+      "name": "objc2-io-surface",
+      "version": "0.3.2",
+      "cpe": "cpe:2.3:a:objc2-io-surface:objc2-io-surface:0.3.2:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/objc2-io-surface@0.3.2",
+      "externalReferences": [
+        {
+          "url": "registry+https://github.com/rust-lang/crates.io-index",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "rust-cargo-lock-cataloger"
+        },
+        {
+          "name": "syft:package:language",
+          "value": "rust"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "rust-crate"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "rust-cargo-lock-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-io-surface:objc2_io_surface:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_io_surface:objc2-io-surface:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_io_surface:objc2_io_surface:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-io:objc2-io-surface:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-io:objc2_io_surface:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_io:objc2-io-surface:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_io:objc2_io_surface:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2-io-surface:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2_io_surface:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/backend/Cargo.lock"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:cargo/objc2-quartz-core@0.3.2?package-id=d678407997a6347c",
+      "type": "library",
+      "name": "objc2-quartz-core",
+      "version": "0.3.2",
+      "cpe": "cpe:2.3:a:objc2-quartz-core:objc2-quartz-core:0.3.2:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/objc2-quartz-core@0.3.2",
+      "externalReferences": [
+        {
+          "url": "registry+https://github.com/rust-lang/crates.io-index",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "rust-cargo-lock-cataloger"
+        },
+        {
+          "name": "syft:package:language",
+          "value": "rust"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "rust-crate"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "rust-cargo-lock-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-quartz-core:objc2_quartz_core:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_quartz_core:objc2-quartz-core:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_quartz_core:objc2_quartz_core:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-quartz:objc2-quartz-core:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-quartz:objc2_quartz_core:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_quartz:objc2-quartz-core:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_quartz:objc2_quartz_core:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2-quartz-core:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2_quartz_core:0.3.2:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -35537,6 +36169,150 @@
         {
           "name": "syft:cpe23",
           "value": "cpe:2.3:a:objc2:objc2_system_configuration:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/backend/Cargo.lock"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:cargo/objc2-ui-kit@0.3.2?package-id=1229318bc317dc78",
+      "type": "library",
+      "name": "objc2-ui-kit",
+      "version": "0.3.2",
+      "cpe": "cpe:2.3:a:objc2-ui-kit:objc2-ui-kit:0.3.2:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/objc2-ui-kit@0.3.2",
+      "externalReferences": [
+        {
+          "url": "registry+https://github.com/rust-lang/crates.io-index",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "rust-cargo-lock-cataloger"
+        },
+        {
+          "name": "syft:package:language",
+          "value": "rust"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "rust-crate"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "rust-cargo-lock-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-ui-kit:objc2_ui_kit:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_ui_kit:objc2-ui-kit:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_ui_kit:objc2_ui_kit:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-ui:objc2-ui-kit:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-ui:objc2_ui_kit:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_ui:objc2-ui-kit:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_ui:objc2_ui_kit:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2-ui-kit:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2_ui_kit:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/backend/Cargo.lock"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:cargo/objc2-user-notifications@0.3.2?package-id=733959f6e2506e87",
+      "type": "library",
+      "name": "objc2-user-notifications",
+      "version": "0.3.2",
+      "cpe": "cpe:2.3:a:objc2-user-notifications:objc2-user-notifications:0.3.2:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/objc2-user-notifications@0.3.2",
+      "externalReferences": [
+        {
+          "url": "registry+https://github.com/rust-lang/crates.io-index",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "rust-cargo-lock-cataloger"
+        },
+        {
+          "name": "syft:package:language",
+          "value": "rust"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "rust-crate"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "rust-cargo-lock-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-user-notifications:objc2_user_notifications:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_user_notifications:objc2-user-notifications:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_user_notifications:objc2_user_notifications:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-user:objc2-user-notifications:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2-user:objc2_user_notifications:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_user:objc2-user-notifications:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2_user:objc2_user_notifications:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2-user-notifications:0.3.2:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:objc2:objc2_user_notifications:0.3.2:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -36354,6 +37130,62 @@
         {
           "name": "syft:cpe23",
           "value": "cpe:2.3:a:ordered:ordered_multimap:0.7.3:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/backend/Cargo.lock"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:cargo/os_info@3.15.0?package-id=29c9be233b09d448",
+      "type": "library",
+      "name": "os_info",
+      "version": "3.15.0",
+      "cpe": "cpe:2.3:a:os-info:os-info:3.15.0:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/os_info@3.15.0",
+      "externalReferences": [
+        {
+          "url": "registry+https://github.com/rust-lang/crates.io-index",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "rust-cargo-lock-cataloger"
+        },
+        {
+          "name": "syft:package:language",
+          "value": "rust"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "rust-crate"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "rust-cargo-lock-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:os-info:os_info:3.15.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:os_info:os-info:3.15.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:os_info:os_info:3.15.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:os:os-info:3.15.0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:os:os_info:3.15.0:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -45856,12 +46688,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:cargo/scanopy-server@0.17.19?package-id=938b1d883a32da14",
+      "bom-ref": "pkg:cargo/scanopy-server@0.17.20?package-id=dc019ec0a944490a",
       "type": "library",
       "name": "scanopy-server",
-      "version": "0.17.19",
-      "cpe": "cpe:2.3:a:scanopy-server:scanopy-server:0.17.19:*:*:*:*:*:*:*",
-      "purl": "pkg:cargo/scanopy-server@0.17.19",
+      "version": "0.17.20",
+      "cpe": "cpe:2.3:a:scanopy-server:scanopy-server:0.17.20:*:*:*:*:*:*:*",
+      "purl": "pkg:cargo/scanopy-server@0.17.20",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -45881,23 +46713,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy-server:scanopy_server:0.17.19:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy-server:scanopy_server:0.17.20:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy_server:scanopy-server:0.17.19:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy_server:scanopy-server:0.17.20:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy_server:scanopy_server:0.17.19:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy_server:scanopy_server:0.17.20:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy:scanopy-server:0.17.19:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy:scanopy-server:0.17.20:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy:scanopy_server:0.17.19:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy:scanopy_server:0.17.20:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -45906,12 +46738,12 @@
       ]
     },
     {
-      "bom-ref": "pkg:npm/scanopy-ui@0.17.19?package-id=4989bb6ba56686a4",
+      "bom-ref": "pkg:npm/scanopy-ui@0.17.20?package-id=e74bc22f7dd83920",
       "type": "library",
       "name": "scanopy-ui",
-      "version": "0.17.19",
-      "cpe": "cpe:2.3:a:scanopy-ui:scanopy-ui:0.17.19:*:*:*:*:*:*:*",
-      "purl": "pkg:npm/scanopy-ui@0.17.19",
+      "version": "0.17.20",
+      "cpe": "cpe:2.3:a:scanopy-ui:scanopy-ui:0.17.20:*:*:*:*:*:*:*",
+      "purl": "pkg:npm/scanopy-ui@0.17.20",
       "properties": [
         {
           "name": "syft:package:foundBy",
@@ -45931,23 +46763,23 @@
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy-ui:scanopy_ui:0.17.19:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy-ui:scanopy_ui:0.17.20:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy_ui:scanopy-ui:0.17.19:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy_ui:scanopy-ui:0.17.20:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy_ui:scanopy_ui:0.17.19:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy_ui:scanopy_ui:0.17.20:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy:scanopy-ui:0.17.19:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy:scanopy-ui:0.17.20:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:cpe23",
-          "value": "cpe:2.3:a:scanopy:scanopy_ui:0.17.19:*:*:*:*:*:*:*"
+          "value": "cpe:2.3:a:scanopy:scanopy_ui:0.17.20:*:*:*:*:*:*:*"
         },
         {
           "name": "syft:location:0:path",
@@ -63340,11 +64172,11 @@
       "hashes": [
         {
           "alg": "SHA-1",
-          "content": "974879a17e9f15112a35c7ac98c35e092e839992"
+          "content": "2d571031c9dafd9450d44ac07c7e63ace427253f"
         },
         {
           "alg": "SHA-256",
-          "content": "7f4f483d6794d6430cffb0e9bdf03eaa0c44ca9d618f365fa393d2f72b290221"
+          "content": "704ea14c60bd57f56b6a9fbcb43d8be44f675e135a5c2e6879cd85e8d8871ae7"
         }
       ]
     },
@@ -63370,11 +64202,11 @@
       "hashes": [
         {
           "alg": "SHA-1",
-          "content": "f12f67610fbb1599f84f240811f757b379b4959a"
+          "content": "bbd53879ae9528e43b19be9236197bce8bce4478"
         },
         {
           "alg": "SHA-256",
-          "content": "c5f67b1e245bc60f8b576a001b86ec6773b6aec7bceaaf69814d8438bf101547"
+          "content": "f764dad78a55aa2fa53a47ba43575e76316f313ff71f677c11e4a1a09dd426ea"
         }
       ]
     }
@@ -66605,6 +67437,21 @@
       ]
     },
     {
+      "ref": "pkg:cargo/objc2-cloud-kit@0.3.2?package-id=fb00f16b689273c2",
+      "dependsOn": [
+        "pkg:cargo/bitflags@2.13.1?package-id=04741419980f336d",
+        "pkg:cargo/objc2-foundation@0.3.2?package-id=68bb8ad6723dbba5",
+        "pkg:cargo/objc2@0.6.4?package-id=09f978a5f4fc9934"
+      ]
+    },
+    {
+      "ref": "pkg:cargo/objc2-core-data@0.3.2?package-id=4ce1b105bb99dfdf",
+      "dependsOn": [
+        "pkg:cargo/objc2-foundation@0.3.2?package-id=68bb8ad6723dbba5",
+        "pkg:cargo/objc2@0.6.4?package-id=09f978a5f4fc9934"
+      ]
+    },
+    {
       "ref": "pkg:cargo/objc2-core-foundation@0.3.2?package-id=19bbe6bcaba3b4e8",
       "dependsOn": [
         "pkg:cargo/bitflags@2.13.1?package-id=04741419980f336d",
@@ -66615,10 +67462,95 @@
       ]
     },
     {
+      "ref": "pkg:cargo/objc2-core-graphics@0.3.2?package-id=b115309cede04ced",
+      "dependsOn": [
+        "pkg:cargo/bitflags@2.13.1?package-id=04741419980f336d",
+        "pkg:cargo/dispatch2@0.3.1?package-id=36e7e5b3c2357ed8",
+        "pkg:cargo/objc2-core-foundation@0.3.2?package-id=19bbe6bcaba3b4e8",
+        "pkg:cargo/objc2-io-surface@0.3.2?package-id=b966281584740baf",
+        "pkg:cargo/objc2@0.6.4?package-id=09f978a5f4fc9934"
+      ]
+    },
+    {
+      "ref": "pkg:cargo/objc2-core-image@0.3.2?package-id=fc006a519d8f76c6",
+      "dependsOn": [
+        "pkg:cargo/objc2-foundation@0.3.2?package-id=68bb8ad6723dbba5",
+        "pkg:cargo/objc2@0.6.4?package-id=09f978a5f4fc9934"
+      ]
+    },
+    {
+      "ref": "pkg:cargo/objc2-core-location@0.3.2?package-id=f7099277b3b5243d",
+      "dependsOn": [
+        "pkg:cargo/objc2-foundation@0.3.2?package-id=68bb8ad6723dbba5",
+        "pkg:cargo/objc2@0.6.4?package-id=09f978a5f4fc9934"
+      ]
+    },
+    {
+      "ref": "pkg:cargo/objc2-core-text@0.3.2?package-id=319ceac75774673f",
+      "dependsOn": [
+        "pkg:cargo/bitflags@2.13.1?package-id=04741419980f336d",
+        "pkg:cargo/objc2-core-foundation@0.3.2?package-id=19bbe6bcaba3b4e8",
+        "pkg:cargo/objc2-core-graphics@0.3.2?package-id=b115309cede04ced",
+        "pkg:cargo/objc2@0.6.4?package-id=09f978a5f4fc9934"
+      ]
+    },
+    {
+      "ref": "pkg:cargo/objc2-foundation@0.3.2?package-id=68bb8ad6723dbba5",
+      "dependsOn": [
+        "pkg:cargo/bitflags@2.13.1?package-id=04741419980f336d",
+        "pkg:cargo/block2@0.6.2?package-id=61024df0ba7720b4",
+        "pkg:cargo/libc@0.2.189?package-id=72d602e6de6c3aa8",
+        "pkg:cargo/objc2-core-foundation@0.3.2?package-id=19bbe6bcaba3b4e8",
+        "pkg:cargo/objc2@0.6.4?package-id=09f978a5f4fc9934"
+      ]
+    },
+    {
+      "ref": "pkg:cargo/objc2-io-surface@0.3.2?package-id=b966281584740baf",
+      "dependsOn": [
+        "pkg:cargo/bitflags@2.13.1?package-id=04741419980f336d",
+        "pkg:cargo/objc2-core-foundation@0.3.2?package-id=19bbe6bcaba3b4e8",
+        "pkg:cargo/objc2@0.6.4?package-id=09f978a5f4fc9934"
+      ]
+    },
+    {
+      "ref": "pkg:cargo/objc2-quartz-core@0.3.2?package-id=d678407997a6347c",
+      "dependsOn": [
+        "pkg:cargo/bitflags@2.13.1?package-id=04741419980f336d",
+        "pkg:cargo/objc2-core-foundation@0.3.2?package-id=19bbe6bcaba3b4e8",
+        "pkg:cargo/objc2-foundation@0.3.2?package-id=68bb8ad6723dbba5",
+        "pkg:cargo/objc2@0.6.4?package-id=09f978a5f4fc9934"
+      ]
+    },
+    {
       "ref": "pkg:cargo/objc2-system-configuration@0.3.2?package-id=55ed2ef092753377",
       "dependsOn": [
         "pkg:cargo/bitflags@2.13.1?package-id=04741419980f336d",
         "pkg:cargo/objc2-core-foundation@0.3.2?package-id=19bbe6bcaba3b4e8"
+      ]
+    },
+    {
+      "ref": "pkg:cargo/objc2-ui-kit@0.3.2?package-id=1229318bc317dc78",
+      "dependsOn": [
+        "pkg:cargo/bitflags@2.13.1?package-id=04741419980f336d",
+        "pkg:cargo/block2@0.6.2?package-id=61024df0ba7720b4",
+        "pkg:cargo/objc2-cloud-kit@0.3.2?package-id=fb00f16b689273c2",
+        "pkg:cargo/objc2-core-data@0.3.2?package-id=4ce1b105bb99dfdf",
+        "pkg:cargo/objc2-core-foundation@0.3.2?package-id=19bbe6bcaba3b4e8",
+        "pkg:cargo/objc2-core-graphics@0.3.2?package-id=b115309cede04ced",
+        "pkg:cargo/objc2-core-image@0.3.2?package-id=fc006a519d8f76c6",
+        "pkg:cargo/objc2-core-location@0.3.2?package-id=f7099277b3b5243d",
+        "pkg:cargo/objc2-core-text@0.3.2?package-id=319ceac75774673f",
+        "pkg:cargo/objc2-foundation@0.3.2?package-id=68bb8ad6723dbba5",
+        "pkg:cargo/objc2-quartz-core@0.3.2?package-id=d678407997a6347c",
+        "pkg:cargo/objc2-user-notifications@0.3.2?package-id=733959f6e2506e87",
+        "pkg:cargo/objc2@0.6.4?package-id=09f978a5f4fc9934"
+      ]
+    },
+    {
+      "ref": "pkg:cargo/objc2-user-notifications@0.3.2?package-id=733959f6e2506e87",
+      "dependsOn": [
+        "pkg:cargo/objc2-foundation@0.3.2?package-id=68bb8ad6723dbba5",
+        "pkg:cargo/objc2@0.6.4?package-id=09f978a5f4fc9934"
       ]
     },
     {
@@ -66702,6 +67634,18 @@
       "dependsOn": [
         "pkg:cargo/dlv-list@0.5.2?package-id=496de02fad66c8b6",
         "pkg:cargo/hashbrown@0.14.5?package-id=ba582194ca0ae683"
+      ]
+    },
+    {
+      "ref": "pkg:cargo/os_info@3.15.0?package-id=29c9be233b09d448",
+      "dependsOn": [
+        "pkg:cargo/android_system_properties@0.1.5?package-id=12ed920c8e636955",
+        "pkg:cargo/log@0.4.28?package-id=286ae7b051f75c65",
+        "pkg:cargo/nix@0.31.3?package-id=ca926f25fc489f7f",
+        "pkg:cargo/objc2-foundation@0.3.2?package-id=68bb8ad6723dbba5",
+        "pkg:cargo/objc2-ui-kit@0.3.2?package-id=1229318bc317dc78",
+        "pkg:cargo/objc2@0.6.4?package-id=09f978a5f4fc9934",
+        "pkg:cargo/windows-sys@0.61.2?package-id=8d2e3181934ac350"
       ]
     },
     {
@@ -68052,7 +68996,7 @@
       ]
     },
     {
-      "ref": "pkg:cargo/scanopy-server@0.17.19?package-id=938b1d883a32da14",
+      "ref": "pkg:cargo/scanopy-server@0.17.20?package-id=dc019ec0a944490a",
       "dependsOn": [
         "pkg:cargo/anstyle-query@1.1.5?package-id=3eb3e92be11ef569",
         "pkg:cargo/anyhow@1.0.103?package-id=cc88ccfde1e2cc6a",
@@ -68134,6 +69078,7 @@
         "pkg:cargo/oauth2@5.0.0?package-id=a957cf88c1401d62",
         "pkg:cargo/onc-rpc@0.3.3?package-id=b18070ea384d6bc8",
         "pkg:cargo/openidconnect@4.0.1?package-id=53e0ac2b0fcebb5b",
+        "pkg:cargo/os_info@3.15.0?package-id=29c9be233b09d448",
         "pkg:cargo/password-hash@0.5.0?package-id=c4535090e6e03774",
         "pkg:cargo/paste@1.0.15?package-id=9e55703f425f8f56",
         "pkg:cargo/pem@3.0.6?package-id=15285de18c749b26",
@@ -68149,6 +69094,7 @@
         "pkg:cargo/prost-types@0.14.1?package-id=672226464f454846",
         "pkg:cargo/prost@0.14.1?package-id=188783339ebbb409",
         "pkg:cargo/psl@2.1.216?package-id=b109e6bb4891a5e4",
+        "pkg:cargo/quick-xml@0.42.0?package-id=70ddc7d2cb9739b0",
         "pkg:cargo/rand@0.9.3?package-id=ad3fd1dc077d7f67",
         "pkg:cargo/rand_core@0.9.3?package-id=431439eca4de6627",
         "pkg:cargo/rasn-ldap@0.28.14?package-id=3ecf9d86e32887a5",
@@ -70750,7 +71696,7 @@
       ]
     },
     {
-      "ref": "pkg:npm/scanopy-ui@0.17.19?package-id=4989bb6ba56686a4",
+      "ref": "pkg:npm/scanopy-ui@0.17.20?package-id=e74bc22f7dd83920",
       "dependsOn": [
         "pkg:npm/%40beyonk/gdpr-cookie-consent-banner@16.0.2?package-id=cd6aef3707be3a0f",
         "pkg:npm/%40peculiar/x509@1.14.3?package-id=f9f09aa6bd0dd2b7",
