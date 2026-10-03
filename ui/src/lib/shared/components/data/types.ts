@@ -213,6 +213,14 @@ interface BaseFieldConfig<T> {
 	getGroupValue?: (item: T) => string | null;
 	/** Default checked values for the filter (applied on first load if no localStorage state). */
 	filterDefaults?: string[];
+	/**
+	 * This column carries the list's "Stale only" toggle. Staleness is a
+	 * server-side constraint rather than a value filter, so it has no field of
+	 * its own; marking the last-seen column gives it the same home as every
+	 * other filter, in the header popover and the card pane. Only takes effect
+	 * when the parent passes `onStaleFilterChange`.
+	 */
+	staleFilter?: boolean;
 }
 
 /**

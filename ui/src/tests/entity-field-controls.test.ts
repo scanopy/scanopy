@@ -7,7 +7,8 @@ import {
 	serverOrderViolations
 } from '$lib/shared/components/data/controls/sorting';
 import { serverFilterViolations } from '$lib/shared/components/data/controls/filtering';
-import type { FieldConfig } from '$lib/shared/components/data/types';
+import { columnControls } from '$lib/shared/components/data/controls/headerControls';
+import { getFieldKey, type FieldConfig } from '$lib/shared/components/data/types';
 import {
 	COVERAGE,
 	FEATURES,
@@ -159,8 +160,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 			containerized_by: server('virtualization_service_ids'),
 			match_confidence: server('match_confidences'),
 			source: server('sources'),
-			port_bindings: ownedArray('The port filter covers it'),
-			port: { sort: 'Filter-only', group: 'Filter-only', filter: { param: 'ports' } },
+			port_bindings: { sort: ARRAY_SORT, group: ARRAY_GROUP, filter: { param: 'ports' } },
 			ip_bindings: ownedArray('Near-unique; search finds it'),
 			category: {
 				sort: 'Derived in code; no SQL column',
@@ -349,7 +349,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 
 const OPENERS = '{([';
 const CLOSERS = '})]';
-const FLAGS = ['sortable', 'groupable', 'filterable', 'serverFiltered'] as const;
+const FLAGS = ['sortable', 'groupable', 'filterable', 'serverFiltered', 'staleFilter'] as const;
 type Flag = (typeof FLAGS)[number];
 
 /** A field as its tab declares it. */
@@ -357,6 +357,8 @@ interface ParsedField {
 	orderable: boolean;
 	type: FieldConfig<unknown>['type'];
 	flags: Partial<Record<Flag, boolean>>;
+	/** `display.hidden`: the field renders no column. */
+	columnless: boolean;
 }
 
 /** Index just past the string, template literal or comment opening at `i`; `i` when none does. */
@@ -481,7 +483,8 @@ function parseField(src: string, open: number, orderable: boolean): ParsedField 
 		}
 		flags[flag] = value === 'true';
 	}
-	return { orderable, type: type as ParsedField['type'], flags };
+	const columnless = /\bhidden:\s*true\b/.test(byName.get('display') ?? '');
+	return { orderable, type: type as ParsedField['type'], flags, columnless };
 }
 
 /** The `<script>` blocks of a Svelte file: the template's text would derail the brace matcher. */
@@ -751,6 +754,52 @@ function decisionProblems(tab: string, decided: TabDecisions): string[] {
 	return problems;
 }
 
+/**
+ * Everything that would leave a tab's filter or group unreachable in table view, which filters
+ * and groups only from column headers.
+ */
+function headerControlProblems(tab: string): string[] {
+	const source = readTab(tab);
+	const { fields, problems: unreadable } = tabFields(tab, source);
+	if (unreadable.length > 0) return unreadable.map((problem) => `${tab}: ${problem}.`);
+
+	const serverPaginated = /serverPagination=/.test(source);
+	const staleWired = /onStaleFilterChange=/.test(source);
+	const configs = [...fields].map(([column, field]) => fieldConfig(column, field));
+	const problems: string[] = [];
+
+	for (const [column, field] of fields) {
+		const config = configs.find((c) => getFieldKey(c) === column)!;
+		const filters = config.filterable === true;
+		const groups = isGroupableField(config, serverPaginated);
+		if (!filters && !groups) continue;
+
+		if (field.columnless) {
+			problems.push(
+				`${tab}: "${column}" ${filters ? 'filters' : 'groups'} but sets display.hidden, so it ` +
+					`has no column header to do it from. Move the filter onto a column, or drop the flag.`
+			);
+			continue;
+		}
+		const control = columnControls(column, configs, serverPaginated, staleWired);
+		if (control?.filter !== filters || control?.group !== groups) {
+			problems.push(`${tab}: column "${column}" gets no header control for its flags.`);
+		}
+	}
+
+	const staleColumns = [...fields].filter(([, field]) => field.flags.staleFilter === true);
+	if (staleWired && staleColumns.length !== 1) {
+		problems.push(
+			`${tab}: passes onStaleFilterChange, so exactly one field needs staleFilter: true to ` +
+				`carry the Stale toggle; found ${staleColumns.length}.`
+		);
+	}
+	if (!staleWired && staleColumns.length > 0) {
+		problems.push(`${tab}: marks staleFilter without passing onStaleFilterChange.`);
+	}
+	return problems;
+}
+
 describe('entity field controls', () => {
 	it('has decisions for every tab that renders DataControls', () => {
 		const tabs = dataControlsTabs();
@@ -775,6 +824,11 @@ describe('entity field controls', () => {
 		it(`${tab} offers the decided sort, group and filter on every column`, () => {
 			expect(fs.existsSync(path.join(FEATURES, tab)), `${tab} does not exist`).toBe(true);
 			const problems = decisionProblems(tab, decided);
+			expect(problems, problems.join('\n')).toEqual([]);
+		});
+
+		it(`${tab} gives every filterable or groupable field a column header control`, () => {
+			const problems = headerControlProblems(tab);
 			expect(problems, problems.join('\n')).toEqual([]);
 		});
 	}

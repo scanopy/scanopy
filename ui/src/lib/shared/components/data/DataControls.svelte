@@ -13,21 +13,19 @@
 		nextSortState,
 		sortableFields as sortableFieldsOf,
 		groupableFields as groupableFieldsOf,
-		serverOrderViolations,
 		type SortState
 	} from './controls/sorting';
 	import {
 		matchesSearch,
 		matchesFilters,
-		serverFilterViolations,
 		blankFilterState,
-		booleanFilterValues,
-		toggleValue,
-		toggleBoolean,
 		restoredServerFilters,
 		hasActiveFilters as hasActiveFiltersOf,
 		type FilterState
 	} from './controls/filtering';
+	import { createFilterActions } from './controls/filterActions';
+	import { guardServerPaginatedConfig } from './controls/devGuards.svelte';
+	import { columnControls, renderedFields, dropHiddenColumnState } from './controls/headerControls';
 	import { paginationView, pageSlice } from './controls/pagination';
 	import { createChangeTracker, sameOrder } from './controls/changeTracker';
 	import {
@@ -53,10 +51,12 @@
 	} from './controls/dataControlsStorage';
 	import ControlsBar from './controls/ControlsBar.svelte';
 	import FilterPanel from './controls/FilterPanel.svelte';
+	import ColumnControlsMenu from './table/ColumnControlsMenu.svelte';
 	import BulkActionBar from './controls/BulkActionBar.svelte';
 	import PaginationBar from './controls/PaginationBar.svelte';
 	import EntityTable from './table/EntityTable.svelte';
 	import EntityCard from './EntityCard.svelte';
+	import CardGrid from './CardGrid.svelte';
 	import type { IconComponent } from '$lib/shared/utils/types';
 	import ColumnVisibilityMenu from './table/ColumnVisibilityMenu.svelte';
 	import TagCell from './TagCell.svelte';
@@ -66,13 +66,13 @@
 		reconcileColumnState,
 		visibleColumns,
 		buildTagColumn,
-		withTagColumn
+		withTagColumn,
+		type EntityColumn
 	} from './table/columns';
 	import { onMount } from 'svelte';
 	import {
 		common_all,
 		common_clearAll,
-		common_groupTotalShowing,
 		common_noEntityMatchesFilters,
 		common_ungrouped,
 		common_tableCaption,
@@ -255,6 +255,10 @@
 		if (state.columnOrder) columnOrder = state.columnOrder;
 		if (state.columnSizing) columnSizing = state.columnSizing;
 
+		// Before the restored filters are replayed to the parent, so a dropped
+		// one is simply never sent.
+		dropHiddenColumns(false);
+
 		if (state.pageSize) {
 			pageSize = state.pageSize;
 			return state.pageSize;
@@ -371,11 +375,40 @@
 	// Check if using server-side pagination
 	let useServerPagination = $derived(serverPagination !== null && onPageChange !== null);
 
+	// ---- Table columns -------------------------------------------------------
+
+	let allColumns = $derived(fieldsToColumns(fields, useServerPagination));
+	let columnState = $derived(
+		reconcileColumnState(allColumns, { visibility: columnVisibility, order: columnOrder })
+	);
+
+	/**
+	 * Tags are appended by the list itself rather than declared per tab.
+	 *
+	 * Every taggable entity gets the same editable column in the same place —
+	 * last, next to the actions — instead of each tab remembering to add one, so
+	 * a tab cannot silently end up without it. It is editable only when the
+	 * parent supplied an `entityType`, which is also how it gates permission.
+	 */
+	let tagColumn = $derived(
+		getItemTags ? buildTagColumn<T>(common_tags(), getItemTags, tagsCell) : null
+	);
+
+	let renderedColumns = $derived(withTagColumn(visibleColumns(allColumns, columnState), tagColumn));
+	let renderedColumnIds = $derived(new Set(renderedColumns.map((c) => c.id)));
+	/** The fields both views filter, sort and group by: those with a rendered column. */
+	let columnFields = $derived(renderedFields(fields, renderedColumnIds));
+	let staleAvailable = $derived(onStaleFilterChange !== null);
+	let canFilter = $derived(
+		columnFields.some((f) => f.filterable || (staleAvailable && f.staleFilter))
+	);
+
 	// Under server pagination only server-orderable fields are offered: the
 	// client holds one page, so sorting or grouping it here would describe that
-	// page alone while the pager walks the server's order.
-	let groupableFields = $derived(groupableFieldsOf(fields, useServerPagination));
-	let sortableFields = $derived(sortableFieldsOf(fields, useServerPagination));
+	// page alone while the pager walks the server's order. Either view offers
+	// only fields whose column renders: hiding a column takes its controls too.
+	let groupableFields = $derived(groupableFieldsOf(columnFields, useServerPagination));
+	let sortableFields = $derived(sortableFieldsOf(columnFields, useServerPagination));
 
 	// The group and sort actually in force. A choice restored from storage can
 	// name a field this list no longer offers, which then applies nothing rather
@@ -447,28 +480,17 @@
 		return groupPageSlice(group, serverPagination.offset, items.length);
 	}
 
-	// Toggle sort
+	/** The groups as both views render them. */
+	let groupList = $derived(
+		[...groupedItems.entries()].map(([name, groupItems]) => ({
+			name,
+			items: groupItems,
+			range: groupRange(groupItems)
+		}))
+	);
+
 	function toggleSort(fieldKey: string) {
 		sortState = nextSortState(sortState, fieldKey);
-	}
-
-	// Toggle string/array filter value
-	/** Whether the parent, not the client pass, acts on this field's filter. */
-	function isServerFiltered(fieldKey: string): boolean {
-		if (!onFilterChange) return false;
-		return fields.find((f) => getFieldKey(f) === fieldKey)?.serverFiltered === true;
-	}
-
-	function toggleStringFilter(fieldKey: string, value: string) {
-		const next = toggleValue(filterState, fieldKey, value);
-		if (!next) return;
-
-		filterState = next;
-
-		if (isServerFiltered(fieldKey)) {
-			onFilterChange!(fieldKey, Array.from(next[fieldKey].values));
-			resetToFirstPage();
-		}
 	}
 
 	/**
@@ -476,84 +498,80 @@
 	 * result set is not page 7 of the new one, and is often past its end.
 	 */
 	function resetToFirstPage() {
-		if (useServerPagination && onPageChange) {
-			onPageChange(1, pageSize);
-		} else {
-			currentPage = 1;
-		}
+		goToPage(1);
 	}
 
-	function toggleBooleanFilter(fieldKey: string, type: 'showTrue' | 'showFalse') {
-		const serverSide = isServerFiltered(fieldKey);
-		const next = toggleBoolean(filterState, fieldKey, type, serverSide);
+	const filters = createFilterActions<T>({
+		get fields() {
+			return fields;
+		},
+		get filterState() {
+			return filterState;
+		},
+		set filterState(next) {
+			filterState = next;
+		},
+		get staleOnly() {
+			return staleOnly;
+		},
+		set staleOnly(next) {
+			staleOnly = next;
+		},
+		get onFilterChange() {
+			return onFilterChange;
+		},
+		get onStaleFilterChange() {
+			return onStaleFilterChange;
+		},
+		resetToFirstPage
+	});
+
+	/**
+	 * Clear whatever hidden columns filter, sort or group by. A list only
+	 * narrows and orders by columns it renders, so hiding one takes its state
+	 * with it. `notify` is false while restoring, before anything reached the
+	 * parent; the order and tag effects pick up their own changes.
+	 */
+	function dropHiddenColumns(notify: boolean) {
+		const next = dropHiddenColumnState(
+			{ filterState, staleOnly, sortState, groupField: selectedGroupField },
+			fields,
+			renderedColumnIds
+		);
 		if (!next) return;
 
-		filterState = next.state;
+		filterState = next.filterState;
+		staleOnly = next.staleOnly;
+		sortState = next.sortState;
+		selectedGroupField = next.groupField;
 
-		if (serverSide) {
-			onFilterChange!(fieldKey, booleanFilterValues(next.showTrue, next.showFalse));
-			resetToFirstPage();
-		}
+		if (!notify) return;
+		if (next.staleCleared) onStaleFilterChange?.(null);
+		filters.notifyServerCleared(next.serverKeys);
 	}
 
-	// Toggle tag filter (uses tag ID for server-side filtering)
-	// The tag effect notifies the parent, so this only records the selection.
-	function toggleTagFilter(tagId: string) {
-		const next = toggleValue(filterState, 'tags', tagId);
-		if (next) filterState = next;
-	}
-
-	// Clear all filters (restores defaults for exclude filters)
-	function clearFilters() {
-		// No defaults: clearing clears, including a default the product chose.
-		filterState = blankFilterState(fields, false);
-
-		if (staleOnly) {
-			staleOnly = false;
-			onStaleFilterChange?.(null);
-		}
-
-		// Notify parent that server-side filters were cleared. A cleared boolean
-		// is both boxes checked, not an empty selection — an empty one would
-		// read as "show neither" to a parent that maps the values literally.
-		if (onFilterChange) {
-			fields.forEach((field) => {
-				if (field.filterable && field.serverFiltered) {
-					onFilterChange(
-						getFieldKey(field),
-						field.type === 'boolean' ? booleanFilterValues(true, true) : []
-					);
-				}
-			});
-		}
-	}
-
-	function toggleStaleFilter() {
-		staleOnly = !staleOnly;
-		// `null` rather than `false` — unchecking means "no staleness
-		// constraint", not "show me only fresh entities".
-		onStaleFilterChange?.(staleOnly ? true : null);
-	}
-
-	// Clear search
 	function clearSearch() {
 		searchQuery = '';
 	}
 
 	/**
 	 * Everything that can narrow the list, in one action — including the
-	 * server-side ones, which `clearFilters` and the search effect notify the
+	 * server-side ones, which `clearAll` and the search effect notify the
 	 * parent about. This is what the filtered-empty state offers, so a filter
 	 * that matches nothing is always reversible from where the user is looking.
 	 */
 	function clearAllNarrowing() {
-		clearFilters();
+		filters.clearAll();
 		clearSearch();
 	}
 
-	// Clear grouping
 	function clearGrouping() {
 		selectedGroupField = null;
+	}
+
+	/** A header's group button: group by this column, or ungroup if it already is. */
+	function toggleGroup(fieldKey: string) {
+		selectedGroupField = activeGroupField === fieldKey ? null : fieldKey;
 	}
 
 	// Select every rendered row — the same set `allSelected` reports on.
@@ -599,57 +617,18 @@
 		return computeCommonTags(selectedItems.map((item) => ({ tags: getItemTags!(item) })));
 	});
 
-	// Check if bulk tagging is enabled
 	let hasBulkTagging = $derived(entityType !== null && getItemTags !== null);
 
-	// Check if any filters are active
 	let hasActiveFilters = $derived(hasActiveFiltersOf(fields, filterState, staleOnly));
 
 	let hasActiveSearch = $derived(searchQuery.trim().length > 0);
 	let hasActiveGrouping = $derived(activeGroupField !== null);
 
-	// A filterable field nobody handles server-side is always a bug on a
-	// server-paginated list: the client holds one page, so filtering here
-	// narrows that page while `total_count` keeps describing the whole match
-	// set — the list reads "62 of 1550" and pages through the wrong rows. The
-	// rule is documented on `FieldConfig.serverFiltered`; this makes it fail
-	// loudly instead of silently, at the one place that sees every field's
-	// resolved config. Dev/test only, so it never reaches a user.
-	$effect(() => {
-		if (!import.meta.env.DEV) return;
-
-		const offenders = serverFilterViolations(fields, useServerPagination, {
-			tags: onTagFilterChange !== null,
-			fields: onFilterChange !== null
-		});
-		if (offenders.length === 0) return;
-
-		throw new Error(
-			`DataControls: ${offenders.join(', ')} ${offenders.length === 1 ? 'is' : 'are'} ` +
-				`filterable on a server-paginated list but filtered client-side, which narrows ` +
-				`only the loaded page while the count describes every match. Mark the field ` +
-				`serverFiltered and handle it in onFilterChange, or drop its filterable flag.`
-		);
-	});
-
-	// The same failure for ordering: a display field opted into client-side
-	// sorting or grouping would reorder or bucket only the loaded page while the
-	// pager walks the server's order. Such a field is never offered under server
-	// pagination, so the flag is dead config that reads as a promise; this makes
-	// it fail loudly. Dev/test only, so it never reaches a user.
-	$effect(() => {
-		if (!import.meta.env.DEV) return;
-
-		const offenders = serverOrderViolations(fields, useServerPagination);
-		if (offenders.length === 0) return;
-
-		throw new Error(
-			`DataControls: ${offenders.join(', ')} ${offenders.length === 1 ? 'is' : 'are'} ` +
-				`sortable or groupable client-side on a server-paginated list, which would order ` +
-				`only the loaded page. Add the field to the backend's OrderField, or drop its ` +
-				`sortable and groupable flags.`
-		);
-	});
+	guardServerPaginatedConfig(() => ({
+		fields,
+		serverPaginated: useServerPagination,
+		server: { tags: onTagFilterChange !== null, fields: onFilterChange !== null }
+	}));
 
 	// Every pagination number comes from one resolution of "who is paginating",
 	// so the count and the rows beneath it cannot fall out of step. The server's
@@ -699,26 +678,6 @@
 		}
 	}
 
-	// ---- Table columns -------------------------------------------------------
-
-	let allColumns = $derived(fieldsToColumns(fields, useServerPagination));
-	let columnState = $derived(
-		reconcileColumnState(allColumns, { visibility: columnVisibility, order: columnOrder })
-	);
-
-	/**
-	 * Tags are appended by the list itself rather than declared per tab.
-	 *
-	 * Every taggable entity gets the same editable column in the same place —
-	 * last, next to the actions — instead of each tab remembering to add one, so
-	 * a tab cannot silently end up without it. It is editable only when the
-	 * parent supplied an `entityType`, which is also how it gates permission.
-	 */
-	let tagColumn = $derived(
-		getItemTags ? buildTagColumn<T>(common_tags(), getItemTags, tagsCell) : null
-	);
-
-	let renderedColumns = $derived(withTagColumn(visibleColumns(allColumns, columnState), tagColumn));
 	let showSelection = $derived(Boolean(onBulkDelete) || hasBulkTagging);
 
 	let tableCaptionText = $derived(
@@ -731,6 +690,7 @@
 
 	function toggleColumn(id: string) {
 		columnVisibility = { ...columnState.visibility, [id]: columnState.visibility[id] === false };
+		dropHiddenColumns(true);
 	}
 
 	function reorderColumns(order: string[]) {
@@ -740,6 +700,7 @@
 	function resetColumns() {
 		columnVisibility = {};
 		columnOrder = [];
+		dropHiddenColumns(true);
 	}
 
 	// Reset to page 1 when filters/search change and current page would be out of bounds
@@ -805,57 +766,19 @@
 		}
 	});
 
-	// Pagination handlers
-	function goToPrevPage() {
-		if (page.canGoPrev) {
-			if (useServerPagination && onPageChange) {
-				onPageChange(effectiveCurrentPage - 1, pageSize);
-			} else {
-				currentPage = currentPage - 1;
-			}
+	/** Move to a page, through the parent when it paginates. */
+	function goToPage(target: number, size: PageSizeOption = pageSize) {
+		if (useServerPagination && onPageChange) {
+			onPageChange(target, size);
+		} else {
+			currentPage = target;
 		}
 	}
 
-	function goToNextPage() {
-		if (page.canGoNext) {
-			if (useServerPagination && onPageChange) {
-				onPageChange(effectiveCurrentPage + 1, pageSize);
-			} else {
-				currentPage = currentPage + 1;
-			}
-		}
-	}
-
-	// Page size change handler
 	function handlePageSizeChange(newSize: PageSizeOption) {
 		pageSize = newSize;
-		// Reset to page 1 when page size changes
-		if (useServerPagination && onPageChange) {
-			onPageChange(1, newSize);
-		} else {
-			currentPage = 1;
-		}
+		goToPage(1, newSize);
 	}
-
-	// Export button state and handler
-	let isExporting = $state(false);
-
-	async function handleExportClick() {
-		// Use onExportClick override if provided, otherwise fall back to onCsvExport
-		const handler = onExportClick ?? onCsvExport;
-		if (!handler || isExporting) return;
-
-		isExporting = true;
-		try {
-			await handler();
-		} finally {
-			isExporting = false;
-		}
-	}
-
-	// Show export button if either handler is provided
-	let hasExportHandler = $derived(onExportClick !== null || onCsvExport !== null);
-
 	// Sticky detection
 	let isStuck = $state(false);
 	let sentinelRef: HTMLDivElement | null = $state(null);
@@ -882,7 +805,7 @@
 			bind:sortState
 			bind:viewMode
 			bind:showFilters
-			{fields}
+			{canFilter}
 			{groupableFields}
 			{sortableFields}
 			{hasActiveFilters}
@@ -890,14 +813,12 @@
 			{hasActiveGrouping}
 			showSelectAll={Boolean(onBulkDelete) || hasBulkTagging}
 			{allSelected}
-			{hasExportHandler}
-			{isExporting}
 			onToggleSort={toggleSort}
 			onClearSearch={clearSearch}
 			onClearGrouping={clearGrouping}
 			onSelectAll={selectAll}
 			onSelectNone={selectNone}
-			onExport={handleExportClick}
+			onExport={onExportClick ?? onCsvExport}
 		>
 			{#snippet columnMenu()}
 				<ColumnVisibilityMenu
@@ -909,23 +830,30 @@
 					onReset={resetColumns}
 				/>
 			{/snippet}
+			{#snippet tableControls()}
+				{#if hasActiveFilters}
+					<button onclick={filters.clearAll} class="btn-secondary h-[42px] whitespace-nowrap">
+						{common_clearAll()}
+					</button>
+				{/if}
+			{/snippet}
 		</ControlsBar>
 
-		<!-- Filter Panel (inside sticky wrapper) -->
-		{#if showFilters}
+		<!-- Filter Panel (inside sticky wrapper). Table view filters from its headers. -->
+		{#if showFilters && viewMode === 'card'}
 			<FilterPanel
-				{fields}
+				fields={columnFields}
 				{filterState}
 				{allTags}
 				{staleOnly}
 				{hasActiveFilters}
-				showStaleFilter={onStaleFilterChange !== null}
+				showStaleFilter={staleAvailable}
 				{getUniqueValues}
-				onClearFilters={clearFilters}
-				onToggleBoolean={toggleBooleanFilter}
-				onToggleString={toggleStringFilter}
-				onToggleTag={toggleTagFilter}
-				onToggleStale={toggleStaleFilter}
+				onClearFilters={filters.clearAll}
+				onToggleBoolean={filters.toggleBoolean}
+				onToggleString={filters.toggleString}
+				onToggleTag={filters.toggleTag}
+				onToggleStale={filters.toggleStale}
 			/>
 		{/if}
 	</div>
@@ -958,8 +886,8 @@
 		{useServerPagination}
 		processedCount={processedItems.length}
 		itemCount={items.length}
-		onPrevPage={goToPrevPage}
-		onNextPage={goToNextPage}
+		onPrevPage={() => page.canGoPrev && goToPage(effectiveCurrentPage - 1)}
+		onNextPage={() => page.canGoNext && goToPage(effectiveCurrentPage + 1)}
 		onPageSizeChange={handlePageSizeChange}
 	/>
 
@@ -992,43 +920,13 @@
 			hasActiveGrouping ? null : paginatedItems,
 			hasActiveGrouping ? null : tableCaptionText
 		)}
-	{:else if hasActiveGrouping}
-		<!-- Grouped cards -->
-		<div class="space-y-6">
-			{#each [...groupedItems.entries()] as [groupName, groupItems] (groupName)}
-				{@const range = groupRange(groupItems)}
-				<div class="space-y-3">
-					<!-- Group Header -->
-					<div class="flex items-center gap-3">
-						<h3 class="text-primary text-lg font-semibold">{groupName}</h3>
-						<span class="text-tertiary text-sm">
-							{#if range}
-								{common_groupTotalShowing({
-									total: range.total,
-									start: range.start,
-									end: range.end
-								})}
-							{:else}
-								({groupItems.length})
-							{/if}
-						</span>
-					</div>
-
-					<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-						{#each groupItems as item (getItemId(item))}
-							{@render cardFor(item)}
-						{/each}
-					</div>
-				</div>
-			{/each}
-		</div>
 	{:else}
-		<!-- Ungrouped view (paginated) -->
-		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-			{#each paginatedItems as item (getItemId(item))}
-				{@render cardFor(item)}
-			{/each}
-		</div>
+		<CardGrid
+			items={hasActiveGrouping ? null : paginatedItems}
+			groups={hasActiveGrouping ? groupList : null}
+			{getItemId}
+			card={cardFor}
+		/>
 	{/if}
 </div>
 
@@ -1061,13 +959,7 @@
 	{@const flat = rows ?? [...groupedItems.values()].flat()}
 	<EntityTable
 		items={rows}
-		groups={rows
-			? null
-			: [...groupedItems.entries()].map(([name, groupItems]) => ({
-					name,
-					items: groupItems,
-					range: groupRange(groupItems)
-				}))}
+		groups={rows ? null : groupList}
 		columns={renderedColumns}
 		sortState={activeSort}
 		selectable={showSelection}
@@ -1080,5 +972,23 @@
 		onToggleSort={toggleSort}
 		onToggleRow={setRowSelected}
 		onToggleAll={() => toggleAllIn(flat)}
+		{headerControl}
 	/>
+{/snippet}
+
+{#snippet headerControl(column: EntityColumn<T>)}
+	{@const control = columnControls(column.id, fields, useServerPagination, staleAvailable)}
+	{#if control}
+		<ColumnControlsMenu
+			{control}
+			label={column.label}
+			{filterState}
+			{staleOnly}
+			{activeGroupField}
+			{allTags}
+			{getUniqueValues}
+			{filters}
+			onToggleGroup={toggleGroup}
+		/>
+	{/if}
 {/snippet}

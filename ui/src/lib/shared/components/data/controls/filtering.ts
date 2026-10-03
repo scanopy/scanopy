@@ -280,6 +280,16 @@ export function matchesFilters<T>(
 	});
 }
 
+/** Whether one field's filter would currently narrow the list. */
+export function isFieldFilterActive<T>(
+	field: FieldConfig<T>,
+	filter: FieldFilter | undefined
+): boolean {
+	if (!field.filterable || !filter) return false;
+	if (field.type === 'boolean') return !filter.showTrue || !filter.showFalse;
+	return filter.values.size > 0;
+}
+
 /** Whether any filter would currently narrow the list. */
 export function hasActiveFilters<T>(
 	fields: FieldConfig<T>[],
@@ -287,15 +297,5 @@ export function hasActiveFilters<T>(
 	staleOnly: boolean
 ): boolean {
 	if (staleOnly) return true;
-
-	return fields.some((field) => {
-		if (!field.filterable) return false;
-		const filter = filterState[getFieldKey(field)];
-		if (!filter) return false;
-
-		if (field.type === 'boolean') {
-			return !filter.showTrue || !filter.showFalse;
-		}
-		return filter.values.size > 0;
-	});
+	return fields.some((field) => isFieldFilterActive(field, filterState[getFieldKey(field)]));
 }
