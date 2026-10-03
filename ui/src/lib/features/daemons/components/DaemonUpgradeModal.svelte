@@ -16,8 +16,7 @@
 		detectOS,
 		daemonServiceId,
 		daemonLaunchdLabel,
-		isPreUnifiedDaemon,
-		reportedDaemonOs
+		isPreUnifiedDaemon
 	} from '../utils';
 	import { trackEvent } from '$lib/shared/utils/analytics';
 	import OsSelector from './OsSelector.svelte';
@@ -74,11 +73,11 @@
 		return Math.max(0, Math.ceil(ms / 86_400_000));
 	});
 
-	// OS selection: the OS the daemon reported, which also hides the OS picker; otherwise the user
-	// picks, starting from the OS picked at creation, then the browser's OS.
-	let reportedOS = $derived(reportedDaemonOs(daemon));
+	// OS selection: the daemon's recorded OS, reported by the daemon or picked at creation, which
+	// also hides the OS picker; with none recorded the user picks, starting from the browser's OS.
+	let recordedOS = $derived(daemon.os ?? null);
 	let pickedOS = $state<DaemonOS | null>(null);
-	let selectedOS = $derived<DaemonOS>(reportedOS ?? pickedOS ?? daemon.os ?? detectOS());
+	let selectedOS = $derived<DaemonOS>(recordedOS ?? pickedOS ?? detectOS());
 
 	type LinuxMethod = 'binary' | 'docker';
 	let linuxMethod: LinuxMethod = $state('binary');
@@ -164,7 +163,7 @@ docker compose up -d`;
 				<OsSelector
 					{selectedOS}
 					onOsSelect={handleOsSelect}
-					showOs={!reportedOS}
+					showOs={!recordedOS}
 					{linuxMethod}
 					onLinuxMethodChange={(method) => (linuxMethod = method)}
 				>
