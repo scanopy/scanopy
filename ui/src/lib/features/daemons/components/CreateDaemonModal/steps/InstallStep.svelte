@@ -7,7 +7,7 @@
 	import TroubleshootingChecklist from './TroubleshootingChecklist.svelte';
 	import { useConfigQuery } from '$lib/shared/stores/config-query';
 	import { downloadDaemonMsi, type DaemonOS } from '../../../utils';
-	import { osInstallCommand, type InstallArtifacts } from '../../../types/base';
+	import type { InstallArtifacts } from '../../../types/base';
 	import type { DaemonMode } from '../../../types/base';
 	import { trackEvent } from '$lib/shared/utils/analytics';
 	import { useTestReachabilityMutation, useRetryDaemonConnectionMutation } from '../../../queries';
@@ -61,7 +61,8 @@
 		onLinuxMethodChange?: (method: LinuxMethod) => void;
 		windowsMethod?: WindowsMethod;
 		onWindowsMethodChange?: (method: WindowsMethod) => void;
-		runCommand: string;
+		/** The server's install command for the selected OS and method, key filled. */
+		command: string;
 		/** Server-assembled install artifacts (single source of truth), key already filled. */
 		artifacts?: InstallArtifacts | null;
 		hasErrors: boolean;
@@ -88,7 +89,7 @@
 		onLinuxMethodChange,
 		windowsMethod = 'exe',
 		onWindowsMethodChange,
-		runCommand,
+		command,
 		artifacts = null,
 		hasErrors,
 		isFirstDaemon = false,
@@ -115,23 +116,6 @@
 	// Windows exe/msi toggle. Nothing else is removed; this just stops OsSelector from
 	// rendering the toggle, so windowsMethod stays 'exe' and the MSI download UI is unreachable.
 	const WINDOWS_MSI_ENABLED = false;
-
-	const windowsDownloadUrl =
-		'https://github.com/scanopy/scanopy/releases/latest/download/scanopy-daemon-windows-amd64.exe';
-	const windowsInstallCommand = `Invoke-WebRequest -Uri "${windowsDownloadUrl}" -OutFile "scanopy-daemon-windows-amd64.exe"`;
-	const installScript = `bash -c "$(curl -fsSL https://raw.githubusercontent.com/scanopy/scanopy/refs/heads/main/install.sh)"`;
-
-	// Combined install commands — prefer the server-assembled command for the platform
-	// (single source of truth), falling back to the client-built one.
-	let dockerCompose = $derived(artifacts?.docker.compose ?? '');
-	let combinedLinuxMacCommand = $derived(
-		(artifacts ? osInstallCommand(artifacts, selectedOS) : '') ||
-			`${installScript} && ${runCommand}`
-	);
-	let combinedWindowsCommand = $derived(
-		(artifacts ? osInstallCommand(artifacts, 'windows') : '') ||
-			`${windowsInstallCommand}; ${runCommand}`
-	);
 
 	// ServerPoll health check
 	const healthCheckMutation = useTestReachabilityMutation();
@@ -423,11 +407,11 @@
 							language="bash"
 							expandable={false}
 							maxHeight=""
-							code={combinedLinuxMacCommand}
+							code={command}
 							onCopy={() => handleCopy('combined-install')}
 							preventSelect={true}
 						/>
-					{:else if linuxMethod === 'docker' && dockerCompose}
+					{:else if linuxMethod === 'docker'}
 						<DocsHint
 							text={daemons_docsMacvlan()}
 							href="https://scanopy.net/docs/guides/macvlan-setup/"
@@ -437,7 +421,7 @@
 							language="yaml"
 							expandable={false}
 							maxHeight=""
-							code={dockerCompose}
+							code={command}
 							onCopy={() => handleCopy('docker-compose')}
 							preventSelect={true}
 						/>
@@ -450,7 +434,7 @@
 						language="bash"
 						expandable={false}
 						maxHeight=""
-						code={combinedLinuxMacCommand}
+						code={command}
 						onCopy={() => handleCopy('combined-install')}
 						preventSelect={true}
 					/>
@@ -468,7 +452,7 @@
 							language="powershell"
 							expandable={false}
 							maxHeight=""
-							code={combinedWindowsCommand}
+							code={command}
 							onCopy={() => handleCopy('combined-install')}
 							preventSelect={true}
 						/>
@@ -511,7 +495,7 @@
 						language="bash"
 						expandable={false}
 						maxHeight=""
-						code={combinedLinuxMacCommand}
+						code={command}
 						onCopy={() => handleCopy('combined-install')}
 						preventSelect={true}
 					/>

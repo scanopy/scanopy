@@ -2881,7 +2881,7 @@
           "Daemons"
         ],
         "summary": "Generate daemon install command",
-        "description": "A pure, idempotent builder — it never mints or persists anything. The api key in an `install`\ncommand is a placeholder (`<API_KEY>`) the caller substitutes from the plaintext it holds; a\n`reconfigure` command carries no key at all. Minting is a separate mutation\n(`POST /provision`), so regenerating a command here (advanced-setting change, OS switch, the\nDetails reconfigure view) never rotates the daemon's key.\n\nThe server derives the exact command shape from the record: DaemonPoll vs ServerPoll for the\nflags, and — for `install` — whether the daemon has checked in (`last_seen`) to decide between\na first-install and a minimal re-key command.",
+        "description": "A pure, idempotent builder — it never mints or persists anything. The api key in an `install`\nor `rekey` command is a placeholder (`<API_KEY>`) the caller substitutes from the plaintext it holds; a\n`reconfigure` command carries no key at all. Minting is a separate mutation\n(`POST /provision`), so regenerating a command here (advanced-setting change, OS switch, the\nDetails reconfigure view) never rotates the daemon's key.\n\nThe server derives the exact command shape from the record: DaemonPoll vs ServerPoll for the\nflags, and — for `rekey` — whether the daemon has checked in (`last_seen`) to decide whether\nthe command names the existing install it re-keys. An `install` command reads the same before\nand after the daemon's first handshake.",
         "operationId": "get_daemon_install_command",
         "parameters": [
           {
@@ -2897,7 +2897,7 @@
           {
             "name": "purpose",
             "in": "query",
-            "description": "`install` (with the api-key placeholder) or `reconfigure` (credential-free).",
+            "description": "`install` or `rekey` (with the api-key placeholder), or `reconfigure` (credential-free).",
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/InstallCommandType"
@@ -12675,19 +12675,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-02T22:51:07.664696Z",
+              "created_at": "2026-10-03T00:49:08.374347Z",
               "first_discovery_id": null,
-              "id": "38956561-61b3-4ffc-b07f-2674cec72e07",
+              "id": "ccd98601-85cd-4f4b-bbe4-557075109a35",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-02T22:51:07.664696Z",
+              "last_seen_at": "2026-10-03T00:49:08.374347Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-02T22:51:07.664696Z",
-              "valid_from": "2026-10-02T22:51:07.664696Z",
+              "updated_at": "2026-10-03T00:49:08.374347Z",
+              "valid_from": "2026-10-03T00:49:08.374347Z",
               "valid_to": null
             }
           },
@@ -14284,19 +14284,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-02T22:51:07.649623Z",
+                      "created_at": "2026-10-03T00:49:08.359251Z",
                       "first_discovery_id": null,
-                      "id": "7e6cb9d2-f2a5-495b-9f15-580b4732113e",
+                      "id": "6c5814f3-0420-4f4d-b016-ac8573c32b85",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-02T22:51:07.649623Z",
+                      "last_seen_at": "2026-10-03T00:49:08.359251Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-02T22:51:07.649623Z",
-                      "valid_from": "2026-10-02T22:51:07.649623Z",
+                      "updated_at": "2026-10-03T00:49:08.359251Z",
+                      "valid_from": "2026-10-03T00:49:08.359251Z",
                       "valid_to": null
                     }
                   ],
@@ -14310,7 +14310,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Prometheus",
+                  "service_definition": "H.323 Gateway",
                   "source": {
                     "type": "Manual"
                   },
@@ -15708,19 +15708,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-02T22:51:07.661084Z",
+                  "created_at": "2026-10-03T00:49:08.370781Z",
                   "first_discovery_id": null,
-                  "id": "b64e32d0-2ec9-4f74-b069-b9f72f1fc826",
+                  "id": "714ce7ba-5563-43ec-9158-a5b0c1fe162c",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-02T22:51:07.661084Z",
+                  "last_seen_at": "2026-10-03T00:49:08.370781Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-02T22:51:07.661084Z",
-                  "valid_from": "2026-10-02T22:51:07.661084Z",
+                  "updated_at": "2026-10-03T00:49:08.370781Z",
+                  "valid_from": "2026-10-03T00:49:08.370781Z",
                   "valid_to": null
                 }
               ],
@@ -15734,7 +15734,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Prometheus",
+              "service_definition": "H.323 Gateway",
               "source": {
                 "type": "Manual"
               },
@@ -18153,19 +18153,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-02T22:51:07.650013Z",
+          "created_at": "2026-10-03T00:49:08.359646Z",
           "first_discovery_id": null,
-          "id": "fa4bb897-fc20-460e-91a0-d28a1ccf5a0d",
+          "id": "7a402cc5-ef2c-4cfe-b107-8173f5dfb8a4",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-02T22:51:07.650013Z",
+          "last_seen_at": "2026-10-03T00:49:08.359646Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-02T22:51:07.650013Z",
-          "valid_from": "2026-10-02T22:51:07.650013Z",
+          "updated_at": "2026-10-03T00:49:08.359646Z",
+          "valid_from": "2026-10-03T00:49:08.359646Z",
           "valid_to": null
         }
       },
@@ -18881,7 +18881,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Prometheus",
+              "service_definition": "H.323 Gateway",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -25159,19 +25159,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-02T22:51:07.649189Z",
+                  "created_at": "2026-10-03T00:49:08.358820Z",
                   "first_discovery_id": null,
-                  "id": "7beeee70-b772-4ed9-9165-76d7266cd57b",
+                  "id": "73f3464d-c9c6-416d-8215-d01181816ddd",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-02T22:51:07.649189Z",
+                  "last_seen_at": "2026-10-03T00:49:08.358820Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-02T22:51:07.649189Z",
-                  "valid_from": "2026-10-02T22:51:07.649189Z",
+                  "updated_at": "2026-10-03T00:49:08.358820Z",
+                  "valid_from": "2026-10-03T00:49:08.358820Z",
                   "valid_to": null
                 }
               ],
@@ -25185,7 +25185,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Prometheus",
+              "service_definition": "H.323 Gateway",
               "source": {
                 "type": "Manual"
               },
@@ -25878,9 +25878,10 @@
       },
       "InstallCommandType": {
         "type": "string",
-        "description": "What the caller wants the command to do — the one axis that actually varies.\n\n`install` brings a daemon up (or re-keys a legacy one): it carries the api-key placeholder,\nfetches the binary, and spells out the connectivity + advanced config. `reconfigure` adjusts\nan already-installed daemon in place: no key, no fetch, just the server-held connectivity —\n`scanopy-daemon install` layers it over the existing `config.json`. There is no third case:\nre-asserting the record's (correct) values on an installed daemon is harmless, so a first\ninstall and a re-key are the same command.",
+        "description": "What the caller wants the command to do — the one axis that actually varies.\n\n`install` brings a new daemon up: it carries the api-key placeholder, fetches the binary, and\nspells out the connectivity + advanced config, and nothing else. `rekey` is the same command\nfor a daemon that already exists on a host (a legacy daemon getting its first bound key), so\nonce that daemon has connected it also names the install to act on. `reconfigure` adjusts an\nalready-installed daemon in place: no key, no fetch, just the server-held connectivity —\n`scanopy-daemon install` layers it over the existing `config.json`.\n\n`install` and `rekey` are separate because the record can't tell them apart: a daemon created\nin the wizard has `last_seen` set as soon as it connects, and the wizard refetches its command\nafter that, which must not change shape.",
         "enum": [
           "install",
+          "rekey",
           "reconfigure"
         ]
       },
@@ -28900,19 +28901,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-02T22:51:07.642962Z",
+                        "created_at": "2026-10-03T00:49:08.352341Z",
                         "first_discovery_id": null,
-                        "id": "2b53174f-2362-404d-aecc-03c007a84f6f",
+                        "id": "952c1882-baaf-4113-85bf-6d18584e65f4",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-02T22:51:07.642962Z",
+                        "last_seen_at": "2026-10-03T00:49:08.352341Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-02T22:51:07.642962Z",
-                        "valid_from": "2026-10-02T22:51:07.642962Z",
+                        "updated_at": "2026-10-03T00:49:08.352341Z",
+                        "valid_from": "2026-10-03T00:49:08.352341Z",
                         "valid_to": null
                       }
                     ],
@@ -28926,7 +28927,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Prometheus",
+                    "service_definition": "H.323 Gateway",
                     "source": {
                       "type": "Manual"
                     },
@@ -29069,19 +29070,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-02T22:51:07.660419Z",
+                    "created_at": "2026-10-03T00:49:08.370130Z",
                     "first_discovery_id": null,
-                    "id": "8d0673bb-91d6-4004-befb-ab6c991056a5",
+                    "id": "21f2d350-f7f8-4944-aab7-181abf6c45cc",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-02T22:51:07.660419Z",
+                    "last_seen_at": "2026-10-03T00:49:08.370130Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-02T22:51:07.660419Z",
-                    "valid_from": "2026-10-02T22:51:07.660419Z",
+                    "updated_at": "2026-10-03T00:49:08.370130Z",
+                    "valid_from": "2026-10-03T00:49:08.370130Z",
                     "valid_to": null
                   }
                 ],
@@ -29095,7 +29096,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Prometheus",
+                "service_definition": "H.323 Gateway",
                 "source": {
                   "type": "Manual"
                 },
@@ -31307,19 +31308,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-02T22:51:07.649900Z",
+              "created_at": "2026-10-03T00:49:08.359529Z",
               "first_discovery_id": null,
-              "id": "8d9d4070-225f-403a-86eb-a847d3ccdf28",
+              "id": "045611c8-dd98-4911-8d96-1e8f5f5b3ecd",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-02T22:51:07.649900Z",
+              "last_seen_at": "2026-10-03T00:49:08.359529Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-02T22:51:07.649900Z",
-              "valid_from": "2026-10-02T22:51:07.649900Z",
+              "updated_at": "2026-10-03T00:49:08.359529Z",
+              "valid_from": "2026-10-03T00:49:08.359529Z",
               "valid_to": null
             }
           ],
@@ -31333,7 +31334,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Prometheus",
+          "service_definition": "H.323 Gateway",
           "source": {
             "type": "Manual"
           },
@@ -32777,7 +32778,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "1a00f51a-6e7d-49b0-8e3a-3bd8cc5ee7dd",
+                  "id": "7d453700-594f-46d6-9fa4-108d91c95007",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -32787,23 +32788,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "85eabdbc-caa0-4071-a5e1-4352a6d6c8d6",
+                  "id": "a334e1bd-9b39-41f3-a3cb-75391e444dd7",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "a09a196f-d910-4488-8f72-c013059e624c",
+                  "id": "b7c7bda0-f2ca-4ff7-b7f1-59bf637cc623",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "17adf509-cbb4-4b30-9669-4bd48132a415",
+                  "id": "f9d0788a-183b-4c89-90a5-0c8a3187d1fe",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "85eabdbc-caa0-4071-a5e1-4352a6d6c8d6",
+                  "id": "a334e1bd-9b39-41f3-a3cb-75391e444dd7",
                   "rule": "ByHost"
                 }
               ]
@@ -32833,19 +32834,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "d2e18f7e-28b1-435f-8267-f5b5cf3ecbd2",
+                "id": "b1a8e573-ac93-46b7-9de8-f75401ba3f18",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "24880840-5beb-418b-a6f0-fb451c703e91",
+                "id": "672c8400-5045-4c51-8460-46bf20323692",
                 "rule": "ByVLAN"
               },
               {
-                "id": "b5a240b5-b8d1-49bf-9c8f-74b37c431829",
+                "id": "ebe81bc6-6411-4da1-8361-8c06186d970e",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "f42f6869-df56-4303-ae44-92cf61730749",
+                "id": "a58fc817-82a5-4792-a7c2-bbf6ce0f929f",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -32863,7 +32864,7 @@
                 }
               },
               {
-                "id": "74a11185-977f-4bf2-ac9b-b2abc32e37c9",
+                "id": "b5309000-0131-49ea-a2ac-23ab3dd390c9",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -32872,15 +32873,15 @@
                 }
               },
               {
-                "id": "231b3070-bec4-481f-a151-53cbd28cea33",
+                "id": "6b40bf8a-d66b-47e8-9b25-6b73f60e965c",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "234deb75-82ac-46e6-83ee-76f4454af5a7",
+                "id": "86b47b44-4e77-4077-9beb-10ef545a2501",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "77832acc-6622-45f7-aab7-268627a5d814",
+                "id": "a46ae6d3-4dff-4d9d-93ac-1c8e42fed228",
                 "rule": "ByStack"
               }
             ]

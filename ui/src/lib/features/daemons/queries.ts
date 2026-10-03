@@ -49,7 +49,9 @@ export function useDaemonQuery(id: () => string | null, options?: { enabled?: ()
 
 /**
  * Query hook for a daemon's install command — the pure, idempotent builder. `purpose: 'install'`
- * returns a command with an `<API_KEY>` placeholder to fill in; `purpose: 'reconfigure'` returns
+ * (a new daemon) and `purpose: 'rekey'` (an existing install getting a new key, which names that
+ * install once it has connected) return a command with an `<API_KEY>` placeholder to fill in;
+ * `purpose: 'reconfigure'` returns
  * a credential-free command that re-asserts the server-held connectivity config. Never mints.
  */
 export type InstallCommandParams = NonNullable<
