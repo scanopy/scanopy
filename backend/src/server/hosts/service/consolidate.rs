@@ -207,6 +207,13 @@ impl HostService {
             has_updates = true;
         }
 
+        if existing_host
+            .base
+            .fill_virtualization_from(&new_host_data.base)
+        {
+            has_updates = true;
+        }
+
         // EntitySource merge: previously concatenated discovery metadata vecs
         // here. With the metadata field removed, source is just the variant
         // discriminant — propagate the new value if it's Discovery, else keep

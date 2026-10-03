@@ -48,6 +48,32 @@ pub struct ProxmoxVirtualization {
     pub vm_name: Option<String>,
     /// Proxmox VMID of the guest.
     pub vm_id: Option<String>,
+    /// Whether the guest is a QEMU virtual machine or an LXC container. `None` when the guest was
+    /// assigned by hand or recorded before the Proxmox integration reported it.
+    #[serde(default)]
+    pub guest_type: Option<ProxmoxGuestType>,
+}
+
+/// The two kinds of guest a Proxmox VE node runs. Both are hosts with their own addresses, so
+/// both hang off the node's Proxmox VE service the same way.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Serialize,
+    Deserialize,
+    IntoStaticStr,
+    VariantNames,
+    ToSchema,
+)]
+pub enum ProxmoxGuestType {
+    /// A QEMU/KVM virtual machine.
+    Qemu,
+    /// An LXC system container.
+    Lxc,
 }
 
 #[derive(Debug, Clone, Serialize, Validate, Deserialize, PartialEq, Eq, Hash, ToSchema)]
@@ -97,7 +123,7 @@ impl TypeMetadataProvider for HostVirtualization {
 
     fn description(&self) -> &'static str {
         match self {
-            Self::Proxmox(_) => "A host running as a Proxmox VM",
+            Self::Proxmox(_) => "A host running as a Proxmox VM or LXC container",
             Self::VCenter(_) => "A host running as a vCenter-managed VM",
             Self::ESXi(_) => "A host running as an ESXi VM",
         }

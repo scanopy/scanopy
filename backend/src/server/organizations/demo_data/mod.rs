@@ -36,7 +36,7 @@ use crate::server::{
         base::{Host, HostBase},
         name::{HostName, HostNameSources},
         os::{HostOs, HostOsFamily},
-        virtualization::{HostVirtualization, ProxmoxVirtualization},
+        virtualization::{HostVirtualization, ProxmoxGuestType, ProxmoxVirtualization},
     },
     interfaces::r#impl::base::{IfAdminStatus, IfOperStatus, Interface, InterfaceBase},
     ip_addresses::r#impl::base::{IPAddress, IPAddressBase},
@@ -483,6 +483,20 @@ fn with_mac((host, mut ip_address): (Host, IPAddress), mac: [u8; 6]) -> (Host, I
 /// the name it was built with, when there is one, and otherwise its address.
 fn unnamed((mut host, ip_address): (Host, IPAddress)) -> (Host, IPAddress) {
     host.base.name = HostName::unnamed();
+    (host, ip_address)
+}
+
+/// Wraps a `create_host()` result for a Proxmox guest to read as the Proxmox VE integration records
+/// it: discovered, and titled by the name a person gave the guest in Proxmox.
+fn reported_by_proxmox((mut host, ip_address): (Host, IPAddress)) -> (Host, IPAddress) {
+    host.base.source = EntitySource::Discovery;
+    if let Some(HostVirtualization::Proxmox(ProxmoxVirtualization {
+        vm_name: Some(vm_name),
+        ..
+    })) = &host.base.virtualization_metadata
+    {
+        host.base.name = HostName::from_controller(vm_name.clone(), ClientProbe::Proxmox);
+    }
     (host, ip_address)
 }
 

@@ -1389,7 +1389,7 @@ impl DiscoveryOps {
                 Ok(response)
             }
             DaemonMode::ServerPoll => {
-                let actual_host = self
+                let confirmed = self
                     .entity_buffer
                     .await_host(&pending_id, SERVER_POLL_CONFIRMATION_TIMEOUT, cancel)
                     .await
@@ -1401,12 +1401,14 @@ impl DiscoveryOps {
                         }
                     })?;
 
+                // The confirmed children, not `request.*`: the server remaps services and
+                // addresses onto existing rows, and DaemonPoll hands those real ids back too.
                 Ok(HostResponse::from_host_with_children(
-                    actual_host,
-                    request.ip_addresses,
-                    request.ports,
-                    request.services,
-                    request.interfaces,
+                    confirmed.host,
+                    confirmed.ip_addresses,
+                    confirmed.ports,
+                    confirmed.services,
+                    confirmed.interfaces,
                 ))
             }
         }

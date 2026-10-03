@@ -290,6 +290,7 @@ impl HostBase {
     pub fn apply_attributes_from(&mut self, incoming: &HostBase) -> bool {
         let HostBase {
             // Not attributes: owned by the naming ladder, by the user, or by the row itself.
+            // Virtualization has its own fill-when-empty entry point below.
             name: _,
             network_id: _,
             description: _,
@@ -347,6 +348,35 @@ impl HostBase {
             os,
         );
         changed
+    }
+
+    /// Take the incoming hypervisor link when this host has none, returning whether it changed.
+    ///
+    /// Fill-when-empty rather than rank-merged: the owner carries no provenance, and a hypervisor
+    /// assigned through the UI must survive every rescan. When the incoming report names the
+    /// owner the host already has, its metadata refreshes (a renamed guest); when it names a
+    /// different one, nothing moves, so the owner and its metadata never describe different
+    /// hypervisors.
+    pub fn fill_virtualization_from(&mut self, incoming: &HostBase) -> bool {
+        let Some(incoming_owner) = incoming.virtualization_service_id else {
+            return false;
+        };
+        match self.virtualization_service_id {
+            None => {
+                self.virtualization_service_id = Some(incoming_owner);
+                self.virtualization_metadata = incoming.virtualization_metadata.clone();
+                true
+            }
+            Some(owner)
+                if owner == incoming_owner
+                    && incoming.virtualization_metadata.is_some()
+                    && self.virtualization_metadata != incoming.virtualization_metadata =>
+            {
+                self.virtualization_metadata = incoming.virtualization_metadata.clone();
+                true
+            }
+            Some(_) => false,
+        }
     }
 
     /// Name an OS from the SNMP system strings this payload carries, matched against Recog.
@@ -770,5 +800,60 @@ mod tests {
 
         assert!(!existing.apply_attributes_from(&incoming));
         assert!(!existing.apply_attributes_from(&HostBase::default()));
+    }
+
+    fn proxmox_guest(owner: Option<Uuid>, vm_name: &str) -> HostBase {
+        use crate::server::hosts::r#impl::virtualization::{
+            HostVirtualization, ProxmoxGuestType, ProxmoxVirtualization,
+        };
+        HostBase {
+            virtualization_service_id: owner,
+            virtualization_metadata: owner.map(|_| {
+                HostVirtualization::Proxmox(ProxmoxVirtualization {
+                    vm_name: Some(vm_name.to_string()),
+                    vm_id: Some("100".to_string()),
+                    guest_type: Some(ProxmoxGuestType::Qemu),
+                })
+            }),
+            ..Default::default()
+        }
+    }
+
+    /// An integration links a guest it finds already on file, a renamed guest's metadata follows,
+    /// and a hypervisor someone else assigned is never moved.
+    #[test]
+    fn virtualization_fills_when_empty_and_never_moves_an_owner() {
+        let node = Uuid::new_v4();
+        let other = Uuid::new_v4();
+
+        // A plain scan found the VM first; Proxmox then names its node.
+        let mut existing = HostBase::default();
+        assert!(existing.fill_virtualization_from(&proxmox_guest(Some(node), "gitlab")));
+        assert_eq!(existing.virtualization_service_id, Some(node));
+
+        // Same node, guest renamed in Proxmox: the metadata refreshes.
+        assert!(existing.fill_virtualization_from(&proxmox_guest(Some(node), "gitlab-2")));
+        assert_eq!(
+            existing.virtualization_metadata,
+            proxmox_guest(Some(node), "gitlab-2").virtualization_metadata
+        );
+        assert!(!existing.fill_virtualization_from(&proxmox_guest(Some(node), "gitlab-2")));
+
+        // A different owner (a hand assignment, or a report naming another node) leaves both
+        // the owner and its metadata alone.
+        let before = existing.clone();
+        assert!(!existing.fill_virtualization_from(&proxmox_guest(Some(other), "elsewhere")));
+        assert_eq!(
+            existing.virtualization_service_id,
+            before.virtualization_service_id
+        );
+        assert_eq!(
+            existing.virtualization_metadata,
+            before.virtualization_metadata
+        );
+
+        // A report that names no owner (any non-Proxmox scan) changes nothing.
+        assert!(!existing.fill_virtualization_from(&HostBase::default()));
+        assert_eq!(existing.virtualization_service_id, Some(node));
     }
 }

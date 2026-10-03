@@ -1,0 +1,64 @@
+{
+  "data": [
+    {
+      "diskread": 269804642,
+      "mem": 410218496,
+      "name": "scanopy-wol-target",
+      "node": "pve",
+      "maxdisk": 3221225472,
+      "maxcpu": 1,
+      "netout": 242356,
+      "diskwrite": 213291520,
+      "maxmem": 1073741824,
+      "status": "running",
+      "netin": 41234665,
+      "cpu": 0.00195762871800272,
+      "template": 0,
+      "disk": 0,
+      "uptime": 91716,
+      "type": "qemu",
+      "vmid": 110,
+      "id": "qemu/110"
+    },
+    {
+      "diskwrite": 0,
+      "netout": 0,
+      "maxcpu": 1,
+      "maxdisk": 3221225472,
+      "mem": 0,
+      "name": "scanopy-lab-debian12",
+      "node": "pve",
+      "diskread": 0,
+      "id": "qemu/9000",
+      "vmid": 9000,
+      "type": "qemu",
+      "template": 1,
+      "cpu": 0,
+      "uptime": 0,
+      "disk": 0,
+      "maxmem": 1073741824,
+      "netin": 0,
+      "status": "stopped"
+    },
+    {
+      "node": "pve",
+      "status": "online",
+      "type": "node",
+      "id": "node/pve",
+      "cgroup-mode": 2,
+      "level": ""
+    },
+    {
+      "plugintype": "lvmthin",
+      "disk": 60750187567,
+      "node": "pve",
+      "content": "images,rootdir",
+      "status": "available",
+      "shared": 0,
+      "id": "storage/pve/local-lvm",
+      "storage": "local-lvm",
+      "type": "storage",
+      "maxdisk": 374538764288
+    }
+  ]
+}

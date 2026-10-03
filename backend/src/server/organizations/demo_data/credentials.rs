@@ -188,6 +188,16 @@ pub(super) fn generate_credentials(organization_id: Uuid, now: DateTime<Utc>) ->
             },
         ),
         credential(
+            "Proxmox Cluster API",
+            "Read-only API token (PVEAuditor) for the HQ Proxmox cluster. Either node reports both.",
+            None,
+            CredentialType::ProxmoxApiToken {
+                port: 8006,
+                token_id: "scanopy@pve!discovery".to_string(),
+                token_secret: inline("3f9c2a7e-5b1d-4c8e-9a6f-2d7b8e1c4a90"),
+            },
+        ),
+        credential(
             "Backup NAS Wake",
             "Wakes the backup NAS, which sleeps between weekly backup windows.",
             None,

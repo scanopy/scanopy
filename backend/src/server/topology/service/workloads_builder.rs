@@ -752,6 +752,7 @@ mod tests {
                 virtualization_metadata: Some(HostVirtualization::Proxmox(ProxmoxVirtualization {
                     vm_name: Some(name.to_string()),
                     vm_id: None,
+                    guest_type: None,
                 })),
                 virtualization_service_id: Some(proxmox_service_id),
                 ..Default::default()

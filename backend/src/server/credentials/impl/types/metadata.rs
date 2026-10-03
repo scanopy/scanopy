@@ -16,8 +16,8 @@ use crate::server::{
 
 use super::{
     CredentialType, CredentialTypeDiscriminants, OsFamily, ScriptSource, SecretValue,
-    default_docker_port, default_gnmi_port, default_ssh_port, default_ssh_timeout_seconds,
-    default_unifi_port, default_unifi_site, default_wake_on_lan_port,
+    default_docker_port, default_gnmi_port, default_proxmox_port, default_ssh_port,
+    default_ssh_timeout_seconds, default_unifi_port, default_unifi_site, default_wake_on_lan_port,
     default_wake_on_lan_wait_seconds,
 };
 
@@ -221,6 +221,13 @@ impl CredentialTypeDiscriminants {
                 broadcast_address: None,
                 secure_on_password: None,
             },
+            Self::ProxmoxApiToken => CredentialType::ProxmoxApiToken {
+                port: default_proxmox_port(),
+                token_id: String::new(),
+                token_secret: SecretValue::Inline {
+                    value: SecretString::from(String::new()),
+                },
+            },
         }
     }
 
@@ -240,7 +247,9 @@ impl CredentialTypeDiscriminants {
             // Standard protocols: SSH (RFC 4253) and the AMD Magic Packet format.
             | Self::SshPassword
             | Self::SshKey
-            | Self::WakeOnLan => UpstreamSupport::Vendor,
+            | Self::WakeOnLan
+            // The Proxmox VE API is documented (pve.proxmox.com/pve-docs/api-viewer).
+            | Self::ProxmoxApiToken => UpstreamSupport::Vendor,
             // Both UniFi transports read `/proxy/network/api/s/<site>/stat/device`, the legacy
             // Network API, not Ubiquiti's documented Integration API (`.../integration/v1/...`,
             // added with v9 API keys). Undocumented regardless of which transport authenticates.
@@ -285,6 +294,7 @@ impl CredentialTypeDiscriminants {
             Self::SshPassword => "SSH Password",
             Self::SshKey => "SSH Key",
             Self::WakeOnLan => "Wake-on-LAN",
+            Self::ProxmoxApiToken => "Proxmox VE API Token",
         }
     }
 
@@ -318,6 +328,7 @@ impl CredentialTypeDiscriminants {
             Self::WakeOnLan => {
                 "Sends a magic packet over UDP. The daemon must be on the host's network segment, or the router must forward directed broadcasts or relay the packet."
             }
+            Self::ProxmoxApiToken => "Connects to a node's API over HTTPS with an API token.",
         }
     }
 
@@ -336,6 +347,7 @@ impl CredentialTypeDiscriminants {
             Self::SshPassword => "Password",
             Self::SshKey => "Key",
             Self::WakeOnLan => "Magic Packet",
+            Self::ProxmoxApiToken => "API Token",
         }
     }
 
@@ -387,6 +399,9 @@ impl CredentialTypeDiscriminants {
             // SSH and Wake-on-LAN ship in 0.17.19. Daemons from 0.17.3 would parse them to
             // `Unknown` and skip them; the floor keeps them off older daemons entirely.
             Self::SshPassword | Self::SshKey | Self::WakeOnLan => semver::Version::new(0, 17, 19),
+            // Proxmox ships in 0.17.21. That daemon is also the first whose ServerPoll
+            // `create_host` returns the server's child ids, which guest linking depends on.
+            Self::ProxmoxApiToken => semver::Version::new(0, 17, 21),
         }
     }
 
@@ -414,6 +429,9 @@ impl CredentialTypeDiscriminants {
             Self::InstantOnAccount => CredentialStability::Beta,
             // New; the script contract and host-key handling may still move.
             Self::SshPassword | Self::SshKey | Self::WakeOnLan => CredentialStability::Beta,
+            // New; validated against one single-node PVE 8.4 lab. Multi-node clusters and PVE 9
+            // are covered by the API's documented shape, not yet by a live cluster.
+            Self::ProxmoxApiToken => CredentialStability::Beta,
         }
     }
 
