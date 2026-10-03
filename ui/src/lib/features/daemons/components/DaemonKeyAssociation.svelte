@@ -69,7 +69,7 @@
 
 	const installCommandQuery = useDaemonInstallCommandQuery(
 		() => daemon.id,
-		() => ({ purpose: 'install' }),
+		() => ({ purpose: 'rekey' }),
 		{ enabled: () => mintedKey != null }
 	);
 

@@ -21,7 +21,7 @@
 	} from 'lucide-svelte';
 	import confetti from 'canvas-confetti';
 	import type { DaemonMode } from '../../types/base';
-	import { fillInstallArtifactsKey, osInstallCommand } from '../../types/base';
+	import { fillInstallArtifactsKey, installStepCommand } from '../../types/base';
 	import {
 		useProvisionDaemonMutation,
 		useDaemonQuery,
@@ -30,14 +30,12 @@
 		type InstallCommandParams
 	} from '../../queries';
 	import { useConfigQuery, isCloud } from '$lib/shared/stores/config-query';
-	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
 	import { useTestReachabilityMutation } from '../../queries';
 	import { getVisibleFieldIds } from '../../config';
 	import {
 		buildDefaultValues,
 		buildInstallConfig,
-		buildRunCommand,
 		constructDaemonUrl,
 		detectOS,
 		slugifyNetworkName,
@@ -95,15 +93,12 @@
 
 	// Queries & mutations
 	const configQuery = useConfigQuery();
-	const currentUserQuery = useCurrentUserQuery();
 	const organizationQuery = useOrganizationQuery();
 	const provisionDaemonMutation = useProvisionDaemonMutation();
 	const credentialsQuery = useCredentialsQuery();
 
 	// Derived data
-	let serverUrl = $derived(configQuery.data?.public_url ?? '');
 	let isCloudDeployment = $derived(configQuery.data ? isCloud(configQuery.data) : false);
-	let currentUserId = $derived(currentUserQuery.data?.id ?? null);
 	let org = $derived(organizationQuery.data);
 	let isFirstDaemon = $derived(!org?.onboarding?.includes('FirstDaemonRegistered'));
 	// Snapshot: tracks whether wizard was opened as first-daemon flow.
@@ -113,22 +108,6 @@
 	// Email install command
 	let hasEmail = $derived(configQuery.data?.has_email_service ?? false);
 	const emailInstallMutation = useEmailInstallCommandMutation();
-	const installScript = `bash -c "$(curl -fsSL https://raw.githubusercontent.com/scanopy/scanopy/refs/heads/main/install.sh)"`;
-	const windowsDownloadUrl =
-		'https://github.com/scanopy/scanopy/releases/latest/download/scanopy-daemon-windows-amd64.exe';
-	let currentInstallCommand = $derived.by(() => {
-		// Prefer the server-assembled artifact for this method (single source of truth).
-		const serverCmd =
-			installArtifacts &&
-			(selectedOS === 'linux' && linuxMethod === 'docker'
-				? (installArtifacts.docker.compose ?? undefined)
-				: osInstallCommand(installArtifacts, selectedOS));
-		if (serverCmd) return serverCmd;
-		// Fallback (e.g. before provisioning completes) to the client-built command.
-		if (selectedOS === 'windows')
-			return `Invoke-WebRequest -Uri "${windowsDownloadUrl}" -OutFile "scanopy-daemon-windows-amd64.exe"; ${runCommand}`;
-		return `${installScript} && ${runCommand}`;
-	});
 	// Networks
 	const networksQuery = useNetworksQuery();
 	let networksData = $derived(networksQuery.data ?? []);
@@ -139,7 +118,6 @@
 
 	// API key state
 	let keyState = $state<string | null>(null);
-	let key = $derived(keyState);
 
 	// Credentials is its own stepper step (activeTab === 'credentials'); the shared
 	// CredentialsStep owns the type-grid → wizard sub-flow and persistence.
@@ -207,7 +185,7 @@
 	// Reset hasCopied when the install command changes (Advanced settings, credentials, etc.)
 	let prevInstallCommand = $state('');
 	$effect(() => {
-		const cmd = currentInstallCommand;
+		const cmd = currentInstallCommand ?? '';
 		if (hasCopied && prevInstallCommand && cmd !== prevInstallCommand) {
 			hasCopied = false;
 		}
@@ -246,6 +224,10 @@
 		installCommandQuery.data && keyState
 			? fillInstallArtifactsKey(installCommandQuery.data, keyState)
 			: null
+	);
+	// The server's command for the chosen method, or null until it and the key both exist.
+	let currentInstallCommand = $derived(
+		installStepCommand(installCommandQuery.data, keyState, selectedOS, linuxMethod)
 	);
 	let connectionStatus = $state<DaemonConnectionStatus>('idle');
 	let troubleTimeoutId = $state<ReturnType<typeof setTimeout> | null>(null);
@@ -344,10 +326,6 @@
 			)
 			.map((p) => p.credential.name)
 	);
-	let runCommand = $derived(
-		buildRunCommand(serverUrl, selectedNetworkId, key, formValues, null, currentUserId, selectedOS)
-	);
-
 	// Check for form validation errors (only visible fields)
 	let visibleFields = $derived(getVisibleFieldIds(formValues));
 	let hasErrors = $derived.by(() => {
@@ -482,8 +460,8 @@
 	}
 
 	/** The advanced settings the builder should fold into the install command. */
-	function installCommandParams(): InstallCommandParams {
-		const cfg = buildInstallConfig(formValues);
+	function installCommandParams(values = formValues): InstallCommandParams {
+		const cfg = buildInstallConfig(values);
 		return {
 			purpose: 'install',
 			log_level: cfg.log_level ?? undefined,
@@ -634,6 +612,11 @@
 
 	function handleEnableSelfSigned() {
 		form.setFieldValue('allowSelfSignedCerts', true);
+		// Read from the form directly: `formValues` syncs through the store subscription.
+		committedInstallParams = installCommandParams({
+			...form.state.values,
+			allowSelfSignedCerts: true
+		} as Record<string, string | number | boolean>);
 		connectionStatus = 'idle';
 		trackEvent('daemon_trouble_enable_self_signed');
 	}
@@ -683,7 +666,11 @@
 			troubleTimeoutId = null;
 		}
 
+		// The key and the daemon it is bound to go together: keeping the daemon id while dropping
+		// the key left a reopened wizard skipping provisioning with no key to show.
 		keyState = null;
+		provisionedDaemonId = '';
+		committedInstallParams = null;
 		isProvisioning = false;
 		configureCommitted = false;
 		nameManuallyEdited = false;
@@ -783,14 +770,7 @@
 							}}
 							bind:reachabilityResult={serverPollReachabilityResult}
 						/>
-					{:else if activeTab === 'install' && !provisionedDaemonId}
-						<!-- Provisioning is in flight (reaching Install via the tab strip doesn't
-						     await it). Hold the commands back rather than render one without a key. -->
-						<div class="text-muted flex flex-1 items-center justify-center gap-3 p-6">
-							<Loader2 class="h-4 w-4 animate-spin" />
-							{daemons_provisioningDaemon()}
-						</div>
-					{:else if activeTab === 'install'}
+					{:else if activeTab === 'install' && currentInstallCommand}
 						<InstallStep
 							{selectedOS}
 							onOsSelect={(os) => (selectedOS = os)}
@@ -798,7 +778,7 @@
 							onLinuxMethodChange={(method) => (linuxMethod = method)}
 							{windowsMethod}
 							onWindowsMethodChange={(method) => (windowsMethod = method)}
-							{runCommand}
+							command={currentInstallCommand}
 							{hasErrors}
 							isFirstDaemon={startedAsFirstDaemon}
 							{connectionStatus}
@@ -822,6 +802,14 @@
 								pushSuccess(getCopiedToastMessage());
 							}}
 						/>
+					{:else if activeTab === 'install'}
+						<!-- Provisioning or the install-command fetch is in flight (reaching Install via
+						     the tab strip doesn't await it). Show nothing until the server's command and
+						     the key both exist. -->
+						<div class="text-muted flex flex-1 items-center justify-center gap-3 p-6">
+							<Loader2 class="h-4 w-4 animate-spin" />
+							{daemons_provisioningDaemon()}
+						</div>
 					{/if}
 				{/key}
 			</div>

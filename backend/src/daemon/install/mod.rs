@@ -52,6 +52,9 @@ mod macos;
 #[cfg(target_family = "windows")]
 mod windows;
 
+mod prompt;
+use prompt::{ambiguous_target_prompt, installed_summary};
+
 #[cfg(any(target_os = "freebsd", target_os = "openbsd"))]
 use bsd as platform;
 #[cfg(target_os = "linux")]
@@ -460,40 +463,24 @@ async fn run_install(args: InstallArgs) -> Result<()> {
     Ok(())
 }
 
-/// Ask which daemon an ambiguous install command is for: a new one alongside the existing
-/// install(s), or a re-key of one of them. With no terminal to ask on, take the only
-/// non-destructive option — a new slot — and say so, since the alternative would silently
+/// Ask which daemon an ambiguous install command is for: an additional daemon alongside the
+/// existing install(s), or a replacement for one of them. With no terminal to ask on, take the
+/// only non-destructive option — a new slot — and say so, since the alternative would silently
 /// overwrite a working daemon's credentials.
 fn choose_ambiguous_target(installed: &[Installed]) -> Result<String> {
     if !std::io::stdin().is_terminal() {
         let slot = next_free_slot(installed);
         println!(
-            "This host already has {} Scanopy daemon(s) installed, and this command's api key \
-             matches none of them — installing as an additional daemon in slot '{slot}'.\n\
-             If you meant to re-key an existing daemon, uninstall this one and re-run with \
+            "{}\n\nThe API key in this command is for a different daemon, so it is installed as an \
+             additional daemon in slot '{slot}'.\n\
+             To replace an existing daemon instead, re-run the command with \
              `--instance <name>` (see `scanopy-daemon list`).",
-            installed.len()
+            installed_summary(installed).trim_end()
         );
         return Ok(slot);
     }
 
-    println!("This host already has Scanopy daemon(s) installed:\n");
-    for (index, entry) in installed.iter().enumerate() {
-        println!(
-            "  [{}] {} (service {})",
-            index + 1,
-            entry.label(),
-            entry.service_id()
-        );
-    }
-    println!(
-        "\nThis command's api key doesn't match any of them, so it is either a new daemon or a \
-         re-key of one above."
-    );
-    print!(
-        "Install as a new daemon [n], or re-key one of the above [1-{}]? [n] ",
-        installed.len()
-    );
+    print!("{}", ambiguous_target_prompt(installed));
     std::io::stdout().flush().ok();
 
     let mut answer = String::new();
@@ -510,10 +497,7 @@ fn choose_ambiguous_target(installed: &[Installed]) -> Result<String> {
         .ok()
         .filter(|c| (1..=installed.len()).contains(c))
         .with_context(|| {
-            format!(
-                "'{answer}' is not one of the choices (n, or 1-{})",
-                installed.len()
-            )
+            format!("'{answer}' is not one of the choices. Type n or a number from the list above.")
         })?;
     Ok(installed[choice - 1].slot.clone())
 }

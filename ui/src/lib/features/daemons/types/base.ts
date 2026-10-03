@@ -35,6 +35,24 @@ export function osInstallCommand(artifacts: InstallArtifacts, os: OsInstallMetho
  */
 export const API_KEY_PLACEHOLDER = '<API_KEY>';
 
+/**
+ * The install command the create wizard shows for an OS and Linux install method, or null until
+ * it can show the real one. Only the server's command is ever shown: before the install-command
+ * response and the minted key both exist there is nothing to display, never a stand-in built
+ * from form values.
+ */
+export function installStepCommand(
+	artifacts: InstallArtifacts | null | undefined,
+	apiKey: string | null,
+	os: OsInstallMethod,
+	linuxMethod: 'binary' | 'docker'
+): string | null {
+	if (!artifacts || !apiKey) return null;
+	const filled = fillInstallArtifactsKey(artifacts, apiKey);
+	if (os === 'linux' && linuxMethod === 'docker') return filled.docker.compose ?? null;
+	return osInstallCommand(filled, os) || null;
+}
+
 /** Fill the api-key placeholder in every install method that carries a command. */
 export function fillInstallArtifactsKey(
 	artifacts: InstallArtifacts,

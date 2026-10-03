@@ -182,8 +182,8 @@ export interface AdvancedInstallConfig {
  * Collect the advanced daemon settings from the wizard form.
  *
  * Only advanced fields (those with a `section`) are included — everything else the server owns
- * and derives from the daemon record. Values equal to their default are skipped, which matches
- * `buildRunCommand` and matters more here: the whole MSI config has to fit inside a 255-character
+ * and derives from the daemon record. Values equal to their default are skipped, so the command
+ * carries only what the user changed and the whole MSI config fits inside a 255-character
  * filename.
  */
 export function buildInstallConfig(
@@ -217,83 +217,6 @@ export function buildInstallConfig(
 
 function camelToSnake(id: string): string {
 	return id.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
-}
-
-export function buildRunCommand(
-	serverUrl: string,
-	networkId: string,
-	key: string | null,
-	values: Record<string, string | number | boolean>,
-	daemon: Daemon | null,
-	userId: string | null,
-	os: DaemonOS = 'linux'
-): string {
-	const isWindows = os === 'windows';
-	const binary = isWindows ? '.\\scanopy-daemon-windows-amd64.exe' : 'scanopy-daemon';
-	const prefix = isWindows ? '' : 'sudo ';
-	// The `install` subcommand takes the same flags but also registers a system service and
-	// writes config.json, so the daemon starts on boot instead of running in the foreground.
-	let cmd = `${prefix}${binary} install --server-url ${serverUrl}`;
-
-	if (!daemon && networkId) {
-		cmd += ` --network-id ${networkId}`;
-	}
-
-	if (key) {
-		cmd += ` --daemon-api-key ${key}`;
-	}
-
-	// Include user_id for new daemon registrations
-	if (!daemon && userId) {
-		cmd += ` --user-id ${userId}`;
-	}
-
-	const mode = values['mode'] as string;
-
-	for (const def of fieldDefs) {
-		const value = values[def.id];
-
-		if (def.docsOnly) {
-			continue;
-		}
-
-		// Skip daemonUrl - only used for provisioning, not in daemon config
-		if (def.id === 'daemonUrl') {
-			continue;
-		}
-
-		// Skip daemonPort for DaemonPoll mode (server never connects to daemon)
-		if (def.id === 'daemonPort' && mode === 'daemon_poll') {
-			continue;
-		}
-
-		if (value === '' || value === null || value === undefined) {
-			continue;
-		}
-
-		// Skip fields that don't pass validation
-		if (!fieldPassesValidation(def, value)) {
-			continue;
-		}
-
-		// Skip advanced fields (those with a section) that match their default value
-		if (def.section && value === def.defaultValue) {
-			continue;
-		}
-
-		if (def.id === 'mode') {
-			cmd += ` ${def.cliFlag} ${String(value).toLowerCase()}`;
-		} else if (def.type === 'boolean') {
-			cmd += ` ${def.cliFlag} ${value}`;
-		} else {
-			cmd += ` ${def.cliFlag} ${value}`;
-		}
-	}
-
-	// Integration targeting is not carried in the command: it's seeded onto the daemon's
-	// discovery row at provision (`seed_credential_refs`) and applied server-side every scan.
-
-	return cmd;
 }
 
 /**
