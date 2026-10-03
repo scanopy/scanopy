@@ -29,7 +29,7 @@
 	import InlineInfo from '$lib/shared/components/feedback/InlineInfo.svelte';
 	import CodeContainer from '$lib/shared/components/data/CodeContainer.svelte';
 	import OsSelector from './OsSelector.svelte';
-	import { reportedDaemonOs, type DaemonOS } from '$lib/features/daemons/utils';
+	import type { DaemonOS } from '$lib/features/daemons/utils';
 	import {
 		common_associating,
 		daemons_bindKey,
@@ -48,11 +48,11 @@
 
 	let isServerPoll = $derived(daemon.mode === 'server_poll');
 	let associating = $state(false);
-	// The OS the daemon reported, which also hides the OS picker; otherwise the user picks, starting
-	// from the OS picked at creation.
-	let reportedOS = $derived(reportedDaemonOs(daemon));
+	// The daemon's recorded OS, reported by the daemon or picked at creation, which also hides the
+	// OS picker; with none recorded the user picks.
+	let recordedOS = $derived(daemon.os ?? null);
 	let pickedOS = $state<DaemonOS | null>(null);
-	let selectedOS = $derived<DaemonOS>(reportedOS ?? pickedOS ?? daemon.os ?? 'linux');
+	let selectedOS = $derived<DaemonOS>(recordedOS ?? pickedOS ?? 'linux');
 	let linuxMethod = $state<'binary' | 'docker'>('binary');
 
 	// Docker is another install target alongside the OS methods.
@@ -107,7 +107,7 @@
 		<OsSelector
 			{selectedOS}
 			onOsSelect={(os) => (pickedOS = os)}
-			showOs={!reportedOS}
+			showOs={!recordedOS}
 			{linuxMethod}
 			onLinuxMethodChange={(method) => (linuxMethod = method)}
 		>

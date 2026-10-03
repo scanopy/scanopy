@@ -145,8 +145,8 @@
 								class:font-mono={fact.mono}
 							>
 								{#if fact.os}
-									<!-- The row's own source tag sits beside it, so the tag does not repeat it. -->
-									<OsTag os={fact.os} />
+									<!-- The same tooltip the hosts table shows: every detail and the source. -->
+									<OsTag os={fact.os} source={fact.source} />
 								{:else if fact.link}
 									<!-- eslint-disable svelte/no-navigation-without-resolve -->
 									<a
