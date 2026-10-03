@@ -1630,6 +1630,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/discovery/field-values/{field}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the values of a Discovery field
+         * @description Every distinct value of one Discovery field across the Discoveries the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         */
+        get: operations["get_discovery_field_values"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/discovery/start-session": {
         parameters: {
             query?: never;
@@ -2626,6 +2646,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/services/field-values/{field}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the values of a Service field
+         * @description Every distinct value of one Service field across the Services the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.
+         */
+        get: operations["get_service_field_values"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/services/{id}": {
         parameters: {
             query?: never;
@@ -3488,19 +3528,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-03T01:03:55.578896Z",
+             *       "created_at": "2026-10-03T01:53:18.411304Z",
              *       "first_discovery_id": null,
-             *       "id": "30182f7b-c27e-4a72-8443-67b4f001e792",
+             *       "id": "1282642a-ef30-48d8-a0d4-3ddf450cdfda",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-03T01:03:55.578896Z",
+             *       "last_seen_at": "2026-10-03T01:53:18.411304Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-10-03T01:03:55.578896Z",
-             *       "valid_from": "2026-10-03T01:03:55.578896Z",
+             *       "updated_at": "2026-10-03T01:53:18.411304Z",
+             *       "valid_from": "2026-10-03T01:53:18.411304Z",
              *       "valid_to": null
              *     }
              */
@@ -4328,19 +4368,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-03T01:03:55.552781Z",
+             *               "created_at": "2026-10-03T01:53:18.386838Z",
              *               "first_discovery_id": null,
-             *               "id": "560d887f-b42a-48f6-9ed2-b90a1be39a77",
+             *               "id": "184c3384-04fe-4005-af4c-44b75ed29bb2",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-03T01:03:55.552781Z",
+             *               "last_seen_at": "2026-10-03T01:53:18.386838Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-10-03T01:03:55.552781Z",
-             *               "valid_from": "2026-10-03T01:03:55.552781Z",
+             *               "updated_at": "2026-10-03T01:53:18.386838Z",
+             *               "valid_from": "2026-10-03T01:53:18.386838Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4354,7 +4394,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Instant On Gateway",
+             *           "service_definition": "Tomcat",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5273,19 +5313,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-03T01:03:55.573779Z",
+             *           "created_at": "2026-10-03T01:53:18.406165Z",
              *           "first_discovery_id": null,
-             *           "id": "9d306296-b573-4cb4-8d81-4c7792a8a864",
+             *           "id": "02858d2e-8d0b-431a-8def-1710b31e569b",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-03T01:03:55.573779Z",
+             *           "last_seen_at": "2026-10-03T01:53:18.406165Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-10-03T01:03:55.573779Z",
-             *           "valid_from": "2026-10-03T01:03:55.573779Z",
+             *           "updated_at": "2026-10-03T01:53:18.406165Z",
+             *           "valid_from": "2026-10-03T01:53:18.406165Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5299,7 +5339,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Instant On Gateway",
+             *       "service_definition": "Tomcat",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6401,19 +6441,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-03T01:03:55.553574Z",
+         *       "created_at": "2026-10-03T01:53:18.387526Z",
          *       "first_discovery_id": null,
-         *       "id": "88e16fa7-afce-4802-b19b-a95d41fa5ad5",
+         *       "id": "60e95f88-aeff-495f-aa32-90a40688d0f5",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-03T01:03:55.553574Z",
+         *       "last_seen_at": "2026-10-03T01:53:18.387526Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-10-03T01:03:55.553574Z",
-         *       "valid_from": "2026-10-03T01:03:55.553574Z",
+         *       "updated_at": "2026-10-03T01:53:18.387526Z",
+         *       "valid_from": "2026-10-03T01:53:18.387526Z",
          *       "valid_to": null
          *     }
          */
@@ -6741,7 +6781,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Instant On Gateway",
+         *           "service_definition": "Tomcat",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -9252,19 +9292,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-03T01:03:55.551900Z",
+         *               "created_at": "2026-10-03T01:53:18.386069Z",
          *               "first_discovery_id": null,
-         *               "id": "9512b90f-dc3a-4f4c-90d6-af585c21a5a5",
+         *               "id": "be7ebab4-83bd-4365-8fa9-2f1dad9b9a18",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-03T01:03:55.551900Z",
+         *               "last_seen_at": "2026-10-03T01:53:18.386069Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-10-03T01:03:55.551900Z",
-         *               "valid_from": "2026-10-03T01:03:55.551900Z",
+         *               "updated_at": "2026-10-03T01:53:18.386069Z",
+         *               "valid_from": "2026-10-03T01:53:18.386069Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9278,7 +9318,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Instant On Gateway",
+         *           "service_definition": "Tomcat",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -12315,19 +12355,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-03T01:03:55.553344Z",
+         *           "created_at": "2026-10-03T01:53:18.387326Z",
          *           "first_discovery_id": null,
-         *           "id": "2a259599-7538-47cc-bfd3-5e6cddd69d1f",
+         *           "id": "b47c3f71-fcd5-42c2-a197-67c0f9c29460",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-03T01:03:55.553344Z",
+         *           "last_seen_at": "2026-10-03T01:53:18.387326Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-10-03T01:03:55.553344Z",
-         *           "valid_from": "2026-10-03T01:03:55.553344Z",
+         *           "updated_at": "2026-10-03T01:53:18.387326Z",
+         *           "valid_from": "2026-10-03T01:53:18.387326Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12341,7 +12381,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Instant On Gateway",
+         *       "service_definition": "Tomcat",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -13099,7 +13139,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "caa8ee5e-cfe1-4fb4-a5c2-34a01716bbf6",
+             *           "id": "0d2099ab-e892-4496-8c6e-d65ef29ca1ba",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13109,23 +13149,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "fad8bbb2-295f-4809-ae83-3a654fe9c8c3",
+             *           "id": "17c64b77-77a9-4368-87b4-0ca81cdd0715",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "58bb4a1f-2267-492b-aefb-a213155719ff",
+             *           "id": "af4a6f9b-73f7-47dc-b75e-a8641b3263ed",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "87687806-950d-4491-9d3a-ad15bb71557b",
+             *           "id": "8e17f1dc-0a6e-4947-8725-8a9a6bde1c2c",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "fad8bbb2-295f-4809-ae83-3a654fe9c8c3",
+             *           "id": "17c64b77-77a9-4368-87b4-0ca81cdd0715",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13138,19 +13178,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "a1681e56-7d34-451a-9144-5c606c6748b2",
+             *         "id": "4fd78d64-54e9-42e8-99e3-790942bfb194",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "8836f84d-43bc-4e5e-99fd-99f7948aec54",
+             *         "id": "9ba8df56-9e9f-4682-b984-02d00f77665d",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "966c8b1b-fece-4657-9e88-adb77140a480",
+             *         "id": "6ebaa472-6811-4c68-a025-9c7492cd446e",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "4914a0d0-6074-4d94-848d-6abfd370b236",
+             *         "id": "01f32dc1-9285-424f-ab7f-1eb32764a2df",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13168,7 +13208,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "feb3603b-33f4-4975-a165-97c3cb938df8",
+             *         "id": "92c10753-6770-484c-867f-fc214b5e09c6",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13177,15 +13217,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "81ef28af-3619-473a-bec2-ace54cca9180",
+             *         "id": "3e3bda11-a72b-4f1d-9034-868869793fbc",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "e54d926f-3236-40eb-9ea6-f7635ea31cad",
+             *         "id": "eea8b1a6-564a-487a-b016-6d82ce7a9092",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "2129d600-2fd6-4b0c-87f1-fd8a41eedfb5",
+             *         "id": "65face03-3c54-4c4d-b2be-e0471b44ce27",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -17221,6 +17261,70 @@ export interface operations {
             };
         };
     };
+    get_discovery_field_values: {
+        parameters: {
+            query?: {
+                /** @description Filter by network ID. Repeat the parameter to pass several. */
+                network_ids?: string[] | null;
+                /** @description Filter by daemon ID. Repeat the parameter to pass several. */
+                daemon_ids?: string[] | null;
+                /** @description Only runs of one of these discovery types. */
+                discovery_types?: string[] | null;
+                /**
+                 * @description Only runs that ended in one of these phases (`run_type.results.phase`). Repeat for
+                 *     several. Configurations, which have no recorded outcome, never match.
+                 */
+                phases?: components["schemas"]["DiscoveryPhase"][] | null;
+                /**
+                 * @description `true` returns only completed runs (the history view), `false` only the
+                 *     configurations that produce them. Omit for both.
+                 */
+                historical?: boolean | null;
+                /**
+                 * @description Free-text search across the discovery's name and the name of the daemon
+                 *     that runs it.
+                 */
+                search?: string | null;
+                /** @description Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
+                group_by?: null | components["schemas"]["DiscoveryOrderField"];
+                /** @description Secondary ordering field (sorting within groups or standalone sort). */
+                order_by?: null | components["schemas"]["DiscoveryOrderField"];
+                /** @description Direction for order_by field (group_by always uses ASC). */
+                order_direction?: null | components["schemas"]["OrderDirection"];
+                /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
+                limit?: number | null;
+                /** @description Number of results to skip. Default: 0. */
+                offset?: number | null;
+            };
+            header?: never;
+            path: {
+                /** @description The field whose values to count */
+                field: components["schemas"]["DiscoveryOrderField"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Distinct values and their Discovery counts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                };
+            };
+            /** @description Unknown field */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
     start_session: {
         parameters: {
             query?: never;
@@ -17437,6 +17541,11 @@ export interface operations {
                 /** @description Filter by the service virtualizing the host. Repeat for several. */
                 virtualization_service_ids?: string[] | null;
                 /**
+                 * @description Filter by the name of the service virtualizing the host, the value "Virtualized By"
+                 *     groups on. Repeat for several.
+                 */
+                virtualization_service_names?: string[] | null;
+                /**
                  * @description `true` also returns hosts nothing virtualizes. Set on its own it returns
                  *     only those — the "Not Virtualized" choice in the UI's filter.
                  */
@@ -17641,6 +17750,11 @@ export interface operations {
                 /** @description Filter by the service virtualizing the host. Repeat for several. */
                 virtualization_service_ids?: string[] | null;
                 /**
+                 * @description Filter by the name of the service virtualizing the host, the value "Virtualized By"
+                 *     groups on. Repeat for several.
+                 */
+                virtualization_service_names?: string[] | null;
+                /**
                  * @description `true` also returns hosts nothing virtualizes. Set on its own it returns
                  *     only those — the "Not Virtualized" choice in the UI's filter.
                  */
@@ -17736,6 +17850,11 @@ export interface operations {
                 /** @description Filter by the service virtualizing the host. Repeat for several. */
                 virtualization_service_ids?: string[] | null;
                 /**
+                 * @description Filter by the name of the service virtualizing the host, the value "Virtualized By"
+                 *     groups on. Repeat for several.
+                 */
+                virtualization_service_names?: string[] | null;
+                /**
                  * @description `true` also returns hosts nothing virtualizes. Set on its own it returns
                  *     only those — the "Not Virtualized" choice in the UI's filter.
                  */
@@ -17830,6 +17949,11 @@ export interface operations {
                 hidden?: boolean[] | null;
                 /** @description Filter by the service virtualizing the host. Repeat for several. */
                 virtualization_service_ids?: string[] | null;
+                /**
+                 * @description Filter by the name of the service virtualizing the host, the value "Virtualized By"
+                 *     groups on. Repeat for several.
+                 */
+                virtualization_service_names?: string[] | null;
                 /**
                  * @description `true` also returns hosts nothing virtualizes. Set on its own it returns
                  *     only those — the "Not Virtualized" choice in the UI's filter.
@@ -19749,6 +19873,11 @@ export interface operations {
                 /** @description Filter by the service containerizing this one. Repeat for several. */
                 virtualization_service_ids?: string[] | null;
                 /**
+                 * @description Filter by the name of the service containerizing this one, the value "Containerized"
+                 *     groups on. Repeat for several.
+                 */
+                virtualization_service_names?: string[] | null;
+                /**
                  * @description `true` also returns services nothing containerizes. Set on its own it
                  *     returns only those — the "Not Containerized" choice in the UI's filter.
                  */
@@ -19882,6 +20011,11 @@ export interface operations {
                 /** @description Filter by the service containerizing this one. Repeat for several. */
                 virtualization_service_ids?: string[] | null;
                 /**
+                 * @description Filter by the name of the service containerizing this one, the value "Containerized"
+                 *     groups on. Repeat for several.
+                 */
+                virtualization_service_names?: string[] | null;
+                /**
                  * @description `true` also returns services nothing containerizes. Set on its own it
                  *     returns only those — the "Not Containerized" choice in the UI's filter.
                  */
@@ -19939,6 +20073,98 @@ export interface operations {
                 };
                 content: {
                     "text/csv": string;
+                };
+            };
+        };
+    };
+    get_service_field_values: {
+        parameters: {
+            query?: {
+                /** @description Filter by network ID. Repeat the parameter to pass several. */
+                network_ids?: string[] | null;
+                /** @description Filter by host ID. Repeat the parameter to pass several. */
+                host_ids?: string[] | null;
+                /** @description Filter by specific entity IDs (for selective loading) */
+                ids?: string[] | null;
+                /** @description Only services with one of these definitions. */
+                service_definitions?: string[] | null;
+                /** @description Filter by the service containerizing this one. Repeat for several. */
+                virtualization_service_ids?: string[] | null;
+                /**
+                 * @description Filter by the name of the service containerizing this one, the value "Containerized"
+                 *     groups on. Repeat for several.
+                 */
+                virtualization_service_names?: string[] | null;
+                /**
+                 * @description `true` also returns services nothing containerizes. Set on its own it
+                 *     returns only those — the "Not Containerized" choice in the UI's filter.
+                 */
+                include_uncontainerized?: boolean | null;
+                /** @description Filter by how the service came to exist (`source.type`). Repeat for several. */
+                sources?: components["schemas"]["EntitySourceDiscriminants"][] | null;
+                /**
+                 * @description Filter by match confidence (`source.details.confidence`). Repeat for several. Only
+                 *     services discovery matched to a definition carry one.
+                 */
+                match_confidences?: components["schemas"]["MatchConfidence"][] | null;
+                /** @description Filter by tag IDs (returns services that have ANY of the specified tags) */
+                tag_ids?: string[] | null;
+                /**
+                 * @description Free-text search. Case-insensitive substring match against the service's
+                 *     name and definition, and against the name of the host it runs on.
+                 */
+                search?: string | null;
+                /** @description Primary ordering field (used for grouping). Always sorts ASC to keep groups together. */
+                group_by?: null | components["schemas"]["ServiceOrderField"];
+                /** @description Secondary ordering field (sorting within groups or standalone sort). */
+                order_by?: null | components["schemas"]["ServiceOrderField"];
+                /** @description Direction for order_by field (group_by always uses ASC). */
+                order_direction?: null | components["schemas"]["OrderDirection"];
+                /** @description Only services exposed on one of these port numbers, over either protocol. */
+                ports?: number[] | null;
+                /** @description Exclude services belonging to these categories. */
+                exclude_categories?: components["schemas"]["ServiceCategory"][] | null;
+                /** @description Maximum number of results to return (1-1000, default: 50). Use 0 for no limit. */
+                limit?: number | null;
+                /** @description Number of results to skip. Default: 0. */
+                offset?: number | null;
+                /**
+                 * @description As-of timestamp (ISO 8601). When set, returns SCD2 state as of this
+                 *     instant (snapshot view) instead of live state.
+                 */
+                at?: string | null;
+                /**
+                 * @description `true` returns only services discovery hasn't observed within their
+                 *     network's staleness window; `false` returns only those it has. Omit for
+                 *     both. Evaluated per row against the service's own network's window.
+                 */
+                stale?: boolean | null;
+            };
+            header?: never;
+            path: {
+                /** @description The field whose values to count */
+                field: components["schemas"]["ServiceOrderField"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Distinct values and their Service counts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_Vec_GroupCount"];
+                };
+            };
+            /** @description Unknown field */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
         };

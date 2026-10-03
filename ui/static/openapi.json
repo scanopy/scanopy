@@ -6174,6 +6174,220 @@
         ]
       }
     },
+    "/api/v1/discovery/field-values/{field}": {
+      "get": {
+        "tags": [
+          "Discoveries"
+        ],
+        "summary": "List the values of a Discovery field",
+        "description": "Every distinct value of one Discovery field across the Discoveries the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.",
+        "operationId": "get_discovery_field_values",
+        "parameters": [
+          {
+            "name": "field",
+            "in": "path",
+            "description": "The field whose values to count",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/DiscoveryOrderField"
+            }
+          },
+          {
+            "name": "network_ids",
+            "in": "query",
+            "description": "Filter by network ID. Repeat the parameter to pass several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "daemon_ids",
+            "in": "query",
+            "description": "Filter by daemon ID. Repeat the parameter to pass several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "discovery_types",
+            "in": "query",
+            "description": "Only runs of one of these discovery types.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "phases",
+            "in": "query",
+            "description": "Only runs that ended in one of these phases (`run_type.results.phase`). Repeat for\nseveral. Configurations, which have no recorded outcome, never match.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/DiscoveryPhase"
+              }
+            }
+          },
+          {
+            "name": "historical",
+            "in": "query",
+            "description": "`true` returns only completed runs (the history view), `false` only the\nconfigurations that produce them. Omit for both.",
+            "required": false,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Free-text search across the discovery's name and the name of the daemon\nthat runs it.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "group_by",
+            "in": "query",
+            "description": "Primary ordering field (used for grouping). Always sorts ASC to keep groups together.",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/DiscoveryOrderField"
+                }
+              ]
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "description": "Secondary ordering field (sorting within groups or standalone sort).",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/DiscoveryOrderField"
+                }
+              ]
+            }
+          },
+          {
+            "name": "order_direction",
+            "in": "query",
+            "description": "Direction for order_by field (group_by always uses ASC).",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/OrderDirection"
+                }
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of results to return (1-1000, default: 50). Use 0 for no limit.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "maximum": 1000,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of results to skip. Default: 0.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Distinct values and their Discovery counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_Vec_GroupCount"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown field",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "user_api_key": []
+          },
+          {
+            "session": []
+          }
+        ]
+      }
+    },
     "/api/v1/discovery/start-session": {
       "post": {
         "tags": [
@@ -6563,6 +6777,21 @@
               "items": {
                 "type": "string",
                 "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "virtualization_service_names",
+            "in": "query",
+            "description": "Filter by the name of the service virtualizing the host, the value \"Virtualized By\"\ngroups on. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
               }
             }
           },
@@ -7086,6 +7315,21 @@
             }
           },
           {
+            "name": "virtualization_service_names",
+            "in": "query",
+            "description": "Filter by the name of the service virtualizing the host, the value \"Virtualized By\"\ngroups on. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
             "name": "include_unvirtualized",
             "in": "query",
             "description": "`true` also returns hosts nothing virtualizes. Set on its own it returns\nonly those — the \"Not Virtualized\" choice in the UI's filter.",
@@ -7437,6 +7681,21 @@
               "items": {
                 "type": "string",
                 "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "virtualization_service_names",
+            "in": "query",
+            "description": "Filter by the name of the service virtualizing the host, the value \"Virtualized By\"\ngroups on. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
               }
             }
           },
@@ -7801,6 +8060,21 @@
               "items": {
                 "type": "string",
                 "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "virtualization_service_names",
+            "in": "query",
+            "description": "Filter by the name of the service virtualizing the host, the value \"Virtualized By\"\ngroups on. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
               }
             }
           },
@@ -11387,6 +11661,21 @@
             }
           },
           {
+            "name": "virtualization_service_names",
+            "in": "query",
+            "description": "Filter by the name of the service containerizing this one, the value \"Containerized\"\ngroups on. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
             "name": "include_uncontainerized",
             "in": "query",
             "description": "`true` also returns services nothing containerizes. Set on its own it\nreturns only those — the \"Not Containerized\" choice in the UI's filter.",
@@ -11794,6 +12083,21 @@
             }
           },
           {
+            "name": "virtualization_service_names",
+            "in": "query",
+            "description": "Filter by the name of the service containerizing this one, the value \"Containerized\"\ngroups on. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
             "name": "include_uncontainerized",
             "in": "query",
             "description": "`true` also returns services nothing containerizes. Set on its own it\nreturns only those — the \"Not Containerized\" choice in the UI's filter.",
@@ -12005,6 +12309,355 @@
               "text/csv": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "user_api_key": []
+          },
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/services/field-values/{field}": {
+      "get": {
+        "tags": [
+          "Services"
+        ],
+        "summary": "List the values of a Service field",
+        "description": "Every distinct value of one Service field across the Services the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.",
+        "operationId": "get_service_field_values",
+        "parameters": [
+          {
+            "name": "field",
+            "in": "path",
+            "description": "The field whose values to count",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ServiceOrderField"
+            }
+          },
+          {
+            "name": "network_ids",
+            "in": "query",
+            "description": "Filter by network ID. Repeat the parameter to pass several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "host_ids",
+            "in": "query",
+            "description": "Filter by host ID. Repeat the parameter to pass several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "ids",
+            "in": "query",
+            "description": "Filter by specific entity IDs (for selective loading)",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "service_definitions",
+            "in": "query",
+            "description": "Only services with one of these definitions.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "virtualization_service_ids",
+            "in": "query",
+            "description": "Filter by the service containerizing this one. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "virtualization_service_names",
+            "in": "query",
+            "description": "Filter by the name of the service containerizing this one, the value \"Containerized\"\ngroups on. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "include_uncontainerized",
+            "in": "query",
+            "description": "`true` also returns services nothing containerizes. Set on its own it\nreturns only those — the \"Not Containerized\" choice in the UI's filter.",
+            "required": false,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "sources",
+            "in": "query",
+            "description": "Filter by how the service came to exist (`source.type`). Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/EntitySourceDiscriminants"
+              }
+            }
+          },
+          {
+            "name": "match_confidences",
+            "in": "query",
+            "description": "Filter by match confidence (`source.details.confidence`). Repeat for several. Only\nservices discovery matched to a definition carry one.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/MatchConfidence"
+              }
+            }
+          },
+          {
+            "name": "tag_ids",
+            "in": "query",
+            "description": "Filter by tag IDs (returns services that have ANY of the specified tags)",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Free-text search. Case-insensitive substring match against the service's\nname and definition, and against the name of the host it runs on.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "group_by",
+            "in": "query",
+            "description": "Primary ordering field (used for grouping). Always sorts ASC to keep groups together.",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/ServiceOrderField"
+                }
+              ]
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "description": "Secondary ordering field (sorting within groups or standalone sort).",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/ServiceOrderField"
+                }
+              ]
+            }
+          },
+          {
+            "name": "order_direction",
+            "in": "query",
+            "description": "Direction for order_by field (group_by always uses ASC).",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/OrderDirection"
+                }
+              ]
+            }
+          },
+          {
+            "name": "ports",
+            "in": "query",
+            "description": "Only services exposed on one of these port numbers, over either protocol.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "name": "exclude_categories",
+            "in": "query",
+            "description": "Exclude services belonging to these categories.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/ServiceCategory"
+              }
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of results to return (1-1000, default: 50). Use 0 for no limit.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "maximum": 1000,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of results to skip. Default: 0.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "at",
+            "in": "query",
+            "description": "As-of timestamp (ISO 8601). When set, returns SCD2 state as of this\ninstant (snapshot view) instead of live state.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "stale",
+            "in": "query",
+            "description": "`true` returns only services discovery hasn't observed within their\nnetwork's staleness window; `false` returns only those it has. Omit for\nboth. Evaluated per row against the service's own network's window.",
+            "required": false,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Distinct values and their Service counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_Vec_GroupCount"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown field",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -16266,19 +16919,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-03T01:03:55.578896Z",
+              "created_at": "2026-10-03T01:53:18.411304Z",
               "first_discovery_id": null,
-              "id": "30182f7b-c27e-4a72-8443-67b4f001e792",
+              "id": "1282642a-ef30-48d8-a0d4-3ddf450cdfda",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-03T01:03:55.578896Z",
+              "last_seen_at": "2026-10-03T01:53:18.411304Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-03T01:03:55.578896Z",
-              "valid_from": "2026-10-03T01:03:55.578896Z",
+              "updated_at": "2026-10-03T01:53:18.411304Z",
+              "valid_from": "2026-10-03T01:53:18.411304Z",
               "valid_to": null
             }
           },
@@ -17875,19 +18528,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-03T01:03:55.552781Z",
+                      "created_at": "2026-10-03T01:53:18.386838Z",
                       "first_discovery_id": null,
-                      "id": "560d887f-b42a-48f6-9ed2-b90a1be39a77",
+                      "id": "184c3384-04fe-4005-af4c-44b75ed29bb2",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-03T01:03:55.552781Z",
+                      "last_seen_at": "2026-10-03T01:53:18.386838Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-03T01:03:55.552781Z",
-                      "valid_from": "2026-10-03T01:03:55.552781Z",
+                      "updated_at": "2026-10-03T01:53:18.386838Z",
+                      "valid_from": "2026-10-03T01:53:18.386838Z",
                       "valid_to": null
                     }
                   ],
@@ -17901,7 +18554,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Instant On Gateway",
+                  "service_definition": "Tomcat",
                   "source": {
                     "type": "Manual"
                   },
@@ -19299,19 +19952,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-03T01:03:55.573779Z",
+                  "created_at": "2026-10-03T01:53:18.406165Z",
                   "first_discovery_id": null,
-                  "id": "9d306296-b573-4cb4-8d81-4c7792a8a864",
+                  "id": "02858d2e-8d0b-431a-8def-1710b31e569b",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-03T01:03:55.573779Z",
+                  "last_seen_at": "2026-10-03T01:53:18.406165Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-03T01:03:55.573779Z",
-                  "valid_from": "2026-10-03T01:03:55.573779Z",
+                  "updated_at": "2026-10-03T01:53:18.406165Z",
+                  "valid_from": "2026-10-03T01:53:18.406165Z",
                   "valid_to": null
                 }
               ],
@@ -19325,7 +19978,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Instant On Gateway",
+              "service_definition": "Tomcat",
               "source": {
                 "type": "Manual"
               },
@@ -21802,19 +22455,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-03T01:03:55.553574Z",
+          "created_at": "2026-10-03T01:53:18.387526Z",
           "first_discovery_id": null,
-          "id": "88e16fa7-afce-4802-b19b-a95d41fa5ad5",
+          "id": "60e95f88-aeff-495f-aa32-90a40688d0f5",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-03T01:03:55.553574Z",
+          "last_seen_at": "2026-10-03T01:53:18.387526Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-03T01:03:55.553574Z",
-          "valid_from": "2026-10-03T01:03:55.553574Z",
+          "updated_at": "2026-10-03T01:53:18.387526Z",
+          "valid_from": "2026-10-03T01:53:18.387526Z",
           "valid_to": null
         }
       },
@@ -22530,7 +23183,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Instant On Gateway",
+              "service_definition": "Tomcat",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -28819,19 +29472,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-03T01:03:55.551900Z",
+                  "created_at": "2026-10-03T01:53:18.386069Z",
                   "first_discovery_id": null,
-                  "id": "9512b90f-dc3a-4f4c-90d6-af585c21a5a5",
+                  "id": "be7ebab4-83bd-4365-8fa9-2f1dad9b9a18",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-03T01:03:55.551900Z",
+                  "last_seen_at": "2026-10-03T01:53:18.386069Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-03T01:03:55.551900Z",
-                  "valid_from": "2026-10-03T01:03:55.551900Z",
+                  "updated_at": "2026-10-03T01:53:18.386069Z",
+                  "valid_from": "2026-10-03T01:53:18.386069Z",
                   "valid_to": null
                 }
               ],
@@ -28845,7 +29498,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Instant On Gateway",
+              "service_definition": "Tomcat",
               "source": {
                 "type": "Manual"
               },
@@ -32561,19 +33214,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-03T01:03:55.534050Z",
+                        "created_at": "2026-10-03T01:53:18.370578Z",
                         "first_discovery_id": null,
-                        "id": "9f523b69-471d-4e69-bf4c-6765a81f109b",
+                        "id": "520dd803-f737-46ae-821f-476aee015787",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-03T01:03:55.534050Z",
+                        "last_seen_at": "2026-10-03T01:53:18.370578Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-03T01:03:55.534050Z",
-                        "valid_from": "2026-10-03T01:03:55.534050Z",
+                        "updated_at": "2026-10-03T01:53:18.370578Z",
+                        "valid_from": "2026-10-03T01:53:18.370578Z",
                         "valid_to": null
                       }
                     ],
@@ -32587,7 +33240,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Instant On Gateway",
+                    "service_definition": "Tomcat",
                     "source": {
                       "type": "Manual"
                     },
@@ -32730,19 +33383,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-03T01:03:55.572832Z",
+                    "created_at": "2026-10-03T01:53:18.405185Z",
                     "first_discovery_id": null,
-                    "id": "11763a17-c90d-4a04-9a02-304fe8489962",
+                    "id": "54d1683b-4668-4ace-8244-2c950d6c77d3",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-03T01:03:55.572832Z",
+                    "last_seen_at": "2026-10-03T01:53:18.405185Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-03T01:03:55.572832Z",
-                    "valid_from": "2026-10-03T01:03:55.572832Z",
+                    "updated_at": "2026-10-03T01:53:18.405185Z",
+                    "valid_from": "2026-10-03T01:53:18.405185Z",
                     "valid_to": null
                   }
                 ],
@@ -32756,7 +33409,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Instant On Gateway",
+                "service_definition": "Tomcat",
                 "source": {
                   "type": "Manual"
                 },
@@ -34968,19 +35621,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-03T01:03:55.553344Z",
+              "created_at": "2026-10-03T01:53:18.387326Z",
               "first_discovery_id": null,
-              "id": "2a259599-7538-47cc-bfd3-5e6cddd69d1f",
+              "id": "b47c3f71-fcd5-42c2-a197-67c0f9c29460",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-03T01:03:55.553344Z",
+              "last_seen_at": "2026-10-03T01:53:18.387326Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-03T01:03:55.553344Z",
-              "valid_from": "2026-10-03T01:03:55.553344Z",
+              "updated_at": "2026-10-03T01:53:18.387326Z",
+              "valid_from": "2026-10-03T01:53:18.387326Z",
               "valid_to": null
             }
           ],
@@ -34994,7 +35647,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Instant On Gateway",
+          "service_definition": "Tomcat",
           "source": {
             "type": "Manual"
           },
@@ -36441,7 +37094,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "caa8ee5e-cfe1-4fb4-a5c2-34a01716bbf6",
+                  "id": "0d2099ab-e892-4496-8c6e-d65ef29ca1ba",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -36451,23 +37104,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "fad8bbb2-295f-4809-ae83-3a654fe9c8c3",
+                  "id": "17c64b77-77a9-4368-87b4-0ca81cdd0715",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "58bb4a1f-2267-492b-aefb-a213155719ff",
+                  "id": "af4a6f9b-73f7-47dc-b75e-a8641b3263ed",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "87687806-950d-4491-9d3a-ad15bb71557b",
+                  "id": "8e17f1dc-0a6e-4947-8725-8a9a6bde1c2c",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "fad8bbb2-295f-4809-ae83-3a654fe9c8c3",
+                  "id": "17c64b77-77a9-4368-87b4-0ca81cdd0715",
                   "rule": "ByHost"
                 }
               ]
@@ -36497,19 +37150,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "a1681e56-7d34-451a-9144-5c606c6748b2",
+                "id": "4fd78d64-54e9-42e8-99e3-790942bfb194",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "8836f84d-43bc-4e5e-99fd-99f7948aec54",
+                "id": "9ba8df56-9e9f-4682-b984-02d00f77665d",
                 "rule": "ByVLAN"
               },
               {
-                "id": "966c8b1b-fece-4657-9e88-adb77140a480",
+                "id": "6ebaa472-6811-4c68-a025-9c7492cd446e",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "4914a0d0-6074-4d94-848d-6abfd370b236",
+                "id": "01f32dc1-9285-424f-ab7f-1eb32764a2df",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -36527,7 +37180,7 @@
                 }
               },
               {
-                "id": "feb3603b-33f4-4975-a165-97c3cb938df8",
+                "id": "92c10753-6770-484c-867f-fc214b5e09c6",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -36536,15 +37189,15 @@
                 }
               },
               {
-                "id": "81ef28af-3619-473a-bec2-ace54cca9180",
+                "id": "3e3bda11-a72b-4f1d-9034-868869793fbc",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "e54d926f-3236-40eb-9ea6-f7635ea31cad",
+                "id": "eea8b1a6-564a-487a-b016-6d82ce7a9092",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "2129d600-2fd6-4b0c-87f1-fd8a41eedfb5",
+                "id": "65face03-3c54-4c4d-b2be-e0471b44ce27",
                 "rule": "ByStack"
               }
             ]
