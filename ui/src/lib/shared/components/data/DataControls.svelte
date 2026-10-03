@@ -13,6 +13,7 @@
 		nextSortState,
 		sortableFields as sortableFieldsOf,
 		groupableFields as groupableFieldsOf,
+		serverOrderViolations,
 		type SortState
 	} from './controls/sorting';
 	import {
@@ -77,7 +78,9 @@
 		common_tableCaption,
 		common_tags,
 		common_item,
-		common_items
+		common_items,
+		common_no,
+		common_yes
 	} from '$lib/paraglide/messages';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import { SearchX } from 'lucide-svelte';
@@ -305,8 +308,8 @@
 		}
 
 		// Notify parent of restored ordering state
-		if (onOrderChange && (selectedGroupField || sortState.field)) {
-			onOrderChange(selectedGroupField, sortState.field, sortState.direction);
+		if (onOrderChange && (activeGroupField || activeSort.field)) {
+			onOrderChange(activeGroupField, activeSort.field, activeSort.direction);
 		}
 
 		// Notify parent of restored search state
@@ -365,8 +368,26 @@
 		return uniqueValuesOf(items, field);
 	}
 
-	let groupableFields = $derived(groupableFieldsOf(fields));
-	let sortableFields = $derived(sortableFieldsOf(fields));
+	// Check if using server-side pagination
+	let useServerPagination = $derived(serverPagination !== null && onPageChange !== null);
+
+	// Under server pagination only server-orderable fields are offered: the
+	// client holds one page, so sorting or grouping it here would describe that
+	// page alone while the pager walks the server's order.
+	let groupableFields = $derived(groupableFieldsOf(fields, useServerPagination));
+	let sortableFields = $derived(sortableFieldsOf(fields, useServerPagination));
+
+	// The group and sort actually in force. A choice restored from storage can
+	// name a field this list no longer offers, which then applies nothing rather
+	// than grouping by it here or sending the server a key it cannot order by.
+	let activeGroupField = $derived(
+		groupableFields.some((f) => getFieldKey(f) === selectedGroupField) ? selectedGroupField : null
+	);
+	let activeSort = $derived<SortState>(
+		sortableFields.some((f) => getFieldKey(f) === sortState.field)
+			? sortState
+			: { field: null, direction: sortState.direction }
+	);
 
 	// Apply all filters, sorting, and grouping
 	let processedItems = $derived.by(() => {
@@ -379,10 +400,10 @@
 			// Search is skipped when the parent searches server-side — the rows that
 			// arrived are already the matches.
 			if (!onSearchChange && !matchesSearch(item, fields, searchQuery)) return false;
-			return matchesFilters(item, fields, filterState, serverMode);
+			return matchesFilters(item, fields, filterState, serverMode, getItemTags);
 		});
 
-		return sortItems(result, fields, sortState, onOrderChange !== null);
+		return sortItems(result, fields, activeSort, onOrderChange !== null, useServerPagination);
 	});
 
 	// Per-group totals across every page, when the server supplied them.
@@ -390,30 +411,26 @@
 
 	// Group items by selected field
 	let groupedItems = $derived.by(() => {
-		if (!selectedGroupField) {
+		if (!activeGroupField) {
 			return new SvelteMap([[common_all(), processedItems]]);
 		}
 
-		const field = fields.find((f) => getFieldKey(f) === selectedGroupField);
-		if (!field) {
-			return new SvelteMap([[common_all(), processedItems]]);
-		}
-
-		// `serverGroupCounts` non-null means the rows already arrive in the
-		// server's group order, which the cumulative offsets are indexed by.
+		// A server-paginated page arrives in the server's group order, which the
+		// cumulative offsets from `serverGroupCounts` are indexed by, so its
+		// buckets keep that order.
 		return groupItemsBy(
 			processedItems,
 			fields,
-			selectedGroupField,
-			common_ungrouped(),
-			serverGroupCounts !== null
+			activeGroupField,
+			{ ungrouped: common_ungrouped(), yes: common_yes(), no: common_no() },
+			serverGroupCounts !== null || useServerPagination
 		);
 	});
 
 	let groupOffsets = $derived(computeGroupOffsets(serverGroupCounts));
 
 	function serverGroupKey(rows: T[]): string {
-		return serverGroupKeyOf(rows, fields, selectedGroupField);
+		return serverGroupKeyOf(rows, fields, activeGroupField);
 	}
 
 	/**
@@ -589,10 +606,7 @@
 	let hasActiveFilters = $derived(hasActiveFiltersOf(fields, filterState, staleOnly));
 
 	let hasActiveSearch = $derived(searchQuery.trim().length > 0);
-	let hasActiveGrouping = $derived(selectedGroupField !== null);
-
-	// Check if using server-side pagination
-	let useServerPagination = $derived(serverPagination !== null && onPageChange !== null);
+	let hasActiveGrouping = $derived(activeGroupField !== null);
 
 	// A filterable field nobody handles server-side is always a bug on a
 	// server-paginated list: the client holds one page, so filtering here
@@ -615,6 +629,25 @@
 				`filterable on a server-paginated list but filtered client-side, which narrows ` +
 				`only the loaded page while the count describes every match. Mark the field ` +
 				`serverFiltered and handle it in onFilterChange, or drop its filterable flag.`
+		);
+	});
+
+	// The same failure for ordering: a display field opted into client-side
+	// sorting or grouping would reorder or bucket only the loaded page while the
+	// pager walks the server's order. Such a field is never offered under server
+	// pagination, so the flag is dead config that reads as a promise; this makes
+	// it fail loudly. Dev/test only, so it never reaches a user.
+	$effect(() => {
+		if (!import.meta.env.DEV) return;
+
+		const offenders = serverOrderViolations(fields, useServerPagination);
+		if (offenders.length === 0) return;
+
+		throw new Error(
+			`DataControls: ${offenders.join(', ')} ${offenders.length === 1 ? 'is' : 'are'} ` +
+				`sortable or groupable client-side on a server-paginated list, which would order ` +
+				`only the loaded page. Add the field to the backend's OrderField, or drop its ` +
+				`sortable and groupable flags.`
 		);
 	});
 
@@ -668,7 +701,7 @@
 
 	// ---- Table columns -------------------------------------------------------
 
-	let allColumns = $derived(fieldsToColumns(fields));
+	let allColumns = $derived(fieldsToColumns(fields, useServerPagination));
 	let columnState = $derived(
 		reconcileColumnState(allColumns, { visibility: columnVisibility, order: columnOrder })
 	);
@@ -725,9 +758,9 @@
 	// Notify parent of ordering changes and reset pagination
 	$effect(() => {
 		const ordering: [string | null, string | null, 'asc' | 'desc'] = [
-			selectedGroupField,
-			sortState.field,
-			sortState.direction
+			activeGroupField,
+			activeSort.field,
+			activeSort.direction
 		];
 
 		if (orderTracker.changed(ordering)) {
@@ -1036,7 +1069,7 @@
 					range: groupRange(groupItems)
 				}))}
 		columns={renderedColumns}
-		{sortState}
+		sortState={activeSort}
 		selectable={showSelection}
 		{selectedIds}
 		allSelected={isAllSelected(flat, selectedIds, getItemId)}

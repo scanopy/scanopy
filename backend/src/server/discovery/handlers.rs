@@ -1,5 +1,7 @@
+use crate::daemon::discovery::types::base::DiscoveryPhase;
 use crate::server::openapi::tags as api_tags;
 use crate::server::shared::types::api::ApiJson;
+use crate::server::shared::types::metadata::HasId;
 use crate::server::{
     auth::middleware::{
         auth::AuthenticatedEntity,
@@ -40,6 +42,7 @@ use axum::{
     },
     routing::get,
 };
+use const_format::concatcp;
 use futures::Stream;
 use serde::{Deserialize, Serialize};
 use std::{convert::Infallible, sync::Arc};
@@ -53,7 +56,9 @@ use uuid::Uuid;
 // ============================================================================
 
 /// Fields that discoveries can be ordered/grouped by.
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, Default, utoipa::ToSchema)]
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Copy, Default, utoipa::ToSchema, strum::EnumIter,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum DiscoveryOrderField {
     /// Newest-first is the default reading of a run history, so this is the one
@@ -66,7 +71,24 @@ pub enum DiscoveryOrderField {
     NetworkId,
     /// `discovery_type` is JSONB, so this reads its tag the way `json_field_eq` does.
     DiscoveryType,
+    /// A completed run's outcome: the terminal phase recorded in `run_type.results`. Rows that
+    /// are not historical runs carry none and sort last.
+    Phase,
+    /// When the run started, from `run_type.results`. Runs with none sort last.
+    StartedAt,
+    /// When the run finished, from `run_type.results`. Runs with none sort last.
+    FinishedAt,
+    /// How long the run took: finished minus started. Runs missing either sort last.
+    Duration,
+    /// How many warnings the run recorded. Rows with no results count as zero.
+    Warnings,
 }
+
+/// A historical run's start, read out of the JSONB payload as a timestamp so it orders by time
+/// rather than by its text rendering.
+const RUN_STARTED_AT_SQL: &str = "(discovery.run_type->'results'->>'started_at')::timestamptz";
+/// A historical run's finish, read the same way as [`RUN_STARTED_AT_SQL`].
+const RUN_FINISHED_AT_SQL: &str = "(discovery.run_type->'results'->>'finished_at')::timestamptz";
 
 impl OrderField for DiscoveryOrderField {
     fn to_sql(&self) -> &'static str {
@@ -77,7 +99,21 @@ impl OrderField for DiscoveryOrderField {
             Self::DaemonId => "discovery.daemon_id",
             Self::NetworkId => "discovery.network_id",
             Self::DiscoveryType => "discovery.discovery_type->>'type'",
+            Self::Phase => "discovery.run_type->'results'->>'phase'",
+            Self::StartedAt => RUN_STARTED_AT_SQL,
+            Self::FinishedAt => RUN_FINISHED_AT_SQL,
+            Self::Duration => concatcp!("(", RUN_FINISHED_AT_SQL, " - ", RUN_STARTED_AT_SQL, ")"),
+            Self::Warnings => {
+                "COALESCE(jsonb_array_length(discovery.run_type->'results'->'warnings'), 0)"
+            }
         }
+    }
+
+    fn nulls_last(&self) -> bool {
+        matches!(
+            self,
+            Self::Phase | Self::StartedAt | Self::FinishedAt | Self::Duration
+        )
     }
 }
 
@@ -96,6 +132,9 @@ pub struct DiscoveryFilterQuery {
     pub daemon_ids: Option<Vec<Uuid>>,
     /// Only runs of one of these discovery types.
     pub discovery_types: Option<Vec<String>>,
+    /// Only runs that ended in one of these phases (`run_type.results.phase`). Repeat for
+    /// several. Configurations, which have no recorded outcome, never match.
+    pub phases: Option<Vec<DiscoveryPhase>>,
     /// `true` returns only completed runs (the history view), `false` only the
     /// configurations that produce them. Omit for both.
     pub historical: Option<bool>,
@@ -158,6 +197,13 @@ impl FilterQueryExtractor for DiscoveryFilterQuery {
         };
         filter = match &self.discovery_types {
             Some(types) if !types.is_empty() => filter.discovery_type_in(types),
+            _ => filter,
+        };
+        filter = match &self.phases {
+            Some(phases) if !phases.is_empty() => {
+                let ids: Vec<&str> = phases.iter().map(|p| p.id()).collect();
+                filter.json_text_in("run_type", &["results", "phase"], &ids)
+            }
             _ => filter,
         };
         filter = match self.historical {

@@ -978,6 +978,7 @@ async fn server_side_field_filters_are_valid_sql_against_the_live_schema() {
     use sqlx::Executor;
     use uuid::Uuid;
 
+    use crate::server::shared::types::entities::EntitySourceDiscriminants;
     let (pool, _database_url, _container) = setup_test_db().await;
     crate::server::shared::storage::migration_runner::apply_embedded_migrations(&pool)
         .await
@@ -1044,6 +1045,62 @@ async fn server_side_field_filters_are_valid_sql_against_the_live_schema() {
                 .discovery_type_in(&named())
                 .to_where_clause(),
         ),
+        (
+            "hosts.manufacturer",
+            Host::table_name(),
+            StorableFilter::<Host>::new_unfiltered()
+                .text_column_in("manufacturer", &named())
+                .to_where_clause(),
+        ),
+        (
+            "hosts.model",
+            Host::table_name(),
+            StorableFilter::<Host>::new_unfiltered()
+                .text_column_in("model", &named())
+                .to_where_clause(),
+        ),
+        (
+            "hosts.sys_location",
+            Host::table_name(),
+            StorableFilter::<Host>::new_unfiltered()
+                .text_column_in("sys_location", &named())
+                .to_where_clause(),
+        ),
+        (
+            "hosts.os_family",
+            Host::table_name(),
+            StorableFilter::<Host>::new_unfiltered()
+                .json_text_in("os", &["family"], &["Linux"])
+                .to_where_clause(),
+        ),
+        (
+            "hosts.credentials",
+            Host::table_name(),
+            StorableFilter::<Host>::new_unfiltered()
+                .has_credential(&[id])
+                .to_where_clause(),
+        ),
+        (
+            "services.source",
+            Service::table_name(),
+            StorableFilter::<Service>::new_unfiltered()
+                .source_type_in(&[EntitySourceDiscriminants::DiscoveryWithMatch])
+                .to_where_clause(),
+        ),
+        (
+            "services.match_confidence",
+            Service::table_name(),
+            StorableFilter::<Service>::new_unfiltered()
+                .json_text_in("source", &["details", "confidence"], &["High"])
+                .to_where_clause(),
+        ),
+        (
+            "discovery.phase",
+            Discovery::table_name(),
+            StorableFilter::<Discovery>::new_unfiltered()
+                .json_text_in("run_type", &["results", "phase"], &["Complete"])
+                .to_where_clause(),
+        ),
     ];
 
     let mut failures = Vec::new();
@@ -1058,5 +1115,92 @@ async fn server_side_field_filters_are_valid_sql_against_the_live_schema() {
         failures.is_empty(),
         "Postgres rejected a filter the UI can send:\n{}",
         failures.join("\n")
+    );
+}
+
+/// Every `*OrderField` variant names SQL Postgres accepts against the migrated schema: as the
+/// list's ORDER BY (grouped by one variant, ordered by another, so two joins that cannot share a
+/// query fail here), and as the `count_by_group` expression the grouped list and the field-values
+/// endpoint both run. A variant naming a missing column, alias or JSON path otherwise only fails
+/// when a user picks it.
+#[tokio::test]
+async fn order_fields_are_valid_sql_against_the_live_schema() {
+    use crate::server::credentials::handlers::CredentialOrderField;
+    use crate::server::daemons::handlers::DaemonOrderField;
+    use crate::server::dependencies::handlers::DependencyOrderField;
+    use crate::server::discovery::handlers::DiscoveryOrderField;
+    use crate::server::hosts::handlers::HostOrderField;
+    use crate::server::services::handlers::ServiceOrderField;
+    use crate::server::shared::handlers::ordering::{OrderField, apply_ordering};
+    use crate::server::shared::handlers::query::OrderDirection;
+    use crate::server::shared::storage::filter::StorableFilter;
+    use crate::server::subnets::handlers::SubnetOrderField;
+    use crate::server::tags::handlers::TagOrderField;
+    use crate::server::vlans::handlers::VlanOrderField;
+    use crate::tests::setup_test_db;
+    use sqlx::{Executor, PgPool};
+    use strum::IntoEnumIterator;
+
+    async fn failures<T, O>(pool: &PgPool) -> Vec<String>
+    where
+        T: Storable,
+        O: OrderField + IntoEnumIterator + std::fmt::Debug,
+    {
+        let table = T::table_name();
+        let mut failures = Vec::new();
+        for group in O::iter() {
+            for order in O::iter() {
+                let (filter, order_by) = apply_ordering(
+                    Some(group),
+                    Some(order),
+                    Some(OrderDirection::Desc),
+                    StorableFilter::<T>::new_unfiltered(),
+                    "",
+                );
+                let sql = format!(
+                    "SELECT {table}.* FROM {table} {} ORDER BY {order_by}",
+                    filter.to_join_clause()
+                );
+                if let Err(e) = pool.describe(sql.as_str()).await {
+                    failures.push(format!(
+                        "{table} group_by {group:?} order_by {order:?}: {e}\n  sql: {sql}"
+                    ));
+                }
+            }
+
+            let expr = group.to_sql();
+            let sql = format!(
+                "SELECT ({expr})::text, COUNT(*) FROM {table} {} GROUP BY {expr} ORDER BY {expr} ASC",
+                group.join_sql().unwrap_or_default()
+            );
+            if let Err(e) = pool.describe(sql.as_str()).await {
+                failures.push(format!(
+                    "{table} count_by_group {group:?}: {e}\n  sql: {sql}"
+                ));
+            }
+        }
+        failures
+    }
+
+    let (pool, _database_url, _container) = setup_test_db().await;
+    crate::server::shared::storage::migration_runner::apply_embedded_migrations(&pool)
+        .await
+        .expect("Failed to run migrations");
+
+    let mut all = Vec::new();
+    all.extend(failures::<Host, HostOrderField>(&pool).await);
+    all.extend(failures::<Service, ServiceOrderField>(&pool).await);
+    all.extend(failures::<Discovery, DiscoveryOrderField>(&pool).await);
+    all.extend(failures::<Credential, CredentialOrderField>(&pool).await);
+    all.extend(failures::<Daemon, DaemonOrderField>(&pool).await);
+    all.extend(failures::<Dependency, DependencyOrderField>(&pool).await);
+    all.extend(failures::<Subnet, SubnetOrderField>(&pool).await);
+    all.extend(failures::<Tag, TagOrderField>(&pool).await);
+    all.extend(failures::<Vlan, VlanOrderField>(&pool).await);
+
+    assert!(
+        all.is_empty(),
+        "Postgres rejected an order field:\n{}",
+        all.join("\n")
     );
 }

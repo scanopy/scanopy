@@ -34,6 +34,8 @@ impl<T: Storable> Default for StorableFilter<T> {
 
 mod constructors;
 mod filters;
+mod hosts;
+mod inclusion;
 mod lldp;
 mod organization;
 mod subnets;
@@ -552,6 +554,15 @@ mod tests {
                 .to_where_clause(),
             StorableFilter::<Host>::new_unfiltered()
                 .source_type_in(&[])
+                .to_where_clause(),
+            StorableFilter::<Host>::new_unfiltered()
+                .text_column_in("model", &[])
+                .to_where_clause(),
+            StorableFilter::<Host>::new_unfiltered()
+                .json_text_in::<&str>("os", &["family"], &[])
+                .to_where_clause(),
+            StorableFilter::<Host>::new_unfiltered()
+                .has_credential(&[])
                 .to_where_clause(),
         ];
 

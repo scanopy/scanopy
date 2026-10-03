@@ -44,6 +44,7 @@ pub mod demo_data_seeding;
 pub mod dependencies;
 pub mod far_end_advertised_ports;
 pub mod fdb_resolution;
+pub mod field_values_scope;
 pub mod host_create_with_children;
 pub mod host_interface_sync;
 pub mod host_mac_ordering;

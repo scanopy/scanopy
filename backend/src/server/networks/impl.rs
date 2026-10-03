@@ -146,6 +146,7 @@ impl Display for Network {
 impl CrudHandlers for Network {
     type Service = NetworkService;
     type FilterQuery = NoFilterQuery;
+    type OrderField = crate::server::shared::handlers::ordering::NoOrderField;
 
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.network_service

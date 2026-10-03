@@ -377,3 +377,7 @@ export function osLabel(os: DaemonOS): string {
 			return common_freebsd();
 	}
 }
+
+/** Every OS a daemon can report. Fixture ids are `DaemonOs` names, emitted from that enum, so
+ *  each is a valid `DaemonOS` by construction. */
+export const daemonOsIds: DaemonOS[] = daemonOsMetadata.map((entry) => entry.id as DaemonOS);

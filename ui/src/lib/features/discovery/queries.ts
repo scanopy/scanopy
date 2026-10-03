@@ -19,7 +19,7 @@ import type { DiscoveryUpdatePayload } from './types/api';
 import type { Organization } from '../organizations/types';
 import { pushError, pushSuccess, pushWarning } from '$lib/shared/stores/feedback';
 import { BaseSSEManager, type SSEConfig } from '$lib/shared/utils/sse';
-import { discoveryTerminalReasons } from '$lib/shared/stores/metadata';
+import { discoveryTerminalReasons, discoveryTypes } from '$lib/shared/stores/metadata';
 import { writable } from 'svelte/store';
 import * as m from '$lib/paraglide/messages';
 import { networkItems } from '$lib/features/networks/columns';
@@ -72,6 +72,8 @@ export interface DiscoveryHistoryQueryParams {
 	daemon_ids?: string[];
 	/** Only runs of one of these discovery types (raw discriminants). */
 	discovery_types?: string[];
+	/** Only runs that ended in one of these phases. */
+	phases?: components['schemas']['DiscoveryPhase'][];
 }
 
 /** Pagination metadata, derived from the generated schema. */
@@ -103,7 +105,8 @@ export function useDiscoveryHistoryQuery(
 			search,
 			network_ids,
 			daemon_ids,
-			discovery_types
+			discovery_types,
+			phases
 		} = params;
 
 		return {
@@ -119,7 +122,8 @@ export function useDiscoveryHistoryQuery(
 					search,
 					network_ids,
 					daemon_ids,
-					discovery_types
+					discovery_types,
+					phases
 				}
 			],
 			enabled: enabled(),
@@ -137,6 +141,7 @@ export function useDiscoveryHistoryQuery(
 								network_ids,
 								daemon_ids,
 								discovery_types,
+								phases,
 								historical: true
 							}
 						}
@@ -441,13 +446,32 @@ export type DiscoveryFieldEntry = Omit<
 >;
 
 /**
- * The discovery fields that are server order fields, one per `DiscoveryOrderField`, for
- * `defineFields`. A new order field fails to compile here until it has an entry.
+ * The order fields read from a completed run's results. A scan configuration has none, so the
+ * scheduled list leaves them out rather than offering a sort that orders nothing.
+ */
+export const RUN_RESULT_ORDER_FIELDS = [
+	'phase',
+	'started_at',
+	'finished_at',
+	'duration',
+	'warnings'
+] as const satisfies readonly DiscoveryOrderField[];
+
+/** The order fields a scan configuration carries. */
+export type DiscoveryConfigOrderField = Exclude<
+	DiscoveryOrderField,
+	(typeof RUN_RESULT_ORDER_FIELDS)[number]
+>;
+
+/**
+ * The discovery fields that are server order fields on a scan configuration, one per
+ * `DiscoveryConfigOrderField`, for `defineFields`. A new order field fails to compile here until
+ * it has an entry, or is added to `RUN_RESULT_ORDER_FIELDS`.
  */
 export const discoveryFields = (
 	daemons: Daemon[],
 	networks: Network[]
-): Record<DiscoveryOrderField, DiscoveryFieldEntry> => ({
+): Record<DiscoveryConfigOrderField, DiscoveryFieldEntry> => ({
 	name: {
 		label: m.common_name(),
 		type: 'string',
@@ -490,7 +514,9 @@ export const discoveryFields = (
 		searchable: true,
 		filterable: true,
 		groupable: true,
-		getValue: (item: Discovery) => item.discovery_type.type
+		// Every type the backend defines, named the way the column renders them.
+		filterOptions: discoveryTypes.getItems().map((type) => discoveryTypes.getName(type.id)),
+		getValue: (item: Discovery) => discoveryTypes.getName(item.discovery_type.type)
 	}
 });
 

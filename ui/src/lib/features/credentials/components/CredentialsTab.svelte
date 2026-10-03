@@ -64,8 +64,11 @@
 		common_networks,
 		common_notApplicable,
 		common_noEntityYet,
+		common_tags,
 		common_targets
 	} from '$lib/paraglide/messages';
+	import { useTagsQuery } from '$lib/features/tags/queries';
+	import { tagNames } from '$lib/features/tags/columns';
 
 	let { isReadOnly = false }: TabProps = $props();
 
@@ -99,6 +102,9 @@
 	const updateCredentialMutation = useUpdateCredentialMutation();
 	const deleteCredentialMutation = useDeleteCredentialMutation();
 	const bulkDeleteCredentialsMutation = useBulkDeleteCredentialsMutation();
+
+	const tagsQuery = useTagsQuery();
+	let tagsData = $derived(tagsQuery.data ?? []);
 
 	// Networks for delete impact preview
 	const networksQuery = useNetworksQuery();
@@ -294,6 +300,9 @@
 				type: 'string',
 				filterable: true,
 				groupable: true,
+				sortable: true,
+				// The field holds an OS family, so the options are every family, named the same way.
+				filterOptions: osFamilies.map((family) => family.name),
 				getValue: (item: Credential) =>
 					item.daemon_os
 						? (osFamilies.find((family) => family.id === item.daemon_os)?.name ?? item.daemon_os)
@@ -310,7 +319,7 @@
 				groupable: true,
 				sortable: true,
 				filterMode: 'include',
-				filterOptions: credentialTypes.getItems().map((t) => t.name ?? t.id),
+				filterOptions: credentialTypes.getItems().map((t) => credentialTypes.getName(t.id)),
 				getValue: (item: Credential) => credentialTypes.getName(getCredentialTypeId(item)),
 				display: {
 					// Beta and unofficial-API ride with the type, which is what they qualify, and so
@@ -345,6 +354,9 @@
 				label: common_networks(),
 				type: 'array',
 				searchable: true,
+				// Credentials share networks, so this filters. Hosts are near-unique per credential,
+				// so search covers those.
+				filterable: true,
 				getValue: (item: Credential) => networksForCredential(item).map((n) => n.name),
 				display: {
 					getItems: (item: Credential) =>
@@ -390,9 +402,15 @@
 				type: 'array',
 				searchable: true,
 				filterable: true,
-				groupable: true,
 				filterMode: 'include',
-				filterOptions: ['Network', 'Hosts', 'DaemonHost'],
+				// Every scope a credential type declares, read from the type metadata.
+				filterOptions: [
+					...new Set(
+						credentialTypes
+							.getItems()
+							.flatMap((t) => credentialTypes.getMetadata(t.id).targets ?? [])
+					)
+				],
 				getValue: (item: Credential) => {
 					const typeId = getCredentialTypeId(item);
 					const meta = credentialTypes.getMetadata(typeId);
@@ -401,8 +419,8 @@
 				display: {
 					// Off by default: the target set is a property of the credential *type*, so it repeats
 					// down the column for every credential of the same type and earns its width
-					// only when someone is actually sorting or filtering by it. Still filterable
-					// and groupable, and still shown on the cards.
+					// only when someone is actually filtering by it. Still filterable, and still shown
+					// on the cards. An array, so it neither sorts nor groups.
 					hiddenByDefault: true,
 					// Same chip props the card uses, so a target reads identically in
 					// both views rather than falling back to undifferentiated grey.
@@ -414,6 +432,14 @@
 						}));
 					}
 				}
+			},
+			{
+				key: 'tags',
+				label: common_tags(),
+				type: 'array',
+				searchable: true,
+				filterable: true,
+				getValue: (entity: Credential) => tagNames(entity.tags, tagsData)
 			}
 		]
 	);

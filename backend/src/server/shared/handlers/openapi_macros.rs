@@ -320,3 +320,57 @@ macro_rules! crud_get_all_handler {
         $crate::crud_get_all_handler!($entity, $entity);
     };
 }
+
+/// Generates an OpenAPI-annotated field-values handler that delegates to
+/// `get_field_values_handler::<T>`: every distinct value of one of the entity's order fields,
+/// with its row count, under the same filters the list takes.
+///
+/// # Example
+/// ```ignore
+/// crud_get_field_values_handler!(Host);
+/// ```
+#[macro_export]
+macro_rules! crud_get_field_values_handler {
+    ($entity:ty) => {
+        type __FieldValuesFilterQuery = <$entity as $crate::server::shared::handlers::traits::CrudHandlers>::FilterQuery;
+        type __FieldValuesOrderField = <$entity as $crate::server::shared::handlers::traits::CrudHandlers>::OrderField;
+        type __FieldValuesResponse = $crate::server::shared::types::api::ApiResponse<Vec<$crate::server::shared::types::api::GroupCount>>;
+
+        const __FIELD_VALUES_TAG: &str = <$entity as $crate::server::shared::storage::traits::Entity>::ENTITY_NAME_PLURAL;
+        const __FIELD_VALUES_OP_ID: &str = const_format::concatcp!("get_", <$entity as $crate::server::shared::storage::traits::Entity>::ENTITY_NAME_SINGULAR, "_field_values");
+        const __FIELD_VALUES_SUMMARY: &str = const_format::concatcp!("List the values of a ", <$entity as $crate::server::shared::storage::traits::Entity>::ENTITY_NAME_SINGULAR, " field");
+        const __FIELD_VALUES_DESC: &str = const_format::concatcp!("Every distinct value of one ", <$entity as $crate::server::shared::storage::traits::Entity>::ENTITY_NAME_SINGULAR, " field across the ", <$entity as $crate::server::shared::storage::traits::Entity>::ENTITY_NAME_PLURAL, " the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.");
+        const __FIELD_VALUES_RESP_DESC: &str = const_format::concatcp!("Distinct values and their ", <$entity as $crate::server::shared::storage::traits::Entity>::ENTITY_NAME_SINGULAR, " counts");
+
+        #[utoipa::path(
+            get,
+            path = "/field-values/{field}",
+            tag = __FIELD_VALUES_TAG,
+            operation_id = __FIELD_VALUES_OP_ID,
+            summary = __FIELD_VALUES_SUMMARY,
+            description = __FIELD_VALUES_DESC,
+            params(
+                ("field" = __FieldValuesOrderField, Path, description = "The field whose values to count"),
+                __FieldValuesFilterQuery
+            ),
+            responses(
+                (status = 200, description = __FIELD_VALUES_RESP_DESC, body = $crate::server::shared::types::api::ApiResponse<Vec<$crate::server::shared::types::api::GroupCount>>),
+                (status = 400, description = "Unknown field", body = $crate::server::shared::types::api::ApiErrorResponse),
+            ),
+            security(("user_api_key" = []), ("session" = []))
+        )]
+        pub async fn get_field_values(
+            state: axum::extract::State<std::sync::Arc<$crate::server::config::AppState>>,
+            auth: $crate::server::auth::middleware::permissions::Authorized<$crate::server::auth::middleware::permissions::Viewer>,
+            path: axum::extract::Path<__FieldValuesOrderField>,
+            query: $crate::server::shared::extractors::Query<__FieldValuesFilterQuery>,
+        ) -> $crate::server::shared::types::api::ApiResult<
+            axum::response::Json<__FieldValuesResponse>,
+        > {
+            $crate::server::shared::handlers::traits::get_field_values_handler::<$entity>(
+                state, auth, path, query,
+            )
+            .await
+        }
+    };
+}

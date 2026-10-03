@@ -55,6 +55,10 @@ export interface ServicesQueryParams {
 	ports?: number[];
 	/** Exclude services belonging to these categories. */
 	exclude_categories?: components['schemas']['ServiceCategory'][];
+	/** Filter by how the service came to exist (`source.type`). */
+	sources?: components['schemas']['EntitySourceDiscriminants'][];
+	/** Filter by how confidently discovery matched the service. */
+	match_confidences?: components['schemas']['MatchConfidence'][];
 	/** Set false to hold the fetch. Excluded from the query key. */
 	enabled?: boolean;
 }
@@ -101,6 +105,8 @@ export function useServicesQuery(
 			search,
 			ports,
 			exclude_categories,
+			sources,
+			match_confidences,
 			enabled = true
 		} = params;
 
@@ -122,7 +128,9 @@ export function useServicesQuery(
 					stale,
 					search,
 					ports,
-					exclude_categories
+					exclude_categories,
+					sources,
+					match_confidences
 				}
 			],
 			queryFn: async (): Promise<PaginatedResult<Service>> => {
@@ -144,7 +152,9 @@ export function useServicesQuery(
 								stale,
 								search,
 								ports,
-								exclude_categories
+								exclude_categories,
+								sources,
+								match_confidences
 							}
 						}
 					})

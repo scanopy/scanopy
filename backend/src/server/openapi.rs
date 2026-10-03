@@ -570,3 +570,61 @@ pub fn write_spec(spec: &OpenApi, path: &std::path::Path) -> std::io::Result<()>
     let json = serde_json::to_string_pretty(spec).map_err(std::io::Error::other)?;
     std::fs::write(path, json)
 }
+
+#[cfg(test)]
+mod tests {
+    use serde_json::Value;
+
+    /// Whether a GET operation is one of the list-shaped reads whose query parameters the
+    /// frontend filters and orders through: a list, an export, or a field-values count.
+    fn is_list_shaped(op: &Value) -> bool {
+        let id = op["operationId"].as_str().unwrap_or_default();
+        let orders = op["parameters"].as_array().is_some_and(|params| {
+            params
+                .iter()
+                .any(|p| p["schema"].to_string().contains("OrderField"))
+        });
+        id.starts_with("list_")
+            || id.starts_with("get_all_")
+            || id.ends_with("_field_values")
+            || orders
+    }
+
+    /// The `*OrderField` enums and the list operations' query parameters reach the frontend only
+    /// through the committed `ui/static/openapi.json`, and nothing else regenerates it. Scoped to
+    /// those, so unrelated drift elsewhere in the spec does not fail this.
+    #[test]
+    fn committed_spec_matches_order_fields_and_list_parameters() {
+        let generated = serde_json::to_value(super::full_spec()).unwrap();
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../ui/static/openapi.json");
+        let committed: Value =
+            serde_json::from_str(&std::fs::read_to_string(path).expect("read openapi.json"))
+                .expect("parse openapi.json");
+
+        let mut drift = Vec::new();
+
+        let schemas = generated["components"]["schemas"].as_object().unwrap();
+        for (name, schema) in schemas.iter().filter(|(n, _)| n.ends_with("OrderField")) {
+            if committed["components"]["schemas"][name] != *schema {
+                drift.push(format!("schema {name}"));
+            }
+        }
+
+        for (path, item) in generated["paths"].as_object().unwrap() {
+            let op = &item["get"];
+            if op.is_null() || !is_list_shaped(op) {
+                continue;
+            }
+            let id = op["operationId"].as_str().unwrap_or(path);
+            if committed["paths"][path]["get"]["parameters"] != op["parameters"] {
+                drift.push(format!("operation {id} ({path}) parameters"));
+            }
+        }
+
+        assert!(
+            drift.is_empty(),
+            "ui/static/openapi.json is stale for: {}. Run `make generate-types`.",
+            drift.join(", ")
+        );
+    }
+}

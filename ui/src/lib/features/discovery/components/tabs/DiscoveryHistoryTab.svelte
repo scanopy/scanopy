@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { entities, discoveryTypes } from '$lib/shared/stores/metadata';
+	import { entities, discoveryPhases, discoveryTypes } from '$lib/shared/stores/metadata';
 	import TabHeader from '$lib/shared/components/layout/TabHeader.svelte';
 	import EmptyState from '$lib/shared/components/layout/EmptyState.svelte';
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
@@ -30,13 +30,14 @@
 	import { networkItems } from '$lib/features/networks/columns';
 	import { toColor } from '$lib/shared/utils/styling';
 	import type { CardAction } from '$lib/shared/components/data/types';
-	import { runOutcomeTag, type OutcomeTag } from '../../utils/outcome';
+	import { runOutcomeTag, TERMINAL_PHASES, type OutcomeTag } from '../../utils/outcome';
 	import {
 		common_created,
 		common_daemon,
 		common_details,
 		common_duration,
 		common_name,
+		common_none,
 		common_status,
 		common_warnings,
 		common_network,
@@ -57,6 +58,7 @@
 	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
 	type DiscoveryOrderField = components['schemas']['DiscoveryOrderField'];
 	type OrderDirection = components['schemas']['OrderDirection'];
+	type DiscoveryPhase = components['schemas']['DiscoveryPhase'];
 
 	let { isReadOnly = false, isActive = false }: TabProps = $props();
 
@@ -81,8 +83,12 @@
 	let filterNetworkIds = $state<string[]>([]);
 	let filterDaemonIds = $state<string[]>([]);
 	let filterDiscoveryTypes = $state<string[]>([]);
+	let filterPhases = $state<DiscoveryPhase[]>([]);
 	let hasServerFilters = $derived(
-		filterNetworkIds.length > 0 || filterDaemonIds.length > 0 || filterDiscoveryTypes.length > 0
+		filterNetworkIds.length > 0 ||
+			filterDaemonIds.length > 0 ||
+			filterDiscoveryTypes.length > 0 ||
+			filterPhases.length > 0
 	);
 
 	// Queries
@@ -96,7 +102,8 @@
 			search: search || undefined,
 			network_ids: filterNetworkIds.length > 0 ? filterNetworkIds : undefined,
 			daemon_ids: filterDaemonIds.length > 0 ? filterDaemonIds : undefined,
-			discovery_types: filterDiscoveryTypes.length > 0 ? filterDiscoveryTypes : undefined
+			discovery_types: filterDiscoveryTypes.length > 0 ? filterDiscoveryTypes : undefined,
+			phases: filterPhases.length > 0 ? filterPhases : undefined
 		}),
 		() => isActive
 	);
@@ -172,9 +179,15 @@
 				filterNetworkIds = networksData.filter((n) => wanted.has(n.name)).map((n) => n.id);
 				break;
 			case 'discovery_type':
-				// Already the raw discriminant the server stores, so it needs no
-				// resolution — the column renders the tag itself.
-				filterDiscoveryTypes = values;
+				filterDiscoveryTypes = discoveryTypes
+					.getItems()
+					.filter((type) => wanted.has(discoveryTypes.getName(type.id)))
+					.map((type) => type.id);
+				break;
+			case 'phase':
+				filterPhases = TERMINAL_PHASES.filter((phase) =>
+					wanted.has(discoveryPhases.getName(phase))
+				);
 				break;
 			default:
 				throw new Error(
@@ -241,16 +254,17 @@
 	 * a single informational note look like a broken credential.
 	 */
 	function outcomeTag(discovery: Discovery): OutcomeTag | null {
-		return runOutcomeTag(
-			discovery.run_type.type === 'Historical' ? discovery.run_type.results : null
-		);
+		return runOutcomeTag(resultsOf(discovery));
+	}
+
+	/** A completed run's results, or null for a row that is not one. */
+	function resultsOf(discovery: Discovery) {
+		return discovery.run_type.type === 'Historical' ? discovery.run_type.results : null;
 	}
 
 	/** A run's recorded warnings, or none for a row that is not a completed run. */
 	function warningsOf(discovery: Discovery) {
-		return discovery.run_type.type === 'Historical'
-			? (discovery.run_type.results.warnings ?? [])
-			: [];
+		return resultsOf(discovery)?.warnings ?? [];
 	}
 
 	/** Row actions for table mode, matching what the card offers. */
@@ -259,146 +273,158 @@
 	}
 
 	let fields = $derived(
-		defineFields<Discovery, DiscoveryOrderField>(
-			{
-				// Identity field: grouping by it would render a header per run.
-				name: {
-					label: common_name(),
-					type: 'string',
-					searchable: true,
-					groupable: false,
-					display: { order: 0 }
-				},
-				daemon_id: {
-					label: common_daemon(),
-					type: 'string',
-					searchable: true,
-					filterable: true,
-					serverFiltered: true,
-					filterOptions: daemonsData.map((d) => d.name),
-					groupable: true,
-					// Displayed as a name, but grouped by id on the server.
-					getGroupValue: (item) => item.daemon_id,
-					getValue: (item) =>
-						daemonsData.find((d) => d.id === item.daemon_id)?.name ??
-						common_unknownEntity({ entity: common_daemon() }),
-					display: { order: 7, getItems: (item) => daemonItems(item.daemon_id, daemonsData) }
-				},
-				network_id: {
-					label: common_network(),
-					type: 'string',
-					searchable: true,
-					filterable: true,
-					serverFiltered: true,
-					filterOptions: networksData.map((n) => n.name),
-					groupable: true,
-					getGroupValue: (item) => item.network_id,
-					getValue: (item) =>
-						networksData.find((n) => n.id === item.network_id)?.name ?? common_unknownNetwork(),
-					display: { order: 6, getItems: (item) => networkItems(item.network_id, networksData) }
-				},
-				discovery_type: {
-					label: common_type(),
-					type: 'string',
-					searchable: true,
-					filterable: true,
-					serverFiltered: true,
-					filterOptions: discoveryTypes.getItems().map((type) => type.id),
-					groupable: true,
-					getValue: (item) => item.discovery_type.type,
-					display: { hiddenByDefault: true }
-				},
-				created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
-				updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } }
+		defineFields<Discovery, DiscoveryOrderField>({
+			// Runs of one scan share its name, so grouping by it gathers a scan's history.
+			name: {
+				label: common_name(),
+				type: 'string',
+				searchable: true,
+				display: { order: 0 }
 			},
-			[
-				{
-					// The run's outcome, which the card shows as its header tag. It was
-					// card-only, so a failed or cancelled run looked identical to a
-					// clean one in the table.
-					key: 'outcome',
-					label: common_status(),
-					type: 'string',
-					searchable: true,
-					// Deliberately not filterable. The value is derived from the
-					// `run_type` JSONB (phase and terminal reason) through `outcomeTag`,
-					// and the server has no column to filter on — this list is
-					// server-paginated, where a client-side filter would narrow the
-					// loaded page while the count kept describing every match.
-					groupable: true,
-					getValue: (item) => outcomeTag(item)?.label ?? '',
-					display: {
-						order: 1,
-						statusTag: true,
-						getItems: (item) => {
-							const tag = outcomeTag(item);
-							return tag
-								? [{ id: tag.label, label: tag.label, color: tag.color, title: tag.title }]
-								: [];
-						}
-					}
+			daemon_id: {
+				label: common_daemon(),
+				type: 'string',
+				searchable: true,
+				filterable: true,
+				serverFiltered: true,
+				filterOptions: daemonsData.map((d) => d.name),
+				groupable: true,
+				// Displayed as a name, but grouped by id on the server.
+				getGroupValue: (item) => item.daemon_id,
+				getValue: (item) =>
+					daemonsData.find((d) => d.id === item.daemon_id)?.name ??
+					common_unknownEntity({ entity: common_daemon() }),
+				display: { order: 7, getItems: (item) => daemonItems(item.daemon_id, daemonsData) }
+			},
+			network_id: {
+				label: common_network(),
+				type: 'string',
+				searchable: true,
+				filterable: true,
+				serverFiltered: true,
+				filterOptions: networksData.map((n) => n.name),
+				groupable: true,
+				getGroupValue: (item) => item.network_id,
+				getValue: (item) =>
+					networksData.find((n) => n.id === item.network_id)?.name ?? common_unknownNetwork(),
+				display: { order: 6, getItems: (item) => networkItems(item.network_id, networksData) }
+			},
+			discovery_type: {
+				label: common_type(),
+				type: 'string',
+				searchable: true,
+				filterable: true,
+				serverFiltered: true,
+				filterOptions: discoveryTypes.getItems().map((type) => discoveryTypes.getName(type.id)),
+				groupable: true,
+				// The server groups on the raw discriminant; the column renders its name.
+				getGroupValue: (item) => item.discovery_type.type,
+				getValue: (item) => discoveryTypes.getName(item.discovery_type.type),
+				display: { hiddenByDefault: true }
+			},
+			created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
+			updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } },
+			// The run's outcome, which the card shows as its header tag. Sorted, grouped and
+			// filtered by the terminal phase; the cell shows the outcome tag, whose hover carries
+			// the reason the run ended.
+			phase: {
+				label: common_status(),
+				type: 'string',
+				searchable: true,
+				filterable: true,
+				serverFiltered: true,
+				// Only the phases a run ends in: the history holds no other.
+				filterOptions: TERMINAL_PHASES.map((phase) => discoveryPhases.getName(phase)),
+				getValue: (item) => {
+					const phase = resultsOf(item)?.phase;
+					return phase ? discoveryPhases.getName(phase) : null;
 				},
-				// Derived from the run's JSONB results, so these are display-only:
-				// there is no column to sort or group on.
-				{
-					key: 'started_at',
-					label: discovery_startedAt(),
-					type: 'string',
-					getValue: (item) => {
-						const results = item.run_type.type == 'Historical' ? item.run_type.results : null;
-						return results && results.started_at
-							? formatTimestamp(results.started_at)
-							: common_unknown();
-					},
-					display: { order: 3 }
-				},
-				{
-					key: 'finished_at',
-					label: discovery_finishedAt(),
-					type: 'string',
-					getValue: (item) => {
-						const results = item.run_type.type == 'Historical' ? item.run_type.results : null;
-						return results && results.finished_at
-							? formatTimestamp(results.finished_at)
-							: common_unknown();
-					},
-					display: { order: 4 }
-				},
-				{
-					key: 'duration',
-					label: common_duration(),
-					type: 'string',
-					getValue: (item) => {
-						const results = item.run_type.type == 'Historical' ? item.run_type.results : null;
-						if (results && results.finished_at && results.started_at) {
-							return formatDuration(results.started_at, results.finished_at);
-						}
-						return common_unknown();
-					},
-					display: { order: 5 }
-				},
-				{
-					// How much the run had to say, next to how it ended — the two questions asked
-					// together. Always amber, never red: this column counts warnings, and a run
-					// that failed outright says so in Status. A clean run falls back to its plain
-					// 0 rather than wearing a chip that means nothing.
-					key: 'warnings',
-					label: common_warnings(),
-					type: 'string',
-					getValue: (item) => String(warningsOf(item).length),
-					display: {
-						order: 2,
-						getItems: (item) => {
-							const count = warningsOf(item).length;
-							if (count === 0) return undefined;
-							return [{ id: 'warnings', label: String(count), color: toColor('amber') }];
-						}
+				// The server groups on the raw phase id.
+				getGroupValue: (item) => resultsOf(item)?.phase ?? null,
+				display: {
+					order: 1,
+					statusTag: true,
+					getItems: (item) => {
+						const tag = outcomeTag(item);
+						return tag
+							? [{ id: tag.label, label: tag.label, color: tag.color, title: tag.title }]
+							: [];
 					}
 				}
-			]
-		)
+			},
+			// Read out of the run's results. Near-unique timestamps and continuous values, so
+			// they sort but do not group.
+			started_at: {
+				label: discovery_startedAt(),
+				type: 'date',
+				getValue: (item) => {
+					const startedAt = resultsOf(item)?.started_at;
+					return startedAt ? new Date(startedAt) : null;
+				},
+				display: { order: 3, cell: startedAtCell }
+			},
+			finished_at: {
+				label: discovery_finishedAt(),
+				type: 'date',
+				getValue: (item) => {
+					const finishedAt = resultsOf(item)?.finished_at;
+					return finishedAt ? new Date(finishedAt) : null;
+				},
+				display: { order: 4, cell: finishedAtCell }
+			},
+			duration: {
+				label: common_duration(),
+				type: 'string',
+				groupable: false,
+				getValue: (item) => {
+					const results = resultsOf(item);
+					if (results && results.finished_at && results.started_at) {
+						return formatDuration(results.started_at, results.finished_at);
+					}
+					return common_unknown();
+				},
+				display: { order: 5 }
+			},
+			// How much the run had to say, next to how it ended — the two questions asked
+			// together. Always amber, never red: this column counts warnings, and a run
+			// that failed outright says so in Status. A clean run falls back to its plain
+			// 0 rather than wearing a chip that means nothing. A count, so it sorts but does
+			// not group.
+			warnings: {
+				label: common_warnings(),
+				type: 'string',
+				groupable: false,
+				getValue: (item) => String(warningsOf(item).length),
+				display: {
+					order: 2,
+					getItems: (item) => {
+						const count = warningsOf(item).length;
+						if (count === 0) return undefined;
+						return [{ id: 'warnings', label: String(count), color: toColor('amber') }];
+					}
+				}
+			}
+		})
 	);
 </script>
+
+{#snippet startedAtCell(discovery: Discovery)}
+	{@render timestampCell(resultsOf(discovery)?.started_at)}
+{/snippet}
+
+{#snippet finishedAtCell(discovery: Discovery)}
+	{@render timestampCell(resultsOf(discovery)?.finished_at)}
+{/snippet}
+
+<!-- The full timestamp: runs are often minutes apart, so a date alone cannot tell them apart. -->
+{#snippet timestampCell(timestamp: string | null | undefined)}
+	{#if timestamp}
+		{formatTimestamp(timestamp)}
+	{:else}
+		<span class="text-muted" aria-hidden="true">—</span>
+		<span class="sr-only">{common_none()}</span>
+	{/if}
+{/snippet}
 
 <div class="space-y-6">
 	<!-- Header -->

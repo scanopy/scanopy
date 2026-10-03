@@ -239,7 +239,7 @@ async fn demo_seed_persists_every_virtualization_relationship() {
 /// heartbeats normally fill) and the demo login's user API key (written last, after the demo user
 /// exists). Both are read back through the paths the daemons page and API keys page use.
 #[tokio::test]
-async fn demo_seed_writes_daemon_subnets_and_the_demo_logins_api_key() {
+async fn demo_seed_writes_daemon_subnets_and_the_demo_logins_api_keys() {
     let (storage, services, _container) = test_services().await;
 
     let org = organization();
@@ -285,8 +285,12 @@ async fn demo_seed_writes_daemon_subnets_and_the_demo_logins_api_key() {
         .unwrap();
     assert_eq!(
         demo_login_keys.len(),
-        1,
-        "the demo login should own the seeded user API key"
+        2,
+        "the demo login should own both seeded user API keys"
     );
-    assert!(!demo_login_keys[0].base.network_ids.is_empty());
+    assert!(
+        demo_login_keys
+            .iter()
+            .all(|key| !key.base.network_ids.is_empty())
+    );
 }

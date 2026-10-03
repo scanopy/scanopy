@@ -7,6 +7,7 @@ use crate::server::{
 impl CrudHandlers for Share {
     type Service = ShareService;
     type FilterQuery = SharesQuery;
+    type OrderField = crate::server::shared::handlers::ordering::NoOrderField;
 
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.share_service

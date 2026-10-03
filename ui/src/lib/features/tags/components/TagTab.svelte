@@ -36,9 +36,7 @@
 		common_noEntityYet,
 		common_tags,
 		common_updated,
-		tags_applicationGroup,
 		tags_noTagsHelp,
-		tags_standardTag,
 		tags_subtitle
 	} from '$lib/paraglide/messages';
 
@@ -195,26 +193,7 @@
 			created_at: { label: common_created(), type: 'date', display: { hiddenByDefault: true } },
 			updated_at: { label: common_updated(), type: 'date', display: { hiddenByDefault: true } }
 		},
-		[
-			{ key: 'description', label: common_description(), type: 'string', searchable: true },
-			{
-				// The orderable `is_application` above is a boolean, and the filter
-				// panel needs it that way (Show true / Show false). Grouping needs a
-				// readable value, and a boolean field can't supply one without
-				// `Boolean(getValue())` breaking that filter — so the group axis is
-				// its own display field.
-				//
-				// It is not a column: it would sit next to `is_application` saying the
-				// same thing in prose, so the boolean one is the one that shows.
-				key: 'application_group',
-				label: common_application(),
-				type: 'string',
-				groupable: true,
-				sortable: true,
-				display: { hidden: true },
-				getValue: (tag) => (tag.is_application ? tags_applicationGroup() : tags_standardTag())
-			}
-		]
+		[{ key: 'description', label: common_description(), type: 'string', searchable: true }]
 	);
 </script>
 

@@ -7,6 +7,7 @@ use crate::server::{
 impl CrudHandlers for Topology {
     type Service = TopologyService;
     type FilterQuery = NetworkFilterQuery;
+    type OrderField = crate::server::shared::handlers::ordering::NoOrderField;
 
     fn get_service(state: &AppState) -> &Self::Service {
         &state.services.topology_service

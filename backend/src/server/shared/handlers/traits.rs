@@ -4,10 +4,10 @@ use crate::server::{
     config::AppState,
     shared::{
         entities::{ChangeTriggersTopologyStaleness, Entity as EntityEnum},
-        handlers::query::FilterQueryExtractor,
+        handlers::{ordering::OrderField, query::FilterQueryExtractor},
         services::traits::{CrudService, EventBusService},
         storage::{filter::StorableFilter, traits::Entity},
-        types::api::{ApiError, ApiJson, ApiResponse, ApiResult, PaginatedApiResponse},
+        types::api::{ApiError, ApiJson, ApiResponse, ApiResult, GroupCount, PaginatedApiResponse},
         types::entities::EntitySource,
         validation::{
             validate_bulk_delete_access, validate_create_access, validate_delete_access,
@@ -22,6 +22,7 @@ use axum::{
     response::Json,
     routing::{delete, get, post, put},
 };
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::sync::Arc;
@@ -44,6 +45,10 @@ where
     /// Use `NetworkFilterQuery` for network-keyed entities,
     /// `OrganizationFilterQuery` for organization-keyed entities.
     type FilterQuery: FilterQueryExtractor;
+
+    /// The fields `get_all` can sort and group by, and `field-values` can count.
+    /// Use `NoOrderField` for entities without server-side ordering.
+    type OrderField: OrderField + DeserializeOwned + ToSchema;
 
     /// Get entity name for error messages (e.g., "Group", "Network")
     fn entity_name() -> &'static str {
@@ -119,6 +124,86 @@ where
     Ok(Json(ApiResponse::success(created)))
 }
 
+/// The filter every list-shaped read of `T` starts from: the caller's network or organization
+/// scope, the SCD2 live/as-of narrowing, and the entity's own query filters.
+///
+/// Shared by `get_all_handler` and `get_field_values_handler`, so the values offered for a field
+/// can never come from rows the list itself would not show.
+pub fn base_list_filter<T>(
+    network_ids: &[Uuid],
+    organization_id: Uuid,
+    query: &T::FilterQuery,
+) -> StorableFilter<T>
+where
+    T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
+    EntityEnum: From<T>,
+{
+    let mut base_filter = if T::is_network_keyed() {
+        StorableFilter::<T>::new_from_network_ids(network_ids)
+    } else if T::table_name() == "networks" {
+        // Networks are org-scoped but should be filtered to only those the user has access to
+        StorableFilter::<T>::new_from_entity_ids(network_ids)
+    } else {
+        StorableFilter::<T>::new_from_org_id(&organization_id)
+    };
+
+    // SCD2 entities: hide closed historical copies from frontend-facing GETs.
+    // When the query carries an `at` timestamp (snapshot view), read as-of that
+    // instant instead of live.
+    if T::HAS_SCD2 {
+        base_filter = base_filter.live_or_as_of(query.at());
+    }
+
+    // Apply entity-specific filters
+    query.apply_to_filter(base_filter, network_ids, organization_id)
+}
+
+/// Every distinct value of one order field across the rows the caller can list, with how many
+/// rows hold each. Feeds a filter's options for a free-valued column, which a paginated list
+/// cannot collect from the page it has loaded.
+pub async fn get_field_values_handler<T>(
+    State(state): State<Arc<AppState>>,
+    auth: Authorized<Viewer>,
+    Path(field): Path<T::OrderField>,
+    Query(query): Query<T::FilterQuery>,
+) -> ApiResult<Json<ApiResponse<Vec<GroupCount>>>>
+where
+    T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
+    EntityEnum: From<T>,
+{
+    let network_ids = auth.network_ids();
+    let organization_id = auth
+        .organization_id()
+        .ok_or_else(ApiError::organization_required)?;
+
+    let filter = field_values_filter::<T>(&network_ids, organization_id, &query, field);
+
+    let counts = T::get_service(&state)
+        .count_by_group(filter, field.to_sql())
+        .await?;
+
+    Ok(Json(ApiResponse::success(counts)))
+}
+
+/// The filter `get_field_values_handler` counts under: the list's base filter plus the JOIN the
+/// field's expression reads from.
+pub fn field_values_filter<T>(
+    network_ids: &[Uuid],
+    organization_id: Uuid,
+    query: &T::FilterQuery,
+    field: T::OrderField,
+) -> StorableFilter<T>
+where
+    T: CrudHandlers + 'static + ChangeTriggersTopologyStaleness<T> + Default,
+    EntityEnum: From<T>,
+{
+    let filter = base_list_filter::<T>(network_ids, organization_id, query);
+    match field.join_sql() {
+        Some(join) => filter.join(join),
+        None => filter,
+    }
+}
+
 pub async fn get_all_handler<T>(
     State(state): State<Arc<AppState>>,
     auth: Authorized<Viewer>,
@@ -134,24 +219,7 @@ where
         .ok_or_else(ApiError::organization_required)?;
     let user_id = auth.user_id();
 
-    let mut base_filter = if T::is_network_keyed() {
-        StorableFilter::<T>::new_from_network_ids(&network_ids)
-    } else if T::table_name() == "networks" {
-        // Networks are org-scoped but should be filtered to only those the user has access to
-        StorableFilter::<T>::new_from_entity_ids(&network_ids)
-    } else {
-        StorableFilter::<T>::new_from_org_id(&organization_id)
-    };
-
-    // SCD2 entities: hide closed historical copies from frontend-facing GETs.
-    // When the query carries an `at` timestamp (snapshot view), read as-of that
-    // instant instead of live.
-    if T::HAS_SCD2 {
-        base_filter = base_filter.live_or_as_of(query.at());
-    }
-
-    // Apply entity-specific filters
-    let filter = query.apply_to_filter(base_filter, &network_ids, organization_id);
+    let filter = base_list_filter::<T>(&network_ids, organization_id, &query);
 
     // Apply pagination
     let pagination = query.pagination();

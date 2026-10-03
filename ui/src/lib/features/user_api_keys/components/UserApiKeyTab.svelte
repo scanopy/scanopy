@@ -173,6 +173,11 @@
 			searchable: true,
 			filterable: true,
 			groupable: true,
+			sortable: true,
+			// Every role the backend defines, named the way the chip renders them.
+			filterOptions: permissions.getItems().map((role) => permissions.getName(role.id)),
+			getValue: (item) =>
+				item.permissions ? permissions.getName(item.permissions) || item.permissions : null,
 			display: {
 				getItems: (item) => {
 					const role = item.permissions;
@@ -192,6 +197,8 @@
 			type: 'array',
 			label: common_networks(),
 			searchable: true,
+			// Keys share networks, so this filters; as an array it neither sorts nor groups.
+			filterable: true,
 			getValue(item) {
 				const ids = item.network_ids ?? [];
 				return ids
@@ -205,6 +212,7 @@
 			label: common_enabled(),
 			type: 'boolean',
 			filterable: true,
+			groupable: true,
 			getValue: (key) => key.is_enabled ?? false
 		},
 		{

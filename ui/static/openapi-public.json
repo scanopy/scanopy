@@ -3683,6 +3683,21 @@
             }
           },
           {
+            "name": "phases",
+            "in": "query",
+            "description": "Only runs that ended in one of these phases (`run_type.results.phase`). Repeat for\nseveral. Configurations, which have no recorded outcome, never match.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/DiscoveryPhase"
+              }
+            }
+          },
+          {
             "name": "historical",
             "in": "query",
             "description": "`true` returns only completed runs (the history view), `false` only the\nconfigurations that produce them. Omit for both.",
@@ -3989,6 +4004,21 @@
               ],
               "items": {
                 "type": "string"
+              }
+            }
+          },
+          {
+            "name": "phases",
+            "in": "query",
+            "description": "Only runs that ended in one of these phases (`run_type.results.phase`). Repeat for\nseveral. Configurations, which have no recorded outcome, never match.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/DiscoveryPhase"
               }
             }
           },
@@ -4501,6 +4531,82 @@
             }
           },
           {
+            "name": "manufacturers",
+            "in": "query",
+            "description": "Filter by hardware manufacturer. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "models",
+            "in": "query",
+            "description": "Filter by hardware model. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "sys_locations",
+            "in": "query",
+            "description": "Filter by SNMP sysLocation. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "os_families",
+            "in": "query",
+            "description": "Filter by operating system family. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/HostOsFamily"
+              }
+            }
+          },
+          {
+            "name": "credential_ids",
+            "in": "query",
+            "description": "Filter to hosts assigned one of these credentials. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
             "name": "tag_ids",
             "in": "query",
             "description": "Filter by tag IDs (returns hosts that have ANY of the specified tags)",
@@ -4896,6 +5002,82 @@
             }
           },
           {
+            "name": "manufacturers",
+            "in": "query",
+            "description": "Filter by hardware manufacturer. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "models",
+            "in": "query",
+            "description": "Filter by hardware model. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "sys_locations",
+            "in": "query",
+            "description": "Filter by SNMP sysLocation. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "os_families",
+            "in": "query",
+            "description": "Filter by operating system family. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/HostOsFamily"
+              }
+            }
+          },
+          {
+            "name": "credential_ids",
+            "in": "query",
+            "description": "Filter to hosts assigned one of these credentials. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
             "name": "tag_ids",
             "in": "query",
             "description": "Filter by tag IDs (returns hosts that have ANY of the specified tags)",
@@ -5175,6 +5357,82 @@
             }
           },
           {
+            "name": "manufacturers",
+            "in": "query",
+            "description": "Filter by hardware manufacturer. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "models",
+            "in": "query",
+            "description": "Filter by hardware model. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "sys_locations",
+            "in": "query",
+            "description": "Filter by SNMP sysLocation. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "os_families",
+            "in": "query",
+            "description": "Filter by operating system family. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/HostOsFamily"
+              }
+            }
+          },
+          {
+            "name": "credential_ids",
+            "in": "query",
+            "description": "Filter to hosts assigned one of these credentials. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
             "name": "tag_ids",
             "in": "query",
             "description": "Filter by tag IDs (returns hosts that have ANY of the specified tags)",
@@ -5324,6 +5582,380 @@
               "application/zip": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "user_api_key": []
+          },
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/v1/hosts/field-values/{field}": {
+      "get": {
+        "tags": [
+          "Hosts"
+        ],
+        "summary": "List the values of a Host field",
+        "description": "Every distinct value of one Host field across the Hosts the caller can list, with how many hold each. Takes the list's filters; ignores pagination, search and ordering.",
+        "operationId": "get_host_field_values",
+        "parameters": [
+          {
+            "name": "field",
+            "in": "path",
+            "description": "The field whose values to count",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/HostOrderField"
+            }
+          },
+          {
+            "name": "network_ids",
+            "in": "query",
+            "description": "Filter by network ID. Repeat the parameter to pass several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "ids",
+            "in": "query",
+            "description": "Filter by specific entity IDs (for selective loading)",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "hidden",
+            "in": "query",
+            "description": "Filter by the `hidden` flag. Repeat the parameter to accept both values;\nomit it for no constraint.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "boolean"
+              }
+            }
+          },
+          {
+            "name": "virtualization_service_ids",
+            "in": "query",
+            "description": "Filter by the service virtualizing the host. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "include_unvirtualized",
+            "in": "query",
+            "description": "`true` also returns hosts nothing virtualizes. Set on its own it returns\nonly those — the \"Not Virtualized\" choice in the UI's filter.",
+            "required": false,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "service_names",
+            "in": "query",
+            "description": "Filter to hosts running a service with one of these names.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "sources",
+            "in": "query",
+            "description": "Filter by how the host came to exist (`source.type`). Repeat for several;\n`Inferred` alone lists the hosts only a neighbour advertised.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/EntitySourceDiscriminants"
+              }
+            }
+          },
+          {
+            "name": "manufacturers",
+            "in": "query",
+            "description": "Filter by hardware manufacturer. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "models",
+            "in": "query",
+            "description": "Filter by hardware model. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "sys_locations",
+            "in": "query",
+            "description": "Filter by SNMP sysLocation. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "os_families",
+            "in": "query",
+            "description": "Filter by operating system family. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/HostOsFamily"
+              }
+            }
+          },
+          {
+            "name": "credential_ids",
+            "in": "query",
+            "description": "Filter to hosts assigned one of these credentials. Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "tag_ids",
+            "in": "query",
+            "description": "Filter by tag IDs (returns hosts that have ANY of the specified tags)",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Free-text search. Case-insensitive substring match against the host's\nname, hostname, sysName, chassis id and description, and against its IP\naddresses and the names of services running on it.\n\nsysName and chassis id are in there because they are rungs of the title\nladder: a host with no name of its own is *shown* under one of them, and\na title you can read but cannot search for is a dead end.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "group_by",
+            "in": "query",
+            "description": "Primary ordering field (used for grouping). Always sorts ASC to keep groups together.",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/HostOrderField"
+                }
+              ]
+            }
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "description": "Secondary ordering field (sorting within groups or standalone sort).",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/HostOrderField"
+                }
+              ]
+            }
+          },
+          {
+            "name": "order_direction",
+            "in": "query",
+            "description": "Direction for order_by field (group_by always uses ASC).",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/components/schemas/OrderDirection"
+                }
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of results to return (1-1000, default: 50). Use 0 for no limit.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "maximum": 1000,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of results to skip. Default: 0.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "at",
+            "in": "query",
+            "description": "As-of timestamp (ISO 8601). When set, returns SCD2 state as of this\ninstant (snapshot view) instead of live state.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "stale",
+            "in": "query",
+            "description": "`true` returns only hosts discovery hasn't observed within their\nnetwork's staleness window; `false` returns only those it has. Omit for\nboth. Evaluated per row against the host's own network's window.",
+            "required": false,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "include_children",
+            "in": "query",
+            "description": "`false` returns hosts with empty `ports`/`services`/`interfaces`.\n`ip_addresses` is always populated: the host's title can come from its\naddress. The children dominate the payload, so callers that only need\nhost identity — name pickers, id→name lookups, counts — should pass\n`false`. Defaults to `true`, so existing callers are unaffected.",
+            "required": false,
+            "schema": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Distinct values and their Host counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_Vec_GroupCount"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown field",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
                 }
               }
             }
@@ -8258,6 +8890,36 @@
             }
           },
           {
+            "name": "sources",
+            "in": "query",
+            "description": "Filter by how the service came to exist (`source.type`). Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/EntitySourceDiscriminants"
+              }
+            }
+          },
+          {
+            "name": "match_confidences",
+            "in": "query",
+            "description": "Filter by match confidence (`source.details.confidence`). Repeat for several. Only\nservices discovery matched to a definition carry one.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/MatchConfidence"
+              }
+            }
+          },
+          {
             "name": "tag_ids",
             "in": "query",
             "description": "Filter by tag IDs (returns services that have ANY of the specified tags)",
@@ -8632,6 +9294,36 @@
                 "boolean",
                 "null"
               ]
+            }
+          },
+          {
+            "name": "sources",
+            "in": "query",
+            "description": "Filter by how the service came to exist (`source.type`). Repeat for several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/EntitySourceDiscriminants"
+              }
+            }
+          },
+          {
+            "name": "match_confidences",
+            "in": "query",
+            "description": "Filter by match confidence (`source.details.confidence`). Repeat for several. Only\nservices discovery matched to a definition carry one.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/components/schemas/MatchConfidence"
+              }
             }
           },
           {
@@ -12675,19 +13367,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-02T22:51:07.664696Z",
+              "created_at": "2026-10-03T00:17:29.514934Z",
               "first_discovery_id": null,
-              "id": "38956561-61b3-4ffc-b07f-2674cec72e07",
+              "id": "df3fe1a7-a2f8-47fa-974c-80e1bcf56edc",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-02T22:51:07.664696Z",
+              "last_seen_at": "2026-10-03T00:17:29.514934Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-02T22:51:07.664696Z",
-              "valid_from": "2026-10-02T22:51:07.664696Z",
+              "updated_at": "2026-10-03T00:17:29.514934Z",
+              "valid_from": "2026-10-03T00:17:29.514934Z",
               "valid_to": null
             }
           },
@@ -14284,19 +14976,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-02T22:51:07.649623Z",
+                      "created_at": "2026-10-03T00:17:29.498992Z",
                       "first_discovery_id": null,
-                      "id": "7e6cb9d2-f2a5-495b-9f15-580b4732113e",
+                      "id": "7d5cae40-4074-4543-96c0-42ffb3e157bb",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-02T22:51:07.649623Z",
+                      "last_seen_at": "2026-10-03T00:17:29.498992Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-02T22:51:07.649623Z",
-                      "valid_from": "2026-10-02T22:51:07.649623Z",
+                      "updated_at": "2026-10-03T00:17:29.498992Z",
+                      "valid_from": "2026-10-03T00:17:29.498992Z",
                       "valid_to": null
                     }
                   ],
@@ -14310,7 +15002,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Prometheus",
+                  "service_definition": "Rocket.Chat",
                   "source": {
                     "type": "Manual"
                   },
@@ -15708,19 +16400,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-02T22:51:07.661084Z",
+                  "created_at": "2026-10-03T00:17:29.511248Z",
                   "first_discovery_id": null,
-                  "id": "b64e32d0-2ec9-4f74-b069-b9f72f1fc826",
+                  "id": "4003368d-571d-40e9-bdd6-49cad79c45d0",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-02T22:51:07.661084Z",
+                  "last_seen_at": "2026-10-03T00:17:29.511248Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-02T22:51:07.661084Z",
-                  "valid_from": "2026-10-02T22:51:07.661084Z",
+                  "updated_at": "2026-10-03T00:17:29.511248Z",
+                  "valid_from": "2026-10-03T00:17:29.511248Z",
                   "valid_to": null
                 }
               ],
@@ -15734,7 +16426,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Prometheus",
+              "service_definition": "Rocket.Chat",
               "source": {
                 "type": "Manual"
               },
@@ -17331,6 +18023,57 @@
           }
         }
       },
+      "ApiResponse_Vec_GroupCount": {
+        "type": "object",
+        "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
+        "required": [
+          "success",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "Size of one group in a grouped list, across every page.",
+              "required": [
+                "count"
+              ],
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "How many rows fall in this group in total, not just on this page.",
+                  "minimum": 0
+                },
+                "value": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "The group's value, rendered as text. `null` for rows whose group key is\nNULL (the \"ungrouped\" bucket)."
+                }
+              }
+            },
+            "description": "The result payload. Omitted on failure."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not sent on a successful response. Failure messages arrive in an\n`ApiErrorResponse`."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiMeta",
+            "description": "API and server version metadata."
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Always `true` on a successful response."
+          }
+        }
+      },
       "ApiResponse_Vec_Invite": {
         "type": "object",
         "description": "Envelope for a successful response. Failures are sent with a non-2xx status\nand an `ApiErrorResponse` body instead.",
@@ -18153,19 +18896,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-02T22:51:07.650013Z",
+          "created_at": "2026-10-03T00:17:29.499399Z",
           "first_discovery_id": null,
-          "id": "fa4bb897-fc20-460e-91a0-d28a1ccf5a0d",
+          "id": "db377629-368d-46dd-a486-bc3ee07a0391",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-02T22:51:07.650013Z",
+          "last_seen_at": "2026-10-03T00:17:29.499399Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-02T22:51:07.650013Z",
-          "valid_from": "2026-10-02T22:51:07.650013Z",
+          "updated_at": "2026-10-03T00:17:29.499399Z",
+          "valid_from": "2026-10-03T00:17:29.499399Z",
           "valid_to": null
         }
       },
@@ -18881,7 +19624,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Prometheus",
+              "service_definition": "Rocket.Chat",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -21166,7 +21909,12 @@
           "updated_at",
           "daemon_id",
           "network_id",
-          "discovery_type"
+          "discovery_type",
+          "phase",
+          "started_at",
+          "finished_at",
+          "duration",
+          "warnings"
         ]
       },
       "DiscoveryPhase": {
@@ -24606,7 +25354,13 @@
           "network_id",
           "interface_ip",
           "last_seen_at",
-          "mac_address"
+          "mac_address",
+          "source",
+          "manufacturer",
+          "model",
+          "sys_location",
+          "os_family",
+          "hidden"
         ]
       },
       "HostOs": {
@@ -25159,19 +25913,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-02T22:51:07.649189Z",
+                  "created_at": "2026-10-03T00:17:29.498531Z",
                   "first_discovery_id": null,
-                  "id": "7beeee70-b772-4ed9-9165-76d7266cd57b",
+                  "id": "adb9f0f3-0ada-4087-a27d-da4400b94e71",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-02T22:51:07.649189Z",
+                  "last_seen_at": "2026-10-03T00:17:29.498531Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-02T22:51:07.649189Z",
-                  "valid_from": "2026-10-02T22:51:07.649189Z",
+                  "updated_at": "2026-10-03T00:17:29.498531Z",
+                  "valid_from": "2026-10-03T00:17:29.498531Z",
                   "valid_to": null
                 }
               ],
@@ -25185,7 +25939,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Prometheus",
+              "service_definition": "Rocket.Chat",
               "source": {
                 "type": "Manual"
               },
@@ -28900,19 +29654,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-02T22:51:07.642962Z",
+                        "created_at": "2026-10-03T00:17:29.491708Z",
                         "first_discovery_id": null,
-                        "id": "2b53174f-2362-404d-aecc-03c007a84f6f",
+                        "id": "6cbf64c6-21d6-4fdc-9497-b3ced0c2f72d",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-02T22:51:07.642962Z",
+                        "last_seen_at": "2026-10-03T00:17:29.491708Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-02T22:51:07.642962Z",
-                        "valid_from": "2026-10-02T22:51:07.642962Z",
+                        "updated_at": "2026-10-03T00:17:29.491708Z",
+                        "valid_from": "2026-10-03T00:17:29.491708Z",
                         "valid_to": null
                       }
                     ],
@@ -28926,7 +29680,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Prometheus",
+                    "service_definition": "Rocket.Chat",
                     "source": {
                       "type": "Manual"
                     },
@@ -29069,19 +29823,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-02T22:51:07.660419Z",
+                    "created_at": "2026-10-03T00:17:29.510558Z",
                     "first_discovery_id": null,
-                    "id": "8d0673bb-91d6-4004-befb-ab6c991056a5",
+                    "id": "20a85daf-0679-440a-84fd-05bcf8aa7994",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-02T22:51:07.660419Z",
+                    "last_seen_at": "2026-10-03T00:17:29.510558Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-02T22:51:07.660419Z",
-                    "valid_from": "2026-10-02T22:51:07.660419Z",
+                    "updated_at": "2026-10-03T00:17:29.510558Z",
+                    "valid_from": "2026-10-03T00:17:29.510558Z",
                     "valid_to": null
                   }
                 ],
@@ -29095,7 +29849,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Prometheus",
+                "service_definition": "Rocket.Chat",
                 "source": {
                   "type": "Manual"
                 },
@@ -31307,19 +32061,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-02T22:51:07.649900Z",
+              "created_at": "2026-10-03T00:17:29.499281Z",
               "first_discovery_id": null,
-              "id": "8d9d4070-225f-403a-86eb-a847d3ccdf28",
+              "id": "ba7f20bf-0f27-4607-95ff-1daa95e926cc",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-02T22:51:07.649900Z",
+              "last_seen_at": "2026-10-03T00:17:29.499281Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-02T22:51:07.649900Z",
-              "valid_from": "2026-10-02T22:51:07.649900Z",
+              "updated_at": "2026-10-03T00:17:29.499281Z",
+              "valid_from": "2026-10-03T00:17:29.499281Z",
               "valid_to": null
             }
           ],
@@ -31333,7 +32087,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Prometheus",
+          "service_definition": "Rocket.Chat",
           "source": {
             "type": "Manual"
           },
@@ -31543,7 +32297,10 @@
           "network_id",
           "position",
           "service_definition",
-          "last_seen_at"
+          "last_seen_at",
+          "containerized_by",
+          "match_confidence",
+          "source"
         ]
       },
       "ServiceVirtualization": {
@@ -32777,7 +33534,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "1a00f51a-6e7d-49b0-8e3a-3bd8cc5ee7dd",
+                  "id": "f01d0df0-d81c-40f4-af61-248e1e02a6bc",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -32787,23 +33544,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "85eabdbc-caa0-4071-a5e1-4352a6d6c8d6",
+                  "id": "6d0ffa6a-4414-40ac-bb2f-ca9035240c47",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "a09a196f-d910-4488-8f72-c013059e624c",
+                  "id": "07d5f2f4-d927-4b10-b5ef-52537701badb",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "17adf509-cbb4-4b30-9669-4bd48132a415",
+                  "id": "60f0530e-cb12-4295-a31f-b7c391963861",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "85eabdbc-caa0-4071-a5e1-4352a6d6c8d6",
+                  "id": "6d0ffa6a-4414-40ac-bb2f-ca9035240c47",
                   "rule": "ByHost"
                 }
               ]
@@ -32833,19 +33590,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "d2e18f7e-28b1-435f-8267-f5b5cf3ecbd2",
+                "id": "edf23baf-11c1-4fc3-8eae-0e4ad3694547",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "24880840-5beb-418b-a6f0-fb451c703e91",
+                "id": "d862f40b-93ac-42cd-b056-adc4333de4df",
                 "rule": "ByVLAN"
               },
               {
-                "id": "b5a240b5-b8d1-49bf-9c8f-74b37c431829",
+                "id": "7a099a6c-4a60-432f-b1af-a28aa8566b32",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "f42f6869-df56-4303-ae44-92cf61730749",
+                "id": "e31b011c-c441-4494-8278-b750b4523907",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -32863,7 +33620,7 @@
                 }
               },
               {
-                "id": "74a11185-977f-4bf2-ac9b-b2abc32e37c9",
+                "id": "07fb0061-45a7-4d1f-8ef2-0b8b4e19d907",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -32872,15 +33629,15 @@
                 }
               },
               {
-                "id": "231b3070-bec4-481f-a151-53cbd28cea33",
+                "id": "6c12af96-0348-4197-ab05-17fac9cfe0e8",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "234deb75-82ac-46e6-83ee-76f4454af5a7",
+                "id": "9d78030c-7922-494f-b015-c2d51f4d967b",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "77832acc-6622-45f7-aab7-268627a5d814",
+                "id": "0f665086-bb31-4ef4-a680-e87b44853c86",
                 "rule": "ByStack"
               }
             ]

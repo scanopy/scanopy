@@ -20,3 +20,9 @@ export function hostOsLabel(os: HostOs): string {
 	const name = os.name ?? hostOsFamilyName(os.family);
 	return os.version ? `${name} ${os.version}` : name;
 }
+
+/** Every family the backend can report. Fixture ids are `HostOsFamily` names, emitted from that
+ *  enum, so each is a valid filter value by construction. */
+export const hostOsFamilyIds: HostOsFamily[] = hostOsFamilies.map(
+	(entry) => entry.id as HostOsFamily
+);
