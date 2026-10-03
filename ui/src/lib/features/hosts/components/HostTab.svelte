@@ -597,6 +597,7 @@
 				last_seen_at: {
 					label: common_lastSeen(),
 					type: 'date',
+					staleFilter: true,
 					display: { recency: true, order: 1, getItems: lastSeenItems(() => networksData, 'Host') }
 				},
 				// How the host came to exist, read from `source.type`. An inferred host (one a

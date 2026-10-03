@@ -55,7 +55,6 @@
 		common_name,
 		common_network,
 		common_noEntityYet,
-		common_port,
 		common_position,
 		common_services,
 		common_source,
@@ -331,7 +330,7 @@
 			case 'category':
 				excludeCategories = values;
 				break;
-			case 'port':
+			case 'port_bindings':
 				ports = values.map(Number).filter((port) => Number.isFinite(port));
 				break;
 			case 'host': {
@@ -624,6 +623,7 @@
 				last_seen_at: {
 					label: common_lastSeen(),
 					type: 'date',
+					staleFilter: true,
 					display: {
 						recency: true,
 						order: 1,
@@ -713,6 +713,12 @@
 					label: common_portBindings(),
 					type: 'array',
 					searchable: true,
+					// Filters by port number, which the server matches against each
+					// binding's port, so the options are numbers while the cells show
+					// the full binding.
+					filterable: true,
+					serverFiltered: true,
+					filterOptions: wellKnownPortNumbers,
 					getValue: (service) => portBindingItems(service).map((b) => b.label),
 					display: { hiddenByDefault: true, getItems: portBindingItems }
 				},
@@ -753,17 +759,6 @@
 							];
 						}
 					}
-				},
-				{
-					key: 'port',
-					label: common_port(),
-					type: 'string',
-					filterable: true,
-					serverFiltered: true,
-					filterOptions: wellKnownPortNumbers,
-					// Drives the port filter only: it has no `getValue`, so as a column
-					// it would render an empty cell on every row.
-					display: { hidden: true }
 				},
 				{
 					key: 'tags',
