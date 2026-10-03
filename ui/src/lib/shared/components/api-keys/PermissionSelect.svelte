@@ -6,7 +6,11 @@
 	 * Filters available permission options based on the current user's permissions
 	 * and the context (API keys vs user management have different rules)
 	 */
-	import SelectInput from '$lib/shared/components/forms/input/SelectInput.svelte';
+	import RichSelect from '$lib/shared/components/forms/selection/RichSelect.svelte';
+	import {
+		SimpleOptionDisplay,
+		type SimpleOption
+	} from '$lib/shared/components/forms/selection/display/SimpleOptionDisplay';
 	import { permissions } from '$lib/shared/stores/metadata';
 	import { useCurrentUserQuery } from '$lib/features/auth/queries';
 	import type { AnyFieldApi } from '@tanstack/svelte-form';
@@ -43,7 +47,7 @@
 	let currentUser = $derived(currentUserQuery.data);
 
 	// Build permission options based on context and what current user can grant
-	let permissionOptions = $derived(
+	let permissionOptions: SimpleOption[] = $derived(
 		permissions
 			.getItems()
 			.filter((p) => {
@@ -72,4 +76,13 @@
 	);
 </script>
 
-<SelectInput {label} id="permissions" {field} options={permissionOptions} {disabled} {helpText} />
+<RichSelect
+	{label}
+	selectedValue={field.state.value}
+	options={permissionOptions}
+	displayComponent={SimpleOptionDisplay}
+	onSelect={(value) => field.handleChange(value)}
+	{disabled}
+	error={field.state.meta.isTouched ? (field.state.meta.errors?.[0] ?? null) : null}
+	{helpText}
+/>
