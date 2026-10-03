@@ -9,6 +9,7 @@ use std::time::Duration;
 use crate::server::shared::types::api::ApiJson;
 use axum::Json;
 use axum::extract::State;
+use axum::http::HeaderMap;
 use chrono::Utc;
 use governor::{Quota, RateLimiter, clock::DefaultClock, state::keyed::DashMapStateStore};
 use serde::{Deserialize, Serialize};
@@ -17,7 +18,9 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use super::mint::{LicenseIssuer, MintError};
-use super::online::{EntitlementRequest, EntitlementResponse};
+use super::online::{
+    EntitlementRequest, EntitlementResponse, SERVER_VERSION_HEADER, reported_server_version,
+};
 use super::types::LicenseKeyType;
 use crate::server::auth::middleware::permissions::{Authorized, Owner};
 use crate::server::config::AppState;
@@ -144,6 +147,7 @@ fn mint_error(error: MintError) -> ApiError {
 )]
 pub async fn get_entitlement(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     ApiJson(request): ApiJson<EntitlementRequest>,
 ) -> ApiResult<Json<ApiResponse<EntitlementResponse>>> {
     let issuer = license_issuer(&state)?;
@@ -175,8 +179,14 @@ pub async fn get_entitlement(
     let entitlement = issuer
         .mint_entitlement(&organization, now)
         .map_err(mint_error)?;
+    // The key has passed every check, so the caller is the key's holder.
+    let server_version = reported_server_version(
+        headers
+            .get(SERVER_VERSION_HEADER)
+            .and_then(|v| v.to_str().ok()),
+    );
     service
-        .record_license_check_in(organization_id, now)
+        .record_license_check_in(organization_id, now, server_version)
         .await?;
 
     Ok(Json(ApiResponse::success(EntitlementResponse {

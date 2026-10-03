@@ -208,11 +208,13 @@ pub enum BillingOperation {
         plan: BillingPlan,
         has_payment_method: bool,
     },
+    /// A trial converted to a paid subscription. A trial that ends without
+    /// converting cancels the subscription, so it arrives as
+    /// `SubscriptionCancelled { was_trialing: true }` instead.
     TrialEnded {
         plan: BillingPlan,
-        converted: bool,
         /// New `sub.items.data[0].current_period_end` after the trial→paid
-        /// snap. None when `converted: false` (sub is gone).
+        /// snap.
         next_renewal_at: Option<DateTime<Utc>>,
     },
     PlanChanged {
@@ -414,6 +416,38 @@ pub enum BillingOperation {
         from: BillingPlan,
         to: BillingPlan,
     },
+    /// The org's first license key was issued, on the owner's first visit to
+    /// the license tab. Fires once per org: rotations and type switches are
+    /// tracked by the frontend. The first key is always online, since an org
+    /// reaches air-gapped only by switching from it. Telemetry-only, never
+    /// persisted.
+    LicenseKeyIssued,
+    /// The first successful entitlement check-in for the org's current online
+    /// key: a customer server is running it. Fires once per key version, so a
+    /// rotated key activates again when its replacement checks in.
+    /// `server_version` is `None` for servers older than the version header.
+    LicenseActivated {
+        server_version: Option<String>,
+    },
+    /// A check-in reported a server version higher than any reported before
+    /// for this org. Several servers can share one key, so only a new highest
+    /// version counts; a mixed-version fleet never repeats the event.
+    LicenseServerUpgraded {
+        from: Option<String>,
+        to: String,
+    },
+    /// An online key that used to check in has been silent for
+    /// [`LICENSE_SILENCE_THRESHOLD_DAYS`](crate::server::organizations::r#impl::base::LICENSE_SILENCE_THRESHOLD_DAYS):
+    /// the server is down, offline, or Scanopy was uninstalled. Sent once per
+    /// silence by the daily sweep.
+    LicenseCheckInsStopped {
+        last_check_in_at: DateTime<Utc>,
+        server_version: Option<String>,
+    },
+    /// A key reported by `LicenseCheckInsStopped` checked in again.
+    LicenseCheckInsResumed {
+        silent_days: i64,
+    },
 }
 
 impl BillingOperation {
@@ -439,8 +473,7 @@ impl BillingOperation {
     }
 
     /// Plan the org *lands on* after this event, for the PostHog person/group
-    /// `plan_type`. A `SubscriptionCancelled` or unconverted `TrialEnded`
-    /// leaves the org on the plan it carries (lapsed, read-only), so this is
+    /// `plan_type`. A `SubscriptionCancelled` leaves the org on the plan it carries (lapsed, read-only), so this is
     /// `plan()` for every variant; it stays a separate accessor so the
     /// analytics call site names the intent.
     pub fn resulting_plan_name(&self) -> Option<&'static str> {
@@ -463,22 +496,17 @@ impl BillingOperation {
                 trialing: false, ..
             } => Some(PlanStatus::Active),
 
-            // A full cancellation / unconverted trial leaves the org on the
+            // A full cancellation (trialing or not) leaves the org on the
             // plan it carries, lapsed: read-only until it chooses a paid plan.
             // The org subscriber's matching arm clears the subscription
             // mirrors (renewal date, invoice billing, discount) off the same
             // event; the status is what makes it read-only.
-            Self::SubscriptionCancelled { .. }
-            | Self::TrialEnded {
-                converted: false, ..
-            } => Some(PlanStatus::Cancelled),
+            Self::SubscriptionCancelled { .. } => Some(PlanStatus::Cancelled),
 
             Self::Reactivated { trialing: true, .. }
             | Self::TrialStarted { .. }
             | Self::TrialExtended { .. } => Some(PlanStatus::Trialing),
-            Self::TrialEnded {
-                converted: true, ..
-            } => Some(PlanStatus::Active),
+            Self::TrialEnded { .. } => Some(PlanStatus::Active),
 
             Self::PaymentFailed { .. }
             | Self::PaymentActionRequired { .. }
@@ -515,9 +543,16 @@ impl BillingOperation {
             // CommercialSelfHosted) but implies no status transition — both are
             // billing-exempt self-hosted plans. Like `PlanChanged`, the plan
             // write is owned by the org subscriber's arm, not `plan_status`.
+            // The license key and check-in variants describe a customer
+            // server, not the subscription.
             Self::CheckoutStarted { .. }
             | Self::PlanChanged { .. }
             | Self::LicenseReconciled { .. }
+            | Self::LicenseKeyIssued
+            | Self::LicenseActivated { .. }
+            | Self::LicenseServerUpgraded { .. }
+            | Self::LicenseCheckInsStopped { .. }
+            | Self::LicenseCheckInsResumed { .. }
             | Self::TrialWillEnd { .. }
             | Self::FeatureLimitHit { .. }
             | Self::PaymentSucceeded { .. }
@@ -621,8 +656,36 @@ pub enum OnboardingOperation {
     Deserialize,
 ))]
 pub enum AnalyticsOperation {
-    TopologyShareViewed { share_id: Uuid, has_password: bool },
-    TopologyEmbedViewed { share_id: Uuid, has_password: bool },
+    TopologyShareViewed {
+        share_id: Uuid,
+        has_password: bool,
+    },
+    TopologyEmbedViewed {
+        share_id: Uuid,
+        has_password: bool,
+    },
+    /// An email left for a user with an account. `utm_campaign` and
+    /// `utm_medium` are the values the email's links carry, so a send joins
+    /// the landing pageview a click produces.
+    EmailSent {
+        utm_campaign: String,
+        utm_medium: String,
+        user_id: Uuid,
+    },
+}
+
+impl AnalyticsOperation {
+    /// The PostHog person an event belongs to. An email goes to one user, so
+    /// its send lands on the same person as their click; a share view has no
+    /// viewer identity and is attributed to the org.
+    pub fn distinct_id(&self, organization_id: Uuid) -> String {
+        match self {
+            Self::EmailSent { user_id, .. } => user_id.to_string(),
+            Self::TopologyShareViewed { .. } | Self::TopologyEmbedViewed { .. } => {
+                format!("org:{organization_id}")
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -814,19 +877,9 @@ mod tests {
         assert_eq!(cancelled.resulting_plan_name(), Some("Enterprise"));
         assert_eq!(cancelled.implied_status(), Some(PlanStatus::Cancelled));
 
-        // An unconverted trial lapses the same way.
-        let trial_lost = BillingOperation::TrialEnded {
-            plan: get_enterprise_plan(),
-            converted: false,
-            next_renewal_at: None,
-        };
-        assert_eq!(trial_lost.resulting_plan_name(), Some("Enterprise"));
-        assert_eq!(trial_lost.implied_status(), Some(PlanStatus::Cancelled));
-
         // A converted trial keeps the paid plan it carries, live.
         let trial_won = BillingOperation::TrialEnded {
             plan: get_enterprise_plan(),
-            converted: true,
             next_renewal_at: DateTime::<Utc>::from_timestamp(1_800_000_000, 0),
         };
         assert_eq!(trial_won.resulting_plan_name(), Some("Enterprise"));
@@ -913,7 +966,6 @@ mod tests {
     fn trial_ended_round_trip() {
         round_trip(BillingOperation::TrialEnded {
             plan: get_free_plan(),
-            converted: true,
             next_renewal_at: DateTime::<Utc>::from_timestamp(1_800_000_000, 0),
         });
     }

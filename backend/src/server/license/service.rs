@@ -8,7 +8,9 @@ use reqwest::StatusCode;
 use tokio::sync::RwLock;
 
 use super::key::{ConfiguredKey, LicenseKey};
-use super::online::{ENTITLEMENT_PATH, EntitlementRequest, EntitlementResponse};
+use super::online::{
+    ENTITLEMENT_PATH, EntitlementRequest, EntitlementResponse, SERVER_VERSION_HEADER,
+};
 use super::types::{LicenseKeyType, LicenseStatus};
 use crate::server::billing::plans::plan_for_license;
 use crate::server::billing::types::base::BillingPlan;
@@ -277,6 +279,7 @@ impl LicenseService {
         let response = self
             .http
             .post(format!("{base_url}{ENTITLEMENT_PATH}"))
+            .header(SERVER_VERSION_HEADER, env!("CARGO_PKG_VERSION"))
             .json(&request)
             .send()
             .await?;

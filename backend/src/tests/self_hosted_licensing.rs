@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use axum::body::Body;
 use axum::extract::State;
-use axum::http::{Request, StatusCode};
+use axum::http::{HeaderMap, Request, StatusCode};
 use axum::middleware::{self, Next};
 use axum::routing::{get, put};
 use axum::{Json, Router};
@@ -111,10 +111,14 @@ fn whole_seconds_from_now(days: i64) -> DateTime<Utc> {
 }
 
 async fn request_entitlement(state: &Arc<AppState>, key: String) -> Result<String, StatusCode> {
-    get_entitlement(State(state.clone()), ApiJson(EntitlementRequest { key }))
-        .await
-        .map(|Json(response)| response.into_data().unwrap().entitlement)
-        .map_err(|error| error.status)
+    get_entitlement(
+        State(state.clone()),
+        HeaderMap::new(),
+        ApiJson(EntitlementRequest { key }),
+    )
+    .await
+    .map(|Json(response)| response.into_data().unwrap().entitlement)
+    .map_err(|error| error.status)
 }
 
 #[test]

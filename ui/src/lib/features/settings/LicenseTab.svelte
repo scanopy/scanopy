@@ -189,7 +189,12 @@
 		try {
 			await copyText(key);
 			pushSuccess(common_copied());
-			trackEvent('license_key_copied', { key_type: type });
+			// An air-gapped key never calls home, so a copy for the current
+			// paid-through date is the only sign its renewal reached the server.
+			trackEvent('license_key_copied', {
+				key_type: type,
+				license_paid_through: org?.license_paid_through ?? null
+			});
 		} catch (error) {
 			pushWarning(common_failedToCopy({ error: String(error) }));
 		}

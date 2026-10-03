@@ -3,6 +3,7 @@ use crate::server::billing::types::base::BillingPlan;
 use crate::server::license::mint::MintError;
 use crate::server::license::types::LicenseKeyType;
 use crate::server::organizations::demo_status::DemoPopulateStatus;
+use crate::server::organizations::r#impl::base::LICENSE_SILENCE_THRESHOLD_DAYS;
 use crate::server::shared::events::bus::EventBus;
 use crate::server::shared::events::traits::{Event, OrgScope};
 use crate::server::shared::events::types::BillingOperation;
@@ -21,6 +22,7 @@ use crate::server::{
 use anyhow::Error;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use semver::Version;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -105,18 +107,86 @@ impl OrganizationService {
 
     /// Record that a self-hosted server fetched an entitlement. Publishes no
     /// entity event: check-ins are frequent and change nothing a user edits.
+    /// The billing events a check-in can produce (activation, upgrade, resume)
+    /// fire at most once per key, version or silence; see
+    /// [`Organization::record_license_check_in`].
     pub async fn record_license_check_in(
         &self,
         organization_id: Uuid,
         at: DateTime<Utc>,
+        server_version: Option<Version>,
     ) -> Result<(), Error> {
         let lock = self.lock_organization(organization_id).await?;
+        let mut events = Vec::new();
         if let Some(mut organization) = self.get_by_id(&organization_id).await? {
-            organization.base.license_checkin_at = Some(at);
+            events = organization.record_license_check_in(at, server_version);
             self.storage.update(&mut organization).await?;
         }
         lock.release().await?;
+
+        for operation in events {
+            self.publish_license_event(organization_id, operation).await;
+        }
         Ok(())
+    }
+
+    /// Publish a license telemetry event. Best-effort: the state it describes
+    /// is already written, so a failed publish is logged rather than failing
+    /// the request that caused it.
+    async fn publish_license_event(&self, organization_id: Uuid, operation: BillingOperation) {
+        let name = operation.to_string();
+        if let Err(e) = self
+            .event_bus()
+            .publish(Event::new(
+                OrgScope { organization_id },
+                operation,
+                AuthenticatedEntity::System,
+            ))
+            .await
+        {
+            tracing::warn!(
+                organization_id = %organization_id,
+                event = %name,
+                error = %e,
+                "Failed to publish license event",
+            );
+        }
+    }
+
+    /// Report every online key that has stopped checking in. Run daily; each
+    /// silence is reported once, see [`Organization::report_license_silence`].
+    /// Returns the number reported.
+    pub async fn report_silent_license_check_ins(&self, now: DateTime<Utc>) -> Result<u64, Error> {
+        let cutoff = now - chrono::Duration::days(LICENSE_SILENCE_THRESHOLD_DAYS);
+        let candidates = self
+            .get_all(StorableFilter::<Organization>::new().license_checkin_before(cutoff))
+            .await?;
+
+        let mut reported = 0u64;
+        for candidate in candidates {
+            let lock = self.lock_organization(candidate.id).await?;
+            let mut operation = None;
+            if let Some(mut organization) = self.get_by_id(&candidate.id).await?
+                && let Some(op) = organization.report_license_silence(now)
+            {
+                self.storage.update(&mut organization).await?;
+                operation = Some(op);
+            }
+            lock.release().await?;
+
+            if let Some(operation) = operation {
+                self.publish_license_event(candidate.id, operation).await;
+                reported += 1;
+            }
+        }
+
+        if reported > 0 {
+            tracing::info!(
+                count = reported,
+                "Reported license keys that stopped checking in"
+            );
+        }
+        Ok(reported)
     }
 
     /// The `iat` this org's online license key is signed with, assigned on
@@ -132,6 +202,9 @@ impl OrganizationService {
             .await?
             .ok_or_else(|| anyhow::anyhow!("Organization {organization_id} not found"))?;
 
+        // Rotation and switching set the stamp themselves, so an unset stamp
+        // means the org has never been issued a key.
+        let first_issue = organization.base.license_key_issued_at.is_none();
         let issued_at = match organization.base.license_key_issued_at {
             Some(issued_at) => issued_at,
             None => {
@@ -151,6 +224,10 @@ impl OrganizationService {
         };
 
         lock.release().await?;
+        if first_issue {
+            self.publish_license_event(organization_id, BillingOperation::LicenseKeyIssued)
+                .await;
+        }
         Ok(issued_at)
     }
 

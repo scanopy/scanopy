@@ -397,7 +397,6 @@ impl BillingService {
                         },
                         BillingOperation::TrialEnded {
                             plan,
-                            converted: true,
                             next_renewal_at: next_renewal_from_subscription(&sub),
                         },
                         authentication,
