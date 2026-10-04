@@ -5,7 +5,9 @@
 	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
 	import { hostDisplayContext } from '$lib/features/hosts/host-picker.svelte';
 	import { useIPAddressesQuery } from '$lib/features/ip-addresses/queries';
+	import DocsHint from '$lib/shared/components/feedback/DocsHint.svelte';
 	import {
+		hosts_services_networkIdentitiesLearnMore,
 		hosts_virtualization_networkIdentities,
 		hosts_virtualization_networkIdentitiesHelp,
 		hosts_virtualization_noNetworkIdentities
@@ -21,15 +23,23 @@
 
 	let { service, hosts, services }: Props = $props();
 
-	// Only the Proxmox integration links a network identity to its host, so the list is read-only.
+	// Discovery links a network identity to the host presenting it, so the list is read-only.
 	let identityHosts = $derived(hosts.filter((h) => h.virtualization_service_id === service.id));
 	const ipAddressesQuery = useIPAddressesQuery();
 </script>
 
+{#snippet networkIdentitiesHelpSnippet()}
+	<DocsHint
+		text={hosts_virtualization_networkIdentitiesHelp()}
+		href="https://scanopy.net/docs/using-scanopy/network-data/#network-identities"
+		linkText={hosts_services_networkIdentitiesLearnMore()}
+	/>
+{/snippet}
+
 <div class="space-y-6">
 	<ListManager
 		label={hosts_virtualization_networkIdentities()}
-		helpText={hosts_virtualization_networkIdentitiesHelp()}
+		helpSnippet={networkIdentitiesHelpSnippet}
 		emptyMessage={hosts_virtualization_noNetworkIdentities()}
 		allowReorder={false}
 		allowAddFromOptions={false}
