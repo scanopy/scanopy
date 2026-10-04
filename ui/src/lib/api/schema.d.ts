@@ -202,7 +202,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Store pre-registration setup data (org name, networks, seed preference) in session */
+        /** Store pre-registration setup data (org name, first network) in session */
         post: operations["setup"];
         delete?: never;
         options?: never;
@@ -3528,19 +3528,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-04T14:41:52.966753Z",
+             *       "created_at": "2026-10-04T17:29:02.433095Z",
              *       "first_discovery_id": null,
-             *       "id": "06758139-6945-4368-a498-f348e3de17fa",
+             *       "id": "4387d284-1d59-43e5-adeb-58631350e834",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-04T14:41:52.966753Z",
+             *       "last_seen_at": "2026-10-04T17:29:02.433095Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-10-04T14:41:52.966753Z",
-             *       "valid_from": "2026-10-04T14:41:52.966753Z",
+             *       "updated_at": "2026-10-04T17:29:02.433095Z",
+             *       "valid_from": "2026-10-04T17:29:02.433095Z",
              *       "valid_to": null
              *     }
              */
@@ -4368,19 +4368,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-04T14:41:52.945982Z",
+             *               "created_at": "2026-10-04T17:29:02.409292Z",
              *               "first_discovery_id": null,
-             *               "id": "4fc08d21-8cc9-4e72-91a3-76bf2af8d243",
+             *               "id": "60d934f9-53b1-4f10-bcb0-3722ec4447d7",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-04T14:41:52.945982Z",
+             *               "last_seen_at": "2026-10-04T17:29:02.409292Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-10-04T14:41:52.945982Z",
-             *               "valid_from": "2026-10-04T14:41:52.945982Z",
+             *               "updated_at": "2026-10-04T17:29:02.409292Z",
+             *               "valid_from": "2026-10-04T17:29:02.409292Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4394,7 +4394,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Lubelogger",
+             *           "service_definition": "CoolerControl",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -4418,6 +4418,7 @@ export interface components {
              *       "sys_object_id_source": "Unspecified",
              *       "tags": [],
              *       "updated_at": "2026-01-15T10:30:00Z",
+             *       "virtualization_interface_id": null,
              *       "virtualization_metadata": null,
              *       "virtualization_service_id": null
              *     }
@@ -4553,6 +4554,11 @@ export interface components {
                  * @description When this record was last modified.
                  */
                 updated_at: string;
+                /**
+                 * Format: uuid
+                 * @description The interface on the virtualizing host that presents this host, for a network identity.
+                 */
+                virtualization_interface_id?: string | null;
                 virtualization_metadata?: null | components["schemas"]["HostVirtualization"];
                 /**
                  * Format: uuid
@@ -5313,19 +5319,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-04T14:41:52.962127Z",
+             *           "created_at": "2026-10-04T17:29:02.428075Z",
              *           "first_discovery_id": null,
-             *           "id": "be710087-6958-4adb-b2b0-f9600512a3b5",
+             *           "id": "6290e665-de4b-4f11-a02c-7c2cf6c2961c",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-04T14:41:52.962127Z",
+             *           "last_seen_at": "2026-10-04T17:29:02.428075Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-10-04T14:41:52.962127Z",
-             *           "valid_from": "2026-10-04T14:41:52.962127Z",
+             *           "updated_at": "2026-10-04T17:29:02.428075Z",
+             *           "valid_from": "2026-10-04T17:29:02.428075Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5339,7 +5345,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Lubelogger",
+             *       "service_definition": "CoolerControl",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -5440,9 +5446,9 @@ export interface components {
             data?: {
                 /**
                  * Format: uuid
-                 * @description The network this entity belongs to.
+                 * @description Pre-assigned id of the network created at registration, if one was requested.
                  */
-                network_id: string;
+                network_id?: string | null;
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -6441,19 +6447,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-04T14:41:52.946547Z",
+         *       "created_at": "2026-10-04T17:29:02.410022Z",
          *       "first_discovery_id": null,
-         *       "id": "43f45b81-d528-4d54-95a1-53f06ed1d736",
+         *       "id": "cef82253-eba2-46ec-86af-f443ec3a8ffa",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-04T14:41:52.946547Z",
+         *       "last_seen_at": "2026-10-04T17:29:02.410022Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-10-04T14:41:52.946547Z",
-         *       "valid_from": "2026-10-04T14:41:52.946547Z",
+         *       "updated_at": "2026-10-04T17:29:02.410022Z",
+         *       "valid_from": "2026-10-04T17:29:02.410022Z",
          *       "valid_to": null
          *     }
          */
@@ -6801,13 +6807,14 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Lubelogger",
+         *           "service_definition": "CoolerControl",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
          *         }
          *       ],
          *       "tags": [],
+         *       "virtualization_interface_id": null,
          *       "virtualization_metadata": null,
          *       "virtualization_service_id": null
          *     }
@@ -6850,6 +6857,11 @@ export interface components {
             sys_object_id?: string | null;
             /** @description Tags assigned to this entity. */
             tags: string[];
+            /**
+             * Format: uuid
+             * @description The interface on the virtualizing host that presents this host, for a network identity.
+             */
+            virtualization_interface_id?: string | null;
             virtualization_metadata?: null | components["schemas"]["HostVirtualization"];
             /**
              * Format: uuid
@@ -9015,6 +9027,7 @@ export interface components {
          *       "updated_at": "2026-01-15T10:30:00Z",
          *       "valid_from": "2026-01-15T10:30:00Z",
          *       "valid_to": null,
+         *       "virtualization_interface_id": null,
          *       "virtualization_metadata": null,
          *       "virtualization_service_id": null
          *     }
@@ -9096,6 +9109,14 @@ export interface components {
             source: components["schemas"]["EntitySource"];
             /** @description Tags assigned to this entity. */
             tags: string[];
+            /**
+             * Format: uuid
+             * @description The interface on the virtualizing host that presents this one, for a host whose
+             *     virtualizer presents it from an interface of its own (a network identity). Its own column
+             *     with a foreign key for the same reason as `virtualization_service_id`; `ON DELETE SET NULL`
+             *     clears it when the interface goes away.
+             */
+            virtualization_interface_id: string | null;
             virtualization_metadata: null | components["schemas"]["HostVirtualization"];
             /**
              * Format: uuid
@@ -9336,19 +9357,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-04T14:41:52.945362Z",
+         *               "created_at": "2026-10-04T17:29:02.408482Z",
          *               "first_discovery_id": null,
-         *               "id": "e23ae49d-c5c4-4619-897c-13dc66c0ad06",
+         *               "id": "504655c7-ab7e-499b-9c11-69894a9e111b",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-04T14:41:52.945362Z",
+         *               "last_seen_at": "2026-10-04T17:29:02.408482Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-10-04T14:41:52.945362Z",
-         *               "valid_from": "2026-10-04T14:41:52.945362Z",
+         *               "updated_at": "2026-10-04T17:29:02.408482Z",
+         *               "valid_from": "2026-10-04T17:29:02.408482Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9362,7 +9383,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Lubelogger",
+         *           "service_definition": "CoolerControl",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -9386,6 +9407,7 @@ export interface components {
          *       "sys_object_id_source": "Unspecified",
          *       "tags": [],
          *       "updated_at": "2026-01-15T10:30:00Z",
+         *       "virtualization_interface_id": null,
          *       "virtualization_metadata": null,
          *       "virtualization_service_id": null
          *     }
@@ -9521,6 +9543,11 @@ export interface components {
              * @description When this record was last modified.
              */
             updated_at: string;
+            /**
+             * Format: uuid
+             * @description The interface on the virtualizing host that presents this host, for a network identity.
+             */
+            virtualization_interface_id?: string | null;
             virtualization_metadata?: null | components["schemas"]["HostVirtualization"];
             /**
              * Format: uuid
@@ -10652,12 +10679,11 @@ export interface components {
          *     NICs: a macvlan shim, a virtual IP, a service given its own LAN address, an emulated device.
          *     The reporting source proves only that the interface lives inside that host, not what it is,
          *     so nothing here classifies it. The owner is the host's Network Identities service
-         *     (`Host::virtualization_service_id`).
+         *     (`HostBase::virtualization_service_id`), and the interface it sits on is
+         *     `HostBase::virtualization_interface_id`, both real columns with foreign keys. A stored row from
+         *     before the interface became a column still carries an `interface` name here, which is ignored.
          */
-        NetworkIdentityVirtualization: {
-            /** @description The owning host's interface the identity sits on (`mv-snmp4`). */
-            interface?: string | null;
-        };
+        NetworkIdentityVirtualization: Record<string, never>;
         /** @description Network configuration for setup */
         NetworkSetup: {
             /** @description Name for the network created during setup. */
@@ -11236,6 +11262,11 @@ export interface components {
                  * @description When this record was last modified.
                  */
                 updated_at: string;
+                /**
+                 * Format: uuid
+                 * @description The interface on the virtualizing host that presents this host, for a network identity.
+                 */
+                virtualization_interface_id?: string | null;
                 virtualization_metadata?: null | components["schemas"]["HostVirtualization"];
                 /**
                  * Format: uuid
@@ -12431,19 +12462,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-04T14:41:52.946376Z",
+         *           "created_at": "2026-10-04T17:29:02.409806Z",
          *           "first_discovery_id": null,
-         *           "id": "e28f2c58-e574-4e4d-9cbb-2e07dc6dc93c",
+         *           "id": "2165dc38-2c88-4178-84f5-bf9c7b78d13b",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-04T14:41:52.946376Z",
+         *           "last_seen_at": "2026-10-04T17:29:02.409806Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-10-04T14:41:52.946376Z",
-         *           "valid_from": "2026-10-04T14:41:52.946376Z",
+         *           "updated_at": "2026-10-04T17:29:02.409806Z",
+         *           "valid_from": "2026-10-04T17:29:02.409806Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12457,7 +12488,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Lubelogger",
+         *       "service_definition": "CoolerControl",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -12623,8 +12654,7 @@ export interface components {
         };
         /** @description Setup request for pre-registration org/network configuration */
         SetupRequest: {
-            /** @description The first network to create alongside the organization. */
-            network: components["schemas"]["NetworkSetup"];
+            network?: null | components["schemas"]["NetworkSetup"];
             /** @description Name for the organization created during setup. */
             organization_name: string;
         };
@@ -12632,9 +12662,9 @@ export interface components {
         SetupResponse: {
             /**
              * Format: uuid
-             * @description The network this entity belongs to.
+             * @description Pre-assigned id of the network created at registration, if one was requested.
              */
-            network_id: string;
+            network_id?: string | null;
         };
         Share: components["schemas"]["ShareBase"] & {
             /**
@@ -13216,7 +13246,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "1cccc59b-8e63-488c-8697-1f68fc64099a",
+             *           "id": "a91842b8-fa6d-4d6b-a4bc-3fe27ada66d9",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13226,23 +13256,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "7d34184f-15db-4953-a18b-0e27f1d8b6cb",
+             *           "id": "1b485398-819b-4b87-873e-6ac2d0ecd22c",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "c487f778-16ea-441d-8c92-1f698ec4e242",
+             *           "id": "c4764a23-2bf9-4162-8e02-23b7f5fd2d9b",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "dac30faf-b2eb-4cf0-9008-de11d52e5228",
+             *           "id": "7604dfcc-6458-4f33-b72c-41a372a26698",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "7d34184f-15db-4953-a18b-0e27f1d8b6cb",
+             *           "id": "1b485398-819b-4b87-873e-6ac2d0ecd22c",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13255,19 +13285,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "53ce1a54-567f-4b13-b909-6d58a7919e5f",
+             *         "id": "64a2c775-3f69-4efa-a632-dd9d8ac9c192",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "6b6fa47e-0301-4c7c-90c4-8adb1c79059d",
+             *         "id": "fbd319e9-cbd9-4054-8a58-798a8185be90",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "057d62cc-67a5-4a27-83df-362771fb9dcc",
+             *         "id": "11834f35-1a96-46b8-bca2-72177d197191",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "ba0b9c7e-6414-4111-a1f1-7b071e193e5b",
+             *         "id": "a844edea-94f7-4915-81f5-3ba3fe219550",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13286,7 +13316,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "ed81f90f-c51b-4b9c-90a5-4e0081e79e45",
+             *         "id": "725d0520-cc6b-40f4-9939-aac075ddcbe5",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13295,15 +13325,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "c3e8977d-e74e-4666-af98-2460fde856ce",
+             *         "id": "45a5b622-6a3d-45b9-b9c4-41ad81ab3ad4",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "b45d09a7-a08c-4342-8bd2-c956cd2341f5",
+             *         "id": "c5458c1b-e2bf-4d18-8d56-8a059530ff04",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "9fbe2469-3361-43fe-8a77-ce465d06b6dc",
+             *         "id": "8c267ef6-0de8-4f6d-aca1-fcee50a4ddf5",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -13503,6 +13533,11 @@ export interface components {
             services?: components["schemas"]["ServiceInput"][] | null;
             /** @description Tags assigned to this entity. */
             tags: string[];
+            /**
+             * Format: uuid
+             * @description The interface on the virtualizing host that presents this host, for a network identity.
+             */
+            virtualization_interface_id?: string | null;
             virtualization_metadata?: null | components["schemas"]["HostVirtualization"];
             /**
              * Format: uuid

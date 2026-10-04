@@ -14020,19 +14020,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-04T14:41:53.023757Z",
+              "created_at": "2026-10-04T17:29:02.491230Z",
               "first_discovery_id": null,
-              "id": "d78d5c5d-d087-4c1b-a133-97b813a7363c",
+              "id": "251a5f0c-5173-483a-84d3-43c17ac5b214",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-04T14:41:53.023757Z",
+              "last_seen_at": "2026-10-04T17:29:02.491230Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-04T14:41:53.023757Z",
-              "valid_from": "2026-10-04T14:41:53.023757Z",
+              "updated_at": "2026-10-04T17:29:02.491230Z",
+              "valid_from": "2026-10-04T17:29:02.491230Z",
               "valid_to": null
             }
           },
@@ -15487,6 +15487,14 @@
                 "format": "date-time",
                 "description": "When this record was last modified."
               },
+              "virtualization_interface_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The interface on the virtualizing host that presents this host, for a network identity."
+              },
               "virtualization_metadata": {
                 "oneOf": [
                   {
@@ -15629,19 +15637,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-04T14:41:53.008501Z",
+                      "created_at": "2026-10-04T17:29:02.476166Z",
                       "first_discovery_id": null,
-                      "id": "daa11ead-8cbd-4d38-b479-512e18b11c3b",
+                      "id": "28d3dae4-226d-48dd-bed4-4c8c3dfd6dda",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-04T14:41:53.008501Z",
+                      "last_seen_at": "2026-10-04T17:29:02.476166Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-04T14:41:53.008501Z",
-                      "valid_from": "2026-10-04T14:41:53.008501Z",
+                      "updated_at": "2026-10-04T17:29:02.476166Z",
+                      "valid_from": "2026-10-04T17:29:02.476166Z",
                       "valid_to": null
                     }
                   ],
@@ -15655,7 +15663,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Lubelogger",
+                  "service_definition": "CoolerControl",
                   "source": {
                     "type": "Manual"
                   },
@@ -15679,6 +15687,7 @@
               "sys_object_id_source": "Unspecified",
               "tags": [],
               "updated_at": "2026-01-15T10:30:00Z",
+              "virtualization_interface_id": null,
               "virtualization_metadata": null,
               "virtualization_service_id": null
             }
@@ -17053,19 +17062,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-04T14:41:53.020121Z",
+                  "created_at": "2026-10-04T17:29:02.487648Z",
                   "first_discovery_id": null,
-                  "id": "ef79019f-082b-418d-ad2a-ee629992652b",
+                  "id": "17d2f8ac-17a4-498a-9d43-19394194e43a",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-04T14:41:53.020121Z",
+                  "last_seen_at": "2026-10-04T17:29:02.487648Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-04T14:41:53.020121Z",
-                  "valid_from": "2026-10-04T14:41:53.020121Z",
+                  "updated_at": "2026-10-04T17:29:02.487648Z",
+                  "valid_from": "2026-10-04T17:29:02.487648Z",
                   "valid_to": null
                 }
               ],
@@ -17079,7 +17088,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Lubelogger",
+              "service_definition": "CoolerControl",
               "source": {
                 "type": "Manual"
               },
@@ -17157,14 +17166,14 @@
           "data": {
             "type": "object",
             "description": "Response from setup endpoint",
-            "required": [
-              "network_id"
-            ],
             "properties": {
               "network_id": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "format": "uuid",
-                "description": "The network this entity belongs to."
+                "description": "Pre-assigned id of the network created at registration, if one was requested."
               }
             }
           },
@@ -19563,19 +19572,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-04T14:41:53.008910Z",
+          "created_at": "2026-10-04T17:29:02.476575Z",
           "first_discovery_id": null,
-          "id": "ad234300-38fa-4923-b9f4-a4722132bee8",
+          "id": "919ce0b8-4578-4b0f-b1b7-bb49afd40edc",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-04T14:41:53.008910Z",
+          "last_seen_at": "2026-10-04T17:29:02.476575Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-04T14:41:53.008910Z",
-          "valid_from": "2026-10-04T14:41:53.008910Z",
+          "updated_at": "2026-10-04T17:29:02.476575Z",
+          "valid_from": "2026-10-04T17:29:02.476575Z",
           "valid_to": null
         }
       },
@@ -20276,6 +20285,14 @@
             },
             "description": "Tags assigned to this entity."
           },
+          "virtualization_interface_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The interface on the virtualizing host that presents this host, for a network identity."
+          },
           "virtualization_metadata": {
             "oneOf": [
               {
@@ -20334,13 +20351,14 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Lubelogger",
+              "service_definition": "CoolerControl",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
             }
           ],
           "tags": [],
+          "virtualization_interface_id": null,
           "virtualization_metadata": null,
           "virtualization_service_id": null
         }
@@ -25779,6 +25797,7 @@
           "updated_at": "2026-01-15T10:30:00Z",
           "valid_from": "2026-01-15T10:30:00Z",
           "valid_to": null,
+          "virtualization_interface_id": null,
           "virtualization_metadata": null,
           "virtualization_service_id": null
         }
@@ -25853,6 +25872,7 @@
               "source",
               "virtualization_metadata",
               "virtualization_service_id",
+              "virtualization_interface_id",
               "hidden",
               "tags",
               "credential_assignments"
@@ -25892,6 +25912,14 @@
                   "format": "uuid"
                 },
                 "description": "Tags assigned to this entity."
+              },
+              "virtualization_interface_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "The interface on the virtualizing host that presents this one, for a host whose\nvirtualizer presents it from an interface of its own (a network identity). Its own column\nwith a foreign key for the same reason as `virtualization_service_id`; `ON DELETE SET NULL`\nclears it when the interface goes away."
               },
               "virtualization_metadata": {
                 "oneOf": [
@@ -26539,6 +26567,14 @@
             "format": "date-time",
             "description": "When this record was last modified."
           },
+          "virtualization_interface_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The interface on the virtualizing host that presents this host, for a network identity."
+          },
           "virtualization_metadata": {
             "oneOf": [
               {
@@ -26681,19 +26717,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-04T14:41:53.008046Z",
+                  "created_at": "2026-10-04T17:29:02.475708Z",
                   "first_discovery_id": null,
-                  "id": "013cd80d-f0df-4350-9db5-e393bd8ee61d",
+                  "id": "3788c8df-3f20-48af-bdb4-71c7a4ee4164",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-04T14:41:53.008046Z",
+                  "last_seen_at": "2026-10-04T17:29:02.475708Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-04T14:41:53.008046Z",
-                  "valid_from": "2026-10-04T14:41:53.008046Z",
+                  "updated_at": "2026-10-04T17:29:02.475708Z",
+                  "valid_from": "2026-10-04T17:29:02.475708Z",
                   "valid_to": null
                 }
               ],
@@ -26707,7 +26743,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Lubelogger",
+              "service_definition": "CoolerControl",
               "source": {
                 "type": "Manual"
               },
@@ -26731,6 +26767,7 @@
           "sys_object_id_source": "Unspecified",
           "tags": [],
           "updated_at": "2026-01-15T10:30:00Z",
+          "virtualization_interface_id": null,
           "virtualization_metadata": null,
           "virtualization_service_id": null
         }
@@ -29078,16 +29115,7 @@
       },
       "NetworkIdentityVirtualization": {
         "type": "object",
-        "description": "An address and MAC that a host presents from an interface of its own beyond its configured\nNICs: a macvlan shim, a virtual IP, a service given its own LAN address, an emulated device.\nThe reporting source proves only that the interface lives inside that host, not what it is,\nso nothing here classifies it. The owner is the host's Network Identities service\n(`Host::virtualization_service_id`).",
-        "properties": {
-          "interface": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "The owning host's interface the identity sits on (`mv-snmp4`)."
-          }
-        }
+        "description": "An address and MAC that a host presents from an interface of its own beyond its configured\nNICs: a macvlan shim, a virtual IP, a service given its own LAN address, an emulated device.\nThe reporting source proves only that the interface lives inside that host, not what it is,\nso nothing here classifies it. The owner is the host's Network Identities service\n(`HostBase::virtualization_service_id`), and the interface it sits on is\n`HostBase::virtualization_interface_id`, both real columns with foreign keys. A stored row from\nbefore the interface became a column still carries an `interface` name here, which is ignored."
       },
       "NetworkSetup": {
         "type": "object",
@@ -30357,6 +30385,14 @@
                   "format": "date-time",
                   "description": "When this record was last modified."
                 },
+                "virtualization_interface_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uuid",
+                  "description": "The interface on the virtualizing host that presents this host, for a network identity."
+                },
                 "virtualization_metadata": {
                   "oneOf": [
                     {
@@ -30499,19 +30535,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-04T14:41:53.001362Z",
+                        "created_at": "2026-10-04T17:29:02.469048Z",
                         "first_discovery_id": null,
-                        "id": "725a8dee-367b-4786-b626-9ac7e83a752b",
+                        "id": "fe00d0a7-6ce8-43a2-b733-ec73e3a65dd7",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-04T14:41:53.001362Z",
+                        "last_seen_at": "2026-10-04T17:29:02.469048Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-04T14:41:53.001362Z",
-                        "valid_from": "2026-10-04T14:41:53.001362Z",
+                        "updated_at": "2026-10-04T17:29:02.469048Z",
+                        "valid_from": "2026-10-04T17:29:02.469048Z",
                         "valid_to": null
                       }
                     ],
@@ -30525,7 +30561,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Lubelogger",
+                    "service_definition": "CoolerControl",
                     "source": {
                       "type": "Manual"
                     },
@@ -30549,6 +30585,7 @@
                 "sys_object_id_source": "Unspecified",
                 "tags": [],
                 "updated_at": "2026-01-15T10:30:00Z",
+                "virtualization_interface_id": null,
                 "virtualization_metadata": null,
                 "virtualization_service_id": null
               }
@@ -30668,19 +30705,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-04T14:41:53.019458Z",
+                    "created_at": "2026-10-04T17:29:02.486987Z",
                     "first_discovery_id": null,
-                    "id": "f6a60498-4d4f-43ed-bdeb-da72f2b4631f",
+                    "id": "53280c83-1e9f-4530-b1bd-bd02519fb679",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-04T14:41:53.019458Z",
+                    "last_seen_at": "2026-10-04T17:29:02.486987Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-04T14:41:53.019458Z",
-                    "valid_from": "2026-10-04T14:41:53.019458Z",
+                    "updated_at": "2026-10-04T17:29:02.486987Z",
+                    "valid_from": "2026-10-04T17:29:02.486987Z",
                     "valid_to": null
                   }
                 ],
@@ -30694,7 +30731,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Lubelogger",
+                "service_definition": "CoolerControl",
                 "source": {
                   "type": "Manual"
                 },
@@ -32925,19 +32962,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-04T14:41:53.008785Z",
+              "created_at": "2026-10-04T17:29:02.476450Z",
               "first_discovery_id": null,
-              "id": "79806a7d-a8c8-4e79-9268-136fd1ce1ffb",
+              "id": "05361ad1-3849-444d-9c33-3136b90cd559",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-04T14:41:53.008785Z",
+              "last_seen_at": "2026-10-04T17:29:02.476450Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-04T14:41:53.008785Z",
-              "valid_from": "2026-10-04T14:41:53.008785Z",
+              "updated_at": "2026-10-04T17:29:02.476450Z",
+              "valid_from": "2026-10-04T17:29:02.476450Z",
               "valid_to": null
             }
           ],
@@ -32951,7 +32988,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Lubelogger",
+          "service_definition": "CoolerControl",
           "source": {
             "type": "Manual"
           },
@@ -33256,13 +33293,19 @@
         "type": "object",
         "description": "Setup request for pre-registration org/network configuration",
         "required": [
-          "organization_name",
-          "network"
+          "organization_name"
         ],
         "properties": {
           "network": {
-            "$ref": "#/components/schemas/NetworkSetup",
-            "description": "The first network to create alongside the organization."
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NetworkSetup",
+                "description": "The first network to create alongside the organization. `None` for a\nself-hosted license buyer, whose cloud org gets its network only if it\nlater moves to a cloud plan."
+              }
+            ]
           },
           "organization_name": {
             "type": "string",
@@ -33273,14 +33316,14 @@
       "SetupResponse": {
         "type": "object",
         "description": "Response from setup endpoint",
-        "required": [
-          "network_id"
-        ],
         "properties": {
           "network_id": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid",
-            "description": "The network this entity belongs to."
+            "description": "Pre-assigned id of the network created at registration, if one was requested."
           }
         }
       },
@@ -34399,7 +34442,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "6936d379-687d-4dd4-826c-8001c163fbdd",
+                  "id": "c35418ef-e7d7-46fa-b1b5-19c6c8c086fc",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -34409,23 +34452,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "2cfa67c6-981e-4199-b12d-7b0cc9623a07",
+                  "id": "f19ce2dc-15c4-48d6-95b8-f050045c7d90",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "429f9a05-7017-4d2f-aa5c-d7b69579aa71",
+                  "id": "2e4bdb69-a68d-45bd-82c2-aeea6808eeb1",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "2f5e5454-3e7f-43ea-b9ab-79dd8c44dad9",
+                  "id": "9196ff95-3279-4326-8451-e9497542a83d",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "2cfa67c6-981e-4199-b12d-7b0cc9623a07",
+                  "id": "f19ce2dc-15c4-48d6-95b8-f050045c7d90",
                   "rule": "ByHost"
                 }
               ]
@@ -34455,19 +34498,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "1d4a690a-b4d4-4527-9c77-a044c4cd91c5",
+                "id": "d87275b3-a5ca-47d4-9971-202c034abea7",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "2258746f-1070-460b-af8a-c5b314c6a2b0",
+                "id": "6fd4ad26-d808-46da-8a1c-cbd5164796df",
                 "rule": "ByVLAN"
               },
               {
-                "id": "83a5e372-691d-4c27-a2db-beca2074f1d7",
+                "id": "2d8d01bd-bcf8-4a42-ac71-ebfe748dd11a",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "21a6f2b2-d931-4ea1-8af7-7f5748260cc9",
+                "id": "540abe02-c3dc-4d4b-9aa1-5a6dbbe8e94d",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -34486,7 +34529,7 @@
                 }
               },
               {
-                "id": "2941b12f-13ea-448f-b34a-bcd7426e48f3",
+                "id": "8bbdaee5-7305-4b06-9037-6601a07b87dc",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -34495,15 +34538,15 @@
                 }
               },
               {
-                "id": "63e1fda9-6a42-4beb-8f71-b8e2f8878454",
+                "id": "b8d60d7c-b975-435c-a873-2cb90fa20610",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "34c793fd-5ebd-4201-bb60-2648f22711ce",
+                "id": "d9c6d9d6-fb0a-41f8-83b7-3f46b4d8860e",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "edce5c92-1918-4c8c-8329-b8c7665ea37b",
+                "id": "592d9b24-c009-4ebd-a33e-b418ec999780",
                 "rule": "ByStack"
               }
             ]
@@ -34882,6 +34925,14 @@
               "format": "uuid"
             },
             "description": "Tags assigned to this entity."
+          },
+          "virtualization_interface_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The interface on the virtualizing host that presents this host, for a network identity."
           },
           "virtualization_metadata": {
             "oneOf": [
