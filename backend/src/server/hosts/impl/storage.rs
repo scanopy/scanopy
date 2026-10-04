@@ -150,6 +150,7 @@ impl Storable for Host {
                     source,
                     virtualization_metadata,
                     virtualization_service_id,
+                    virtualization_interface_id,
                     tags: _, // Stored in entity_tags junction table
                     sys_descr,
                     sys_object_id,
@@ -206,6 +207,7 @@ impl Storable for Host {
                 "hidden",
                 "virtualization_metadata",
                 "virtualization_service_id",
+                "virtualization_interface_id",
                 "sys_descr",
                 "sys_descr_source",
                 "sys_object_id",
@@ -253,6 +255,7 @@ impl Storable for Host {
                 SqlValue::Bool(hidden),
                 SqlValue::OptionalHostVirtualization(virtualization_metadata),
                 SqlValue::OptionalUuid(virtualization_service_id),
+                SqlValue::OptionalUuid(virtualization_interface_id),
                 sys_descr_value,
                 sys_descr_source,
                 sys_object_id_value,
@@ -331,6 +334,7 @@ impl Storable for Host {
                 hidden: row.get("hidden"),
                 virtualization_metadata,
                 virtualization_service_id: row.get("virtualization_service_id"),
+                virtualization_interface_id: row.get("virtualization_interface_id"),
                 tags: Vec::new(), // Hydrated from entity_tags junction table
                 sys_descr: attributed::read_optional(row)?,
                 sys_object_id: attributed::read_optional(row)?,

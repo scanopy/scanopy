@@ -121,6 +121,7 @@ async fn test_host_crud(ctx: &TestContext) -> Result<(), String> {
         description: None,
         virtualization_metadata: None,
         virtualization_service_id: None,
+        virtualization_interface_id: None,
         hidden: false,
         tags: Vec::new(),
         // SNMP fields
@@ -156,6 +157,7 @@ async fn test_host_crud(ctx: &TestContext) -> Result<(), String> {
         description: fetched.description.clone(),
         virtualization_metadata: fetched.virtualization_metadata.clone(),
         virtualization_service_id: fetched.virtualization_service_id,
+        virtualization_interface_id: None,
         hidden: fetched.hidden,
         tags: fetched.tags.clone(),
         expected_updated_at: None,    // No optimistic locking for this test
@@ -195,6 +197,7 @@ async fn test_service_crud(ctx: &TestContext) -> Result<(), String> {
         description: None,
         virtualization_metadata: None,
         virtualization_service_id: None,
+        virtualization_interface_id: None,
         hidden: false,
         tags: Vec::new(),
         // SNMP fields

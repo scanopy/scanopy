@@ -278,6 +278,13 @@ async fn create_guest_host(
     network_id: Uuid,
 ) -> Result<(), Error> {
     let services = identities::guest_services(&record.host, identities);
+    // The interfaces its identities sit on, so each identity can name its interface by stored id.
+    let mut interfaces = record.interfaces;
+    interfaces.extend(
+        identities
+            .iter()
+            .map(|i| identities::identity_interface(i, network_id)),
+    );
     let response = ctx
         .ops
         .create_host(
@@ -285,7 +292,7 @@ async fn create_guest_host(
             record.ip_addresses,
             vec![],
             services,
-            record.interfaces,
+            interfaces,
             vec![],
             // The API reports addresses and NIC MACs, never the guest's interface table.
             false,
@@ -316,7 +323,17 @@ async fn create_guest_host(
         return Ok(());
     };
     for identity in identities {
-        let (host, ip_addresses) = identities::identity_host(identity, owner, subnets, network_id);
+        let presenting = identities::presenting_interface_id(identity, &response.interfaces);
+        if presenting.is_none() {
+            tracing::warn!(
+                guest = %guest_label(guest),
+                interface = identity.interface.as_deref().unwrap_or("-"),
+                "The guest's interface for a network identity was not stored; recording the \
+                 identity without it"
+            );
+        }
+        let (host, ip_addresses) =
+            identities::identity_host(identity, owner, presenting, subnets, network_id);
         if let Err(e) = ctx
             .ops
             .create_host(

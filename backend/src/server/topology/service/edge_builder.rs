@@ -1663,9 +1663,7 @@ mod tests {
             let mut h = host(interface);
             h.base.virtualization_service_id = Some(identities.id);
             h.base.virtualization_metadata = Some(HostVirtualization::NetworkIdentity(
-                NetworkIdentityVirtualization {
-                    interface: Some(interface.to_string()),
-                },
+                NetworkIdentityVirtualization {},
             ));
             h
         };

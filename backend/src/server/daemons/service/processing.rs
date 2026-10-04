@@ -453,6 +453,7 @@ impl DaemonService {
             source: EntitySource::Discovery,
             virtualization_metadata: None,
             virtualization_service_id: None,
+            virtualization_interface_id: None,
             hidden: false,
             tags: Vec::new(),
             sys_descr: None,

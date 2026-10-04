@@ -133,6 +133,7 @@ async fn test_cannot_create_host_on_other_network(
         description: None,
         virtualization_metadata: None,
         virtualization_service_id: None,
+        virtualization_interface_id: None,
         hidden: false,
         tags: Vec::new(),
         // SNMP fields

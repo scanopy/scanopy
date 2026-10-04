@@ -112,6 +112,24 @@ impl<T: Storable> StorableFilter<T> {
         self
     }
 
+    /// Filter by `neighbor_host_id` (for `interface_neighbor_hosts`).
+    pub fn neighbor_host_id(mut self, host_id: &Uuid) -> Self {
+        let col = self.qualify_column("neighbor_host_id");
+        self.conditions
+            .push(format!("{} = ${}", col, self.values.len() + 1));
+        self.values.push(SqlValue::Uuid(*host_id));
+        self
+    }
+
+    /// Filter by `neighbor_interface_id` (for `interface_neighbor_interfaces`).
+    pub fn neighbor_interface_id(mut self, interface_id: &Uuid) -> Self {
+        let col = self.qualify_column("neighbor_interface_id");
+        self.conditions
+            .push(format!("{} = ${}", col, self.values.len() + 1));
+        self.values.push(SqlValue::Uuid(*interface_id));
+        self
+    }
+
     /// Filter by ip_address_id FK (for interfaces table)
     pub fn ip_address_id(mut self, ip_address_id: &Uuid) -> Self {
         let col = self.qualify_column("ip_address_id");

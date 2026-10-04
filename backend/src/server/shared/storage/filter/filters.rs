@@ -997,6 +997,15 @@ impl<T: Storable> StorableFilter<T> {
         self
     }
 
+    /// Hosts presented by interface `interface_id` (`hosts.virtualization_interface_id`).
+    pub fn virtualization_interface_id(mut self, interface_id: &Uuid) -> Self {
+        let col = self.qualify_column("virtualization_interface_id");
+        self.conditions
+            .push(format!("{} = ${}", col, self.values.len() + 1));
+        self.values.push(SqlValue::Uuid(*interface_id));
+        self
+    }
+
     /// Entities whose virtualization parent is named one of `names`, and — when `include_null`
     /// is set — those with no parent at all.
     ///

@@ -133,6 +133,7 @@ pub fn host() -> Host {
             source: EntitySource::Manual,
             virtualization_metadata: None,
             virtualization_service_id: None,
+            virtualization_interface_id: None,
             hidden: false,
             tags: vec![],
             sys_descr: None,
@@ -504,6 +505,7 @@ pub fn create_host_request() -> CreateHostRequest {
         description: Some("Primary web server".to_string()),
         virtualization_metadata: None,
         virtualization_service_id: None,
+        virtualization_interface_id: None,
         hidden: false,
         tags: vec![],
         // SNMP fields (optional)

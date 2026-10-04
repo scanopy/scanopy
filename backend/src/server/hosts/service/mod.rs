@@ -201,8 +201,11 @@ mod delete;
 mod discovery;
 mod lifecycle;
 pub(crate) mod mac_identity;
+mod same_device;
 mod topology;
 mod update;
+
+pub(crate) use same_device::{SameDevice, hosts_proven_same_device};
 
 /// Statistics from LLDP link resolution.
 ///
@@ -528,6 +531,15 @@ fn match_by_chassis_id(chassis_id: Option<&str>, candidates: &[HostCandidate]) -
         "Found matching host via chassis id"
     );
     Some(first.id)
+}
+
+/// The host a payload matched, with its **full, unfiltered** live IP rows (discovery derives
+/// `previous_subnets` from them, so loopback and virtual-router rows stay in), and the other hosts
+/// the payload proves are the same device.
+pub(crate) struct HostMatch {
+    pub host: Host,
+    pub ip_addresses: Vec<IPAddress>,
+    pub same_device: Vec<SameDevice>,
 }
 
 /// A host dedup may match against, and the identities it can be matched on.

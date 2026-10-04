@@ -108,6 +108,8 @@ impl HostService {
         // hypervisor assigned through the UI survives every rescan.
         self.accept_discovered_virtualization_service(&mut host)
             .await;
+        self.accept_discovered_virtualization_interface(&mut host)
+            .await;
 
         // The name's rank is likewise server-authoritative at its top rung.
         // `AttributeSource::Manual` means "a person typed this into Scanopy", which nothing running
@@ -175,7 +177,7 @@ impl HostService {
                 host.base.chassis_id.as_ref().map(|c| c.value().0.as_str()),
             )
             .await?
-            .map(|(_, existing_ips)| existing_ips.iter().map(|i| i.base.subnet_id).collect())
+            .map(|m| m.ip_addresses.iter().map(|i| i.base.subnet_id).collect())
             .unwrap_or_default();
 
         let host_response = self

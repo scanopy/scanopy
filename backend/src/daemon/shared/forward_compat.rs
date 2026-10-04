@@ -221,6 +221,7 @@ impl DaemonResponse for HostResponse {
             source: _,
             virtualization_metadata: _,
             virtualization_service_id: _,
+            virtualization_interface_id: _,
             hidden: _,
             tags: _,
             sys_descr: _,

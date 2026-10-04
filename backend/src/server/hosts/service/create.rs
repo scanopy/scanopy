@@ -102,6 +102,93 @@ impl HostService {
         Ok(())
     }
 
+    /// Why `interface_id` cannot be the interface that presents a host owned by
+    /// `virtualization_service_id` on `network_id`, or `None` when it can.
+    ///
+    /// The interface must exist, sit on the host's network, and belong to the host that runs the
+    /// owning service: a network identity is presented by its own guest, never by some other host.
+    async fn virtualization_interface_problem(
+        &self,
+        network_id: Uuid,
+        virtualization_service_id: Option<Uuid>,
+        interface_id: Uuid,
+    ) -> Result<Option<String>> {
+        let Some(interface) = self.interface_service.get_by_id(&interface_id).await? else {
+            return Ok(Some(format!(
+                "virtualization_interface_id {interface_id} does not match any interface"
+            )));
+        };
+        if interface.base.network_id != network_id {
+            return Ok(Some(format!(
+                "virtualization_interface_id {interface_id} is on another network"
+            )));
+        }
+        let owner_host = match virtualization_service_id {
+            Some(id) => self
+                .service_service
+                .get_by_id(&id)
+                .await?
+                .map(|s| s.base.host_id),
+            None => None,
+        };
+        if owner_host != Some(interface.base.host_id) {
+            return Ok(Some(format!(
+                "virtualization_interface_id {interface_id} is not an interface of the host running \
+                 the virtualizing service"
+            )));
+        }
+        Ok(None)
+    }
+
+    /// Keep a discovery-supplied presenting interface only if it is valid for this host's owner;
+    /// otherwise drop it and say so. Runs after [`Self::accept_discovered_virtualization_service`],
+    /// so the owner it checks against has already been vetted.
+    pub(crate) async fn accept_discovered_virtualization_interface(&self, host: &mut Host) {
+        let Some(id) = host.base.virtualization_interface_id else {
+            return;
+        };
+        let problem = match self
+            .virtualization_interface_problem(
+                host.base.network_id,
+                host.base.virtualization_service_id,
+                id,
+            )
+            .await
+        {
+            Ok(problem) => problem,
+            Err(e) => Some(format!("could not look it up: {e}")),
+        };
+        if let Some(problem) = problem {
+            host.base.virtualization_interface_id = None;
+            tracing::warn!(
+                host_name = %host.base.name,
+                %id,
+                %problem,
+                "Discovery payload named a presenting interface it cannot use; ignoring it"
+            );
+        }
+    }
+
+    /// Reject an API-supplied presenting interface that is not valid for the host's owner, the
+    /// API counterpart of [`Self::accept_discovered_virtualization_interface`].
+    pub(crate) async fn validate_virtualization_interface(
+        &self,
+        network_id: Uuid,
+        virtualization_service_id: Option<Uuid>,
+        virtualization_interface_id: Option<Uuid>,
+    ) -> Result<()> {
+        let Some(id) = virtualization_interface_id else {
+            return Ok(());
+        };
+        if let Some(problem) = self
+            .virtualization_interface_problem(network_id, virtualization_service_id, id)
+            .await?
+        {
+            return Err(ValidationError::new(problem).into());
+        }
+        Ok(())
+    }
+
     // =========================================================================
     // Host creation with children
     // =========================================================================
@@ -122,6 +209,7 @@ impl HostService {
             description,
             virtualization_metadata,
             virtualization_service_id,
+            virtualization_interface_id,
             hidden,
             tags,
             sys_descr,
@@ -156,6 +244,12 @@ impl HostService {
         // bad id and deserves to be told so.
         self.validate_virtualization_service(virtualization_service_id)
             .await?;
+        self.validate_virtualization_interface(
+            network_id,
+            virtualization_service_id,
+            virtualization_interface_id,
+        )
+        .await?;
 
         // Auto-set source to Manual for API-created entities
         let source = EntitySource::Manual;
@@ -172,6 +266,7 @@ impl HostService {
             source: source.clone(),
             virtualization_metadata,
             virtualization_service_id,
+            virtualization_interface_id,
             hidden,
             tags,
             // A person filling in the create form is the definition of `Manual`: nothing discovery
@@ -422,8 +517,14 @@ impl HostService {
             .await?;
 
         let is_new_host = matching_result.is_none();
+        let mut same_device: Vec<SameDevice> = Vec::new();
 
-        if let Some((existing_host, _)) = matching_result {
+        if let Some(HostMatch {
+            host: existing_host,
+            same_device: proven,
+            ..
+        }) = matching_result
+        {
             match conflict_behavior {
                 ConflictBehavior::Error => {
                     // API users should edit the existing host rather than create a duplicate
@@ -447,6 +548,7 @@ impl HostService {
                         );
                         host.id = existing_host.id;
                     }
+                    same_device = proven;
                 }
             }
         }
@@ -731,6 +833,10 @@ impl HostService {
                 *acc.entry(mac).or_insert(0) += 1;
                 acc
             });
+        // Every address this payload reports. A stored row still holding one of them did not move,
+        // so the MAC match below must not take it as the old home of a different address.
+        let incoming_ips: HashSet<IpAddr> =
+            ip_addresses.iter().map(|i| i.base.ip_address).collect();
 
         // Live subnets for this host's network, loaded lazily to repair any
         // ip_address whose subnet_id references no live subnet row — e.g. an old
@@ -872,7 +978,13 @@ impl HostService {
                             .live();
                     let existing_by_mac: Vec<IPAddress> =
                         self.ip_address_service.get_all(mac_filter).await?;
-                    if existing_by_mac.len() == 1 {
+                    // A row the payload still reports at its own address is that address, not this
+                    // one before a move: a host with one NIC per address has each answer for the
+                    // other's MAC under ARP flux, and matching on it drops the new address.
+                    let still_reported = existing_by_mac
+                        .first()
+                        .is_some_and(|row| incoming_ips.contains(&row.base.ip_address));
+                    if existing_by_mac.len() == 1 && !still_reported {
                         // Needed to ask whether the old subnet still holds the new address.
                         if network_live_subnets.is_none() {
                             network_live_subnets = Some(
@@ -1540,8 +1652,30 @@ impl HostService {
         }
         created_host.base.credential_assignments = remapped_assignments;
 
+        // Hosts this payload proves are the same device (`hosts_proven_same_device`) merge into the
+        // one it matched, now that its children are written, and still under the dedup lock so no
+        // other submission can match the merged-away host halfway through.
+        let mut merged_response = None;
+        for proven in same_device {
+            match self
+                .merge_same_device(&created_host.id, &proven, &authentication)
+                .await
+            {
+                Ok(response) => merged_response = Some(response),
+                Err(e) => tracing::warn!(
+                    host_id = %created_host.id,
+                    other_host_id = %proven.host_id,
+                    error = ?e,
+                    "Could not merge a host this payload proves is the same device; leaving both"
+                ),
+            }
+        }
+
         dedup_guard.release().await?;
 
+        if let Some(response) = merged_response {
+            return Ok(response);
+        }
         Ok(HostResponse::from_host_with_children(
             created_host,
             created_ip_addresses,
@@ -1549,6 +1683,33 @@ impl HostService {
             created_services,
             created_interfaces,
         ))
+    }
+
+    /// Merge `proven` into `destination` with [`Self::consolidate_hosts`], the same merge a person
+    /// triggers from the API.
+    async fn merge_same_device(
+        &self,
+        destination_id: &Uuid,
+        proven: &SameDevice,
+        authentication: &AuthenticatedEntity,
+    ) -> Result<HostResponse> {
+        let destination = self
+            .get_by_id(destination_id)
+            .await?
+            .ok_or_else(|| anyhow!("host {destination_id} is no longer live"))?;
+        let other = self
+            .get_by_id(&proven.host_id)
+            .await?
+            .ok_or_else(|| anyhow!("host {} is no longer live", proven.host_id))?;
+        tracing::info!(
+            host_id = %destination.id,
+            other_host_id = %other.id,
+            other_host_name = %other.base.name,
+            addresses = ?proven.addresses,
+            "Merging a host this payload proves is the same device"
+        );
+        self.consolidate_hosts(destination, other, authentication.clone())
+            .await
     }
 }
 

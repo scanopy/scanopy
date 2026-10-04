@@ -176,6 +176,7 @@ async fn save_from_ui(
                 description: existing.description.clone(),
                 virtualization_metadata: None,
                 virtualization_service_id: None,
+                virtualization_interface_id: None,
                 hidden,
                 tags: vec![],
                 expected_updated_at: None,

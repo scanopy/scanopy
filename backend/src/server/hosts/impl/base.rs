@@ -81,6 +81,12 @@ pub struct HostBase {
     /// hypervisor service goes away (GH #650).
     #[schema(required)]
     pub virtualization_service_id: Option<Uuid>,
+    /// The interface on the virtualizing host that presents this one, for a host whose
+    /// virtualizer presents it from an interface of its own (a network identity). Its own column
+    /// with a foreign key for the same reason as `virtualization_service_id`; `ON DELETE SET NULL`
+    /// clears it when the interface goes away.
+    #[serde(default)]
+    pub virtualization_interface_id: Option<Uuid>,
     /// Whether the host is hidden from topology views.
     pub hidden: bool,
     /// Tags assigned to this entity.
@@ -172,6 +178,7 @@ impl Default for HostBase {
             source: EntitySource::Unknown,
             virtualization_metadata: None,
             virtualization_service_id: None,
+            virtualization_interface_id: None,
             hidden: false,
             tags: Vec::new(),
             sys_descr: None,
@@ -298,6 +305,7 @@ impl HostBase {
             source: _,
             virtualization_metadata: _,
             virtualization_service_id: _,
+            virtualization_interface_id: _,
             hidden: _,
             tags: _,
             credential_assignments: _,
@@ -369,8 +377,10 @@ impl HostBase {
         let take = match self.virtualization_service_id {
             None => true,
             Some(owner) if owner == incoming_owner => {
-                incoming.virtualization_metadata.is_some()
-                    && self.virtualization_metadata != incoming.virtualization_metadata
+                (incoming.virtualization_metadata.is_some()
+                    && self.virtualization_metadata != incoming.virtualization_metadata)
+                    || (incoming.virtualization_interface_id.is_some()
+                        && self.virtualization_interface_id != incoming.virtualization_interface_id)
             }
             Some(_) => {
                 // Keyed by variant too, so a VMID never matches a container ID.
@@ -381,8 +391,8 @@ impl HostBase {
                         HostVirtualization::Docker(c) | HostVirtualization::Podman(c) => {
                             c.container_id.as_ref()
                         }
-                        // A network identity names no guest id: the interface name is the
-                        // owner's to reuse, so an owned identity never moves.
+                        // A network identity names no guest id: its interface is the owner's, so an
+                        // owned identity never moves.
                         HostVirtualization::VCenter(_)
                         | HostVirtualization::ESXi(_)
                         | HostVirtualization::NetworkIdentity(_) => None,
@@ -394,6 +404,13 @@ impl HostBase {
             }
         };
         if take {
+            // The presenting interface belongs to the owner: a new owner brings its own (or none),
+            // and the same owner keeps the stored one unless the report names another.
+            if self.virtualization_service_id != Some(incoming_owner)
+                || incoming.virtualization_interface_id.is_some()
+            {
+                self.virtualization_interface_id = incoming.virtualization_interface_id;
+            }
             self.virtualization_service_id = Some(incoming_owner);
             self.virtualization_metadata = incoming.virtualization_metadata.clone();
         }
@@ -562,6 +579,8 @@ impl ChangeTriggersTopologyStaleness<Host> for Host {
                 != attribution::text_of(&other_host.base.hostname)
                 || self.base.virtualization_metadata != other_host.base.virtualization_metadata
                 || self.base.virtualization_service_id != other_host.base.virtualization_service_id
+                || self.base.virtualization_interface_id
+                    != other_host.base.virtualization_interface_id
                 || self.base.hidden != other_host.base.hidden
         } else {
             true

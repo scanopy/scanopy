@@ -118,13 +118,11 @@ impl HostVirtualization {
 /// NICs: a macvlan shim, a virtual IP, a service given its own LAN address, an emulated device.
 /// The reporting source proves only that the interface lives inside that host, not what it is,
 /// so nothing here classifies it. The owner is the host's Network Identities service
-/// (`Host::virtualization_service_id`).
+/// (`HostBase::virtualization_service_id`), and the interface it sits on is
+/// `HostBase::virtualization_interface_id`, both real columns with foreign keys. A stored row from
+/// before the interface became a column still carries an `interface` name here, which is ignored.
 #[derive(Debug, Clone, Serialize, Validate, Deserialize, PartialEq, Eq, Hash, ToSchema)]
-pub struct NetworkIdentityVirtualization {
-    /// The owning host's interface the identity sits on (`mv-snmp4`).
-    #[serde(default)]
-    pub interface: Option<String>,
-}
+pub struct NetworkIdentityVirtualization {}
 
 #[derive(Debug, Clone, Serialize, Validate, Deserialize, PartialEq, Eq, Hash, ToSchema)]
 pub struct ProxmoxVirtualization {
