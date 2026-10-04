@@ -110,6 +110,8 @@ export interface ElementRenderData {
 /** One manager's group on a host card, drawn as a dashed box. */
 export interface ElementInlineGroup {
 	groupId: string;
+	/** The viewer collapsed this box: only its header row (with a member count) renders. */
+	collapsed: boolean;
 	/** The manager service heading the box, when it is on this card. */
 	header: Service | null;
 	/** Members that are services (bridge containers). */

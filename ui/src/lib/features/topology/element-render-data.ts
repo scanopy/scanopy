@@ -36,7 +36,7 @@ import { getFreshnessTag } from '$lib/shared/utils/freshness';
 import type { Network } from '$lib/features/networks/types';
 import { get } from 'svelte/store';
 import { activeView, topologyOptions } from './queries';
-import { hiddenEntityIds } from './interactions';
+import { collapsedInlineGroups, hiddenEntityIds, inlineGroupKey } from './interactions';
 import { queryClient, queryKeys } from '$lib/api/query-client';
 
 type InlineGroup = components['schemas']['InlineGroup'];
@@ -74,6 +74,8 @@ export interface ElementRenderInputs {
 	options: TopologyOptions;
 	/** Ids of entities hidden by any filter, of any type (`hiddenEntityIds`). */
 	hiddenEntityIds: Set<string>;
+	/** Manager boxes the viewer collapsed, keyed by `inlineGroupKey`. */
+	collapsedInlineGroups: Set<string>;
 	/** Networks, for resolving each entity's staleness window. */
 	networks: Network[];
 }
@@ -204,7 +206,8 @@ export function buildElementRender(inputs: ElementRenderInputs): ElementRenderRe
 			servicesForHost,
 			topology,
 			hiddenEntityIds,
-			isShown
+			isShown,
+			(groupId) => inputs.collapsedInlineGroups.has(inlineGroupKey(nodeId, groupId))
 		);
 		const groupedServiceIds = new Set(
 			inlineGroups.flatMap((g) => [...(g.header ? [g.header] : []), ...g.services]).map((s) => s.id)
@@ -369,7 +372,8 @@ export function buildInlineGroups(
 	servicesForHost: Service[],
 	topology: RenderableTopology,
 	hiddenEntityIds: Set<string>,
-	isShown: (s: Service) => boolean
+	isShown: (s: Service) => boolean,
+	isCollapsed: (groupId: string) => boolean = () => false
 ): ElementInlineGroup[] {
 	const entries = ((node as { inline_groups?: InlineGroup[] }).inline_groups ??
 		[]) as InlineGroup[];
@@ -380,7 +384,13 @@ export function buildInlineGroups(
 	for (const entry of entries) {
 		let group = groups.get(entry.group_id);
 		if (!group) {
-			group = { groupId: entry.group_id, header: null, services: [], hosts: [] };
+			group = {
+				groupId: entry.group_id,
+				collapsed: isCollapsed(entry.group_id),
+				header: null,
+				services: [],
+				hosts: []
+			};
 			groups.set(entry.group_id, group);
 		}
 		if (entry.entity_type === 'Host') {
@@ -469,10 +479,12 @@ export function elementShapeKey(result: ElementRenderResult): string {
 		// Each group is a dashed box with a header row, its service rows, and per member host a
 		// name row followed by that host's service rows.
 		d.inlineGroups.length,
-		...d.inlineGroups.map(
-			(g) =>
-				`g${g.header ? lines(g.header.name) : 0}[${g.services.map(serviceShape).join(',')}]` +
-				`[${g.hosts.map((h) => `${lines(hostDisplayName(h.host))}(${h.services.map(serviceShape).join(',')})`).join(',')}]`
+		// A collapsed box renders only its header row, so its members don't affect height.
+		...d.inlineGroups.map((g) =>
+			g.collapsed
+				? `gc${g.header ? lines(g.header.name) : 0}`
+				: `g${g.header ? lines(g.header.name) : 0}[${g.services.map(serviceShape).join(',')}]` +
+					`[${g.hosts.map((h) => `${lines(hostDisplayName(h.host))}(${h.services.map(serviceShape).join(',')})`).join(',')}]`
 		)
 	];
 
@@ -494,6 +506,7 @@ export function currentElementRenderContext(): Omit<
 		activeView: get(activeView),
 		options: get(topologyOptions),
 		hiddenEntityIds: get(hiddenEntityIds),
+		collapsedInlineGroups: get(collapsedInlineGroups),
 		networks: queryClient.getQueryData<Network[]>(queryKeys.networks.all) ?? []
 	};
 }

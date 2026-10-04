@@ -75,6 +75,7 @@ describe('elementShapeKey', () => {
 		});
 		const group = (hosts: string[]) => ({
 			groupId: 'identities',
+			collapsed: false,
 			header: service('identities', 'Network Identities'),
 			services: [],
 			hosts: hosts.map(member)
@@ -82,6 +83,25 @@ describe('elementShapeKey', () => {
 		expect(elementShapeKey(result({ inlineGroups: [group(['mv-1'])] }))).not.toBe(
 			elementShapeKey(result({ inlineGroups: [group(['mv-1', 'mv-2'])] }))
 		);
+	});
+
+	it('separates a collapsed manager box from the same box expanded, and ignores members when collapsed', () => {
+		const box = (collapsed: boolean, hosts: number) => ({
+			groupId: 'identities',
+			collapsed,
+			header: service('identities', 'Network Identities'),
+			services: [],
+			hosts: Array.from({ length: hosts }, (_, i) => ({
+				host: { id: `mv-${i}`, display_name: `mv-${i}` },
+				services: []
+			}))
+		});
+		const key = (collapsed: boolean, hosts: number) =>
+			elementShapeKey(result({ inlineGroups: [box(collapsed, hosts)] }));
+
+		expect(key(true, 3)).not.toBe(key(false, 3));
+		// Collapsed, only the header row renders: member count no longer changes the height.
+		expect(key(true, 3)).toBe(key(true, 45));
 	});
 
 	it('separates a service row carrying port lines from one without', () => {

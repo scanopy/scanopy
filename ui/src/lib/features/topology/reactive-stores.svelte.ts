@@ -40,7 +40,8 @@ import {
 	newNodeIds,
 	searchHiddenNodeIds,
 	searchMatchContainerMap,
-	hiddenEntityIds
+	hiddenEntityIds,
+	collapsedInlineGroups
 } from './interactions';
 import { selectedNodes } from './queries';
 import { collapsedContainers } from './collapse';
@@ -64,3 +65,4 @@ export const multiSelectedNodes = fromStore(selectedNodes);
 export const currentHoveredTag = fromStore(hoveredTag);
 export const currentHoveredMetadata = fromStore(hoveredMetadata);
 export const collapsedNodes = fromStore(collapsedContainers);
+export const collapsedInlineGroupKeys = fromStore(collapsedInlineGroups);

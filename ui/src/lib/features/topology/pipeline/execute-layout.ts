@@ -180,12 +180,17 @@ export async function executeLayout(
 }
 
 /**
- * Handle port expansion: re-measure affected nodes without full ELK re-layout.
- * @returns true if ports changed and layout was updated.
+ * Handle a viewer toggle that changes what a card shows (expanded open ports, a collapsed manager
+ * box): re-measure the affected cards without a full ELK re-layout.
+ *
+ * Each key in `currentKeys` names the card it belongs to: a bare node id (expanded ports), or a
+ * node id followed by `|` and more (`inlineGroupKey`). A key added or removed since the last run
+ * re-measures its card.
+ * @returns true if any card changed and layout was updated.
  */
-export async function handlePortExpansion(
+export async function handleCardContentChange(
 	state: LayoutState,
-	currentExpandedPorts: Set<string>,
+	currentKeys: Set<string>,
 	containerElement: HTMLDivElement,
 	buildMeasureNodes: () => import('@xyflow/svelte').Node[],
 	setNodes: (nodes: import('@xyflow/svelte').Node[]) => void,
@@ -193,12 +198,9 @@ export async function handlePortExpansion(
 	needsElk: boolean,
 	viewCacheKey: string
 ): Promise<boolean> {
-	const portsChanged =
-		currentExpandedPorts.size !== state.prevExpandedPortIds.size ||
-		[...currentExpandedPorts].some((id) => !state.prevExpandedPortIds.has(id)) ||
-		[...state.prevExpandedPortIds].some((id) => !currentExpandedPorts.has(id));
+	const changedIds = changedCardIds(state.prevCardContentKeys, currentKeys);
 
-	if (portsChanged && !needsElk && state.layoutGraph) {
+	if (changedIds.size > 0 && !needsElk && state.layoutGraph) {
 		// Render with current positions to let DOM update port content
 		setNodes(buildMeasureNodes());
 		const { tick } = await import('svelte');
@@ -208,7 +210,6 @@ export async function handlePortExpansion(
 
 		// Re-measure affected nodes and update graph
 		if (containerElement) {
-			const changedIds = new Set([...currentExpandedPorts, ...state.prevExpandedPortIds]);
 			const viewCache = state.viewSizeCache.get(viewCacheKey);
 			for (const nodeId of changedIds) {
 				const el = containerElement.querySelector(`[data-id="${nodeId}"]`) as HTMLElement;
@@ -226,13 +227,22 @@ export async function handlePortExpansion(
 				}
 			}
 		}
-		state.prevExpandedPortIds = new Set(currentExpandedPorts);
+		state.prevCardContentKeys = new Set(currentKeys);
 		return true;
 	} else if (needsElk) {
-		state.prevExpandedPortIds = new Set(currentExpandedPorts);
+		state.prevCardContentKeys = new Set(currentKeys);
 	}
 
 	return false;
+}
+
+/** Ids of the cards whose content keys differ between `previous` and `current`. */
+export function changedCardIds(previous: Set<string>, current: Set<string>): Set<string> {
+	const cardOf = (key: string) => key.split('|')[0];
+	const changed = new Set<string>();
+	for (const key of current) if (!previous.has(key)) changed.add(cardOf(key));
+	for (const key of previous) if (!current.has(key)) changed.add(cardOf(key));
+	return changed;
 }
 
 function executeForceLayout(

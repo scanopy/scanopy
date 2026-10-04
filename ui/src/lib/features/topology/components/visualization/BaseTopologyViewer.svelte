@@ -56,7 +56,8 @@
 		isMeasuring,
 		detailSimplified,
 		isRenderingTopology,
-		expandedPortNodeIds
+		expandedPortNodeIds,
+		collapsedInlineGroups
 	} from '../../interactions';
 
 	// Import custom node/edge components
@@ -105,7 +106,7 @@
 	import { createInitialState, type XY } from '../../pipeline/types';
 	import { prepareTopologyData, hiddenMetadataKey } from '../../pipeline/prepare';
 	import { resolveNodeSizes } from '../../pipeline/measure';
-	import { executeLayout, handlePortExpansion } from '../../pipeline/execute-layout';
+	import { executeLayout, handleCardContentChange } from '../../pipeline/execute-layout';
 	import { preloadElk } from '../../layout/elk-layout';
 	import { buildFlowNodes, sortFlowNodes, stripSizeSeed } from '../../pipeline/build-flow-nodes';
 	import { buildFlowEdges } from '../../pipeline/build-flow-edges';
@@ -636,6 +637,7 @@
 			collapsed: get(collapsedContainers),
 			expandedBundles: get(expandedBundles),
 			expandedPorts: get(expandedPortNodeIds),
+			collapsedInlineGroups: get(collapsedInlineGroups),
 			bundleEdges: get(topologyOptions).local.bundle_edges ?? false,
 			hiddenEdgeTypes: (get(topologyOptions).local.hide_edge_types ?? []).join(','),
 			tagHidden: get(tagHiddenNodeIds),
@@ -769,6 +771,9 @@
 	});
 	expandedPortNodeIds.subscribe(() => {
 		if (storesInitialized) triggerLoad('ports');
+	});
+	collapsedInlineGroups.subscribe(() => {
+		if (storesInitialized) triggerLoad('inline-groups');
 	});
 	bundleEdgesStore.subscribe(() => {
 		if (storesInitialized) triggerLoad('bundle-option');
@@ -1063,13 +1068,17 @@
 		// would mount every node in the graph to re-measure a handful of cards, which at this
 		// customer's scale is the out-of-memory failure by another route. A card whose ports the
 		// user just toggled is on screen by construction, so it is mounted and measures correctly;
-		// `handlePortExpansion` drops the cached size of any id it could not find in the DOM, so a
+		// `handleCardContentChange` drops the cached size of any id it could not find in the DOM, so a
 		// card toggled and then scrolled away from re-measures for real the next time it mounts
 		// rather than keeping a stale height.
-		const currentExpandedPorts = get(expandedPortNodeIds);
-		const portsChanged = await handlePortExpansion(
+		// Expanded ports and collapsed manager boxes both change a card's height in place.
+		const currentCardContentKeys = new Set([
+			...get(expandedPortNodeIds),
+			...get(collapsedInlineGroups)
+		]);
+		const cardContentChanged = await handleCardContentChange(
 			layoutState,
-			currentExpandedPorts,
+			currentCardContentKeys,
 			containerElement,
 			() => makeNodes(false),
 			(n) => setStoreNodes(n),
@@ -1081,7 +1090,7 @@
 		// Build final nodes and edges. Edge handles are computed inside
 		// buildFlowEdges against final post-layout positions (from layoutGraph)
 		// rather than being precomputed by the layout engines.
-		const needsLayout = needsElk || portsChanged || prep.collapseChanged;
+		const needsLayout = needsElk || cardContentChanged || prep.collapseChanged;
 
 		// Edges first, then nodes.
 		//

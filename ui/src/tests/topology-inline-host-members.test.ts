@@ -3,6 +3,7 @@ import type { RenderableTopology, TopologyNode } from '$lib/features/topology/ty
 import type { Service } from '$lib/features/services/types/base';
 import { buildInlineGroups } from '$lib/features/topology/element-render-data';
 import { resolveInlineServiceIds } from '$lib/features/topology/resolvers';
+import { inlineHostsMatching } from '$lib/features/topology/interactions';
 
 /**
  * A guest VM's Network Identities service heads an inline group on the guest's Workloads card,
@@ -38,7 +39,13 @@ function buildTopology(): RenderableTopology {
 		options: { request: { element_rules: [] } },
 		hosts: [
 			{ id: 'guest', network_id: NETWORK_ID, tags: [], display_name: 'snmp-test' },
-			{ id: 'mv-1', network_id: NETWORK_ID, tags: [], display_name: '192.168.4.101' },
+			{
+				id: 'mv-1',
+				network_id: NETWORK_ID,
+				tags: [],
+				display_name: '192.168.4.101',
+				virtualization_metadata: { type: 'NetworkIdentity', details: { interface: 'mv-snmp1' } }
+			},
 			{ id: 'mv-2', network_id: NETWORK_ID, tags: [], display_name: '192.168.4.102' }
 		],
 		subnets: [],
@@ -80,6 +87,20 @@ describe('inline groups with host members', () => {
 		]);
 	});
 
+	it('marks a group collapsed and still resolves its members for the count', () => {
+		const groups = buildInlineGroups(
+			guestNode as unknown as TopologyNode,
+			guestServices,
+			buildTopology(),
+			new Set(),
+			() => true,
+			(groupId) => groupId === 'identities'
+		);
+
+		expect(groups[0].collapsed).toBe(true);
+		expect(groups[0].hosts).toHaveLength(2);
+	});
+
 	it('drops a hidden member host and a hidden member service', () => {
 		const groups = buildInlineGroups(
 			guestNode as unknown as TopologyNode,
@@ -96,5 +117,32 @@ describe('inline groups with host members', () => {
 		const ids = resolveInlineServiceIds(new Set(['guest-element']), buildTopology());
 
 		expect([...ids].sort()).toEqual(['identities', 'mv-1-snmp', 'mv-2-snmp', 'tftp']);
+	});
+});
+
+describe('host metadata hover on inline members', () => {
+	const groups = () =>
+		buildInlineGroups(
+			guestNode as unknown as TopologyNode,
+			guestServices,
+			buildTopology(),
+			new Set(),
+			() => true
+		);
+	const hover = (valueId: string) => ({
+		entityType: 'Host' as const,
+		filterType: 'Virtualization',
+		valueId,
+		color: 'Amber'
+	});
+
+	it('marks a network identity as virtualized, not bare metal', () => {
+		const topology = buildTopology();
+		expect(inlineHostsMatching(groups(), hover('Virtualized'), () => undefined, topology)).toEqual(
+			new Set(['mv-1'])
+		);
+		expect(inlineHostsMatching(groups(), hover('BareMetal'), () => undefined, topology)).toEqual(
+			new Set(['mv-2'])
+		);
 	});
 });
