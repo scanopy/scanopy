@@ -17,7 +17,8 @@ use crate::server::dependencies::r#impl::base::DependencyMembers;
 use crate::server::hosts::r#impl::api::HostResponse;
 use crate::server::hosts::r#impl::base::{Host, HostBase};
 use crate::server::hosts::r#impl::virtualization::{
-    HostVirtualization, NetworkIdentityVirtualization,
+    ContainerHostVirtualization, ContainerNetworkType, HostVirtualization,
+    NetworkIdentityVirtualization,
 };
 use crate::server::interface_neighbors::r#impl::base::Neighbor;
 use crate::server::interfaces::r#impl::base::{Interface, InterfaceBase, InterfaceDataComplete};
@@ -1317,4 +1318,85 @@ async fn a_stored_self_owned_runtime_is_cleared_on_rescan() {
         .expect("runtime still stored");
     assert_eq!(runtime.base.virtualization_service_id, None);
     assert_eq!(runtime.base.virtualization_metadata, None);
+}
+
+/// The lab's ipvlan endpoint, replayed in the lab's order. VM 103's Proxmox payload lists .63 for
+/// ens19. The sweep then finds .231 behind ens19's MAC, which is the ipvlan container sharing the
+/// NIC, and the container scan submits .231 as a Docker ipvlan guest. The VM keeps its own two
+/// addresses, and .231 is recorded as the container.
+#[tokio::test]
+async fn an_address_the_hypervisor_did_not_list_for_a_nic_stays_off_the_guest() {
+    harness!(_storage, services, lab, _container);
+
+    let vm = discover(
+        &services,
+        &lab,
+        HostBase::default(),
+        vec![
+            config(&lab, "192.168.4.126", ens18()),
+            config(&lab, "192.168.4.63", ens19()),
+        ],
+        vec![service(&lab, "Docker")],
+        vec![],
+    )
+    .await;
+    let docker_id = vm
+        .services
+        .iter()
+        .find(|s| s.base.name == "Docker")
+        .unwrap()
+        .id;
+
+    let swept = discover(
+        &services,
+        &lab,
+        HostBase::default(),
+        vec![arp(&lab, "192.168.7.231", ens19())],
+        vec![],
+        vec![],
+    )
+    .await;
+    assert_ne!(swept.id, vm.id, "the sweep's .231 is not the VM's");
+
+    let container = discover(
+        &services,
+        &lab,
+        HostBase {
+            virtualization_service_id: Some(docker_id),
+            virtualization_metadata: Some(HostVirtualization::Docker(
+                ContainerHostVirtualization {
+                    container_name: Some("ipvlan-test".to_string()),
+                    container_id: Some("aec2a3e9".to_string()),
+                    compose_project: None,
+                    network_type: ContainerNetworkType::IpVlan,
+                },
+            )),
+            ..Default::default()
+        },
+        vec![address(&lab, lab.lan, "192.168.7.231", None)],
+        vec![],
+        vec![],
+    )
+    .await;
+
+    assert_eq!(container.id, swept.id, "the container is the swept host");
+    assert_eq!(container.virtualization_service_id, Some(docker_id));
+    assert!(matches!(
+        container.virtualization_metadata,
+        Some(HostVirtualization::Docker(ContainerHostVirtualization {
+            network_type: ContainerNetworkType::IpVlan,
+            ..
+        }))
+    ));
+    assert_eq!(
+        host_ips(&services, vm.id).await,
+        vec![
+            "192.168.4.63".parse::<IpAddr>().unwrap(),
+            "192.168.4.126".parse().unwrap()
+        ]
+    );
+    assert_eq!(
+        host_ips(&services, container.id).await,
+        vec!["192.168.7.231".parse::<IpAddr>().unwrap()]
+    );
 }

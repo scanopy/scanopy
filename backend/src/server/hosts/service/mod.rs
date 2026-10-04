@@ -431,34 +431,38 @@ fn select_matching_host(
     if !physical_incoming.is_empty() {
         let incoming_mac_counts = mac_counts_for_payload(physical_incoming.iter().copied());
 
-        for candidate in candidates {
-            let HostCandidate {
-                id: host_id,
-                ip_addresses: host_ip_addresses,
-                ..
-            } = candidate;
-            let macs_identify_host = candidate.macs_identify_host();
-            for incoming_ip in &physical_incoming {
-                for existing_ip in host_ip_addresses {
-                    if should_skip_for_matching(existing_ip) {
-                        continue;
-                    }
-                    if ip_addresses_match(
-                        incoming_ip,
-                        existing_ip,
-                        &incoming_mac_counts,
-                        macs_identify_host,
-                    ) {
-                        tracing::debug!(
-                            incoming_ip = %incoming_ip.base.ip_address,
-                            existing_ip = %existing_ip.base.ip_address,
-                            existing_host_id = %host_id,
-                            "Found matching host via IP-address comparison"
-                        );
-                        return Some(*host_id);
-                    }
-                }
-            }
+        // The same address (or row id) on any host first, the same MAC only after. Checked per
+        // host, an older host's MAC match won before a newer host holding the exact address was
+        // looked at: an ipvlan endpoint's address, swept into its own host, went to the VM whose
+        // second NIC answers with the same MAC.
+        let pairs = || {
+            candidates.iter().flat_map(|candidate| {
+                physical_incoming.iter().flat_map(move |incoming_ip| {
+                    candidate
+                        .ip_addresses
+                        .iter()
+                        .filter(|existing_ip| !should_skip_for_matching(existing_ip))
+                        .map(move |existing_ip| (candidate, *incoming_ip, existing_ip))
+                })
+            })
+        };
+        let found = pairs()
+            .find(|(_, incoming_ip, existing_ip)| ip_addresses_coincide(incoming_ip, existing_ip))
+            .or_else(|| {
+                pairs().find(|(candidate, incoming_ip, existing_ip)| {
+                    candidate.macs_identify_host()
+                        && macs_match(incoming_ip, existing_ip, &incoming_mac_counts)
+                        && !candidate.lists_other_addresses_for(incoming_ip)
+                })
+            });
+        if let Some((candidate, incoming_ip, existing_ip)) = found {
+            tracing::debug!(
+                incoming_ip = %incoming_ip.base.ip_address,
+                existing_ip = %existing_ip.base.ip_address,
+                existing_host_id = %candidate.id,
+                "Found matching host via IP-address comparison"
+            );
+            return Some(candidate.id);
         }
 
         return match_by_chassis_id(incoming_chassis_id, candidates);
@@ -562,6 +566,34 @@ impl HostCandidate {
             .as_ref()
             .is_none_or(HostVirtualization::macs_identify_host)
     }
+
+    /// Whether a hypervisor listed this host's addresses for the incoming address's MAC, and the
+    /// incoming address is not among them.
+    ///
+    /// A guest's addresses filed with `HypervisorConfig` came from its hypervisor matching the
+    /// guest agent's interfaces (or its static config) to a NIC from the guest's config, so they
+    /// are that NIC's addresses. Another address seen behind the same MAC belongs to something
+    /// sharing the NIC (an ipvlan endpoint, a VIP, a shim), not to the guest. With no such list
+    /// for the MAC (no agent, a non-hypervisor host), nothing is excluded.
+    pub(crate) fn lists_other_addresses_for(&self, incoming: &IPAddress) -> bool {
+        let Some(mac) = mac_of(&incoming.base.mac_address) else {
+            return false;
+        };
+        let mut listed = self.ip_addresses.iter().filter(|row| {
+            mac_of(&row.base.mac_address) == Some(mac)
+                && row
+                    .base
+                    .mac_address
+                    .as_ref()
+                    .is_some_and(|e| e.source() == AttributeSource::HypervisorConfig)
+        });
+        let first = listed.next();
+        first.is_some()
+            && first
+                .into_iter()
+                .chain(listed)
+                .all(|row| row.base.ip_address != incoming.base.ip_address)
+    }
 }
 
 /// Same IP on the same subnet — the same logical interface.
@@ -582,26 +614,36 @@ fn ip_addresses_share_address(a: &IPAddress, b: &IPAddress) -> bool {
 ///    `existing` belongs to a host whose MACs do not identify it
 ///    ([`HostCandidate::macs_identify_host`]), such as an ipvlan container answering with its
 ///    runtime's MAC.
+#[cfg(test)]
 fn ip_addresses_match(
     incoming: &IPAddress,
     existing: &IPAddress,
     incoming_mac_counts: &HashMap<MacAddress, usize>,
     macs_identify_host: bool,
 ) -> bool {
-    // Primary: same IP on same subnet
+    ip_addresses_coincide(incoming, existing)
+        || (macs_identify_host && macs_match(incoming, existing, incoming_mac_counts))
+}
+
+/// The same row: the same IP on the same subnet, or the same non-nil id.
+fn ip_addresses_coincide(incoming: &IPAddress, existing: &IPAddress) -> bool {
     ip_addresses_share_address(incoming, existing)
-    // Secondary: same non-nil ID
-    || (incoming.id == existing.id
-        && incoming.id != Uuid::nil()
-        && existing.id != Uuid::nil())
-    // Tertiary: MAC match, gated on incoming MAC uniqueness.
-    //
-    // On the *value*, never on the evidence. `mac_address` carries its provenance since §7, and
-    // `Attributed` compares both halves — so a bare `==` on the field silently demanded that the
-    // two scans have learned the address the same way before it would call them the same NIC. A
-    // MAC first read from a router's forwarding table and later confirmed by our own ARP reply is
-    // one NIC, and the branch is asking whether it is the same hardware, not the same paperwork.
-    || (macs_identify_host && match (
+        || (incoming.id == existing.id && incoming.id != Uuid::nil() && existing.id != Uuid::nil())
+}
+
+/// The same NIC by MAC, gated on the MAC being unique in the incoming payload.
+///
+/// On the *value*, never on the evidence. `mac_address` carries its provenance since §7, and
+/// `Attributed` compares both halves — so a bare `==` on the field silently demanded that the
+/// two scans have learned the address the same way before it would call them the same NIC. A
+/// MAC first read from a router's forwarding table and later confirmed by our own ARP reply is
+/// one NIC, and the branch is asking whether it is the same hardware, not the same paperwork.
+fn macs_match(
+    incoming: &IPAddress,
+    existing: &IPAddress,
+    incoming_mac_counts: &HashMap<MacAddress, usize>,
+) -> bool {
+    match (
         mac_of(&incoming.base.mac_address),
         mac_of(&existing.base.mac_address),
     ) {
@@ -610,7 +652,7 @@ fn ip_addresses_match(
                 && incoming_mac_counts.get(&incoming_mac).copied().unwrap_or(0) == 1
         }
         _ => false,
-    })
+    }
 }
 
 #[cfg(test)]
@@ -1286,7 +1328,7 @@ mod tests {
             },
         ];
 
-        let carriers = consolidate::mac_carriers(&[ipvlan_row, runtime_row], &[], &candidates);
+        let carriers = consolidate::mac_carriers(&[ipvlan_row, runtime_row], &[], &[], &candidates);
         let incoming = [MacEvidence::new(
             MacEvidenceValue(parent_mac()),
             AttributeSource::ArpReply,
@@ -1294,6 +1336,143 @@ mod tests {
         assert_eq!(
             mac_identity::select_matching_host_by_mac(&incoming, &carriers),
             Some(runtime)
+        );
+    }
+
+    /// An exact address on any host beats a MAC on another: the lab's ipvlan endpoint, swept into
+    /// its own host, went to the older VM whose second NIC answers with the same MAC.
+    #[test]
+    fn an_exact_address_on_a_newer_host_beats_a_mac_on_an_older_one() {
+        let lan = Uuid::new_v4();
+        let ens19 = MacAddress::new([0xbc, 0x24, 0x11, 0x9b, 0x24, 0x86]);
+        let (older, newer) = (Uuid::new_v4(), Uuid::new_v4());
+        let candidates = vec![
+            candidate(
+                older,
+                vec![make_interface(
+                    "192.168.4.63".parse().unwrap(),
+                    lan,
+                    Some(ens19),
+                )],
+            ),
+            candidate(
+                newer,
+                vec![make_interface(
+                    "192.168.7.231".parse().unwrap(),
+                    lan,
+                    Some(ens19),
+                )],
+            ),
+        ];
+        let incoming = vec![make_interface(
+            "192.168.7.231".parse().unwrap(),
+            lan,
+            Some(ens19),
+        )];
+        assert_eq!(
+            select_matching_host(&incoming, None, &candidates),
+            Some(newer)
+        );
+    }
+
+    fn lab_ens19() -> MacAddress {
+        MacAddress::new([0xbc, 0x24, 0x11, 0x9b, 0x24, 0x86])
+    }
+
+    /// VM 103's ens19 row as the Proxmox integration files it: the agent's address, the config's MAC.
+    fn listed_by_hypervisor(host_id: Uuid, ip: &str, subnet: Uuid) -> IPAddress {
+        let mut row = make_interface(ip.parse().unwrap(), subnet, Some(lab_ens19()));
+        row.base.host_id = host_id;
+        row.base.mac_address = Some(MacEvidence::new(
+            MacEvidenceValue(lab_ens19()),
+            AttributeSource::HypervisorConfig,
+        ));
+        row
+    }
+
+    /// The lab case: the hypervisor lists .63 for ens19, so .231 behind ens19's MAC is something
+    /// sharing the NIC, and neither the MAC pass nor the MAC tier hands it to the VM.
+    #[test]
+    fn a_hypervisor_address_list_bounds_mac_matches_on_its_nic() {
+        let lan = Uuid::new_v4();
+        let vm = Uuid::new_v4();
+        let listed = listed_by_hypervisor(vm, "192.168.4.63", lan);
+        let candidates = vec![candidate(vm, vec![listed.clone()])];
+        let incoming = vec![make_interface(
+            "192.168.7.231".parse().unwrap(),
+            lan,
+            Some(lab_ens19()),
+        )];
+
+        assert_eq!(select_matching_host(&incoming, None, &candidates), None);
+
+        let carriers = consolidate::mac_carriers(&[listed], &[], &incoming, &candidates);
+        let macs = [MacEvidence::new(
+            MacEvidenceValue(lab_ens19()),
+            AttributeSource::ArpReply,
+        )];
+        assert_eq!(
+            mac_identity::select_matching_host_by_mac(&macs, &carriers),
+            None
+        );
+    }
+
+    /// With the MAC known only from ARP there is no list, and the moved address follows the MAC.
+    #[test]
+    fn without_a_hypervisor_list_a_mac_still_matches() {
+        let lan = Uuid::new_v4();
+        let host = Uuid::new_v4();
+        let candidates = vec![candidate(
+            host,
+            vec![make_interface(
+                "192.168.4.63".parse().unwrap(),
+                lan,
+                Some(lab_ens19()),
+            )],
+        )];
+        let incoming = vec![make_interface(
+            "192.168.7.231".parse().unwrap(),
+            lan,
+            Some(lab_ens19()),
+        )];
+        assert_eq!(
+            select_matching_host(&incoming, None, &candidates),
+            Some(host)
+        );
+    }
+
+    /// An address the hypervisor listed for the NIC is the guest's, whichever subnet it arrives on.
+    #[test]
+    fn an_address_in_the_hypervisor_list_matches() {
+        let (lan, other) = (Uuid::new_v4(), Uuid::new_v4());
+        let vm = Uuid::new_v4();
+        let candidates = vec![candidate(
+            vm,
+            vec![listed_by_hypervisor(vm, "192.168.4.63", lan)],
+        )];
+        let incoming = vec![make_interface(
+            "192.168.4.63".parse().unwrap(),
+            other,
+            Some(lab_ens19()),
+        )];
+        assert_eq!(select_matching_host(&incoming, None, &candidates), Some(vm));
+    }
+
+    /// A payload with no addresses claims no address, so the list excludes nothing from the tier.
+    #[test]
+    fn a_payload_without_addresses_is_not_bounded_by_the_list() {
+        let lan = Uuid::new_v4();
+        let vm = Uuid::new_v4();
+        let listed = listed_by_hypervisor(vm, "192.168.4.63", lan);
+        let candidates = vec![candidate(vm, vec![listed.clone()])];
+        let carriers = consolidate::mac_carriers(&[listed], &[], &[], &candidates);
+        let macs = [MacEvidence::new(
+            MacEvidenceValue(lab_ens19()),
+            AttributeSource::ArpReply,
+        )];
+        assert_eq!(
+            mac_identity::select_matching_host_by_mac(&macs, &carriers),
+            Some(vm)
         );
     }
 }

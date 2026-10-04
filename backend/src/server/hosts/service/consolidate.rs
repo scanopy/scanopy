@@ -72,7 +72,12 @@ impl HostService {
                 // address matches on IP and subnet long before it reaches here, so nothing changes for
                 // it. What arrives is a device with no address at all, or one whose address moved.
                 None => match self
-                    .find_host_id_by_mac(network_id, &incoming_macs, &candidates)
+                    .find_host_id_by_mac(
+                        network_id,
+                        &incoming_macs,
+                        incoming_ip_addresses,
+                        &candidates,
+                    )
                     .await?
                 {
                     Some(id) => id,
@@ -178,6 +183,7 @@ impl HostService {
         &self,
         network_id: &Uuid,
         incoming_macs: &[MacEvidence],
+        incoming_ip_addresses: &[IPAddress],
         candidates: &[HostCandidate],
     ) -> Result<Option<Uuid>> {
         // Every NIC address is worth a query except a group or virtual-router MAC, which is never
@@ -211,7 +217,7 @@ impl HostService {
 
         Ok(mac_identity::select_matching_host_by_mac(
             incoming_macs,
-            &mac_carriers(&ip_rows, &interface_rows, candidates),
+            &mac_carriers(&ip_rows, &interface_rows, incoming_ip_addresses, candidates),
         ))
     }
 
@@ -946,15 +952,23 @@ fn duplicate_binding_map(
 
 /// The `(host, stored MAC)` pairs the MAC tier may match against: rows from either table that
 /// belong to a live candidate whose MACs identify it. An ipvlan container host's rows carry its
-/// runtime's MAC and are left out, so that MAC resolves to the runtime alone.
+/// runtime's MAC and are left out, so that MAC resolves to the runtime alone. So is a host whose
+/// hypervisor listed its addresses for an incoming address's MAC without that address
+/// (`HostCandidate::lists_other_addresses_for`); a payload with no addresses excludes nothing.
 pub(crate) fn mac_carriers(
     ip_rows: &[IPAddress],
     interface_rows: &[Interface],
+    incoming_ip_addresses: &[IPAddress],
     candidates: &[HostCandidate],
 ) -> Vec<(Uuid, MacEvidence)> {
     let identifying_host_ids: HashSet<Uuid> = candidates
         .iter()
         .filter(|c| c.macs_identify_host())
+        .filter(|c| {
+            !incoming_ip_addresses
+                .iter()
+                .any(|incoming| c.lists_other_addresses_for(incoming))
+        })
         .map(|c| c.id)
         .collect();
     ip_rows
