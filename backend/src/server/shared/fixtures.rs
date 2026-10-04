@@ -30,7 +30,7 @@ use crate::server::subnets::r#impl::types::SubnetType;
 use crate::server::topology::types::edges::EdgeType;
 use crate::server::topology::types::grouping::{ContainerRule, ElementRule, ElementSort};
 use crate::server::topology::types::nodes::ContainerType;
-use crate::server::topology::types::views::TopologyView;
+use crate::server::topology::types::views::{InspectorSection, TopologyView};
 use crate::server::users::r#impl::permissions::UserOrgPermissions;
 use std::fs;
 use std::path::Path;
@@ -286,6 +286,11 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
     let container_types: Vec<TypeMetadata> =
         ContainerType::iter().map(|r| r.to_metadata()).collect();
     write_fixture(&container_types, output_dir, "container-types.json");
+
+    // Inspector section headings: name, one-line description, icon and colour.
+    let inspector_sections: Vec<TypeMetadata> =
+        InspectorSection::iter().map(|s| s.to_metadata()).collect();
+    write_fixture(&inspector_sections, output_dir, "inspector-sections.json");
 
     let views: Vec<TypeMetadata> = TopologyView::iter().map(|v| v.to_metadata()).collect();
     write_fixture(&views, output_dir, "views.json");

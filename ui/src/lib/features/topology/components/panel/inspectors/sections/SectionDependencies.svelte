@@ -5,11 +5,12 @@
 	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
 	import { DependencyDisplay } from '$lib/shared/components/forms/selection/display/DependencyDisplay.svelte';
 	import {
-		common_dependenciesLabel,
 		common_inbound,
 		common_outbound,
 		inspector_noDependencies
 	} from '$lib/paraglide/messages';
+	import InspectorSection from '../shared/InspectorSection.svelte';
+	import InspectorSubsection from '../shared/InspectorSubsection.svelte';
 
 	/* eslint-disable @typescript-eslint/no-unused-vars -- component contract props */
 	let {
@@ -65,17 +66,21 @@
 	let hasDeps = $derived(inboundDeps.length > 0 || outboundDeps.length > 0);
 </script>
 
-<div>
-	<span class="text-secondary mb-2 block text-sm font-medium">{common_dependenciesLabel()}</span>
+<InspectorSection
+	id="Dependencies"
+	section="Dependencies"
+	count={hasDeps ? outboundDeps.length + inboundDeps.length : undefined}
+>
 	{#if !hasDeps}
 		<p class="text-tertiary text-sm">{inspector_noDependencies()}</p>
 	{:else}
 		<div class="space-y-3">
 			{#if outboundDeps.length > 0}
-				<div>
-					<span class="text-tertiary mb-1 block text-xs font-medium uppercase"
-						>{common_outbound()}</span
-					>
+				<InspectorSubsection
+					id="Dependencies:outbound"
+					title={common_outbound()}
+					count={outboundDeps.length}
+				>
 					<div class="space-y-1">
 						{#each outboundDeps as dep (dep.id)}
 							<div class="card card-static">
@@ -87,13 +92,14 @@
 							</div>
 						{/each}
 					</div>
-				</div>
+				</InspectorSubsection>
 			{/if}
 			{#if inboundDeps.length > 0}
-				<div>
-					<span class="text-tertiary mb-1 block text-xs font-medium uppercase"
-						>{common_inbound()}</span
-					>
+				<InspectorSubsection
+					id="Dependencies:inbound"
+					title={common_inbound()}
+					count={inboundDeps.length}
+				>
 					<div class="space-y-1">
 						{#each inboundDeps as dep (dep.id)}
 							<div class="card card-static">
@@ -105,8 +111,8 @@
 							</div>
 						{/each}
 					</div>
-				</div>
+				</InspectorSubsection>
 			{/if}
 		</div>
 	{/if}
-</div>
+</InspectorSection>

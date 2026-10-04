@@ -8,6 +8,7 @@
 	import type { TopologyEditState } from '$lib/features/topology/state';
 	import { useUpdateSubnetMutation } from '$lib/features/subnets/queries';
 	import { inspector_thisSubnet, topology_focusNode } from '$lib/paraglide/messages';
+	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	let {
 		node,
@@ -46,13 +47,12 @@
 </script>
 
 {#if subnet}
-	<div>
-		<div class="mb-2 flex items-center gap-2">
-			<span class="text-secondary text-sm font-medium">{inspector_thisSubnet()}</span>
+	<InspectorSection id="SubnetDetail" section="SubnetDetail" title={inspector_thisSubnet()}>
+		{#snippet actions()}
 			<button class="btn-icon p-0.5" onclick={handleFocus} title={topology_focusNode()}>
 				<Crosshair class="h-3.5 w-3.5" />
 			</button>
-		</div>
+		{/snippet}
 		<div class="card card-static">
 			<EntityDisplayWrapper
 				context={subnetContext}
@@ -60,5 +60,5 @@
 				displayComponent={SubnetDisplay}
 			/>
 		</div>
-	</div>
+	</InspectorSection>
 {/if}

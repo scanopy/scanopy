@@ -65,6 +65,7 @@ export const COVERED_FIXTURES = [
 	{ file: 'element-rule-types.json', key: 'element_rule_types', kind: 'typeMetadata' },
 	{ file: 'element-sorts.json', key: 'element_sorts', kind: 'typeMetadata' },
 	{ file: 'views.json', key: 'views', kind: 'typeMetadata' },
+	{ file: 'inspector-sections.json', key: 'inspector_sections', kind: 'typeMetadata' },
 	{ file: 'ports.json', key: 'ports', kind: 'typeMetadata' },
 	{ file: 'cancel-reasons.json', key: 'cancel_reasons', kind: 'typeMetadata' },
 	{ file: 'save-offers.json', key: 'save_offers', kind: 'typeMetadata' },

@@ -18,6 +18,7 @@ import credentialTypesJson from '$lib/data/credential-types.json';
 import credentialIntegrationsJson from '$lib/data/credential-integrations.json';
 import conceptsJson from '$lib/data/concepts.json';
 import containerTypesJson from '$lib/data/container-types.json';
+import inspectorSectionsJson from '$lib/data/inspector-sections.json';
 import viewsJson from '$lib/data/views.json';
 import serviceCategoriesJson from '$lib/data/service-categories.json';
 import attributeSourcesJson from '$lib/data/attribute-sources.json';
@@ -117,6 +118,7 @@ export interface MetadataRegistry {
 	credential_types: TypeMetadata[];
 	credential_integrations: TypeMetadata[];
 	container_types: TypeMetadata[];
+	inspector_sections: TypeMetadata[];
 	views: TypeMetadata[];
 	service_categories: TypeMetadata[];
 	attribute_sources: TypeMetadata[];
@@ -290,6 +292,7 @@ export const metadata = writable<MetadataRegistry>({
 	credential_types: credentialTypesJson,
 	credential_integrations: credentialIntegrationsJson,
 	container_types: containerTypesJson,
+	inspector_sections: inspectorSectionsJson,
 	views: viewsJson,
 	service_categories: serviceCategoriesJson,
 	attribute_sources: attributeSourcesJson,
@@ -486,6 +489,10 @@ export const ports = createTypeMetadataHelpers<'ports', PortTypeMetadata>('ports
 /** How confidently discovery matched a service to its definition, keyed by `MatchConfidence`. */
 export const matchConfidences = createTypeMetadataHelpers<'match_confidences', object>(
 	'match_confidences'
+);
+/** Inspector section headings (name, description, icon, colour), keyed by `InspectorSection`. */
+export const inspectorSections = createTypeMetadataHelpers<'inspector_sections', object>(
+	'inspector_sections'
 );
 /** The hypervisor platform a guest runs on, keyed by `virtualization_metadata.type`. */
 export const hostVirtualizations = createTypeMetadataHelpers<'host_virtualizations', object>(

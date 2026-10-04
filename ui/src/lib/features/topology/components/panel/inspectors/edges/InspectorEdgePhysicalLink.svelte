@@ -6,6 +6,8 @@
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import type { RenderableTopology } from '$lib/features/topology/types/base';
 	import { common_source, common_target, topology_neighborEvidence } from '$lib/paraglide/messages';
+	import { entities } from '$lib/shared/stores/metadata';
+	import InspectorSection from '../shared/InspectorSection.svelte';
 	import { useNetworksQuery } from '$lib/features/networks/queries';
 	import { neighborEvidenceTag } from '$lib/shared/utils/freshness';
 	import { formatRelativeTime } from '$lib/shared/utils/formatting';
@@ -73,7 +75,7 @@
 	);
 </script>
 
-<div class="space-y-3">
+<div class="space-y-4">
 	{#if protocol}
 		<div class="flex items-center gap-2">
 			<Tag label={protocol} color={protocol == 'CDP' ? 'Blue' : 'Green'} />
@@ -91,52 +93,70 @@
 	{/if}
 
 	{#if sourceHost || sourceInterface}
-		<span class="text-secondary mb-2 block text-sm font-medium">{common_source()}</span>
-		{#if sourceHost}
-			<div class="card card-static">
-				<EntityDisplayWrapper
-					context={{
-						services: topology?.services.filter((s) => s.host_id === sourceHost.id) ?? [],
-						compact: true
-					}}
-					item={sourceHost}
-					displayComponent={HostDisplay}
-				/>
+		<InspectorSection
+			id="edge:PhysicalLink:source"
+			title={common_source()}
+			icon={entities.getIconComponent('Interface')}
+			iconClass={entities.getColorHelper('Interface').icon}
+			description={null}
+		>
+			<div class="space-y-1">
+				{#if sourceHost}
+					<div class="card card-static">
+						<EntityDisplayWrapper
+							context={{
+								services: topology?.services.filter((s) => s.host_id === sourceHost.id) ?? [],
+								compact: true
+							}}
+							item={sourceHost}
+							displayComponent={HostDisplay}
+						/>
+					</div>
+				{/if}
+				{#if sourceInterface}
+					<div class="card card-static">
+						<EntityDisplayWrapper
+							context={undefined}
+							item={sourceInterface}
+							displayComponent={InterfaceDisplay}
+						/>
+					</div>
+				{/if}
 			</div>
-		{/if}
-		{#if sourceInterface}
-			<div class="card card-static">
-				<EntityDisplayWrapper
-					context={undefined}
-					item={sourceInterface}
-					displayComponent={InterfaceDisplay}
-				/>
-			</div>
-		{/if}
+		</InspectorSection>
 	{/if}
 
 	{#if targetHost || targetInterface}
-		<span class="text-secondary mb-2 block text-sm font-medium">{common_target()}</span>
-		{#if targetHost}
-			<div class="card card-static">
-				<EntityDisplayWrapper
-					context={{
-						services: topology?.services.filter((s) => s.host_id === targetHost.id) ?? [],
-						compact: true
-					}}
-					item={targetHost}
-					displayComponent={HostDisplay}
-				/>
+		<InspectorSection
+			id="edge:PhysicalLink:target"
+			title={common_target()}
+			icon={entities.getIconComponent('Interface')}
+			iconClass={entities.getColorHelper('Interface').icon}
+			description={null}
+		>
+			<div class="space-y-1">
+				{#if targetHost}
+					<div class="card card-static">
+						<EntityDisplayWrapper
+							context={{
+								services: topology?.services.filter((s) => s.host_id === targetHost.id) ?? [],
+								compact: true
+							}}
+							item={targetHost}
+							displayComponent={HostDisplay}
+						/>
+					</div>
+				{/if}
+				{#if targetInterface}
+					<div class="card card-static">
+						<EntityDisplayWrapper
+							context={undefined}
+							item={targetInterface}
+							displayComponent={InterfaceDisplay}
+						/>
+					</div>
+				{/if}
 			</div>
-		{/if}
-		{#if targetInterface}
-			<div class="card card-static">
-				<EntityDisplayWrapper
-					context={undefined}
-					item={targetInterface}
-					displayComponent={InterfaceDisplay}
-				/>
-			</div>
-		{/if}
+		</InspectorSection>
 	{/if}
 </div>

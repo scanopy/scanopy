@@ -435,6 +435,94 @@ pub enum InspectorSection {
     Application,
 }
 
+impl HasId for InspectorSection {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+/// Each section's heading in the inspector: what it holds, drawn with the entity or concept it
+/// is about.
+impl EntityMetadataProvider for InspectorSection {
+    fn color(&self) -> Color {
+        match self {
+            InspectorSection::Identity | InspectorSection::ElementSummary => Color::Gray,
+            InspectorSection::IfEntryData => EntityDiscriminants::Interface.color(),
+            InspectorSection::Services => EntityDiscriminants::Service.color(),
+            InspectorSection::Dependencies | InspectorSection::DependencySummary => {
+                EntityDiscriminants::Dependency.color()
+            }
+            InspectorSection::HostDetail => EntityDiscriminants::Host.color(),
+            InspectorSection::Virtualization => Concept::Virtualization.color(),
+            InspectorSection::OtherInterfaces => EntityDiscriminants::IPAddress.color(),
+            InspectorSection::PortBindings => EntityDiscriminants::Port.color(),
+            InspectorSection::SubnetDetail => EntityDiscriminants::Subnet.color(),
+            InspectorSection::Application => Concept::Application.color(),
+        }
+    }
+
+    fn icon(&self) -> Icon {
+        match self {
+            InspectorSection::Identity => Icon::Crosshair,
+            InspectorSection::ElementSummary => Icon::Layers,
+            InspectorSection::IfEntryData => EntityDiscriminants::Interface.icon(),
+            InspectorSection::Services => EntityDiscriminants::Service.icon(),
+            InspectorSection::Dependencies | InspectorSection::DependencySummary => {
+                EntityDiscriminants::Dependency.icon()
+            }
+            InspectorSection::HostDetail => EntityDiscriminants::Host.icon(),
+            InspectorSection::Virtualization => Concept::Virtualization.icon(),
+            InspectorSection::OtherInterfaces => EntityDiscriminants::IPAddress.icon(),
+            InspectorSection::PortBindings => EntityDiscriminants::Port.icon(),
+            InspectorSection::SubnetDetail => EntityDiscriminants::Subnet.icon(),
+            InspectorSection::Application => Concept::Application.icon(),
+        }
+    }
+}
+
+impl TypeMetadataProvider for InspectorSection {
+    fn name(&self) -> &'static str {
+        match self {
+            InspectorSection::Identity => "Selected",
+            InspectorSection::IfEntryData => "Interface data",
+            InspectorSection::Services => "Services",
+            InspectorSection::Dependencies => "Dependencies",
+            InspectorSection::HostDetail => "Host",
+            InspectorSection::Virtualization => "Runs on",
+            InspectorSection::OtherInterfaces => "IP addresses",
+            InspectorSection::PortBindings => "Port bindings",
+            InspectorSection::SubnetDetail => "Subnet",
+            InspectorSection::ElementSummary => "Contents",
+            InspectorSection::DependencySummary => "Crossing dependencies",
+            InspectorSection::Application => "Application",
+        }
+    }
+
+    /// One line under the heading saying what the section holds and why it is here.
+    fn description(&self) -> &'static str {
+        match self {
+            InspectorSection::Identity => "The entity you selected",
+            InspectorSection::IfEntryData => "Status and counters the device reports for this port",
+            InspectorSection::Services => {
+                "Services on this host, and on the hosts it presents or runs"
+            }
+            InspectorSection::Dependencies => "Dependencies this service is part of",
+            InspectorSection::HostDetail => "The host this element belongs to",
+            InspectorSection::Virtualization => {
+                "The hypervisor, container runtime or guest that this host runs under"
+            }
+            InspectorSection::OtherInterfaces => "Every address this host holds",
+            InspectorSection::PortBindings => "Ports this service listens on",
+            InspectorSection::SubnetDetail => "The subnet this box draws",
+            InspectorSection::ElementSummary => "What this box holds, counted by type",
+            InspectorSection::DependencySummary => {
+                "Dependencies with members both inside and outside this box"
+            }
+            InspectorSection::Application => "The application this service belongs to",
+        }
+    }
+}
+
 /// View-specific inspector panel configuration.
 /// Determines which sections appear and in what order for each view.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
@@ -818,6 +906,26 @@ impl TopologyView {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Every section a view shows gets a heading that says what it holds, since the inspector
+    /// draws the heading and description from this metadata rather than from each component.
+    #[test]
+    fn every_shown_inspector_section_has_a_heading_and_description() {
+        for view in TopologyView::iter() {
+            let config = view.inspector_config();
+            for section in config
+                .element_sections
+                .iter()
+                .chain(&config.container_sections)
+            {
+                assert!(!section.name().is_empty(), "{section:?} has no name");
+                assert!(
+                    !section.description().is_empty(),
+                    "{section:?} has no description"
+                );
+            }
+        }
+    }
     use strum::IntoEnumIterator;
 
     #[test]

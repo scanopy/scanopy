@@ -414,6 +414,36 @@ export function buildInlineGroups(
 }
 
 /**
+ * What the inspector's Services section shows for an element: the element's own services, and
+ * the manager boxes its card draws (the same `buildInlineGroups` result, so the two agree on
+ * members, hiding and service-less hosts).
+ *
+ * `ipAddressId` narrows the own services to those bound to that address, for an IP-address
+ * element. A Host element passes null and keeps every service on the host.
+ */
+export function inspectorServiceSections(
+	node: TopologyNode,
+	services: Service[],
+	topology: RenderableTopology,
+	hiddenEntityIds: Set<string>,
+	ipAddressId: string | null
+): { own: Service[]; groups: ElementInlineGroup[] } {
+	const isShown = (s: Service) => !hiddenEntityIds.has(s.id);
+	const groups = buildInlineGroups(node, services, topology, hiddenEntityIds, isShown);
+	const grouped = new Set(
+		groups.flatMap((g) => [...(g.header ? [g.header] : []), ...g.services]).map((s) => s.id)
+	);
+	const own = services.filter(
+		(s) =>
+			isShown(s) &&
+			!grouped.has(s.id) &&
+			(ipAddressId === null ||
+				s.bindings.some((b) => b.ip_address_id === ipAddressId || b.ip_address_id === null))
+	);
+	return { own, groups };
+}
+
+/**
  * A key identifying cards that render to the same height.
  *
  * Two element nodes whose keys match are assumed to measure identically, which

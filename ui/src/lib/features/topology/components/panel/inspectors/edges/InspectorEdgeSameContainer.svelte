@@ -8,11 +8,12 @@
 	import { SvelteMap } from 'svelte/reactivity';
 	import type { Subnet } from '$lib/features/subnets/types/base';
 	import type { RenderableTopology } from '$lib/features/topology/types/base';
-	import { subnetTypes } from '$lib/shared/stores/metadata';
+	import { entities, subnetTypes } from '$lib/shared/stores/metadata';
 	import {
 		common_containerizedService,
 		topology_containerBridgeSubnets
 	} from '$lib/paraglide/messages';
+	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	let { serviceId }: { serviceId: string } = $props();
 
@@ -54,44 +55,57 @@
 	});
 </script>
 
-<div class="space-y-3">
+<div class="space-y-4">
 	{#if container}
-		<span class="text-secondary mb-2 block text-sm font-medium"
-			>{common_containerizedService()}</span
+		<InspectorSection
+			id="edge:SameContainer:service"
+			title={common_containerizedService()}
+			icon={entities.getIconComponent('Service')}
+			iconClass={entities.getColorHelper('Service').icon}
+			description={null}
 		>
-		<div class="card card-static">
-			<EntityDisplayWrapper
-				context={{
-					ipAddressId: null,
-					ports: topology?.ports ?? [],
-					showEntityTagPicker: true,
-					tagPickerDisabled: !editState.isEditable,
-					entityTags: isReadonly ? (topology?.entity_tags ?? []) : undefined,
-					compact: true
-				}}
-				item={container}
-				displayComponent={ServiceDisplay}
-			/>
-		</div>
-	{/if}
-
-	{#if bridgeSubnets.length > 0}
-		<span class="text-secondary mb-2 block text-sm font-medium"
-			>{topology_containerBridgeSubnets()}</span
-		>
-		{#each bridgeSubnets as subnet (subnet.id)}
 			<div class="card card-static">
 				<EntityDisplayWrapper
 					context={{
+						ipAddressId: null,
+						ports: topology?.ports ?? [],
 						showEntityTagPicker: true,
 						tagPickerDisabled: !editState.isEditable,
 						entityTags: isReadonly ? (topology?.entity_tags ?? []) : undefined,
 						compact: true
 					}}
-					item={subnet}
-					displayComponent={SubnetDisplay}
+					item={container}
+					displayComponent={ServiceDisplay}
 				/>
 			</div>
-		{/each}
+		</InspectorSection>
+	{/if}
+
+	{#if bridgeSubnets.length > 0}
+		<InspectorSection
+			id="edge:SameContainer:subnets"
+			title={topology_containerBridgeSubnets()}
+			icon={entities.getIconComponent('Subnet')}
+			iconClass={entities.getColorHelper('Subnet').icon}
+			description={null}
+			count={bridgeSubnets.length}
+		>
+			<div class="space-y-1">
+				{#each bridgeSubnets as subnet (subnet.id)}
+					<div class="card card-static">
+						<EntityDisplayWrapper
+							context={{
+								showEntityTagPicker: true,
+								tagPickerDisabled: !editState.isEditable,
+								entityTags: isReadonly ? (topology?.entity_tags ?? []) : undefined,
+								compact: true
+							}}
+							item={subnet}
+							displayComponent={SubnetDisplay}
+						/>
+					</div>
+				{/each}
+			</div>
+		</InspectorSection>
 	{/if}
 </div>

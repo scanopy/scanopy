@@ -3,6 +3,7 @@
 	import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
 	import type { ElementRenderContext } from '$lib/features/topology/resolvers';
 	import InterfaceDetailsCard from '$lib/features/hosts/components/InterfaceDetailsCard.svelte';
+	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	let {
 		node,
@@ -77,12 +78,14 @@
 </script>
 
 {#if iface}
-	<InterfaceDetailsCard
-		{iface}
-		{linkedIpAddress}
-		{linkedSubnet}
-		{neighbours}
-		{nativeVlan}
-		{taggedVlans}
-	/>
+	<InspectorSection id="IfEntryData" section="IfEntryData">
+		<InterfaceDetailsCard
+			{iface}
+			{linkedIpAddress}
+			{linkedSubnet}
+			{neighbours}
+			{nativeVlan}
+			{taggedVlans}
+		/>
+	</InspectorSection>
 {/if}

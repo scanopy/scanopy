@@ -16,6 +16,7 @@
 	import { inspector_thisEntity, topology_focusNode } from '$lib/paraglide/messages';
 	import { containerTypes, entities } from '$lib/shared/stores/metadata';
 	import { activeView } from '$lib/features/topology/queries';
+	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	let {
 		node,
@@ -98,50 +99,56 @@
 
 	// For containers: show the header/title
 	let containerTitle = $derived(containerContext?.title ?? null);
+
+	// A Host element has none of these: SectionHostDetail heads it as the selection instead.
+	let hasBody = $derived(
+		!!(thisInterface || thisIPAddress || thisService || thisHost || containerTitle)
+	);
 </script>
 
-<div>
-	<div class="mb-2 flex items-center gap-2">
-		<span class="text-secondary text-sm font-medium">{sectionLabel}</span>
-		<button class="btn-icon p-0.5" onclick={handleFocus} title={topology_focusNode()}>
-			<Crosshair class="h-3.5 w-3.5" />
-		</button>
-	</div>
-	{#if thisInterface}
-		<div class="card card-static">
-			<EntityDisplayWrapper
-				context={undefined}
-				item={thisInterface}
-				displayComponent={InterfaceDisplay}
-			/>
-		</div>
-	{:else if thisIPAddress}
-		<div class="card card-static">
-			<EntityDisplayWrapper
-				context={interfaceDisplayContext}
-				item={thisIPAddress}
-				displayComponent={IPAddressDisplay}
-			/>
-		</div>
-	{:else if thisService}
-		<div class="card card-static">
-			<EntityDisplayWrapper
-				context={serviceDisplayContext}
-				item={thisService}
-				displayComponent={ServiceDisplay}
-			/>
-		</div>
-	{:else if thisHost}
-		<div class="card card-static">
-			<EntityDisplayWrapper
-				context={hostDisplayContext}
-				item={thisHost}
-				displayComponent={HostDisplay}
-			/>
-		</div>
-	{:else if containerTitle}
-		<div class="card card-static">
-			<p class="text-primary text-sm font-medium">{containerTitle}</p>
-		</div>
-	{/if}
-</div>
+{#if hasBody}
+	<InspectorSection id="Identity" section="Identity" title={sectionLabel}>
+		{#snippet actions()}
+			<button class="btn-icon p-0.5" onclick={handleFocus} title={topology_focusNode()}>
+				<Crosshair class="h-3.5 w-3.5" />
+			</button>
+		{/snippet}
+		{#if thisInterface}
+			<div class="card card-static">
+				<EntityDisplayWrapper
+					context={undefined}
+					item={thisInterface}
+					displayComponent={InterfaceDisplay}
+				/>
+			</div>
+		{:else if thisIPAddress}
+			<div class="card card-static">
+				<EntityDisplayWrapper
+					context={interfaceDisplayContext}
+					item={thisIPAddress}
+					displayComponent={IPAddressDisplay}
+				/>
+			</div>
+		{:else if thisService}
+			<div class="card card-static">
+				<EntityDisplayWrapper
+					context={serviceDisplayContext}
+					item={thisService}
+					displayComponent={ServiceDisplay}
+				/>
+			</div>
+		{:else if thisHost}
+			<div class="card card-static">
+				<EntityDisplayWrapper
+					context={hostDisplayContext}
+					item={thisHost}
+					displayComponent={HostDisplay}
+				/>
+			</div>
+		{:else if containerTitle}
+			<div class="card card-static">
+				<p class="text-primary text-sm font-medium">{containerTitle}</p>
+			</div>
+		{/if}
+	</InspectorSection>
+{/if}

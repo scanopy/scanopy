@@ -18,6 +18,8 @@
 		topology_containerHost,
 		topology_containerService
 	} from '$lib/paraglide/messages';
+	import { entities } from '$lib/shared/stores/metadata';
+	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	let { edge, serviceId }: { edge: Edge; serviceId: string } = $props();
 
@@ -75,102 +77,141 @@
 	);
 </script>
 
-<div class="space-y-3">
+<div class="space-y-4">
 	{#if containerizingHost}
-		<span class="text-secondary mb-2 block text-sm font-medium">{topology_containerHost()}</span>
-		<div class="card card-static">
-			<EntityDisplayWrapper
-				context={{
-					services:
-						topology?.services.filter((s) =>
-							containerizingHost ? s.host_id == containerizingHost.id : false
-						) ?? [],
-					showEntityTagPicker: true,
-					tagPickerDisabled: !editState.isEditable,
-					entityTags: isReadonly ? (topology?.entity_tags ?? []) : undefined,
-					compact: true
-				}}
-				item={containerizingHost}
-				displayComponent={HostDisplay}
-			/>
-		</div>
-	{/if}
-	{#if containerizingService}
-		<span class="text-secondary mb-2 block text-sm font-medium">{topology_containerService()}</span>
-		<div class="card card-static">
-			<EntityDisplayWrapper
-				context={{
-					ipAddressId: null,
-					ports: topology?.ports ?? [],
-					showEntityTagPicker: true,
-					tagPickerDisabled: !editState.isEditable,
-					entityTags: isReadonly ? (topology?.entity_tags ?? []) : undefined,
-					compact: true
-				}}
-				item={containerizingService}
-				displayComponent={ServiceDisplay}
-			/>
-		</div>
-	{/if}
-
-	{#if containerHosts.length > 0}
-		<!-- An edge to a container host: the subnet it reaches is the LAN, not a bridge. -->
-		<span class="text-secondary mb-2 block text-sm font-medium"
-			>{hosts_virtualization_containerHosts()}</span
+		<InspectorSection
+			id="edge:ContainerRuntime:host"
+			title={topology_containerHost()}
+			icon={entities.getIconComponent('Host')}
+			iconClass={entities.getColorHelper('Host').icon}
+			description={null}
 		>
-		{#each containerHosts as host (host.id)}
 			<div class="card card-static">
 				<EntityDisplayWrapper
 					context={{
-						services: topology?.services.filter((s) => s.host_id == host.id) ?? [],
+						services:
+							topology?.services.filter((s) =>
+								containerizingHost ? s.host_id == containerizingHost.id : false
+							) ?? [],
 						showEntityTagPicker: true,
 						tagPickerDisabled: !editState.isEditable,
 						entityTags: isReadonly ? (topology?.entity_tags ?? []) : undefined,
 						compact: true
 					}}
-					item={host}
+					item={containerizingHost}
 					displayComponent={HostDisplay}
 				/>
 			</div>
-		{/each}
-	{:else}
-		<span class="text-secondary mb-2 block text-sm font-medium">
-			{containerizedServices.length === 1
-				? common_containerizedService()
-				: common_containerizedServices()}
-		</span>
+		</InspectorSection>
 	{/if}
-	{#each containerizedServices as service (service.id)}
-		<div class="card card-static">
-			<EntityDisplayWrapper
-				context={{
-					ipAddressId: null,
-					ports: topology?.ports ?? [],
-					showEntityTagPicker: true,
-					tagPickerDisabled: !editState.isEditable,
-					entityTags: isReadonly ? (topology?.entity_tags ?? []) : undefined,
-					compact: true
-				}}
-				item={service}
-				displayComponent={ServiceDisplay}
-			/>
-		</div>
-	{/each}
-
-	{#if allBridgeSubnets.length > 0 && containerHosts.length === 0}
-		<span class="text-secondary mb-2 block text-sm font-medium"
-			>{allBridgeSubnets.length > 1
-				? topology_containerBridgeSubnets()
-				: topology_containerBridgeSubnet()}</span
+	{#if containerizingService}
+		<InspectorSection
+			id="edge:ContainerRuntime:service"
+			title={topology_containerService()}
+			icon={entities.getIconComponent('Service')}
+			iconClass={entities.getColorHelper('Service').icon}
+			description={null}
 		>
-		{#each allBridgeSubnets as subnet (subnet.id)}
 			<div class="card card-static">
 				<EntityDisplayWrapper
-					context={{ compact: true }}
-					item={subnet}
-					displayComponent={SubnetDisplay}
+					context={{
+						ipAddressId: null,
+						ports: topology?.ports ?? [],
+						showEntityTagPicker: true,
+						tagPickerDisabled: !editState.isEditable,
+						entityTags: isReadonly ? (topology?.entity_tags ?? []) : undefined,
+						compact: true
+					}}
+					item={containerizingService}
+					displayComponent={ServiceDisplay}
 				/>
 			</div>
-		{/each}
+		</InspectorSection>
+	{/if}
+
+	{#if containerHosts.length > 0}
+		<!-- An edge to a container host: the subnet it reaches is the LAN, not a bridge. -->
+		<InspectorSection
+			id="edge:ContainerRuntime:containerHosts"
+			title={hosts_virtualization_containerHosts()}
+			icon={entities.getIconComponent('Host')}
+			iconClass={entities.getColorHelper('Host').icon}
+			description={null}
+			count={containerHosts.length}
+		>
+			<div class="space-y-1">
+				{#each containerHosts as host (host.id)}
+					<div class="card card-static">
+						<EntityDisplayWrapper
+							context={{
+								services: topology?.services.filter((s) => s.host_id == host.id) ?? [],
+								showEntityTagPicker: true,
+								tagPickerDisabled: !editState.isEditable,
+								entityTags: isReadonly ? (topology?.entity_tags ?? []) : undefined,
+								compact: true
+							}}
+							item={host}
+							displayComponent={HostDisplay}
+						/>
+					</div>
+				{/each}
+			</div>
+		</InspectorSection>
+	{/if}
+	{#if containerizedServices.length > 0}
+		<InspectorSection
+			id="edge:ContainerRuntime:containers"
+			title={containerizedServices.length === 1
+				? common_containerizedService()
+				: common_containerizedServices()}
+			icon={entities.getIconComponent('Service')}
+			iconClass={entities.getColorHelper('Service').icon}
+			description={null}
+			count={containerizedServices.length}
+		>
+			<div class="space-y-1">
+				{#each containerizedServices as service (service.id)}
+					<div class="card card-static">
+						<EntityDisplayWrapper
+							context={{
+								ipAddressId: null,
+								ports: topology?.ports ?? [],
+								showEntityTagPicker: true,
+								tagPickerDisabled: !editState.isEditable,
+								entityTags: isReadonly ? (topology?.entity_tags ?? []) : undefined,
+								compact: true
+							}}
+							item={service}
+							displayComponent={ServiceDisplay}
+						/>
+					</div>
+				{/each}
+			</div>
+		</InspectorSection>
+	{/if}
+
+	{#if allBridgeSubnets.length > 0 && containerHosts.length === 0}
+		<InspectorSection
+			id="edge:ContainerRuntime:subnets"
+			title={allBridgeSubnets.length > 1
+				? topology_containerBridgeSubnets()
+				: topology_containerBridgeSubnet()}
+			icon={entities.getIconComponent('Subnet')}
+			iconClass={entities.getColorHelper('Subnet').icon}
+			description={null}
+			count={allBridgeSubnets.length}
+		>
+			<div class="space-y-1">
+				{#each allBridgeSubnets as subnet (subnet.id)}
+					<div class="card card-static">
+						<EntityDisplayWrapper
+							context={{ compact: true }}
+							item={subnet}
+							displayComponent={SubnetDisplay}
+						/>
+					</div>
+				{/each}
+			</div>
+		</InspectorSection>
 	{/if}
 </div>

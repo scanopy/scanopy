@@ -6,6 +6,8 @@
 	import { resolveTagTarget } from '$lib/features/topology/resolvers';
 	import { useTagsQuery } from '$lib/features/tags/queries';
 	import { common_tags } from '$lib/paraglide/messages';
+	import { entities } from '$lib/shared/stores/metadata';
+	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	let {
 		node,
@@ -35,8 +37,13 @@
 </script>
 
 {#if target}
-	<div>
-		<span class="text-secondary mb-2 block text-sm font-medium">{common_tags()}</span>
+	<InspectorSection
+		id="Tags"
+		title={common_tags()}
+		icon={entities.getIconComponent('Tag')}
+		iconClass={entities.getColorHelper('Tag').icon}
+		description={null}
+	>
 		<TagPickerInline
 			{selectedTagIds}
 			entityId={target.entityId}
@@ -44,5 +51,5 @@
 			disabled={!editState.isEditable}
 			availableTags={entityTags}
 		/>
-	</div>
+	</InspectorSection>
 {/if}

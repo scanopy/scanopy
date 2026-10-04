@@ -8,13 +8,13 @@
 	import { useTagsQuery, type EntityDiscriminants } from '$lib/features/tags/queries';
 	import { concepts } from '$lib/shared/stores/metadata';
 	import {
-		common_application,
 		common_ungrouped,
 		tags_inheritedFromHost,
 		tags_inheritedOverrideHint,
 		common_overrides,
 		tags_fromHost
 	} from '$lib/paraglide/messages';
+	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	/* eslint-disable @typescript-eslint/no-unused-vars -- component contract props */
 	let {
@@ -106,8 +106,7 @@
 </script>
 
 {#if entityId}
-	<div class="space-y-2">
-		<span class="text-secondary block text-sm font-medium">{common_application()}</span>
+	<InspectorSection id="Application" section="Application">
 		<div class="card card-static space-y-2 p-2">
 			{#if hasAppTag && currentAppTag}
 				<div class="flex flex-wrap items-center gap-1">
@@ -161,5 +160,5 @@
 				/>
 			</div>
 		</div>
-	</div>
+	</InspectorSection>
 {/if}
