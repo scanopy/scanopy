@@ -232,6 +232,7 @@
 							{index}
 							{form}
 							{isEditing}
+							network={networksData.find((n) => n.id === iface.network_id)}
 							onChange={(updatedInterface) => handleInterfaceChange(updatedInterface, index)}
 						/>
 					</div>
