@@ -161,7 +161,7 @@ daemon-purge:
 	$(MAKE) daemon-clean PURGE=--purge
 
 daemon-logs:
-	tail -n 40 /var/log/scanopy/scanopy-daemon.log
+	sudo tail -n 40 /var/log/scanopy/scanopy-daemon.log
 
 daemon-restart:
 	sudo launchctl kickstart -k system/$(DAEMON_LABEL)
@@ -188,7 +188,7 @@ daemon-rebuild: daemon-build
 	sudo launchctl kickstart -k system/$(DAEMON_LABEL)
 	@echo "Service restarted on the new binary. Following the log — Ctrl-C to stop watching:"
 	@sleep 1
-	tail -f /var/log/scanopy/scanopy-daemon.log
+	sudo tail -f /var/log/scanopy/scanopy-daemon.log
 
 # Foreground dev loop: the old ergonomics back.
 #
