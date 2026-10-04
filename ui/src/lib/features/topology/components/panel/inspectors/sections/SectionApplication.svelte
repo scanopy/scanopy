@@ -155,7 +155,8 @@
 					{entityType}
 					disabled={!editState.isEditable}
 					availableTags={isAppInherited ? appTags : appAvailableTags}
-					allowCreate={false}
+					allowCreate={!hasAppTag || isAppInherited}
+					createAsApplication={true}
 					hideAddButton={showUngroupedPseudo}
 				/>
 			</div>

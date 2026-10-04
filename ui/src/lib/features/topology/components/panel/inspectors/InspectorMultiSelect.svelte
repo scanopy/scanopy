@@ -963,7 +963,8 @@
 									onAdd={handleAddAppTag}
 									onRemove={handleRemoveAppTag}
 									availableTags={appAvailableTags}
-									allowCreate={false}
+									allowCreate={!hasAppTag}
+									createAsApplication={true}
 									hideAddButton={appState.type === 'ungrouped' && !ungroupedDismissed}
 								/>
 							</div>
