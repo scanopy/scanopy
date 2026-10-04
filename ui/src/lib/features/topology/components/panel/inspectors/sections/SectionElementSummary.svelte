@@ -2,7 +2,7 @@
 	import type { Node } from '@xyflow/svelte';
 	import type { components } from '$lib/api/schema';
 	import type { RenderableTopology } from '$lib/features/topology/types/base';
-	import { activeView } from '$lib/features/topology/queries';
+	import { activeView, getInfrastructureRuleIdForTopology } from '$lib/features/topology/queries';
 	import { views, entities } from '$lib/shared/stores/metadata';
 	import { tallyContainerElements } from '$lib/features/topology/labels';
 	import { inspector_elementSummary } from '$lib/paraglide/messages';
@@ -56,7 +56,9 @@
 		return result;
 	});
 
-	let counts = $derived(tallyContainerElements(node.id, topology));
+	let counts = $derived(
+		tallyContainerElements(node.id, topology, getInfrastructureRuleIdForTopology(topology))
+	);
 	let total = $derived([...counts.values()].reduce((s, n) => s + n, 0));
 
 	function titleCase(s: string): string {

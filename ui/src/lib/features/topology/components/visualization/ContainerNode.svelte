@@ -11,7 +11,7 @@
 	import { createColorHelper } from '$lib/shared/utils/styling';
 	import type { Color, ColorStyle } from '$lib/shared/utils/styling';
 	import { serviceDefinitions, containerTypes } from '$lib/shared/stores/metadata';
-	import { findInfraRuleId } from '../../queries';
+	import { findInfraRuleId, getInfrastructureRuleIdForTopology } from '../../queries';
 	import { formatElementSummary, tallyContainerElements, tallyDirectElements } from '../../labels';
 	import {
 		// useUpdateNodeResizeMutation — DISABLED (container resize is not persisted)
@@ -144,7 +144,12 @@
 	);
 
 	let childSummary = $derived(
-		topology ? formatElementSummary(tallyContainerElements(id, topology), $activeView) : ''
+		topology
+			? formatElementSummary(
+					tallyContainerElements(id, topology, getInfrastructureRuleIdForTopology(topology)),
+					$activeView
+				)
+			: ''
 	);
 	let ungroupedSummary = $derived(
 		topology ? formatElementSummary(tallyDirectElements(id, topology), $activeView) : ''

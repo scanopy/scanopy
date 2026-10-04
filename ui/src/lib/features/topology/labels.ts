@@ -1,7 +1,7 @@
 import type { Node } from '@xyflow/svelte';
 import type { components } from '$lib/api/schema';
 import type { RenderableTopology, TopologyNode } from './types/base';
-import { entities, views } from '$lib/shared/stores/metadata';
+import { entities, serviceDefinitions, views } from '$lib/shared/stores/metadata';
 import { lowercasePreservingAcronyms } from '$lib/shared/utils/formatting';
 import { tags_entityTags, tags_noCommonTagsHint } from '$lib/paraglide/messages';
 import { resolveInlineServiceIds } from './resolvers';
@@ -95,24 +95,68 @@ function tallyByEntityType(nodes: Iterable<TopologyNode>): Map<Entity, number> {
  *  elements via inline relationships (L3 services bound to IP elements;
  *  Workloads services on host elements). Delegates traversal to
  *  `getContainerContents` and entity-relationship resolution to
- *  `resolveInlineServiceIds`. */
+ *  `resolveInlineServiceIds`.
+ *
+ *  `excludeRuleId` names a service-category rule (callers pass the
+ *  infrastructure rule) whose services stay out of the total in both places
+ *  they can appear: as elements in the subcontainer that rule produced, and
+ *  as services inlined on another element (a VM's SSH under its hypervisor in
+ *  Workloads), matched by the rule's own categories. */
 export function tallyContainerElements(
 	containerId: string,
-	topology: RenderableTopology
+	topology: RenderableTopology,
+	excludeRuleId: string | null = null
 ): Map<Entity, number> {
 	const index = getTopologyIndex(topology);
 	const { elementNodeIds } = index.containerContents(containerId);
+	const excludedCategories = excludeRuleId
+		? ruleServiceCategories(topology, excludeRuleId)
+		: new Set<string>();
 	const elementNodes: TopologyNode[] = [];
+	const countedIds = new Set<string>();
 	for (const id of elementNodeIds) {
 		const node = index.nodesById.get(id);
-		if (node) elementNodes.push(node);
+		if (!node) continue;
+		if (excludeRuleId && inSubcontainerOfRule(node, excludeRuleId, index.nodesById)) continue;
+		elementNodes.push(node);
+		countedIds.add(id);
 	}
 	const counts = tallyByEntityType(elementNodes);
-	const inlineServices = resolveInlineServiceIds(elementNodeIds, topology);
-	if (inlineServices.size > 0) {
-		counts.set('Service', (counts.get('Service') ?? 0) + inlineServices.size);
+	let inlineServiceCount = 0;
+	for (const serviceId of resolveInlineServiceIds(countedIds, topology)) {
+		const service = index.servicesById.get(serviceId);
+		const category = service ? serviceDefinitions.getCategory(service.service_definition) : null;
+		if (category && excludedCategories.has(category)) continue;
+		inlineServiceCount++;
+	}
+	if (inlineServiceCount > 0) {
+		counts.set('Service', (counts.get('Service') ?? 0) + inlineServiceCount);
 	}
 	return counts;
+}
+
+/** The service categories a `ByServiceCategory` element rule groups, from the topology's options. */
+function ruleServiceCategories(topology: RenderableTopology, ruleId: string): Set<string> {
+	for (const identified of topology.options?.request?.element_rules ?? []) {
+		if (identified.id !== ruleId) continue;
+		const rule = identified.rule;
+		if (typeof rule === 'object' && 'ByServiceCategory' in rule) {
+			return new Set(rule.ByServiceCategory.categories ?? []);
+		}
+	}
+	return new Set();
+}
+
+/** Whether `node` sits in a subcontainer that element rule `ruleId` produced. */
+function inSubcontainerOfRule(
+	node: TopologyNode,
+	ruleId: string,
+	nodesById: Map<string, TopologyNode>
+): boolean {
+	const parentId = (node as { container_id?: string }).container_id;
+	if (!parentId) return false;
+	const parent = nodesById.get(parentId) as { element_rule_id?: string | null } | undefined;
+	return parent?.element_rule_id === ruleId;
 }
 
 /** Per-entity-type tally of element nodes whose immediate `container_id`
