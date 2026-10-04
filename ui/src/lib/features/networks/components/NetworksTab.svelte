@@ -38,7 +38,8 @@
 		common_hoursCount,
 		common_updated,
 		networks_confirmDelete,
-		networks_staleAfter
+		networks_staleAfter,
+		networks_staleAfterDefault
 	} from '$lib/paraglide/messages';
 
 	let { isReadOnly = false }: TabProps = $props();
@@ -346,10 +347,12 @@
 			sortable: true,
 			groupable: true,
 			filterable: true,
-			getValue: (network) =>
-				network.effective_stale_after_hours == null
-					? null
-					: common_hoursCount({ hours: network.effective_stale_after_hours }),
+			// Marked when no override is set, so an override equal to the default still reads as one.
+			getValue: (network) => {
+				if (network.effective_stale_after_hours == null) return null;
+				const hours = common_hoursCount({ hours: network.effective_stale_after_hours });
+				return network.stale_after_hours == null ? networks_staleAfterDefault({ hours }) : hours;
+			},
 			display: { hiddenByDefault: true }
 		}
 	]);

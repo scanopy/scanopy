@@ -4,6 +4,7 @@
 	import { MAX_ITEMS_IN_CELL, type CardFieldItem } from './types';
 	import { getFieldValue } from './controls/fieldValues';
 	import { formatDate, formatRelativeTime } from '$lib/shared/utils/formatting';
+	import { attributeSourceExplanation } from '$lib/shared/utils/attribute-source';
 	import type { EntityColumn } from './table/columns';
 	import { common_moreItems, common_no, common_none, common_yes } from '$lib/paraglide/messages';
 
@@ -47,6 +48,12 @@
 
 	// `items` is non-null for every array value, so this branch never sees one.
 	let text = $derived(items === null ? formatValue(value as Exclude<typeof value, string[]>) : '');
+
+	/** The value, and how it reached Scanopy when the field records a source. */
+	let title = $derived.by(() => {
+		const source = column.display.getSource?.(item);
+		return source ? `${text}\n${attributeSourceExplanation(source)}` : text;
+	});
 </script>
 
 {#if column.display.cell}
@@ -94,5 +101,5 @@
 	<span class="text-muted" aria-hidden="true">—</span>
 	<span class="sr-only">{common_none()}</span>
 {:else}
-	<span class="text-tertiary block truncate" title={text}>{text}</span>
+	<span class="text-tertiary block truncate" {title}>{text}</span>
 {/if}

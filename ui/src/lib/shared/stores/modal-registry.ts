@@ -138,7 +138,8 @@ export function navigateToEntity(
 	entityId: string,
 	data?: Record<string, unknown>
 ): void {
-	const config = entityUIConfig[entityType];
+	const typeConfig = entityUIConfig[entityType];
+	const config = (data && typeConfig?.forEntity?.(data)) || typeConfig;
 	if (!config) return;
 
 	// Snapshot current URL and modal title before navigation so the back button can return here

@@ -54,6 +54,28 @@ export function useDiscoveriesQuery(enabled?: () => boolean) {
 	}));
 }
 
+/**
+ * Query hook for fetching specific discoveries by id (for selective loading).
+ *
+ * For naming the runs other entities reference (the scan that first or last found a host).
+ * Bounded by the ids asked for, unlike the full list.
+ *
+ * @param idsGetter - Getter function returning the distinct discovery ids to fetch
+ */
+export function useDiscoveriesByIds(idsGetter: () => string[]) {
+	return createQuery(() => {
+		const ids = idsGetter();
+		return {
+			queryKey: [...queryKeys.discovery.all, 'byIds', ids],
+			queryFn: async (): Promise<Discovery[]> =>
+				unwrapData(
+					await apiClient.GET('/api/v1/discovery', { params: { query: { ids, limit: 0 } } })
+				),
+			enabled: ids.length > 0
+		};
+	});
+}
+
 /** Query parameters for the paginated discovery-history list. */
 export interface DiscoveryHistoryQueryParams {
 	limit?: number;

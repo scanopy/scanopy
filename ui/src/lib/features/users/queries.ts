@@ -31,6 +31,31 @@ export function useUsersQuery(options?: { enabled?: boolean | (() => boolean) })
 }
 
 /**
+ * Query hook for fetching specific users by id, one `GET /api/v1/users/{id}` each.
+ *
+ * For naming the users other entities reference (a daemon's maintainer). The users list
+ * needs Admin and leaves out peer admins and the owner; the per-id route needs only a user of
+ * the same organization, so this works for every role.
+ *
+ * @param idsGetter - Getter function returning the distinct user ids to fetch
+ */
+export function useUsersByIds(idsGetter: () => string[]) {
+	return createQuery(() => {
+		const ids = idsGetter();
+		return {
+			queryKey: [...queryKeys.users.all, 'byIds', ids],
+			queryFn: async (): Promise<User[]> =>
+				Promise.all(
+					ids.map(async (id) =>
+						unwrapData(await apiClient.GET('/api/v1/users/{id}', { params: { path: { id } } }))
+					)
+				),
+			enabled: ids.length > 0
+		};
+	});
+}
+
+/**
  * Mutation hook for the current user to update their own record. Hits the
  * existing `PUT /api/v1/users/{id}` self-update path. The backend rejects
  * cross-user writes (`auth_user_id != id`) and silently preserves

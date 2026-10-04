@@ -3528,19 +3528,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-04T22:23:09.319466Z",
+             *       "created_at": "2026-10-04T23:05:40.977020Z",
              *       "first_discovery_id": null,
-             *       "id": "a58f9879-0c29-4f4f-a585-9d4c5cc44278",
+             *       "id": "c144051d-bd0f-4094-840f-56d9ca5f0120",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-04T22:23:09.319466Z",
+             *       "last_seen_at": "2026-10-04T23:05:40.977020Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-10-04T22:23:09.319466Z",
-             *       "valid_from": "2026-10-04T22:23:09.319466Z",
+             *       "updated_at": "2026-10-04T23:05:40.977020Z",
+             *       "valid_from": "2026-10-04T23:05:40.977020Z",
              *       "valid_to": null
              *     }
              */
@@ -4368,19 +4368,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-04T22:23:09.294149Z",
+             *               "created_at": "2026-10-04T23:05:40.952353Z",
              *               "first_discovery_id": null,
-             *               "id": "df8c7f51-b1cc-47ad-873f-1dc783583468",
+             *               "id": "5c2209d5-ff85-41de-94ce-dd6034a802df",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-04T22:23:09.294149Z",
+             *               "last_seen_at": "2026-10-04T23:05:40.952353Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-10-04T22:23:09.294149Z",
-             *               "valid_from": "2026-10-04T22:23:09.294149Z",
+             *               "updated_at": "2026-10-04T23:05:40.952353Z",
+             *               "valid_from": "2026-10-04T23:05:40.952353Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4394,7 +4394,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Karakeep",
+             *           "service_definition": "Grocy",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5319,19 +5319,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-04T22:23:09.314264Z",
+             *           "created_at": "2026-10-04T23:05:40.971838Z",
              *           "first_discovery_id": null,
-             *           "id": "7583d23e-1b42-47c1-aa4b-c8248b2f36e3",
+             *           "id": "63c0cba5-6f82-46ce-bbc9-1aab4a14dbee",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-04T22:23:09.314264Z",
+             *           "last_seen_at": "2026-10-04T23:05:40.971838Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-10-04T22:23:09.314264Z",
-             *           "valid_from": "2026-10-04T22:23:09.314264Z",
+             *           "updated_at": "2026-10-04T23:05:40.971838Z",
+             *           "valid_from": "2026-10-04T23:05:40.971838Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5345,7 +5345,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Karakeep",
+             *       "service_definition": "Grocy",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6447,19 +6447,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-04T22:23:09.294876Z",
+         *       "created_at": "2026-10-04T23:05:40.953089Z",
          *       "first_discovery_id": null,
-         *       "id": "52f1a9e2-b158-4d00-8f7f-1c1d29c8c586",
+         *       "id": "c157db3e-f16e-46f5-adc6-01d9f2493ccc",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-04T22:23:09.294876Z",
+         *       "last_seen_at": "2026-10-04T23:05:40.953089Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-10-04T22:23:09.294876Z",
-         *       "valid_from": "2026-10-04T22:23:09.294876Z",
+         *       "updated_at": "2026-10-04T23:05:40.953089Z",
+         *       "valid_from": "2026-10-04T23:05:40.953089Z",
          *       "valid_to": null
          *     }
          */
@@ -6807,7 +6807,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Karakeep",
+         *           "service_definition": "Grocy",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -9400,19 +9400,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-04T22:23:09.293336Z",
+         *               "created_at": "2026-10-04T23:05:40.951537Z",
          *               "first_discovery_id": null,
-         *               "id": "45156159-4f93-48f0-b33b-f14e531c4dce",
+         *               "id": "3b60a2f0-f9c9-4573-938a-ce4eca2df200",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-04T22:23:09.293336Z",
+         *               "last_seen_at": "2026-10-04T23:05:40.951537Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-10-04T22:23:09.293336Z",
-         *               "valid_from": "2026-10-04T22:23:09.293336Z",
+         *               "updated_at": "2026-10-04T23:05:40.951537Z",
+         *               "valid_from": "2026-10-04T23:05:40.951537Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9426,7 +9426,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Karakeep",
+         *           "service_definition": "Grocy",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -12552,19 +12552,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-04T22:23:09.294656Z",
+         *           "created_at": "2026-10-04T23:05:40.952872Z",
          *           "first_discovery_id": null,
-         *           "id": "e1a0aa13-e047-4573-8b80-4937f3fd0a25",
+         *           "id": "ade70599-6619-43d6-8ca8-2c9526e5eaa6",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-04T22:23:09.294656Z",
+         *           "last_seen_at": "2026-10-04T23:05:40.952872Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-10-04T22:23:09.294656Z",
-         *           "valid_from": "2026-10-04T22:23:09.294656Z",
+         *           "updated_at": "2026-10-04T23:05:40.952872Z",
+         *           "valid_from": "2026-10-04T23:05:40.952872Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12578,7 +12578,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Karakeep",
+         *       "service_definition": "Grocy",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -13338,7 +13338,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "aa7f8b20-e486-43bb-bfab-67033fbe82c2",
+             *           "id": "4ecf82d8-343a-4a84-826c-205a390c42a5",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13348,23 +13348,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "ac3fac67-4e73-4c7a-b489-ac82f5aca1b3",
+             *           "id": "74a051ea-83e5-42dd-b3e0-b08ca30a0a16",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "b7bdad0e-b1b7-44af-859d-621a0ecbd709",
+             *           "id": "9d7e777b-b1de-4667-b2d3-cfe57b1c74af",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "b79c8d5b-4a9b-414b-b5a7-0657c8d9b3b7",
+             *           "id": "09377fc2-ea18-45a2-96c4-e0d394ab2713",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "ac3fac67-4e73-4c7a-b489-ac82f5aca1b3",
+             *           "id": "74a051ea-83e5-42dd-b3e0-b08ca30a0a16",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13377,19 +13377,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "2cc7a6f3-18c6-48a0-accd-b4ec4ad0b40d",
+             *         "id": "72b998e3-f362-464c-a542-c5d70e0a3ed7",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "aeaca58f-2b4b-4ca5-9fad-4ca6f3ee867e",
+             *         "id": "787cb2a4-b439-4506-878b-ec366850ac3e",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "811c8dbd-37ec-4448-b43a-435490b72949",
+             *         "id": "c6a6f788-3492-45db-8de2-f357f602de7c",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "5c913401-769e-4fef-91f0-b582e1a7de09",
+             *         "id": "e0602546-a630-48b9-af12-cede0608e85a",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13408,7 +13408,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "747f06ad-61e4-4633-8b90-83ce0a179b25",
+             *         "id": "09783b8b-0f68-4867-981b-944e597b42bd",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13417,15 +13417,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "5b3ed454-f599-4b55-9831-6da94442d403",
+             *         "id": "5f830234-ec6b-4341-aece-41c0d10337d1",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "1bfaef3b-a8ce-4210-9c17-7024513fa0c4",
+             *         "id": "94eab24f-220c-47bb-81b8-abfcd80c8170",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "9f842de5-e795-4038-825d-6321ff31480e",
+             *         "id": "ff91bfd9-6924-4bb1-911d-23c0eb6db793",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -17349,6 +17349,8 @@ export interface operations {
                 network_ids?: string[] | null;
                 /** @description Filter by daemon ID. Repeat the parameter to pass several. */
                 daemon_ids?: string[] | null;
+                /** @description Filter by specific entity IDs (for selective loading) */
+                ids?: string[] | null;
                 /** @description Only runs of one of these discovery types. */
                 discovery_types?: string[] | null;
                 /**
@@ -17488,6 +17490,8 @@ export interface operations {
                 network_ids?: string[] | null;
                 /** @description Filter by daemon ID. Repeat the parameter to pass several. */
                 daemon_ids?: string[] | null;
+                /** @description Filter by specific entity IDs (for selective loading) */
+                ids?: string[] | null;
                 /** @description Only runs of one of these discovery types. */
                 discovery_types?: string[] | null;
                 /**
@@ -17540,6 +17544,8 @@ export interface operations {
                 network_ids?: string[] | null;
                 /** @description Filter by daemon ID. Repeat the parameter to pass several. */
                 daemon_ids?: string[] | null;
+                /** @description Filter by specific entity IDs (for selective loading) */
+                ids?: string[] | null;
                 /** @description Only runs of one of these discovery types. */
                 discovery_types?: string[] | null;
                 /**

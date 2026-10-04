@@ -3668,6 +3668,22 @@
             }
           },
           {
+            "name": "ids",
+            "in": "query",
+            "description": "Filter by specific entity IDs (for selective loading)",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
             "name": "discovery_types",
             "in": "query",
             "description": "Only runs of one of these discovery types.",
@@ -3993,6 +4009,22 @@
             }
           },
           {
+            "name": "ids",
+            "in": "query",
+            "description": "Filter by specific entity IDs (for selective loading)",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
             "name": "discovery_types",
             "in": "query",
             "description": "Only runs of one of these discovery types.",
@@ -4184,6 +4216,22 @@
             "name": "daemon_ids",
             "in": "query",
             "description": "Filter by daemon ID. Repeat the parameter to pass several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "ids",
+            "in": "query",
+            "description": "Filter by specific entity IDs (for selective loading)",
             "required": false,
             "schema": {
               "type": [
@@ -14020,19 +14068,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-04T22:23:09.377003Z",
+              "created_at": "2026-10-04T23:05:41.035527Z",
               "first_discovery_id": null,
-              "id": "1f0e2743-6283-445b-b793-42e699121bbd",
+              "id": "3d1337c6-b14c-4195-9aa6-144de3d5a53c",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-04T22:23:09.377003Z",
+              "last_seen_at": "2026-10-04T23:05:41.035527Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-04T22:23:09.377003Z",
-              "valid_from": "2026-10-04T22:23:09.377003Z",
+              "updated_at": "2026-10-04T23:05:41.035527Z",
+              "valid_from": "2026-10-04T23:05:41.035527Z",
               "valid_to": null
             }
           },
@@ -15637,19 +15685,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-04T22:23:09.361924Z",
+                      "created_at": "2026-10-04T23:05:41.020131Z",
                       "first_discovery_id": null,
-                      "id": "941d5ebd-474f-4e02-89f4-77f2a962215c",
+                      "id": "27045c56-b42b-41dd-aca1-03948fbcdbcc",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-04T22:23:09.361924Z",
+                      "last_seen_at": "2026-10-04T23:05:41.020131Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-04T22:23:09.361924Z",
-                      "valid_from": "2026-10-04T22:23:09.361924Z",
+                      "updated_at": "2026-10-04T23:05:41.020131Z",
+                      "valid_from": "2026-10-04T23:05:41.020131Z",
                       "valid_to": null
                     }
                   ],
@@ -15663,7 +15711,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Karakeep",
+                  "service_definition": "Grocy",
                   "source": {
                     "type": "Manual"
                   },
@@ -17062,19 +17110,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-04T22:23:09.373431Z",
+                  "created_at": "2026-10-04T23:05:41.031889Z",
                   "first_discovery_id": null,
-                  "id": "5d44e964-afe2-4c41-ac7a-4b6cacc92fc6",
+                  "id": "0ec24ac1-a4be-4d01-b965-20b476df1a9b",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-04T22:23:09.373431Z",
+                  "last_seen_at": "2026-10-04T23:05:41.031889Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-04T22:23:09.373431Z",
-                  "valid_from": "2026-10-04T22:23:09.373431Z",
+                  "updated_at": "2026-10-04T23:05:41.031889Z",
+                  "valid_from": "2026-10-04T23:05:41.031889Z",
                   "valid_to": null
                 }
               ],
@@ -17088,7 +17136,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Karakeep",
+              "service_definition": "Grocy",
               "source": {
                 "type": "Manual"
               },
@@ -19580,19 +19628,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-04T22:23:09.362335Z",
+          "created_at": "2026-10-04T23:05:41.020568Z",
           "first_discovery_id": null,
-          "id": "79488783-cc01-4f8e-a8f1-052a92886a49",
+          "id": "a49f06bc-ee7a-4713-b295-e61ddcea1717",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-04T22:23:09.362335Z",
+          "last_seen_at": "2026-10-04T23:05:41.020568Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-04T22:23:09.362335Z",
-          "valid_from": "2026-10-04T22:23:09.362335Z",
+          "updated_at": "2026-10-04T23:05:41.020568Z",
+          "valid_from": "2026-10-04T23:05:41.020568Z",
           "valid_to": null
         }
       },
@@ -20359,7 +20407,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Karakeep",
+              "service_definition": "Grocy",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -26798,19 +26846,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-04T22:23:09.361454Z",
+                  "created_at": "2026-10-04T23:05:41.019657Z",
                   "first_discovery_id": null,
-                  "id": "eee439d1-9ce3-4e81-93b6-8f1c65d1efab",
+                  "id": "540eea2e-72c0-4723-9893-03ae03b2306d",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-04T22:23:09.361454Z",
+                  "last_seen_at": "2026-10-04T23:05:41.019657Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-04T22:23:09.361454Z",
-                  "valid_from": "2026-10-04T22:23:09.361454Z",
+                  "updated_at": "2026-10-04T23:05:41.019657Z",
+                  "valid_from": "2026-10-04T23:05:41.019657Z",
                   "valid_to": null
                 }
               ],
@@ -26824,7 +26872,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Karakeep",
+              "service_definition": "Grocy",
               "source": {
                 "type": "Manual"
               },
@@ -30677,19 +30725,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-04T22:23:09.354703Z",
+                        "created_at": "2026-10-04T23:05:41.012825Z",
                         "first_discovery_id": null,
-                        "id": "3fd7ddfa-482b-44e9-812e-b30eca5f7de1",
+                        "id": "1ab65f1c-e9bb-4293-88f7-de2805939169",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-04T22:23:09.354703Z",
+                        "last_seen_at": "2026-10-04T23:05:41.012825Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-04T22:23:09.354703Z",
-                        "valid_from": "2026-10-04T22:23:09.354703Z",
+                        "updated_at": "2026-10-04T23:05:41.012825Z",
+                        "valid_from": "2026-10-04T23:05:41.012825Z",
                         "valid_to": null
                       }
                     ],
@@ -30703,7 +30751,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Karakeep",
+                    "service_definition": "Grocy",
                     "source": {
                       "type": "Manual"
                     },
@@ -30847,19 +30895,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-04T22:23:09.372781Z",
+                    "created_at": "2026-10-04T23:05:41.031210Z",
                     "first_discovery_id": null,
-                    "id": "2dd8b805-fe4b-4582-81fe-acd218d17027",
+                    "id": "e6269117-3d7e-48ce-9834-6c03156fe28e",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-04T22:23:09.372781Z",
+                    "last_seen_at": "2026-10-04T23:05:41.031210Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-04T22:23:09.372781Z",
-                    "valid_from": "2026-10-04T22:23:09.372781Z",
+                    "updated_at": "2026-10-04T23:05:41.031210Z",
+                    "valid_from": "2026-10-04T23:05:41.031210Z",
                     "valid_to": null
                   }
                 ],
@@ -30873,7 +30921,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Karakeep",
+                "service_definition": "Grocy",
                 "source": {
                   "type": "Manual"
                 },
@@ -33104,19 +33152,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-04T22:23:09.362212Z",
+              "created_at": "2026-10-04T23:05:41.020438Z",
               "first_discovery_id": null,
-              "id": "500199be-892c-417e-9333-ba9a86aa9635",
+              "id": "5bdcac68-dfeb-445c-b862-9450358061e3",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-04T22:23:09.362212Z",
+              "last_seen_at": "2026-10-04T23:05:41.020438Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-04T22:23:09.362212Z",
-              "valid_from": "2026-10-04T22:23:09.362212Z",
+              "updated_at": "2026-10-04T23:05:41.020438Z",
+              "valid_from": "2026-10-04T23:05:41.020438Z",
               "valid_to": null
             }
           ],
@@ -33130,7 +33178,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Karakeep",
+          "service_definition": "Grocy",
           "source": {
             "type": "Manual"
           },
@@ -34592,7 +34640,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "e083e601-8692-4930-aaf3-02d887325c41",
+                  "id": "aa931219-0deb-44fb-bd2b-4775b674085d",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -34602,23 +34650,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "d480f81d-479b-4452-834a-e757ef629ef7",
+                  "id": "77845f1b-73b6-4039-b361-b96a7fdea0aa",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "3e279c7f-f460-46d1-837b-fa54973cf116",
+                  "id": "f1da4380-ac58-4d13-8e68-27cf5f9092b9",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "d774d8dc-0a67-4ffb-81c9-db4d9cab1875",
+                  "id": "335d4a42-5736-4e7e-8e9f-fb6f53907cb4",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "d480f81d-479b-4452-834a-e757ef629ef7",
+                  "id": "77845f1b-73b6-4039-b361-b96a7fdea0aa",
                   "rule": "ByHost"
                 }
               ]
@@ -34648,19 +34696,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "89f0e129-4a7b-4afc-ab59-7036733c777d",
+                "id": "abf4e98e-6df8-4b2c-9a0a-0dc6a9c34eaf",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "0450b9cd-2f8a-4e24-aeaf-d628e3af6f31",
+                "id": "521a1e00-cb32-4500-a554-c90e02b4c51e",
                 "rule": "ByVLAN"
               },
               {
-                "id": "5db9a955-075e-49ae-81e7-9ae5c58a17b3",
+                "id": "f6ba06b3-29fd-4557-abb7-3be1dec6bf4f",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "8f34dc98-85ca-4212-9235-573c958be3dc",
+                "id": "5b9e4949-80f2-4d27-8b50-78d7fa828c4b",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -34679,7 +34727,7 @@
                 }
               },
               {
-                "id": "0e6d4ac7-9a57-4bda-8f34-4db1901bec7e",
+                "id": "699b0f60-5ac2-461f-98bc-48acd81dd756",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -34688,15 +34736,15 @@
                 }
               },
               {
-                "id": "4156eebf-edea-4a95-8e5d-0e03ce06e9d0",
+                "id": "00e60481-9de0-4ae3-b6f0-609cf409920a",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "34d26006-1153-4810-bba0-73dbcb179bbc",
+                "id": "f95e705d-53d1-4dc7-8026-556bc8188c9d",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "91f55d4e-c326-40ba-acef-4d3a52efd27b",
+                "id": "421922bc-7c77-424e-9abc-4cfd152e45af",
                 "rule": "ByStack"
               }
             ]

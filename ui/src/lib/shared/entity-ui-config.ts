@@ -30,6 +30,11 @@ export interface EntityUIConfig {
 	parentIdField?: string;
 	/** For sub-entities: which tab to open in the parent's modal */
 	modalTab?: string;
+	/**
+	 * Where one entity of this type opens instead, when it depends on the entity's data: a
+	 * discovery run opens in the history tab, a scan configuration in the scans tab.
+	 */
+	forEntity?: (data: Record<string, unknown>) => EntityUIConfig | undefined;
 }
 
 /** Tab ID → display label. Single source of truth for sidebar and back navigation. */
@@ -98,7 +103,14 @@ export const entityUIConfig: Record<EntityDiscriminants, EntityUIConfig | null> 
 		modalName: 'credential-editor',
 		displayComponent: CredentialDisplay
 	},
-	Discovery: { tabId: 'discovery-scans', modalName: 'discovery-editor' },
+	Discovery: {
+		tabId: 'discovery-scans',
+		modalName: 'discovery-editor',
+		forEntity: (data) =>
+			(data.run_type as { type?: string } | undefined)?.type === 'Historical'
+				? { tabId: 'discovery-history', modalName: 'discovery-history-detail' }
+				: undefined
+	},
 	Tag: { tabId: 'tags', modalName: 'tag-editor' },
 	Share: { tabId: 'shares', modalName: 'share-editor' },
 	Topology: { tabId: 'topology', modalName: 'topology-editor', displayComponent: TopologyDisplay },

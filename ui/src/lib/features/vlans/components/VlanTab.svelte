@@ -14,12 +14,16 @@
 	import { isUserManagedSubnet, useSubnetsQuery } from '$lib/features/subnets/queries';
 	import type { Subnet } from '$lib/features/subnets/types/base';
 	import { useVlansQuery } from '../queries';
+	import { useDiscoveriesByIds } from '$lib/features/discovery/queries';
+	import { discoveryRunIds, discoveryRunItems } from '$lib/features/discovery/columns';
 	import type { Vlan, VlanOrderField } from '../types/base';
 	import type { components } from '$lib/api/schema';
 	import { downloadCsv } from '$lib/shared/utils/csvExport';
 	import {
 		common_created,
 		common_description,
+		common_firstFoundBy,
+		common_lastFoundBy,
 		common_lastSeen,
 		common_name,
 		common_network,
@@ -51,10 +55,12 @@
 	// Shared full-list subnets cache — used to resolve the hydrated `subnet_ids`
 	// on each VLAN into names.
 	const subnetsQuery = useSubnetsQuery();
+	const discoveryRunsQuery = useDiscoveriesByIds(() => discoveryRunIds(vlansQuery.data ?? []));
 
 	// Derived data
 	let vlansData = $derived(vlansQuery.data ?? []);
 	let networksData = $derived(networksQuery.data ?? []);
+	let discoveryRunsData = $derived(discoveryRunsQuery.data ?? []);
 	let subnetsById = $derived(
 		new Map((subnetsQuery.data ?? []).filter(isUserManagedSubnet).map((s) => [s.id, s]))
 	);
@@ -148,6 +154,24 @@
 					type: 'date',
 					sortable: true,
 					display: { recency: true, getItems: lastSeenItems(() => networksData, 'Vlan') }
+				},
+				{
+					key: 'first_found_by',
+					label: common_firstFoundBy(),
+					type: 'string',
+					display: {
+						hiddenByDefault: true,
+						getItems: (item) => discoveryRunItems(item.first_discovery_id, discoveryRunsData)
+					}
+				},
+				{
+					key: 'last_found_by',
+					label: common_lastFoundBy(),
+					type: 'string',
+					display: {
+						hiddenByDefault: true,
+						getItems: (item) => discoveryRunItems(item.last_discovery_id, discoveryRunsData)
+					}
 				}
 			]
 		)

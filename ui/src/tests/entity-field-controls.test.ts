@@ -97,6 +97,8 @@ const server = (param: string): ColumnDecision => ({ sort: true, group: true, fi
 const serverIdentity = (group: string): ColumnDecision => ({ sort: true, group, filter: SEARCH });
 
 const RUN_RESULT = none('Run result; a scan configuration has none');
+/** The run that first or last found an entity: one chip, and Created and Last seen already say when. */
+const FOUND_BY = none('A scan run; Created and Last seen order by when');
 
 /** Keyed by tab path relative to `src/lib/features`. */
 const DECISIONS: Record<string, TabDecisions> = {
@@ -143,7 +145,10 @@ const DECISIONS: Record<string, TabDecisions> = {
 			tags: { ...SHARED_ARRAY, filter: { param: 'tag_ids' } },
 			credentials: { ...SHARED_ARRAY, filter: { param: 'credential_ids' } },
 			interfaces: ownedArray('Interface names are unique per host; search finds them'),
-			services: { ...SHARED_ARRAY, filter: { param: 'service_names' } }
+			services: { ...SHARED_ARRAY, filter: { param: 'service_names' } },
+			presented_by: none('Set on network identities only; Virtualized by groups and filters them'),
+			first_found_by: FOUND_BY,
+			last_found_by: FOUND_BY
 		}
 	},
 	'services/components/ServiceTab.svelte': {
@@ -167,7 +172,9 @@ const DECISIONS: Record<string, TabDecisions> = {
 				group: 'Derived in code; no SQL column',
 				filter: { param: 'exclude_categories' }
 			},
-			tags: { ...SHARED_ARRAY, filter: { param: 'tag_ids' } }
+			tags: { ...SHARED_ARRAY, filter: { param: 'tag_ids' } },
+			first_found_by: FOUND_BY,
+			last_found_by: FOUND_BY
 		}
 	},
 	'discovery/components/tabs/DiscoveryHistoryTab.svelte': {
@@ -188,7 +195,8 @@ const DECISIONS: Record<string, TabDecisions> = {
 				sort: true,
 				group: COUNT,
 				filter: 'Sorting brings runs with warnings to the top'
-			}
+			},
+			tags: ownedArray('No server tag filter; runs are untagged unless tagged through the API')
 		}
 	},
 	'discovery/components/tabs/DiscoveryScheduledTab.svelte': {
@@ -226,6 +234,7 @@ const DECISIONS: Record<string, TabDecisions> = {
 			os: YES,
 			mode: YES,
 			version: YES,
+			maintainer: YES,
 			url: none('Unique per daemon'),
 			interfaced_subnet_ids: SHARED_ARRAY,
 			tags: SHARED_ARRAY
@@ -309,6 +318,9 @@ const DECISIONS: Record<string, TabDecisions> = {
 			last_seen_at: DATE,
 			description: TEXT,
 			source: YES,
+			managed_by: YES,
+			first_found_by: FOUND_BY,
+			last_found_by: FOUND_BY,
 			tags: SHARED_ARRAY
 		}
 	},
@@ -338,7 +350,9 @@ const DECISIONS: Record<string, TabDecisions> = {
 			description: TEXT,
 			source: YES,
 			network_id: YES,
-			subnet_ids: SHARED_ARRAY
+			subnet_ids: SHARED_ARRAY,
+			first_found_by: FOUND_BY,
+			last_found_by: FOUND_BY
 		}
 	}
 };
