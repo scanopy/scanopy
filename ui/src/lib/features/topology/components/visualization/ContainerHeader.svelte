@@ -205,7 +205,7 @@
 		class="nopan nodrag text-secondary absolute left-2 right-2 top-2 flex items-center gap-1 overflow-hidden rounded-t px-2 py-0.5"
 	>
 		{#if isCollapsible}
-			<span data-fixed><span class="caret text-secondary"></span></span>
+			<span data-fixed class="flex items-center"><span class="caret text-secondary"></span></span>
 		{/if}
 		{#if logoComponent}
 			{@const LogoComp = logoComponent}
@@ -244,7 +244,9 @@
 		}}
 	>
 		{#if isCollapsible}
-			<span data-fixed><span class="caret caret-collapsed text-secondary"></span></span>
+			<span data-fixed class="flex items-center"
+				><span class="caret caret-collapsed text-secondary"></span></span
+			>
 		{/if}
 		{#if iconComponent}
 			{@const IconComp = iconComponent}
@@ -375,10 +377,16 @@
 		height: 0.35rem;
 		border-right: 1.5px solid currentColor;
 		border-bottom: 1.5px solid currentColor;
-		transform: rotate(45deg);
+		/*
+		 * Rotated +45° the two borders draw a "v" that fills only the lower half of the box
+		 * (its point sits ~0.35 of the box's height below centre), so it is lifted by that much
+		 * to sit on the text's centre line. Rotated -45° the ">" spans the full height and is
+		 * already centred.
+		 */
+		transform: translateY(-35%) rotate(45deg);
 		transition: transform 150ms ease-in-out;
 	}
 	.caret-collapsed {
-		transform: rotate(-45deg);
+		transform: translateY(0) rotate(-45deg);
 	}
 </style>
