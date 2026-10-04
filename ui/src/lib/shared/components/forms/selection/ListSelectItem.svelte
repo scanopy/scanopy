@@ -3,13 +3,12 @@
 <script lang="ts" generics="T, C">
 	import { onMount, getContext } from 'svelte';
 	import Tag from '../../data/Tag.svelte';
-	import EntityTag from '../../data/EntityTag.svelte';
 	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
 	import InlineDescription from '$lib/features/topology/components/panel/inspectors/InlineDescription.svelte';
 	import type { EntityDisplayComponent } from './types';
 	import { displayTags, fitTags } from './display-tags';
-	import { tooltip } from '$lib/shared/actions/tooltip';
-	import { common_moreItems } from '$lib/paraglide/messages';
+	import DisplayTag from './DisplayTag.svelte';
+	import HiddenTagsChip from './HiddenTagsChip.svelte';
 
 	export let item: T;
 	export let displayComponent: EntityDisplayComponent<T, C>;
@@ -59,12 +58,12 @@
 	const SPACING = {
 		gap: 8, // gap-2 = 0.5rem = 8px
 		tagGap: 4, // gap-1 = 0.25rem = 4px
-		moreWidth: 50 // approximate width for "+X more"
+		moreWidth: 50 // approximate width for "+N tags"
 	};
 
 	// The label keeps its full width and tags take what's left (see `fitTags`). The tag group never
 	// shrinks, so when the label alone is wider than the row, it is the label that gives way to the
-	// "+N more" chip, wrapping onto a second line rather than hiding part of the value. Its one-line
+	// "+N tags" chip, wrapping onto a second line rather than hiding part of the value. Its one-line
 	// width comes from the hidden copy: the wrapped label's own width is the row's, not its text's.
 	function calculateVisibleTags() {
 		if (!containerEl || !measureEl || !labelMeasureEl || tags.length === 0) return;
@@ -96,12 +95,7 @@
 	}
 
 	$: visibleTags = tags.slice(0, visibleTagCount);
-	$: hiddenCount = tags.length - visibleTagCount;
-	$: hiddenTagsTooltip = tags
-		.slice(visibleTagCount)
-		.map((tag) => tag.label ?? tag.title ?? '')
-		.filter(Boolean)
-		.join('\n');
+	$: hiddenTags = tags.slice(visibleTagCount);
 </script>
 
 <div class="flex min-w-0 items-center gap-3" class:list-select-item-container={showTagPicker}>
@@ -122,48 +116,10 @@
 			{#if tags.length > 0}
 				<div class="flex flex-shrink-0 items-center gap-1">
 					{#each visibleTags as tag, i (`${tag.label}-${i}`)}
-						{#if !staticTags && !staticTagsContext && tag.entityRef}
-							<EntityTag
-								entityRef={tag.entityRef}
-								label={tag.label}
-								color={tag.color}
-								icon={tag.icon ?? null}
-							/>
-						{:else if !staticTags && !staticTagsContext && (tag.onmouseenter || tag.onmouseleave || tag.onclick)}
-							<button
-								type="button"
-								class="inline-flex cursor-pointer"
-								onmouseenter={tag.onmouseenter}
-								onmouseleave={tag.onmouseleave}
-								onclick={tag.onclick}
-							>
-								<Tag
-									label={tag.label}
-									color={tag.color}
-									pill={tag.pill}
-									icon={tag.icon ?? null}
-									href={tag.href ?? ''}
-									title={tag.title ?? ''}
-								/>
-							</button>
-						{:else}
-							<Tag
-								label={tag.label}
-								color={tag.color}
-								pill={tag.pill}
-								icon={tag.icon ?? null}
-								href={tag.href ?? ''}
-								title={tag.title ?? ''}
-							/>
-						{/if}
+						<DisplayTag {tag} interactive={!staticTags && !staticTagsContext} />
 					{/each}
-					{#if hiddenCount > 0}
-						<span
-							use:tooltip
-							data-tooltip={hiddenTagsTooltip || null}
-							class="text-tertiary whitespace-nowrap text-xs"
-							>{common_moreItems({ count: hiddenCount })}</span
-						>
+					{#if hiddenTags.length > 0}
+						<HiddenTagsChip tags={hiddenTags} interactive={!staticTags && !staticTagsContext} />
 					{/if}
 				</div>
 			{/if}
