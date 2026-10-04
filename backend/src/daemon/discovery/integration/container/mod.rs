@@ -80,15 +80,14 @@ impl ContainerRuntime {
         }
     }
 
-    /// The generic container definition for this runtime, for a container no specific
-    /// definition describes.
-    pub fn container_def(&self) -> Box<dyn ServiceDefinition> {
+    /// The definition for a container serving this runtime's API on a TCP port.
+    pub fn api_proxy_def(&self) -> Box<dyn ServiceDefinition> {
         match self {
             Self::Docker => {
-                Box::new(crate::server::services::definitions::docker_container::DockerContainer)
+                Box::new(crate::server::services::definitions::docker_api_proxy::DockerApiProxy)
             }
             Self::Podman => {
-                Box::new(crate::server::services::definitions::podman_container::PodmanContainer)
+                Box::new(crate::server::services::definitions::podman_api_proxy::PodmanApiProxy)
             }
         }
     }
@@ -448,6 +447,7 @@ pub async fn execute(
         host_naming_fallback: ctx.host_naming_fallback,
         ops: ctx.ops,
         integration: ctx.integration,
+        api_port: ctx.credential.as_container_proxy().map(|c| c.port),
         cancel: ctx.cancel,
         accept_invalid_certs: ctx.accept_invalid_certs,
         utils: ctx.utils,
@@ -589,6 +589,16 @@ pub async fn execute(
     for port in container_hosts.published_ports {
         host_data.add_port(port);
     }
+    // The API proxy owns the credential's port: the runtime is reached through it, not listening
+    // on it, so the runtime service gives up its binding there.
+    let api_proxy_id = runtime.api_proxy_def().id();
+    let proxy_found = host_data
+        .services
+        .iter()
+        .any(|s| s.base.service_definition.id() == api_proxy_id);
+    if proxy_found && let Some(api_port) = scanner.api_port {
+        release_runtime_api_port(host_data, runtime_service_id, api_port);
+    }
 
     // A scan stopped by the soft deadline has a coherent subset — every container it did reach is
     // whole — so it is worth keeping, but only if the operator is told it is a subset.
@@ -607,6 +617,30 @@ pub async fn execute(
     } else {
         Completeness::Complete
     })
+}
+
+/// Remove the runtime service's binding on `api_port`, which the container fronting its API owns.
+fn release_runtime_api_port(
+    host_data: &mut crate::daemon::discovery::service::ops::HostData,
+    runtime_service_id: Uuid,
+    api_port: u16,
+) {
+    let api_port_ids: Vec<Uuid> = host_data
+        .ports
+        .iter()
+        .filter(|p| p.base.port_type == PortType::new_tcp(api_port))
+        .map(|p| p.id)
+        .collect();
+    if let Some(runtime) = host_data
+        .services
+        .iter_mut()
+        .find(|s| s.id == runtime_service_id)
+    {
+        runtime
+            .base
+            .bindings
+            .retain(|b| !b.port_id().is_some_and(|id| api_port_ids.contains(&id)));
+    }
 }
 
 #[cfg(test)]

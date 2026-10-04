@@ -23,9 +23,8 @@ use crate::server::bindings::r#impl::base::{Binding, BindingDiscriminants};
 use crate::server::credentials::r#impl::types::CredentialIntegration;
 use crate::server::discovery::r#impl::types::HostNamingFallback;
 use crate::server::ip_addresses::r#impl::base::{ALL_IP_ADDRESSES_IP, IPAddress};
-use crate::server::ports::r#impl::base::{Port, PortType};
+use crate::server::ports::r#impl::base::{Port, PortType, TransportProtocol};
 use crate::server::services::r#impl::base::{Service, ServiceMatchBaselineParams};
-use crate::server::services::r#impl::definitions::ServiceDefinitionExt;
 use crate::server::services::r#impl::endpoints::{ApplicationProtocol, Endpoint, EndpointResponse};
 use crate::server::subnets::r#impl::base::Subnet;
 
@@ -102,6 +101,9 @@ pub struct ContainerScanner<'a> {
     /// The integration running the scan (Docker or Podman), whose declaration the hosts it
     /// submits are checked against.
     pub integration: CredentialIntegration,
+    /// The port the proxy credential connects to, which the container fronting the runtime's API
+    /// publishes. `None` for a socket credential.
+    pub api_port: Option<u16>,
     pub cancel: &'a CancellationToken,
     pub accept_invalid_certs: bool,
     pub utils: &'a PlatformDaemonUtils,
@@ -345,11 +347,18 @@ impl<'a> ContainerScanner<'a> {
                 dns_sd: &None,
             };
 
-            if let Ok(Some(host_data)) = self
+            if let Ok(Some(mut host_data)) = self
                 .ops
                 .build_host_from_scan(params, None, self.host_naming_fallback)
                 .await
             {
+                if fronts_runtime_api(self.api_port, &[], &tcp_port_numbers(&open_ports)) {
+                    as_api_proxy(
+                        self.runtime,
+                        &mut host_data.services,
+                        container.name.as_deref(),
+                    );
+                }
                 return Ok(Some(ContainerScanResult {
                     services: host_data.services,
                     ports: host_data.ports,
@@ -508,11 +517,17 @@ impl<'a> ContainerScanner<'a> {
                 )
                 .await
             {
-                runtime_matches_as_containers(
-                    self.runtime,
-                    &mut host_data.services,
-                    container.name.as_deref(),
-                );
+                if fronts_runtime_api(
+                    self.api_port,
+                    &tcp_port_numbers(host_ip_to_host_ports.values().flatten()),
+                    &[],
+                ) {
+                    as_api_proxy(
+                        self.runtime,
+                        &mut host_data.services,
+                        container.name.as_deref(),
+                    );
+                }
 
                 // Add all ip_addresses relevant to container to the ip_addresses vec
                 container_interfaces_and_subnets.iter().for_each(|(i, _)| {
@@ -1501,26 +1516,49 @@ pub(super) fn spread_bindings_across_endpoints(
     }
 }
 
-/// Record a container that answers as the runtime itself as a generic container, named after it.
+/// Whether a container fronts the runtime's API on `api_port`, the port the proxy credential
+/// connects to (`None` for a socket credential, which has no proxy).
 ///
-/// A proxy or socket forwarder in front of the runtime (`docker-api-proxy`) serves the runtime's
-/// API, so the runtime's own definition matches it. Kept as that definition, it is the same
-/// service as the runtime by host and definition, folds into it, and leaves the runtime recorded
-/// as its own container.
-pub(crate) fn runtime_matches_as_containers(
+/// A bridge container fronts it when it publishes `api_port` on the host. A host-network
+/// container shares the host's network namespace, so its listening sockets are the host's and
+/// cannot single it out; the only per-container evidence is the image's declared exposed ports,
+/// so a host-network proxy whose image declares nothing is not identified.
+pub(crate) fn fronts_runtime_api(
+    api_port: Option<u16>,
+    published_host_ports: &[u16],
+    host_networked_exposed_ports: &[u16],
+) -> bool {
+    api_port.is_some_and(|port| {
+        published_host_ports.contains(&port) || host_networked_exposed_ports.contains(&port)
+    })
+}
+
+/// Record the services a scan found for a container that fronts the runtime's API
+/// ([`fronts_runtime_api`]) as that runtime's API proxy, named after the container.
+///
+/// The API it serves is the runtime's own, so nothing in it tells the proxy from the daemon.
+/// Recorded as anything generic, it reached the server's container safety net, which copied the
+/// container's identity onto the service holding the same port: the runtime itself.
+pub(crate) fn as_api_proxy(
     runtime: ContainerRuntime,
     services: &mut [Service],
     container_name: Option<&str>,
 ) {
-    for service in services
-        .iter_mut()
-        .filter(|s| runtime.is_runtime_role(s.base.service_definition.virtualization_role()))
-    {
-        service.base.service_definition = runtime.container_def();
+    for service in services.iter_mut() {
+        service.base.service_definition = runtime.api_proxy_def();
         if let Some(name) = container_name {
             service.base.name = name.trim_start_matches('/').to_string();
         }
     }
+}
+
+/// The TCP port numbers in a port map.
+fn tcp_port_numbers<'a>(ports: impl IntoIterator<Item = &'a PortType>) -> Vec<u16> {
+    ports
+        .into_iter()
+        .filter(|p| p.protocol() == TransportProtocol::Tcp)
+        .map(|p| p.number())
+        .collect()
 }
 
 #[cfg(test)]
@@ -1768,33 +1806,43 @@ mod tests {
         assert_eq!(port_bindings(&services[0]), after_first);
     }
 
-    /// A proxy answering as the Docker API is a container under Docker, named after itself, not
-    /// a second Docker; any other match is left alone.
+    /// The container fronting the runtime's API is the one holding the proxy credential's port,
+    /// on whatever port it is set to; a socket credential has no proxy.
     #[test]
-    fn a_container_answering_as_the_runtime_is_a_generic_container() {
+    fn the_container_holding_the_credentials_port_fronts_the_api() {
+        // Published on the default port, and on a non-default one.
+        assert!(fronts_runtime_api(Some(2375), &[2375], &[]));
+        assert!(fronts_runtime_api(Some(2380), &[9000, 2380], &[]));
+        // A container publishing other ports is not the proxy.
+        assert!(!fronts_runtime_api(Some(2375), &[9000, 9443], &[]));
+        // A host-network container counts by its image's declared exposed ports.
+        assert!(fronts_runtime_api(Some(2375), &[], &[2375]));
+        // A socket credential names no port, so nothing is its proxy.
+        assert!(!fronts_runtime_api(None, &[2375], &[2375]));
+    }
+
+    /// Each runtime records its proxy under its own definition, named after the container.
+    #[test]
+    fn an_api_proxy_is_recorded_under_its_runtimes_definition() {
         use crate::server::services::definitions::ServiceDefinitionRegistry;
         use crate::server::shared::storage::traits::Storable;
-        let service = |definition: &str| {
-            Service::new(ServiceBase {
-                name: definition.to_string(),
-                service_definition: ServiceDefinitionRegistry::find_by_id(definition)
-                    .unwrap_or_else(|| panic!("{definition} is registered")),
+        for runtime in [ContainerRuntime::Docker, ContainerRuntime::Podman] {
+            let mut services = vec![Service::new(ServiceBase {
+                name: "Docker Container".to_string(),
+                service_definition: ServiceDefinitionRegistry::find_by_id("Docker Container")
+                    .expect("registered"),
                 ..Default::default()
-            })
-        };
-        let mut services = vec![service("Docker"), service("Portainer")];
-
-        runtime_matches_as_containers(
-            ContainerRuntime::Docker,
-            &mut services,
-            Some("/docker-api-proxy"),
+            })];
+            as_api_proxy(runtime, &mut services, Some("/docker-api-proxy"));
+            assert_eq!(services[0].base.name, "docker-api-proxy");
+            assert_eq!(
+                services[0].base.service_definition.id(),
+                runtime.api_proxy_def().id()
+            );
+        }
+        assert_ne!(
+            ContainerRuntime::Docker.api_proxy_def().id(),
+            ContainerRuntime::Podman.api_proxy_def().id()
         );
-
-        assert_eq!(services[0].base.name, "docker-api-proxy");
-        assert_eq!(
-            services[0].base.service_definition.id(),
-            ContainerRuntime::Docker.container_def().id()
-        );
-        assert_eq!(services[1].base.name, "Portainer");
     }
 }
