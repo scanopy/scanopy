@@ -25,7 +25,6 @@ import type {
 	HostResponse,
 	HostFormData,
 	IPAddress,
-	AllIPAddresses,
 	Interface,
 	Port,
 	CreateHostWithServicesRequest,
@@ -858,19 +857,6 @@ export function useRescanHostMutation() {
 			pushSuccess(hosts_rescanStartedToast({ name: name ?? '' }));
 		}
 	}));
-}
-
-/**
- * Format an interface for display
- */
-export function formatIPAddress(
-	i: IPAddress | AllIPAddresses,
-	isContainerSubnetFn: (subnetId: string) => boolean
-): string {
-	if (i.id == null) return i.name;
-	return isContainerSubnetFn(i.subnet_id)
-		? (i.name ?? i.ip_address)
-		: (i.name ? i.name + ': ' : '') + i.ip_address;
 }
 
 /**

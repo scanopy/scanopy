@@ -103,7 +103,7 @@
 	import { useSubnetsQuery, isContainerSubnet } from '$lib/features/subnets/queries';
 	import type { Credential } from '$lib/features/credentials/types/base';
 	import type { Interface } from '$lib/features/credentials/types/base';
-	import { formatIPAddress } from '../queries';
+	import { formatIPAddress } from '../address-labels';
 	import { useNetworksQuery } from '$lib/features/networks/queries';
 	import { modalState, resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
 	import type { components } from '$lib/api/schema';

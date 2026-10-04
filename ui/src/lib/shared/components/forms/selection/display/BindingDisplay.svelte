@@ -3,7 +3,8 @@
 	import type { Binding } from '$lib/features/services/types/base';
 	import type { IPAddress, Port } from '$lib/features/hosts/types/base';
 	import { ALL_IP_ADDRESSES } from '$lib/features/hosts/types/base';
-	import { formatPort } from '$lib/shared/utils/formatting';
+	import { formatIPAddress, formatPortBinding } from '$lib/features/hosts/address-labels';
+	import { hosts_bindings_unknownIPAddress } from '$lib/paraglide/messages';
 
 	// Binding-only display — does NOT include service info, since the service is shown
 	// separately in the caller (e.g. in the dep-builder card). For a display that
@@ -15,34 +16,20 @@
 		compact?: boolean;
 	}
 
-	function formatInterfaceForBinding(
-		iface: IPAddress | typeof ALL_IP_ADDRESSES,
-		isContainerSubnet: (subnetId: string) => boolean
-	): string {
-		if (iface.id == null) return iface.name;
-		return isContainerSubnet(iface.subnet_id)
-			? (iface.name ?? iface.ip_address)
-			: (iface.name ? iface.name + ': ' : '') + iface.ip_address;
-	}
-
 	export const BindingDisplay: EntityDisplayComponent<Binding, BindingDisplayContext> = {
 		getId: (binding: Binding) => binding.id,
 		getLabel: (binding: Binding, context: BindingDisplayContext) => {
 			if (binding.type === 'IPAddress') {
 				const iface = context.ip_addresses.find((i) => i.id === binding.ip_address_id);
 				return iface
-					? formatInterfaceForBinding(iface, context.isContainerSubnet)
-					: 'Unknown Interface';
+					? formatIPAddress(iface, context.isContainerSubnet)
+					: hosts_bindings_unknownIPAddress();
 			}
 			const port = context.ports.find((p) => p.id === binding.port_id);
 			const iface = binding.ip_address_id
 				? context.ip_addresses.find((i) => i.id === binding.ip_address_id)
 				: ALL_IP_ADDRESSES;
-			const portFormatted = port ? formatPort(port) : 'Unknown Port';
-			const interfaceFormatted = iface
-				? formatInterfaceForBinding(iface, context.isContainerSubnet)
-				: 'Unknown Interface';
-			return `${interfaceFormatted} · ${portFormatted}`;
+			return formatPortBinding(port, iface, context.isContainerSubnet);
 		},
 		getDescription: () => '',
 		getIcon: () => entities.getIconComponent('Port'),

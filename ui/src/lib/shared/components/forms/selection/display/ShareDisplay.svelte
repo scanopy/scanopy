@@ -1,10 +1,10 @@
 <script lang="ts" module>
 	import { entities } from '$lib/shared/stores/metadata';
 	import {
-		common_enabled,
 		common_disabled,
 		common_expiresOn,
-		common_never
+		common_untitled,
+		shares_neverExpires
 	} from '$lib/paraglide/messages';
 	import { formatDate } from '$lib/shared/utils/formatting';
 
@@ -13,14 +13,12 @@
 
 	export const ShareDisplay: EntityDisplayComponent<Share, ShareDisplayContext> = {
 		getId: (share: Share) => share.id,
-		getLabel: (share: Share) => share.name || 'Untitled',
-		getDescription: (share: Share) => {
-			const status = share.is_enabled ? common_enabled() : common_disabled();
-			if (share.expires_at) {
-				return `${status} · ${common_expiresOn({ date: formatDate(share.expires_at) })}`;
-			}
-			return `${status} · ${common_never()}`;
-		},
+		getLabel: (share: Share) => share.name || common_untitled(),
+		// Status shows as the Disabled tag, so the description carries only the expiry.
+		getDescription: (share: Share) =>
+			share.expires_at
+				? common_expiresOn({ date: formatDate(share.expires_at) })
+				: shares_neverExpires(),
 		getIcon: () => entities.getIconComponent('Share'),
 		getIconColor: () => entities.getColorHelper('Share').icon,
 		getTags: (share: Share) => {

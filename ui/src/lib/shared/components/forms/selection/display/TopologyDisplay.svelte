@@ -2,6 +2,7 @@
 	import { entities } from '$lib/shared/stores/metadata';
 	import { queryClient, queryKeys } from '$lib/api/query-client';
 	import type { Network } from '$lib/features/networks/types';
+	import { common_unknownNetwork } from '$lib/paraglide/messages';
 
 	export const TopologyDisplay: EntityDisplayComponent<Topology, object> = {
 		getId: (topology: Topology) => topology.id,
@@ -10,7 +11,7 @@
 		getDescription: (topology: Topology) => {
 			const networksData = queryClient.getQueryData<Network[]>(queryKeys.networks.all) ?? [];
 			const network = networksData.find((n) => n.id == topology.network_id);
-			return network ? network.name : 'Unknown Network';
+			return network ? network.name : common_unknownNetwork();
 		},
 		getIcon: () => entities.getIconComponent('Topology'),
 		getIconColor: () => entities.getColorHelper('Topology').icon

@@ -1,6 +1,6 @@
 <script lang="ts" context="module">
 	import { entities, serviceDefinitions } from '$lib/shared/stores/metadata';
-	import { formatPort } from '$lib/shared/utils/formatting';
+	import { formatPortBinding } from '$lib/features/hosts/address-labels';
 	import type { PortBinding, Service } from '$lib/features/services/types/base';
 	import {
 		ALL_IP_ADDRESSES,
@@ -21,17 +21,6 @@
 		isContainerSubnet: (subnetId: string) => boolean;
 	}
 
-	// Helper to format interface for display
-	function formatIPAddressForBinding(
-		ipAddr: IPAddress | typeof ALL_IP_ADDRESSES,
-		isContainerSubnet: (subnetId: string) => boolean
-	): string {
-		if (ipAddr.id == null) return ipAddr.name;
-		return isContainerSubnet(ipAddr.subnet_id)
-			? (ipAddr.name ?? ipAddr.ip_address)
-			: (ipAddr.name ? ipAddr.name + ': ' : '') + ipAddr.ip_address;
-	}
-
 	export const PortBindingDisplay: EntityDisplayComponent<PortBinding, PortBindingDisplayContext> =
 		{
 			getId: (binding: PortBinding) => binding.id,
@@ -44,11 +33,7 @@
 				const ipAddr = binding.ip_address_id
 					? ipAddressesData.find((i) => i.id === binding.ip_address_id)
 					: ALL_IP_ADDRESSES;
-				const portFormatted = port ? formatPort(port) : 'Unknown Port';
-				const ipAddressFormatted = ipAddr
-					? formatIPAddressForBinding(ipAddr, isContainerSubnetFn)
-					: 'Unknown IP Address';
-				return ipAddressFormatted + ' · ' + portFormatted;
+				return formatPortBinding(port, ipAddr, isContainerSubnetFn);
 			},
 			getDescription: () => '',
 			getIcon: () => entities.getIconComponent('Port'),

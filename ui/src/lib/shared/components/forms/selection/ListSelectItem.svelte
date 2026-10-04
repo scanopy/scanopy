@@ -7,6 +7,9 @@
 	import TagPickerInline from '$lib/features/tags/components/TagPickerInline.svelte';
 	import InlineDescription from '$lib/features/topology/components/panel/inspectors/InlineDescription.svelte';
 	import type { EntityDisplayComponent } from './types';
+	import { displayTags, fitTags } from './display-tags';
+	import { tooltip } from '$lib/shared/actions/tooltip';
+	import { common_moreItems } from '$lib/paraglide/messages';
 
 	export let item: T;
 	export let displayComponent: EntityDisplayComponent<T, C>;
@@ -16,7 +19,8 @@
 	const staticTagsContext = getContext<boolean>('staticTags') ?? false;
 
 	$: icon = displayComponent.getIcon?.(item, context);
-	$: tags = displayComponent.getTags?.(item, context) || [];
+	$: tags = displayTags(displayComponent, item, context);
+	$: label = displayComponent.getLabel(item, context);
 	$: description = displayComponent.getDescription?.(item, context) || '';
 	$: tagPickerProps = displayComponent.getTagPickerProps?.(item, context) ?? null;
 	$: showTagPicker =
@@ -50,61 +54,29 @@
 	let containerEl: HTMLDivElement;
 	let labelEl: HTMLSpanElement;
 	let measureEl: HTMLDivElement;
-	let visibleTagCount = 1;
+	let visibleTagCount = 0;
+	let labelTruncated = false;
 
-	const MIN_LABEL_WIDTH = 60;
-	const GAP = 8; // gap-2 = 0.5rem = 8px
-	const TAG_GAP = 4; // gap-1 = 0.25rem = 4px
-	const MORE_WIDTH = 50; // approximate width for "+X more"
+	const SPACING = {
+		gap: 8, // gap-2 = 0.5rem = 8px
+		tagGap: 4, // gap-1 = 0.25rem = 4px
+		moreWidth: 50 // approximate width for "+X more"
+	};
 
+	// The label keeps its full width and tags take what's left (see `fitTags`). The label only
+	// truncates when it alone is wider than the row, and then carries its full text as a tooltip.
 	function calculateVisibleTags() {
-		if (!containerEl || !labelEl || !measureEl || tags.length === 0) return;
+		if (!containerEl || !labelEl) return;
+		labelTruncated = labelEl.scrollWidth > labelEl.clientWidth;
+		if (!measureEl || tags.length === 0) return;
 
-		const containerWidth = containerEl.offsetWidth;
-		const labelScrollWidth = labelEl.scrollWidth;
-
-		// Get measured tag widths
-		const tagEls = measureEl.querySelectorAll('[data-tag]');
 		const tagWidths: number[] = [];
-		tagEls.forEach((el) => tagWidths.push((el as HTMLElement).offsetWidth));
-
+		measureEl
+			.querySelectorAll('[data-tag]')
+			.forEach((el) => tagWidths.push((el as HTMLElement).offsetWidth));
 		if (tagWidths.length === 0) return;
 
-		// Calculate how much space we have for tags
-		// Start with full label, then see how many tags fit
-		let availableForTags = containerWidth - labelScrollWidth - GAP;
-
-		// If label takes too much space, give it minimum and use the rest for tags
-		if (availableForTags < tagWidths[0]) {
-			availableForTags = containerWidth - MIN_LABEL_WIDTH - GAP;
-		}
-
-		// Always show at least one tag
-		let count = 1;
-		let usedWidth = tagWidths[0];
-
-		// Try to fit more tags
-		for (let i = 1; i < tagWidths.length; i++) {
-			const needsMore = i < tagWidths.length - 1;
-			const extraWidth = TAG_GAP + tagWidths[i] + (needsMore ? TAG_GAP + MORE_WIDTH : 0);
-
-			if (usedWidth + extraWidth <= availableForTags) {
-				count++;
-				usedWidth += TAG_GAP + tagWidths[i];
-			} else {
-				break;
-			}
-		}
-
-		// If we're not showing all tags, account for "+X more" in final check
-		if (count < tagWidths.length) {
-			const totalWithMore = usedWidth + TAG_GAP + MORE_WIDTH;
-			if (totalWithMore > availableForTags && count > 1) {
-				count--;
-			}
-		}
-
-		visibleTagCount = count;
+		visibleTagCount = fitTags(containerEl.offsetWidth, labelEl.scrollWidth, tagWidths, SPACING);
 	}
 
 	onMount(() => {
@@ -114,13 +86,18 @@
 		return () => observer.disconnect();
 	});
 
-	$: if (tags && containerEl) {
-		// Recalculate when tags change
+	$: if ((tags || label) && containerEl) {
+		// Recalculate when the tags or the label change
 		requestAnimationFrame(() => calculateVisibleTags());
 	}
 
 	$: visibleTags = tags.slice(0, visibleTagCount);
 	$: hiddenCount = tags.length - visibleTagCount;
+	$: hiddenTagsTooltip = tags
+		.slice(visibleTagCount)
+		.map((tag) => tag.label ?? tag.title ?? '')
+		.filter(Boolean)
+		.join('\n');
 </script>
 
 <div class="flex min-w-0 items-center gap-3" class:list-select-item-container={showTagPicker}>
@@ -137,11 +114,14 @@
 	<!-- Label and description -->
 	<div class="min-w-0 flex-1 overflow-hidden text-left">
 		<div bind:this={containerEl} class="flex min-w-0 items-center gap-2">
-			<span bind:this={labelEl} class="text-secondary truncate"
-				>{displayComponent.getLabel(item, context)}</span
+			<span
+				bind:this={labelEl}
+				use:tooltip
+				data-tooltip={labelTruncated ? label : null}
+				class="text-secondary max-w-full flex-shrink-0 truncate">{label}</span
 			>
 			{#if tags.length > 0}
-				<div class="flex flex-shrink-0 items-center gap-1">
+				<div class="flex min-w-0 items-center gap-1 overflow-hidden">
 					{#each visibleTags as tag, i (`${tag.label}-${i}`)}
 						{#if !staticTags && !staticTagsContext && tag.entityRef}
 							<EntityTag
@@ -178,7 +158,12 @@
 						{/if}
 					{/each}
 					{#if hiddenCount > 0}
-						<span class="text-tertiary whitespace-nowrap text-xs">+{hiddenCount} more</span>
+						<span
+							use:tooltip
+							data-tooltip={hiddenTagsTooltip || null}
+							class="text-tertiary whitespace-nowrap text-xs"
+							>{common_moreItems({ count: hiddenCount })}</span
+						>
 					{/if}
 				</div>
 			{/if}

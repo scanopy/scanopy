@@ -4,14 +4,16 @@
 	import { entityRef, type TagProps } from '$lib/shared/components/data/types';
 	import type { Network } from '$lib/features/networks/types';
 	import { getFreshnessTag } from '$lib/shared/utils/freshness';
+	import { formatIPAddress } from '$lib/features/hosts/address-labels';
+	import { hosts_noMacAddress } from '$lib/paraglide/messages';
+
+	export type IPAddressTagRole = 'subnet' | 'stale';
 
 	// Context for interface display - needs access to subnets for lookups
-	export interface IPAddressDisplayContext {
+	export interface IPAddressDisplayContext extends DisplayTagContext<IPAddressTagRole> {
 		subnets: Subnet[];
 		/** Networks to judge each address's staleness against. Without them, no Stale tag. */
 		networks?: Network[];
-		/** Drops the subnet tag, which topology already shows as the address's container. */
-		compact?: boolean;
 		/** A non-null `disabledReason` renders the option disabled with that tooltip. */
 		disabledReason?: string | null;
 	}
@@ -26,31 +28,29 @@
 		getId: (iface) => iface.id ?? ALL_IP_ADDRESSES_ID,
 		getDisabled: (_iface, context) => !!context?.disabledReason,
 		getDisabledReason: (_iface, context) => context?.disabledReason ?? null,
-		getLabel: (iface, context?: IPAddressDisplayContext) => {
-			if (iface.id == null) return iface.name;
-			// Align with formatIPAddress(): "name: IP" or just "IP" (or name-only for containers)
-			const subnetsData = context?.subnets ?? [];
-			const subnet = getSubnetById(subnetsData, iface.subnet_id);
-			if (subnet && isContainerSubnet(subnet)) {
-				return iface.name ?? iface.ip_address;
-			}
-			return (iface.name ? iface.name + ': ' : '') + iface.ip_address;
-		},
+		getLabel: (iface, context?: IPAddressDisplayContext) =>
+			formatIPAddress(iface, (subnetId) => {
+				const subnet = getSubnetById(context?.subnets ?? [], subnetId);
+				return !!subnet && isContainerSubnet(subnet);
+			}),
 		getDescription: (iface) => {
 			if (iface.id == null) return '';
-			return iface.mac_address ?? 'No MAC';
+			return iface.mac_address ?? hosts_noMacAddress();
 		},
 		getIcon: () => entities.getIconComponent('IPAddress'),
 		getIconColor: () => entities.getColorHelper('IPAddress').icon,
+		// Topology already shows the subnet as the address's container.
+		compactHides: ['subnet'] satisfies IPAddressTagRole[],
 		getTags: (iface, context: IPAddressDisplayContext) => {
 			if (iface.id == null) return [];
 			const tags: TagProps[] = [];
 			const subnet = getSubnetById(context?.subnets ?? [], iface.subnet_id);
-			if (!context?.compact && subnet && !isContainerSubnet(subnet)) {
+			if (subnet && !isContainerSubnet(subnet)) {
 				tags.push({
 					label: subnet.cidr,
 					color: entities.getColorHelper('Subnet').color,
-					entityRef: entityRef('Subnet', subnet.id, subnet)
+					entityRef: entityRef('Subnet', subnet.id, subnet),
+					role: 'subnet' satisfies IPAddressTagRole
 				});
 			}
 			// Each address carries its own verdict, so one the host stopped answering on reads
@@ -60,7 +60,7 @@
 				context?.networks?.find((n) => n.id === iface.network_id),
 				{ entityTypeLabel: entities.getName('IPAddress') || undefined }
 			);
-			if (stale) tags.push(stale);
+			if (stale) tags.push({ ...stale, role: 'stale' satisfies IPAddressTagRole });
 			return tags;
 		},
 		getCategory: () => null
@@ -70,7 +70,7 @@
 <script lang="ts">
 	import ListSelectItem from '$lib/shared/components/forms/selection/ListSelectItem.svelte';
 	import type { AllIPAddresses, IPAddress } from '$lib/features/hosts/types/base';
-	import type { EntityDisplayComponent } from '../types';
+	import type { DisplayTagContext, EntityDisplayComponent } from '../types';
 	import { entities } from '$lib/shared/stores/metadata';
 
 	interface Props {

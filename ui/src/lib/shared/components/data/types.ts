@@ -33,6 +33,12 @@ export interface TagProps {
 	entityRef?: EntityRef;
 	pill?: boolean;
 	title?: string;
+	/**
+	 * What the tag says about the row (a display's own vocabulary, e.g. `subnet`, `guest`). A
+	 * display context's `hideTags`, or `compact` through the display's `compactHides`, drops tags
+	 * by role where they repeat what the surrounding view already shows.
+	 */
+	role?: string;
 	onmouseenter?: () => void;
 	onmouseleave?: () => void;
 	onclick?: () => void;

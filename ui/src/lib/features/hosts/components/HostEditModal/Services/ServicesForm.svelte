@@ -146,6 +146,7 @@
 				allowItemRemove={() => !isTransferringPortBindings}
 				allowReorder={!isTransferringPortBindings}
 				optionDisplayComponent={ServiceTypeDisplay}
+				getOptionContext={() => ({ hideTags: ['category' as const] })}
 				itemDisplayComponent={ServiceDisplay}
 				getItemContext={() => ({})}
 				onAdd={handleAddService}

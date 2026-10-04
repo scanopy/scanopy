@@ -13,7 +13,7 @@
 	import { usePortsQuery } from '$lib/features/ports/queries';
 	import { useIPAddressesQuery } from '$lib/features/ip-addresses/queries';
 	import { useSubnetsQuery, isContainerSubnet } from '$lib/features/subnets/queries';
-	import { formatIPAddress } from '$lib/features/hosts/queries';
+	import { formatIPAddress } from '$lib/features/hosts/address-labels';
 	import { formatPort } from '$lib/shared/utils/formatting';
 	import { lastSeenItems } from '$lib/shared/utils/freshness';
 	import type { IPAddress, Port } from '$lib/features/hosts/types/base';

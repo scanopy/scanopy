@@ -25,7 +25,11 @@
 		ServiceDisplay,
 		type ServiceDisplayContext
 	} from '$lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
-	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	import {
+		HostDisplay,
+		type HostDisplayContext,
+		type HostTagRole
+	} from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import type { Dependency } from '$lib/features/dependencies/types/base';
 
@@ -203,10 +207,11 @@
 		return edgeType === 'ContainerRuntime';
 	}
 
-	function hostContext(hostId: string) {
+	function hostContext(hostId: string, hideTags: HostTagRole[] = []): HostDisplayContext {
 		return {
 			services: topology?.services.filter((s) => s.host_id === hostId) ?? [],
-			compact: true
+			compact: true,
+			hideTags
 		};
 	}
 </script>
@@ -359,7 +364,7 @@
 							<div class="card card-static">
 								<EntityDisplayWrapper
 									item={host}
-									context={hostContext(host.id)}
+									context={hostContext(host.id, ['guest'])}
 									displayComponent={HostDisplay}
 								/>
 							</div>

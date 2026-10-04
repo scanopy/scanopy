@@ -7,7 +7,7 @@
 	export const SameHostEdgeDisplay: EntityDisplayComponent<TopologyEdge, EdgeDisplayContext> = {
 		getId: (edge) => edge.id,
 		getLabel: (edge, context) => {
-			if (!context?.topology || !('host_id' in edge)) return 'Interface';
+			if (!context?.topology || !('host_id' in edge)) return edgeTypes.getName(edge.edge_type);
 			const host = context.topology.hosts.find((h) => h.id === edge.host_id);
 			return host ? hostDisplayName(host) : common_unknownEntity({ entity: common_host() });
 		},

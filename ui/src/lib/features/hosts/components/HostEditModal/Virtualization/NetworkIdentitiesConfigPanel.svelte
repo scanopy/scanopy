@@ -37,7 +37,8 @@
 		allowItemRemove={() => false}
 		options={[] as Host[]}
 		items={identityHosts}
-		getItemContext={() => hostDisplayContext(ipAddressesQuery.data ?? [], services)}
+		getItemContext={() =>
+			hostDisplayContext(ipAddressesQuery.data ?? [], services, { hideTags: ['guest'] })}
 		optionDisplayComponent={HostDisplay}
 		itemDisplayComponent={HostDisplay}
 	/>

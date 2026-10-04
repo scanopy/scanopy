@@ -106,7 +106,9 @@
 						<EntityDisplayWrapper
 							context={{
 								services: topology?.services.filter((s) => s.host_id === sourceHost.id) ?? [],
-								compact: true
+								compact: true,
+								// The link is about which port meets which; the guest type is noise.
+								hideTags: ['guest']
 							}}
 							item={sourceHost}
 							displayComponent={HostDisplay}
@@ -116,7 +118,7 @@
 				{#if sourceInterface}
 					<div class="card card-static">
 						<EntityDisplayWrapper
-							context={undefined}
+							context={{ compact: true }}
 							item={sourceInterface}
 							displayComponent={InterfaceDisplay}
 						/>
@@ -140,7 +142,9 @@
 						<EntityDisplayWrapper
 							context={{
 								services: topology?.services.filter((s) => s.host_id === targetHost.id) ?? [],
-								compact: true
+								compact: true,
+								// The link is about which port meets which; the guest type is noise.
+								hideTags: ['guest']
 							}}
 							item={targetHost}
 							displayComponent={HostDisplay}
@@ -150,7 +154,7 @@
 				{#if targetInterface}
 					<div class="card card-static">
 						<EntityDisplayWrapper
-							context={undefined}
+							context={{ compact: true }}
 							item={targetInterface}
 							displayComponent={InterfaceDisplay}
 						/>

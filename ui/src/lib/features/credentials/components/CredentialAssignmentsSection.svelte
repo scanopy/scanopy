@@ -123,8 +123,14 @@
 	// The assigned and daemon hosts' rows; the add-dropdown's rows come from `hostPicker.context`.
 	const knownHostServices = useHostServices(() => knownHosts.map((h) => h.id));
 
+	// A credential is scoped by host and address, so a host's service tags say nothing here.
+	const HIDE_SERVICE_TAGS: HostDisplayContext = { hideTags: ['service'] };
+
 	function hostContext(extra: HostDisplayContext = {}) {
-		return hostDisplayContext(allIpAddresses, knownHostServices.services, extra);
+		return hostDisplayContext(allIpAddresses, knownHostServices.services, {
+			...HIDE_SERVICE_TAGS,
+			...extra
+		});
 	}
 
 	// --- Networks (Broadcast) ---
@@ -240,7 +246,10 @@
 			hasMore={hostPicker.hasMore}
 			loading={hostPicker.loading}
 			getOptionContext={(h) =>
-				hostPicker.context({ disabledReason: hostOptionDisabledReason(h.id) })}
+				hostPicker.context({
+					...HIDE_SERVICE_TAGS,
+					disabledReason: hostOptionDisabledReason(h.id)
+				})}
 			items={selectedHosts}
 			getItemContext={() => hostContext()}
 			optionDisplayComponent={HostDisplay}
