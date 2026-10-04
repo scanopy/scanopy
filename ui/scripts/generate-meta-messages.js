@@ -81,6 +81,10 @@ export const COVERED_FIXTURES = [
 	{ file: 'entity-sources.json', key: 'entity_sources', kind: 'typeMetadata' },
 	// How confidently discovery matched a service to its definition, keyed by `MatchConfidence`.
 	{ file: 'match-confidences.json', key: 'match_confidences', kind: 'typeMetadata' },
+	// The hypervisor platform a guest runs on, keyed by `virtualization_metadata.type`.
+	{ file: 'host-virtualizations.json', key: 'host_virtualizations', kind: 'typeMetadata' },
+	// A Proxmox guest's type (VM or LXC container), keyed by `ProxmoxGuestType`.
+	{ file: 'proxmox-guest-types.json', key: 'proxmox_guest_types', kind: 'typeMetadata' },
 	// Scan warnings. Descriptions here are templates with `{named}` slots, unlike every other
 	// entry above: the values are copied through verbatim, paraglide compiles them into functions
 	// that take an inputs object, and `metaDescriptionWith` in src/lib/i18n/metadata.ts is what

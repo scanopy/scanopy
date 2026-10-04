@@ -158,6 +158,24 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
             .collect();
     write_fixture(&match_confidences, output_dir, "match-confidences.json");
 
+    // Which hypervisor platform a guest runs on, keyed by `virtualization_metadata.type`.
+    let host_virtualizations: Vec<TypeMetadata> =
+        crate::server::hosts::r#impl::virtualization::HostVirtualizationDiscriminants::iter()
+            .map(|v| v.to_metadata())
+            .collect();
+    write_fixture(
+        &host_virtualizations,
+        output_dir,
+        "host-virtualizations.json",
+    );
+
+    // A Proxmox guest's type (VM or LXC container), keyed by `ProxmoxGuestType`.
+    let proxmox_guest_types: Vec<TypeMetadata> =
+        crate::server::hosts::r#impl::virtualization::ProxmoxGuestType::iter()
+            .map(|t| t.to_metadata())
+            .collect();
+    write_fixture(&proxmox_guest_types, output_dir, "proxmox-guest-types.json");
+
     // Keyed by `CredentialQueryPayloadDiscriminants`, which is what a coded warning carries.
     // Neither `integrations.json` (keyed by display name) nor `credential-types.json` (keyed by
     // `CredentialType`) can resolve those eight values.
