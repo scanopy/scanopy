@@ -185,8 +185,9 @@
 
 	let nodeOpacity = $derived(shouldFadeOut ? 0.3 : 1);
 
-	// Only the handle styling used this, and `NodeHandles` renders the geometry statically now.
-	// const hostColorHelper = entities.getColorHelper('Host');
+	// Marks a host inlined in a manager's box (a network identity, a macvlan container).
+	const hostColorHelper = entities.getColorHelper('Host');
+	const HostIcon = entities.getIconComponent('Host');
 	const virtualizationColorHelper = concepts.getColorHelper('Virtualization');
 	const containerizationColorHelper = concepts.getColorHelper('Containerization');
 	const discoveryColorHelper = entities.getColorHelper('Discovery');
@@ -539,25 +540,35 @@
 										{group.header?.name ?? common_containers()}
 									</span>
 								</div>
-								{#each group.services as service (service.id)}
-									{@render serviceCard(service)}
-								{/each}
-								{#each group.hosts as member (member.host.id)}
-									<div
-										class="flex w-full flex-col items-center py-1"
-										style="min-width: 0; max-width: 100%;"
-									>
-										<span
-											class="text-secondary w-full truncate text-center text-xs font-medium"
-											title={hostDisplayName(member.host)}
-										>
-											{hostDisplayName(member.host)}
-										</span>
-										{#each member.services as service (service.id)}
+								<!-- One rule between children, so each container or identity reads as its
+								  own entry even when it carries no services. -->
+								<div class="w-full divide-y divide-gray-200 dark:divide-gray-700">
+									{#each group.services as service (service.id)}
+										<div class="w-full">
 											{@render serviceCard(service)}
-										{/each}
-									</div>
-								{/each}
+										</div>
+									{/each}
+									{#each group.hosts as member (member.host.id)}
+										<div
+											class="flex w-full flex-col items-center py-1"
+											style="min-width: 0; max-width: 100%;"
+										>
+											<div
+												class="flex w-full items-center justify-center gap-1 pt-1"
+												style="min-width: 0;"
+												title={hostDisplayName(member.host)}
+											>
+												<HostIcon class="h-4 w-4 flex-shrink-0 {hostColorHelper.icon}" />
+												<span class="text-secondary truncate text-xs font-medium">
+													{hostDisplayName(member.host)}
+												</span>
+											</div>
+											{#each member.services as service (service.id)}
+												{@render serviceCard(service)}
+											{/each}
+										</div>
+									{/each}
+								</div>
 							</div>
 						{/each}
 						{#if nodeRenderData.hiddenOpenPorts.length > 0 && nodeRenderData.elementType !== 'Host'}
