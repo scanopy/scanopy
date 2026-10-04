@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { type NodeProps, useInternalNode } from '@xyflow/svelte';
 	import NodeHandles from './NodeHandles.svelte';
 	import { concepts, entities, serviceDefinitions } from '$lib/shared/stores/metadata';
@@ -31,7 +30,12 @@
 	import { getContext } from 'svelte';
 	import type { Port } from '$lib/features/hosts/types/base';
 	import type { Node, Edge } from '@xyflow/svelte';
-	import { topology_hideOpenPorts, topology_openPortsSummary } from '$lib/paraglide/messages';
+	import {
+		common_containers,
+		topology_hideOpenPorts,
+		topology_openPortsSummary
+	} from '$lib/paraglide/messages';
+	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 	import { ELEMENT_HANDLE_SIZE_PX } from '../../pipeline/build-flow-nodes';
 	import { ELEMENT_STATE_FILL, elementState, portStatusDotColor } from '../../element-state-color';
 
@@ -154,73 +158,6 @@
 	function getPortById(portId: string): Port | null {
 		return portsById?.get(portId) ?? null;
 	}
-
-	// Group services into bare vs containerized for dotted-border rendering.
-	// Uses inline_groups from the topology node (populated by element rules)
-	// instead of re-deriving from virtualization entity fields.
-	type ServiceList = ElementRenderData['services'];
-	type ServiceGroup = {
-		runtimeService: ServiceList[number] | null;
-		containers: ServiceList;
-		runtimeId: string;
-	};
-	let serviceGroups = $derived.by(
-		(): {
-			bare: ServiceList;
-			containerized: ServiceGroup[];
-		} => {
-			const services = nodeRenderData?.services ?? [];
-			if (nodeRenderData?.elementType !== 'Host' || services.length === 0) {
-				return { bare: services, containerized: [] };
-			}
-
-			// Read inline_groups from the topology node data.
-			// Each entry has entity_id (the service), group_id (shared by group members), and role.
-			const inlineGroups = ((data as Record<string, unknown>).inline_groups ?? []) as Array<{
-				entity_id: string;
-				group_id: string;
-				role: string;
-			}>;
-
-			if (inlineGroups.length === 0) {
-				return { bare: services, containerized: [] };
-			}
-
-			// Build groups from inline_groups — generic matching by entity_id, no domain logic
-			const groupMembers = new SvelteMap<string, ServiceList>();
-			const groupHeaders = new SvelteMap<string, ServiceList[number] | null>();
-			const memberServiceIds = new SvelteSet<string>();
-
-			for (const ig of inlineGroups) {
-				if (!groupMembers.has(ig.group_id)) {
-					groupMembers.set(ig.group_id, []);
-					groupHeaders.set(ig.group_id, null);
-				}
-				const svc = services.find((s) => s.id === ig.entity_id);
-				if (!svc) continue;
-				memberServiceIds.add(svc.id);
-				if (ig.role === 'Header') {
-					groupHeaders.set(ig.group_id, svc);
-				} else {
-					groupMembers.get(ig.group_id)!.push(svc);
-				}
-			}
-
-			const bareServices = services.filter((s) => !memberServiceIds.has(s.id));
-			const groups: ServiceGroup[] = [];
-			for (const [groupId, containers] of groupMembers) {
-				if (containers.length > 0 || groupHeaders.get(groupId)) {
-					groups.push({
-						runtimeService: groupHeaders.get(groupId) ?? null,
-						containers,
-						runtimeId: groupId
-					});
-				}
-			}
-
-			return { bare: bareServices, containerized: groups };
-		}
-	);
 
 	let isNewNode = $derived(nodeRenderData ? highlightedNewNodes.has(id) : false);
 
@@ -582,36 +519,47 @@
 					{/snippet}
 					<!-- Show services list -->
 					<div class="flex w-full flex-col items-center" style="min-width: 0; max-width: 100%;">
-						{#if serviceGroups.containerized.length > 0}
-							<!-- Grouped rendering: bare services + containerized groups with dotted border -->
-							{#each serviceGroups.bare as service (service.id)}
-								{@render serviceCard(service)}
-							{/each}
-							{#each serviceGroups.containerized as group (group.runtimeId)}
-								{@const RuntimeIcon = group.runtimeService
-									? serviceDefinitions.getIconComponent(group.runtimeService.service_definition)
-									: null}
-								<div
-									class="mb-1 mt-1 w-full rounded-md border border-dashed border-gray-300 px-1 py-0.5 dark:border-gray-600"
-								>
-									<div class="flex items-center gap-1 px-1 pb-2 pt-1">
-										{#if RuntimeIcon}
-											<RuntimeIcon class="h-5 w-5 flex-shrink-0" />
-										{/if}
-										<span class="text-secondary truncate text-xs font-medium">
-											{group.runtimeService?.name ?? 'Containers'}
-										</span>
-									</div>
-									{#each group.containers as service (service.id)}
-										{@render serviceCard(service)}
-									{/each}
+						{#each nodeRenderData.services as service (service.id)}
+							{@render serviceCard(service)}
+						{/each}
+						<!-- Manager groups from inline_groups, each in a dashed box: a runtime with its
+						  containers, a guest's Network Identities with its identity hosts. -->
+						{#each nodeRenderData.inlineGroups as group (group.groupId)}
+							{@const HeaderIcon = group.header
+								? serviceDefinitions.getIconComponent(group.header.service_definition)
+								: null}
+							<div
+								class="mb-1 mt-1 w-full rounded-md border border-dashed border-gray-300 px-1 py-0.5 dark:border-gray-600"
+							>
+								<div class="flex items-center gap-1 px-1 pb-2 pt-1">
+									{#if HeaderIcon}
+										<HeaderIcon class="h-5 w-5 flex-shrink-0" />
+									{/if}
+									<span class="text-secondary truncate text-xs font-medium">
+										{group.header?.name ?? common_containers()}
+									</span>
 								</div>
-							{/each}
-						{:else}
-							{#each nodeRenderData.services as service (service.id)}
-								{@render serviceCard(service)}
-							{/each}
-						{/if}
+								{#each group.services as service (service.id)}
+									{@render serviceCard(service)}
+								{/each}
+								{#each group.hosts as member (member.host.id)}
+									<div
+										class="flex w-full flex-col items-center py-1"
+										style="min-width: 0; max-width: 100%;"
+									>
+										<span
+											class="text-secondary w-full truncate text-center text-xs font-medium"
+											title={hostDisplayName(member.host)}
+										>
+											{hostDisplayName(member.host)}
+										</span>
+										{#each member.services as service (service.id)}
+											{@render serviceCard(service)}
+										{/each}
+									</div>
+								{/each}
+							</div>
+						{/each}
 						{#if nodeRenderData.hiddenOpenPorts.length > 0 && nodeRenderData.elementType !== 'Host'}
 							{#if expandedOpenPorts}
 								{#each nodeRenderData.hiddenOpenPorts as service (service.id)}

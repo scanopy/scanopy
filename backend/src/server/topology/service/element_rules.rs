@@ -331,6 +331,7 @@ fn compute_virtualizer_placements(rule: &ElementRule, ctx: &PlacementContext) ->
                     node_id: guest_host_id,
                     inline_group: Some(InlineGroup {
                         entity_id: virt_svc_id,
+                        entity_type: EntityDiscriminants::Service,
                         group_id: virt_svc_id,
                         role: InlineGroupRole::Header,
                     }),
@@ -338,13 +339,22 @@ fn compute_virtualizer_placements(rule: &ElementRule, ctx: &PlacementContext) ->
             );
 
             // Managed services and hosts → Member
-            for &entity_id in member_svc_ids.iter().chain(member_host_ids) {
+            let members = member_svc_ids
+                .iter()
+                .map(|id| (*id, EntityDiscriminants::Service))
+                .chain(
+                    member_host_ids
+                        .iter()
+                        .map(|id| (*id, EntityDiscriminants::Host)),
+                );
+            for (entity_id, entity_type) in members {
                 result.placements.insert(
                     entity_id,
                     PlacementDecision::InlineOn {
                         node_id: guest_host_id,
                         inline_group: Some(InlineGroup {
                             entity_id,
+                            entity_type,
                             group_id: virt_svc_id,
                             role: InlineGroupRole::Member,
                         }),

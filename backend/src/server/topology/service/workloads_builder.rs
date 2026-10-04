@@ -1382,12 +1382,20 @@ mod tests {
             unreachable!()
         };
         assert!(inline_groups.iter().all(|g| g.group_id == docker_id));
-        let members: HashSet<Uuid> = inline_groups
+        // Each member says which entity it names, so the card resolves a bridge container as a
+        // service and a macvlan container as a host.
+        let members: HashSet<(Uuid, EntityDiscriminants)> = inline_groups
             .iter()
             .filter(|g| g.role == InlineGroupRole::Member)
-            .map(|g| g.entity_id)
+            .map(|g| (g.entity_id, g.entity_type))
             .collect();
-        assert_eq!(members, HashSet::from([nginx_id, pihole_id]));
+        assert_eq!(
+            members,
+            HashSet::from([
+                (nginx_id, EntityDiscriminants::Service),
+                (pihole_id, EntityDiscriminants::Host)
+            ])
+        );
         assert!(
             inline_groups
                 .iter()
@@ -1488,6 +1496,8 @@ mod tests {
         let members: HashSet<Uuid> = inline_groups
             .iter()
             .filter(|g| g.role == InlineGroupRole::Member)
+            // Members name hosts, so the card looks them up as hosts rather than services.
+            .filter(|g| g.entity_type == EntityDiscriminants::Host)
             .map(|g| g.entity_id)
             .collect();
         assert_eq!(members, HashSet::from([first_id, second_id]));

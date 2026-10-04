@@ -6,6 +6,11 @@
 	import type { TopologyEditState } from '$lib/features/topology/state';
 	import type { ElementRenderContext } from '$lib/features/topology/resolvers';
 	import { inspector_servicesOnIPAddress, common_services } from '$lib/paraglide/messages';
+	import { getTopologyIndex } from '$lib/features/topology/entity-index';
+	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
+	import type { components } from '$lib/api/schema';
+
+	type InlineGroup = components['schemas']['InlineGroup'];
 
 	/* eslint-disable @typescript-eslint/no-unused-vars -- component contract props */
 	let {
@@ -31,6 +36,21 @@
 			)
 		)
 	);
+
+	// Hosts inlined on this host's card (a guest's network identities, a runtime's macvlan
+	// containers), each with its own services.
+	let memberHosts = $derived.by(() => {
+		if (elementContext?.elementType !== 'Host') return [];
+		const groups = ((node.data as { inline_groups?: InlineGroup[] }).inline_groups ?? []).filter(
+			(g) => g.entity_type === 'Host'
+		);
+		const { hostsById, servicesByHostId } = getTopologyIndex(topology);
+		return groups.flatMap((g) => {
+			const host = hostsById.get(g.entity_id);
+			const services = servicesByHostId.get(g.entity_id) ?? [];
+			return host && services.length > 0 ? [{ host, services }] : [];
+		});
+	});
 
 	let serviceContext = $derived({
 		ipAddressId: elementContext?.ipAddressId ?? null,
@@ -60,3 +80,21 @@
 		</div>
 	</div>
 {/if}
+{#each memberHosts as member (member.host.id)}
+	<div>
+		<span class="text-secondary mb-2 block text-sm font-medium">
+			{hostDisplayName(member.host)}
+		</span>
+		<div class="space-y-1">
+			{#each member.services as service (service.id)}
+				<div class="card card-static">
+					<EntityDisplayWrapper
+						context={serviceContext}
+						item={service}
+						displayComponent={ServiceDisplay}
+					/>
+				</div>
+			{/each}
+		</div>
+	</div>
+{/each}
