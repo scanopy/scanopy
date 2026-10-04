@@ -1,0 +1,31 @@
+{
+  "data": {
+    "tags": "community-script",
+    "efidisk0": "local-lvm:vm-107-disk-0,efitype=4m,size=4M",
+    "localtime": 1,
+    "ciupgrade": 0,
+    "bios": "ovmf",
+    "tablet": 0,
+    "net0": "virtio=02:E9:65:CC:7F:7B,bridge=vmbr0",
+    "scsihw": "virtio-scsi-pci",
+    "onboot": 1,
+    "ide2": "local-lvm:vm-107-cloudinit,media=cdrom",
+    "cipassword": "**********",
+    "description": "scrubbed",
+    "serial0": "socket",
+    "ciuser": "root",
+    "vmgenid": "baeb235f-a6dc-42e3-a6d4-afab18645343",
+    "meta": "creation-qemu=9.2.0,ctime=1774222501",
+    "ostype": "l26",
+    "agent": "1",
+    "ipconfig0": "ip=dhcp,ip6=dhcp",
+    "smbios1": "uuid=e3558346-5470-42e7-ba35-4b54f3a37a6c",
+    "scsi0": "local-lvm:vm-107-disk-1,discard=on,size=7G,ssd=1",
+    "boot": "order=scsi0",
+    "digest": "9d1a301bddc4adeb5016d5cc0d87121160f4a2d4",
+    "cores": 2,
+    "name": "snmp-test",
+    "memory": "2048",
+    "sshkeys": null
+  }
+}
