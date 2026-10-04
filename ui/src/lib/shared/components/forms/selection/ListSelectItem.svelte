@@ -52,10 +52,9 @@
 		: undefined;
 
 	let containerEl: HTMLDivElement;
-	let labelEl: HTMLSpanElement;
+	let labelMeasureEl: HTMLSpanElement;
 	let measureEl: HTMLDivElement;
 	let visibleTagCount = 0;
-	let labelTruncated = false;
 
 	const SPACING = {
 		gap: 8, // gap-2 = 0.5rem = 8px
@@ -65,11 +64,10 @@
 
 	// The label keeps its full width and tags take what's left (see `fitTags`). The tag group never
 	// shrinks, so when the label alone is wider than the row, it is the label that gives way to the
-	// "+N more" chip, truncating and carrying its full text as a tooltip.
+	// "+N more" chip, wrapping onto a second line rather than hiding part of the value. Its one-line
+	// width comes from the hidden copy: the wrapped label's own width is the row's, not its text's.
 	function calculateVisibleTags() {
-		if (!containerEl || !labelEl) return;
-		labelTruncated = labelEl.scrollWidth > labelEl.clientWidth;
-		if (!measureEl || tags.length === 0) return;
+		if (!containerEl || !measureEl || !labelMeasureEl || tags.length === 0) return;
 
 		const tagWidths: number[] = [];
 		measureEl
@@ -77,7 +75,12 @@
 			.forEach((el) => tagWidths.push((el as HTMLElement).offsetWidth));
 		if (tagWidths.length === 0) return;
 
-		visibleTagCount = fitTags(containerEl.offsetWidth, labelEl.scrollWidth, tagWidths, SPACING);
+		visibleTagCount = fitTags(
+			containerEl.offsetWidth,
+			labelMeasureEl.offsetWidth,
+			tagWidths,
+			SPACING
+		);
 	}
 
 	onMount(() => {
@@ -115,12 +118,7 @@
 	<!-- Label and description -->
 	<div class="min-w-0 flex-1 overflow-hidden text-left">
 		<div bind:this={containerEl} class="flex min-w-0 items-center gap-2">
-			<span
-				bind:this={labelEl}
-				use:tooltip
-				data-tooltip={labelTruncated ? label : null}
-				class="text-secondary min-w-0 truncate">{label}</span
-			>
+			<span class="text-secondary min-w-0 [overflow-wrap:anywhere]">{label}</span>
 			{#if tags.length > 0}
 				<div class="flex flex-shrink-0 items-center gap-1">
 					{#each visibleTags as tag, i (`${tag.label}-${i}`)}
@@ -203,6 +201,7 @@
 <!-- Hidden measurement container -->
 {#if tags.length > 0}
 	<div bind:this={measureEl} class="invisible absolute -left-[9999px]" aria-hidden="true">
+		<span bind:this={labelMeasureEl} class="whitespace-nowrap">{label}</span>
 		<div class="flex gap-1">
 			{#each tags as tag, i (`measure-${tag.label}-${i}`)}
 				<span data-tag
