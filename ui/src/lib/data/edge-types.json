@@ -43,7 +43,7 @@
     "description": null,
     "category": null,
     "icon": "fingerprint-pattern",
-    "color": "Amber",
+    "color": "Teal",
     "metadata": {
       "edge_style": "Bezier",
       "has_end_marker": false,

@@ -395,7 +395,9 @@ impl EntityMetadataProvider for EdgeType {
             EdgeType::HubAndSpoke { .. } => EntityDiscriminants::Dependency.color(),
             EdgeType::SameHost { .. } => EntityDiscriminants::Host.color(),
             EdgeType::Hypervisor { .. } => Concept::Virtualization.color(),
-            EdgeType::NetworkIdentity { .. } => Concept::Virtualization.color(),
+            // An identity is one interface the guest presents. Virtualization's colour is the
+            // host's, which would draw it like the SameHost and Hypervisor edges beside it.
+            EdgeType::NetworkIdentity { .. } => EntityDiscriminants::Interface.color(),
             EdgeType::ContainerRuntime { .. } => Concept::Containerization.color(),
             EdgeType::SameContainer { .. } => Concept::Containerization.color(),
             EdgeType::PhysicalLink { .. } => EntityDiscriminants::Interface.color(),
