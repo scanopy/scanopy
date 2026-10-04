@@ -199,6 +199,7 @@ pub fn is_identifier_copy(source: AttributeSource) -> bool {
         | S::ProfinetDcp
         | S::ContainerRuntimeInfo
         | S::HypervisorConfig
+        | S::GuestAgent
         | S::Manual
         | S::LldpNeighbourAddress
         | S::CipVendorId

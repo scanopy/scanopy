@@ -44,6 +44,31 @@ pub struct HostOs {
 }
 
 impl HostOs {
+    /// Whether this reading is `other` in more detail: the same family and product, every field
+    /// `other` sets equal here, and at least one more set. An LXC's config names only its
+    /// distribution (`Debian`), and the SSH banner adds the release (`Debian 12.0`).
+    pub fn refines(&self, other: &HostOs) -> bool {
+        let same_name = match (&self.name, &other.name) {
+            (Some(a), Some(b)) => a.eq_ignore_ascii_case(b),
+            _ => false,
+        };
+        let fields = |os: &HostOs| {
+            [
+                os.version.clone(),
+                os.edition.clone(),
+                os.codename.clone(),
+                os.kernel_version.clone(),
+            ]
+        };
+        let (mine, theirs) = (fields(self), fields(other));
+        let covers = mine.iter().zip(&theirs).all(|(m, t)| t.is_none() || m == t);
+        let adds = mine
+            .iter()
+            .zip(&theirs)
+            .any(|(m, t)| m.is_some() && t.is_none());
+        self.family == other.family && same_name && covers && adds
+    }
+
     /// This reading with every blank text field read as absent, the rule a script's other keys
     /// follow: `"codename": ""` from a host without one is no codename, not an empty one.
     pub fn without_blank_fields(self) -> Self {
@@ -480,5 +505,101 @@ mod tests {
         let mut host = snmp_host("Some appliance firmware 4.2", None);
         assert!(!host.match_os_from_system_strings());
         assert!(host.os.is_none());
+    }
+
+    fn linux(name: &str, version: Option<&str>) -> HostOs {
+        HostOs {
+            family: HostOsFamily::Linux,
+            name: Some(name.to_string()),
+            version: version.map(str::to_string),
+            edition: None,
+            codename: None,
+            kernel_version: None,
+        }
+    }
+
+    #[test]
+    fn a_reading_with_more_detail_refines_the_same_os() {
+        let config = linux("Debian", None);
+        let banner = linux("debian", Some("12.0"));
+        assert!(banner.refines(&config), "a release added");
+        assert!(!config.refines(&banner), "a release dropped");
+
+        let with_kernel = HostOs {
+            kernel_version: Some("6.1.0".into()),
+            ..banner.clone()
+        };
+        assert!(with_kernel.refines(&banner), "a kernel added");
+
+        assert!(!banner.refines(&banner), "the same reading adds nothing");
+        assert!(
+            !linux("Ubuntu", Some("24.04")).refines(&config),
+            "a different distribution disputes it"
+        );
+        assert!(
+            !linux("Debian", Some("13")).refines(&banner),
+            "a different release disputes it"
+        );
+        let bsd = HostOs {
+            family: HostOsFamily::FreeBsd,
+            ..banner.clone()
+        };
+        assert!(!bsd.refines(&config), "a different family disputes it");
+    }
+
+    /// The order the lab hits: an LXC's config names Debian at the hypervisor's rank, and the SSH
+    /// banner's Debian 12.0 still lands; the config's next reading never takes the release away.
+    /// A reading that disputes the stored one still goes by rank.
+    #[test]
+    fn refinement_is_applied_whatever_the_ranks() {
+        use crate::server::hosts::r#impl::attributes::{HostOsAttributed, HostOsValue};
+        use crate::server::shared::attribution::{AttributeSource, Attributed};
+        let at =
+            |os: HostOs, source| -> HostOsAttributed { Attributed::new(HostOsValue(os), source) };
+
+        let mut slot = Some(at(linux("Debian", None), AttributeSource::HypervisorConfig));
+        assert!(Attributed::apply(
+            &mut slot,
+            at(
+                linux("Debian", Some("12.0")),
+                AttributeSource::SshBannerMatch
+            )
+        ));
+        assert!(!Attributed::apply(
+            &mut slot,
+            at(linux("Debian", None), AttributeSource::HypervisorConfig)
+        ));
+        assert_eq!(
+            slot.as_ref().unwrap().value().0.version.as_deref(),
+            Some("12.0")
+        );
+
+        // The refined value is the banner's reading, and is filed under it.
+        assert_eq!(
+            slot.as_ref().unwrap().source(),
+            AttributeSource::SshBannerMatch
+        );
+
+        let mut disputed = Some(at(linux("Debian", None), AttributeSource::HypervisorConfig));
+        assert!(!Attributed::apply(
+            &mut disputed,
+            at(
+                linux("Ubuntu", Some("24.04")),
+                AttributeSource::SshBannerMatch
+            )
+        ));
+        assert_eq!(
+            disputed.as_ref().unwrap().value().0.name.as_deref(),
+            Some("Debian")
+        );
+
+        let mut manual = Some(at(linux("Debian", None), AttributeSource::Manual));
+        assert!(!Attributed::apply(
+            &mut manual,
+            at(
+                linux("Debian", Some("12.0")),
+                AttributeSource::SshBannerMatch
+            )
+        ));
     }
 }
