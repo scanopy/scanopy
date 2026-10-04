@@ -28,7 +28,9 @@
 	// auto-default (first network) on the falsy initial capture.
 </script>
 
-<div class="space-y-6 p-6">
+<!-- Side by side when the device facts card renders (editing a host that has facts), so it and the
+     metadata below stay in view. With one card it keeps the full width. -->
+<div class="grid grid-cols-1 items-start gap-6 p-6 lg:has-[>:nth-child(2)]:grid-cols-2">
 	<div class="card card-static space-y-6">
 		<IdentitySection {form} {formData} {isEditing} />
 
