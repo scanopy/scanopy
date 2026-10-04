@@ -25,7 +25,8 @@ export function tooltip(node: HTMLElement) {
 			border: '1px solid rgb(55 65 81)',
 			boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.3)',
 			pointerEvents: 'none',
-			whiteSpace: 'normal',
+			// Keeps the line breaks of multi-line text (an OS tag's details, one per line).
+			whiteSpace: 'pre-line',
 			wordWrap: 'break-word',
 			transform: 'translateX(-50%) translateY(-100%)'
 		});

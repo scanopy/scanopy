@@ -5,6 +5,7 @@
 	import { hostOsLabel, type HostOs } from '$lib/features/hosts/host-os';
 	import OsTag from '../../OsTag.svelte';
 	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
+	import CopyableValue from '$lib/shared/components/data/CopyableValue.svelte';
 	import { entityRef, type EntityRef } from '$lib/shared/components/data/types';
 	import type { Color } from '$lib/shared/utils/styling';
 	import {
@@ -62,7 +63,12 @@
 		 * Distinct from a `null` source, which is a field that could carry one and has none.
 		 */
 		sourceless?: boolean;
-		mono?: boolean;
+		/**
+		 * A machine identifier a user copies or compares character by character (serial, OID,
+		 * chassis id, revision, VM or container id), drawn as a copyable mono chip. Names and prose
+		 * (hostname, model, vendor, location) stay plain text.
+		 */
+		identifier?: boolean;
 		link?: boolean;
 		/** Drawn as an OS tag rather than text. */
 		os?: HostOs;
@@ -75,14 +81,15 @@
 	const ownerServiceQuery = useServicesByIds(() =>
 		host.virtualization_service_id ? [host.virtualization_service_id] : []
 	);
-	let ownerHostId = $derived(ownerServiceQuery.data?.[0]?.host_id ?? null);
+	let ownerService = $derived(ownerServiceQuery.data?.[0] ?? null);
+	let ownerHostId = $derived(ownerService?.host_id ?? null);
 	const ownerHostQuery = useHostSummariesQuery(() => ({
 		ids: ownerHostId ? [ownerHostId] : []
 	}));
 	let ownerHost = $derived(ownerHostQuery.data?.items.find((h) => h.id === ownerHostId) ?? null);
 
-	function sourceless(label: string, value: string | null | undefined, mono = false): Fact {
-		return { label, value, source: null, sourceless: true, mono };
+	function sourceless(label: string, value: string | null | undefined, identifier = false): Fact {
+		return { label, value, source: null, sourceless: true, identifier };
 	}
 
 	let virtualizationFacts = $derived.by((): Fact[] => {
@@ -97,7 +104,17 @@
 					}
 				: undefined
 		});
-		const manager = sourceless(common_manager(), hostVirtualizations.getName(virtualization.type));
+		// The service doing the virtualizing, the same tag the hosts table shows. Until it loads,
+		// the manager type's name stands in.
+		const manager: Fact = ownerService
+			? {
+					...sourceless(common_manager(), ownerService.name),
+					entity: {
+						ref: entityRef('Service', ownerService.id, ownerService),
+						color: entities.getColorHelper('Service').color
+					}
+				}
+			: sourceless(common_manager(), hostVirtualizations.getName(virtualization.type));
 		switch (virtualization.type) {
 			case 'Proxmox':
 			case 'VCenter':
@@ -133,7 +150,7 @@
 			case 'NetworkIdentity':
 				return [
 					owner(common_presentedBy()),
-					sourceless(common_interface(), virtualization.details.interface, true)
+					sourceless(common_interface(), virtualization.details.interface)
 				];
 		}
 	});
@@ -148,15 +165,14 @@
 					{
 						label: common_hostname(),
 						value: host.hostname,
-						source: host.hostname_source,
-						mono: true
+						source: host.hostname_source
 					},
 					{ label: hosts_snmp_sysName(), value: host.sys_name, source: host.sys_name_source },
 					{
 						label: hosts_snmp_chassisId(),
 						value: host.chassis_id,
 						source: host.chassis_id_source,
-						mono: true
+						identifier: true
 					}
 				] satisfies Fact[]
 			},
@@ -168,18 +184,18 @@
 						value: host.manufacturer,
 						source: host.manufacturer_source
 					},
-					{ label: common_model(), value: host.model, source: host.model_source, mono: true },
+					{ label: common_model(), value: host.model, source: host.model_source },
 					{
 						label: common_serialNumber(),
 						value: host.serial_number,
 						source: host.serial_number_source,
-						mono: true
+						identifier: true
 					},
 					{
 						label: hosts_snmp_sysObjectId(),
 						value: host.sys_object_id,
 						source: host.sys_object_id_source,
-						mono: true
+						identifier: true
 					}
 				] satisfies Fact[]
 			},
@@ -196,13 +212,13 @@
 						label: common_firmwareRevision(),
 						value: host.firmware_revision,
 						source: host.firmware_revision_source,
-						mono: true
+						identifier: true
 					},
 					{
 						label: common_softwareRevision(),
 						value: host.software_revision,
 						source: host.software_revision_source,
-						mono: true
+						identifier: true
 					},
 					{ label: hosts_snmp_sysDescr(), value: host.sys_descr, source: host.sys_descr_source }
 				] satisfies Fact[]
@@ -244,10 +260,7 @@
 					{#each section.facts as fact (fact.label)}
 						<div class="flex flex-wrap items-center gap-x-4 gap-y-1">
 							<span class="text-secondary w-40 shrink-0 text-sm">{fact.label}</span>
-							<span
-								class="text-primary min-w-0 flex-1 break-words text-sm"
-								class:font-mono={fact.mono}
-							>
+							<span class="text-primary min-w-0 flex-1 break-words text-sm">
 								{#if fact.entity}
 									<EntityTag
 										entityRef={fact.entity.ref}
@@ -269,6 +282,8 @@
 										{fact.value}
 									</a>
 									<!-- eslint-enable svelte/no-navigation-without-resolve -->
+								{:else if fact.identifier && fact.value}
+									<CopyableValue value={fact.value} variant="inline" />
 								{:else}
 									{fact.value}
 								{/if}

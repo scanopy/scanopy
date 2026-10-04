@@ -1,6 +1,6 @@
 <script lang="ts">
 	import ChecklistItem from '$lib/shared/components/data/ChecklistItem.svelte';
-	import CopyableCommand from '$lib/shared/components/data/CopyableCommand.svelte';
+	import CopyableValue from '$lib/shared/components/data/CopyableValue.svelte';
 	import SupportOptions from '$lib/features/support/SupportOptions.svelte';
 	import InlineSuccess from '$lib/shared/components/feedback/InlineSuccess.svelte';
 	import InlineWarning from '$lib/shared/components/feedback/InlineWarning.svelte';
@@ -220,9 +220,9 @@
 		>
 			{#snippet detail()}
 				<p class="text-tertiary text-sm">{daemons_troubleshoot_isListeningDesc()}</p>
-				<CopyableCommand command={processCheckCommand} />
+				<CopyableValue value={processCheckCommand} />
 				{#if !isDocker}
-					<CopyableCommand command={portCheckCommand} />
+					<CopyableValue value={portCheckCommand} />
 				{/if}
 				<p class="text-tertiary text-sm">{daemons_troubleshoot_processNotFound()}</p>
 			{/snippet}
@@ -289,7 +289,7 @@
 		>
 			{#snippet detail()}
 				<p class="text-tertiary text-sm">{daemons_troubleshoot_isDaemonRunningDesc()}</p>
-				<CopyableCommand command={processCheckCommand} />
+				<CopyableValue value={processCheckCommand} />
 				<p class="text-tertiary text-sm">{daemons_troubleshoot_processNotFound()}</p>
 				{#if onReviewCommands}
 					<button type="button" class="btn-secondary text-xs" onclick={onReviewCommands}>
@@ -306,9 +306,9 @@
 		>
 			{#snippet detail()}
 				<p class="text-tertiary text-sm">{daemons_troubleshoot_canReachServerStep1()}</p>
-				<CopyableCommand command={healthCheckCommand} />
+				<CopyableValue value={healthCheckCommand} />
 				<p class="text-tertiary mt-2 text-sm">{daemons_troubleshoot_canReachServerStep2()}</p>
-				<CopyableCommand command={`nslookup ${serverHostname}`} />
+				<CopyableValue value={`nslookup ${serverHostname}`} />
 				<p class="text-tertiary mt-2 text-sm">
 					{daemons_troubleshoot_canReachServerStep3({ portDesc: serverPortDesc })}
 				</p>
@@ -329,11 +329,11 @@
 				<p class="text-secondary mt-2 text-sm font-medium">
 					{daemons_troubleshoot_logFileDocker()}
 				</p>
-				<CopyableCommand command={logCommand} />
+				<CopyableValue value={logCommand} />
 				<p class="text-secondary mt-2 text-sm font-medium">
 					{daemons_troubleshoot_logFileMounted()}
 				</p>
-				<CopyableCommand command={`tail -50 ${dockerHostLogPath}`} />
+				<CopyableValue value={`tail -50 ${dockerHostLogPath}`} />
 			{:else}
 				{#if hasCustomLogPath}
 					<p class="text-secondary mt-2 text-sm font-medium">
@@ -344,12 +344,12 @@
 						{daemons_troubleshoot_logFileAt({ path: effectiveLogPath })}
 					</p>
 				{/if}
-				<CopyableCommand command={logCommand} />
+				<CopyableValue value={logCommand} />
 				{#if journalCommand}
 					<p class="text-secondary mt-2 text-sm font-medium">
 						{daemons_troubleshoot_logFileOrJournal()}
 					</p>
-					<CopyableCommand command={journalCommand} />
+					<CopyableValue value={journalCommand} />
 				{/if}
 			{/if}
 
