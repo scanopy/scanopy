@@ -31,8 +31,10 @@
 		useDeleteServiceMutation,
 		useBulkDeleteServicesMutation,
 		type ServicesQueryParams,
-		useServicesCacheQuery
+		useServicesByIds
 	} from '../queries';
+	import { useDiscoveriesByIds } from '$lib/features/discovery/queries';
+	import { discoveryRunIds, discoveryRunItems } from '$lib/features/discovery/columns';
 	import { useHostsByIds, useHostSummariesQuery } from '$lib/features/hosts/queries';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 	import { useNetworksQuery } from '$lib/features/networks/queries';
@@ -45,7 +47,9 @@
 	import {
 		common_confirmBulkDelete,
 		common_confirmDeleteName,
-		common_containerized,
+		common_containerizedBy,
+		common_firstFoundBy,
+		common_lastFoundBy,
 		common_created,
 		common_delete,
 		common_edit,
@@ -195,7 +199,18 @@
 	const containerizedByValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'containerized_by');
 	const matchConfidenceValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'match_confidence');
 	const sourceValuesQuery = useFieldValuesQuery(SERVICE_FIELD_VALUES, 'source');
-	const servicesCacheQuery = useServicesCacheQuery();
+	// The runtimes containerizing the visible services. Rarely on the same page as the services
+	// they run, so fetched by id.
+	const runtimesQuery = useServicesByIds(() => [
+		...new Set(
+			(servicesQuery.data?.items ?? [])
+				.map((s) => s.virtualization_service_id)
+				.filter((id): id is string => id != null)
+		)
+	]);
+	const discoveryRunsQuery = useDiscoveriesByIds(() =>
+		discoveryRunIds(servicesQuery.data?.items ?? [])
+	);
 	const ipAddressesQuery = useIPAddressesQuery();
 	const subnetsQuery = useSubnetsQuery();
 
@@ -224,7 +239,8 @@
 	let tagsData = $derived(tagsQuery.data ?? []);
 	let servicesData = $derived(servicesQuery.data?.items ?? []);
 	let allHostsData = $derived(allHostsQuery.data?.items ?? []);
-	let allServicesData = $derived(servicesCacheQuery.data ?? []);
+	let runtimesData = $derived(runtimesQuery.data ?? []);
+	let discoveryRunsData = $derived(discoveryRunsQuery.data ?? []);
 	let servicesPagination = $derived(servicesQuery.data?.pagination ?? null);
 	let hostsData = $derived(hostsQuery.data ?? []);
 	let networksData = $derived(networksQuery.data ?? []);
@@ -631,7 +647,7 @@
 				},
 				containerized_by: {
 					type: 'string',
-					label: common_containerized(),
+					label: common_containerizedBy(),
 					searchable: true,
 					filterable: true,
 					serverFiltered: true,
@@ -640,22 +656,20 @@
 					filterOptions: fieldValueOptions(containerizedByValuesQuery.data).concat(
 						hasEmptyFieldValue(containerizedByValuesQuery.data) ? [services_notContainerized()] : []
 					),
-					// From the full services cache: the runtime is rarely on the same page as
-					// the services it runs.
 					getValue: (item) =>
-						allServicesData.find((s) => s.id == item.virtualization_service_id)?.name ||
+						runtimesData.find((s) => s.id == item.virtualization_service_id)?.name ||
 						services_notContainerized(),
 					// The server groups on the containerizing service's name, coalescing
 					// services without one to an empty string.
 					getGroupValue: (item) =>
-						allServicesData.find((s) => s.id == item.virtualization_service_id)?.name ?? '',
+						runtimesData.find((s) => s.id == item.virtualization_service_id)?.name ?? '',
 					display: {
 						hiddenByDefault: true,
 						// No chip when a service isn't containerized, so the cell shows an
 						// em dash rather than repeating the phrase down the column. The
 						// phrase stays in `getValue`, so the filter still offers it.
 						getItems: (item) => {
-							const runtime = allServicesData.find((s) => s.id == item.virtualization_service_id);
+							const runtime = runtimesData.find((s) => s.id == item.virtualization_service_id);
 							if (!runtime) return [];
 							return [
 								{
@@ -756,6 +770,24 @@
 								}
 							];
 						}
+					}
+				},
+				{
+					key: 'first_found_by',
+					label: common_firstFoundBy(),
+					type: 'string',
+					display: {
+						hiddenByDefault: true,
+						getItems: (item) => discoveryRunItems(item.first_discovery_id, discoveryRunsData)
+					}
+				},
+				{
+					key: 'last_found_by',
+					label: common_lastFoundBy(),
+					type: 'string',
+					display: {
+						hiddenByDefault: true,
+						getItems: (item) => discoveryRunItems(item.last_discovery_id, discoveryRunsData)
 					}
 				},
 				{

@@ -50,6 +50,8 @@
 		common_credentials,
 		common_hosts,
 		common_interfaces,
+		common_firstFoundBy,
+		common_lastFoundBy,
 		common_ipAddresses,
 		common_lastSeen,
 		common_macAddress,
@@ -74,6 +76,7 @@
 		common_contact,
 		common_location,
 		daemons_installPromptHosts,
+		hosts_fields_presentedBy,
 		hosts_fields_virtualizedBy,
 		hosts_notVirtualized,
 		hosts_snmp_chassisId,
@@ -98,7 +101,9 @@
 	import { useServicesByIds, useServicesCacheQuery } from '$lib/features/services/queries';
 	import { useDaemonsQuery } from '$lib/features/daemons/queries';
 	import { useIPAddressesQuery } from '$lib/features/ip-addresses/queries';
-	import { useInterfacesQuery } from '$lib/features/interfaces/queries';
+	import { useInterfacesByIds, useInterfacesQuery } from '$lib/features/interfaces/queries';
+	import { useDiscoveriesByIds } from '$lib/features/discovery/queries';
+	import { discoveryRunIds, discoveryRunItems } from '$lib/features/discovery/columns';
 	import { useCredentialsQuery } from '$lib/features/credentials/queries';
 	import { useSubnetsQuery, isContainerSubnet } from '$lib/features/subnets/queries';
 	import type { Credential } from '$lib/features/credentials/types/base';
@@ -231,6 +236,18 @@
 			.filter((id): id is string => id != null)
 			.filter((id, idx, arr) => arr.indexOf(id) === idx);
 	});
+	// The interface a virtualizing host presents each network identity from. It belongs to the
+	// virtualizing host, which is rarely on this page, so fetched by id.
+	const presentingInterfacesQuery = useInterfacesByIds(() => [
+		...new Set(
+			(hostsQuery.data?.items ?? [])
+				.map((h) => h.virtualization_interface_id)
+				.filter((id): id is string => id != null)
+		)
+	]);
+	const discoveryRunsQuery = useDiscoveriesByIds(() =>
+		discoveryRunIds(hostsQuery.data?.items ?? [])
+	);
 
 	// Mutations
 	const createHostMutation = useCreateHostMutation();
@@ -245,6 +262,8 @@
 	let hostsData = $derived(hostsQuery.data?.items ?? []);
 	let hostsPagination = $derived(hostsQuery.data?.pagination ?? null);
 	let servicesData = $derived(servicesQuery.data ?? []);
+	let presentingInterfacesData = $derived(presentingInterfacesQuery.data ?? []);
+	let discoveryRunsData = $derived(discoveryRunsQuery.data ?? []);
 	const servicesCacheQuery = useServicesCacheQuery();
 	let allServicesData = $derived(servicesCacheQuery.data ?? []);
 	let networksData = $derived(networksQuery.data ?? []);
@@ -471,14 +490,20 @@
 					// The key stays `name`: it is the `HostOrderField` sent to the server, which
 					// now orders by the same ladder this renders.
 					getValue: (host) => hostDisplayName(host),
-					display: { primary: true, width: 220, order: 0 }
+					display: {
+						primary: true,
+						width: 220,
+						order: 0,
+						// Only when the name shown is the stored one, not a rung further down the ladder.
+						getSource: (host) => (host.display_name_rung === 'Name' ? host.name_source : null)
+					}
 				},
 				hostname: {
 					label: common_hostname(),
 					type: 'string',
 					searchable: true,
 					groupable: false,
-					display: { hiddenByDefault: true }
+					display: { hiddenByDefault: true, getSource: (host) => host.hostname_source }
 				},
 				virtualized_by: {
 					label: hosts_fields_virtualizedBy(),
@@ -626,7 +651,7 @@
 					filterable: true,
 					serverFiltered: true,
 					filterOptions: fieldValueOptions(manufacturerValuesQuery.data),
-					display: { hiddenByDefault: true }
+					display: { hiddenByDefault: true, getSource: (host) => host.manufacturer_source }
 				},
 				model: {
 					label: common_model(),
@@ -634,7 +659,7 @@
 					filterable: true,
 					serverFiltered: true,
 					filterOptions: fieldValueOptions(modelValuesQuery.data),
-					display: { hiddenByDefault: true }
+					display: { hiddenByDefault: true, getSource: (host) => host.model_source }
 				},
 				sys_location: {
 					label: common_location(),
@@ -642,7 +667,7 @@
 					filterable: true,
 					serverFiltered: true,
 					filterOptions: fieldValueOptions(sysLocationValuesQuery.data),
-					display: { hiddenByDefault: true }
+					display: { hiddenByDefault: true, getSource: (host) => host.sys_location_source }
 				},
 				// Sorted, grouped and filtered by family; the cell shows the full product and release.
 				os_family: {
@@ -684,55 +709,95 @@
 					key: 'serial_number',
 					label: common_serialNumber(),
 					type: 'string',
-					display: { hiddenByDefault: true }
+					display: { hiddenByDefault: true, getSource: (host) => host.serial_number_source }
 				},
 				{
 					key: 'firmware_revision',
 					label: common_firmwareRevision(),
 					type: 'string',
-					display: { hiddenByDefault: true }
+					display: { hiddenByDefault: true, getSource: (host) => host.firmware_revision_source }
 				},
 				{
 					key: 'software_revision',
 					label: common_softwareRevision(),
 					type: 'string',
-					display: { hiddenByDefault: true }
+					display: { hiddenByDefault: true, getSource: (host) => host.software_revision_source }
 				},
 				{
 					key: 'sys_name',
 					label: hosts_snmp_sysName(),
 					type: 'string',
-					display: { hiddenByDefault: true }
+					display: { hiddenByDefault: true, getSource: (host) => host.sys_name_source }
 				},
 				{
 					key: 'sys_descr',
 					label: hosts_snmp_sysDescr(),
 					type: 'string',
-					display: { hiddenByDefault: true }
+					display: { hiddenByDefault: true, getSource: (host) => host.sys_descr_source }
 				},
 				{
 					key: 'sys_object_id',
 					label: hosts_snmp_sysObjectId(),
 					type: 'string',
-					display: { hiddenByDefault: true }
+					display: { hiddenByDefault: true, getSource: (host) => host.sys_object_id_source }
 				},
 				{
 					key: 'sys_contact',
 					label: common_contact(),
 					type: 'string',
-					display: { hiddenByDefault: true }
+					display: { hiddenByDefault: true, getSource: (host) => host.sys_contact_source }
 				},
 				{
 					key: 'chassis_id',
 					label: hosts_snmp_chassisId(),
 					type: 'string',
-					display: { hiddenByDefault: true }
+					display: { hiddenByDefault: true, getSource: (host) => host.chassis_id_source }
 				},
 				{
 					key: 'management_url',
 					label: hosts_snmp_managementUrl(),
 					type: 'string',
-					display: { hiddenByDefault: true }
+					display: { hiddenByDefault: true, getSource: (host) => host.management_url_source }
+				},
+				{
+					key: 'presented_by',
+					label: hosts_fields_presentedBy(),
+					type: 'string',
+					display: {
+						hiddenByDefault: true,
+						getItems: (host) => {
+							const iface = presentingInterfacesData.find(
+								(i) => i.id === host.virtualization_interface_id
+							);
+							if (!iface) return [];
+							return [
+								{
+									id: iface.id,
+									label: interfaceDisplayName(iface),
+									color: entities.getColorHelper('Interface').color,
+									entityRef: entityRef('Interface', iface.id, iface)
+								}
+							];
+						}
+					}
+				},
+				{
+					key: 'first_found_by',
+					label: common_firstFoundBy(),
+					type: 'string',
+					display: {
+						hiddenByDefault: true,
+						getItems: (host) => discoveryRunItems(host.first_discovery_id, discoveryRunsData)
+					}
+				},
+				{
+					key: 'last_found_by',
+					label: common_lastFoundBy(),
+					type: 'string',
+					display: {
+						hiddenByDefault: true,
+						getItems: (host) => discoveryRunItems(host.last_discovery_id, discoveryRunsData)
+					}
 				},
 				{
 					key: 'tags',

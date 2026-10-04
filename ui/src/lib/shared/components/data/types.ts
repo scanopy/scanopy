@@ -2,6 +2,7 @@ import type { IconComponent } from '$lib/shared/utils/types';
 import type { Snippet } from 'svelte';
 import type { Color } from '$lib/shared/utils/styling';
 import type { EntityDiscriminants } from '$lib/api/entities';
+import type { AttributeSource } from '$lib/shared/utils/attribute-source';
 
 // ============================================================================
 // Page Size Configuration
@@ -138,6 +139,12 @@ export interface DisplayConfig<T> {
 	getItems?: (item: T) => CardFieldItem[] | undefined;
 	/** Escape hatch for genuinely bespoke content: a status tag, a link, an icon. */
 	cell?: Snippet<[T]>;
+	/**
+	 * Where a plain value came from, for a field that records its provenance (a host's
+	 * `hostname_source`). The value's tooltip explains the source under the value, the way
+	 * the OS tag does.
+	 */
+	getSource?: (item: T) => AttributeSource | null | undefined;
 	align?: 'left' | 'right';
 	/**
 	 * Where this field sits among the columns, low to high.

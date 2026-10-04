@@ -130,6 +130,8 @@ pub struct DiscoveryFilterQuery {
     /// Filter by daemon ID. Repeat the parameter to pass several.
     #[serde(alias = "daemon_id")]
     pub daemon_ids: Option<Vec<Uuid>>,
+    /// Filter by specific entity IDs (for selective loading)
+    pub ids: Option<Vec<Uuid>>,
     /// Only runs of one of these discovery types.
     pub discovery_types: Option<Vec<String>>,
     /// Only runs that ended in one of these phases (`run_type.results.phase`). Repeat for
@@ -194,6 +196,10 @@ impl FilterQueryExtractor for DiscoveryFilterQuery {
         filter = match &self.daemon_ids {
             Some(ids) => filter.daemon_ids(ids),
             None => filter,
+        };
+        filter = match &self.ids {
+            Some(ids) if !ids.is_empty() => filter.entity_ids(ids),
+            _ => filter,
         };
         filter = match &self.discovery_types {
             Some(types) if !types.is_empty() => filter.discovery_type_in(types),

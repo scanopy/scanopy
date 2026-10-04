@@ -1,5 +1,11 @@
-import { describe, it, expect } from 'vitest';
-import { resolveModalDeepLink } from '$lib/shared/stores/modal-registry';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { get } from 'svelte/store';
+import {
+	closeModal,
+	modalState,
+	navigateToEntity,
+	resolveModalDeepLink
+} from '$lib/shared/stores/modal-registry';
 import type { ModalState } from '$lib/shared/stores/modal-registry';
 
 interface TestEntity {
@@ -265,5 +271,39 @@ describe('a modal opened from inside another modal', () => {
 		expect(resolveModalDeepLink(restored, 'credential-editor', entities, false, null)).toEqual(
 			carried
 		);
+	});
+});
+
+describe('navigateToEntity', () => {
+	beforeEach(() => {
+		vi.stubGlobal('window', {
+			location: { href: 'http://localhost/#hosts', hash: '#hosts', search: '' },
+			history: { replaceState: () => {} }
+		});
+	});
+	afterEach(() => {
+		vi.unstubAllGlobals();
+		closeModal();
+	});
+
+	// A host's "Last found by" links a run record; the scans tab's editor only edits configurations.
+	it('opens a discovery run in the history tab detail', () => {
+		const run = { id: 'run', run_type: { type: 'Historical', results: {} } };
+		navigateToEntity('Discovery', run.id, run);
+
+		expect(window.location.hash).toBe('discovery-history');
+		expect(get(modalState)).toMatchObject({
+			name: 'discovery-history-detail',
+			id: 'run',
+			entityData: run
+		});
+	});
+
+	it('opens a scan configuration in the scans tab editor', () => {
+		const scan = { id: 'scan', run_type: { type: 'Scheduled' } };
+		navigateToEntity('Discovery', scan.id, scan);
+
+		expect(window.location.hash).toBe('discovery-scans');
+		expect(get(modalState)).toMatchObject({ name: 'discovery-editor', id: 'scan' });
 	});
 });

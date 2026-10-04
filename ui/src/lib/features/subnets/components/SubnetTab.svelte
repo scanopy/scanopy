@@ -10,7 +10,7 @@
 	import PreDaemonEmptyState from '$lib/shared/components/layout/PreDaemonEmptyState.svelte';
 	import type { Subnet } from '../types/base';
 	import DataControls from '$lib/shared/components/data/DataControls.svelte';
-	import { defineFields, type CardAction } from '$lib/shared/components/data/types';
+	import { defineFields, entityRef, type CardAction } from '$lib/shared/components/data/types';
 	import { tagNames } from '$lib/features/tags/columns';
 	import { networkItems } from '$lib/features/networks/columns';
 	import { Plus, Trash2, Edit, CloudAlert } from 'lucide-svelte';
@@ -26,6 +26,10 @@
 		useBulkDeleteSubnetsMutation
 	} from '../queries';
 	import { useNetworksQuery } from '$lib/features/networks/queries';
+	import { useServicesByIds } from '$lib/features/services/queries';
+	import type { Service } from '$lib/features/services/types/base';
+	import { useDiscoveriesByIds } from '$lib/features/discovery/queries';
+	import { discoveryRunIds, discoveryRunItems } from '$lib/features/discovery/columns';
 	import type { TabProps } from '$lib/shared/types';
 	import type { components } from '$lib/api/schema';
 	import { downloadCsv } from '$lib/shared/utils/csvExport';
@@ -44,16 +48,19 @@
 		common_delete,
 		common_source,
 		common_edit,
+		common_firstFoundBy,
+		common_lastFoundBy,
 		common_subnets,
 		common_tags,
 		common_unknownNetwork,
 		common_updated,
 		daemons_installPromptSubnets,
+		subnets_managedBy,
 		subnets_resolveRange,
 		subnets_subnetType
 	} from '$lib/paraglide/messages';
 	import { hasDaemon } from '$lib/shared/onboarding/checklist';
-	import { entitySources, subnetTypes } from '$lib/shared/stores/metadata';
+	import { concepts, entitySources, subnetTypes } from '$lib/shared/stores/metadata';
 	import { entitySourceItems } from '$lib/shared/utils/entity-source';
 
 	type OnboardingOperation = components['schemas']['OnboardingOperationDiscriminants'];
@@ -76,6 +83,15 @@
 		stale = next;
 	}
 	const networksQuery = useNetworksQuery();
+	// The container runtimes that manage the bridge subnets, fetched by id.
+	const runtimesQuery = useServicesByIds(() => [
+		...new Set(
+			(subnetsQuery.data ?? [])
+				.map((s) => s.virtualization_service_id)
+				.filter((id): id is string => id != null)
+		)
+	]);
+	const discoveryRunsQuery = useDiscoveriesByIds(() => discoveryRunIds(subnetsQuery.data ?? []));
 
 	// Mutations
 	const createSubnetMutation = useCreateSubnetMutation();
@@ -88,6 +104,12 @@
 	let tagsData = $derived(tagsQuery.data ?? []);
 	let subnetsData = $derived((subnetsQuery.data ?? []).filter(isUserManagedSubnet));
 	let networksData = $derived(networksQuery.data ?? []);
+	let runtimesData = $derived(runtimesQuery.data ?? []);
+	let discoveryRunsData = $derived(discoveryRunsQuery.data ?? []);
+
+	function runtimeOf(subnet: Subnet): Service | undefined {
+		return runtimesData.find((s) => s.id === subnet.virtualization_service_id);
+	}
 	let isLoading = $derived(subnetsQuery.isPending);
 
 	let showSubnetEditor = $state(false);
@@ -372,6 +394,50 @@
 					display: {
 						hiddenByDefault: true,
 						getItems: (subnet) => entitySourceItems(subnet.source)
+					}
+				},
+				{
+					// The container runtime that created this bridge network. Only bridge subnets have one.
+					key: 'managed_by',
+					label: subnets_managedBy(),
+					type: 'string',
+					searchable: true,
+					filterable: true,
+					groupable: true,
+					sortable: true,
+					getValue: (subnet) => runtimeOf(subnet)?.name ?? null,
+					display: {
+						hiddenByDefault: true,
+						getItems: (subnet) => {
+							const runtime = runtimeOf(subnet);
+							if (!runtime) return [];
+							return [
+								{
+									id: runtime.id,
+									label: runtime.name,
+									color: concepts.getColorHelper('Containerization').color,
+									entityRef: entityRef('Service', runtime.id, runtime)
+								}
+							];
+						}
+					}
+				},
+				{
+					key: 'first_found_by',
+					label: common_firstFoundBy(),
+					type: 'string',
+					display: {
+						hiddenByDefault: true,
+						getItems: (item) => discoveryRunItems(item.first_discovery_id, discoveryRunsData)
+					}
+				},
+				{
+					key: 'last_found_by',
+					label: common_lastFoundBy(),
+					type: 'string',
+					display: {
+						hiddenByDefault: true,
+						getItems: (item) => discoveryRunItems(item.last_discovery_id, discoveryRunsData)
 					}
 				},
 				{

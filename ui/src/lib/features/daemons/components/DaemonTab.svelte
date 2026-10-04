@@ -32,6 +32,7 @@
 	} from '$lib/features/daemons/queries';
 	import { useNetworksQuery } from '$lib/features/networks/queries';
 	import { useHostsByIds } from '$lib/features/hosts/queries';
+	import { useUsersByIds } from '$lib/features/users/queries';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 	import {
 		modalState,
@@ -54,6 +55,7 @@
 		common_delete,
 		common_edit,
 		common_host,
+		common_maintainer,
 		common_name,
 		common_network,
 		common_status,
@@ -106,6 +108,13 @@
 	]);
 	const daemonHostsQuery = useHostsByIds(() => daemonHostIds);
 	let daemonHosts = $derived(daemonHostsQuery.data ?? []);
+
+	// The users who maintain the daemons, by id: the users list needs Admin, and a daemon's
+	// maintainer is often an admin or the owner, whom it leaves out.
+	const maintainersQuery = useUsersByIds(() => [
+		...new Set(daemonsData.map((d) => d.user_id).filter((id): id is string => !!id))
+	]);
+	let maintainers = $derived(maintainersQuery.data ?? []);
 
 	// Any daemon with a scheduled/active sunset. Drives a non-dismissable banner
 	// so the warning re-arms as long as an affected daemon exists.
@@ -421,6 +430,31 @@
 								)
 							}
 						]
+					}
+				},
+				{
+					key: 'maintainer',
+					label: common_maintainer(),
+					type: 'string',
+					searchable: true,
+					filterable: true,
+					groupable: true,
+					sortable: true,
+					getValue: (daemon) => maintainers.find((u) => u.id === daemon.user_id)?.email ?? null,
+					display: {
+						hiddenByDefault: true,
+						getItems: (daemon) => {
+							const user = maintainers.find((u) => u.id === daemon.user_id);
+							if (!user) return [];
+							return [
+								{
+									id: user.id,
+									label: user.email,
+									color: entities.getColorHelper('User').color,
+									entityRef: entityRef('User', user.id, user)
+								}
+							];
+						}
 					}
 				},
 				{

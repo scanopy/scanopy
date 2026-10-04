@@ -36,6 +36,7 @@
 		common_delete,
 		common_email,
 		common_emailAndPassword,
+		common_none,
 		common_expires,
 		common_joined,
 		common_revoke,
@@ -51,6 +52,7 @@
 		invites_createdBy,
 		invites_pendingInvite,
 		users_authMethod,
+		users_authMethodOidcAndPassword,
 		users_confirmDeleteUser,
 		users_emailVerified,
 		users_inviteUser,
@@ -333,7 +335,14 @@
 			groupable: true,
 			sortable: true,
 			getValue(item) {
-				return isUser(item) ? item.data.oidc_provider || common_emailAndPassword() : null;
+				if (!isUser(item)) return null;
+				const { oidc_provider, has_password } = item.data;
+				if (oidc_provider) {
+					return has_password
+						? users_authMethodOidcAndPassword({ provider: oidc_provider })
+						: oidc_provider;
+				}
+				return has_password ? common_emailAndPassword() : common_none();
 			}
 		},
 		{
