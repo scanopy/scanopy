@@ -3,6 +3,7 @@
 	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
 	import IPAddressConfigPanel from './IPAddressConfigPanel.svelte';
 	import { useSubnetsQuery } from '$lib/features/subnets/queries';
+	import { useNetworksQuery } from '$lib/features/networks/queries';
 	import { type HostFormData, type IPAddress } from '$lib/features/hosts/types/base';
 	import { SubnetDisplay } from '$lib/shared/components/forms/selection/display/SubnetDisplay.svelte';
 	import { IPAddressDisplay } from '$lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
@@ -47,6 +48,8 @@
 	// TanStack Query for subnets
 	const subnetsQuery = useSubnetsQuery();
 	let subnetsData = $derived(subnetsQuery.data ?? []);
+	const networksQuery = useNetworksQuery();
+	let networksData = $derived(networksQuery.data ?? []);
 
 	// Confirmation dialog state
 	let showDeleteConfirmation = $state(false);
@@ -204,7 +207,7 @@
 				{items}
 				optionDisplayComponent={SubnetDisplay}
 				itemDisplayComponent={IPAddressDisplay}
-				getItemContext={() => ({ subnets: subnetsData })}
+				getItemContext={() => ({ subnets: subnetsData, networks: networksData })}
 				onAdd={handleAddInterface}
 				onRemove={handleRemoveInterface}
 				{onMoveUp}

@@ -1,11 +1,16 @@
 <script lang="ts" module>
 	import { isContainerSubnet, getSubnetById } from '$lib/features/subnets/queries';
 	import type { Subnet } from '$lib/features/subnets/types/base';
-	import { entityRef } from '$lib/shared/components/data/types';
+	import { entityRef, type TagProps } from '$lib/shared/components/data/types';
+	import type { Network } from '$lib/features/networks/types';
+	import { getFreshnessTag } from '$lib/shared/utils/freshness';
 
 	// Context for interface display - needs access to subnets for lookups
 	export interface IPAddressDisplayContext {
 		subnets: Subnet[];
+		/** Networks to judge each address's staleness against. Without them, no Stale tag. */
+		networks?: Network[];
+		/** Drops the subnet tag, which topology already shows as the address's container. */
 		compact?: boolean;
 		/** A non-null `disabledReason` renders the option disabled with that tooltip. */
 		disabledReason?: string | null;
@@ -38,17 +43,24 @@
 		getIcon: () => entities.getIconComponent('IPAddress'),
 		getIconColor: () => entities.getColorHelper('IPAddress').icon,
 		getTags: (iface, context: IPAddressDisplayContext) => {
-			if (context?.compact || iface.id == null) return [];
-			const subnetsData = context?.subnets ?? [];
-			const subnet = getSubnetById(subnetsData, iface.subnet_id);
-			const tags = [];
-			if (subnet && !isContainerSubnet(subnet)) {
+			if (iface.id == null) return [];
+			const tags: TagProps[] = [];
+			const subnet = getSubnetById(context?.subnets ?? [], iface.subnet_id);
+			if (!context?.compact && subnet && !isContainerSubnet(subnet)) {
 				tags.push({
 					label: subnet.cidr,
 					color: entities.getColorHelper('Subnet').color,
 					entityRef: entityRef('Subnet', subnet.id, subnet)
 				});
 			}
+			// Each address carries its own verdict, so one the host stopped answering on reads
+			// Stale while the host stays current.
+			const stale = getFreshnessTag(
+				iface,
+				context?.networks?.find((n) => n.id === iface.network_id),
+				{ entityTypeLabel: entities.getName('IPAddress') || undefined }
+			);
+			if (stale) tags.push(stale);
 			return tags;
 		},
 		getCategory: () => null

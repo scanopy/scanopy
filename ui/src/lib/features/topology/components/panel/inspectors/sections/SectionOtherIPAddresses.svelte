@@ -4,6 +4,7 @@
 	import { IPAddressDisplay } from '$lib/shared/components/forms/selection/display/IPAddressDisplay.svelte';
 	import type { RenderableTopology } from '$lib/features/topology/types/base';
 	import type { ElementRenderContext } from '$lib/features/topology/resolvers';
+	import { useNetworksQuery } from '$lib/features/networks/queries';
 	import {
 		common_ipAddresses,
 		inspector_otherIPAddress,
@@ -32,7 +33,12 @@
 		)
 	);
 
-	let interfaceContext = $derived({ subnets: topology.subnets, compact: true });
+	const networksQuery = useNetworksQuery();
+	let interfaceContext = $derived({
+		subnets: topology.subnets,
+		networks: networksQuery.data ?? [],
+		compact: true
+	});
 </script>
 
 {#if otherInterfaces.length > 0}
