@@ -198,6 +198,7 @@ impl CrudService<Host> for HostService {
 mod consolidate;
 mod create;
 mod delete;
+mod detach;
 mod discovery;
 mod lifecycle;
 pub(crate) mod mac_identity;

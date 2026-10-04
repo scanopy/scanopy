@@ -516,6 +516,29 @@ impl HostService {
             )
             .await?;
 
+        // A container report matching a host that also holds another device's addresses takes its
+        // own addresses to a new host instead of adopting that one (`rows_a_container_takes`).
+        let mut detach_from: Option<(Host, HashSet<Uuid>)> = None;
+        let matching_result = match matching_result {
+            Some(m) if matches!(conflict_behavior, ConflictBehavior::Upsert) => {
+                match m.rows_a_container_takes(
+                    host.base.virtualization_metadata.as_ref(),
+                    &ip_addresses,
+                ) {
+                    Some(rows) => {
+                        tracing::debug!(
+                            matched_host_id = %m.host.id,
+                            "Container report matched a host holding another device's addresses"
+                        );
+                        detach_from = Some((m.host, rows));
+                        None
+                    }
+                    None => Some(m),
+                }
+            }
+            other => other,
+        };
+
         let is_new_host = matching_result.is_none();
         let mut same_device: Vec<SameDevice> = Vec::new();
 
@@ -594,6 +617,12 @@ impl HostService {
         // If host.id was set to an existing host's ID above, this will trigger upsert_host()
         // Unlocked variant: this task already holds the HostDedup lock.
         let mut created_host = self.create_unlocked(host, authentication.clone()).await?;
+
+        // Before the address loop, so the moved rows are found on this host and refreshed in place.
+        if let Some((from, rows)) = &detach_from {
+            self.detach_addresses(from, &created_host, rows, &authentication)
+                .await?;
+        }
 
         // Capture daemon interface ID → IP mapping before ip_addresses are consumed.
         // Used later to remap credential assignment ip_address_ids to server-assigned IDs.

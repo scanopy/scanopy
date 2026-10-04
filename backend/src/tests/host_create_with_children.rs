@@ -870,7 +870,9 @@ async fn a_controller_client_on_no_held_range_gets_an_inferred_subnet() {
 
 /// A host never runs inside one of its own services: an ipvlan container's address once merged
 /// into its runtime's host, and the container's submission then made that host its own Docker's
-/// container.
+/// container. A report naming only some of the host's addresses now takes them to a host of its
+/// own (`a_container_report_takes_its_address_off_its_runtimes_host`), so this one names all of
+/// them and is still adopted, which leaves the guard as the last line.
 #[tokio::test]
 async fn a_host_is_never_owned_by_its_own_service() {
     harness!(services, network_id, _container);
@@ -890,6 +892,23 @@ async fn a_host_is_never_owned_by_its_own_service() {
         .find(|a| a.base.ip_address.to_string() == "192.168.1.50")
         .expect("lan address persisted")
         .clone();
+    let named: Vec<IPAddress> = response
+        .ip_addresses
+        .iter()
+        .map(|a| {
+            IPAddress::new(IPAddressBase {
+                network_id,
+                subnet_id: a.base.subnet_id,
+                ip_address: a.base.ip_address,
+                ..Default::default()
+            })
+        })
+        .collect();
+    assert!(
+        named
+            .iter()
+            .any(|a| a.base.ip_address == lan_ip.base.ip_address)
+    );
 
     let container_submission = services
         .host_service
@@ -911,12 +930,7 @@ async fn a_host_is_never_owned_by_its_own_service() {
                 ),
                 ..Default::default()
             }),
-            vec![IPAddress::new(IPAddressBase {
-                network_id,
-                subnet_id: lan_ip.base.subnet_id,
-                ip_address: lan_ip.base.ip_address,
-                ..Default::default()
-            })],
+            named,
             vec![],
             vec![],
             vec![],
