@@ -17,6 +17,7 @@
 	import {
 		getNodeSelectionIds,
 		resolveDependencyTargets,
+		resolveEditDependencyTargets,
 		resolveTagTarget,
 		type DependencyTarget
 	} from '../../../resolvers';
@@ -40,7 +41,6 @@
 	import EdgeStyleForm from '$lib/features/dependencies/components/DependencyEditModal/EdgeStyleForm.svelte';
 	import { computeOptimalHandles } from '../../../layout/elk-layout';
 	import { dependencyTypes, concepts } from '$lib/shared/stores/metadata';
-	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 	import {
 		commonTagsHeader,
 		formatEntityCounts,
@@ -479,30 +479,7 @@
 		(() => {
 			if (!topology) return [];
 			if (editingDependency) {
-				// Edit mode: one service-type target per dep member, no host/IP disambiguation.
-				const members = editingDependency.members;
-				const serviceIds: string[] =
-					members.type === 'Services'
-						? [...members.service_ids]
-						: members.binding_ids
-								.map((bid) => {
-									const svc = topology.services.find((s) => s.bindings.some((b) => b.id === bid));
-									return svc?.id;
-								})
-								.filter((id): id is string => !!id);
-				return serviceIds
-					.filter((sid) => !removedServiceIds.has(sid))
-					.map((sid): DependencyTarget => {
-						const svc = topology.services.find((s) => s.id === sid);
-						const host = svc ? topology.hosts.find((h) => h.id === svc.host_id) : undefined;
-						return {
-							type: 'service',
-							serviceId: sid,
-							elementId: sid,
-							label: svc?.name ?? '',
-							hostName: host ? hostDisplayName(host) : ''
-						};
-					});
+				return resolveEditDependencyTargets(editingDependency, nodes, topology, removedServiceIds);
 			}
 			return resolveDependencyTargets(nodes, topology);
 		})()

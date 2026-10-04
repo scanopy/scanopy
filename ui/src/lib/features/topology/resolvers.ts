@@ -325,6 +325,57 @@ export function resolveDependencyTargets(
 	return targets;
 }
 
+/**
+ * Targets of a dependency being edited: its saved members, in order and minus any the user
+ * removed, then whatever else is selected, resolved like a new dependency's targets.
+ *
+ * Editing selects each saved member as the node that shows it: the service itself, or (L3) the
+ * IP card its binding sits on. Those nodes, removed members' included, are not new targets.
+ */
+export function resolveEditDependencyTargets(
+	dependency: components['schemas']['Dependency'],
+	selectedNodes: { id: string; data: unknown }[],
+	topology: RenderableTopology,
+	removedServiceIds: ReadonlySet<string>
+): DependencyTarget[] {
+	const members = dependency.members;
+	const serviceIds: string[] =
+		members.type === 'Services'
+			? [...members.service_ids]
+			: members.binding_ids
+					.map((bid) => topology.services.find((s) => s.bindings.some((b) => b.id === bid))?.id)
+					.filter((id): id is string => !!id);
+
+	const memberTargets = serviceIds
+		.filter((sid) => !removedServiceIds.has(sid))
+		.map((sid): DependencyTarget => {
+			const svc = topology.services.find((s) => s.id === sid);
+			const host = svc ? topology.hosts.find((h) => h.id === svc.host_id) : undefined;
+			return {
+				type: 'service',
+				serviceId: sid,
+				elementId: sid,
+				label: svc?.name ?? '',
+				hostName: host ? hostDisplayName(host) : ''
+			};
+		});
+
+	const memberNodeIds = new Set<string>();
+	for (const sid of serviceIds) {
+		memberNodeIds.add(sid);
+		const svc = topology.services.find((s) => s.id === sid);
+		for (const b of svc?.bindings ?? []) {
+			if (b.ip_address_id) memberNodeIds.add(b.ip_address_id);
+		}
+	}
+	const addedTargets = resolveDependencyTargets(
+		selectedNodes.filter((n) => !memberNodeIds.has(n.id)),
+		topology
+	);
+
+	return [...memberTargets, ...addedTargets];
+}
+
 // Resolve the taggable entity behind an element node. Walks the element_type's
 // parent_taggable_entity chain (per entity metadata) until a taggable entity is reached.
 // Returns null for containers, unknown elements, or chains with no taggable ancestor.
