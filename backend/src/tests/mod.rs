@@ -41,6 +41,7 @@ use testcontainers::{ContainerAsync, GenericImage, ImageExt, core::WaitFor, runn
 use uuid::Uuid;
 
 pub mod billing_emails_zero_amount;
+pub mod cloud_setup;
 pub mod demo_data_seeding;
 pub mod dependencies;
 pub mod far_end_advertised_ports;

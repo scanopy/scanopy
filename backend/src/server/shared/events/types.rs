@@ -1,5 +1,5 @@
 use crate::server::{
-    auth::r#impl::oidc::OidcProviderMetadata,
+    auth::r#impl::{base::PendingNetworkSetup, oidc::OidcProviderMetadata},
     billing::types::base::{
         BillingInvoice, BillingPlan, BillingReason, CancelReason, LimitSource, LimitType, SaveOffer,
     },
@@ -616,6 +616,10 @@ pub enum OnboardingOperation {
         org_name: String,
         plan: BillingPlan,
         use_case: UseCase,
+        /// The first network requested at signup. `None` for a self-hosted
+        /// license buyer and on events recorded before this field existed.
+        #[serde(default)]
+        network: Option<PendingNetworkSetup>,
     },
     OnboardingModalCompleted,
     PlanSelected {

@@ -27,6 +27,7 @@
 		common_organization,
 		common_settings,
 		common_system,
+		settings_billing_ownerHoldsLicense,
 		settings_billing_ownerMustResolve
 	} from '$lib/paraglide/messages';
 
@@ -192,7 +193,12 @@
 			<!-- Billing-blocked org (past_due / paused / self-hosted plan): only an
 			     owner can see the Billing tab, so tell everyone else why they're held here. -->
 			<div class="shrink-0 px-6 pt-6">
-				<InlineWarning title="" body={settings_billing_ownerMustResolve()} />
+				<InlineWarning
+					title=""
+					body={org != null && hasLicensedPlan(org)
+						? settings_billing_ownerHoldsLicense()
+						: settings_billing_ownerMustResolve()}
+				/>
 			</div>
 		{/if}
 		{#if activeTab === 'account'}

@@ -474,9 +474,9 @@ pub async fn setup_authenticated_user(client: &TestClient) -> Result<User, Strin
 
     let setup_request = SetupRequest {
         organization_name: "My Organization".to_string(),
-        network: NetworkSetup {
+        network: Some(NetworkSetup {
             name: "My Network".to_string(),
-        },
+        }),
     };
 
     match client.setup(&setup_request).await {

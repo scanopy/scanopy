@@ -12,8 +12,16 @@ import type { User } from '$lib/features/users/types';
 /**
  * Query hook for fetching all networks
  */
-export function useNetworksQuery() {
+export function useNetworksQuery(options?: {
+	enabled?: () => boolean;
+	/** Refetch every few seconds while the org has no network, e.g. while a
+	 * plan-change webhook is still creating it. */
+	pollWhileEmpty?: () => boolean;
+}) {
 	return createQuery(() => ({
+		enabled: options?.enabled?.() ?? true,
+		refetchInterval: (query: { state: { data?: unknown[] } }) =>
+			options?.pollWhileEmpty?.() && query.state.data?.length === 0 ? 3000 : false,
 		queryKey: queryKeys.networks.all,
 		queryFn: async () => {
 			// Guard: only fetch if user is logged in (check query cache)

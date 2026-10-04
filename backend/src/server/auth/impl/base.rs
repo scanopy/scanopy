@@ -45,18 +45,22 @@ pub struct ProvisionUserParams {
     pub billing_enabled: bool,
 }
 
-/// Network setup data for a single network
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// The first network requested at signup. Carried on `OrgCreated`, whose
+/// subscriber creates it, so it survives past the session.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct PendingNetworkSetup {
+    /// Name the user gave the network.
     pub name: String,
+    /// Id assigned at setup, before the network exists.
     pub network_id: Uuid,
 }
 
-/// Setup data collected before registration (org name, network, seed preference)
+/// Setup data collected before registration (org name, network, use case)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PendingSetup {
     pub org_name: String,
-    pub network: PendingNetworkSetup,
+    /// `None` when the signup is a self-hosted license buyer.
+    pub network: Option<PendingNetworkSetup>,
     /// Use case selection (homelab, company, msp)
     pub use_case: UseCase,
 }

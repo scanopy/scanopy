@@ -445,6 +445,7 @@ impl BrevoService {
             org_name,
             plan: _,
             use_case,
+            ..
         } = &event.operation
         else {
             return Ok(());

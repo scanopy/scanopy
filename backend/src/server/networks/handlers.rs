@@ -6,10 +6,9 @@ use crate::server::shared::handlers::traits::{
 };
 use crate::server::shared::services::traits::{CrudService, EventBusService};
 use crate::server::shared::storage::filter::StorableFilter;
-use crate::server::shared::storage::traits::{Entity, Storable};
+use crate::server::shared::storage::traits::Entity;
 use crate::server::shared::types::api::ApiJson;
 use crate::server::shared::types::api::PaginatedApiResponse;
-use crate::server::topology::types::base::{Topology, TopologyBase};
 use crate::server::{
     auth::middleware::{
         features::{CreateNetworkFeature, RequireFeature},
@@ -170,18 +169,12 @@ async fn create_network(
             .map_err(|e| ApiError::internal_error(&e.to_string()))?;
 
         let service = Network::get_service(&state);
-        service
-            .create_organizational_subnets(network.id, entity.clone())
-            .await?;
 
-        // Create live-view topology row for this network. Snapshot rows are
-        // inserted separately by the Snapshot::Created subscriber.
-        let topology = Topology::new(TopologyBase::new(network.id));
-
+        // System subnets + live-view topology row for this network.
         state
             .services
             .topology_service
-            .create(topology, entity.clone())
+            .ensure_network_setup(network.id, entity.clone())
             .await?;
 
         // Emit SecondNetworkCreated telemetry event

@@ -155,15 +155,18 @@ pub struct NetworkSetup {
 pub struct SetupRequest {
     /// Name for the organization created during setup.
     pub organization_name: String,
-    /// The first network to create alongside the organization.
-    pub network: NetworkSetup,
+    /// The first network to create alongside the organization. `None` for a
+    /// self-hosted license buyer, whose cloud org gets its network only if it
+    /// later moves to a cloud plan.
+    #[serde(default)]
+    pub network: Option<NetworkSetup>,
 }
 
 /// Response from setup endpoint
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct SetupResponse {
-    /// The network this entity belongs to.
-    pub network_id: Uuid,
+    /// Pre-assigned id of the network created at registration, if one was requested.
+    pub network_id: Option<Uuid>,
 }
 
 /// Request to verify email using token
