@@ -5,7 +5,9 @@
 	import type { RenderableTopology } from '$lib/features/topology/types/base';
 	import type { TopologyEditState } from '$lib/features/topology/state';
 	import type { ElementRenderContext } from '$lib/features/topology/resolvers';
-	import { common_hypervisor } from '$lib/paraglide/messages';
+	import { common_hypervisor, common_presentedBy } from '$lib/paraglide/messages';
+	import { containerTypes, serviceDefinitions } from '$lib/shared/stores/metadata';
+	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	/* eslint-disable @typescript-eslint/no-unused-vars -- component contract props */
 	let {
@@ -23,16 +25,30 @@
 
 	let isReadonly = $derived(editState.isReadonly);
 
-	// Resolve the virtualizer host from the element's host virtualization data
+	// The service virtualizing this element's host, and the host that service runs on.
+	let virtualizerService = $derived.by(() => {
+		const id = elementContext?.host?.virtualization_service_id;
+		return id ? (topology.services.find((s) => s.id === id) ?? null) : null;
+	});
 	let virtualizerHost = $derived.by(() => {
-		const virtualizerServiceId = elementContext?.host?.virtualization_service_id;
-		if (!virtualizerServiceId) return null;
+		const hostId = virtualizerService?.host_id;
+		return hostId ? (topology.hosts.find((h) => h.id === hostId) ?? null) : null;
+	});
 
-		// Look up the virtualizing service, then find its host
-		const service = topology.services.find((s) => s.id === virtualizerServiceId);
-		if (!service?.host_id) return null;
-
-		return topology.hosts.find((h) => h.id === service.host_id) ?? null;
+	// Named by what the managing service does: a VM's hypervisor, a container's runtime, or the
+	// guest that presents a network identity.
+	let title = $derived.by(() => {
+		if (!virtualizerService) return undefined;
+		switch (
+			serviceDefinitions.getMetadata(virtualizerService.service_definition).manages_virtualization
+		) {
+			case 'containers':
+				return containerTypes.getName('ContainerRuntime');
+			case 'identities':
+				return common_presentedBy();
+			default:
+				return common_hypervisor();
+		}
 	});
 
 	let hostContext = $derived({
@@ -47,10 +63,7 @@
 </script>
 
 {#if virtualizerHost}
-	<div>
-		<span class="text-secondary mb-2 block text-sm font-medium">
-			{common_hypervisor()}
-		</span>
+	<InspectorSection id="Virtualization" section="Virtualization" {title}>
 		<div class="card card-static">
 			<EntityDisplayWrapper
 				context={hostContext}
@@ -58,5 +71,5 @@
 				displayComponent={HostDisplay}
 			/>
 		</div>
-	</div>
+	</InspectorSection>
 {/if}

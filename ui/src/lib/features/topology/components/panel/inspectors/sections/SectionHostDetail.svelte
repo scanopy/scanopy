@@ -6,7 +6,11 @@
 	import type { TopologyEditState } from '$lib/features/topology/state';
 	import type { ElementRenderContext } from '$lib/features/topology/resolvers';
 	import { useUpdateHostDescriptionMutation } from '$lib/features/hosts/queries';
-	import { inspector_hostDetail } from '$lib/paraglide/messages';
+	import { useSvelteFlow } from '@xyflow/svelte';
+	import { Crosshair } from 'lucide-svelte';
+	import { inspector_thisEntity, topology_focusNode } from '$lib/paraglide/messages';
+	import { entities, inspectorSections } from '$lib/shared/stores/metadata';
+	import InspectorSection from '../shared/InspectorSection.svelte';
 	import InferredHostNotice from '$lib/features/hosts/components/InferredHostNotice.svelte';
 
 	/* eslint-disable @typescript-eslint/no-unused-vars -- component contract props */
@@ -25,6 +29,10 @@
 
 	let isReadonly = $derived(editState.isReadonly);
 	let host = $derived(elementContext?.host ?? null);
+	// On a Host element (Workloads) the host is the selection itself, so this section takes the
+	// selection's heading and focus control; Identity leaves Host elements to it.
+	let isSelectedHost = $derived(elementContext?.elementType === 'Host');
+	const { fitView } = useSvelteFlow();
 
 	const updateHostDescriptionMutation = useUpdateHostDescriptionMutation();
 
@@ -46,11 +54,28 @@
 </script>
 
 {#if host}
-	<div>
-		<span class="text-secondary mb-2 block text-sm font-medium">{inspector_hostDetail()}</span>
+	<InspectorSection
+		id={isSelectedHost ? 'Identity' : 'HostDetail'}
+		section="HostDetail"
+		title={isSelectedHost
+			? inspector_thisEntity({ name: entities.getItem('Host')?.name ?? 'Host' })
+			: undefined}
+		description={isSelectedHost ? inspectorSections.getDescription('Identity') : undefined}
+	>
+		{#snippet actions()}
+			{#if isSelectedHost}
+				<button
+					class="btn-icon p-0.5"
+					onclick={() => fitView({ nodes: [{ id: node.id }], padding: 0.5, duration: 300 })}
+					title={topology_focusNode()}
+				>
+					<Crosshair class="h-3.5 w-3.5" />
+				</button>
+			{/if}
+		{/snippet}
 		<InferredHostNotice source={host.source} class="mb-2" />
 		<div class="card card-static">
 			<EntityDisplayWrapper context={hostContext} item={host} displayComponent={HostDisplay} />
 		</div>
-	</div>
+	</InspectorSection>
 {/if}

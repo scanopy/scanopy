@@ -9,8 +9,9 @@
 	import type { RenderableTopology, TopologyEdge } from '$lib/features/topology/types/base';
 	import { identityHostsOfEdge } from '$lib/features/topology/resolvers';
 	import type { Host } from '$lib/features/hosts/types/base';
-	import { hostVirtualizations } from '$lib/shared/stores/metadata';
+	import { entities, hostVirtualizations } from '$lib/shared/stores/metadata';
 	import { common_interface, common_presentedBy } from '$lib/paraglide/messages';
+	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	let { edge, identitiesServiceId }: { edge: Edge; identitiesServiceId: string } = $props();
 
@@ -58,41 +59,63 @@
 	}
 </script>
 
-<div class="space-y-3">
+<div class="space-y-4">
 	{#if guestHost}
-		<span class="text-secondary mb-2 block text-sm font-medium">{common_presentedBy()}</span>
-		<div class="card card-static">
-			<EntityDisplayWrapper
-				context={hostContext(guestHost)}
-				item={guestHost}
-				displayComponent={HostDisplay}
-			/>
-		</div>
-	{/if}
-
-	{#if identityHosts.length > 0}
-		<span class="text-secondary mb-2 block text-sm font-medium"
-			>{hostVirtualizations.getName('NetworkIdentity')}</span
+		<InspectorSection
+			id="edge:NetworkIdentity:presentedBy"
+			title={common_presentedBy()}
+			icon={entities.getIconComponent('Host')}
+			iconClass={entities.getColorHelper('Host').icon}
+			description={null}
 		>
-		{#each identityHosts as identityHost (identityHost.id)}
 			<div class="card card-static">
 				<EntityDisplayWrapper
-					context={hostContext(identityHost)}
-					item={identityHost}
+					context={hostContext(guestHost)}
+					item={guestHost}
 					displayComponent={HostDisplay}
 				/>
 			</div>
-		{/each}
+		</InspectorSection>
+	{/if}
+
+	{#if identityHosts.length > 0}
+		<InspectorSection
+			id="edge:NetworkIdentity:identities"
+			title={hostVirtualizations.getName('NetworkIdentity')}
+			icon={entities.getIconComponent('Host')}
+			iconClass={entities.getColorHelper('Host').icon}
+			description={hostVirtualizations.getDescription('NetworkIdentity') || null}
+			count={identityHosts.length}
+		>
+			<div class="space-y-1">
+				{#each identityHosts as identityHost (identityHost.id)}
+					<div class="card card-static">
+						<EntityDisplayWrapper
+							context={hostContext(identityHost)}
+							item={identityHost}
+							displayComponent={HostDisplay}
+						/>
+					</div>
+				{/each}
+			</div>
+		</InspectorSection>
 	{/if}
 
 	{#if identityInterface}
-		<span class="text-secondary mb-2 block text-sm font-medium">{common_interface()}</span>
-		<div class="card card-static">
-			<EntityDisplayWrapper
-				context={undefined}
-				item={identityInterface}
-				displayComponent={InterfaceDisplay}
-			/>
-		</div>
+		<InspectorSection
+			id="edge:NetworkIdentity:interface"
+			title={common_interface()}
+			icon={entities.getIconComponent('Interface')}
+			iconClass={entities.getColorHelper('Interface').icon}
+			description={null}
+		>
+			<div class="card card-static">
+				<EntityDisplayWrapper
+					context={undefined}
+					item={identityInterface}
+					displayComponent={InterfaceDisplay}
+				/>
+			</div>
+		</InspectorSection>
 	{/if}
 </div>

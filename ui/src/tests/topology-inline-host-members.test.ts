@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
 import type { Service } from '$lib/features/services/types/base';
-import { buildInlineGroups } from '$lib/features/topology/element-render-data';
+import {
+	buildInlineGroups,
+	inspectorServiceSections
+} from '$lib/features/topology/element-render-data';
 import { resolveInlineServiceIds } from '$lib/features/topology/resolvers';
 import { inlineHostsMatching } from '$lib/features/topology/interactions';
 
@@ -144,5 +147,43 @@ describe('host metadata hover on inline members', () => {
 		expect(inlineHostsMatching(groups(), hover('BareMetal'), () => undefined, topology)).toEqual(
 			new Set(['mv-2'])
 		);
+	});
+});
+
+describe("inspector services for a guest's host element", () => {
+	it('lists own services apart from the box, and keeps service-less identities in it', () => {
+		const topology = buildTopology();
+		// mv-2 loses its only service to a filter but stays listed, as on the card.
+		const { own, groups } = inspectorServiceSections(
+			guestNode as unknown as TopologyNode,
+			guestServices,
+			topology,
+			new Set(['mv-2-snmp']),
+			null
+		);
+
+		expect(own.map((s) => s.id)).toEqual(['tftp']);
+		expect(groups[0].header?.id).toBe('identities');
+		expect(groups[0].hosts.map((h) => [h.host.id, h.services.map((s) => s.id)])).toEqual([
+			['mv-1', ['mv-1-snmp']],
+			['mv-2', []]
+		]);
+	});
+
+	it('keeps a host element services bound to one address or none', () => {
+		const bound = {
+			...service('web', 'guest', 'Nginx'),
+			bindings: [{ type: 'Port', ip_address_id: 'ip-a', port_id: 'p' }]
+		};
+		const unbound = service('agent', 'guest', 'SNMP');
+		const services = [bound, unbound] as unknown as Service[];
+		const bare = { ...guestNode, inline_groups: [] } as unknown as TopologyNode;
+
+		const onHost = inspectorServiceSections(bare, services, buildTopology(), new Set(), null);
+		expect(onHost.own.map((s) => s.id)).toEqual(['web', 'agent']);
+
+		// An IP-address element narrows to what that address binds (or binds everywhere).
+		const onOtherIp = inspectorServiceSections(bare, services, buildTopology(), new Set(), 'ip-b');
+		expect(onOtherIp.own.map((s) => s.id)).toEqual([]);
 	});
 });

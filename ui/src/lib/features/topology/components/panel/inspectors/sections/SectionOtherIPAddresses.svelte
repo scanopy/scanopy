@@ -9,6 +9,7 @@
 		inspector_otherIPAddress,
 		inspector_otherIPAddresses
 	} from '$lib/paraglide/messages';
+	import InspectorSection from '../shared/InspectorSection.svelte';
 
 	/* eslint-disable @typescript-eslint/no-unused-vars -- component contract props */
 	let {
@@ -36,14 +37,16 @@
 </script>
 
 {#if otherInterfaces.length > 0}
-	<div>
-		<span class="text-secondary mb-2 block text-sm font-medium">
-			{isIPAddressElement
-				? otherInterfaces.length > 1
-					? inspector_otherIPAddresses()
-					: inspector_otherIPAddress()
-				: common_ipAddresses()}
-		</span>
+	<InspectorSection
+		id="OtherInterfaces"
+		section="OtherInterfaces"
+		title={isIPAddressElement
+			? otherInterfaces.length > 1
+				? inspector_otherIPAddresses()
+				: inspector_otherIPAddress()
+			: common_ipAddresses()}
+		count={otherInterfaces.length}
+	>
 		<div class="space-y-1">
 			{#each otherInterfaces as iface (iface.id)}
 				<div class="card card-static">
@@ -55,5 +58,5 @@
 				</div>
 			{/each}
 		</div>
-	</div>
+	</InspectorSection>
 {/if}

@@ -3,11 +3,9 @@
 	import type { RenderableTopology } from '$lib/features/topology/types/base';
 	import { getContainerContents, resolveInlineServiceIds } from '$lib/features/topology/resolvers';
 	import { containerTypes } from '$lib/shared/stores/metadata';
-	import {
-		inspector_dependencySummary,
-		inspector_crossContainerDeps,
-		inspector_noDependencies
-	} from '$lib/paraglide/messages';
+	import { inspector_crossContainerDeps, inspector_noDependencies } from '$lib/paraglide/messages';
+	import InspectorSection from '../shared/InspectorSection.svelte';
+	import InspectorSubsection from '../shared/InspectorSubsection.svelte';
 	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
 	import { DependencyDisplay } from '$lib/shared/components/forms/selection/display/DependencyDisplay.svelte';
 
@@ -60,15 +58,19 @@
 	});
 </script>
 
-<div>
-	<span class="text-secondary mb-2 block text-sm font-medium">{inspector_dependencySummary()}</span>
+<InspectorSection
+	id="DependencySummary"
+	section="DependencySummary"
+	count={crossBoundaryDeps.length > 0 ? crossBoundaryDeps.length : undefined}
+>
 	{#if crossBoundaryDeps.length === 0}
 		<p class="text-tertiary text-sm">{inspector_noDependencies()}</p>
 	{:else}
-		<div>
-			<span class="text-tertiary mb-1 block text-xs font-medium uppercase">
-				{inspector_crossContainerDeps({ containerType: containerTypeName })}
-			</span>
+		<InspectorSubsection
+			id="DependencySummary:crossing"
+			title={inspector_crossContainerDeps({ containerType: containerTypeName })}
+			count={crossBoundaryDeps.length}
+		>
 			<div class="space-y-1">
 				{#each crossBoundaryDeps as dep (dep.id)}
 					<div class="card card-static">
@@ -80,6 +82,6 @@
 					</div>
 				{/each}
 			</div>
-		</div>
+		</InspectorSubsection>
 	{/if}
-</div>
+</InspectorSection>

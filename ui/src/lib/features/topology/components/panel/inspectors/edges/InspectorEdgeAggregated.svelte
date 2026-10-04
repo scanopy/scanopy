@@ -14,6 +14,8 @@
 		hosts_virtualization_containerHosts,
 		inspector_dockerService
 	} from '$lib/paraglide/messages';
+	import InspectorSection from '../shared/InspectorSection.svelte';
+	import InspectorSubsection from '../shared/InspectorSubsection.svelte';
 	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
 	import { SameHostEdgeDisplay } from '$lib/shared/components/forms/selection/display/SameHostEdgeDisplay.svelte';
 	import { PhysicalLinkEdgeDisplay } from '$lib/shared/components/forms/selection/display/PhysicalLinkEdgeDisplay.svelte';
@@ -209,11 +211,11 @@
 	}
 </script>
 
-<div class="space-y-4">
-	<span class="text-secondary block text-sm font-medium">
-		{topology_connectionsCount({ count: edges.length })}
-	</span>
-
+<InspectorSection
+	id="edge:Aggregated:connections"
+	title={topology_connectionsCount({ count: edges.length })}
+	description={null}
+>
 	<div class="max-h-96 space-y-3 overflow-y-auto">
 		{#each [...edgesByType.entries()] as [edgeType, typeEdges] (edgeType)}
 			{@const typeName = isDependencyEdge(edgeType)
@@ -221,95 +223,139 @@
 				: edgeTypes.getName(edgeType)}
 			{@const displayComponent = getDisplayComponent(edgeType)}
 
-			{#if typeEdges.length > 1}
-				<span class="text-tertiary block text-xs font-medium uppercase tracking-wide">
-					{typeName} ({typeEdges.length})
-				</span>
-			{:else}
-				<span class="text-tertiary block text-xs font-medium uppercase tracking-wide">
-					{typeName}
-				</span>
-			{/if}
-
-			{#if isDependencyEdge(edgeType)}
-				{@const uniqueDeps = dependencyEdgeGroups.get(edgeType) ?? []}
-				{#each uniqueDeps as dep (dep.id)}
-					<div class="card card-static">
-						<EntityDisplayWrapper
-							item={dep}
-							context={{ compact: true }}
-							displayComponent={DependencyDisplay}
-						/>
-					</div>
-					{#if dep.members.type === 'Services'}
-						{#each dep.members.service_ids as serviceId (serviceId)}
-							{@const service = topology?.services.find((s) => s.id === serviceId)}
-							{#if service}
-								<div class="card card-static ml-3">
-									<EntityDisplayWrapper
-										context={{ compact: true } satisfies ServiceDisplayContext}
-										item={service}
-										displayComponent={ServiceDisplay}
-									/>
-								</div>
-							{/if}
-						{/each}
-					{:else if dep.members.type === 'Bindings'}
-						{#each dep.members.binding_ids as bindingId (bindingId)}
-							{@const bindingService = topology?.services.find((s) =>
-								s.bindings.some((b) => b.id === bindingId)
-							)}
-							{#if bindingService}
-								<div class="card card-static ml-3">
-									<EntityDisplayWrapper
-										context={{ compact: true } satisfies ServiceDisplayContext}
-										item={bindingService}
-										displayComponent={ServiceDisplay}
-									/>
-								</div>
-							{/if}
-						{/each}
-					{/if}
-				{:else}
-					<div class="card card-static">
-						<div class="px-2 py-1">
-							<span class="text-secondary text-sm">{typeName}</span>
-						</div>
-					</div>
-				{/each}
-			{:else if isContainerRuntime(edgeType) && svcVirtData}
-				{#if svcVirtData.mode === 'single'}
-					{#if svcVirtData.containerizer}
-						<span class="text-secondary mb-1 block text-sm font-medium"
-							>{inspector_dockerService()}</span
-						>
+			<InspectorSubsection
+				id={`edge:Aggregated:${edgeType}`}
+				title={typeName}
+				icon={edgeTypes.getIconComponent(edgeType)}
+				iconClass={edgeTypes.getColorHelper(edgeType).icon}
+				count={typeEdges.length > 1 ? typeEdges.length : undefined}
+			>
+				{#if isDependencyEdge(edgeType)}
+					{@const uniqueDeps = dependencyEdgeGroups.get(edgeType) ?? []}
+					{#each uniqueDeps as dep (dep.id)}
 						<div class="card card-static">
 							<EntityDisplayWrapper
-								item={svcVirtData.containerizer}
-								context={{ ipAddressId: null, ports: topology?.ports ?? [], compact: true }}
-								displayComponent={ServiceDisplay}
+								item={dep}
+								context={{ compact: true }}
+								displayComponent={DependencyDisplay}
 							/>
 						</div>
-					{/if}
-					{#if svcVirtData.containerized.length > 0}
-						<span class="text-secondary mb-1 block text-sm font-medium">
-							{common_containerizedServices()} ({svcVirtData.containerized.length})
-						</span>
-						{#each svcVirtData.containerized as service (service.id)}
+						{#if dep.members.type === 'Services'}
+							{#each dep.members.service_ids as serviceId (serviceId)}
+								{@const service = topology?.services.find((s) => s.id === serviceId)}
+								{#if service}
+									<div class="card card-static ml-3">
+										<EntityDisplayWrapper
+											context={{ compact: true } satisfies ServiceDisplayContext}
+											item={service}
+											displayComponent={ServiceDisplay}
+										/>
+									</div>
+								{/if}
+							{/each}
+						{:else if dep.members.type === 'Bindings'}
+							{#each dep.members.binding_ids as bindingId (bindingId)}
+								{@const bindingService = topology?.services.find((s) =>
+									s.bindings.some((b) => b.id === bindingId)
+								)}
+								{#if bindingService}
+									<div class="card card-static ml-3">
+										<EntityDisplayWrapper
+											context={{ compact: true } satisfies ServiceDisplayContext}
+											item={bindingService}
+											displayComponent={ServiceDisplay}
+										/>
+									</div>
+								{/if}
+							{/each}
+						{/if}
+					{:else}
+						<div class="card card-static">
+							<div class="px-2 py-1">
+								<span class="text-secondary text-sm">{typeName}</span>
+							</div>
+						</div>
+					{/each}
+				{:else if isContainerRuntime(edgeType) && svcVirtData}
+					{#if svcVirtData.mode === 'single'}
+						{#if svcVirtData.containerizer}
+							<span class="text-tertiary mb-1 block text-xs font-medium"
+								>{inspector_dockerService()}</span
+							>
 							<div class="card card-static">
 								<EntityDisplayWrapper
-									item={service}
+									item={svcVirtData.containerizer}
 									context={{ ipAddressId: null, ports: topology?.ports ?? [], compact: true }}
 									displayComponent={ServiceDisplay}
 								/>
 							</div>
+						{/if}
+						{#if svcVirtData.containerized.length > 0}
+							<span class="text-tertiary mb-1 block text-xs font-medium">
+								{common_containerizedServices()} ({svcVirtData.containerized.length})
+							</span>
+							{#each svcVirtData.containerized as service (service.id)}
+								<div class="card card-static">
+									<EntityDisplayWrapper
+										item={service}
+										context={{ ipAddressId: null, ports: topology?.ports ?? [], compact: true }}
+										displayComponent={ServiceDisplay}
+									/>
+								</div>
+							{/each}
+						{/if}
+						{#if svcVirtData.containerHosts.length > 0}
+							<span class="text-tertiary mb-1 block text-xs font-medium">
+								{hosts_virtualization_containerHosts()} ({svcVirtData.containerHosts.length})
+							</span>
+							{#each svcVirtData.containerHosts as host (host.id)}
+								<div class="card card-static">
+									<EntityDisplayWrapper
+										item={host}
+										context={hostContext(host.id)}
+										displayComponent={HostDisplay}
+									/>
+								</div>
+							{/each}
+						{/if}
+					{:else}
+						{#each svcVirtData.hosts as { host, containerCount } (host.id)}
+							<div class="card card-static">
+								<EntityDisplayWrapper
+									item={host}
+									context={{
+										services: topology?.services.filter((s) => s.host_id === host.id) ?? [],
+										compact: true
+									}}
+									displayComponent={HostDisplay}
+								/>
+								<div class="flex items-center gap-2 px-3 pb-2">
+									<Tag label={common_docker()} color="Indigo" />
+									<span class="text-tertiary text-xs"
+										>{topology_containerCount({ count: containerCount })}</span
+									>
+								</div>
+							</div>
 						{/each}
 					{/if}
-					{#if svcVirtData.containerHosts.length > 0}
-						<span class="text-secondary mb-1 block text-sm font-medium">
-							{hosts_virtualization_containerHosts()} ({svcVirtData.containerHosts.length})
+				{:else if edgeType === 'NetworkIdentity' && identityGroups.length > 0}
+					{#each identityGroups as group (group.serviceId)}
+						{#if group.guest}
+							<span class="text-tertiary mb-1 block text-xs font-medium"
+								>{common_presentedBy()}</span
+							>
+							<div class="card card-static">
+								<EntityDisplayWrapper
+									item={group.guest}
+									context={hostContext(group.guest.id)}
+									displayComponent={HostDisplay}
+								/>
+							</div>
+						{/if}
+						<span class="text-tertiary mb-1 block text-xs font-medium">
+							{hostVirtualizations.getName('NetworkIdentity')} ({group.identities.length})
 						</span>
-						{#each svcVirtData.containerHosts as host (host.id)}
+						{#each group.identities as host (host.id)}
 							<div class="card card-static">
 								<EntityDisplayWrapper
 									item={host}
@@ -318,70 +364,25 @@
 								/>
 							</div>
 						{/each}
-					{/if}
+					{/each}
 				{:else}
-					{#each svcVirtData.hosts as { host, containerCount } (host.id)}
+					{#each typeEdges as edge (edge.id)}
 						<div class="card card-static">
-							<EntityDisplayWrapper
-								item={host}
-								context={{
-									services: topology?.services.filter((s) => s.host_id === host.id) ?? [],
-									compact: true
-								}}
-								displayComponent={HostDisplay}
-							/>
-							<div class="flex items-center gap-2 px-3 pb-2">
-								<Tag label={common_docker()} color="Indigo" />
-								<span class="text-tertiary text-xs"
-									>{topology_containerCount({ count: containerCount })}</span
-								>
-							</div>
+							{#if displayComponent}
+								<EntityDisplayWrapper
+									item={edge}
+									context={{ topology: topology ?? undefined }}
+									{displayComponent}
+								/>
+							{:else}
+								<div class="px-2 py-1">
+									<span class="text-secondary text-sm">{typeName}</span>
+								</div>
+							{/if}
 						</div>
 					{/each}
 				{/if}
-			{:else if edgeType === 'NetworkIdentity' && identityGroups.length > 0}
-				{#each identityGroups as group (group.serviceId)}
-					{#if group.guest}
-						<span class="text-secondary mb-1 block text-sm font-medium">{common_presentedBy()}</span
-						>
-						<div class="card card-static">
-							<EntityDisplayWrapper
-								item={group.guest}
-								context={hostContext(group.guest.id)}
-								displayComponent={HostDisplay}
-							/>
-						</div>
-					{/if}
-					<span class="text-secondary mb-1 block text-sm font-medium">
-						{hostVirtualizations.getName('NetworkIdentity')} ({group.identities.length})
-					</span>
-					{#each group.identities as host (host.id)}
-						<div class="card card-static">
-							<EntityDisplayWrapper
-								item={host}
-								context={hostContext(host.id)}
-								displayComponent={HostDisplay}
-							/>
-						</div>
-					{/each}
-				{/each}
-			{:else}
-				{#each typeEdges as edge (edge.id)}
-					<div class="card card-static">
-						{#if displayComponent}
-							<EntityDisplayWrapper
-								item={edge}
-								context={{ topology: topology ?? undefined }}
-								{displayComponent}
-							/>
-						{:else}
-							<div class="px-2 py-1">
-								<span class="text-secondary text-sm">{typeName}</span>
-							</div>
-						{/if}
-					</div>
-				{/each}
-			{/if}
+			</InspectorSubsection>
 		{/each}
 	</div>
-</div>
+</InspectorSection>
