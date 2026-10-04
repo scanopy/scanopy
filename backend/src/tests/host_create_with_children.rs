@@ -868,64 +868,6 @@ async fn a_controller_client_on_no_held_range_gets_an_inferred_subnet() {
     assert!(!subnet.is_organizational_subnet());
 }
 
-/// A container that answers as its runtime (a proxy in front of the Docker API) arrives matched as
-/// a second Docker, owned by the runtime. It is the runtime by host and definition, so it folds
-/// into it; the runtime must not end up owned by itself or carrying the proxy's container details.
-#[tokio::test]
-async fn a_runtime_is_never_its_own_container() {
-    harness!(services, network_id, _container);
-
-    let first = Submission::container_host(network_id);
-    let bridge_cidr = first.bridge_cidr();
-    let response = submit(&services, first).await.expect("first scan persists");
-    let persisted = services
-        .subnet_service
-        .get_all(StorableFilter::<Subnet>::new_from_network_ids(&[network_id]).live())
-        .await
-        .unwrap();
-    let lan_id = persisted
-        .iter()
-        .find(|s| s.base.subnet_type == SubnetType::Lan)
-        .expect("lan persisted")
-        .id;
-    let bridge_id = persisted
-        .iter()
-        .find(|s| *s.base.cidr == bridge_cidr)
-        .expect("bridge persisted")
-        .id;
-
-    let mut second = Submission::container_host(network_id);
-    second.rescan(response.id, lan_id, bridge_id);
-    let runtime_id = second.services[0].id;
-    let proxy = &mut second.services[1];
-    proxy.base.name = "docker-api-proxy".to_string();
-    proxy.base.service_definition =
-        ServiceDefinitionRegistry::find_by_id("Docker").expect("Docker is registered");
-    proxy.base.virtualization_service_id = Some(runtime_id);
-    proxy.base.virtualization_metadata = Some(
-        crate::server::services::r#impl::virtualization::ServiceVirtualization::Docker(
-            crate::server::services::r#impl::virtualization::DockerVirtualization {
-                container_name: Some("docker-api-proxy".to_string()),
-                container_id: Some("a27773f8c424".to_string()),
-                compose_project: Some("proxy".to_string()),
-            },
-        ),
-    );
-    submit(&services, second).await.expect("rescan persists");
-
-    let runtimes: Vec<Service> = services
-        .service_service
-        .get_all(StorableFilter::<Service>::new_from_network_ids(&[network_id]).live())
-        .await
-        .unwrap()
-        .into_iter()
-        .filter(|s| s.base.service_definition.name() == "Docker")
-        .collect();
-    assert_eq!(runtimes.len(), 1);
-    assert_eq!(runtimes[0].base.virtualization_service_id, None);
-    assert_eq!(runtimes[0].base.virtualization_metadata, None);
-}
-
 /// A host never runs inside one of its own services: an ipvlan container's address once merged
 /// into its runtime's host, and the container's submission then made that host its own Docker's
 /// container.

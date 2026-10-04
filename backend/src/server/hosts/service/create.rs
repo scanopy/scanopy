@@ -1101,6 +1101,15 @@ impl HostService {
                 service_id_remap.insert(original_service_id, reassigned.id);
             }
 
+            // Resolve the owner to its stored id now, not just before the insert: the conflict
+            // handling below compares it against the host's stored services, and the daemon's
+            // minted id matches none of them.
+            reassigned.base.virtualization_service_id = resolve_owner_service_id(
+                reassigned.base.virtualization_service_id,
+                &service_id_remap,
+                &live_service_ids,
+            );
+
             // Check for binding conflicts with other services (DB + batch)
             let (valid_bindings, conflicting_bindings) = self
                 .service_service
@@ -1153,11 +1162,15 @@ impl HostService {
                         .filter_map(|b| b.port_id())
                         .collect();
 
-                    // Find non-generic services on this host that claim the conflicting ports
+                    // Find non-generic services on this host that claim the conflicting ports. Never
+                    // the container's own runtime: a container publishing the port its runtime is
+                    // reached on (an API proxy) would otherwise become the runtime's identity, and
+                    // the runtime its own container.
                     let enrichable_services: Vec<&Service> = existing_services_for_match
                         .iter()
                         .filter(|s| {
-                            !ServiceDefinitionExt::is_generic(&s.base.service_definition)
+                            Some(s.id) != reassigned.base.virtualization_service_id
+                                && !ServiceDefinitionExt::is_generic(&s.base.service_definition)
                                 && s.base.virtualization_metadata.is_none()
                                 && s.base.bindings.iter().any(|b| {
                                     b.port_id()
@@ -1188,6 +1201,60 @@ impl HostService {
 
                     // Still drop the generic Docker Container service itself
                     continue;
+                } else if let Some(owner_id) = reassigned.base.virtualization_service_id
+                    && let Some(owner) = existing_services_for_match
+                        .iter()
+                        .find(|s| s.id == owner_id)
+                    && conflicting_bindings.iter().all(|b| {
+                        b.port_id().is_some_and(|pid| {
+                            owner
+                                .base
+                                .bindings
+                                .iter()
+                                .any(|ob| ob.port_id() == Some(pid))
+                        })
+                    })
+                {
+                    // A container claiming ports its own runtime holds: the runtime is reached
+                    // through the container (an API proxy publishing the port the credential
+                    // connects to), so the container owns them and the runtime gives them up.
+                    // Covers bindings the runtime kept from earlier scans, and older daemons.
+                    let claims: Vec<(Uuid, Option<Uuid>)> = conflicting_bindings
+                        .iter()
+                        .filter_map(|b| match &b.base.binding_type {
+                            BindingType::Port {
+                                port_id,
+                                ip_address_id,
+                            } => Some((*port_id, *ip_address_id)),
+                            BindingType::IPAddress { .. } => None,
+                        })
+                        .collect();
+                    tracing::info!(
+                        container_service = %reassigned.base.name,
+                        runtime_service_id = %owner_id,
+                        ports = ?claims,
+                        "Container takes the ports its runtime is reached through"
+                    );
+                    self.service_service
+                        .remove_port_bindings(&owner_id, &claims, authentication.clone())
+                        .await?;
+                    if let Some(owner) = existing_services_for_match
+                        .iter_mut()
+                        .find(|s| s.id == owner_id)
+                    {
+                        owner.base.bindings.retain(|b| {
+                            let Some(port_id) = b.port_id() else {
+                                return true;
+                            };
+                            let bind_iface = b.ip_address_id();
+                            !claims
+                                .iter()
+                                .any(|(cp, ci)| *cp == port_id && bindings_overlap(ci, &bind_iface))
+                        });
+                    }
+                    let mut full_bindings = valid_bindings;
+                    full_bindings.extend(conflicting_bindings);
+                    reassigned.base.bindings = full_bindings;
                 } else {
                     // Check if all conflicts are with the Unclaimed Open Ports service.
                     // When a new service definition is added and a host is re-scanned,

@@ -209,6 +209,7 @@ pub mod zigbee2mqtt;
 pub mod zwave_js;
 
 // Virtualization
+pub mod docker_api_proxy;
 pub mod docker_container;
 pub mod docker_daemon;
 pub mod docker_swarm;
@@ -218,6 +219,7 @@ pub mod kubernetes;
 pub mod nomad;
 pub mod openshift;
 pub mod podman;
+pub mod podman_api_proxy;
 pub mod podman_container;
 pub mod portainer;
 pub mod proxmox;
