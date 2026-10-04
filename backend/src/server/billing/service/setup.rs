@@ -72,6 +72,7 @@ impl BillingService {
             host_service,
             user_service,
             plans: OnceLock::new(),
+            payment_method_configuration: OnceLock::new(),
             event_bus,
         }
     }
@@ -103,6 +104,8 @@ impl BillingService {
     }
 
     pub async fn initialize_products(&self, plans: Vec<BillingPlan>) -> Result<(), Error> {
+        self.initialize_payment_method_configuration().await?;
+
         let mut created_plans = Vec::new();
 
         tracing::info!(

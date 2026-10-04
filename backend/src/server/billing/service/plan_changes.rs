@@ -20,18 +20,14 @@ impl BillingService {
             .get_or_create_customer(organization_id, authentication)
             .await?;
 
-        let mut automatic_payment_methods = CreateSetupIntentAutomaticPaymentMethods::new(true);
-        automatic_payment_methods.allow_redirects =
-            Some(CreateSetupIntentAutomaticPaymentMethodsAllowRedirects::Never);
-
-        let setup_intent = CreateSetupIntent::new()
-            .customer(customer_id.to_string())
-            .automatic_payment_methods(automatic_payment_methods)
-            .usage(CreateSetupIntentUsage::OffSession)
-            .metadata(StripeOrgMetadata::new(organization_id).to_stripe())
-            .send(&self.stripe)
-            .await
-            .map_err(|e| anyhow!(e.to_string()))?;
+        let setup_intent = setup_intent_request(
+            &customer_id,
+            organization_id,
+            self.payment_method_configuration_id(),
+        )
+        .send(&self.stripe)
+        .await
+        .map_err(|e| anyhow!(e.to_string()))?;
 
         tracing::info!(
             organization_id = %organization_id,
@@ -592,6 +588,30 @@ impl BillingService {
     }
 }
 
+/// The SetupIntent behind the in-app payment form. With a
+/// `payment_method_configuration` the form offers that configuration's
+/// methods; without one Stripe uses the account's default configuration.
+fn setup_intent_request(
+    customer_id: &CustomerId,
+    organization_id: Uuid,
+    payment_method_configuration: Option<&str>,
+) -> CreateSetupIntent {
+    let mut automatic_payment_methods = CreateSetupIntentAutomaticPaymentMethods::new(true);
+    automatic_payment_methods.allow_redirects =
+        Some(CreateSetupIntentAutomaticPaymentMethodsAllowRedirects::Never);
+
+    let request = CreateSetupIntent::new()
+        .customer(customer_id.to_string())
+        .automatic_payment_methods(automatic_payment_methods)
+        .usage(CreateSetupIntentUsage::OffSession)
+        .metadata(StripeOrgMetadata::new(organization_id).to_stripe());
+
+    match payment_method_configuration {
+        Some(id) => request.payment_method_configuration(id),
+        None => request,
+    }
+}
+
 /// Whether `target` sits below the org's current plan on its own ladder.
 ///
 /// `PartialOrd for BillingPlanDiscriminants` keeps the self-hosted ladder
@@ -637,5 +657,32 @@ mod tests {
             get_free_plan()
         ));
         assert!(!is_tier_downgrade(None, get_self_hosted_standard_plan()));
+    }
+
+    fn setup_intent_form(payment_method_configuration: Option<&str>) -> Vec<(String, String)> {
+        let body = setup_intent_request(
+            &CustomerId::from("cus_123".to_string()),
+            Uuid::nil(),
+            payment_method_configuration,
+        )
+        .build()
+        .body
+        .unwrap();
+        url::form_urlencoded::parse(body.as_bytes())
+            .into_owned()
+            .collect()
+    }
+
+    #[test]
+    fn setup_intent_carries_the_configuration_when_one_is_set() {
+        let with = setup_intent_form(Some("pmc_123"));
+        let without = setup_intent_form(None);
+
+        assert!(with.contains(&("payment_method_configuration".into(), "pmc_123".into())));
+        let rest: Vec<_> = with
+            .into_iter()
+            .filter(|(key, _)| key != "payment_method_configuration")
+            .collect();
+        assert_eq!(rest, without);
     }
 }

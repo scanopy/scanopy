@@ -1,0 +1,50 @@
+{
+  "id": "pmc_1SyTestScanopySubs",
+  "object": "payment_method_configuration",
+  "active": true,
+  "application": null,
+  "is_default": false,
+  "livemode": false,
+  "name": "Scanopy subscriptions",
+  "parent": null,
+  "acss_debit": {
+    "available": false,
+    "display_preference": { "overridable": null, "preference": "off", "value": "off" }
+  },
+  "apple_pay": {
+    "available": true,
+    "display_preference": { "overridable": null, "preference": "on", "value": "on" }
+  },
+  "blik": {
+    "available": true,
+    "display_preference": { "overridable": null, "preference": "on", "value": "on" }
+  },
+  "card": {
+    "available": true,
+    "display_preference": { "overridable": null, "preference": "on", "value": "on" }
+  },
+  "cashapp": {
+    "available": true,
+    "display_preference": { "overridable": null, "preference": "none", "value": "on" }
+  },
+  "google_pay": {
+    "available": true,
+    "display_preference": { "overridable": null, "preference": "on", "value": "on" }
+  },
+  "link": {
+    "available": true,
+    "display_preference": { "overridable": null, "preference": "off", "value": "off" }
+  },
+  "paypal": {
+    "available": false,
+    "display_preference": { "overridable": null, "preference": "off", "value": "off" }
+  },
+  "sepa_debit": {
+    "available": true,
+    "display_preference": { "overridable": null, "preference": "on", "value": "on" }
+  },
+  "us_bank_account": {
+    "available": true,
+    "display_preference": { "overridable": null, "preference": "none", "value": "on" }
+  }
+}

@@ -104,6 +104,9 @@ pub struct BillingService {
     pub event_bus: Arc<EventBus>,
     /// Secret key for Stripe endpoints the SDK cannot reach: rendered quote
     /// PDFs are binary and served from Stripe's files host.
+    /// Id of the "Scanopy subscriptions" Payment Method Configuration, set
+    /// when startup reconciles it. See `payment_methods.rs`.
+    payment_method_configuration: OnceLock<String>,
     stripe_secret: String,
     files_http: reqwest::Client,
 }
@@ -126,6 +129,7 @@ pub struct BillingServiceParams {
 mod checkout;
 mod invoicing;
 mod lifecycle;
+mod payment_methods;
 mod plan_changes;
 mod setup;
 pub(crate) mod stripe_client;

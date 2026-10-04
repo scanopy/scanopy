@@ -296,6 +296,7 @@ async-stripe-core = { version = "1.0.0-rc.8", default-features = false,features 
 async-stripe-product = { version = "1.0.0-rc.8", default-features = false,features = ["product", "price", "coupon"] }
 async-stripe-billing = { version = "1.0.0-rc.8", default-features = false,features = ["plan", "subscription", "invoice", "quote", "tax_id", "deserialize", "serialize", "billing_portal_session"] }
 async-stripe-checkout = { version = "1.0.0-rc.8", default-features = false,features = ["checkout_session"] }
+async-stripe-payment = { version = "1.0.0-rc.8", default-features = false, features = ["payment_method_configuration", "deserialize", "serialize"] }
 async-stripe-types = { version = "1.0.0-rc.8", default-features = false }
 moka = { version = "0.12.11", features = ["future"] }
 nanoid = "0.4.0"
