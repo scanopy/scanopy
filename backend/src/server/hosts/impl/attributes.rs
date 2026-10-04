@@ -223,6 +223,7 @@ attributed_value! {
         schema_name: "HostOperatingSystem",
         refreshable: true,
         blank: |_: &HostOs| false,
+        refines: HostOs::refines,
         schema: <HostOs as ::utoipa::PartialSchema>::schema(),
     }
 }

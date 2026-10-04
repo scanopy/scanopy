@@ -1684,3 +1684,108 @@ async fn a_dcp_report_joins_the_network_identity_its_mac_presents() {
     assert_eq!(dcp.id, identity.id);
     assert_eq!(live_hosts(&services, &lab).await.len(), 2);
 }
+
+/// What a guest's hypervisor config and the guest itself say outrank DNS names, and an LXC's
+/// config distribution and its SSH banner build one OS whichever lands first.
+#[tokio::test]
+async fn hypervisor_readings_outrank_dns_names_and_refine_the_banner_os() {
+    use crate::server::hosts::r#impl::attributes::{HostHostnameValue, HostOsValue};
+    use crate::server::hosts::r#impl::os::{HostOs, HostOsFamily};
+    use crate::server::shared::attribution::Attributed;
+
+    harness!(_storage, services, lab, _container);
+    let debian = |version: Option<&str>| HostOs {
+        family: HostOsFamily::Linux,
+        name: Some("Debian".to_string()),
+        version: version.map(str::to_string),
+        edition: None,
+        codename: None,
+        kernel_version: None,
+    };
+    let reading = |hostname: Option<(&str, AttributeSource)>,
+                   os: Option<(HostOs, AttributeSource)>| HostBase {
+        hostname: hostname.map(|(h, s)| Attributed::new(HostHostnameValue(h.to_string()), s)),
+        os: os.map(|(os, s)| Attributed::new(HostOsValue(os), s)),
+        ..Default::default()
+    };
+    let lxc_mac: MacAddress = "bc:24:11:72:2e:bc".parse().unwrap();
+    let bare_mac: MacAddress = "bc:24:11:77:70:53".parse().unwrap();
+
+    // pihole: the sweep's reverse DNS name and SSH banner first, then Proxmox's config.
+    let pihole = discover(
+        &services,
+        &lab,
+        reading(
+            Some(("pi.hole", AttributeSource::ReverseDns)),
+            Some((debian(Some("12.0")), AttributeSource::SshBannerMatch)),
+        ),
+        vec![arp(&lab, "192.168.4.188", lxc_mac)],
+        vec![],
+        vec![],
+    )
+    .await;
+    discover(
+        &services,
+        &lab,
+        reading(
+            Some(("pihole", AttributeSource::HypervisorConfig)),
+            Some((debian(None), AttributeSource::HypervisorConfig)),
+        ),
+        vec![config(&lab, "192.168.4.188", lxc_mac)],
+        vec![],
+        vec![],
+    )
+    .await;
+
+    // debian: Proxmox's config first, with no SSH; the banner's release arrives later.
+    let bare = discover(
+        &services,
+        &lab,
+        reading(
+            None,
+            Some((debian(None), AttributeSource::HypervisorConfig)),
+        ),
+        vec![config(&lab, "192.168.4.67", bare_mac)],
+        vec![],
+        vec![],
+    )
+    .await;
+    discover(
+        &services,
+        &lab,
+        reading(
+            None,
+            Some((debian(Some("12.0")), AttributeSource::SshBannerMatch)),
+        ),
+        vec![arp(&lab, "192.168.4.67", bare_mac)],
+        vec![],
+        vec![],
+    )
+    .await;
+
+    let stored = |id: Uuid| {
+        let services = &services;
+        async move {
+            services
+                .host_service
+                .get_by_id(&id)
+                .await
+                .unwrap()
+                .expect("live")
+        }
+    };
+    let pihole = stored(pihole.id).await;
+    assert_eq!(
+        pihole.base.hostname.as_ref().map(|h| h.value().0.as_str()),
+        Some("pihole")
+    );
+    assert_eq!(
+        pihole.base.os.as_ref().map(|os| os.value().0.clone()),
+        Some(debian(Some("12.0")))
+    );
+    let bare = stored(bare.id).await;
+    assert_eq!(
+        bare.base.os.as_ref().map(|os| os.value().0.clone()),
+        Some(debian(Some("12.0")))
+    );
+}

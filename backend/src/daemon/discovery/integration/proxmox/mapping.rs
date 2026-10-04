@@ -8,7 +8,7 @@ use std::net::IpAddr;
 use uuid::Uuid;
 
 use crate::server::hosts::r#impl::{
-    attributes::{HostHostnameValue, HostOsValue},
+    attributes::{HostHostnameAttributed, HostOsAttributed, HostOsValue},
     base::{Host, HostBase},
     name::{HostName, HostNameSources},
     os::{HostOs, HostOsFamily},
@@ -29,8 +29,16 @@ use super::types::{
     LxcInterface, NodeNetworkEntry, NodeStatus,
 };
 
-/// The source of everything Proxmox reports about a node or guest other than a NIC's MAC.
+/// The source of what Proxmox reports about a node or guest in its own words: everything but a
+/// guest's config and what its guest agent reads.
 pub const REPORTED: AttributeSource = AttributeSource::Probe(ClientProbe::Proxmox);
+
+/// The source of what a guest's config sets and Proxmox applies to the guest: an LXC container's
+/// hostname and distribution.
+pub const GUEST_CONFIG: AttributeSource = AttributeSource::HypervisorConfig;
+
+/// The source of what the QEMU guest agent reads inside a VM: its hostname and OS.
+pub const GUEST_AGENT: AttributeSource = AttributeSource::GuestAgent;
 
 /// The source of a guest NIC's MAC. Every MAC this integration submits is one a guest's config
 /// declares (see [`select_addresses`]), so it is the hypervisor's own assignment rather than a
@@ -399,6 +407,34 @@ pub fn config_hostname(config: &GuestConfig) -> Option<String> {
     present(config.get("hostname").and_then(|v| v.as_str()))
 }
 
+/// The distribution an LXC container's config names in `ostype`, without a release: Proxmox
+/// sets it from the template and its API reads nothing inside a container. Named as Recog's SSH
+/// banner match names the same distribution, so the banner's release refines it
+/// ([`HostOs::refines`]). `unmanaged` and ids Proxmox may add later name nothing.
+pub fn config_os(config: &GuestConfig) -> Option<HostOs> {
+    let name = match config.get("ostype").and_then(|v| v.as_str())?.trim() {
+        "debian" => "Debian",
+        "ubuntu" => "Ubuntu",
+        "centos" => "CentOS",
+        "fedora" => "Fedora",
+        "opensuse" => "openSUSE",
+        "archlinux" => "Arch Linux",
+        "alpine" => "Alpine Linux",
+        "gentoo" => "Gentoo",
+        "nixos" => "NixOS",
+        "devuan" => "Devuan",
+        _ => return None,
+    };
+    Some(HostOs {
+        family: HostOsFamily::Linux,
+        name: Some(name.to_string()),
+        version: None,
+        edition: None,
+        codename: None,
+        kernel_version: None,
+    })
+}
+
 fn present(value: Option<&str>) -> Option<String> {
     value
         .map(str::trim)
@@ -522,8 +558,8 @@ pub struct GuestReading {
     /// Every reachable address the running guest reported, on any interface. The source of its
     /// network identities ([`super::identities::network_identities`]); never its own addresses.
     pub reported: Vec<GuestAddress>,
-    pub os: Option<HostOs>,
-    pub hostname: Option<String>,
+    pub os: Option<HostOsAttributed>,
+    pub hostname: Option<HostHostnameAttributed>,
 }
 
 /// What a guest is submitted as: its host, its addresses, and, for a guest the API reports no
@@ -570,12 +606,8 @@ pub fn guest_host(
             guest_type: Some(guest.guest_type),
         })),
         virtualization_service_id: owner,
-        os: os
-            .clone()
-            .map(|os| Attributed::new(HostOsValue(os), REPORTED)),
-        hostname: hostname
-            .clone()
-            .map(|h| Attributed::new(HostHostnameValue(h), REPORTED)),
+        os: os.clone(),
+        hostname: hostname.clone(),
         ..Default::default()
     });
     if let Some(name) = &guest.name {
@@ -1092,26 +1124,66 @@ mod tests {
         );
     }
 
-    /// The guest host carries the OS and hostname its node reported, as Proxmox's reading.
+    /// The guest host carries the OS and hostname as the reading attributed them: what the guest
+    /// agent read stays the guest's own account, not Proxmox's report.
     #[test]
     fn a_guest_host_carries_its_os_and_hostname() {
+        use crate::server::hosts::r#impl::attributes::HostHostnameValue;
+
         let resources: Vec<ClusterResource> = data(RESOURCES);
         let nics = config_nics(&data(QEMU_103_CONFIG));
         let reading = GuestReading {
             addresses: select_addresses(&nics, agent_addresses(&data(QEMU_103_AGENT))),
             nics,
-            os: guest_os(&data(QEMU_103_OSINFO)),
-            hostname: Some("docker".to_string()),
+            os: guest_os(&data(QEMU_103_OSINFO))
+                .map(|os| Attributed::new(HostOsValue(os), GUEST_AGENT)),
+            hostname: Some(Attributed::new(
+                HostHostnameValue("docker".to_string()),
+                GUEST_AGENT,
+            )),
             ..Default::default()
         };
         let record = guest_host(&guest(&resources, 103), &reading, None, &[], Uuid::new_v4())
             .expect("recorded");
-        let os = record.host.base.os.as_ref().expect("the OS is kept");
-        assert_eq!(os.value().0.name.as_deref(), Some("Debian GNU/Linux"));
-        assert_eq!(os.source(), REPORTED);
-        let hostname = record.host.base.hostname.as_ref().expect("hostname kept");
-        assert_eq!(hostname.value().0, "docker");
-        assert_eq!(hostname.source(), REPORTED);
+        assert_eq!(record.host.base.os, reading.os);
+        assert_eq!(record.host.base.hostname, reading.hostname);
+    }
+
+    /// Every distribution `ostype` names becomes a Linux OS carrying only that name, which an SSH
+    /// banner's release can refine; `unmanaged` and unknown ids name nothing.
+    #[test]
+    fn an_lxc_ostype_names_a_distribution_without_a_release() {
+        let config = |ostype: &str| -> GuestConfig {
+            serde_json::from_value(serde_json::json!({ "ostype": ostype })).unwrap()
+        };
+        for id in [
+            "debian",
+            "ubuntu",
+            "centos",
+            "fedora",
+            "opensuse",
+            "archlinux",
+            "alpine",
+            "gentoo",
+            "nixos",
+            "devuan",
+        ] {
+            let os = config_os(&config(id)).unwrap_or_else(|| panic!("{id} names an OS"));
+            assert_eq!(os.family, HostOsFamily::Linux, "{id}");
+            assert!(os.name.is_some(), "{id}");
+            assert_eq!(
+                (&os.version, &os.codename, &os.kernel_version),
+                (&None, &None, &None),
+                "{id}"
+            );
+        }
+        for id in ["unmanaged", "plan9", ""] {
+            assert_eq!(config_os(&config(id)), None, "{id}");
+        }
+        assert_eq!(
+            config_os(&data(LXC_104_CONFIG)).and_then(|os| os.name),
+            Some("Debian".into())
+        );
     }
 
     #[test]

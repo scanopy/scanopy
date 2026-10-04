@@ -37,7 +37,7 @@ use uuid::Uuid;
 use crate::server::credentials::r#impl::mapping::{
     CredentialQueryPayload, CredentialQueryPayloadDiscriminants,
 };
-use crate::server::hosts::r#impl::attributes::HostOsValue;
+use crate::server::hosts::r#impl::attributes::{HostHostnameValue, HostOsValue};
 use crate::server::hosts::r#impl::virtualization::{
     HostVirtualizationDiscriminants, ProxmoxGuestType,
 };
@@ -388,12 +388,17 @@ async fn read_guest(client: &ProxmoxClient, guest: &GuestSummary) -> GuestReadin
         .as_ref()
         .map(mapping::config_nics)
         .unwrap_or_default();
-    let mut reading = GuestReading {
-        hostname: match guest.guest_type {
-            ProxmoxGuestType::Lxc => config.as_ref().and_then(mapping::config_hostname),
-            ProxmoxGuestType::Qemu => None,
+    // An LXC container's config sets its hostname and names its distribution; a VM's says
+    // neither, and its guest agent is asked below.
+    let mut reading = match (guest.guest_type, config.as_ref()) {
+        (ProxmoxGuestType::Lxc, Some(config)) => GuestReading {
+            hostname: mapping::config_hostname(config)
+                .map(|h| Attributed::new(HostHostnameValue(h), mapping::GUEST_CONFIG)),
+            os: mapping::config_os(config)
+                .map(|os| Attributed::new(HostOsValue(os), mapping::GUEST_CONFIG)),
+            ..Default::default()
         },
-        ..Default::default()
+        _ => GuestReading::default(),
     };
 
     let runtime = if guest.running {
@@ -414,8 +419,14 @@ async fn read_guest(client: &ProxmoxClient, guest: &GuestSummary) -> GuestReadin
                             client.get_best_effort::<AgentOsInfo>(&os_path),
                             client.get_best_effort::<AgentHostName>(&hostname_path),
                         );
-                        reading.os = os.as_ref().and_then(mapping::guest_os);
-                        reading.hostname = hostname.as_ref().and_then(mapping::agent_hostname);
+                        reading.os = os
+                            .as_ref()
+                            .and_then(mapping::guest_os)
+                            .map(|os| Attributed::new(HostOsValue(os), mapping::GUEST_AGENT));
+                        reading.hostname = hostname
+                            .as_ref()
+                            .and_then(mapping::agent_hostname)
+                            .map(|h| Attributed::new(HostHostnameValue(h), mapping::GUEST_AGENT));
                         mapping::agent_addresses(&agent)
                     }
                     None => vec![],
@@ -645,12 +656,16 @@ mod lab_tests {
             println!(
                 "  os {:?} hostname {:?}",
                 reading.os.as_ref().map(|os| (
-                    os.family,
-                    os.to_string(),
-                    &os.codename,
-                    &os.kernel_version
+                    os.value().0.family,
+                    os.value().0.to_string(),
+                    &os.value().0.codename,
+                    &os.value().0.kernel_version,
+                    os.source(),
                 )),
-                reading.hostname
+                reading
+                    .hostname
+                    .as_ref()
+                    .map(|h| (&h.value().0, h.source()))
             );
             println!(
                 "  addresses {:?} interfaces {:?}",

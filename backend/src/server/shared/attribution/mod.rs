@@ -38,6 +38,7 @@ macro_rules! attributed_value {
             schema_name: $schema_name:literal,
             refreshable: $refreshable:literal,
             blank: $blank:expr,
+            $(refines: $refines:expr,)?
             schema: $schema:expr,
         }
     ) => {
@@ -74,6 +75,13 @@ macro_rules! attributed_value {
                 #[allow(clippy::redundant_closure_call)]
                 ($blank)(&self.0)
             }
+
+            $(
+                fn refines(&self, other: &Self) -> bool {
+                    #[allow(clippy::redundant_closure_call)]
+                    ($refines)(&self.0, &other.0)
+                }
+            )?
         }
 
         /// Declare fields through this alias, never through the generic form — see
