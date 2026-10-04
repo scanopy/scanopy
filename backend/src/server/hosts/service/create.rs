@@ -1348,6 +1348,16 @@ impl HostService {
                 &service_id_remap,
                 &live_service_ids,
             );
+            // Aligned onto its own owner (a container answering as its runtime): a service never
+            // runs inside itself, and the container details are the other container's.
+            if reassigned.base.virtualization_service_id == Some(reassigned.id) {
+                tracing::warn!(
+                    service_name = %reassigned.base.name,
+                    "Dropping container details whose owner is the service itself"
+                );
+                reassigned.base.virtualization_service_id = None;
+                reassigned.base.virtualization_metadata = None;
+            }
 
             let reassigned_id = reassigned.id;
             let created = self

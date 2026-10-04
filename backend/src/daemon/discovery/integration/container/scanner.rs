@@ -25,6 +25,7 @@ use crate::server::discovery::r#impl::types::HostNamingFallback;
 use crate::server::ip_addresses::r#impl::base::{ALL_IP_ADDRESSES_IP, IPAddress};
 use crate::server::ports::r#impl::base::{Port, PortType};
 use crate::server::services::r#impl::base::{Service, ServiceMatchBaselineParams};
+use crate::server::services::r#impl::definitions::ServiceDefinitionExt;
 use crate::server::services::r#impl::endpoints::{ApplicationProtocol, Endpoint, EndpointResponse};
 use crate::server::subnets::r#impl::base::Subnet;
 
@@ -507,6 +508,12 @@ impl<'a> ContainerScanner<'a> {
                 )
                 .await
             {
+                runtime_matches_as_containers(
+                    self.runtime,
+                    &mut host_data.services,
+                    container.name.as_deref(),
+                );
+
                 // Add all ip_addresses relevant to container to the ip_addresses vec
                 container_interfaces_and_subnets.iter().for_each(|(i, _)| {
                     if !host_data.ip_addresses.contains(i) {
@@ -1494,6 +1501,28 @@ pub(super) fn spread_bindings_across_endpoints(
     }
 }
 
+/// Record a container that answers as the runtime itself as a generic container, named after it.
+///
+/// A proxy or socket forwarder in front of the runtime (`docker-api-proxy`) serves the runtime's
+/// API, so the runtime's own definition matches it. Kept as that definition, it is the same
+/// service as the runtime by host and definition, folds into it, and leaves the runtime recorded
+/// as its own container.
+pub(crate) fn runtime_matches_as_containers(
+    runtime: ContainerRuntime,
+    services: &mut [Service],
+    container_name: Option<&str>,
+) {
+    for service in services
+        .iter_mut()
+        .filter(|s| runtime.is_runtime_role(s.base.service_definition.virtualization_role()))
+    {
+        service.base.service_definition = runtime.container_def();
+        if let Some(name) = container_name {
+            service.base.name = name.trim_start_matches('/').to_string();
+        }
+    }
+}
+
 #[cfg(test)]
 mod probe_tests {
     use super::*;
@@ -1737,5 +1766,35 @@ mod tests {
         spread_bindings_across_endpoints(&mut services, &[primary, second], primary);
 
         assert_eq!(port_bindings(&services[0]), after_first);
+    }
+
+    /// A proxy answering as the Docker API is a container under Docker, named after itself, not
+    /// a second Docker; any other match is left alone.
+    #[test]
+    fn a_container_answering_as_the_runtime_is_a_generic_container() {
+        use crate::server::services::definitions::ServiceDefinitionRegistry;
+        use crate::server::shared::storage::traits::Storable;
+        let service = |definition: &str| {
+            Service::new(ServiceBase {
+                name: definition.to_string(),
+                service_definition: ServiceDefinitionRegistry::find_by_id(definition)
+                    .unwrap_or_else(|| panic!("{definition} is registered")),
+                ..Default::default()
+            })
+        };
+        let mut services = vec![service("Docker"), service("Portainer")];
+
+        runtime_matches_as_containers(
+            ContainerRuntime::Docker,
+            &mut services,
+            Some("/docker-api-proxy"),
+        );
+
+        assert_eq!(services[0].base.name, "docker-api-proxy");
+        assert_eq!(
+            services[0].base.service_definition.id(),
+            ContainerRuntime::Docker.container_def().id()
+        );
+        assert_eq!(services[1].base.name, "Portainer");
     }
 }
