@@ -81,7 +81,7 @@ impl EntityMetadataProvider for Concept {
             Concept::Virtualization => Icon::MonitorCog,
             Concept::Containerization => Icon::Box,
 
-            Concept::Application => Icon::Workflow,
+            Concept::Application => Icon::Component,
         }
     }
 }

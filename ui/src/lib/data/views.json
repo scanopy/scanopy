@@ -968,7 +968,7 @@
     "name": "Applications",
     "description": "Services per application",
     "category": null,
-    "icon": "workflow",
+    "icon": "component",
     "color": "Purple",
     "metadata": {
       "edge_view_configs": {
