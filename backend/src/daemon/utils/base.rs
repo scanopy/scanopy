@@ -300,7 +300,12 @@ pub trait DaemonUtils {
         let mut subnet_map: HashMap<IpCidr, Subnet> = HashMap::new();
 
         for (interface_name, ip_network) in potential_subnets {
-            if let Some(subnet) = Subnet::from_discovery(interface_name, &ip_network, network_id) {
+            if let Some(subnet) = Subnet::from_discovery(
+                interface_name,
+                &ip_network,
+                network_id,
+                AttributeSource::DaemonSelfReport,
+            ) {
                 subnet_map.entry(*subnet.base.cidr).or_insert(subnet);
             }
         }

@@ -406,6 +406,7 @@ pub fn map_clients(
     clients: &[InstantOnClient],
     network_id: Uuid,
     device_ips: &[IpAddr],
+    subnets: &[Subnet],
 ) -> Vec<MappedClient> {
     clients
         .iter()
@@ -427,6 +428,7 @@ pub fn map_clients(
                 client.ip_address.as_deref(),
                 client.mac_address.as_deref(),
                 network_id,
+                subnets,
             )
         })
         .filter(|client| !device_ips.contains(&client.ip))
@@ -482,6 +484,7 @@ mod tests {
                 source: EntitySource::Discovery,
                 ..Default::default()
             },
+            id: Uuid::new_v4(),
             ..Default::default()
         };
 
@@ -527,6 +530,44 @@ mod tests {
             !mapped.iter().any(|d| d.ip.to_string() == "10.99.99.99"),
             "a device outside every held range must be skipped, not placed on a catch-all"
         );
+    }
+
+    /// A client inside a held subnet carries that subnet's id, so the server matches it to the
+    /// sweep's row for the same IP. A client no real subnet holds keeps a nil id for the server to
+    /// infer a range for, and is never filed under a catch-all.
+    #[test]
+    fn a_client_carries_the_subnet_that_holds_it_and_nil_where_none_does() {
+        let network_id = Uuid::new_v4();
+        let subnets = test_subnets(network_id);
+        let real = subnets
+            .iter()
+            .find(|s| s.base.cidr.to_string() == "192.168.20.0/24")
+            .expect("the real subnet")
+            .id;
+        let client = |ip: &str| InstantOnClient {
+            ip_address: Some(ip.to_string()),
+            name: Some(format!("client-{ip}")),
+            ..Default::default()
+        };
+
+        let clients = map_clients(
+            &[client("192.168.20.77"), client("10.99.99.99")],
+            network_id,
+            &[],
+            &subnets,
+        );
+        let subnet_of = |ip: &str| {
+            clients
+                .iter()
+                .find(|c| c.ip.to_string() == ip)
+                .unwrap_or_else(|| panic!("{ip} should be reported"))
+                .ip_address
+                .base
+                .subnet_id
+        };
+
+        assert_eq!(subnet_of("192.168.20.77"), real);
+        assert_eq!(subnet_of("10.99.99.99"), Uuid::nil());
     }
 
     fn map() -> Vec<MappedDevice> {

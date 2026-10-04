@@ -206,7 +206,7 @@ impl DiscoveryIntegration for UnifiIntegration {
         let created_clients = match handle.client.get_site::<UnifiStation>("stat/sta").await {
             Ok(envelope) => {
                 let stations = envelope.data;
-                let clients = mapping::map_clients(&stations, network_id, &device_ips);
+                let clients = mapping::map_clients(&stations, network_id, &device_ips, &subnets);
                 tracing::info!(
                     ip = %ctx.ip,
                     reported = stations.len(),
@@ -301,8 +301,8 @@ async fn create_device_host(
     // consumes it, exactly as the container scanner feeds `ServiceVirtualization` — so these
     // hosts get an ordinary `DiscoveryWithMatch` service with a real confidence.
     let managed_device = device_type.map(|device_type| ManagedDevice { device_type });
-    // For the service matcher, which needs a subnet to evaluate its subnet patterns against —
-    // not for placement, which the server redoes for every address it stores.
+    // For the service matcher, which needs a subnet to evaluate its subnet patterns against. The
+    // same rule placed `ip_address` in `map_device`, so both see the same subnet.
     let subnet = placeable_subnet(subnets, ip)
         .ok_or_else(|| Error::msg("device IP is in no subnet this network holds"))?;
 

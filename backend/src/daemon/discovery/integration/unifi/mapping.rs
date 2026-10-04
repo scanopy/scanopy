@@ -50,10 +50,10 @@ pub struct MappedDevice {
 
 /// Translate a `stat/device` payload.
 ///
-/// A device whose IP is missing, unparseable, or in no subnet this network holds is skipped. The
-/// last of those is not placement — the server re-places every address it stores — it is that
-/// service matching needs a subnet to evaluate `Pattern::SubnetIsType` and the gateway patterns
-/// against, and there is nothing honest to hand it.
+/// A device whose IP is missing, unparseable, or in no subnet this network holds is skipped,
+/// because service matching needs a subnet to evaluate `Pattern::SubnetIsType` and the gateway
+/// patterns against, and there is nothing honest to hand it. A kept device's address carries the
+/// subnet it was placed on, so the server matches it to the sweep's row for the same IP.
 ///
 /// The rule is [`placeable_subnet`], not first-match: the list carries the `0.0.0.0/0`
 /// organizational rows, which contain every IPv4 address, so `find` returned `Internet` for
@@ -83,7 +83,7 @@ fn map_device(
     by_mac: &HashMap<String, &UnifiDevice>,
 ) -> Option<MappedDevice> {
     let ip: IpAddr = device.ip.as_deref()?.trim().parse().ok()?;
-    placeable_subnet(subnets, ip)?;
+    let subnet = placeable_subnet(subnets, ip)?;
     let device_mac = device.mac.as_deref().and_then(canonical_mac);
 
     let identity = ControllerIdentity {
@@ -103,8 +103,8 @@ fn map_device(
 
     let ip_address = IPAddress::new(IPAddressBase {
         network_id,
-        host_id: Uuid::nil(),   // server assigns
-        subnet_id: Uuid::nil(), // server places
+        host_id: Uuid::nil(), // server assigns
+        subnet_id: subnet.id,
         ip_address: ip,
         // The controller reporting a device it manages, not the device answering us.
         mac_address: device_mac.as_deref().and_then(|m| m.parse().ok()).map(|m| {
@@ -369,6 +369,7 @@ pub fn map_clients(
     stations: &[UnifiStation],
     network_id: Uuid,
     device_ips: &[IpAddr],
+    subnets: &[Subnet],
 ) -> Vec<MappedClient> {
     stations
         .iter()
@@ -388,6 +389,7 @@ pub fn map_clients(
                 station.ip.as_deref(),
                 station.mac.as_deref(),
                 network_id,
+                subnets,
             )
         })
         .filter(|client| !device_ips.contains(&client.ip))
@@ -444,6 +446,7 @@ mod tests {
                 source: EntitySource::System,
                 ..Default::default()
             },
+            id: Uuid::new_v4(),
             ..Default::default()
         }]
     }
@@ -466,6 +469,7 @@ mod tests {
                 source: EntitySource::System,
                 ..Default::default()
             },
+            id: Uuid::new_v4(),
             ..Default::default()
         };
 
@@ -480,9 +484,14 @@ mod tests {
     fn a_device_is_placed_on_its_real_subnet_not_a_catch_all() {
         let network_id = Uuid::new_v4();
         let devices = parse(USW_UPLINK);
-        let real = test_subnets(network_id)[0].id;
+        let subnets = subnets_with_catch_alls(network_id);
+        let real = subnets
+            .iter()
+            .find(|s| s.base.cidr.to_string() == "192.168.20.0/24")
+            .expect("the real subnet")
+            .id;
 
-        let mapped = map_devices(&devices, network_id, &subnets_with_catch_alls(network_id));
+        let mapped = map_devices(&devices, network_id, &subnets);
 
         assert!(
             !mapped.is_empty(),
@@ -511,6 +520,44 @@ mod tests {
             .collect();
 
         assert!(map_devices(&devices, network_id, &only_catch_alls).is_empty());
+    }
+
+    /// A client inside a held subnet carries that subnet's id, so the server matches it to the
+    /// sweep's row for the same IP. A client no real subnet holds keeps a nil id for the server to
+    /// infer a range for, and is never filed under a catch-all.
+    #[test]
+    fn a_client_carries_the_subnet_that_holds_it_and_nil_where_none_does() {
+        let network_id = Uuid::new_v4();
+        let subnets = subnets_with_catch_alls(network_id);
+        let real = subnets
+            .iter()
+            .find(|s| s.base.cidr.to_string() == "192.168.20.0/24")
+            .expect("the real subnet")
+            .id;
+        let station = |ip: &str| UnifiStation {
+            ip: Some(ip.to_string()),
+            hostname: Some(format!("client-{ip}")),
+            ..Default::default()
+        };
+
+        let clients = map_clients(
+            &[station("192.168.20.77"), station("10.99.99.99")],
+            network_id,
+            &[],
+            &subnets,
+        );
+        let subnet_of = |ip: &str| {
+            clients
+                .iter()
+                .find(|c| c.ip.to_string() == ip)
+                .unwrap_or_else(|| panic!("{ip} should be reported"))
+                .ip_address
+                .base
+                .subnet_id
+        };
+
+        assert_eq!(subnet_of("192.168.20.77"), real);
+        assert_eq!(subnet_of("10.99.99.99"), Uuid::nil());
     }
 
     fn map(json: &str) -> Vec<MappedDevice> {

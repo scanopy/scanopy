@@ -34,6 +34,8 @@ use crate::server::lldp::canonical_mac;
 use crate::server::services::r#impl::patterns::ClientProbe;
 use crate::server::shared::attribution::{AttributeSource, Attributed};
 use crate::server::shared::types::entities::EntitySource;
+use crate::server::subnets::r#impl::base::Subnet;
+use crate::server::subnets::r#impl::inference::placeable_subnet;
 
 /// The identity fields a controller reports for one device or client.
 ///
@@ -192,34 +194,36 @@ pub struct MappedClient {
 }
 
 impl MappedClient {
-    /// A reported client, with its address left for the server to place.
+    /// A reported client, placed on the most specific live subnet that holds its address.
     ///
-    /// `None` only when the address is missing or unparseable — there is nothing to report about a
-    /// client whose address we cannot read. It used to also return `None` for an address outside
-    /// every known subnet, on the grounds that IP-based dedup would mint a duplicate every scan;
-    /// that reasoning was sound and the remedy was not, because the subnet list it consulted
-    /// carries `0.0.0.0/0` catch-alls that contain every IPv4 address, so nothing was ever skipped
-    /// and everything landed on `Internet` instead.
+    /// `None` only when the address is missing or unparseable. There is nothing to report about a
+    /// client whose address we cannot read. An address outside every known subnet is still
+    /// reported, since the controller is often the only witness for a client on a VLAN the sweep
+    /// cannot reach.
     ///
-    /// `subnet_id` is left nil the way `host_id` already is: the server places the address against
-    /// the network's authoritative subnet list and infers a range where nothing holds it, which is
-    /// the only place that decision can be made consistently across integrations.
+    /// `subnet_id` comes from [`placeable_subnet`], the same rule the network scan uses. Host
+    /// matching on the server compares an address's IP and subnet together, so a client sent with
+    /// a nil subnet never matches the sweep's row for the same IP and becomes a second host.
+    /// `placeable_subnet` skips the `0.0.0.0/0` organizational rows, so an address no real subnet
+    /// holds stays nil, and the server infers a range for it.
     pub fn new(
         identity: ControllerIdentity,
         ip: Option<&str>,
         mac: Option<&str>,
         network_id: Uuid,
+        subnets: &[Subnet],
     ) -> Option<Self> {
         let ip: IpAddr = ip?.trim().parse().ok()?;
         let mac = mac.and_then(canonical_mac);
         let probe = identity.probe;
+        let subnet_id = placeable_subnet(subnets, ip).map_or(Uuid::nil(), |s| s.id);
 
         Some(Self {
             identity,
             ip_address: IPAddress::new(IPAddressBase {
                 network_id,
-                host_id: Uuid::nil(),   // server assigns
-                subnet_id: Uuid::nil(), // server places
+                host_id: Uuid::nil(), // server assigns
+                subnet_id,
                 ip_address: ip,
                 // The controller reporting a device it manages: a known speaker that is not the
                 // subject, so weaker than an ARP reply the address itself sent us.

@@ -240,10 +240,17 @@ impl Subnet {
             && !self.base.subnet_type.is_container_bridge()
     }
 
+    /// A subnet built from an interface address and its prefix.
+    ///
+    /// `cidr_source` says who read the range. A daemon describing its own NIC is
+    /// `DaemonSelfReport`. A device answering an SNMP walk about its own interfaces is
+    /// `Probe(Snmp)`. Both are queried readings and rank the same, so on a CIDR merge neither
+    /// relabels a row the other created.
     pub fn from_discovery(
         interface_name: String,
         ip_network: &IpNetwork,
         network_id: Uuid,
+        cidr_source: AttributeSource,
     ) -> Option<Self> {
         let mut subnet_type = SubnetType::from_interface_name(&interface_name);
 
@@ -273,9 +280,7 @@ impl Subnet {
                 let cidr = IpCidr::V4(Ipv4Cidr::new(network_addr, prefix_len).ok()?);
 
                 Some(Subnet::new(SubnetBase {
-                    // Straight off a daemon's own interface: it is describing the host it runs on,
-                    // which is the strongest reading there is for a range.
-                    cidr: SubnetCidr::new(SubnetCidrValue(cidr), AttributeSource::DaemonSelfReport),
+                    cidr: SubnetCidr::new(SubnetCidrValue(cidr), cidr_source),
                     network_id,
                     description: None,
                     tags: Vec::new(),
@@ -433,14 +438,24 @@ mod tests {
     #[test]
     fn from_discovery_accepts_valid_prefix() {
         let ip = IpNetwork::from_str("192.168.1.0/24").unwrap();
-        let result = Subnet::from_discovery("eth0".to_string(), &ip, Uuid::nil());
+        let result = Subnet::from_discovery(
+            "eth0".to_string(),
+            &ip,
+            Uuid::nil(),
+            AttributeSource::DaemonSelfReport,
+        );
         assert!(result.is_some(), "/24 prefix should be accepted");
     }
 
     #[test]
     fn from_discovery_accepts_prefix_2() {
         let ip = IpNetwork::from_str("10.0.0.0/2").unwrap();
-        let result = Subnet::from_discovery("eth0".to_string(), &ip, Uuid::nil());
+        let result = Subnet::from_discovery(
+            "eth0".to_string(),
+            &ip,
+            Uuid::nil(),
+            AttributeSource::DaemonSelfReport,
+        );
         assert!(result.is_some(), "/2 prefix should be accepted");
     }
 
@@ -542,14 +557,24 @@ mod tests {
         let loopback_ip = IpNetwork::V4(
             pnet::ipnetwork::Ipv4Network::new(std::net::Ipv4Addr::LOCALHOST, 8).unwrap(),
         );
-        let loopback = Subnet::from_discovery("lo".to_string(), &loopback_ip, network_id)
-            .expect("loopback /8 should produce a subnet");
+        let loopback = Subnet::from_discovery(
+            "lo".to_string(),
+            &loopback_ip,
+            network_id,
+            AttributeSource::DaemonSelfReport,
+        )
+        .expect("loopback /8 should produce a subnet");
         assert!(!loopback.is_user_managed());
 
         // A discovered subnet of any other category is real inventory and stays.
         let discovered = IpNetwork::from_str("192.168.1.0/24").unwrap();
-        let lan = Subnet::from_discovery("eth0".to_string(), &discovered, network_id)
-            .expect("/24 should produce a subnet");
+        let lan = Subnet::from_discovery(
+            "eth0".to_string(),
+            &discovered,
+            network_id,
+            AttributeSource::DaemonSelfReport,
+        )
+        .expect("/24 should produce a subnet");
         assert!(lan.is_user_managed());
     }
 
@@ -563,8 +588,13 @@ mod tests {
         let ip = IpNetwork::V4(
             pnet::ipnetwork::Ipv4Network::new(std::net::Ipv4Addr::LOCALHOST, 8).unwrap(),
         );
-        let subnet = Subnet::from_discovery("lo".to_string(), &ip, Uuid::nil())
-            .expect("loopback /8 should produce a subnet");
+        let subnet = Subnet::from_discovery(
+            "lo".to_string(),
+            &ip,
+            Uuid::nil(),
+            AttributeSource::DaemonSelfReport,
+        )
+        .expect("loopback /8 should produce a subnet");
         assert_eq!(subnet.base.cidr.to_string(), "127.0.0.0/8");
         assert_eq!(subnet.base.source, EntitySource::Discovery);
         assert!(subnet.base.subnet_type.is_loopback());
@@ -636,6 +666,22 @@ mod tests {
 
         assert!(!subnet.apply_cidr("10.20.31.0/24".parse().unwrap(), other_source_same_rung));
         assert_eq!(subnet.base.cidr.to_string(), "10.20.30.0/24");
+    }
+
+    /// The CIDR dedup in `SubnetService::create` merges a re-read of the same range through
+    /// `apply_cidr`. A device's SNMP reading of a range a daemon reads from its own NIC leaves the
+    /// daemon's row as it was, and a daemon later reading a range SNMP created leaves that row too.
+    #[test]
+    fn an_snmp_reading_and_a_daemon_reading_of_one_range_keep_whichever_came_first() {
+        let snmp = AttributeSource::Probe(ClientProbe::Snmp);
+
+        let mut daemon_row = ranged("10.20.30.0/24", READING);
+        assert!(!daemon_row.apply_cidr("10.20.30.0/24".parse().unwrap(), snmp));
+        assert_eq!(daemon_row.base.cidr.source(), READING);
+
+        let mut snmp_row = ranged("10.20.30.0/24", snmp);
+        assert!(!snmp_row.apply_cidr("10.20.30.0/24".parse().unwrap(), READING));
+        assert_eq!(snmp_row.base.cidr.source(), snmp);
     }
 
     /// Nothing a scan reads displaces a range a person confirmed.
