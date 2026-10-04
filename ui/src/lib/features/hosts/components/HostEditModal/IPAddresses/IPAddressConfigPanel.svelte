@@ -8,6 +8,9 @@
 		max
 	} from '$lib/shared/components/forms/validators';
 	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
+	import Tag from '$lib/shared/components/data/Tag.svelte';
+	import type { Network } from '$lib/features/networks/types';
+	import { getFreshnessTag } from '$lib/shared/utils/freshness';
 	import { entityRef } from '$lib/shared/components/data/types';
 	import type { Subnet } from '$lib/features/subnets/types/base';
 	import TextInput from '$lib/shared/components/forms/input/TextInput.svelte';
@@ -32,9 +35,25 @@
 		form: { Field: any };
 		onChange?: (iface: IPAddress) => void;
 		isEditing?: boolean;
+		/** The address's network, whose window judges its staleness. Without it, no Stale tag. */
+		network?: Network;
 	}
 
-	let { iface, subnet, index, form, onChange = () => {}, isEditing = false }: Props = $props();
+	let {
+		iface,
+		subnet,
+		index,
+		form,
+		onChange = () => {},
+		isEditing = false,
+		network = undefined
+	}: Props = $props();
+
+	let staleTag = $derived(
+		getFreshnessTag(iface, network, {
+			entityTypeLabel: entities.getName('IPAddress') || undefined
+		})
+	);
 
 	// Field names for this interface in the form array
 	let ipFieldName = $derived(`ip_addresses[${index}].ip_address`);
@@ -70,6 +89,9 @@
 					icon={entities.getIconComponent('Subnet')}
 					color={entities.getColorHelper('Subnet').color}
 				/>
+				{#if staleTag}
+					<Tag {...staleTag} />
+				{/if}
 			</h3>
 			{#if subnet?.description}
 				<p class="text-secondary mt-1 text-sm">{subnet.description}</p>
