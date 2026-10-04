@@ -131,6 +131,8 @@ pub(crate) fn may_mint(evidence: &MacEvidence) -> bool {
 /// is locally administered, so the sweep's ARP reply for that same `02:…` address — weak on its
 /// own — still finds the guest rather than minting a second host beside it.
 ///
+/// A weak value also matches when the two copies corroborate each other ([`corroborated`]).
+///
 /// Resolves on a **single** host only, for the reason `match_by_chassis_id` gives: two hosts
 /// wearing one identifier are a duplicate this cannot choose between, and picking either merges a
 /// scan into an arbitrary one of them.
@@ -144,7 +146,7 @@ pub(crate) fn select_matching_host_by_mac(
             incoming.iter().any(|e| {
                 e.value().0 == stored.value().0
                     && grade(e) != MacQuality::Excluded
-                    && (may_match(e) || may_match(stored))
+                    && (may_match(e) || may_match(stored) || corroborated(e, stored))
             })
         })
         .map(|(host_id, _)| *host_id)
@@ -163,6 +165,19 @@ pub(crate) fn select_matching_host_by_mac(
         "Found matching host via MAC identity"
     );
     Some(first)
+}
+
+/// Whether a weak MAC's two copies vouch for each other: the incoming one read first-hand from the
+/// device (it answered in its own protocol, or to our query), and the stored one observed rather
+/// than guessed.
+///
+/// A weak value is one nothing stops the device changing, so on its own it may not anchor a match.
+/// When the device itself answers with the value another source already recorded for an existing
+/// host, both name the same NIC as it is now: a PROFINET DCP responder on a VM's macvlan interface,
+/// whose `8a:…` MAC Proxmox's guest agent reported first. A value several devices share (Docker's
+/// default bridge MACs) still resolves nowhere, because the tier needs a single host.
+pub(crate) fn corroborated(incoming: &MacEvidence, stored: &MacEvidence) -> bool {
+    incoming.source().method().binds_claim_to_subject() && !stored.source().method().is_guess()
 }
 
 /// Whether this payload may become a host that does not exist yet.
@@ -466,17 +481,38 @@ mod tests {
         );
     }
 
-    /// The gate is what selects the anchors, so a payload of weak addresses reaches no candidate
-    /// even when a host is sitting there carrying the very same value.
+    /// A weak value anchors a match only when its two copies corroborate: the incoming one read
+    /// from the device itself, the stored one observed. The lab's case is a PROFINET DCP responder
+    /// on a VM's macvlan interface, whose `8a:…` MAC Proxmox's guest agent reported first.
     #[test]
-    fn a_weak_mac_does_not_reach_a_candidate_that_carries_it() {
-        let mac = MacAddress::new([0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0x02]);
+    fn a_weak_mac_reaches_a_candidate_only_when_both_copies_corroborate() {
+        let mac = MacAddress::new([0x8A, 0x2E, 0x53, 0xFE, 0x33, 0x50]);
+        let host = Uuid::new_v4();
+        let reported_by_proxmox = evidence(mac, AttributeSource::Probe(ClientProbe::Proxmox));
+
         assert_eq!(
             select_matching_host_by_mac(
-                &[evidence(mac, AttributeSource::ArpReply)],
-                &[(Uuid::new_v4(), row(mac))],
+                &[evidence(mac, AttributeSource::ProfinetDcp)],
+                &[(host, reported_by_proxmox.clone())],
             ),
-            None
+            Some(host),
+            "the device answering first-hand corroborates an observed copy"
+        );
+        assert_eq!(
+            select_matching_host_by_mac(
+                &[evidence(mac, AttributeSource::ProfinetDcp)],
+                &[(host, evidence(mac, AttributeSource::Unspecified))],
+            ),
+            None,
+            "a stored copy nothing vouches for corroborates nothing"
+        );
+        assert_eq!(
+            select_matching_host_by_mac(
+                &[evidence(mac, AttributeSource::ForwardingTable)],
+                &[(host, reported_by_proxmox.clone())],
+            ),
+            None,
+            "a third party's say-so is not the device answering"
         );
     }
 

@@ -61,6 +61,7 @@ impl HostService {
                 chassis_id: crate::server::shared::attribution::text_of(&h.base.chassis_id),
                 ip_addresses: ip_addresses_by_host.remove(&h.id).unwrap_or_default(),
                 virtualization: h.base.virtualization_metadata.clone(),
+                virtualization_interface_id: h.base.virtualization_interface_id,
             })
             .collect();
 
@@ -955,6 +956,10 @@ fn duplicate_binding_map(
 /// runtime's MAC and are left out, so that MAC resolves to the runtime alone. So is a host whose
 /// hypervisor listed its addresses for an incoming address's MAC without that address
 /// (`HostCandidate::lists_other_addresses_for`); a payload with no addresses excludes nothing.
+///
+/// An interface that presents a live network identity (its `virtualization_interface_id`) is left
+/// out too: the identity's own rows carry the same MAC, both are one NIC seen from two sides, and
+/// the identity is the device a MAC-only payload from that NIC describes.
 pub(crate) fn mac_carriers(
     ip_rows: &[IPAddress],
     interface_rows: &[Interface],
@@ -971,12 +976,17 @@ pub(crate) fn mac_carriers(
         })
         .map(|c| c.id)
         .collect();
+    let presenting_interface_ids: HashSet<Uuid> = candidates
+        .iter()
+        .filter_map(|c| c.virtualization_interface_id)
+        .collect();
     ip_rows
         .iter()
         .filter_map(|r| r.base.mac_address.clone().map(|m| (r.base.host_id, m)))
         .chain(
             interface_rows
                 .iter()
+                .filter(|r| !presenting_interface_ids.contains(&r.id))
                 .filter_map(|r| r.base.mac_address.clone().map(|m| (r.base.host_id, m))),
         )
         .filter(|(host_id, _)| identifying_host_ids.contains(host_id))

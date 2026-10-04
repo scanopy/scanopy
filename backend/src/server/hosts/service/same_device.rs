@@ -142,6 +142,7 @@ mod tests {
             chassis_id: None,
             ip_addresses: rows,
             virtualization: None,
+            virtualization_interface_id: None,
         }
     }
 
