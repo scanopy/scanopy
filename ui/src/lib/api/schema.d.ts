@@ -3528,19 +3528,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-04T23:10:41.936207Z",
+             *       "created_at": "2026-10-04T23:34:27.060330Z",
              *       "first_discovery_id": null,
-             *       "id": "1d188cd0-c394-475b-83cb-606e44d18b79",
+             *       "id": "789be07d-929b-4b08-bca7-c356a54eba5b",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-04T23:10:41.936207Z",
+             *       "last_seen_at": "2026-10-04T23:34:27.060330Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-10-04T23:10:41.936207Z",
-             *       "valid_from": "2026-10-04T23:10:41.936207Z",
+             *       "updated_at": "2026-10-04T23:34:27.060330Z",
+             *       "valid_from": "2026-10-04T23:34:27.060330Z",
              *       "valid_to": null
              *     }
              */
@@ -4368,19 +4368,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-04T23:10:41.917490Z",
+             *               "created_at": "2026-10-04T23:34:27.036593Z",
              *               "first_discovery_id": null,
-             *               "id": "eaeadf04-cc35-4e65-8cfc-abf64df0d1f6",
+             *               "id": "dfaef7a0-2ac6-45e7-a9e0-4c9135c24e9a",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-04T23:10:41.917490Z",
+             *               "last_seen_at": "2026-10-04T23:34:27.036593Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-10-04T23:10:41.917490Z",
-             *               "valid_from": "2026-10-04T23:10:41.917490Z",
+             *               "updated_at": "2026-10-04T23:34:27.036593Z",
+             *               "valid_from": "2026-10-04T23:34:27.036593Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4394,7 +4394,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "GitHub",
+             *           "service_definition": "Nagios",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5319,19 +5319,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-04T23:10:41.931740Z",
+             *           "created_at": "2026-10-04T23:34:27.055160Z",
              *           "first_discovery_id": null,
-             *           "id": "84e50ff4-a087-4ebd-b35f-58d4bf65071e",
+             *           "id": "402c12f2-2989-4e18-9201-4f804e5d4c5c",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-04T23:10:41.931740Z",
+             *           "last_seen_at": "2026-10-04T23:34:27.055160Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-10-04T23:10:41.931740Z",
-             *           "valid_from": "2026-10-04T23:10:41.931740Z",
+             *           "updated_at": "2026-10-04T23:34:27.055160Z",
+             *           "valid_from": "2026-10-04T23:34:27.055160Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5345,7 +5345,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "GitHub",
+             *       "service_definition": "Nagios",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6447,19 +6447,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-04T23:10:41.917937Z",
+         *       "created_at": "2026-10-04T23:34:27.037280Z",
          *       "first_discovery_id": null,
-         *       "id": "da9271e0-365d-4da4-9ce9-d0d6157afd26",
+         *       "id": "5d60b252-bf10-40f4-a95e-eab27e894c3a",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-04T23:10:41.917937Z",
+         *       "last_seen_at": "2026-10-04T23:34:27.037280Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-10-04T23:10:41.917937Z",
-         *       "valid_from": "2026-10-04T23:10:41.917937Z",
+         *       "updated_at": "2026-10-04T23:34:27.037280Z",
+         *       "valid_from": "2026-10-04T23:34:27.037280Z",
          *       "valid_to": null
          *     }
          */
@@ -6807,7 +6807,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "GitHub",
+         *           "service_definition": "Nagios",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -9400,19 +9400,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-04T23:10:41.917004Z",
+         *               "created_at": "2026-10-04T23:34:27.035780Z",
          *               "first_discovery_id": null,
-         *               "id": "df2b4fcf-525c-415a-af1a-065631716b37",
+         *               "id": "bc7a7250-aeda-4906-b82b-efee35deadd8",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-04T23:10:41.917004Z",
+         *               "last_seen_at": "2026-10-04T23:34:27.035780Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-10-04T23:10:41.917004Z",
-         *               "valid_from": "2026-10-04T23:10:41.917004Z",
+         *               "updated_at": "2026-10-04T23:34:27.035780Z",
+         *               "valid_from": "2026-10-04T23:34:27.035780Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9426,7 +9426,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "GitHub",
+         *           "service_definition": "Nagios",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -12557,19 +12557,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-04T23:10:41.917804Z",
+         *           "created_at": "2026-10-04T23:34:27.037089Z",
          *           "first_discovery_id": null,
-         *           "id": "2ea28693-586c-4896-8f38-be399a2cb094",
+         *           "id": "511aef71-1fc8-4d8c-882c-cdc0b3e2c36e",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-04T23:10:41.917804Z",
+         *           "last_seen_at": "2026-10-04T23:34:27.037089Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-10-04T23:10:41.917804Z",
-         *           "valid_from": "2026-10-04T23:10:41.917804Z",
+         *           "updated_at": "2026-10-04T23:34:27.037089Z",
+         *           "valid_from": "2026-10-04T23:34:27.037089Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12583,7 +12583,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "GitHub",
+         *       "service_definition": "Nagios",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -13343,7 +13343,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "8409435a-667e-4e0e-b537-4e39a9deec24",
+             *           "id": "65113b5a-60f6-4dd8-a71e-f3dc2131aa9c",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13353,23 +13353,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "b74a7994-7235-4ef7-9a09-3a3a28cd1cc5",
+             *           "id": "4e267d1e-6ced-4f15-843e-ce2fe6e500a9",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "599fc162-58bb-414d-8380-6fa3f1d6fb16",
+             *           "id": "989d013c-72a3-409a-96f0-2e2482814ed0",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "06236872-96bd-46e6-88a8-0fdc83b2a94c",
+             *           "id": "8dffc178-46d8-42c4-b46d-30ae76b2cc35",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "b74a7994-7235-4ef7-9a09-3a3a28cd1cc5",
+             *           "id": "4e267d1e-6ced-4f15-843e-ce2fe6e500a9",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13382,19 +13382,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "f54c7cf4-3042-4506-a75e-c9d094df423c",
+             *         "id": "069fdc7c-f014-4f6f-85a8-c368f9fa43b6",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "c575e8d2-2542-44ec-b147-2e0c99aa2f78",
+             *         "id": "693674b8-1717-418c-ac4a-bf615f10fa53",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "ada07209-211b-4c15-84e9-528ebf680d89",
+             *         "id": "6959a511-1c98-4578-ba75-3be6f4e4c54b",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "0551a58b-5076-4255-bf10-dddf5c742863",
+             *         "id": "25cf170f-f389-4f5c-a315-cc6f24a8a6ba",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13413,7 +13413,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "dda8cfd6-dc17-4bd7-ab17-f059d7f17b92",
+             *         "id": "93b44630-2a73-4cdf-bdef-f32a9d1f3829",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13422,15 +13422,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "d7c54616-a245-4786-a144-c3fd976ef68c",
+             *         "id": "c00195a2-7067-4cb6-809b-be7660bb9313",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "f4dbf6ed-07f9-42f8-b483-ef20d5756572",
+             *         "id": "ba28dd1b-1bdc-45db-9a54-a04336988532",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "a22e059f-3e1f-4728-b8e9-87841cd9a02e",
+             *         "id": "b02e6a11-b1bd-4c35-b5ec-4eb85bd04664",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -17352,6 +17352,8 @@ export interface operations {
                 network_ids?: string[] | null;
                 /** @description Filter by daemon ID. Repeat the parameter to pass several. */
                 daemon_ids?: string[] | null;
+                /** @description Filter by specific entity IDs (for selective loading) */
+                ids?: string[] | null;
                 /** @description Only runs of one of these discovery types. */
                 discovery_types?: string[] | null;
                 /**
@@ -17491,6 +17493,8 @@ export interface operations {
                 network_ids?: string[] | null;
                 /** @description Filter by daemon ID. Repeat the parameter to pass several. */
                 daemon_ids?: string[] | null;
+                /** @description Filter by specific entity IDs (for selective loading) */
+                ids?: string[] | null;
                 /** @description Only runs of one of these discovery types. */
                 discovery_types?: string[] | null;
                 /**
@@ -17543,6 +17547,8 @@ export interface operations {
                 network_ids?: string[] | null;
                 /** @description Filter by daemon ID. Repeat the parameter to pass several. */
                 daemon_ids?: string[] | null;
+                /** @description Filter by specific entity IDs (for selective loading) */
+                ids?: string[] | null;
                 /** @description Only runs of one of these discovery types. */
                 discovery_types?: string[] | null;
                 /**

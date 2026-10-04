@@ -3668,6 +3668,22 @@
             }
           },
           {
+            "name": "ids",
+            "in": "query",
+            "description": "Filter by specific entity IDs (for selective loading)",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
             "name": "discovery_types",
             "in": "query",
             "description": "Only runs of one of these discovery types.",
@@ -3993,6 +4009,22 @@
             }
           },
           {
+            "name": "ids",
+            "in": "query",
+            "description": "Filter by specific entity IDs (for selective loading)",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
             "name": "discovery_types",
             "in": "query",
             "description": "Only runs of one of these discovery types.",
@@ -4184,6 +4216,22 @@
             "name": "daemon_ids",
             "in": "query",
             "description": "Filter by daemon ID. Repeat the parameter to pass several.",
+            "required": false,
+            "schema": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          },
+          {
+            "name": "ids",
+            "in": "query",
+            "description": "Filter by specific entity IDs (for selective loading)",
             "required": false,
             "schema": {
               "type": [
@@ -14020,19 +14068,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-04T23:10:41.998733Z",
+              "created_at": "2026-10-04T23:34:27.117092Z",
               "first_discovery_id": null,
-              "id": "eec18aa0-bf9e-4816-9d81-0d8d8875e4ec",
+              "id": "6ecd5430-2b69-4484-9955-46b48444609e",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-04T23:10:41.998733Z",
+              "last_seen_at": "2026-10-04T23:34:27.117092Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-04T23:10:41.998733Z",
-              "valid_from": "2026-10-04T23:10:41.998733Z",
+              "updated_at": "2026-10-04T23:34:27.117092Z",
+              "valid_from": "2026-10-04T23:34:27.117092Z",
               "valid_to": null
             }
           },
@@ -15637,19 +15685,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-04T23:10:41.982841Z",
+                      "created_at": "2026-10-04T23:34:27.101931Z",
                       "first_discovery_id": null,
-                      "id": "e5fc6f7a-7d3c-4034-b83f-ee8071f9816a",
+                      "id": "ae0f9440-43e6-4364-8246-dcdc1bdd7400",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-04T23:10:41.982841Z",
+                      "last_seen_at": "2026-10-04T23:34:27.101931Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-04T23:10:41.982841Z",
-                      "valid_from": "2026-10-04T23:10:41.982841Z",
+                      "updated_at": "2026-10-04T23:34:27.101931Z",
+                      "valid_from": "2026-10-04T23:34:27.101931Z",
                       "valid_to": null
                     }
                   ],
@@ -15663,7 +15711,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "GitHub",
+                  "service_definition": "Nagios",
                   "source": {
                     "type": "Manual"
                   },
@@ -17062,19 +17110,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-04T23:10:41.994995Z",
+                  "created_at": "2026-10-04T23:34:27.113483Z",
                   "first_discovery_id": null,
-                  "id": "ba71e832-1229-4743-9ef2-703feeedf7cb",
+                  "id": "f2e0d2ae-cd52-4a41-9907-25ca24fef087",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-04T23:10:41.994995Z",
+                  "last_seen_at": "2026-10-04T23:34:27.113483Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-04T23:10:41.994995Z",
-                  "valid_from": "2026-10-04T23:10:41.994995Z",
+                  "updated_at": "2026-10-04T23:34:27.113483Z",
+                  "valid_from": "2026-10-04T23:34:27.113483Z",
                   "valid_to": null
                 }
               ],
@@ -17088,7 +17136,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "GitHub",
+              "service_definition": "Nagios",
               "source": {
                 "type": "Manual"
               },
@@ -19580,19 +19628,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-04T23:10:41.983283Z",
+          "created_at": "2026-10-04T23:34:27.102351Z",
           "first_discovery_id": null,
-          "id": "3d28aff6-2711-43c3-b635-8a9e2fa1bb08",
+          "id": "00d98654-9b03-4c88-853e-e67445777df2",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-04T23:10:41.983283Z",
+          "last_seen_at": "2026-10-04T23:34:27.102351Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-04T23:10:41.983283Z",
-          "valid_from": "2026-10-04T23:10:41.983283Z",
+          "updated_at": "2026-10-04T23:34:27.102351Z",
+          "valid_from": "2026-10-04T23:34:27.102351Z",
           "valid_to": null
         }
       },
@@ -20359,7 +20407,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "GitHub",
+              "service_definition": "Nagios",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -26798,19 +26846,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-04T23:10:41.982351Z",
+                  "created_at": "2026-10-04T23:34:27.101471Z",
                   "first_discovery_id": null,
-                  "id": "41b3f9ca-b413-4ccb-a6b0-cd155ae6b6f1",
+                  "id": "0757dbe7-e63d-41d8-8813-53c010240e6d",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-04T23:10:41.982351Z",
+                  "last_seen_at": "2026-10-04T23:34:27.101471Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-04T23:10:41.982351Z",
-                  "valid_from": "2026-10-04T23:10:41.982351Z",
+                  "updated_at": "2026-10-04T23:34:27.101471Z",
+                  "valid_from": "2026-10-04T23:34:27.101471Z",
                   "valid_to": null
                 }
               ],
@@ -26824,7 +26872,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "GitHub",
+              "service_definition": "Nagios",
               "source": {
                 "type": "Manual"
               },
@@ -30685,19 +30733,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-04T23:10:41.974637Z",
+                        "created_at": "2026-10-04T23:34:27.094729Z",
                         "first_discovery_id": null,
-                        "id": "b1c61af3-64e7-4e57-910b-2f54a327a963",
+                        "id": "61500b43-1012-4533-8a8d-0de3704c92cf",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-04T23:10:41.974637Z",
+                        "last_seen_at": "2026-10-04T23:34:27.094729Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-04T23:10:41.974637Z",
-                        "valid_from": "2026-10-04T23:10:41.974637Z",
+                        "updated_at": "2026-10-04T23:34:27.094729Z",
+                        "valid_from": "2026-10-04T23:34:27.094729Z",
                         "valid_to": null
                       }
                     ],
@@ -30711,7 +30759,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "GitHub",
+                    "service_definition": "Nagios",
                     "source": {
                       "type": "Manual"
                     },
@@ -30855,19 +30903,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-04T23:10:41.994303Z",
+                    "created_at": "2026-10-04T23:34:27.112821Z",
                     "first_discovery_id": null,
-                    "id": "c4350319-6ea5-42c9-9314-87f9017e2bba",
+                    "id": "519a2f7c-8b30-43dd-a5ff-2bd5c5577364",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-04T23:10:41.994303Z",
+                    "last_seen_at": "2026-10-04T23:34:27.112821Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-04T23:10:41.994303Z",
-                    "valid_from": "2026-10-04T23:10:41.994303Z",
+                    "updated_at": "2026-10-04T23:34:27.112821Z",
+                    "valid_from": "2026-10-04T23:34:27.112821Z",
                     "valid_to": null
                   }
                 ],
@@ -30881,7 +30929,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "GitHub",
+                "service_definition": "Nagios",
                 "source": {
                   "type": "Manual"
                 },
@@ -33112,19 +33160,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-04T23:10:41.983154Z",
+              "created_at": "2026-10-04T23:34:27.102227Z",
               "first_discovery_id": null,
-              "id": "3b5da307-24ca-45f4-80cf-9033a4830ea7",
+              "id": "1d6bab6c-7df9-43de-be9e-b2e52a9a205a",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-04T23:10:41.983154Z",
+              "last_seen_at": "2026-10-04T23:34:27.102227Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-04T23:10:41.983154Z",
-              "valid_from": "2026-10-04T23:10:41.983154Z",
+              "updated_at": "2026-10-04T23:34:27.102227Z",
+              "valid_from": "2026-10-04T23:34:27.102227Z",
               "valid_to": null
             }
           ],
@@ -33138,7 +33186,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "GitHub",
+          "service_definition": "Nagios",
           "source": {
             "type": "Manual"
           },
@@ -34600,7 +34648,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "d8b91d9c-813c-47e6-a050-6375ea217c51",
+                  "id": "fa984154-a5fd-44e2-b4d4-fe45d0897b15",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -34610,23 +34658,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "41d13d83-1264-4c25-8ddf-822740f14bc0",
+                  "id": "8cd1e0c9-5ac8-4e83-8c3b-43e1a8e94523",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "a3bf16b7-468f-41e5-84a4-a0659b4f7340",
+                  "id": "bf45a1a6-002d-4e29-99e9-4e991670183a",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "b32ea9f0-4513-4ae1-a706-e5f6bde68a08",
+                  "id": "ebe9ea26-c8a9-4606-b7f7-8869f92ba815",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "41d13d83-1264-4c25-8ddf-822740f14bc0",
+                  "id": "8cd1e0c9-5ac8-4e83-8c3b-43e1a8e94523",
                   "rule": "ByHost"
                 }
               ]
@@ -34656,19 +34704,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "80a14d60-470e-41fe-b68e-b52028a12ec9",
+                "id": "3c09c17f-7195-43ca-ab1e-626721baf035",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "fa61a460-6d98-4a7a-9377-2458e5360825",
+                "id": "83fed624-008a-4b2f-9035-73e33949def9",
                 "rule": "ByVLAN"
               },
               {
-                "id": "f5815075-5b1a-4f1a-9cdb-c3d5fcbea224",
+                "id": "728b0863-a640-43f5-9d48-3071640fa231",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "931000c0-9a38-4557-9fdf-b71685a23c80",
+                "id": "c381c344-bbf4-4eb3-9632-c7dbef43e17e",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -34687,7 +34735,7 @@
                 }
               },
               {
-                "id": "a82e1bfc-c31d-4a15-af97-5ca85289facd",
+                "id": "6bd135e0-cf92-48a5-9923-5cc497099f3e",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -34696,15 +34744,15 @@
                 }
               },
               {
-                "id": "e1236cc3-32d2-4a9e-9ca6-4d0e2b78b896",
+                "id": "69bd8839-3355-46bc-9752-29476228dd04",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "7e8b60fa-0da1-4dd1-a998-ced5cc31f140",
+                "id": "cf9c44ab-2dea-4bc8-a8ba-fde0086deac7",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "2ce15cab-5d5c-4608-8743-ed64e55acb52",
+                "id": "a1872444-38a2-475c-b945-106c8bc8c7af",
                 "rule": "ByStack"
               }
             ]
