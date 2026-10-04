@@ -19,7 +19,7 @@
 	import { fetchOrganization } from '$lib/features/organizations/queries';
 	import { navigate } from '$lib/shared/utils/navigation';
 	import { resolve } from '$app/paths';
-	import { onboardingStore } from '$lib/features/auth/stores/onboarding';
+	import { asksForNetwork, onboardingStore } from '$lib/features/auth/stores/onboarding';
 	import { trackEvent } from '$lib/shared/utils/analytics';
 	import { pushError } from '$lib/shared/stores/feedback';
 	import { auth_emailAlreadyInUse, common_goBack } from '$lib/paraglide/messages';
@@ -173,11 +173,11 @@
 			// Submit setup data to backend (stored in session)
 			const result = await setupMutation.mutateAsync(formData);
 			// Update store with network ID
-			onboardingStore.setNetworkId(result.network_id);
+			if (result.network_id) onboardingStore.setNetworkId(result.network_id);
 
 			// Track onboarding modal completion
 			trackEvent('onboarding_modal_completed', {
-				network_count: 1
+				network_count: formData.network ? 1 : 0
 			});
 
 			currentStep = 'register';
@@ -313,6 +313,10 @@
 					onClose={handleClose}
 					onSubmit={handleSetupSubmit}
 					{useCase}
+					askNetwork={asksForNetwork(
+						$onboardingStore.hosting,
+						!!onboardingConfigData && isCloud(onboardingConfigData)
+					)}
 				/>
 			{:else if currentStep === 'register'}
 				<!-- Registration -->

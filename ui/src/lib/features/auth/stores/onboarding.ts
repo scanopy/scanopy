@@ -13,6 +13,15 @@ export interface OnboardingState {
 
 const STORAGE_KEY = 'scanopy_onboarding';
 
+/**
+ * Whether signup asks for a first network. A self-hosted license buyer on
+ * cloud skips it: their org gets a network only if it later moves to a cloud
+ * plan. A self-hosted instance always asks, because nothing creates one later.
+ */
+export function asksForNetwork(hosting: PlanPickerHosting | null, cloudDeployment: boolean) {
+	return !(cloudDeployment && hosting === 'self_hosted');
+}
+
 // Fields to persist to localStorage (for billing page autofill)
 interface PersistedState {
 	useCase: UseCase | null;

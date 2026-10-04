@@ -202,7 +202,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Store pre-registration setup data (org name, networks, seed preference) in session */
+        /** Store pre-registration setup data (org name, first network) in session */
         post: operations["setup"];
         delete?: never;
         options?: never;
@@ -5440,9 +5440,9 @@ export interface components {
             data?: {
                 /**
                  * Format: uuid
-                 * @description The network this entity belongs to.
+                 * @description Pre-assigned id of the network created at registration, if one was requested.
                  */
-                network_id: string;
+                network_id?: string | null;
             };
             /**
              * @description Not sent on a successful response. Failure messages arrive in an
@@ -12566,8 +12566,7 @@ export interface components {
         };
         /** @description Setup request for pre-registration org/network configuration */
         SetupRequest: {
-            /** @description The first network to create alongside the organization. */
-            network: components["schemas"]["NetworkSetup"];
+            network?: null | components["schemas"]["NetworkSetup"];
             /** @description Name for the organization created during setup. */
             organization_name: string;
         };
@@ -12575,9 +12574,9 @@ export interface components {
         SetupResponse: {
             /**
              * Format: uuid
-             * @description The network this entity belongs to.
+             * @description Pre-assigned id of the network created at registration, if one was requested.
              */
-            network_id: string;
+            network_id?: string | null;
         };
         Share: components["schemas"]["ShareBase"] & {
             /**

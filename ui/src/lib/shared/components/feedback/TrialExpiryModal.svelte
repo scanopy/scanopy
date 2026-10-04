@@ -2,6 +2,7 @@
 	import { AlertTriangle, CreditCard } from 'lucide-svelte';
 	import GenericModal from '$lib/shared/components/layout/GenericModal.svelte';
 	import { useOrganizationQuery } from '$lib/features/organizations/queries';
+	import { hasLicensedPlan } from '$lib/features/organizations/types';
 	import { useHasPendingQuote } from '$lib/features/billing/queries';
 	import { startSetupPayment } from '$lib/shared/billing/setup-payment';
 	import { getTrialDaysLeft, isTrialingWithoutPayment } from '$lib/shared/utils/trial';
@@ -12,6 +13,7 @@
 		billing_addPaymentMethod,
 		billing_remindMeLater,
 		billing_trialModalBody,
+		billing_trialModalBodyLicense,
 		billing_trialModalTitleToday,
 		billing_trialModalTitleTomorrow
 	} from '$lib/paraglide/messages';
@@ -76,7 +78,9 @@
 		<AlertTriangle class="h-5 w-5 text-amber-500" />
 	{/snippet}
 	<div class="px-6 py-4">
-		<p class="text-secondary text-sm">{billing_trialModalBody()}</p>
+		<p class="text-secondary text-sm">
+			{org && hasLicensedPlan(org) ? billing_trialModalBodyLicense() : billing_trialModalBody()}
+		</p>
 	</div>
 	{#snippet footer()}
 		<div class="modal-footer flex justify-end gap-2">

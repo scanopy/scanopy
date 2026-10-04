@@ -17157,14 +17157,14 @@
           "data": {
             "type": "object",
             "description": "Response from setup endpoint",
-            "required": [
-              "network_id"
-            ],
             "properties": {
               "network_id": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "format": "uuid",
-                "description": "The network this entity belongs to."
+                "description": "Pre-assigned id of the network created at registration, if one was requested."
               }
             }
           },
@@ -33115,13 +33115,19 @@
         "type": "object",
         "description": "Setup request for pre-registration org/network configuration",
         "required": [
-          "organization_name",
-          "network"
+          "organization_name"
         ],
         "properties": {
           "network": {
-            "$ref": "#/components/schemas/NetworkSetup",
-            "description": "The first network to create alongside the organization."
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NetworkSetup",
+                "description": "The first network to create alongside the organization. `None` for a\nself-hosted license buyer, whose cloud org gets its network only if it\nlater moves to a cloud plan."
+              }
+            ]
           },
           "organization_name": {
             "type": "string",
@@ -33132,14 +33138,14 @@
       "SetupResponse": {
         "type": "object",
         "description": "Response from setup endpoint",
-        "required": [
-          "network_id"
-        ],
         "properties": {
           "network_id": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "uuid",
-            "description": "The network this entity belongs to."
+            "description": "Pre-assigned id of the network created at registration, if one was requested."
           }
         }
       },

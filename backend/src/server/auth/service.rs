@@ -358,7 +358,9 @@ impl AuthService {
         }?;
 
         if let ProvisionOrg::New(PendingSetup {
-            org_name, use_case, ..
+            org_name,
+            use_case,
+            network,
         }) = provision_org
         {
             let authentication: AuthenticatedEntity = user.clone().into();
@@ -371,6 +373,7 @@ impl AuthService {
                         org_name,
                         plan,
                         use_case,
+                        network,
                     },
                     authentication,
                 ))

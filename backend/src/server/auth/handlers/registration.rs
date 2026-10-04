@@ -1,4 +1,4 @@
-//! Email check, registration, onboarding setup, and pending-setup application.
+//! Email chck, registration, onboarding setup, and pending-setup application.
 use super::*;
 use crate::server::auth::email_domain::{DomainCheck, check_email_domain};
 use crate::server::auth::r#impl::api::CheckEmailResponse;
@@ -208,9 +208,9 @@ pub(crate) async fn register(
         .await
         .map_err(|e| ApiError::internal_error(&format!("Failed to save session: {}", e)))?;
 
-    // If this is a new org, create network/topology/daemon
+    // If this is a new org, provision the integrated daemon and mark the modal done.
+    // The network itself is created by the `OrgCreated` subscriber.
     if let ProvisionOrg::New(setup) = provision_org {
-        // Apply setup: create network, seed data, topology
         apply_pending_setup(&state, &user, setup).await?;
 
         // Clear pending setup data from session
@@ -220,7 +220,7 @@ pub(crate) async fn register(
     Ok(Json(ApiResponse::success(user)))
 }
 
-/// Store pre-registration setup data (org name, networks, seed preference) in session
+/// Store pre-registration setup data (org name, first network) in session
 #[utoipa::path(
     post,
     path = "/setup",
@@ -232,6 +232,7 @@ pub(crate) async fn register(
     )
 )]
 pub(crate) async fn setup(
+    State(state): State<Arc<AppState>>,
     session: Session,
     ApiJson(request): ApiJson<SetupRequest>,
 ) -> ApiResult<Json<ApiResponse<SetupResponse>>> {
@@ -245,21 +246,9 @@ pub(crate) async fn setup(
         ));
     }
 
-    let name = request.network.name.trim();
-    if name.is_empty() {
-        return Err(ApiError::bad_request("Network name cannot be empty"));
-    }
-    if name.len() > 100 {
-        return Err(ApiError::bad_request(
-            "Network name must be 100 characters or less",
-        ));
-    }
-
-    let network_id = Uuid::new_v4();
-    let network = PendingNetworkSetup {
-        name: name.to_string(),
-        network_id,
-    };
+    let billing_enabled = state.config.stripe_secret.is_some();
+    let network = validate_setup_network(request.network.as_ref(), billing_enabled)?;
+    let network_id = network.as_ref().map(|n| n.network_id);
 
     // Store setup data in session. `use_case` is read fresh from session at
     // register time (not snapshotted here) so that subsequent calls to
@@ -276,6 +265,39 @@ pub(crate) async fn setup(
         .map_err(|e| ApiError::internal_error(&format!("Failed to save setup data: {}", e)))?;
 
     Ok(Json(ApiResponse::success(SetupResponse { network_id })))
+}
+
+/// Validate the requested first network and assign its id.
+///
+/// The network may be omitted only on cloud (`billing_enabled`), where a
+/// self-hosted license buyer gets one if the org later moves to a cloud plan. A
+/// self-hosted instance has no billing events to create it later, so it always
+/// needs one.
+fn validate_setup_network(
+    network: Option<&NetworkSetup>,
+    billing_enabled: bool,
+) -> Result<Option<PendingNetworkSetup>, ApiError> {
+    let Some(network) = network else {
+        if billing_enabled {
+            return Ok(None);
+        }
+        return Err(ApiError::bad_request("Network name cannot be empty"));
+    };
+
+    let name = network.name.trim();
+    if name.is_empty() {
+        return Err(ApiError::bad_request("Network name cannot be empty"));
+    }
+    if name.len() > 100 {
+        return Err(ApiError::bad_request(
+            "Network name must be 100 characters or less",
+        ));
+    }
+
+    Ok(Some(PendingNetworkSetup {
+        name: name.to_string(),
+        network_id: Uuid::new_v4(),
+    }))
 }
 
 /// Clear all pending setup data from session
@@ -338,16 +360,12 @@ pub(crate) async fn onboarding_state(
         .ok()
         .flatten()
     {
-        let n = &pending_setup.network;
-        let network = OnboardingNetworkState {
+        let network_id = pending_setup.network.as_ref().map(|n| n.network_id);
+        let network = pending_setup.network.map(|n| OnboardingNetworkState {
             id: Some(n.network_id),
-            name: n.name.clone(),
-        };
-        (
-            Some(pending_setup.org_name),
-            Some(network),
-            Some(n.network_id),
-        )
+            name: n.name,
+        });
+        (Some(pending_setup.org_name), network, network_id)
     } else {
         (None, None, None)
     };
@@ -361,8 +379,10 @@ pub(crate) async fn onboarding_state(
     })))
 }
 
-/// Apply pending setup after user registration: create network, topology, seed data
-/// Org name, onboarding status, and billing plan are now set in provision_user
+/// Apply pending setup after user registration: provision the integrated daemon and
+/// record the onboarding modal as completed. The org, its plan and onboarding state
+/// are set in `provision_user`; the requested network, its subnets and topology are
+/// created by the `OrgCreated` subscriber (`TopologyService::ensure_cloud_setup`).
 pub(crate) async fn apply_pending_setup(
     state: &Arc<AppState>,
     user: &User,
@@ -370,36 +390,6 @@ pub(crate) async fn apply_pending_setup(
 ) -> Result<(), ApiError> {
     let organization_id = user.base.organization_id;
     let auth_entity: AuthenticatedEntity = user.clone().into();
-
-    let pending_network = &setup.network;
-
-    // Create the network with its pre-generated ID
-    let mut network = Network::new(NetworkBase::new(organization_id));
-    network.id = pending_network.network_id;
-    network.base.name = pending_network.name.clone();
-
-    let network = state
-        .services
-        .network_service
-        .create(network, auth_entity.clone())
-        .await
-        .map_err(|e| ApiError::internal_error(&format!("Failed to create network: {}", e)))?;
-
-    state
-        .services
-        .network_service
-        .create_organizational_subnets(network.id, auth_entity.clone())
-        .await
-        .map_err(|e| ApiError::internal_error(&format!("Failed to seed data: {}", e)))?;
-
-    // Create default topology (live view, snapshot_id = None)
-    let topology = Topology::new(TopologyBase::new(network.id));
-    state
-        .services
-        .topology_service
-        .create(topology, auth_entity.clone())
-        .await
-        .map_err(|e| ApiError::internal_error(&format!("Failed to create topology: {}", e)))?;
 
     // Handle integrated daemon if configured.
     //
@@ -409,8 +399,10 @@ pub(crate) async fn apply_pending_setup(
     // Provisioning creates its record + a 1:1 key up front; the daemon then learns its identity
     // from that key on first contact. Legacy (< 0.17.5) daemons still self-register with their
     // existing shared keys — those are untouched here.
-    if let Some(integrated_daemon_url) = &state.config.integrated_daemon_url {
-        let network_id = setup.network.network_id;
+    if let (Some(integrated_daemon_url), Some(network)) =
+        (&state.config.integrated_daemon_url, &setup.network)
+    {
+        let network_id = network.network_id;
 
         let (_daemon, plaintext) = state
             .services
@@ -455,4 +447,28 @@ pub(crate) async fn apply_pending_setup(
         .map_err(|e| ApiError::internal_error(&format!("Failed to publish telemetry: {}", e)))?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn only_cloud_signups_may_skip_the_network() {
+        assert!(validate_setup_network(None, true).unwrap().is_none());
+        assert!(validate_setup_network(None, false).is_err());
+
+        let blank = NetworkSetup {
+            name: "  ".to_string(),
+        };
+        assert!(validate_setup_network(Some(&blank), true).is_err());
+
+        let named = NetworkSetup {
+            name: " Lab ".to_string(),
+        };
+        let network = validate_setup_network(Some(&named), false)
+            .unwrap()
+            .unwrap();
+        assert_eq!(network.name, "Lab");
+    }
 }

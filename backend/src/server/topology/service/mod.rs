@@ -1,6 +1,7 @@
 pub mod anchor_planner;
 pub mod application_builder;
 pub mod child_order;
+pub mod cloud_setup;
 pub mod context;
 pub mod edge_builder;
 pub mod element_rules;
