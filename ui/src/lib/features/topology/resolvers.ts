@@ -39,6 +39,7 @@ export function entityCollection(
 
 type ElementEntityType = components['schemas']['ElementEntityType'];
 type ElementEntityTypeDiscriminant = ElementEntityType['element_type'];
+type InlineGroup = components['schemas']['InlineGroup'];
 
 // Resolver return types
 export interface ElementRenderContext {
@@ -487,7 +488,13 @@ export function resolveInlineServiceIds(
 				if (!elementServiceIds.has(s.id)) out.add(s.id);
 			}
 		} else if (node.element_type === 'Host') {
-			for (const s of hostServices) {
+			// The card also draws the services of hosts inlined on it (a guest's network
+			// identities, a runtime's macvlan containers).
+			const memberHostIds = ((node as { inline_groups?: InlineGroup[] }).inline_groups ?? [])
+				.filter((g) => g.entity_type === 'Host')
+				.map((g) => g.entity_id);
+			const memberServices = memberHostIds.flatMap((h) => servicesByHostId.get(h) ?? []);
+			for (const s of [...hostServices, ...memberServices]) {
 				if (!elementServiceIds.has(s.id)) out.add(s.id);
 			}
 		}

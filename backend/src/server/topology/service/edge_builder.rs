@@ -454,9 +454,25 @@ impl EdgeBuilder {
     }
 
     /// Create interface edges (connecting multiple ip_addresses on the same host)
+    ///
+    /// A network-identity host gets none: each of its addresses already has a NetworkIdentity
+    /// edge to the guest's address on the same subnet, and the guest's own SameHost edges join
+    /// those. Drawing them as well gives one line per identity between the same two subnets.
     pub fn create_interface_edges(ctx: &TopologyContext) -> Vec<Edge> {
         ctx.hosts
             .iter()
+            .filter(|host| {
+                !host
+                    .base
+                    .virtualization_service_id
+                    .and_then(|id| ctx.get_service_by_id(id))
+                    .is_some_and(|manager| {
+                        matches!(
+                            manager.base.service_definition.virtualization_role(),
+                            Some(VirtualizationRole::IdentityHost { .. })
+                        )
+                    })
+            })
             .flat_map(|host| {
                 let host_interfaces = ctx.get_ip_addresses_for_host(host.id);
 
@@ -1710,5 +1726,106 @@ mod tests {
                 identities_service_id: identities_id,
             }
         );
+    }
+
+    /// A guest whose identities each hold an address on the same two subnets as the guest: the
+    /// guest keeps its SameHost edge, the identities get none, and every identity address still
+    /// has its NetworkIdentity edge to the guest.
+    #[test]
+    fn identity_hosts_get_no_same_host_edges() {
+        use crate::server::hosts::r#impl::virtualization::{
+            HostVirtualization, NetworkIdentityVirtualization,
+        };
+        use crate::server::services::definitions::network_identities::NetworkIdentities;
+
+        let network_id = Uuid::new_v4();
+        let lan = subnet(network_id, "lan", 30, SubnetType::Lan);
+        let mgmt = subnet(network_id, "mgmt", 40, SubnetType::Lan);
+        let host = |name: &str| Host {
+            id: Uuid::new_v4(),
+            base: HostBase {
+                name: HostName::manual(name.to_string()),
+                network_id,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let guest = host("snmp-lab");
+        let identities = Service {
+            id: Uuid::new_v4(),
+            base: ServiceBase {
+                host_id: guest.id,
+                network_id,
+                name: "Network Identities".to_string(),
+                service_definition: Box::new(NetworkIdentities),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let mut ip_addresses = vec![
+            ip(network_id, guest.id, lan.id, Ipv4Addr::new(172, 30, 0, 10)),
+            ip(network_id, guest.id, mgmt.id, Ipv4Addr::new(172, 40, 0, 10)),
+        ];
+        let mut hosts = vec![guest.clone()];
+        for n in 1..=3u8 {
+            let mut h = host(&format!("mv-snmp{n}"));
+            h.base.virtualization_service_id = Some(identities.id);
+            h.base.virtualization_metadata = Some(HostVirtualization::NetworkIdentity(
+                NetworkIdentityVirtualization {
+                    interface: Some(format!("mv-snmp{n}")),
+                },
+            ));
+            ip_addresses.push(ip(
+                network_id,
+                h.id,
+                lan.id,
+                Ipv4Addr::new(172, 30, 0, 20 + n),
+            ));
+            ip_addresses.push(ip(
+                network_id,
+                h.id,
+                mgmt.id,
+                Ipv4Addr::new(172, 40, 0, 20 + n),
+            ));
+            hosts.push(h);
+        }
+
+        let subnets = vec![lan, mgmt];
+        let services = vec![identities];
+        let options = TopologyOptions::default();
+        let ctx = TopologyContext::new(
+            &hosts,
+            &ip_addresses,
+            &subnets,
+            &services,
+            &[],
+            &[],
+            &[],
+            &[],
+            &[],
+            &[],
+            &options,
+            TopologyView::L3Logical,
+        );
+
+        let same_host = EdgeBuilder::create_interface_edges(&ctx);
+        assert_eq!(same_host.len(), 1);
+        assert_eq!(
+            same_host[0].edge_type,
+            EdgeType::SameHost { host_id: guest.id }
+        );
+
+        let identity_targets: HashSet<Uuid> = EdgeBuilder::create_vm_host_edges(&ctx)
+            .into_iter()
+            .filter(|e| matches!(e.edge_type, EdgeType::NetworkIdentity { .. }))
+            .map(|e| e.target)
+            .collect();
+        let identity_addresses: HashSet<Uuid> = ip_addresses
+            .iter()
+            .filter(|i| i.base.host_id != guest.id)
+            .map(|i| i.id)
+            .collect();
+        assert_eq!(identity_targets, identity_addresses);
     }
 }

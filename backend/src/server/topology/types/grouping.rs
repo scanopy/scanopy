@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::server::services::r#impl::categories::ServiceCategory;
 use crate::server::shared::concepts::Concept;
+use crate::server::shared::entities::EntityDiscriminants;
 use crate::server::shared::types::metadata::{EntityMetadataProvider, HasId, TypeMetadataProvider};
 use crate::server::shared::types::{Color, Icon};
 use crate::server::topology::types::base::TopologyRequestOptions;
@@ -40,6 +41,8 @@ pub enum PlacementDecision {
 pub struct InlineGroup {
     /// The inlined entity's ID (e.g., service ID).
     pub entity_id: Uuid,
+    /// Which entity `entity_id` names: a service, or a host (a guest's network identity).
+    pub entity_type: EntityDiscriminants,
     /// Shared by all members of the visual group.
     pub group_id: Uuid,
     /// Whether this entity heads the inline group or is a member of it.

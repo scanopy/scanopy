@@ -99,6 +99,23 @@ export interface ElementRenderData {
 	ip_address_id: string;
 	isCategoryHidden?: boolean;
 	portStatus?: PortStatus;
+	/**
+	 * Entities the backend inlined on this card under a manager (`inline_groups`): a runtime with
+	 * its containers, a guest's Network Identities with its identity hosts. Their services are
+	 * not in `services`.
+	 */
+	inlineGroups: ElementInlineGroup[];
+}
+
+/** One manager's group on a host card, drawn as a dashed box. */
+export interface ElementInlineGroup {
+	groupId: string;
+	/** The manager service heading the box, when it is on this card. */
+	header: Service | null;
+	/** Members that are services (bridge containers). */
+	services: Service[];
+	/** Members that are hosts (macvlan containers, network identities), with their own services. */
+	hosts: { host: Host; services: Service[] }[];
 }
 
 // ContainerRenderData removed — ContainerNode now reads icon/color directly

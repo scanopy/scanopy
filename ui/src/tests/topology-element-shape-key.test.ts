@@ -46,6 +46,7 @@ function result(overrides: Record<string, unknown> = {}, extra: Partial<ElementR
 			services: [],
 			hiddenOpenPorts: [],
 			ip_address_id: '',
+			inlineGroups: [],
 			...overrides
 		},
 		...extra
@@ -64,6 +65,22 @@ describe('elementShapeKey', () => {
 	it('separates cards with different service counts', () => {
 		expect(elementShapeKey(result({ services: [service('a', 'nginx')] }))).not.toBe(
 			elementShapeKey(result({ services: [service('a', 'nginx'), service('b', 'redis')] }))
+		);
+	});
+
+	it('separates cards whose inline group holds a different number of member hosts', () => {
+		const member = (id: string) => ({
+			host: { id, display_name: id },
+			services: [service(`${id}-snmp`, 'SNMP')]
+		});
+		const group = (hosts: string[]) => ({
+			groupId: 'identities',
+			header: service('identities', 'Network Identities'),
+			services: [],
+			hosts: hosts.map(member)
+		});
+		expect(elementShapeKey(result({ inlineGroups: [group(['mv-1'])] }))).not.toBe(
+			elementShapeKey(result({ inlineGroups: [group(['mv-1', 'mv-2'])] }))
 		);
 	});
 

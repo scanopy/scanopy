@@ -9803,6 +9803,8 @@ export interface components {
              * @description The inlined entity's ID (e.g., service ID).
              */
             entity_id: string;
+            /** @description Which entity `entity_id` names: a service, or a host (a guest's network identity). */
+            entity_type: components["schemas"]["EntityDiscriminants"];
             /**
              * Format: uuid
              * @description Shared by all members of the visual group.

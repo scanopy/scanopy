@@ -30279,6 +30279,7 @@
         "description": "Visual grouping metadata for inlined entities.\nEntities sharing the same `group_id` are rendered together in the element card.",
         "required": [
           "entity_id",
+          "entity_type",
           "group_id",
           "role"
         ],
@@ -30287,6 +30288,10 @@
             "type": "string",
             "format": "uuid",
             "description": "The inlined entity's ID (e.g., service ID)."
+          },
+          "entity_type": {
+            "$ref": "#/components/schemas/EntityDiscriminants",
+            "description": "Which entity `entity_id` names: a service, or a host (a guest's network identity)."
           },
           "group_id": {
             "type": "string",
