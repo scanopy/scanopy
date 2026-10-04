@@ -8513,6 +8513,8 @@ export interface components {
             clock: components["schemas"]["ClockFormat"];
             /** @default browser_default */
             date_order: components["schemas"]["DateOrder"];
+            /** @default comfortable */
+            table_density: components["schemas"]["TableDensity"];
             /**
              * @description IANA time zone dates are shown in. `None` uses the browser's zone.
              * @default null
@@ -12977,6 +12979,8 @@ export interface components {
         SubnetOrderField: "created_at" | "name" | "cidr" | "subnet_type" | "updated_at" | "network_id" | "last_seen_at";
         /** @enum {string} */
         SubnetType: "Internet" | "Remote" | "Gateway" | "VpnTunnel" | "Dmz" | "Lan" | "WiFi" | "IoT" | "Guest" | "DockerBridge" | "PodmanBridge" | "MacVlan" | "IpVlan" | "Management" | "Storage" | "Loopback" | "Unknown";
+        /** @enum {string} */
+        TableDensity: "comfortable" | "compact";
         /**
          * @example {
          *       "color": "Green",

@@ -8,6 +8,10 @@ import {
 	moveColumn,
 	moveColumnTo,
 	movableIds,
+	buildTagColumn,
+	columnWidth,
+	MAX_COLUMN_WIDTH,
+	MIN_COLUMN_WIDTH,
 	TAG_COLUMN_ID,
 	type ColumnState
 } from '$lib/shared/components/data/table/columns';
@@ -289,5 +293,73 @@ describe('column reordering', () => {
 		expect(
 			reconcileColumnState(columns, { visibility: {}, order: reloaded!.columnOrder }).order
 		).toEqual(moved);
+	});
+});
+
+describe('column widths', () => {
+	function reload(columnSizing: Record<string, number>) {
+		return parseStoredState(
+			serializeState({
+				searchQuery: '',
+				filterState: {},
+				sortState: { field: null, direction: 'asc' },
+				selectedGroupField: null,
+				showFilters: false,
+				viewMode: 'table',
+				currentPage: 1,
+				columnSizing
+			})
+		)!.columnSizing;
+	}
+
+	it('survives a save and reload', () => {
+		const columns = fieldsToColumns(fields());
+		const sizing = reload({ name: 180, network_id: 96 });
+
+		const state = reconcileColumnState(columns, { sizing });
+
+		expect(state.sizing).toEqual({ name: 180, network_id: 96 });
+		const byId = new Map(columns.map((c) => [c.id, c]));
+		expect(columnWidth(byId.get('name')!, state.sizing)).toBe(180);
+	});
+
+	it('drops the width of a column that no longer exists', () => {
+		const columns = fieldsToColumns(fields());
+
+		const state = reconcileColumnState(columns, { sizing: reload({ removed_field: 120 }) });
+
+		expect(state.sizing).toEqual({});
+	});
+
+	it('gives a column the user never resized its declared width, or none', () => {
+		// A newly added field has no stored entry, so it starts where the tab declared.
+		const columns = fieldsToColumns(fields());
+		const state = reconcileColumnState(columns, { sizing: { network_id: 140 } });
+		const byId = new Map(columns.map((c) => [c.id, c]));
+
+		expect(columnWidth(byId.get('name')!, state.sizing)).toBe(240);
+		expect(columnWidth(byId.get('description')!, state.sizing)).toBeUndefined();
+	});
+
+	it('keeps stored widths inside the resize bounds', () => {
+		const columns = fieldsToColumns(fields());
+
+		const state = reconcileColumnState(columns, {
+			sizing: { name: 1, network_id: 99999, description: Number.NaN }
+		});
+
+		expect(state.sizing).toEqual({ name: MIN_COLUMN_WIDTH, network_id: MAX_COLUMN_WIDTH });
+	});
+
+	it('keeps the width of the tags column the list appends', () => {
+		const columns = fieldsToColumns(fields());
+		const tagColumn = buildTagColumn<Row>('Tags', () => [], undefined);
+		const stored = { sizing: { [TAG_COLUMN_ID]: 150 } };
+
+		expect(reconcileColumnState(columns, stored, [tagColumn]).sizing).toEqual({
+			[TAG_COLUMN_ID]: 150
+		});
+		// A list without tags has no such column, so the entry is stale there.
+		expect(reconcileColumnState(columns, stored).sizing).toEqual({});
 	});
 });

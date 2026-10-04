@@ -24516,6 +24516,15 @@
             ],
             "default": "browser_default"
           },
+          "table_density": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TableDensity",
+                "description": "Cell padding and row height in entity tables."
+              }
+            ],
+            "default": "comfortable"
+          },
           "time_zone": {
             "type": [
               "string",
@@ -33917,6 +33926,13 @@
           "Storage",
           "Loopback",
           "Unknown"
+        ]
+      },
+      "TableDensity": {
+        "type": "string",
+        "enum": [
+          "comfortable",
+          "compact"
         ]
       },
       "Tag": {

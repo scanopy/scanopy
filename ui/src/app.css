@@ -198,6 +198,24 @@
 		@apply disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-green-600 dark:disabled:hover:text-green-400;
 	}
 
+	/*
+	 * Entity table density, from the user's display settings. Every cell reads its
+	 * padding from these, so a density is defined here and nowhere else.
+	 */
+	.entity-table {
+		--cell-px: 0.75rem;
+		--cell-py: 0.5rem;
+	}
+
+	.entity-table[data-density='compact'] {
+		--cell-px: 0.5rem;
+		--cell-py: 0.25rem;
+	}
+
+	.entity-table[data-density='compact'] :is(.btn-icon, .btn-icon-danger) {
+		@apply p-1;
+	}
+
 	/* Card component */
 	.card {
 		border: 1px solid var(--color-border);
