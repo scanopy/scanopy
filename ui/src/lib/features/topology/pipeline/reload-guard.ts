@@ -25,8 +25,8 @@ export interface ReloadInputs {
 	collapsed: Set<string>;
 	expandedBundles: Set<string>;
 	expandedPorts: Set<string>;
-	/** Manager boxes on host cards the viewer collapsed (`inlineGroupKey`). Changes card height. */
-	collapsedInlineGroups: Set<string>;
+	/** Manager boxes on host cards that are open (`inlineGroupKey`). Changes card height. */
+	expandedInlineGroups: Set<string>;
 	bundleEdges: boolean;
 	hiddenEdgeTypes: string;
 	tagHidden: Set<string>;
@@ -93,8 +93,8 @@ export function reloadInputsDiff(previous: ReloadInputs, next: ReloadInputs): st
 	if (!sameSet(previous.collapsed, next.collapsed)) changed.push('collapsed');
 	if (!sameSet(previous.expandedBundles, next.expandedBundles)) changed.push('expandedBundles');
 	if (!sameSet(previous.expandedPorts, next.expandedPorts)) changed.push('expandedPorts');
-	if (!sameSet(previous.collapsedInlineGroups, next.collapsedInlineGroups))
-		changed.push('collapsedInlineGroups');
+	if (!sameSet(previous.expandedInlineGroups, next.expandedInlineGroups))
+		changed.push('expandedInlineGroups');
 	if (!sameSet(previous.tagHidden, next.tagHidden)) changed.push('tagHidden');
 	if (!sameSet(previous.hiddenEntities, next.hiddenEntities)) changed.push('hiddenEntities');
 	if (previous.hiddenMetadata !== next.hiddenMetadata) changed.push('hiddenMetadata');
@@ -108,7 +108,7 @@ export function snapshotReloadInputs(inputs: ReloadInputs): ReloadInputs {
 		collapsed: new Set(inputs.collapsed),
 		expandedBundles: new Set(inputs.expandedBundles),
 		expandedPorts: new Set(inputs.expandedPorts),
-		collapsedInlineGroups: new Set(inputs.collapsedInlineGroups),
+		expandedInlineGroups: new Set(inputs.expandedInlineGroups),
 		bundleEdges: inputs.bundleEdges,
 		hiddenEdgeTypes: inputs.hiddenEdgeTypes,
 		tagHidden: new Set(inputs.tagHidden),

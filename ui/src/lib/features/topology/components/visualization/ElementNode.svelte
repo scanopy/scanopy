@@ -24,9 +24,9 @@
 		inlineHostsMatching,
 		expandedPortNodeIds,
 		toggleExpandedPorts,
-		toggleInlineGroup,
 		UNTAGGED_SENTINEL
 	} from '../../interactions';
+	import { toggleInlineGroup } from '../../collapse';
 	import * as sharedStores from '../../reactive-stores.svelte';
 	import { createColorHelper } from '$lib/shared/utils/styling';
 	import { getContext } from 'svelte';
@@ -77,7 +77,7 @@
 	 */
 	let pinnedHeight = $derived(useInternalNode(id).current?.measured?.height);
 	let hiddenEntities = $derived(sharedStores.hiddenEntities.current);
-	let collapsedInlineGroupKeys = $derived(sharedStores.collapsedInlineGroupKeys.current);
+	let expandedInlineGroupKeys = $derived(sharedStores.expandedInlineGroupKeys.current);
 	let searchHiddenNodes = $derived(sharedStores.searchHiddenNodes.current);
 	let connectedNodes = $derived(sharedStores.connectedNodes.current);
 	let edgeHandles = $derived(sharedStores.edgeHandles.current);
@@ -130,7 +130,7 @@
 					activeView: $activeView,
 					options: $topologyOptions,
 					hiddenEntityIds: hiddenEntities,
-					collapsedInlineGroups: collapsedInlineGroupKeys,
+					expandedInlineGroups: expandedInlineGroupKeys,
 					networks: networksData
 				})
 			: null

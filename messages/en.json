@@ -2647,6 +2647,7 @@
 	"topology_l2EmptyTitle": "No Physical Connections",
 	"topology_layoutHelp": "Choose how items are ordered and organized, from the top-level structure down to groupings within each box.",
 	"topology_levelContainersExpanded": "Containers expanded",
+	"topology_levelContainersFullyExpanded": "All containers expanded",
 	"topology_levelFullyCollapsed": "Fully collapsed",
 	"topology_levelFullyExpanded": "Fully expanded",
 	"topology_levelSubcontainersExpanded": "Subcontainers expanded",

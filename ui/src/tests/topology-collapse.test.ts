@@ -7,7 +7,10 @@ import {
 	nextEffectiveLevel,
 	stepExpand,
 	collapseLevel,
-	collapsedContainers
+	collapsedContainers,
+	stepCollapse,
+	expandedInlineGroups,
+	inlineGroupKey
 } from '$lib/features/topology/collapse';
 import { LayoutGraph } from '$lib/features/topology/layout/layout-graph';
 import type { components } from '$lib/api/schema';
@@ -264,5 +267,68 @@ describe('stepping the ladder protects what the level leaves open', () => {
 		// exempted from auto-collapse and `sub` must not.
 		expect(handed).toContain('root');
 		expect(handed).not.toContain('sub');
+	});
+});
+
+describe('level 5 opens manager boxes on host cards', () => {
+	// One host with a guest card whose Network Identities box is drawn inline.
+	const hostCard = {
+		id: 'guest',
+		node_type: 'Element',
+		container_id: 'host',
+		host_id: 'guest',
+		element_type: 'Host',
+		inline_groups: [
+			{ entity_id: 'mv-1', entity_type: 'Host', group_id: 'identities', role: 'Member' }
+		]
+	} as unknown as TopologyNode;
+	// The collapsed-by-default root keeps levels 3 and 4 apart.
+	const nodes = [
+		container('host', 'Subnet'),
+		container('sub', 'NestedTag', 'host'),
+		container('ung', 'ApplicationUngrouped'),
+		hostCard
+	];
+	const box = inlineGroupKey('guest', 'identities');
+
+	const at = (level: 3 | 4, expanded: string[] = []) => {
+		collapsedContainers.set(computeCollapsedForLevel(level, nodes, containerTypes, null));
+		collapseLevel.set(level);
+		expandedInlineGroups.set(new Set(expanded));
+	};
+
+	it('expands from 4 to 5 and opens every box, then collapses back and closes them', () => {
+		at(4);
+		expect(inferCurrentLevel(get(collapsedContainers), nodes, containerTypes, null)).toBe(4);
+
+		expect(stepExpand(nodes, containerTypes, null).newLevel).toBe(5);
+		expect(get(expandedInlineGroups).has(box)).toBe(true);
+		expect(inferCurrentLevel(get(collapsedContainers), nodes, containerTypes, null)).toBe(5);
+
+		expect(stepCollapse(nodes, containerTypes, null).newLevel).toBe(4);
+		expect(get(expandedInlineGroups).has(box)).toBe(false);
+	});
+
+	it('expanding from 3 with a box opened by hand goes to 4 and keeps it open', () => {
+		at(3, [box]);
+
+		expect(stepExpand(nodes, containerTypes, null).newLevel).toBe(4);
+		expect(get(expandedInlineGroups).has(box)).toBe(true);
+	});
+
+	it('leaves boxes in other views alone', () => {
+		at(4, ['other-view-card|docker']);
+
+		stepExpand(nodes, containerTypes, null);
+		stepCollapse(nodes, containerTypes, null);
+		expect(get(expandedInlineGroups)).toEqual(new Set(['other-view-card|docker']));
+	});
+
+	it('never reaches 5 in a view with no boxes', () => {
+		const plain = [container('host', 'Subnet'), container('sub', 'NestedTag', 'host')];
+		collapsedContainers.set(new Set());
+		expandedInlineGroups.set(new Set());
+
+		expect(nextEffectiveLevel('expand', plain, containerTypes, null)).toBe(null);
 	});
 });

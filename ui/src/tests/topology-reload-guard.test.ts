@@ -10,7 +10,7 @@ function inputs(overrides: Partial<ReloadInputs> = {}): ReloadInputs {
 		collapsed: new Set(),
 		expandedBundles: new Set(),
 		expandedPorts: new Set(),
-		collapsedInlineGroups: new Set(),
+		expandedInlineGroups: new Set(),
 		bundleEdges: false,
 		hiddenEdgeTypes: '',
 		tagHidden: new Set(),
@@ -22,12 +22,12 @@ function inputs(overrides: Partial<ReloadInputs> = {}): ReloadInputs {
 }
 
 describe('pipeline reload guard', () => {
-	/** Collapsing a manager box mid-run changes that card's height, so it must not be dropped. */
-	it('re-runs when a manager box was collapsed during the run', () => {
+	/** Opening or closing a manager box mid-run changes that card's height, so it must not be dropped. */
+	it('re-runs when a manager box was opened during the run', () => {
 		const consumed = snapshotReloadInputs(inputs());
-		const current = inputs({ collapsedInlineGroups: new Set(['guest|identities']) });
+		const current = inputs({ expandedInlineGroups: new Set(['guest|identities']) });
 
-		expect(reloadInputsDiff(consumed, current)).toEqual(['collapsedInlineGroups']);
+		expect(reloadInputsDiff(consumed, current)).toEqual(['expandedInlineGroups']);
 	});
 
 	/**

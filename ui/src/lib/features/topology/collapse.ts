@@ -4,17 +4,19 @@
  * Tracks which containers are collapsed, persists to localStorage,
  * and provides edge aggregation for collapsed containers.
  *
- * Supports leveled collapse/expand with 4 levels:
+ * Supports leveled collapse/expand with 5 levels:
  *   1 = Fully collapsed
  *   2 = Containers expanded, subcontainers collapsed
  *   3 = Subcontainers expanded (except collapsed-by-default and infrastructure)
- *   4 = Fully expanded
+ *   4 = Every container expanded; manager boxes on host cards collapsed
+ *   5 = Fully expanded, manager boxes included
  */
 
 import { get, writable } from 'svelte/store';
 import { browser } from '$app/environment';
 import type { TopologyEdge, TopologyNode } from './types/base';
 import type { ContainerTypeMetadata } from '$lib/shared/stores/metadata';
+import { persistedSet, toggleInSet } from '$lib/shared/stores/persisted-set';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -28,10 +30,50 @@ export interface AggregatedEdge {
 	originalEdges: TopologyEdge[];
 }
 
-export type CollapseLevel = 1 | 2 | 3 | 4;
+export type CollapseLevel = 1 | 2 | 3 | 4 | 5;
 
 interface ContainerTypesAccessor {
 	getMetadata: (id: string | null) => ContainerTypeMetadata;
+}
+
+// ---------------------------------------------------------------------------
+// Manager boxes on host cards
+// ---------------------------------------------------------------------------
+
+/**
+ * Manager boxes on host cards the viewer opened, keyed by `inlineGroupKey`. A box is collapsed
+ * unless its key is here, so boxes start collapsed; collapse level 5 opens every box. Persisted,
+ * so a box the viewer opened stays open across reloads.
+ */
+export const expandedInlineGroups = persistedSet('scanopy_topology_expanded_inline_groups');
+
+/**
+ * Key for one manager box on one card. Starts with the card's node id followed by `|`, which is
+ * how the re-layout finds the card whose height a toggle changed.
+ */
+export function inlineGroupKey(nodeId: string, groupId: string): string {
+	return `${nodeId}|${groupId}`;
+}
+
+/** Every manager box drawn in `nodes`: one key per (element, inline group). */
+export function allInlineGroupKeys(nodes: TopologyNode[]): string[] {
+	const keys = new Set<string>();
+	for (const node of nodes) {
+		if (node.node_type !== 'Element') continue;
+		const groups = (node as { inline_groups?: { group_id: string }[] }).inline_groups ?? [];
+		for (const g of groups) keys.add(inlineGroupKey(node.id, g.group_id));
+	}
+	return [...keys];
+}
+
+export function toggleInlineGroup(nodeId: string, groupId: string): void {
+	toggleInSet(expandedInlineGroups, inlineGroupKey(nodeId, groupId));
+}
+
+/** The manager boxes in `nodes` that are currently collapsed. */
+function collapsedBoxKeys(nodes: TopologyNode[]): Set<string> {
+	const expanded = get(expandedInlineGroups);
+	return new Set(allInlineGroupKeys(nodes).filter((key) => !expanded.has(key)));
 }
 
 // ---------------------------------------------------------------------------
@@ -70,7 +112,7 @@ function loadLevelFromStorage(): CollapseLevel | null {
 		const stored = localStorage.getItem(LEVEL_STORAGE_KEY);
 		if (stored !== null) {
 			const num = parseInt(stored, 10);
-			if (num >= 1 && num <= 4) return num as CollapseLevel;
+			if (num >= 1 && num <= 5) return num as CollapseLevel;
 		}
 	} catch {
 		// ignore
@@ -236,18 +278,37 @@ export function computeCollapsedForLevel(
 			}
 			return collapsed;
 		}
-		case 4: {
-			// Everything expanded
+		case 4:
+		case 5: {
+			// Every container expanded. Level 5 differs only in the manager boxes on host cards,
+			// which are not containers (see `collapsedBoxKeys`).
 			return new Set();
 		}
 	}
 }
 
 /**
- * Infer the closest collapse level from the current collapsed set.
- * Returns exact match only; defaults to 1 if no match.
+ * Infer the closest collapse level from the current collapsed set, and from the manager boxes:
+ * every container open reads as level 5 when every box is open too, and as level 4 otherwise.
  */
 export function inferCurrentLevel(
+	collapsed: Set<string>,
+	allNodes: TopologyNode[],
+	containerTypesStore: ContainerTypesAccessor,
+	infraRuleId: string | null
+): CollapseLevel {
+	const level = inferContainerLevel(collapsed, allNodes, containerTypesStore, infraRuleId);
+	if (
+		level === 4 &&
+		allInlineGroupKeys(allNodes).length > 0 &&
+		collapsedBoxKeys(allNodes).size === 0
+	)
+		return 5;
+	return level;
+}
+
+/** The collapse level the containers alone match (1-4). */
+function inferContainerLevel(
 	collapsed: Set<string>,
 	allNodes: TopologyNode[],
 	containerTypesStore: ContainerTypesAccessor,
@@ -350,21 +411,29 @@ export function nextEffectiveLevel(
 	containerTypesStore: ContainerTypesAccessor,
 	infraRuleId: string | null
 ): CollapseLevel | null {
-	const rendered = get(collapsedContainers);
+	const renderedContainers = get(collapsedContainers);
 	// Start from what is actually drawn, not from the stored level. The two can disagree —
 	// `prepare` infers a level before auto-collapse has been applied, so a scale-collapsed load
 	// keeps a lower number than its diagram — and stepping from a stale number walks the wrong
 	// way: pressing Collapse from a fully-collapsed graph "advanced" to a level that expands it.
-	const from = inferCurrentLevel(rendered, allNodes, containerTypesStore, infraRuleId);
+	const from = inferCurrentLevel(renderedContainers, allNodes, containerTypesStore, infraRuleId);
 	const step = direction === 'collapse' ? -1 : 1;
 
-	for (let level = from + step; level >= 1 && level <= 4; level += step) {
-		const candidate = computeCollapsedForLevel(
-			level as CollapseLevel,
-			allNodes,
-			containerTypesStore,
-			infraRuleId
-		);
+	// Manager boxes count as collapsible entities alongside containers, so the same strict
+	// superset rule keeps both directions honest for them too.
+	const renderedBoxes = collapsedBoxKeys(allNodes);
+	const rendered = new Set([...renderedContainers, ...renderedBoxes]);
+
+	for (let level = from + step; level >= 1 && level <= 5; level += step) {
+		const candidate = new Set([
+			...computeCollapsedForLevel(
+				level as CollapseLevel,
+				allNodes,
+				containerTypesStore,
+				infraRuleId
+			),
+			...boxesForLevel(level as CollapseLevel, direction, allNodes, renderedBoxes)
+		]);
 		// Collapse must only ever collapse and expand must only ever expand, whatever the
 		// numbering implies. Requiring a strict superset (or subset) of what is drawn makes the
 		// button's direction the guarantee, rather than something the level ordering happens to
@@ -376,6 +445,40 @@ export function nextEffectiveLevel(
 		if (moves) return level as CollapseLevel;
 	}
 	return null;
+}
+
+/**
+ * The manager boxes a step to `level` leaves collapsed. Level 5 opens every box. A collapse to
+ * 1-4 closes every box. An expand to 1-4 leaves them as drawn, so it never closes a box the
+ * viewer opened by hand.
+ */
+function boxesForLevel(
+	level: CollapseLevel,
+	direction: 'collapse' | 'expand',
+	allNodes: TopologyNode[],
+	renderedBoxes: Set<string>
+): Set<string> {
+	if (level === 5) return new Set();
+	return direction === 'collapse' ? new Set(allInlineGroupKeys(allNodes)) : renderedBoxes;
+}
+
+/** Write the boxes a step to `level` leaves open. */
+function applyBoxesForLevel(
+	level: CollapseLevel,
+	direction: 'collapse' | 'expand',
+	allNodes: TopologyNode[]
+): void {
+	if (level !== 5 && direction === 'expand') return;
+	// Only this view's boxes: the set also holds boxes the viewer opened in other views.
+	const keys = allInlineGroupKeys(allNodes);
+	expandedInlineGroups.update((set) => {
+		const next = new Set(set);
+		for (const key of keys) {
+			if (level === 5) next.add(key);
+			else next.delete(key);
+		}
+		return next;
+	});
 }
 
 /** True when `a` contains every member of `b` and at least one more. */
@@ -417,6 +520,7 @@ export function stepExpand(
 	);
 	onBeforeApply?.(idsLeftExpanded);
 
+	applyBoxesForLevel(newLevel, 'expand', allNodes);
 	collapsedContainers.set(collapsed);
 	collapseLevel.set(newLevel);
 
@@ -470,6 +574,7 @@ export function stepCollapse(
 		autoCollapseCandidatesLeftExpanded(allNodes, containerTypesStore, infraRuleId, collapsed)
 	);
 
+	applyBoxesForLevel(newLevel, 'collapse', allNodes);
 	collapsedContainers.set(collapsed);
 	collapseLevel.set(newLevel);
 	return { newLevel };

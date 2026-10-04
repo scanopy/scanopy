@@ -17,6 +17,7 @@
 		topology_levelContainersExpanded,
 		topology_levelSubcontainersExpanded,
 		topology_levelFullyExpanded,
+		topology_levelContainersFullyExpanded,
 		topology_parseFailed,
 		topology_detailSimplified,
 		common_rendering
@@ -56,8 +57,7 @@
 		isMeasuring,
 		detailSimplified,
 		isRenderingTopology,
-		expandedPortNodeIds,
-		collapsedInlineGroups
+		expandedPortNodeIds
 	} from '../../interactions';
 
 	// Import custom node/edge components
@@ -69,6 +69,7 @@
 	import {
 		collapsedContainers,
 		collapseLevel,
+		expandedInlineGroups,
 		stepExpand,
 		stepCollapse,
 		nextEffectiveLevel
@@ -106,7 +107,7 @@
 	import { createInitialState, type XY } from '../../pipeline/types';
 	import { prepareTopologyData, hiddenMetadataKey } from '../../pipeline/prepare';
 	import { resolveNodeSizes } from '../../pipeline/measure';
-	import { executeLayout, handleCardContentChange } from '../../pipeline/execute-layout';
+	import { executeLayout, handlePortExpansion } from '../../pipeline/execute-layout';
 	import { preloadElk } from '../../layout/elk-layout';
 	import { buildFlowNodes, sortFlowNodes, stripSizeSeed } from '../../pipeline/build-flow-nodes';
 	import { buildFlowEdges } from '../../pipeline/build-flow-edges';
@@ -637,7 +638,7 @@
 			collapsed: get(collapsedContainers),
 			expandedBundles: get(expandedBundles),
 			expandedPorts: get(expandedPortNodeIds),
-			collapsedInlineGroups: get(collapsedInlineGroups),
+			expandedInlineGroups: get(expandedInlineGroups),
 			bundleEdges: get(topologyOptions).local.bundle_edges ?? false,
 			hiddenEdgeTypes: (get(topologyOptions).local.hide_edge_types ?? []).join(','),
 			tagHidden: get(tagHiddenNodeIds),
@@ -772,8 +773,9 @@
 	expandedPortNodeIds.subscribe(() => {
 		if (storesInitialized) triggerLoad('ports');
 	});
-	collapsedInlineGroups.subscribe(() => {
-		if (storesInitialized) triggerLoad('inline-groups');
+	// Deferred like the collapsed set: a level step writes both, and they should cost one run.
+	expandedInlineGroups.subscribe(() => {
+		if (storesInitialized) deferTriggerLoad('inline-groups');
 	});
 	bundleEdgesStore.subscribe(() => {
 		if (storesInitialized) triggerLoad('bundle-option');
@@ -1068,17 +1070,13 @@
 		// would mount every node in the graph to re-measure a handful of cards, which at this
 		// customer's scale is the out-of-memory failure by another route. A card whose ports the
 		// user just toggled is on screen by construction, so it is mounted and measures correctly;
-		// `handleCardContentChange` drops the cached size of any id it could not find in the DOM, so a
+		// `handlePortExpansion` drops the cached size of any id it could not find in the DOM, so a
 		// card toggled and then scrolled away from re-measures for real the next time it mounts
 		// rather than keeping a stale height.
-		// Expanded ports and collapsed manager boxes both change a card's height in place.
-		const currentCardContentKeys = new Set([
-			...get(expandedPortNodeIds),
-			...get(collapsedInlineGroups)
-		]);
-		const cardContentChanged = await handleCardContentChange(
+		const currentExpandedPorts = get(expandedPortNodeIds);
+		const portsChanged = await handlePortExpansion(
 			layoutState,
-			currentCardContentKeys,
+			currentExpandedPorts,
 			containerElement,
 			() => makeNodes(false),
 			(n) => setStoreNodes(n),
@@ -1090,7 +1088,7 @@
 		// Build final nodes and edges. Edge handles are computed inside
 		// buildFlowEdges against final post-layout positions (from layoutGraph)
 		// rather than being precomputed by the layout engines.
-		const needsLayout = needsElk || cardContentChanged || prep.collapseChanged;
+		const needsLayout = needsElk || portsChanged || prep.collapseChanged;
 
 		// Edges first, then nodes.
 		//
@@ -1491,6 +1489,8 @@
 			case 3:
 				return topology_levelSubcontainersExpanded();
 			case 4:
+				return topology_levelContainersFullyExpanded();
+			case 5:
 				return topology_levelFullyExpanded();
 		}
 	}
@@ -1499,16 +1499,19 @@
 	// end. A view whose only root is collapsed_by_default has fewer distinct states than the
 	// ladder has rungs, so the button can run out before the number does — and a button that
 	// still looks live while doing nothing is worse than one that greys out.
-	// `$collapsedContainers` is read so this re-evaluates when the rendered set changes.
+	// `$collapsedContainers` and `$expandedInlineGroups` are read so this re-evaluates when the
+	// rendered state changes.
 	let expandDisabled = $derived(
 		!!editMode ||
 			($collapsedContainers &&
+				$expandedInlineGroups &&
 				nextEffectiveLevel('expand', topology.nodes, containerTypes, getInfrastructureRuleId()) ===
 					null)
 	);
 	let collapseDisabled = $derived(
 		!!editMode ||
 			($collapsedContainers &&
+				$expandedInlineGroups &&
 				nextEffectiveLevel(
 					'collapse',
 					topology.nodes,
@@ -1522,7 +1525,7 @@
 			: ''
 	);
 	let collapseLevelTooltipExpand = $derived(
-		$collapseLevel < 4
+		$collapseLevel < 5
 			? `${common_expand()}: ${getCollapseLevelName(($collapseLevel + 1) as CollapseLevel)}`
 			: ''
 	);
