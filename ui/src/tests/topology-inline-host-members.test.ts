@@ -133,7 +133,7 @@ describe('host metadata hover on inline members', () => {
 			() => true
 		);
 	const hover = (valueId: string) => ({
-		entityType: 'Host' as const,
+		entityTypes: ['Host' as const],
 		filterType: 'Virtualization',
 		valueId,
 		color: 'Amber'

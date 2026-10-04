@@ -450,10 +450,7 @@ mod tests {
             let config = view.element_config();
             for (entity, by_filter) in &config.default_hidden_values {
                 for (filter_type, values) in by_filter {
-                    let declared = config
-                        .metadata_filters
-                        .get(entity)
-                        .and_then(|filters| filters.iter().find(|f| f.filter_type == *filter_type));
+                    let declared = config.filter(*entity, *filter_type);
 
                     // Service.Category is declared in every view but only *rendered* where
                     // Service has an element or inline role, so a view without that role is

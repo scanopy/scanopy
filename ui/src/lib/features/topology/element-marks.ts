@@ -19,13 +19,12 @@
 
 import type { components } from '$lib/api/schema';
 import type { Network } from '$lib/features/networks/types';
-import { views } from '$lib/shared/stores/metadata';
 import { createColorHelper, type Color } from '$lib/shared/utils/styling';
 import { FILTER_VALUE_EXTRACTORS } from './interactions';
 import { cardEntityForFilter, type ElementRenderContext } from './resolvers';
 import type { RenderableTopology } from './types/base';
+import { viewElementConfig, type ViewElementConfig } from './view-filters';
 
-type ViewElementConfig = components['schemas']['ViewElementConfig'];
 type ElementMark = components['schemas']['ElementMark'];
 export type MarkChannel = components['schemas']['MarkChannel'];
 
@@ -37,14 +36,10 @@ export const NEUTRAL_FILL = 'var(--color-topology-lod-unknown)';
 /** A status dot with no mark. */
 export const NEUTRAL_DOT = 'rgb(156, 163, 175)';
 
-export function viewElementConfig(view: string): ViewElementConfig | undefined {
-	return (views.getMetadata(view) as { element_config?: ViewElementConfig } | null)?.element_config;
-}
-
 /** The chip colour of the filter value `mark` names, or undefined if the view does not offer it. */
 export function markColor(config: ViewElementConfig, mark: ElementMark): Color | undefined {
-	return config.metadata_filters?.[mark.entity]
-		?.find((f) => f.filter_type === mark.filter_type)
+	return config.metadata_filters
+		?.find((f) => f.filter_type === mark.filter_type && f.entities.includes(mark.entity))
 		?.values.find((v) => v.id === mark.value)?.color;
 }
 

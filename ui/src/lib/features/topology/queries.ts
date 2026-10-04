@@ -23,6 +23,7 @@ import { UNTAGGED_SENTINEL } from './interactions';
 import { getDefaultHiddenEdgeTypes } from './layout/edge-classification';
 import type { components } from '$lib/api/schema';
 import viewsJson from '$lib/data/views.json';
+import { declaredMetadataFilters, filtersFor, type HiddenMetadataValues } from './view-filters';
 import { getIrrelevantServiceCategories } from '$lib/shared/stores/metadata';
 import { common_infrastructure } from '$lib/paraglide/messages';
 
@@ -124,16 +125,6 @@ export function defaultHiddenValuesFor(view: string): Record<string, Record<stri
 	return meta?.element_config?.default_hidden_values ?? {};
 }
 
-/** The metadata filters a view declares, keyed by entity type — from the generated view fixture. */
-export function declaredMetadataFiltersFor(
-	view: string
-): Record<string, Array<{ filter_type: string }>> {
-	const meta = viewsJson.find((v) => v.id === view)?.metadata as
-		| { element_config?: { metadata_filters?: Record<string, Array<{ filter_type: string }>> } }
-		| undefined;
-	return meta?.element_config?.metadata_filters ?? {};
-}
-
 /**
  * What one entity's hide-set becomes when its filters are cleared: every filter the view declares,
  * emptied, plus an empty list for any stored key the view no longer declares.
@@ -153,10 +144,29 @@ export function clearedHideSetFor(
 	existing: Record<string, string[]> | undefined
 ): Record<string, string[]> {
 	const cleared: Record<string, string[]> = {};
-	for (const filter of declaredMetadataFiltersFor(view)[entityType] ?? []) {
+	for (const filter of filtersFor(view, entityType)) {
 		cleared[filter.filter_type] = [];
 	}
 	for (const filterType of Object.keys(existing ?? {})) cleared[filterType] = [];
+	return cleared;
+}
+
+/**
+ * A whole view's hide-set with every filter cleared: each entity some filter covers, and each
+ * entity with a stored entry, through `clearedHideSetFor`.
+ */
+export function clearedViewHideSet(
+	view: string,
+	existing: HiddenMetadataValues | undefined
+): HiddenMetadataValues {
+	const cleared: HiddenMetadataValues = {};
+	const entityTypes = new Set([
+		...declaredMetadataFilters(view).flatMap((f) => f.entities as string[]),
+		...Object.keys(existing ?? {})
+	]);
+	for (const entityType of entityTypes) {
+		cleared[entityType] = clearedHideSetFor(view, entityType, existing?.[entityType]);
+	}
 	return cleared;
 }
 
@@ -601,21 +611,12 @@ export function updateTopologyOptions(
  * "show everything" and is left alone.
  */
 export function showEverythingIn(view: string): void {
-	const declared = declaredMetadataFiltersFor(view);
-
 	updateTopologyOptions((opts) => {
 		const hideMeta = { ...(opts.request.hide_metadata_values ?? {}) } as Record<
 			string,
-			Record<string, Record<string, string[]>>
+			HiddenMetadataValues
 		>;
-		const cleared: Record<string, Record<string, string[]>> = {};
-		for (const entityType of new Set([
-			...Object.keys(declared),
-			...Object.keys(hideMeta[view] ?? {})
-		])) {
-			cleared[entityType] = clearedHideSetFor(view, entityType, hideMeta[view]?.[entityType]);
-		}
-		hideMeta[view] = cleared;
+		hideMeta[view] = clearedViewHideSet(view, hideMeta[view]);
 
 		const hideEntities = { ...(opts.request.hide_entities ?? {}) };
 		hideEntities[view] = [];

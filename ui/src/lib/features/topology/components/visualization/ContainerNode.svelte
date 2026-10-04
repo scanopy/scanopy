@@ -277,8 +277,7 @@
 		// the same ring element cards get.
 		if (
 			currentHoveredMetadata &&
-			currentHoveredMetadata.entityType === containerType &&
-			matchesHoveredMetadata(entity, currentHoveredMetadata, entityNetwork, topology)
+			matchesHoveredMetadata(entity, containerType, currentHoveredMetadata, entityNetwork, topology)
 		) {
 			const ch = createColorHelper(
 				currentHoveredMetadata.color as Parameters<typeof createColorHelper>[0]
