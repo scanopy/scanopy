@@ -107,6 +107,7 @@ impl Subscriber<BillingOperation> for EmailService {
                     ))
                 })?;
 
+            let zero_dollar = event.operation.is_zero_dollar_notice();
             match event.operation {
                 BillingOperation::TrialStarted {
                     plan, trial_days, ..
@@ -129,7 +130,7 @@ impl Subscriber<BillingOperation> for EmailService {
                     plan,
                     next_renewal_at: _,
                 } => {
-                    if plan.is_priced_at_zero() {
+                    if zero_dollar {
                         skip_zero_dollar("trial_converted", event.scope.organization_id);
                     } else {
                         self.send_trial_converted_email(
@@ -357,7 +358,7 @@ impl Subscriber<BillingOperation> for EmailService {
                     // usage to summarize.
                     if invoice.billing_reason == BillingReason::SubscriptionCycle {
                         match invoice.license_paid_through() {
-                            None if invoice.charged_nothing() => {
+                            None if zero_dollar => {
                                 skip_zero_dollar("usage_summary", event.scope.organization_id);
                             }
                             None => self.send_usage_summary_email(org_owner, &invoice).await?,
@@ -468,7 +469,7 @@ impl Subscriber<BillingOperation> for EmailService {
                         // A cloud trial gets `trial_started` instead; "your
                         // subscription is active" arrives as `trial_converted`
                         // once a card is charged.
-                    } else if plan.is_priced_at_zero() {
+                    } else if zero_dollar {
                         skip_zero_dollar("checkout_completed", event.scope.organization_id);
                     } else {
                         self.send_checkout_completed_email(org_owner, plan.name())

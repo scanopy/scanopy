@@ -41,6 +41,14 @@ impl Subscriber<BillingOperation> for BrevoService {
     async fn handle(&self, events: Vec<Event<BillingOperation>>) -> Result<(), Error> {
         let mut failures = Vec::new();
         for event in &events {
+            if event.operation.is_zero_dollar_notice() {
+                tracing::debug!(
+                    operation = %event.operation,
+                    organization_id = %event.scope.organization_id,
+                    "Skipping Brevo billing event for a customer paying nothing"
+                );
+                continue;
+            }
             if let Err(e) = self.handle_billing_event(event).await {
                 failures.push(anyhow!("billing {}: {e:#}", event.operation));
             }

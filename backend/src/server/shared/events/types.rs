@@ -1,7 +1,7 @@
 use crate::server::{
     auth::r#impl::oidc::OidcProviderMetadata,
     billing::types::base::{
-        BillingInvoice, BillingPlan, CancelReason, LimitSource, LimitType, SaveOffer,
+        BillingInvoice, BillingPlan, BillingReason, CancelReason, LimitSource, LimitType, SaveOffer,
     },
     credentials::r#impl::types::serialize_secret_value,
     discovery::r#impl::types::DiscoveryType,
@@ -469,6 +469,26 @@ impl BillingOperation {
             Self::PlanChanged { to, .. } | Self::LicenseReconciled { to, .. } => Some(to),
             Self::CancellationInitiated { plan, .. } => plan.as_ref(),
             _ => None,
+        }
+    }
+
+    /// A receipt or "your plan is active" notice for a customer paying
+    /// nothing: a cloud renewal invoice that charged nothing, or a
+    /// non-trial cloud checkout or trial conversion onto a plan priced at
+    /// zero. The email, PostHog and Brevo subscribers skip these; every other
+    /// subscriber still sees them.
+    pub fn is_zero_dollar_notice(&self) -> bool {
+        match self {
+            Self::PaymentSucceeded { invoice, .. } => {
+                invoice.billing_reason == BillingReason::SubscriptionCycle
+                    && invoice.license_paid_through().is_none()
+                    && invoice.charged_nothing()
+            }
+            Self::CheckoutCompleted {
+                plan, is_trialing, ..
+            } => plan.license_plan().is_none() && !is_trialing && plan.is_priced_at_zero(),
+            Self::TrialEnded { plan, .. } => plan.is_priced_at_zero(),
+            _ => false,
         }
     }
 

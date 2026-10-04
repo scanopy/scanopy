@@ -271,6 +271,14 @@ impl Subscriber<BillingOperation> for PosthogService {
             if event.flags.suppress_logs {
                 continue;
             }
+            if event.operation.is_zero_dollar_notice() {
+                tracing::debug!(
+                    operation = %event.operation,
+                    organization_id = %event.scope.organization_id,
+                    "Skipping PostHog billing event for a customer paying nothing"
+                );
+                continue;
+            }
 
             let org_id = event.scope.organization_id;
             let Some(distinct_id) = self

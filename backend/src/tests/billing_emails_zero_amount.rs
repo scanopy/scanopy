@@ -13,7 +13,7 @@ use super::self_hosted_license_emails::{campaign, create_owner, handle_billing, 
 use super::self_hosted_licensing::{create_org, reload, test_state_with_email_dir};
 use crate::server::auth::middleware::auth::AuthenticatedEntity;
 use crate::server::billing::plans::{
-    get_free_plan, get_purchasable_plans, get_self_hosted_plus_plan,
+    get_enterprise_plan, get_free_plan, get_purchasable_plans, get_self_hosted_plus_plan,
 };
 use crate::server::billing::types::base::{
     BillingInvoice, BillingInvoiceLineItem, BillingPlan, BillingReason, InvoiceCollection,
@@ -119,11 +119,22 @@ async fn the_welcome_email_goes_out_only_for_a_priced_plan() {
 
     let paid = emails_for(pro(), checkout(pro())).await;
     assert!(paid.contains(&campaign("checkout_completed")), "{paid}");
+
+    // Enterprise has no list price, but it is not free.
+    let enterprise = emails_for(get_enterprise_plan(), checkout(get_enterprise_plan())).await;
+    assert!(
+        enterprise.contains(&campaign("checkout_completed")),
+        "{enterprise}"
+    );
 }
 
 #[tokio::test]
 async fn the_trial_converted_email_goes_out_only_for_a_priced_plan() {
-    for (plan, expected) in [(get_free_plan(), false), (pro(), true)] {
+    for (plan, expected) in [
+        (get_free_plan(), false),
+        (pro(), true),
+        (get_enterprise_plan(), true),
+    ] {
         let sent = emails_for(
             plan,
             BillingOperation::TrialEnded {
@@ -207,4 +218,33 @@ async fn a_zero_dollar_air_gapped_renewal_still_says_to_copy_the_key() {
 
     let sent = sent(dir.path());
     assert!(sent.contains(&campaign("airgap_renewal")), "{sent}");
+}
+
+/// PostHog and Brevo drop exactly the events whose email is skipped, so a
+/// receipt or welcome nobody was sent leaves no analytics or CRM trace.
+/// Self-hosted renewals stay: a $0 one still carries a new license period.
+#[test]
+fn analytics_drop_only_the_zero_dollar_notices() {
+    let plus = get_self_hosted_plus_plan();
+    let trial_ended = |plan| BillingOperation::TrialEnded {
+        plan,
+        next_renewal_at: None,
+    };
+    let cases = [
+        (paid(renewal(get_free_plan(), 0, 0)), true),
+        (paid(renewal(pro(), 0, 0)), true),
+        (checkout(get_free_plan()), true),
+        (trial_ended(get_free_plan()), true),
+        (paid(renewal(pro(), 9999, 9999)), false),
+        (paid(renewal(pro(), 9999, 0)), false),
+        (paid(renewal(plus, 0, 0)), false),
+        (checkout(pro()), false),
+        (checkout(plus), false),
+        (checkout(get_enterprise_plan()), false),
+        (trial_ended(pro()), false),
+        (trial_ended(get_enterprise_plan()), false),
+    ];
+    for (operation, expected) in cases {
+        assert_eq!(operation.is_zero_dollar_notice(), expected, "{operation:?}");
+    }
 }
