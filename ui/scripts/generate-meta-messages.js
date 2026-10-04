@@ -84,6 +84,10 @@ export const COVERED_FIXTURES = [
 	{ file: 'match-confidences.json', key: 'match_confidences', kind: 'typeMetadata' },
 	// The hypervisor platform a guest runs on, keyed by `virtualization_metadata.type`.
 	{ file: 'host-virtualizations.json', key: 'host_virtualizations', kind: 'typeMetadata' },
+	// The container runtime a service runs in, keyed by a service's `virtualization_metadata.type`.
+	{ file: 'service-virtualizations.json', key: 'service_virtualizations', kind: 'typeMetadata' },
+	// The neighbor protocol that reported a physical link, keyed by `DiscoveryProtocol`.
+	{ file: 'discovery-protocols.json', key: 'discovery_protocols', kind: 'typeMetadata' },
 	// A Proxmox guest's type (VM or LXC container), keyed by `ProxmoxGuestType`.
 	{ file: 'proxmox-guest-types.json', key: 'proxmox_guest_types', kind: 'typeMetadata' },
 	// A container host's LAN network driver (macvlan or ipvlan), keyed by `ContainerNetworkType`.

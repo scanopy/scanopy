@@ -1,7 +1,12 @@
 <script lang="ts" module>
-	import { concepts, serviceCategories, serviceDefinitions } from '$lib/shared/stores/metadata';
+	import {
+		concepts,
+		serviceCategories,
+		serviceDefinitions,
+		serviceVirtualizations
+	} from '$lib/shared/stores/metadata';
 	import type { Port } from '$lib/features/hosts/types/base';
-	import { services_bindingCount } from '$lib/paraglide/messages';
+	import { common_category, common_runtime, services_bindingCount } from '$lib/paraglide/messages';
 
 	export type ServiceTagRole = 'category' | 'virtualization';
 
@@ -74,15 +79,14 @@
 			const category = serviceDefinitions.getCategory(service.service_definition);
 			if (category) {
 				tags.push({
-					label: serviceCategories.getName(category),
-					color: serviceCategories.getColorString(category),
+					...serviceCategories.getTag(category, common_category()),
 					role: 'category' satisfies ServiceTagRole
 				});
 			}
 
 			if (service.virtualization_metadata) {
 				tags.push({
-					label: service.virtualization_metadata.type,
+					...serviceVirtualizations.getTag(service.virtualization_metadata.type, common_runtime()),
 					color: concepts.getColorHelper('Virtualization').color,
 					role: 'virtualization' satisfies ServiceTagRole
 				});

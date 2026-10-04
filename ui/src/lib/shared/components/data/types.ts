@@ -96,6 +96,8 @@ export interface CardFieldItem {
 	badge?: string; // For things like "5m", "Critical", etc.
 	badgeColor?: string;
 	title?: string;
+	/** Opens in a new tab: a docs link that explains the value. */
+	href?: string;
 	entityRef?: EntityRef;
 }
 

@@ -25,6 +25,8 @@ import attributeSourcesJson from '$lib/data/attribute-sources.json';
 import clientProbesJson from '$lib/data/client-probes.json';
 import matchConfidencesJson from '$lib/data/match-confidences.json';
 import hostVirtualizationsJson from '$lib/data/host-virtualizations.json';
+import serviceVirtualizationsJson from '$lib/data/service-virtualizations.json';
+import discoveryProtocolsJson from '$lib/data/discovery-protocols.json';
 import proxmoxGuestTypesJson from '$lib/data/proxmox-guest-types.json';
 import containerNetworkTypesJson from '$lib/data/container-network-types.json';
 import ifOperStatusesJson from '$lib/data/if-oper-statuses.json';
@@ -36,6 +38,8 @@ import {
 	type ColorStyle
 } from '../utils/styling';
 import { metaName, metaDescription } from '$lib/i18n/metadata';
+import type { TagProps } from '$lib/shared/components/data/types';
+import { common_tagTitle } from '$lib/paraglide/messages';
 
 export type Color = components['schemas']['Color'];
 
@@ -126,6 +130,8 @@ export interface MetadataRegistry {
 	client_probes: TypeMetadata[];
 	match_confidences: TypeMetadata[];
 	host_virtualizations: TypeMetadata[];
+	service_virtualizations: TypeMetadata[];
+	discovery_protocols: TypeMetadata[];
 	proxmox_guest_types: TypeMetadata[];
 	container_network_types: TypeMetadata[];
 	if_oper_statuses: TypeMetadata[];
@@ -306,10 +312,20 @@ export const metadata = writable<MetadataRegistry>({
 	client_probes: clientProbesJson,
 	match_confidences: matchConfidencesJson,
 	host_virtualizations: hostVirtualizationsJson,
+	service_virtualizations: serviceVirtualizationsJson,
+	discovery_protocols: discoveryProtocolsJson,
 	proxmox_guest_types: proxmoxGuestTypesJson,
 	container_network_types: containerNetworkTypesJson,
 	if_oper_statuses: ifOperStatusesJson
 } as unknown as MetadataRegistry);
+
+/**
+ * A tag's tooltip: what the tag says (`dimension`, e.g. "Category") and what its value means.
+ * With no description, the dimension alone still says what the tag is.
+ */
+export function tagTitle(dimension: string, description: string | null | undefined): string {
+	return description ? common_tagTitle({ dimension, description }) : dimension;
+}
 
 // Shared color helper functions that work for both TypeMetadata and EntityMetadata
 function createSharedHelpers<T extends keyof MetadataRegistry>(category: T) {
@@ -421,6 +437,17 @@ function createTypeMetadataHelpers<T extends TypeMetadataKeys, M = unknown>(cate
 			return metaDescription(category, id, fallback);
 		},
 
+		/**
+		 * A tag for this value: its name and colour, and a tooltip naming what the tag says
+		 * (`dimension`, e.g. "Category") and what the value means. A bare "Docker" or "Orchestrator"
+		 * doesn't say whether it is a category, a runtime or a manager.
+		 */
+		getTag: (id: string | null, dimension: string): TagProps & { label: string } => ({
+			label: helpers.getName(id),
+			color: helpers.getColorHelper(id).color,
+			title: tagTitle(dimension, helpers.getDescription(id))
+		}),
+
 		getCategory: (id: string | null) => {
 			const $registry = get(metadata);
 			return (
@@ -507,6 +534,14 @@ export const hostVirtualizations = createTypeMetadataHelpers<
 	'host_virtualizations',
 	HostVirtualizationMetadata
 >('host_virtualizations');
+/** The container runtime a service runs in, keyed by a service's `virtualization_metadata.type`. */
+export const serviceVirtualizations = createTypeMetadataHelpers<'service_virtualizations', object>(
+	'service_virtualizations'
+);
+/** The neighbor protocol that reported a physical link, keyed by `DiscoveryProtocol`. */
+export const discoveryProtocols = createTypeMetadataHelpers<'discovery_protocols', object>(
+	'discovery_protocols'
+);
 /** A Proxmox guest's type (VM or LXC container), keyed by `ProxmoxGuestType`. */
 export const proxmoxGuestTypes = createTypeMetadataHelpers<'proxmox_guest_types', object>(
 	'proxmox_guest_types'

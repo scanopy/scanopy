@@ -1,6 +1,9 @@
 <script lang="ts">
 	import type { Service, ServiceVirtualization } from '$lib/features/services/types/base';
-	import { ServiceDisplay } from '$lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
+	import {
+		ServiceDisplay,
+		type ServiceDisplayContext
+	} from '$lib/shared/components/forms/selection/display/ServiceDisplay.svelte';
 	import ListManager from '$lib/shared/components/forms/selection/ListManager.svelte';
 	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
 	import { hostDisplayContext } from '$lib/features/hosts/host-picker.svelte';
@@ -86,6 +89,10 @@
 			onChange(updatedService);
 		}
 	}
+
+	// Every managed container runs in this runtime, which the manager card beside the list names,
+	// so a per-row runtime tag repeats it. Options keep it: they can come from any runtime.
+	const containerContext: ServiceDisplayContext = { hideTags: ['virtualization'] };
 </script>
 
 <div class="space-y-6">
@@ -100,7 +107,7 @@
 		showSearch={true}
 		options={selectableContainers}
 		items={managedContainers}
-		getItemContext={() => ({})}
+		getItemContext={() => containerContext}
 		optionDisplayComponent={ServiceDisplay}
 		itemDisplayComponent={ServiceDisplay}
 		onAdd={handleAddContainer}

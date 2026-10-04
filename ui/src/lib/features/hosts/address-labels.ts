@@ -9,17 +9,29 @@ import type { AllIPAddresses, IPAddress, Port } from './types/base';
 const SEPARATOR = ' · ';
 
 /**
- * How an IP address reads in a row or a tag: the address first, then its name, so that cutting
- * the end of a narrow row costs the name and never the address (`192.168.4.20 · mv-snmp9`). A
- * container-subnet address is known by its name, and the "all IP addresses" entry by its own.
+ * What identifies an IP address on its own: the address. A container-subnet address is known by
+ * its name, and the "all IP addresses" entry by its own.
  */
-export function formatIPAddress(
+export function ipAddressKey(
 	i: IPAddress | AllIPAddresses,
 	isContainerSubnetFn: (subnetId: string) => boolean
 ): string {
 	if (i.id == null) return i.name;
 	if (isContainerSubnetFn(i.subnet_id)) return i.name ?? i.ip_address;
-	return i.name ? i.ip_address + SEPARATOR + i.name : i.ip_address;
+	return i.ip_address;
+}
+
+/**
+ * How an IP address reads in a tag or a one-line label: the address first, then its name, so
+ * that cutting the end costs the name and never the address (`192.168.4.20 · mv-snmp9`). A row
+ * with a description line shows `ipAddressKey` and puts the name underneath instead.
+ */
+export function formatIPAddress(
+	i: IPAddress | AllIPAddresses,
+	isContainerSubnetFn: (subnetId: string) => boolean
+): string {
+	const key = ipAddressKey(i, isContainerSubnetFn);
+	return i.id != null && i.name && key !== i.name ? key + SEPARATOR + i.name : key;
 }
 
 /**

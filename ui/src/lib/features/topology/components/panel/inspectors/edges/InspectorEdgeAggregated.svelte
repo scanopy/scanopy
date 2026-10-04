@@ -2,14 +2,14 @@
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import type { TopologyEdge, RenderableTopology } from '$lib/features/topology/types/base';
 	import { useTopology, selectedTopologyId } from '$lib/features/topology/context';
-	import { edgeTypes, hostVirtualizations } from '$lib/shared/stores/metadata';
+	import { edgeTypes, hostVirtualizations, serviceDefinitions } from '$lib/shared/stores/metadata';
 	import { containerHostsOfEdge, identityHostsOfEdge } from '$lib/features/topology/resolvers';
 	import {
 		topology_connectionsCount,
 		topology_containerCount,
 		common_containerizedServices,
 		common_dependenciesLabel,
-		common_docker,
+		common_runtime,
 		common_presentedBy,
 		hosts_virtualization_containerHosts,
 		inspector_dockerService
@@ -131,7 +131,7 @@
 			// Multiple Docker services — show summary per host
 			const hosts = new SvelteMap<
 				string,
-				{ host: (typeof topology.hosts)[0]; containerCount: number }
+				{ host: (typeof topology.hosts)[0]; containerCount: number; runtimes: string[] }
 			>();
 			for (const [containerizingId, containerizerEdges] of byContainerizer) {
 				const service = topology.services.find((s) => s.id === containerizingId);
@@ -142,10 +142,14 @@
 					containersOf(containerizerEdges).length +
 					containerHostsOf(topology, containerizerEdges).length;
 				const existing = hosts.get(host.id);
+				// The host's runtimes by service definition (Docker, Podman), one tag each.
 				if (existing) {
 					existing.containerCount += containerCount;
+					if (!existing.runtimes.includes(service.service_definition)) {
+						existing.runtimes.push(service.service_definition);
+					}
 				} else {
-					hosts.set(host.id, { host, containerCount });
+					hosts.set(host.id, { host, containerCount, runtimes: [service.service_definition] });
 				}
 			}
 			return { mode: 'multi' as const, hosts: [...hosts.values()] };
@@ -324,7 +328,7 @@
 							{/each}
 						{/if}
 					{:else}
-						{#each svcVirtData.hosts as { host, containerCount } (host.id)}
+						{#each svcVirtData.hosts as { host, containerCount, runtimes } (host.id)}
 							<div class="card card-static">
 								<EntityDisplayWrapper
 									item={host}
@@ -335,7 +339,9 @@
 									displayComponent={HostDisplay}
 								/>
 								<div class="flex items-center gap-2 px-3 pb-2">
-									<Tag label={common_docker()} color="Indigo" />
+									{#each runtimes as runtime (runtime)}
+										<Tag {...serviceDefinitions.getTag(runtime, common_runtime())} />
+									{/each}
 									<span class="text-tertiary text-xs"
 										>{topology_containerCount({ count: containerCount })}</span
 									>

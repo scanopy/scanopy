@@ -9,8 +9,7 @@
 		getIconColor: () => entities.getColorHelper('User').icon,
 		getTags: (user) => [
 			{
-				label: permissions.getName(user.permissions),
-				color: permissions.getColorHelper(user.permissions).color,
+				...permissions.getTag(user.permissions, common_role()),
 				role: 'permission' satisfies UserTagRole
 			}
 		],
@@ -23,6 +22,7 @@
 	import type { DisplayTagContext, EntityDisplayComponent } from '../types';
 	import type { User } from '$lib/features/users/types';
 	import { entities, permissions } from '$lib/shared/stores/metadata';
+	import { common_role } from '$lib/paraglide/messages';
 
 	interface Props {
 		item: User;
