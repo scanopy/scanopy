@@ -1400,3 +1400,228 @@ async fn an_address_the_hypervisor_did_not_list_for_a_nic_stays_off_the_guest() 
         vec!["192.168.7.231".parse::<IpAddr>().unwrap()]
     );
 }
+
+/// One sweep result: an address behind `mac`, with a service bound to it on `port`.
+fn swept_with_service(
+    lab: &Lab,
+    ip: &str,
+    mac: MacAddress,
+    definition: &str,
+    port: u16,
+) -> (
+    Vec<IPAddress>,
+    Vec<crate::server::ports::r#impl::base::Port>,
+    Vec<Service>,
+) {
+    use crate::server::bindings::r#impl::base::Binding;
+    use crate::server::ports::r#impl::base::{Port, PortBase, PortType};
+
+    let address = arp(lab, ip, mac);
+    let port = Port::new(PortBase {
+        port_type: PortType::new_tcp(port),
+        host_id: Uuid::nil(),
+        network_id: lab.network_id,
+    });
+    let mut found = service(lab, definition);
+    found.base.bindings = vec![Binding::new_port_serviceless(port.id, Some(address.id))];
+    (vec![address], vec![port], vec![found])
+}
+
+async fn hosts_holding(services: &ServiceFactory, lab: &Lab, ip: &str) -> Vec<Uuid> {
+    let ip: IpAddr = ip.parse().unwrap();
+    let mut holders = Vec::new();
+    for host in live_hosts(services, lab).await {
+        if host_ips(services, host.id).await.contains(&ip) {
+            holders.push(host.id);
+        }
+    }
+    holders
+}
+
+async fn service_names_on(services: &ServiceFactory, host_id: Uuid) -> Vec<String> {
+    let mut names: Vec<String> = services
+        .service_service
+        .get_all(StorableFilter::<Service>::new_from_host_ids(&[host_id]).live())
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|s| s.base.name)
+        .collect();
+    names.sort();
+    names
+}
+
+/// The lab's 19:54 run, in its order: the sweep reaches .63 and .231 (both behind ens19) before
+/// Proxmox reports VM 103, so .231 is kept as a second address on the .63 host, with a service the
+/// container runs. Docker's report for ipvlan-test then takes .231 and that service to a host of
+/// its own and leaves .63, so the VM's services found at .63 land on the .63 host, and the Proxmox
+/// payload merges that host into the VM. .63 ends up on one host.
+#[tokio::test]
+async fn a_container_report_takes_its_address_off_a_host_holding_another_devices() {
+    harness!(_storage, services, lab, _container);
+
+    let vm = discover(
+        &services,
+        &lab,
+        HostBase::default(),
+        vec![arp(&lab, "192.168.4.126", ens18())],
+        vec![service(&lab, "Docker")],
+        vec![],
+    )
+    .await;
+    let docker_id = vm
+        .services
+        .iter()
+        .find(|s| s.base.name == "Docker")
+        .unwrap()
+        .id;
+    let split = discover(
+        &services,
+        &lab,
+        HostBase::default(),
+        vec![arp(&lab, "192.168.4.63", ens19())],
+        vec![],
+        vec![],
+    )
+    .await;
+    let folded = discover_with_ports(
+        &services,
+        &lab,
+        swept_with_service(&lab, "192.168.7.231", ens19(), "Grafana", 3000),
+    )
+    .await;
+    assert_eq!(folded.id, split.id, "the sweep keeps .231 beside .63");
+
+    let container = discover(
+        &services,
+        &lab,
+        HostBase {
+            virtualization_service_id: Some(docker_id),
+            virtualization_metadata: Some(HostVirtualization::Docker(
+                ContainerHostVirtualization {
+                    container_name: Some("ipvlan-test".to_string()),
+                    container_id: Some("aec2a3e9".to_string()),
+                    compose_project: None,
+                    network_type: ContainerNetworkType::IpVlan,
+                },
+            )),
+            ..Default::default()
+        },
+        vec![address(&lab, lab.lan, "192.168.7.231", None)],
+        vec![],
+        vec![],
+    )
+    .await;
+    assert_ne!(
+        container.id, split.id,
+        "the container gets a host of its own"
+    );
+
+    discover_with_ports(
+        &services,
+        &lab,
+        swept_with_service(&lab, "192.168.4.63", ens19(), "Portainer", 9443),
+    )
+    .await;
+    discover(
+        &services,
+        &lab,
+        HostBase::default(),
+        vec![
+            config(&lab, "192.168.4.126", ens18()),
+            config(&lab, "192.168.4.63", ens19()),
+        ],
+        vec![],
+        vec![],
+    )
+    .await;
+
+    assert_eq!(
+        hosts_holding(&services, &lab, "192.168.4.63").await,
+        vec![vm.id]
+    );
+    assert_eq!(
+        host_ips(&services, container.id).await,
+        vec!["192.168.7.231".parse::<IpAddr>().unwrap()]
+    );
+    assert_eq!(
+        service_names_on(&services, container.id).await,
+        vec!["Grafana"]
+    );
+    assert!(
+        service_names_on(&services, vm.id)
+            .await
+            .contains(&"Portainer".to_string())
+    );
+    assert_eq!(live_hosts(&services, &lab).await.len(), 2);
+}
+
+/// A runtime on bare metal: the sweep files the ipvlan endpoint's address on the runtime's own
+/// host (its NIC's MAC, and no hypervisor list to rule it out). Docker's report takes the address
+/// to a container host under the runtime, and the runtime keeps its own address and service.
+#[tokio::test]
+async fn a_container_report_takes_its_address_off_its_runtimes_host() {
+    harness!(_storage, services, lab, _container);
+
+    let runtime = discover(
+        &services,
+        &lab,
+        HostBase::default(),
+        vec![arp(&lab, "192.168.4.126", ens18())],
+        vec![service(&lab, "Docker")],
+        vec![],
+    )
+    .await;
+    let docker_id = runtime
+        .services
+        .iter()
+        .find(|s| s.base.name == "Docker")
+        .unwrap()
+        .id;
+    let swept = discover(
+        &services,
+        &lab,
+        HostBase::default(),
+        vec![arp(&lab, "192.168.7.231", ens18())],
+        vec![],
+        vec![],
+    )
+    .await;
+    assert_eq!(swept.id, runtime.id, "the sweep files .231 on the runtime");
+
+    let container = discover(
+        &services,
+        &lab,
+        HostBase {
+            virtualization_service_id: Some(docker_id),
+            virtualization_metadata: Some(HostVirtualization::Docker(
+                ContainerHostVirtualization {
+                    container_name: Some("ipvlan-test".to_string()),
+                    container_id: Some("aec2a3e9".to_string()),
+                    compose_project: None,
+                    network_type: ContainerNetworkType::IpVlan,
+                },
+            )),
+            ..Default::default()
+        },
+        vec![address(&lab, lab.lan, "192.168.7.231", None)],
+        vec![],
+        vec![],
+    )
+    .await;
+
+    assert_ne!(container.id, runtime.id);
+    assert_eq!(container.virtualization_service_id, Some(docker_id));
+    assert_eq!(
+        host_ips(&services, runtime.id).await,
+        vec!["192.168.4.126".parse::<IpAddr>().unwrap()]
+    );
+    assert_eq!(
+        service_names_on(&services, runtime.id).await,
+        vec!["Docker"]
+    );
+    assert_eq!(
+        host_ips(&services, container.id).await,
+        vec!["192.168.7.231".parse::<IpAddr>().unwrap()]
+    );
+}

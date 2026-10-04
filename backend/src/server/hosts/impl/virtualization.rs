@@ -99,6 +99,17 @@ impl ContainerNetworkType {
 }
 
 impl HostVirtualization {
+    /// Whether this host is a container under a runtime, rather than a machine.
+    pub fn is_container(&self) -> bool {
+        match self {
+            HostVirtualization::Docker(_) | HostVirtualization::Podman(_) => true,
+            HostVirtualization::Proxmox(_)
+            | HostVirtualization::VCenter(_)
+            | HostVirtualization::ESXi(_)
+            | HostVirtualization::NetworkIdentity(_) => false,
+        }
+    }
+
     /// Whether a MAC seen at this host's addresses identifies this host. False for a container
     /// whose endpoint shares its parent's MAC: every other host answering with that MAC is the
     /// runtime's, and matching on it would merge them into the container.
