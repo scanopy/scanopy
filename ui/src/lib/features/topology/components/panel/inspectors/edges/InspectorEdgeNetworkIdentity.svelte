@@ -2,6 +2,7 @@
 	import type { Edge } from '@xyflow/svelte';
 	import EntityDisplayWrapper from '$lib/shared/components/forms/selection/display/EntityDisplayWrapper.svelte';
 	import { HostDisplay } from '$lib/shared/components/forms/selection/display/HostDisplay.svelte';
+	import { InterfaceDisplay } from '$lib/shared/components/forms/selection/display/InterfaceDisplay.svelte';
 	import { useTopology, selectedTopologyId } from '$lib/features/topology/context';
 	import { getTopologyEditState } from '$lib/features/topology/state';
 	import { topologyReadOnly } from '$lib/features/topology/queries';
@@ -43,7 +44,7 @@
 		if (identityHosts.length !== 1) return null;
 		const interfaceId = identityHosts[0].virtualization_interface_id;
 		if (!interfaceId) return null;
-		return topology?.interfaces.find((i) => i.id === interfaceId)?.if_name ?? null;
+		return topology?.interfaces.find((i) => i.id === interfaceId) ?? null;
 	});
 
 	function hostContext(host: Host) {
@@ -86,6 +87,12 @@
 
 	{#if identityInterface}
 		<span class="text-secondary mb-2 block text-sm font-medium">{common_interface()}</span>
-		<p class="text-primary font-mono text-sm">{identityInterface}</p>
+		<div class="card card-static">
+			<EntityDisplayWrapper
+				context={undefined}
+				item={identityInterface}
+				displayComponent={InterfaceDisplay}
+			/>
+		</div>
 	{/if}
 </div>

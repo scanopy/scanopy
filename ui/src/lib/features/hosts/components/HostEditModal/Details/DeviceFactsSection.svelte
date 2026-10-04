@@ -15,6 +15,7 @@
 		proxmoxGuestTypes
 	} from '$lib/shared/stores/metadata';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
+	import { interfaceDisplayName } from '$lib/features/hosts/interface-display-name';
 	import { useServicesByIds } from '$lib/features/services/queries';
 	import { useHostSummariesQuery } from '$lib/features/hosts/queries';
 	import { useInterfacesQuery } from '$lib/features/interfaces/queries';
@@ -160,7 +161,18 @@
 			case 'NetworkIdentity':
 				return [
 					owner(common_presentedBy()),
-					sourceless(common_interface(), presentingInterface?.if_name ?? null)
+					{
+						...sourceless(
+							common_interface(),
+							presentingInterface ? interfaceDisplayName(presentingInterface) : null
+						),
+						entity: presentingInterface
+							? {
+									ref: entityRef('Interface', presentingInterface.id, presentingInterface),
+									color: entities.getColorHelper('Interface').color
+								}
+							: undefined
+					}
 				];
 		}
 	});

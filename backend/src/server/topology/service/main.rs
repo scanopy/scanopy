@@ -399,6 +399,15 @@ impl TopologyService {
         // the host list and every by-id lookup on the frontend read one value rather than each
         // re-deriving the ladder. Last, because `get_entity_tags` above wants plain `&[Host]`.
         let hosts = TopologyHost::wrap_all(hosts, &ip_addresses);
+        // Interfaces likewise, as `HostResponse` titles them: the inspector cards label an
+        // interface with `display_name`, and without it every one reads "Unnamed interface".
+        let interfaces: Vec<Interface> = interfaces
+            .into_iter()
+            .map(|mut interface| {
+                interface.display_name = Some(interface.display_name());
+                interface
+            })
+            .collect();
 
         Ok(TopologyData {
             hosts,
