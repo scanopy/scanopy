@@ -10,7 +10,7 @@ export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = {
 	time_zone: null,
 	week_start: 'monday',
 	timestamps: 'relative',
-	table_density: 'comfortable'
+	table_density: 'compact'
 };
 
 let current = $state<DisplaySettings>(DEFAULT_DISPLAY_SETTINGS);

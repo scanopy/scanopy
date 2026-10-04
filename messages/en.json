@@ -2479,7 +2479,6 @@
 	"settings_system_copyright": "© {year} Scanopy LLC",
 	"settings_system_dashboardIconsAttribution": "Service and OS logos from Dashboard Icons, copyright 2024 Bjorn Lammers, Meier Lukas, Thomas Camlong and Homarr Labs, used under the Apache License 2.0. %link%",
 	"settings_system_dateAndTime": "Date and time",
-	"settings_system_dateAndTimeDesc": "Choose how dates and times appear across Scanopy",
 	"settings_system_dateOrder": "Date format",
 	"settings_system_dateOrderDayFirst": "Day first",
 	"settings_system_dateOrderIso": "ISO 8601",
