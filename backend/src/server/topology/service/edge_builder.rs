@@ -1770,9 +1770,7 @@ mod tests {
             let mut h = host(&format!("mv-snmp{n}"));
             h.base.virtualization_service_id = Some(identities.id);
             h.base.virtualization_metadata = Some(HostVirtualization::NetworkIdentity(
-                NetworkIdentityVirtualization {
-                    interface: Some(format!("mv-snmp{n}")),
-                },
+                NetworkIdentityVirtualization {},
             ));
             ip_addresses.push(ip(
                 network_id,

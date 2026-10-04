@@ -11,6 +11,12 @@
 --
 -- description: free-text notes, like the other entities' descriptions. Nullable, no default, no
 -- backfill: there is nothing to carry forward.
+--
+-- Renumbered from 20261001120000 after v0.17.20. It shipped in v0.17.19 sharing that version with
+-- add_user_display_settings, so the runner applied both and recorded only the display settings
+-- row, and sqlx-cli failed on the checksum. A database that already applied it runs it again
+-- under the new version: both ADD COLUMNs are IF NOT EXISTS and the UPDATE only fills NULLs that
+-- the server sets on every write since v0.17.19, so the re-run changes nothing there.
 SET lock_timeout = '5s';
 SET statement_timeout = '5s';
 

@@ -331,6 +331,7 @@ async fn record_migration(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
 
     #[test]
     fn split_statements_basic() {
@@ -424,6 +425,37 @@ mod tests {
 
         assert!(!embedded.is_empty(), "no migrations were embedded");
         assert_eq!(embedded, on_disk);
+    }
+
+    #[test]
+    fn no_two_migrations_share_a_version() {
+        // `apply` skips a version once it is recorded and records with `ON CONFLICT DO NOTHING`,
+        // so a database that applied one file of a shared version never runs the other, and
+        // sqlx-cli refuses the pair on its checksum. 20261001120000 shipped this way in v0.17.19.
+        let mut by_version: HashMap<i64, Vec<String>> = HashMap::new();
+        for name in EmbeddedMigrations::iter() {
+            if let Some((version, _)) = parse_migration_name(&name) {
+                by_version
+                    .entry(version)
+                    .or_default()
+                    .push(name.to_string());
+            }
+        }
+
+        let mut clashes: Vec<Vec<String>> = by_version
+            .into_values()
+            .filter(|names| names.len() > 1)
+            .map(|mut names| {
+                names.sort();
+                names
+            })
+            .collect();
+        clashes.sort();
+
+        assert!(
+            clashes.is_empty(),
+            "migrations share a version; give each its own: {clashes:?}"
+        );
     }
 
     #[test]
