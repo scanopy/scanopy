@@ -151,6 +151,7 @@
 							<Tag
 								label={tag.label}
 								color={tag.color}
+								pill={tag.pill}
 								icon={tag.icon ?? null}
 								href={tag.href ?? ''}
 								title={tag.title ?? ''}

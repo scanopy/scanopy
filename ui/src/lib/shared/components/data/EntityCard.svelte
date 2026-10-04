@@ -117,7 +117,13 @@
 					</div>
 					{#if status}
 						<div class="flex-shrink-0">
-							<Tag label={status.label} color={status.color} icon={status.icon} />
+							<Tag
+								label={status.label}
+								color={status.color}
+								icon={status.icon}
+								href={status.href ?? ''}
+								title={status.title ?? ''}
+							/>
 						</div>
 					{/if}
 				</div>

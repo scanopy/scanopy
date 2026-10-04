@@ -606,8 +606,7 @@
 						getItems: (service) => [
 							{
 								id: service.service_definition,
-								label: serviceDefinitions.getName(service.service_definition),
-								color: serviceDefinitions.getColorHelper(service.service_definition).color,
+								...serviceDefinitions.getTag(service.service_definition, common_type()),
 								icon: serviceDefinitions.getIconComponent(service.service_definition)
 							}
 						]
@@ -752,8 +751,7 @@
 							return [
 								{
 									id: category,
-									label: serviceCategoryMeta.getName(category) || category,
-									color: serviceCategoryMeta.getColorHelper(category).color,
+									...serviceCategoryMeta.getTag(category, common_category()),
 									icon: serviceCategoryMeta.getIconComponent(category)
 								}
 							];

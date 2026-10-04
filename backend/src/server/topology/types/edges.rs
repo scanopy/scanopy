@@ -15,13 +15,62 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 /// Protocol that discovered the physical link between network devices
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Eq, PartialEq, Hash, Default, ToSchema)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Serialize,
+    Deserialize,
+    Eq,
+    PartialEq,
+    Hash,
+    Default,
+    ToSchema,
+    IntoStaticStr,
+    EnumIter,
+)]
 pub enum DiscoveryProtocol {
     /// Link Layer Discovery Protocol (IEEE 802.1AB)
     #[default]
     LLDP,
     /// Cisco Discovery Protocol (Cisco proprietary)
     CDP,
+}
+
+impl HasId for DiscoveryProtocol {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+impl EntityMetadataProvider for DiscoveryProtocol {
+    fn color(&self) -> Color {
+        match self {
+            DiscoveryProtocol::LLDP => Color::Green,
+            DiscoveryProtocol::CDP => Color::Blue,
+        }
+    }
+    fn icon(&self) -> Icon {
+        EntityDiscriminants::Interface.icon()
+    }
+}
+
+impl TypeMetadataProvider for DiscoveryProtocol {
+    fn name(&self) -> &'static str {
+        match self {
+            DiscoveryProtocol::LLDP => "LLDP",
+            DiscoveryProtocol::CDP => "CDP",
+        }
+    }
+
+    fn description(&self) -> &'static str {
+        match self {
+            DiscoveryProtocol::LLDP => {
+                "A device's LLDP (Link Layer Discovery Protocol) neighbor table"
+            }
+            DiscoveryProtocol::CDP => "A device's CDP (Cisco Discovery Protocol) neighbor table",
+        }
+    }
 }
 
 /// Whether an edge is visible by default or hidden behind a toggle

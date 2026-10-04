@@ -7,15 +7,19 @@
 	import type { IconComponent } from '$lib/shared/utils/types';
 	import type { TagProps } from '$lib/shared/components/data/types';
 	import {
+		common_moreItems,
 		topology_elementCount,
 		topology_ungroupedCount,
 		topology_searchContainerMatches
 	} from '$lib/paraglide/messages';
 
+	/** A group container's pill: a category or tag the group collects, with its tooltip. */
+	export type GroupPill = { label: string; color: Color; title?: string };
+
 	export type SubgroupRow = {
 		logoComponent: IconComponent | null;
 		headerText: string;
-		labels: Array<{ label: string; color: Color }>;
+		labels: GroupPill[];
 		childCount: number;
 		/** Pre-formatted entity-count summary, e.g. "5 services" or "3 services, 2 hosts". */
 		childSummary: string;
@@ -52,7 +56,7 @@
 		logoComponent: IconComponent | null;
 		fillIcon: boolean;
 		colorHelper: ColorStyle;
-		groupLabels: Array<{ label: string; color: Color }>;
+		groupLabels: GroupPill[];
 		childCount: number;
 		/** Pre-formatted entity-count summary for the container's children, e.g. "5 services, 2 hosts". */
 		childSummary: string;
@@ -151,6 +155,11 @@
 
 	let visibleLabels = $derived(groupLabels.slice(0, visibleLabelCount));
 	let hiddenLabelCount = $derived(groupLabels.length - visibleLabelCount);
+
+	/** The tooltip on a "+N more" pill: the names it stands for, one per line. */
+	function pillList(pills: GroupPill[]): string {
+		return pills.map((pill) => pill.label).join('\n');
+	}
 </script>
 
 <!-- Hidden measurement container for tag widths (shared by inline + collapsed-sub) -->
@@ -161,7 +170,7 @@
 		aria-hidden="true"
 	>
 		{#each groupLabels as pill (pill.label)}
-			<span data-tag><Tag label={pill.label} color={pill.color} /></span>
+			<span data-tag><Tag label={pill.label} color={pill.color} title={pill.title ?? ''} /></span>
 		{/each}
 	</div>
 {/if}
@@ -224,10 +233,14 @@
 			<span data-fixed class="flex-shrink-0"><Tag {...staleTag} pill /></span>
 		{/if}
 		{#each visibleLabels as pill (pill.label)}
-			<Tag label={pill.label} color={pill.color} />
+			<Tag label={pill.label} color={pill.color} title={pill.title ?? ''} />
 		{/each}
 		{#if hiddenLabelCount > 0}
-			<Tag label="+{hiddenLabelCount} tags" color="Gray" />
+			<Tag
+				label={common_moreItems({ count: hiddenLabelCount })}
+				color="Gray"
+				title={pillList(groupLabels.slice(visibleLabelCount))}
+			/>
 		{/if}
 	</div>
 {:else if variant === 'collapsed-sub'}
@@ -271,12 +284,20 @@
 			</span>
 		{/if}
 		{#each visibleLabels.slice(0, 2) as pill (pill.label)}
-			<Tag label={pill.label} color={pill.color} />
+			<Tag label={pill.label} color={pill.color} title={pill.title ?? ''} />
 		{/each}
 		{#if visibleLabels.length > 2}
-			<Tag label="+{visibleLabels.length - 2} tags" color="Gray" />
+			<Tag
+				label={common_moreItems({ count: groupLabels.length - 2 })}
+				color="Gray"
+				title={pillList(groupLabels.slice(2))}
+			/>
 		{:else if hiddenLabelCount > 0}
-			<Tag label="+{hiddenLabelCount} tags" color="Gray" />
+			<Tag
+				label={common_moreItems({ count: hiddenLabelCount })}
+				color="Gray"
+				title={pillList(groupLabels.slice(visibleLabelCount))}
+			/>
 		{/if}
 		{#if searchMatchCount > 0}
 			<span
@@ -341,10 +362,14 @@
 						>
 					{/if}
 					{#each summary.labels.slice(0, 2) as pill, j (j)}
-						<Tag label={pill.label} color={pill.color} />
+						<Tag label={pill.label} color={pill.color} title={pill.title ?? ''} />
 					{/each}
 					{#if summary.labels.length > 2}
-						<Tag label="+{summary.labels.length - 2} tags" color="Gray" />
+						<Tag
+							label={common_moreItems({ count: summary.labels.length - 2 })}
+							color="Gray"
+							title={pillList(summary.labels.slice(2))}
+						/>
 					{/if}
 					{#if !summary.hideCount}
 						<span class="text-tertiary text-xs">

@@ -76,6 +76,7 @@
 		discovery_completedScans,
 		discovery_forceFullScan,
 		discovery_legacyDaemonsWarning,
+		discovery_legacyTagTitle,
 		discovery_noScheduledSessions,
 		discovery_runType
 	} from '$lib/paraglide/messages';
@@ -377,7 +378,14 @@
 						statusTag: true,
 						getItems: (item) =>
 							discoveryTypes.getMetadata(item.discovery_type.type).is_legacy
-								? [{ id: 'legacy', label: common_legacy(), color: 'Yellow' }]
+								? [
+										{
+											id: 'legacy',
+											label: common_legacy(),
+											color: 'Yellow',
+											title: discovery_legacyTagTitle()
+										}
+									]
 								: []
 					}
 				},

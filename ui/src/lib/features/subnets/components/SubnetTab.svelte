@@ -322,8 +322,7 @@
 						getItems: (subnet) => [
 							{
 								id: subnet.subnet_type,
-								label: subnetTypes.getName(subnet.subnet_type),
-								color: subnetTypes.getColorHelper(subnet.subnet_type).color,
+								...subnetTypes.getTag(subnet.subnet_type, subnets_subnetType()),
 								icon: subnetTypes.getIconComponent(subnet.subnet_type)
 							}
 						]

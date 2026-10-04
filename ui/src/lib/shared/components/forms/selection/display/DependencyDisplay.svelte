@@ -1,6 +1,6 @@
 <script lang="ts" context="module">
 	import { entities, dependencyTypes } from '$lib/shared/stores/metadata';
-	import { dependencies_memberCount } from '$lib/paraglide/messages';
+	import { common_type, dependencies_memberCount } from '$lib/paraglide/messages';
 
 	export type DependencyTagRole = 'dependencyType';
 
@@ -25,8 +25,7 @@
 		compactHides: ['dependencyType'] satisfies DependencyTagRole[],
 		getTags: (dependency: Dependency) => [
 			{
-				label: dependencyTypes.getName(dependency.dependency_type),
-				color: dependencyTypes.getColorHelper(dependency.dependency_type).color,
+				...dependencyTypes.getTag(dependency.dependency_type, common_type()),
 				role: 'dependencyType' satisfies DependencyTagRole
 			}
 		]

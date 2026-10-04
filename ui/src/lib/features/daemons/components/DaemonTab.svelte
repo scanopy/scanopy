@@ -19,7 +19,7 @@
 	import { tagNames } from '$lib/features/tags/columns';
 	import { networkItems } from '$lib/features/networks/columns';
 	import { entityRef } from '$lib/shared/components/data/types';
-	import { entities } from '$lib/shared/stores/metadata';
+	import { entities, tagTitle } from '$lib/shared/stores/metadata';
 	import { isUserManagedSubnet, useSubnetsQuery } from '$lib/features/subnets/queries';
 	import type { Subnet } from '$lib/features/subnets/types/base';
 	import { Plus, Trash2, Edit, ArrowBigUp, RefreshCw } from 'lucide-svelte';
@@ -70,7 +70,9 @@
 		daemons_interfacesWith,
 		daemons_lastSeen,
 		daemons_mode_daemonPoll,
+		daemons_mode_daemonPollDescription,
 		daemons_mode_serverPoll,
+		daemons_mode_serverPollDescription,
 		daemons_sunsetBannerTitle,
 		daemons_sunsetBannerBody
 	} from '$lib/paraglide/messages';
@@ -368,7 +370,15 @@
 						statusTag: true,
 						getItems: (daemon) => {
 							const tag = getDaemonStatusTag(daemon);
-							return [{ id: tag.label, label: tag.label, color: tag.color, icon: tag.icon }];
+							return [
+								{
+									id: tag.label,
+									label: tag.label,
+									color: tag.color,
+									icon: tag.icon,
+									href: tag.href
+								}
+							];
 						}
 					}
 				},
@@ -402,7 +412,13 @@
 								label:
 									daemon.mode === 'server_poll'
 										? daemons_mode_serverPoll()
-										: daemons_mode_daemonPoll()
+										: daemons_mode_daemonPoll(),
+								title: tagTitle(
+									daemons_config_mode(),
+									daemon.mode === 'server_poll'
+										? daemons_mode_serverPollDescription()
+										: daemons_mode_daemonPollDescription()
+								)
 							}
 						]
 					}

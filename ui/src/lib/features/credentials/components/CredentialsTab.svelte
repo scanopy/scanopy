@@ -53,6 +53,7 @@
 		common_edit,
 		common_name,
 		common_type,
+		credentials_credentialType,
 		common_updated,
 		credentials_bulkDeleteConfirm,
 		credentials_bulkDeleteImpact,
@@ -329,8 +330,7 @@
 						return [
 							{
 								id: typeId,
-								label: credentialTypes.getName(typeId),
-								color: credentialTypes.getColorHelper(typeId).color,
+								...credentialTypes.getTag(typeId, credentials_credentialType()),
 								icon: credentialTypes.getIconComponent(typeId)
 							}
 						];

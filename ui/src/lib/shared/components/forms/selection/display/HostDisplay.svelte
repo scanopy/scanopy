@@ -11,6 +11,8 @@
 	import { entityRef, type TagProps } from '$lib/shared/components/data/types';
 	import { queryClient, queryKeys } from '$lib/api/query-client';
 	import {
+		hosts_deviceFacts_guestType,
+		hosts_deviceFacts_networkType,
 		hosts_networkIdentity_tagTitle,
 		hosts_networkIdentity_tagTitleUnresolved
 	} from '$lib/paraglide/messages';
@@ -57,8 +59,7 @@
 				return guestType
 					? [
 							{
-								label: proxmoxGuestTypes.getName(guestType),
-								color: proxmoxGuestTypes.getColorHelper(guestType).color,
+								...proxmoxGuestTypes.getTag(guestType, hosts_deviceFacts_guestType()),
 								role: 'guest' satisfies HostTagRole
 							}
 						]
@@ -69,9 +70,7 @@
 				const networkType = virtualization.details.network_type;
 				return [
 					{
-						label: containerNetworkTypes.getName(networkType),
-						color: containerNetworkTypes.getColorHelper(networkType).color,
-						title: containerNetworkTypes.getDescription(networkType),
+						...containerNetworkTypes.getTag(networkType, hosts_deviceFacts_networkType()),
 						role: 'guest' satisfies HostTagRole
 					}
 				];

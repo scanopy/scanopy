@@ -76,6 +76,7 @@
 						badge={entry.badge}
 						label={entry.label}
 						title={entry.title}
+						href={entry.href ?? ''}
 					/>
 				{/if}
 			{/each}

@@ -89,7 +89,7 @@
 		common_upgrade,
 		daemons_installPromptTopology,
 		topology_asOf,
-		topology_currentView,
+		common_current,
 		topology_noTopologySelected,
 		topology_snapshotDeleteConfirm,
 		topology_takeSnapshot,
@@ -536,7 +536,7 @@
 		return {
 			...SnapshotDisplay,
 			getLabel: (s: Snapshot, ctx: object) =>
-				s.id === CURRENT_VIEW_SENTINEL ? topology_currentView() : SnapshotDisplay.getLabel(s, ctx),
+				s.id === CURRENT_VIEW_SENTINEL ? common_current() : SnapshotDisplay.getLabel(s, ctx),
 			getDescription: (s: Snapshot, ctx: object) =>
 				s.id === CURRENT_VIEW_SENTINEL
 					? liveDescription

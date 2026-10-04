@@ -169,6 +169,24 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
         "host-virtualizations.json",
     );
 
+    // Which container runtime a service runs in, keyed by a service's `virtualization_metadata.type`.
+    let service_virtualizations: Vec<TypeMetadata> =
+        crate::server::services::r#impl::virtualization::ServiceVirtualizationDiscriminants::iter()
+            .map(|v| v.to_metadata())
+            .collect();
+    write_fixture(
+        &service_virtualizations,
+        output_dir,
+        "service-virtualizations.json",
+    );
+
+    // The neighbor protocol that reported a physical link, keyed by `DiscoveryProtocol`.
+    let discovery_protocols: Vec<TypeMetadata> =
+        crate::server::topology::types::edges::DiscoveryProtocol::iter()
+            .map(|p| p.to_metadata())
+            .collect();
+    write_fixture(&discovery_protocols, output_dir, "discovery-protocols.json");
+
     // A Proxmox guest's type (VM or LXC container), keyed by `ProxmoxGuestType`.
     let proxmox_guest_types: Vec<TypeMetadata> =
         crate::server::hosts::r#impl::virtualization::ProxmoxGuestType::iter()

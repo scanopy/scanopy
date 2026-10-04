@@ -10,7 +10,12 @@
 	// import { NodeResizeControl } from '@xyflow/svelte';
 	import { createColorHelper } from '$lib/shared/utils/styling';
 	import type { Color, ColorStyle } from '$lib/shared/utils/styling';
-	import { serviceDefinitions, containerTypes } from '$lib/shared/stores/metadata';
+	import {
+		serviceCategories,
+		serviceDefinitions,
+		containerTypes
+	} from '$lib/shared/stores/metadata';
+	import { common_category } from '$lib/paraglide/messages';
 	import { findInfraRuleId, getInfrastructureRuleIdForTopology } from '../../queries';
 	import { formatElementSummary, tallyContainerElements, tallyDirectElements } from '../../labels';
 	import {
@@ -37,7 +42,7 @@
 	import type { Node, Edge } from '@xyflow/svelte';
 	import { createIconComponent } from '$lib/shared/utils/styling';
 	import type { IconComponent } from '$lib/shared/utils/types';
-	import ContainerHeader, { type SubgroupRow } from './ContainerHeader.svelte';
+	import ContainerHeader, { type GroupPill, type SubgroupRow } from './ContainerHeader.svelte';
 	import { CONTAINER_HANDLE_SIZE_PX } from '../../pipeline/build-flow-nodes';
 	import { nodeDetail } from '../../pipeline/render-mode';
 
@@ -246,21 +251,20 @@
 		return { label: tag?.name ?? tagId, color: (tag?.color as Color) ?? 'Gray' };
 	}
 
-	let groupLabels = $derived.by((): { label: string; color: Color }[] => {
+	// A category group's pill: the category's name and colour, and a tooltip saying it is a
+	// service category and what the category holds.
+	function categoryPill(category: string): GroupPill {
+		const { label, color, title } = serviceCategories.getTag(category, common_category());
+		return { label, color: color ?? 'Gray', title };
+	}
+
+	let groupLabels = $derived.by((): GroupPill[] => {
 		if (isInfraRule) return [];
 		if (!elementRule?.rule) return [];
 		const rule = elementRule.rule;
 		if (typeof rule === 'string') return [];
 		if ('ByServiceCategory' in rule) {
-			return (rule.ByServiceCategory.categories ?? []).map((cat: string) => {
-				const svc = topology?.services?.find(
-					(s) => serviceDefinitions.getCategory(s.service_definition) === cat
-				);
-				const color = svc
-					? serviceDefinitions.getColorHelper(svc.service_definition).color
-					: ('Gray' as Color);
-				return { label: cat, color };
-			});
+			return (rule.ByServiceCategory.categories ?? []).map(categoryPill);
 		}
 		if ('ByTag' in rule) {
 			return (rule.ByTag.tag_ids ?? []).map((tagId: string) => resolveTagPill(tagId));
@@ -338,23 +342,13 @@
 					? serviceDefinitions.getIconComponent(groupServiceDef)
 					: null;
 
-				const labels: { label: string; color: Color }[] = (() => {
+				const labels: GroupPill[] = (() => {
 					if (!rule) return [];
 					const r = (rule as { rule: Record<string, unknown> }).rule;
 					if (typeof r === 'string') return [];
 					if ('ByServiceCategory' in r) {
 						return ((r.ByServiceCategory as { categories?: string[] }).categories ?? []).map(
-							(cat) => {
-								const svc = topology?.services?.find(
-									(s) => serviceDefinitions.getCategory(s.service_definition) === cat
-								);
-								return {
-									label: cat,
-									color: (svc
-										? serviceDefinitions.getColorHelper(svc.service_definition).color
-										: 'Gray') as Color
-								};
-							}
+							categoryPill
 						);
 					}
 					if ('ByTag' in r) {

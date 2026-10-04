@@ -6,7 +6,8 @@
 	import Tag from '$lib/shared/components/data/Tag.svelte';
 	import type { RenderableTopology } from '$lib/features/topology/types/base';
 	import { common_source, common_target, topology_neighborEvidence } from '$lib/paraglide/messages';
-	import { entities } from '$lib/shared/stores/metadata';
+	import { discoveryProtocols, entities } from '$lib/shared/stores/metadata';
+	import type { components } from '$lib/api/schema';
 	import InspectorSection from '../shared/InspectorSection.svelte';
 	import { useNetworksQuery } from '$lib/features/networks/queries';
 	import { neighborEvidenceTag } from '$lib/shared/utils/freshness';
@@ -19,7 +20,7 @@
 	}: {
 		sourceEntityId?: string;
 		targetEntityId?: string;
-		protocol?: 'LLDP' | 'CDP';
+		protocol?: components['schemas']['DiscoveryProtocol'];
 	} = $props();
 
 	const topo = useTopology();
@@ -78,7 +79,7 @@
 <div class="space-y-4">
 	{#if protocol}
 		<div class="flex items-center gap-2">
-			<Tag label={protocol} color={protocol == 'CDP' ? 'Blue' : 'Green'} />
+			<Tag {...discoveryProtocols.getTag(protocol, common_source())} />
 		</div>
 	{/if}
 

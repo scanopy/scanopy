@@ -1,8 +1,13 @@
 <script lang="ts" context="module">
-	import { concepts, serviceDefinitions } from '$lib/shared/stores/metadata';
+	import {
+		concepts,
+		serviceDefinitions,
+		serviceVirtualizations
+	} from '$lib/shared/stores/metadata';
 	import type { Host } from '$lib/features/hosts/types/base';
 	import type { Service } from '$lib/features/services/types/base';
 	import {
+		common_runtime,
 		hosts_virtualization_identityCount,
 		hosts_virtualization_vmCount,
 		topology_containerCount
@@ -46,7 +51,7 @@
 
 			if (service.virtualization_metadata) {
 				const tag: TagProps = {
-					label: service.virtualization_metadata.type,
+					...serviceVirtualizations.getTag(service.virtualization_metadata.type, common_runtime()),
 					color: concepts.getColorHelper('Virtualization').color
 				};
 
