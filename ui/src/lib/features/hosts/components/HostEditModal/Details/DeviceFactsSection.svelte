@@ -20,6 +20,7 @@
 	import { useServicesByIds } from '$lib/features/services/queries';
 	import { useHostSummariesQuery } from '$lib/features/hosts/queries';
 	import { useInterfacesQuery } from '$lib/features/interfaces/queries';
+	import { sysContactEmail } from '$lib/features/hosts/sys-contact';
 	import {
 		common_contact,
 		common_firmwareRevision,
@@ -73,6 +74,8 @@
 		 */
 		identifier?: boolean;
 		link?: boolean;
+		/** Drawn as a mailto link to this address, with `value` as its text. */
+		mailto?: string | null;
 		/** Drawn as an OS tag rather than text. */
 		os?: HostOs;
 		/** Drawn as a clickable entity tag labelled with `value`. */
@@ -262,7 +265,12 @@
 							value: host.sys_location,
 							source: host.sys_location_source
 						},
-						{ label: common_contact(), value: host.sys_contact, source: host.sys_contact_source },
+						{
+							label: common_contact(),
+							value: host.sys_contact,
+							source: host.sys_contact_source,
+							mailto: sysContactEmail(host.sys_contact)
+						},
 						{
 							label: hosts_snmp_managementUrl(),
 							value: host.management_url,
@@ -317,6 +325,13 @@
 								{:else if fact.os}
 									<!-- The same tooltip the hosts table shows: every detail and the source. -->
 									<OsTag os={fact.os} source={fact.source} />
+								{:else if fact.mailto}
+									<a
+										href="mailto:{fact.mailto}"
+										class="break-all text-blue-400 hover:text-blue-300"
+									>
+										{fact.value}
+									</a>
 								{:else if fact.link}
 									<!-- eslint-disable svelte/no-navigation-without-resolve -->
 									<a
