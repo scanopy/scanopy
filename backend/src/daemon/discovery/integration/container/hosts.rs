@@ -196,12 +196,24 @@ impl ContainerScanner<'_> {
             .filter(|p| bound_port_ids.contains(&p.id))
             .cloned()
             .collect();
+        // Matched by address alone. The swept MAC can belong to more than this host: an ipvlan
+        // endpoint answers ARP with its parent's MAC, and its host may already hold the address
+        // this runtime's MAC was seen at. The full submission that follows carries the MACs.
+        let ip_addresses: Vec<IPAddress> = host_data
+            .ip_addresses
+            .iter()
+            .cloned()
+            .map(|mut a| {
+                a.base.mac_address = None;
+                a
+            })
+            .collect();
 
         let response = self
             .ops
             .create_host(
                 host_data.host.clone(),
-                host_data.ip_addresses.clone(),
+                ip_addresses,
                 ports,
                 vec![runtime_service.clone()],
                 vec![],

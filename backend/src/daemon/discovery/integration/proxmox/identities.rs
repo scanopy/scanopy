@@ -19,7 +19,7 @@ use crate::server::hosts::r#impl::{
     virtualization::{HostVirtualization, NetworkIdentityVirtualization},
 };
 use crate::server::ip_addresses::r#impl::base::{
-    IPAddress, IPAddressBase, MacEvidence, MacEvidenceValue, is_unset_mac,
+    IPAddress, MacEvidence, MacEvidenceValue, is_unset_mac,
 };
 use crate::server::services::definitions::network_identities::NetworkIdentities;
 use crate::server::services::r#impl::base::{Service, ServiceBase};
@@ -151,16 +151,15 @@ pub fn identity_host(
         .addresses
         .iter()
         .enumerate()
-        .map(|(position, ip)| {
-            IPAddress::new(IPAddressBase {
+        .filter_map(|(position, ip)| {
+            IPAddress::discovered(
                 network_id,
-                host_id: Uuid::nil(),
-                subnet_id: placeable_subnet(subnets, *ip).map_or(Uuid::nil(), |s| s.id),
-                ip_address: *ip,
-                mac_address: mac.clone(),
-                name: identity.interface.clone(),
-                position: position as i32,
-            })
+                subnets,
+                *ip,
+                mac.clone(),
+                identity.interface.clone(),
+                position as i32,
+            )
         })
         .collect();
     (host, ip_addresses)
@@ -232,6 +231,40 @@ mod tests {
             interface: Some("wg0".to_string()),
         });
         (nics, reported)
+    }
+
+    /// The SNMP lab VM (107, `snmp-test`), recorded once its guest agent ran: `eth0` is its own
+    /// NIC, and kernel macvlan links carry the simulated devices (`mv-snmp*`, `mv-ssh*`) plus two
+    /// address-less links (`mv-dcp*`).
+    const QEMU_107_CONFIG: &str =
+        include_str!("../../../../tests/proxmox/pve84_qemu_107_config.json");
+    const QEMU_107_AGENT: &str =
+        include_str!("../../../../tests/proxmox/pve84_qemu_107_agent_interfaces.json");
+
+    /// Every macvlan link holding a LAN address is an identity of the lab VM; its own NIC and the
+    /// links without an address are not.
+    #[test]
+    fn the_lab_vms_macvlan_links_are_its_identities() {
+        let nics = config_nics(&data::<GuestConfig>(QEMU_107_CONFIG));
+        let reported = agent_addresses(&data::<AgentInterfaces>(QEMU_107_AGENT));
+        let identities = network_identities(&nics, &reported, &subnets());
+
+        let names: Vec<&str> = identities
+            .iter()
+            .filter_map(|i| i.interface.as_deref())
+            .collect();
+        assert!(
+            names
+                .iter()
+                .all(|n| n.starts_with("mv-snmp") || n.starts_with("mv-ssh"))
+        );
+        assert_eq!(
+            names.iter().filter(|n| n.starts_with("mv-snmp")).count(),
+            34
+        );
+        assert!(!names.contains(&"eth0"));
+        assert!(names.iter().all(|n| !n.starts_with("mv-dcp")));
+        assert!(identities.iter().all(|i| !i.addresses.is_empty()));
     }
 
     /// `ens18` is the VM's own NIC, `docker0` and the `br-*` bridges sit on container bridge

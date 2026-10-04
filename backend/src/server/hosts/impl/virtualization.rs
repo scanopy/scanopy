@@ -86,6 +86,34 @@ pub enum ContainerNetworkType {
     IpVlan,
 }
 
+impl ContainerNetworkType {
+    /// Whether the endpoint puts a MAC of its own on the wire. An ipvlan endpoint answers ARP
+    /// with its parent interface's MAC, so that MAC names the runtime's NIC, not the container.
+    pub fn has_own_mac(&self) -> bool {
+        match self {
+            ContainerNetworkType::MacVlan => true,
+            ContainerNetworkType::IpVlan => false,
+        }
+    }
+}
+
+impl HostVirtualization {
+    /// Whether a MAC seen at this host's addresses identifies this host. False for a container
+    /// whose endpoint shares its parent's MAC: every other host answering with that MAC is the
+    /// runtime's, and matching on it would merge them into the container.
+    pub fn macs_identify_host(&self) -> bool {
+        match self {
+            HostVirtualization::Docker(c) | HostVirtualization::Podman(c) => {
+                c.network_type.has_own_mac()
+            }
+            HostVirtualization::Proxmox(_)
+            | HostVirtualization::VCenter(_)
+            | HostVirtualization::ESXi(_)
+            | HostVirtualization::NetworkIdentity(_) => true,
+        }
+    }
+}
+
 /// An address and MAC that a host presents from an interface of its own beyond its configured
 /// NICs: a macvlan shim, a virtual IP, a service given its own LAN address, an emulated device.
 /// The reporting source proves only that the interface lives inside that host, not what it is,

@@ -2,6 +2,7 @@ use crate::server::shared::attribution::{self as attribution, AttributeValue, At
 use crate::server::shared::entities::ChangeTriggersTopologyStaleness;
 use crate::server::shared::position::Positioned;
 use crate::server::subnets::r#impl::base::Subnet;
+use crate::server::subnets::r#impl::inference::{SubmittedPlacement, submitted_placement};
 use chrono::{DateTime, Utc};
 use mac_address::MacAddress;
 use rand::Rng;
@@ -232,6 +233,32 @@ impl Display for IPAddress {
 }
 
 impl IPAddress {
+    /// An address a daemon discovered, filed by [`submitted_placement`], or `None` when it must
+    /// not be submitted. Every integration builds its submitted addresses through this, so the
+    /// rule for an address no subnet holds lives in one place.
+    pub fn discovered(
+        network_id: Uuid,
+        subnets: &[Subnet],
+        ip_address: IpAddr,
+        mac_address: Option<MacEvidence>,
+        name: Option<String>,
+        position: i32,
+    ) -> Option<Self> {
+        let subnet_id = match submitted_placement(subnets, ip_address)? {
+            SubmittedPlacement::Held(subnet_id) => subnet_id,
+            SubmittedPlacement::ServerInfers => Uuid::nil(),
+        };
+        Some(Self::new(IPAddressBase {
+            network_id,
+            host_id: Uuid::nil(), // Server assigns.
+            subnet_id,
+            ip_address,
+            mac_address,
+            name,
+            position,
+        }))
+    }
+
     pub fn new(base: IPAddressBase) -> Self {
         let now = Utc::now();
         Self {
