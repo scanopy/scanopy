@@ -6,7 +6,8 @@ import type { components } from '$lib/api/schema';
 import type { Network } from '$lib/features/networks/types';
 import type { RenderableTopology, TopologyNode } from '$lib/features/topology/types/base';
 import { buildElementRender } from '$lib/features/topology/element-render-data';
-import { viewElementConfig, type MarkChannel } from '$lib/features/topology/element-marks';
+import { type MarkChannel } from '$lib/features/topology/element-marks';
+import { viewElementConfig } from '$lib/features/topology/view-filters';
 import { cardEntityForFilter, resolveElementNode } from '$lib/features/topology/resolvers';
 import { matchesHoveredMetadata } from '$lib/features/topology/interactions';
 
@@ -151,20 +152,19 @@ function decodingChips(
 	color: Color
 ): string[] {
 	const chips: string[] = [];
-	for (const [entityType, filters] of Object.entries(config.metadata_filters ?? {})) {
-		const entity = cardEntityForFilter(resolved, entityType);
-		if (!entity) continue;
-		for (const filter of filters) {
-			for (const value of filter.values) {
-				if (value.color !== color) continue;
-				const hovered = {
-					entityType: entityType as components['schemas']['EntityDiscriminants'],
-					filterType: filter.filter_type,
-					valueId: value.id,
-					color: value.color
-				};
-				if (matchesHoveredMetadata(entity, hovered, NETWORK, topology)) {
-					chips.push(`${entityType}/${filter.filter_type}/${value.id}`);
+	for (const filter of config.metadata_filters ?? []) {
+		for (const value of filter.values) {
+			if (value.color !== color) continue;
+			const hovered = {
+				entityTypes: filter.entities,
+				filterType: filter.filter_type,
+				valueId: value.id,
+				color: value.color
+			};
+			for (const entityType of filter.entities) {
+				const entity = cardEntityForFilter(resolved, entityType);
+				if (entity && matchesHoveredMetadata(entity, entityType, hovered, NETWORK, topology)) {
+					chips.push(`${filter.entities.join('+')}/${filter.filter_type}/${value.id}`);
 				}
 			}
 		}

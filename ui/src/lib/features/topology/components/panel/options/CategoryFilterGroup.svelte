@@ -7,7 +7,7 @@
 	type EntityType = components['schemas']['EntityDiscriminants'];
 
 	let {
-		entityType,
+		entityTypes,
 		filterType,
 		categories,
 		hiddenCategories,
@@ -15,7 +15,8 @@
 		disabled = false,
 		label = undefined
 	}: {
-		entityType: EntityType;
+		/** Every entity the filter covers; a hover rings each of them. */
+		entityTypes: EntityType[];
 		filterType: string;
 		categories: { value: string; label: string; color: Color }[];
 		hiddenCategories: string[];
@@ -25,7 +26,7 @@
 	} = $props();
 
 	function handleHoverStart(value: string, color: Color) {
-		hoveredMetadata.set({ entityType, filterType, valueId: value, color: color as string });
+		hoveredMetadata.set({ entityTypes, filterType, valueId: value, color: color as string });
 	}
 
 	function handleHoverEnd() {

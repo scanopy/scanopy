@@ -3528,19 +3528,19 @@ export interface components {
             /**
              * @description Association between a service and a port / interface that the service is listening on
              * @example {
-             *       "created_at": "2026-10-04T22:10:47.883407Z",
+             *       "created_at": "2026-10-04T22:47:39.967599Z",
              *       "first_discovery_id": null,
-             *       "id": "88f8477f-07d9-4011-8d6b-b9040c64c348",
+             *       "id": "a3be0910-d901-4e9a-a473-2094be3751cb",
              *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *       "last_discovery_id": null,
-             *       "last_seen_at": "2026-10-04T22:10:47.883407Z",
+             *       "last_seen_at": "2026-10-04T22:47:39.967599Z",
              *       "lineage_id": null,
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *       "type": "Port",
-             *       "updated_at": "2026-10-04T22:10:47.883407Z",
-             *       "valid_from": "2026-10-04T22:10:47.883407Z",
+             *       "updated_at": "2026-10-04T22:47:39.967599Z",
+             *       "valid_from": "2026-10-04T22:47:39.967599Z",
              *       "valid_to": null
              *     }
              */
@@ -4368,19 +4368,19 @@ export interface components {
              *         {
              *           "bindings": [
              *             {
-             *               "created_at": "2026-10-04T22:10:47.856246Z",
+             *               "created_at": "2026-10-04T22:47:39.945716Z",
              *               "first_discovery_id": null,
-             *               "id": "ac1e5d34-7b65-4a2d-9593-f21b71560aa8",
+             *               "id": "757a7009-c8b4-4d61-a9dc-c808194050cb",
              *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *               "last_discovery_id": null,
-             *               "last_seen_at": "2026-10-04T22:10:47.856246Z",
+             *               "last_seen_at": "2026-10-04T22:47:39.945716Z",
              *               "lineage_id": null,
              *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *               "type": "Port",
-             *               "updated_at": "2026-10-04T22:10:47.856246Z",
-             *               "valid_from": "2026-10-04T22:10:47.856246Z",
+             *               "updated_at": "2026-10-04T22:47:39.945716Z",
+             *               "valid_from": "2026-10-04T22:47:39.945716Z",
              *               "valid_to": null
              *             }
              *           ],
@@ -4394,7 +4394,7 @@ export interface components {
              *           "name": "nginx",
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "position": 0,
-             *           "service_definition": "Nest Protect",
+             *           "service_definition": "Zabbix",
              *           "source": {
              *             "type": "Manual"
              *           },
@@ -5319,19 +5319,19 @@ export interface components {
              * @example {
              *       "bindings": [
              *         {
-             *           "created_at": "2026-10-04T22:10:47.877307Z",
+             *           "created_at": "2026-10-04T22:47:39.962857Z",
              *           "first_discovery_id": null,
-             *           "id": "6eba39d3-6b2e-458e-8e69-59c7071c6b92",
+             *           "id": "ba1389ec-2a32-4351-ac53-c2d8a6f7e967",
              *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
              *           "last_discovery_id": null,
-             *           "last_seen_at": "2026-10-04T22:10:47.877307Z",
+             *           "last_seen_at": "2026-10-04T22:47:39.962857Z",
              *           "lineage_id": null,
              *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
              *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
              *           "type": "Port",
-             *           "updated_at": "2026-10-04T22:10:47.877307Z",
-             *           "valid_from": "2026-10-04T22:10:47.877307Z",
+             *           "updated_at": "2026-10-04T22:47:39.962857Z",
+             *           "valid_from": "2026-10-04T22:47:39.962857Z",
              *           "valid_to": null
              *         }
              *       ],
@@ -5345,7 +5345,7 @@ export interface components {
              *       "name": "nginx",
              *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
              *       "position": 0,
-             *       "service_definition": "Nest Protect",
+             *       "service_definition": "Zabbix",
              *       "source": {
              *         "type": "Manual"
              *       },
@@ -6447,19 +6447,19 @@ export interface components {
         /**
          * @description Association between a service and a port / interface that the service is listening on
          * @example {
-         *       "created_at": "2026-10-04T22:10:47.856963Z",
+         *       "created_at": "2026-10-04T22:47:39.946323Z",
          *       "first_discovery_id": null,
-         *       "id": "5b72a9f8-2104-4911-b559-c26cfe7b5347",
+         *       "id": "3f852a10-fc5d-4284-97da-86f1abfbf464",
          *       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *       "last_discovery_id": null,
-         *       "last_seen_at": "2026-10-04T22:10:47.856963Z",
+         *       "last_seen_at": "2026-10-04T22:47:39.946323Z",
          *       "lineage_id": null,
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *       "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *       "type": "Port",
-         *       "updated_at": "2026-10-04T22:10:47.856963Z",
-         *       "valid_from": "2026-10-04T22:10:47.856963Z",
+         *       "updated_at": "2026-10-04T22:47:39.946323Z",
+         *       "valid_from": "2026-10-04T22:47:39.946323Z",
          *       "valid_to": null
          *     }
          */
@@ -6807,7 +6807,7 @@ export interface components {
          *           "id": "550e8400-e29b-41d4-a716-446655440007",
          *           "name": "nginx",
          *           "position": 0,
-         *           "service_definition": "Nest Protect",
+         *           "service_definition": "Zabbix",
          *           "tags": [],
          *           "virtualization_metadata": null,
          *           "virtualization_service_id": null
@@ -9399,19 +9399,19 @@ export interface components {
          *         {
          *           "bindings": [
          *             {
-         *               "created_at": "2026-10-04T22:10:47.855098Z",
+         *               "created_at": "2026-10-04T22:47:39.945058Z",
          *               "first_discovery_id": null,
-         *               "id": "2b38007c-8e30-4fad-9e74-ada1df524c73",
+         *               "id": "2d95eb3a-aa18-4f7b-bdda-d08dad389cbd",
          *               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *               "last_discovery_id": null,
-         *               "last_seen_at": "2026-10-04T22:10:47.855098Z",
+         *               "last_seen_at": "2026-10-04T22:47:39.945058Z",
          *               "lineage_id": null,
          *               "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *               "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *               "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *               "type": "Port",
-         *               "updated_at": "2026-10-04T22:10:47.855098Z",
-         *               "valid_from": "2026-10-04T22:10:47.855098Z",
+         *               "updated_at": "2026-10-04T22:47:39.945058Z",
+         *               "valid_from": "2026-10-04T22:47:39.945058Z",
          *               "valid_to": null
          *             }
          *           ],
@@ -9425,7 +9425,7 @@ export interface components {
          *           "name": "nginx",
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "position": 0,
-         *           "service_definition": "Nest Protect",
+         *           "service_definition": "Zabbix",
          *           "source": {
          *             "type": "Manual"
          *           },
@@ -10645,6 +10645,11 @@ export interface components {
              *     See `FilterApplication` for when `Server` is permissible.
              */
             applies: components["schemas"]["FilterApplication"];
+            /**
+             * @description The entities this filter reads and hides. Hovering a value rings every listed entity
+             *     carrying it; hiding one writes it into the hide-set under each listed entity.
+             */
+            entities: components["schemas"]["EntityDiscriminants"][];
             /** @description What the filter narrows by. */
             filter_type: components["schemas"]["MetadataFilterType"];
             /** @description User-facing sub-section label (e.g. "By Category", "By Virtualization"). */
@@ -12551,19 +12556,19 @@ export interface components {
          * @example {
          *       "bindings": [
          *         {
-         *           "created_at": "2026-10-04T22:10:47.856797Z",
+         *           "created_at": "2026-10-04T22:47:39.946146Z",
          *           "first_discovery_id": null,
-         *           "id": "e60a9cd0-93ca-44d0-972f-556c185da372",
+         *           "id": "01cf69c5-df3e-4273-961e-f89b19327cef",
          *           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
          *           "last_discovery_id": null,
-         *           "last_seen_at": "2026-10-04T22:10:47.856797Z",
+         *           "last_seen_at": "2026-10-04T22:47:39.946146Z",
          *           "lineage_id": null,
          *           "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *           "port_id": "550e8400-e29b-41d4-a716-446655440006",
          *           "service_id": "550e8400-e29b-41d4-a716-446655440007",
          *           "type": "Port",
-         *           "updated_at": "2026-10-04T22:10:47.856797Z",
-         *           "valid_from": "2026-10-04T22:10:47.856797Z",
+         *           "updated_at": "2026-10-04T22:47:39.946146Z",
+         *           "valid_from": "2026-10-04T22:47:39.946146Z",
          *           "valid_to": null
          *         }
          *       ],
@@ -12577,7 +12582,7 @@ export interface components {
          *       "name": "nginx",
          *       "network_id": "550e8400-e29b-41d4-a716-446655440002",
          *       "position": 0,
-         *       "service_definition": "Nest Protect",
+         *       "service_definition": "Zabbix",
          *       "source": {
          *         "type": "Manual"
          *       },
@@ -13337,7 +13342,7 @@ export interface components {
              * @default {
              *       "Application": [
              *         {
-             *           "id": "d0be4847-23ad-4afd-85a4-dc43056792bb",
+             *           "id": "40c6aa9d-b7ea-490d-a625-18077c6fc307",
              *           "rule": {
              *             "ByApplication": {
              *               "tag_ids": []
@@ -13347,23 +13352,23 @@ export interface components {
              *       ],
              *       "L2Physical": [
              *         {
-             *           "id": "031b70c7-3bf4-448a-b353-701ba6e4f05c",
+             *           "id": "49461411-541d-4717-a048-ae95bf1e0ad1",
              *           "rule": "ByHost"
              *         }
              *       ],
              *       "L3Logical": [
              *         {
-             *           "id": "e7a0dba2-b513-4dfe-9ca9-5b868a1b3a43",
+             *           "id": "51ac3dd5-8a21-4c57-85b9-1f163b83c09c",
              *           "rule": "BySubnet"
              *         },
              *         {
-             *           "id": "ebd149c0-8150-434f-89bf-3cda277ec775",
+             *           "id": "ae3a227c-bf0c-482e-9a0f-ddd8071b32e8",
              *           "rule": "MergeContainerBridges"
              *         }
              *       ],
              *       "Workloads": [
              *         {
-             *           "id": "031b70c7-3bf4-448a-b353-701ba6e4f05c",
+             *           "id": "49461411-541d-4717-a048-ae95bf1e0ad1",
              *           "rule": "ByHost"
              *         }
              *       ]
@@ -13376,19 +13381,19 @@ export interface components {
              * @description Rules deciding how entities are placed and inlined within containers.
              * @default [
              *       {
-             *         "id": "40bfdf79-aaed-4b70-8f1a-81672d8dc657",
+             *         "id": "69d3d2de-728c-4411-ab77-e22e94dcce84",
              *         "rule": "ByTrunkPort"
              *       },
              *       {
-             *         "id": "186e86a3-828e-4698-a284-420905b2bfe0",
+             *         "id": "e4df6bcf-e0db-4977-a47d-4664e13a4a55",
              *         "rule": "ByVLAN"
              *       },
              *       {
-             *         "id": "8484c5d0-a3fb-4e6a-86e5-e9ae17a307a4",
+             *         "id": "e096d843-29c2-4626-9698-9a08be6254c3",
              *         "rule": "ByPortOpStatus"
              *       },
              *       {
-             *         "id": "5bf82065-421a-4d3f-87fd-bba121066ba6",
+             *         "id": "fd970067-10ba-4a9f-b511-b8ccea5e62e4",
              *         "rule": {
              *           "ByServiceCategory": {
              *             "categories": [
@@ -13407,7 +13412,7 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "1a926e73-12c2-4842-8a42-45f590a5cbd1",
+             *         "id": "99f0a18c-006e-4208-a08e-1ffa680c4235",
              *         "rule": {
              *           "ByTag": {
              *             "tag_ids": [],
@@ -13416,15 +13421,15 @@ export interface components {
              *         }
              *       },
              *       {
-             *         "id": "cd63c80b-e8cd-40cb-9014-a06531860997",
+             *         "id": "cebe9b3e-61a3-441d-bbdf-b9691900dc95",
              *         "rule": "ByHypervisor"
              *       },
              *       {
-             *         "id": "d7a792b8-dc73-4aef-a48c-6d2f6f88896c",
+             *         "id": "15241c87-43b6-4d06-bda6-f024a6d3dbfb",
              *         "rule": "ByContainerRuntime"
              *       },
              *       {
-             *         "id": "1a2e3467-080d-48f7-aee9-e4f6cfb61b52",
+             *         "id": "23c5bb7f-2db4-4f4a-884c-692afdfb793b",
              *         "rule": "ByStack"
              *       }
              *     ]
@@ -13878,15 +13883,13 @@ export interface components {
              */
             element_marks?: components["schemas"]["ElementMark"][];
             /**
-             * @description Generic metadata filters keyed by the entity they apply to in this
-             *     view. Applied regardless of the entity's role (container/element/
-             *     inline) — a Service metadata filter renders under the Services
-             *     section whether Service is an element entity (Workloads/Application)
-             *     or an inline entity (L3).
+             * @description The metadata filters this view offers, each naming the entities it reads and hides.
+             *     Applied regardless of an entity's role (container/element/inline): a Service filter
+             *     renders under the Services section whether Service is an element entity
+             *     (Workloads/Application) or an inline entity (L3). A filter naming several entities renders
+             *     in a section of its own.
              */
-            metadata_filters?: {
-                [key: string]: components["schemas"]["MetadataFilter"][];
-            };
+            metadata_filters?: components["schemas"]["MetadataFilter"][];
         };
         /**
          * @description An element-entity slot inside a view, plus the set of entity types that

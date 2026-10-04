@@ -80,14 +80,21 @@ pub fn server_hide_sets(options: &TopologyOptions) -> HashMap<EntityDiscriminant
 
     for view in TopologyView::iter() {
         let config = view.element_config();
-        for (entity, filters) in &config.metadata_filters {
-            let server_filters: Vec<_> = filters
-                .iter()
+        // Each entity a server filter covers, once per view.
+        let mut server_entities: Vec<EntityDiscriminants> = config
+            .metadata_filters
+            .iter()
+            .filter(|f| f.applies == FilterApplication::Server)
+            .flat_map(|f| f.entities.iter().copied())
+            .collect();
+        server_entities.sort_unstable_by_key(|e| e.to_string());
+        server_entities.dedup();
+
+        for entity in &server_entities {
+            let server_filters: Vec<_> = config
+                .filters_for(*entity)
                 .filter(|f| f.applies == FilterApplication::Server)
                 .collect();
-            if server_filters.is_empty() {
-                continue;
-            }
 
             let entry = out.entry(*entity).or_default();
             entry.rendering_views += 1;

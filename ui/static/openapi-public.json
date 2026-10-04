@@ -14020,19 +14020,19 @@
             ],
             "description": "Association between a service and a port / interface that the service is listening on",
             "example": {
-              "created_at": "2026-10-04T22:10:47.951457Z",
+              "created_at": "2026-10-04T22:47:40.028270Z",
               "first_discovery_id": null,
-              "id": "67a4132b-07ca-4ed7-b8d1-1dc01aad7a64",
+              "id": "508fff4b-638c-458d-9b25-5a853e92caaa",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-04T22:10:47.951457Z",
+              "last_seen_at": "2026-10-04T22:47:40.028270Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-04T22:10:47.951457Z",
-              "valid_from": "2026-10-04T22:10:47.951457Z",
+              "updated_at": "2026-10-04T22:47:40.028270Z",
+              "valid_from": "2026-10-04T22:47:40.028270Z",
               "valid_to": null
             }
           },
@@ -15637,19 +15637,19 @@
                 {
                   "bindings": [
                     {
-                      "created_at": "2026-10-04T22:10:47.933286Z",
+                      "created_at": "2026-10-04T22:47:40.012810Z",
                       "first_discovery_id": null,
-                      "id": "32826b12-e214-4ac9-8dda-60cda4d59831",
+                      "id": "2c249c09-629d-4d50-8d3f-a43b23f3adee",
                       "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                       "last_discovery_id": null,
-                      "last_seen_at": "2026-10-04T22:10:47.933286Z",
+                      "last_seen_at": "2026-10-04T22:47:40.012810Z",
                       "lineage_id": null,
                       "network_id": "550e8400-e29b-41d4-a716-446655440002",
                       "port_id": "550e8400-e29b-41d4-a716-446655440006",
                       "service_id": "550e8400-e29b-41d4-a716-446655440007",
                       "type": "Port",
-                      "updated_at": "2026-10-04T22:10:47.933286Z",
-                      "valid_from": "2026-10-04T22:10:47.933286Z",
+                      "updated_at": "2026-10-04T22:47:40.012810Z",
+                      "valid_from": "2026-10-04T22:47:40.012810Z",
                       "valid_to": null
                     }
                   ],
@@ -15663,7 +15663,7 @@
                   "name": "nginx",
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "position": 0,
-                  "service_definition": "Nest Protect",
+                  "service_definition": "Zabbix",
                   "source": {
                     "type": "Manual"
                   },
@@ -17062,19 +17062,19 @@
             "example": {
               "bindings": [
                 {
-                  "created_at": "2026-10-04T22:10:47.947130Z",
+                  "created_at": "2026-10-04T22:47:40.024555Z",
                   "first_discovery_id": null,
-                  "id": "85e96381-7fe8-4da2-987c-017438d9cf39",
+                  "id": "c95ac7f8-d948-4252-bae8-39d3f2f9194d",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-04T22:10:47.947130Z",
+                  "last_seen_at": "2026-10-04T22:47:40.024555Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-04T22:10:47.947130Z",
-                  "valid_from": "2026-10-04T22:10:47.947130Z",
+                  "updated_at": "2026-10-04T22:47:40.024555Z",
+                  "valid_from": "2026-10-04T22:47:40.024555Z",
                   "valid_to": null
                 }
               ],
@@ -17088,7 +17088,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Nest Protect",
+              "service_definition": "Zabbix",
               "source": {
                 "type": "Manual"
               },
@@ -19573,19 +19573,19 @@
         ],
         "description": "Association between a service and a port / interface that the service is listening on",
         "example": {
-          "created_at": "2026-10-04T22:10:47.933733Z",
+          "created_at": "2026-10-04T22:47:40.013237Z",
           "first_discovery_id": null,
-          "id": "8b9acca4-ce53-4cb1-9b2b-029fa0950718",
+          "id": "2ba4456b-2e8f-4017-8e04-19a900bbbd50",
           "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
           "last_discovery_id": null,
-          "last_seen_at": "2026-10-04T22:10:47.933733Z",
+          "last_seen_at": "2026-10-04T22:47:40.013237Z",
           "lineage_id": null,
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "port_id": "550e8400-e29b-41d4-a716-446655440006",
           "service_id": "550e8400-e29b-41d4-a716-446655440007",
           "type": "Port",
-          "updated_at": "2026-10-04T22:10:47.933733Z",
-          "valid_from": "2026-10-04T22:10:47.933733Z",
+          "updated_at": "2026-10-04T22:47:40.013237Z",
+          "valid_from": "2026-10-04T22:47:40.013237Z",
           "valid_to": null
         }
       },
@@ -20352,7 +20352,7 @@
               "id": "550e8400-e29b-41d4-a716-446655440007",
               "name": "nginx",
               "position": 0,
-              "service_definition": "Nest Protect",
+              "service_definition": "Zabbix",
               "tags": [],
               "virtualization_metadata": null,
               "virtualization_service_id": null
@@ -26791,19 +26791,19 @@
             {
               "bindings": [
                 {
-                  "created_at": "2026-10-04T22:10:47.932793Z",
+                  "created_at": "2026-10-04T22:47:40.012344Z",
                   "first_discovery_id": null,
-                  "id": "0e1f3882-b3c5-4d26-b380-e61090c71d7d",
+                  "id": "e91e81f0-48b7-4097-a916-a381a7aaeb9b",
                   "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                   "last_discovery_id": null,
-                  "last_seen_at": "2026-10-04T22:10:47.932793Z",
+                  "last_seen_at": "2026-10-04T22:47:40.012344Z",
                   "lineage_id": null,
                   "network_id": "550e8400-e29b-41d4-a716-446655440002",
                   "port_id": "550e8400-e29b-41d4-a716-446655440006",
                   "service_id": "550e8400-e29b-41d4-a716-446655440007",
                   "type": "Port",
-                  "updated_at": "2026-10-04T22:10:47.932793Z",
-                  "valid_from": "2026-10-04T22:10:47.932793Z",
+                  "updated_at": "2026-10-04T22:47:40.012344Z",
+                  "valid_from": "2026-10-04T22:47:40.012344Z",
                   "valid_to": null
                 }
               ],
@@ -26817,7 +26817,7 @@
               "name": "nginx",
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "position": 0,
-              "service_definition": "Nest Protect",
+              "service_definition": "Zabbix",
               "source": {
                 "type": "Manual"
               },
@@ -29044,6 +29044,7 @@
         "description": "A declared metadata filter on an element entity inside a view.\n\n`FilterValue::id` is the **stable identifier** — it's what each entity\nemits via `HasFilterValues`, what the hide-set in request options stores,\nand what matches entities on toggle. Changing an `id` silently clears\nusers' persisted hide entries for that value; `label` is display-only\nand can change freely.",
         "required": [
           "filter_type",
+          "entities",
           "label",
           "values",
           "applies"
@@ -29052,6 +29053,13 @@
           "applies": {
             "$ref": "#/components/schemas/FilterApplication",
             "description": "Where this filter runs. Deliberately not defaulted: a new filter has to state which side it\nbelongs on, and the compiler is a better place to force that decision than a review comment.\nSee `FilterApplication` for when `Server` is permissible."
+          },
+          "entities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityDiscriminants"
+            },
+            "description": "The entities this filter reads and hides. Hovering a value rings every listed entity\ncarrying it; hiding one writes it into the hide-set under each listed entity."
           },
           "filter_type": {
             "$ref": "#/components/schemas/MetadataFilterType",
@@ -30670,19 +30678,19 @@
                   {
                     "bindings": [
                       {
-                        "created_at": "2026-10-04T22:10:47.925073Z",
+                        "created_at": "2026-10-04T22:47:40.005351Z",
                         "first_discovery_id": null,
-                        "id": "e6e465e9-68d8-4a91-8d0f-460816b19246",
+                        "id": "c09d08d3-1c26-4b55-8c43-536244d65c09",
                         "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                         "last_discovery_id": null,
-                        "last_seen_at": "2026-10-04T22:10:47.925073Z",
+                        "last_seen_at": "2026-10-04T22:47:40.005351Z",
                         "lineage_id": null,
                         "network_id": "550e8400-e29b-41d4-a716-446655440002",
                         "port_id": "550e8400-e29b-41d4-a716-446655440006",
                         "service_id": "550e8400-e29b-41d4-a716-446655440007",
                         "type": "Port",
-                        "updated_at": "2026-10-04T22:10:47.925073Z",
-                        "valid_from": "2026-10-04T22:10:47.925073Z",
+                        "updated_at": "2026-10-04T22:47:40.005351Z",
+                        "valid_from": "2026-10-04T22:47:40.005351Z",
                         "valid_to": null
                       }
                     ],
@@ -30696,7 +30704,7 @@
                     "name": "nginx",
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "position": 0,
-                    "service_definition": "Nest Protect",
+                    "service_definition": "Zabbix",
                     "source": {
                       "type": "Manual"
                     },
@@ -30840,19 +30848,19 @@
               "example": {
                 "bindings": [
                   {
-                    "created_at": "2026-10-04T22:10:47.946329Z",
+                    "created_at": "2026-10-04T22:47:40.023890Z",
                     "first_discovery_id": null,
-                    "id": "f367044a-6382-4b93-9d9b-036e299631d3",
+                    "id": "86d1fa43-4803-4ba0-b823-3c440f4ab3a0",
                     "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
                     "last_discovery_id": null,
-                    "last_seen_at": "2026-10-04T22:10:47.946329Z",
+                    "last_seen_at": "2026-10-04T22:47:40.023890Z",
                     "lineage_id": null,
                     "network_id": "550e8400-e29b-41d4-a716-446655440002",
                     "port_id": "550e8400-e29b-41d4-a716-446655440006",
                     "service_id": "550e8400-e29b-41d4-a716-446655440007",
                     "type": "Port",
-                    "updated_at": "2026-10-04T22:10:47.946329Z",
-                    "valid_from": "2026-10-04T22:10:47.946329Z",
+                    "updated_at": "2026-10-04T22:47:40.023890Z",
+                    "valid_from": "2026-10-04T22:47:40.023890Z",
                     "valid_to": null
                   }
                 ],
@@ -30866,7 +30874,7 @@
                 "name": "nginx",
                 "network_id": "550e8400-e29b-41d4-a716-446655440002",
                 "position": 0,
-                "service_definition": "Nest Protect",
+                "service_definition": "Zabbix",
                 "source": {
                   "type": "Manual"
                 },
@@ -33097,19 +33105,19 @@
         "example": {
           "bindings": [
             {
-              "created_at": "2026-10-04T22:10:47.933591Z",
+              "created_at": "2026-10-04T22:47:40.013104Z",
               "first_discovery_id": null,
-              "id": "92f9bee8-e28c-479d-82c4-4d9eaa7b3ea9",
+              "id": "da0cdfb3-9928-4c0b-b377-181dfce2ab85",
               "ip_address_id": "550e8400-e29b-41d4-a716-446655440005",
               "last_discovery_id": null,
-              "last_seen_at": "2026-10-04T22:10:47.933591Z",
+              "last_seen_at": "2026-10-04T22:47:40.013104Z",
               "lineage_id": null,
               "network_id": "550e8400-e29b-41d4-a716-446655440002",
               "port_id": "550e8400-e29b-41d4-a716-446655440006",
               "service_id": "550e8400-e29b-41d4-a716-446655440007",
               "type": "Port",
-              "updated_at": "2026-10-04T22:10:47.933591Z",
-              "valid_from": "2026-10-04T22:10:47.933591Z",
+              "updated_at": "2026-10-04T22:47:40.013104Z",
+              "valid_from": "2026-10-04T22:47:40.013104Z",
               "valid_to": null
             }
           ],
@@ -33123,7 +33131,7 @@
           "name": "nginx",
           "network_id": "550e8400-e29b-41d4-a716-446655440002",
           "position": 0,
-          "service_definition": "Nest Protect",
+          "service_definition": "Zabbix",
           "source": {
             "type": "Manual"
           },
@@ -34585,7 +34593,7 @@
             "default": {
               "Application": [
                 {
-                  "id": "3432cb8a-e6bf-47fd-abfa-e13ffdc416bb",
+                  "id": "19ac27d2-2e86-4b73-9ad6-39ef3b622c91",
                   "rule": {
                     "ByApplication": {
                       "tag_ids": []
@@ -34595,23 +34603,23 @@
               ],
               "L2Physical": [
                 {
-                  "id": "fcc99cca-58e5-4801-a866-7d870b03f1ec",
+                  "id": "3eb6e4d3-50bb-48b4-b18d-3f62a07d697d",
                   "rule": "ByHost"
                 }
               ],
               "L3Logical": [
                 {
-                  "id": "a78af726-48cc-442e-bb73-d8d245311add",
+                  "id": "f0501346-331e-4bdc-b6fc-f6315f1131cd",
                   "rule": "BySubnet"
                 },
                 {
-                  "id": "f1afe446-57e7-4182-bb51-d2532c6f421e",
+                  "id": "ea8db466-e568-47db-836d-e0a126f8307a",
                   "rule": "MergeContainerBridges"
                 }
               ],
               "Workloads": [
                 {
-                  "id": "fcc99cca-58e5-4801-a866-7d870b03f1ec",
+                  "id": "3eb6e4d3-50bb-48b4-b18d-3f62a07d697d",
                   "rule": "ByHost"
                 }
               ]
@@ -34641,19 +34649,19 @@
             "description": "Rules deciding how entities are placed and inlined within containers.",
             "default": [
               {
-                "id": "b072f65c-926b-44b9-9a57-5c00b06df830",
+                "id": "f72f0666-47ef-442f-b64f-85d49cd04aeb",
                 "rule": "ByTrunkPort"
               },
               {
-                "id": "b62ab2c6-9769-46f6-bc59-45cd3241dd75",
+                "id": "05f6eb65-796d-41e9-b7a6-5b0fd9a3a014",
                 "rule": "ByVLAN"
               },
               {
-                "id": "be59a33b-fda9-4202-adfb-e4c505844e84",
+                "id": "de600625-7fb7-4599-b2ea-6bcd238052ed",
                 "rule": "ByPortOpStatus"
               },
               {
-                "id": "015328a3-e934-4b5d-8ce5-0deb2fe59d25",
+                "id": "6cab477a-5039-4c07-9165-c84bb5997a51",
                 "rule": {
                   "ByServiceCategory": {
                     "categories": [
@@ -34672,7 +34680,7 @@
                 }
               },
               {
-                "id": "66d6d143-146e-43fa-be13-918461241c10",
+                "id": "13867ff1-53c8-4e52-a190-4b0a0140738a",
                 "rule": {
                   "ByTag": {
                     "tag_ids": [],
@@ -34681,15 +34689,15 @@
                 }
               },
               {
-                "id": "b97bf440-0917-4fe5-8d08-6aa11d133666",
+                "id": "67497de9-deed-4fec-9b93-8cd8640ee7f8",
                 "rule": "ByHypervisor"
               },
               {
-                "id": "1fe5a3e3-a924-485d-af65-12699e499df7",
+                "id": "41f29ac4-1e22-4647-9fa9-55cb90355bf7",
                 "rule": "ByContainerRuntime"
               },
               {
-                "id": "6ce7b044-c8dd-4e1e-8c7d-7c3f63af3096",
+                "id": "7ed7c253-3435-4fb7-b3e3-73140fe5c287",
                 "rule": "ByStack"
               }
             ]
@@ -35581,42 +35589,11 @@
             "description": "The colours this view paints on its element cards, each tied to the filter value that\nexplains it. A card shows a classification colour only through one of these, so every\ncolour has a chip in the filter panel whose hover rings the same cards. Per channel, earlier\nmarks win."
           },
           "metadata_filters": {
-            "type": "object",
-            "description": "Generic metadata filters keyed by the entity they apply to in this\nview. Applied regardless of the entity's role (container/element/\ninline) — a Service metadata filter renders under the Services\nsection whether Service is an element entity (Workloads/Application)\nor an inline entity (L3).",
-            "additionalProperties": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/MetadataFilter"
-              }
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MetadataFilter"
             },
-            "propertyNames": {
-              "type": "string",
-              "enum": [
-                "Organization",
-                "Invite",
-                "Share",
-                "Network",
-                "DaemonApiKey",
-                "UserApiKey",
-                "User",
-                "Tag",
-                "Discovery",
-                "Daemon",
-                "Host",
-                "Service",
-                "Port",
-                "Binding",
-                "IPAddress",
-                "Interface",
-                "Credential",
-                "Subnet",
-                "Vlan",
-                "Dependency",
-                "Topology",
-                "Snapshot",
-                "Unknown"
-              ]
-            }
+            "description": "The metadata filters this view offers, each naming the entities it reads and hides.\nApplied regardless of an entity's role (container/element/inline): a Service filter\nrenders under the Services section whether Service is an element entity\n(Workloads/Application) or an inline entity (L3). A filter naming several entities renders\nin a section of its own."
           }
         }
       },

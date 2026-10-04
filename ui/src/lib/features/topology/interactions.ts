@@ -32,6 +32,7 @@ import type { Network } from '$lib/features/networks/types';
 import { entityFreshness, type FreshnessSubject } from '$lib/shared/utils/freshness';
 import { buildFullParentMap, resolveCollapsedAncestor } from './collapse';
 import { formatEntityLabelTitle } from './labels';
+import { declaredMetadataFilters, hiddenValuesFor } from './view-filters';
 import { common_byTag, common_untagged } from '$lib/paraglide/messages';
 import type { components } from '$lib/api/schema';
 
@@ -122,12 +123,11 @@ export interface HoveredTag {
 }
 export const hoveredTag = writable<HoveredTag | null>(null);
 
-// Generic metadata-value hover. Mirrors the tag hover loop but for any
-// (entity type, filter type, value id) tuple declared by a view's
-// element_config.metadata_filters — Service.Category, Host.Virtualization,
-// and future extractor registrations below.
+// Generic metadata-value hover. Mirrors the tag hover loop but for any filter value declared by
+// a view's element_config.metadata_filters. Carries every entity the filter covers, so a value on
+// a filter over hosts and services (Workloads' Containerized) rings both.
 export interface HoveredMetadata {
-	entityType: import('$lib/api/schema').components['schemas']['EntityDiscriminants'];
+	entityTypes: import('$lib/api/schema').components['schemas']['EntityDiscriminants'][];
 	filterType: string;
 	valueId: string;
 	color: string;
@@ -380,6 +380,8 @@ function neighbourIndex(topology: RenderableTopology): NeighbourIndex {
 	return index;
 }
 
+const CONTAINERIZED: components['schemas']['HostVirtualizationState'] = 'Containerized';
+
 export type FilterValueExtractor = (entity: unknown, ctx: FilterValueContext) => string | null;
 export const FILTER_VALUE_EXTRACTORS: Record<string, Record<string, FilterValueExtractor>> = {
 	Service: {
@@ -388,7 +390,13 @@ export const FILTER_VALUE_EXTRACTORS: Record<string, Record<string, FilterValueE
 			null,
 		// Delegates to the same helper the card badge and the node tag use, so
 		// the filter cannot disagree with what the user sees marked as stale.
-		Staleness: (s, ctx) => entityFreshness(s as FreshnessSubject, ctx.network)
+		Staleness: (s, ctx) => entityFreshness(s as FreshnessSubject, ctx.network),
+		// Every service virtualization is a container runtime, as on the backend's `HasFilterValues`;
+		// a service with none carries no value rather than Bare metal, which describes hosts.
+		Virtualization: (s) =>
+			(s as { virtualization_metadata?: unknown | null }).virtualization_metadata != null
+				? CONTAINERIZED
+				: null
 	},
 	Host: {
 		// The type-to-state mapping is the backend's, read from the host-virtualizations fixture.
@@ -430,18 +438,20 @@ export const FILTER_VALUE_EXTRACTORS: Record<string, Record<string, FilterValueE
 };
 
 /**
- * Whether `entity` carries the filter value being hovered in the options panel, judged by the
- * same extractor the hide pass uses. `topology` is passed through because some values depend on
- * other entities (LinkState reads the topology's neighbour rows).
+ * Whether `entity`, an `entityType`, carries the filter value being hovered in the options panel,
+ * judged by the same extractor the hide pass uses. False when the hovered filter does not cover
+ * `entityType`. `topology` is passed through because some values depend on other entities
+ * (LinkState reads the topology's neighbour rows).
  */
 export function matchesHoveredMetadata(
 	entity: unknown,
+	entityType: string,
 	hovered: HoveredMetadata,
 	network: Network | undefined,
 	topology: RenderableTopology | null | undefined
 ): boolean {
-	if (!entity) return false;
-	const extract = FILTER_VALUE_EXTRACTORS[hovered.entityType]?.[hovered.filterType];
+	if (!entity || !(hovered.entityTypes as string[]).includes(entityType)) return false;
+	const extract = FILTER_VALUE_EXTRACTORS[entityType]?.[hovered.filterType];
 	if (!extract) return false;
 	return extract(entity, { network, topology: topology ?? undefined }) === hovered.valueId;
 }
@@ -759,20 +769,6 @@ export interface ActiveFilterSummary {
 	count?: number;
 }
 
-type MetadataFilterDef = {
-	filter_type: string;
-	label: string;
-	values: Array<{ id: string; label: string }>;
-};
-
-/** The metadata filters a view declares, keyed by entity type — from the generated view fixture. */
-function declaredMetadataFilters(view: string): Record<string, MetadataFilterDef[]> {
-	const meta = views.getMetadata(view) as {
-		element_config?: { metadata_filters?: Record<string, MetadataFilterDef[]> };
-	} | null;
-	return meta?.element_config?.metadata_filters ?? {};
-}
-
 /**
  * Which controls are hiding something in `view`, and how much.
  *
@@ -795,36 +791,37 @@ export function activeViewFilters(
 	const summaries: ActiveFilterSummary[] = [];
 	if (!topology) return summaries;
 
-	const declared = declaredMetadataFilters(view);
 	const serverDropped = topology.filtered_out ?? {};
 
-	for (const [entityType, byFilter] of Object.entries(hiddenMetadataValues ?? {})) {
-		for (const [filterType, hiddenValues] of Object.entries(byFilter)) {
-			if (!hiddenValues.length) continue;
-			const def = declared[entityType]?.find((f) => f.filter_type === filterType);
-			// A hide entry for a filter this view no longer declares matches nothing and is not
-			// hiding anything, so it has no business being named as a cause.
-			if (!def) continue;
+	// One summary per declared filter, however many entities it covers. A hide entry for a filter
+	// this view no longer declares matches nothing and is not hiding anything, so it has no
+	// business being named as a cause.
+	for (const filter of declaredMetadataFilters(view)) {
+		const hiddenValues = hiddenValuesFor(filter, hiddenMetadataValues);
+		if (!hiddenValues.length) continue;
 
-			// Entities this filter removed: those dropped before the response was built, plus
-			// those still in the bundle that the browser is hiding. Counted per filter with the
-			// same extractor the hide pass uses, so two filters on one entity type each report
-			// their own share rather than both claiming the total.
-			let count = serverDropped[entityType]?.[filterType] ?? 0;
-			const extract = FILTER_VALUE_EXTRACTORS[entityType]?.[filterType];
-			if (extract) {
-				for (const entity of entityCollection(topology, entityType) ?? []) {
-					const value = extract(entity, { network, topology });
-					if (value && hiddenValues.includes(value)) count++;
-				}
+		// Entities this filter removed: those dropped before the response was built, plus those
+		// still in the bundle that the browser is hiding. Counted per filter with the same
+		// extractor the hide pass uses, so two filters on one entity type each report their own
+		// share rather than both claiming the total.
+		let count = 0;
+		for (const entityType of filter.entities) {
+			const hiddenHere = hiddenMetadataValues?.[entityType]?.[filter.filter_type] ?? [];
+			if (!hiddenHere.length) continue;
+			count += serverDropped[entityType]?.[filter.filter_type] ?? 0;
+			const extract = FILTER_VALUE_EXTRACTORS[entityType]?.[filter.filter_type];
+			if (!extract) continue;
+			for (const entity of entityCollection(topology, entityType) ?? []) {
+				const value = extract(entity, { network, topology });
+				if (value && hiddenHere.includes(value)) count++;
 			}
-
-			summaries.push({
-				label: def.label,
-				values: hiddenValues.map((id) => def.values.find((v) => v.id === id)?.label ?? id),
-				count
-			});
 		}
+
+		summaries.push({
+			label: filter.label,
+			values: hiddenValues.map((id) => filter.values.find((v) => v.id === id)?.label ?? id),
+			count
+		});
 	}
 
 	for (const entityType of hiddenEntityTypes ?? []) {
@@ -1530,9 +1527,9 @@ export function inlineHostsMatching(
 	topology: RenderableTopology | null | undefined
 ): Set<string> {
 	const out = new Set<string>();
-	if (!hovered || hovered.entityType !== 'Host') return out;
+	if (!hovered) return out;
 	for (const { host } of groups.flatMap((g) => g.hosts)) {
-		if (matchesHoveredMetadata(host, hovered, networkFor(host), topology)) out.add(host.id);
+		if (matchesHoveredMetadata(host, 'Host', hovered, networkFor(host), topology)) out.add(host.id);
 	}
 	return out;
 }

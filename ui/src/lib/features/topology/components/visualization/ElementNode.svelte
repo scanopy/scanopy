@@ -261,25 +261,25 @@
 		} | null => {
 			if (!currentHoveredMetadata || !resolved) return null;
 			const hovered = currentHoveredMetadata;
-			const { entityType, color } = hovered;
+			const { color } = hovered;
 
-			// The card's own entity when the hovered filter is on its type — any element type,
+			// The card's own entity for each entity the hovered filter covers — any element type,
 			// through the same `elementEntity` its stale pill reads, and the view's element marks.
-			const cardEntity = cardEntityForFilter(resolved, entityType);
-			if (
-				cardEntity &&
-				matchesHoveredMetadata(cardEntity, hovered, networkFor(cardEntity), topology)
-			) {
-				return { mode: 'element', color };
+			for (const entityType of hovered.entityTypes) {
+				const cardEntity = cardEntityForFilter(resolved, entityType);
+				if (
+					cardEntity &&
+					matchesHoveredMetadata(cardEntity, entityType, hovered, networkFor(cardEntity), topology)
+				) {
+					return { mode: 'element', color };
+				}
 			}
 
 			if (matchingInlineHosts.size > 0) return { mode: 'inline', color };
 
-			if (entityType === 'Service' && nodeRenderData?.services?.length) {
-				for (const service of nodeRenderData.services) {
-					if (matchesHoveredMetadata(service, hovered, networkFor(service), topology))
-						return { mode: 'inline', color };
-				}
+			for (const service of nodeRenderData?.services ?? []) {
+				if (matchesHoveredMetadata(service, 'Service', hovered, networkFor(service), topology))
+					return { mode: 'inline', color };
 			}
 			return null;
 		}
@@ -462,11 +462,11 @@
 						{@const serviceTagHighlight = inlineRowPulse('Service', service.tags)}
 						{@const serviceMetadataHighlight = (() => {
 							if (metadataHoverContext?.mode !== 'inline') return '';
-							if (!currentHoveredMetadata || currentHoveredMetadata.entityType !== 'Service')
-								return '';
+							if (!currentHoveredMetadata) return '';
 							if (
 								!matchesHoveredMetadata(
 									service,
+									'Service',
 									currentHoveredMetadata,
 									networkFor(service),
 									topology

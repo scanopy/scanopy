@@ -17,11 +17,11 @@ const discovery = { type: 'Discovery' };
 const seenHoursAgo = (h: number) => new Date(NOW - h * HOUR_MS).toISOString();
 
 function hover(
-	entityType: HoveredMetadata['entityType'],
+	entityType: HoveredMetadata['entityTypes'][number],
 	filterType: string,
 	valueId: string
 ): HoveredMetadata {
-	return { entityType, filterType, valueId, color: 'Amber' };
+	return { entityTypes: [entityType], filterType, valueId, color: 'Amber' };
 }
 
 /**
@@ -143,15 +143,21 @@ describe('filter-value hover matching', () => {
 		const stale = hover('Host', 'Staleness', 'stale');
 		const staleBox = containerEntity(node(topo, 'c-stale-host'), topo);
 		const freshBox = containerEntity(node(topo, 'c-fresh-host'), topo);
-		expect(matchesHoveredMetadata(staleBox, stale, network, topo)).toBe(true);
-		expect(matchesHoveredMetadata(freshBox, stale, network, topo)).toBe(false);
+		expect(matchesHoveredMetadata(staleBox, 'Host', stale, network, topo)).toBe(true);
+		expect(matchesHoveredMetadata(freshBox, 'Host', stale, network, topo)).toBe(false);
 	});
 
 	it('matches an IP card on its own staleness', () => {
 		const topo = buildTopology();
 		const ipCard = elementEntity(resolveElementNode('n-ip', node(topo, 'n-ip'), topo));
 		expect(
-			matchesHoveredMetadata(ipCard, hover('IPAddress', 'Staleness', 'stale'), network, topo)
+			matchesHoveredMetadata(
+				ipCard,
+				'IPAddress',
+				hover('IPAddress', 'Staleness', 'stale'),
+				network,
+				topo
+			)
 		).toBe(true);
 	});
 
@@ -160,15 +166,15 @@ describe('filter-value hover matching', () => {
 		const topo = buildTopology();
 		const port = elementEntity(resolveElementNode('n-if', node(topo, 'n-if'), topo));
 		const linked = hover('Interface', 'LinkState', 'Linked');
-		expect(matchesHoveredMetadata(port, linked, network, topo)).toBe(true);
-		expect(matchesHoveredMetadata(port, linked, network, undefined)).toBe(false);
+		expect(matchesHoveredMetadata(port, 'Interface', linked, network, topo)).toBe(true);
+		expect(matchesHoveredMetadata(port, 'Interface', linked, network, undefined)).toBe(false);
 	});
 
 	it('matches nothing for a grouping box', () => {
 		const topo = buildTopology();
 		const grouping = containerEntity(node(topo, 'c-category'), topo);
 		expect(
-			matchesHoveredMetadata(grouping, hover('Host', 'Staleness', 'stale'), network, topo)
+			matchesHoveredMetadata(grouping, 'Host', hover('Host', 'Staleness', 'stale'), network, topo)
 		).toBe(false);
 	});
 });

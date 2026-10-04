@@ -5,6 +5,7 @@ use strum_macros::{Display, EnumDiscriminants, EnumIter, IntoStaticStr};
 use utoipa::ToSchema;
 
 use crate::server::{
+    hosts::r#impl::virtualization::HostVirtualizationState,
     organizations::r#impl::base::UseCase,
     services::r#impl::base::Service,
     shared::{
@@ -405,6 +406,14 @@ impl HasFilterValues for Service {
         // which carries a separate `category() -> &str`.
         let category = ServiceDefinition::category(&*self.base.service_definition);
         values.insert(MetadataFilterType::Category, category.id().to_string());
+        // Every service virtualization is a container runtime; a service with none carries no value
+        // rather than Bare metal, which describes hosts.
+        if self.base.virtualization_metadata.is_some() {
+            values.insert(
+                MetadataFilterType::Virtualization,
+                HostVirtualizationState::Containerized.id().to_string(),
+            );
+        }
         values
     }
 }
