@@ -80,6 +80,19 @@ impl ContainerRuntime {
         }
     }
 
+    /// The generic container definition for this runtime, for a container no specific
+    /// definition describes.
+    pub fn container_def(&self) -> Box<dyn ServiceDefinition> {
+        match self {
+            Self::Docker => {
+                Box::new(crate::server::services::definitions::docker_container::DockerContainer)
+            }
+            Self::Podman => {
+                Box::new(crate::server::services::definitions::podman_container::PodmanContainer)
+            }
+        }
+    }
+
     /// The client-probe value fed into service matching for this runtime.
     pub fn client_probe(&self) -> ClientProbe {
         match self {
@@ -434,6 +447,7 @@ pub async fn execute(
         host_ip: ctx.ip,
         host_naming_fallback: ctx.host_naming_fallback,
         ops: ctx.ops,
+        integration: ctx.integration,
         cancel: ctx.cancel,
         accept_invalid_certs: ctx.accept_invalid_certs,
         utils: ctx.utils,

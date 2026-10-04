@@ -23,7 +23,9 @@ use crate::daemon::utils::base::PlatformDaemonUtils;
 use crate::server::credentials::r#impl::mapping::{
     CredentialMapping, CredentialQueryPayload, CredentialQueryPayloadDiscriminants,
 };
-use crate::server::credentials::r#impl::types::CredentialAssignment;
+use crate::server::credentials::r#impl::types::{
+    CredentialAssignment, CredentialTypeDiscriminants,
+};
 use crate::server::discovery::r#impl::types::HostNamingFallback;
 use crate::server::ports::r#impl::base::PortType;
 use crate::server::services::r#impl::patterns::{ClientProbe, Pattern};
@@ -621,6 +623,8 @@ pub async fn execute_integrations(
                 credential: discriminant,
                 scope: integration.interface_view_scope(),
             },
+            integration: CredentialTypeDiscriminants::from(integration.credential_type())
+                .integration(),
             cancel: params.cancel,
             ops: params.ops,
             utils: params.utils,

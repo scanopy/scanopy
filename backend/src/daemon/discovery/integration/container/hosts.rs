@@ -211,7 +211,8 @@ impl ContainerScanner<'_> {
 
         let response = self
             .ops
-            .create_host(
+            .create_integration_host(
+                self.integration,
                 host_data.host.clone(),
                 ip_addresses,
                 ports,
@@ -351,7 +352,8 @@ impl ContainerScanner<'_> {
             let ip_addresses: Vec<IPAddress> = placed.into_iter().map(|(a, _)| a).collect();
             match self
                 .ops
-                .create_host(
+                .create_integration_host(
+                    self.integration,
                     host,
                     ip_addresses,
                     ports,
@@ -473,6 +475,52 @@ mod tests {
     use crate::server::subnets::r#impl::types::SubnetType;
 
     use super::super::interfaces::tests::{container, endpoint, subnet};
+    use crate::server::credentials::r#impl::types::CredentialIntegration;
+    use crate::server::hosts::r#impl::virtualization::undeclared_virtualization;
+
+    /// Every container host either runtime builds, on either network type, is a kind of
+    /// virtualization its integration declares reporting, which is what the docs list.
+    #[test]
+    fn every_container_host_is_declared_by_its_integration() {
+        for runtime in [ContainerRuntime::Docker, ContainerRuntime::Podman] {
+            let integration = match runtime {
+                ContainerRuntime::Docker => CredentialIntegration::Docker,
+                ContainerRuntime::Podman => CredentialIntegration::Podman,
+            };
+            for network_type in [ContainerNetworkType::MacVlan, ContainerNetworkType::IpVlan] {
+                let lan_type = match network_type {
+                    ContainerNetworkType::MacVlan => SubnetType::MacVlan,
+                    ContainerNetworkType::IpVlan => SubnetType::IpVlan,
+                };
+                let lan_network = subnet("lan", "192.168.1.0/24", lan_type);
+                let known_lan = subnet("Office LAN", "192.168.1.0/24", SubnetType::Lan);
+                let web = container(
+                    "4f1c2a",
+                    "web",
+                    vec![(
+                        "lan",
+                        endpoint("192.168.1.53", None, Some("02:42:c0:a8:01:35")),
+                    )],
+                );
+                let record = container_host_record(
+                    runtime,
+                    &web,
+                    network_type,
+                    std::slice::from_ref(&lan_network),
+                    &[],
+                    std::slice::from_ref(&known_lan),
+                    Uuid::new_v4(),
+                    Uuid::new_v4(),
+                )
+                .expect("a LAN container is a host");
+                assert_eq!(
+                    undeclared_virtualization(integration, &record.host),
+                    None,
+                    "{runtime:?} {network_type:?}"
+                );
+            }
+        }
+    }
 
     /// A macvlan container becomes a host under the runtime's stored service, named by the
     /// container and carrying only its own addresses.

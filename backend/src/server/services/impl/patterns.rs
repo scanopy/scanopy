@@ -831,10 +831,8 @@ impl Pattern<'_> {
                             expected_status_code_range.as_ref().unwrap_or(&(200..400));
                         let status_code_in_range = expected_range.contains(&actual.status);
 
-                        let body_contains_match_string = actual
-                            .body
-                            .to_lowercase()
-                            .contains(&expected_body_match_string.to_lowercase());
+                        let body_contains_match_string =
+                            actual.body_contains_beyond_request(expected_body_match_string);
 
                         is_same_endpoint && status_code_in_range && body_contains_match_string
                     })
@@ -1675,6 +1673,68 @@ mod tests {
             result.is_err(),
             "OR pattern should not match when no conditions met"
         );
+    }
+
+    /// Whether the registered definition `id` matches one response from `path` on `port`.
+    fn definition_matches_response(id: &str, port: PortType, path: &str, body: &str) -> bool {
+        let ctx = TestContext::new();
+        let service = ServiceDefinitionRegistry::find_by_id(id)
+            .unwrap_or_else(|| panic!("{id} is registered"));
+        let ports = vec![port];
+        let endpoint_responses = vec![EndpointResponse {
+            endpoint: Endpoint::for_pattern(port, path).use_ip(ctx.ip_address.base.ip_address),
+            body: body.to_string(),
+            headers: HashMap::new(),
+            status: 200,
+        }];
+        let client_responses = HashMap::new();
+        let baseline = ServiceMatchBaselineParams {
+            subnet: &ctx.subnet,
+            ip_address: &ctx.ip_address,
+            all_ports: &ports,
+            endpoint_responses: &endpoint_responses,
+            virtualization_metadata: &ctx.virtualization,
+            virtualization_service_id: None,
+            client_responses: &client_responses,
+            managed_device: &None,
+            dns_sd: &None,
+        };
+        let params = DiscoverySessionServiceMatchParams {
+            host_id: &ctx.host_id,
+            gateway_ips: &ctx.gateway_ips,
+            daemon_id: &ctx.daemon_id,
+            network_id: &ctx.network_id,
+            discovery_type: &ctx.discovery_type,
+            baseline_params: &baseline,
+            service_params: ServiceMatchServiceParams {
+                service_definition: service.clone(),
+                matched_services: &ctx.matched_services,
+                unbound_ports: &ports,
+            },
+        };
+        service.discovery_pattern().matches(&params).is_ok()
+    }
+
+    /// An echo server (`traefik/whoami`) writes the request line back into the body, so the path
+    /// `/zabbix` alone used to satisfy "body contains zabbix". The echo proves nothing; a real
+    /// Zabbix page still matches.
+    #[test]
+    fn an_echoed_request_path_does_not_match_the_service_it_names() {
+        let echo = "Hostname: 4f1c2a\nIP: 192.168.7.230\nGET /zabbix HTTP/1.1\nHost: 192.168.7.230\nUser-Agent: scanopy\n";
+        assert!(!definition_matches_response(
+            "Zabbix",
+            PortType::Http,
+            "/zabbix",
+            echo
+        ));
+
+        let zabbix = "<!DOCTYPE html><html><head><title>Zabbix</title></head><body>Sign in to Zabbix</body></html>";
+        assert!(definition_matches_response(
+            "Zabbix",
+            PortType::Http,
+            "/zabbix",
+            zabbix
+        ));
     }
 
     #[test]

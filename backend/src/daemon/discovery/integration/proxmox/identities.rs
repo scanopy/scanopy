@@ -203,7 +203,9 @@ mod tests {
     use crate::daemon::discovery::integration::proxmox::types::{
         AgentInterfaces, GuestConfig, PveEnvelope,
     };
+    use crate::server::credentials::r#impl::types::CredentialIntegration;
     use crate::server::hosts::r#impl::virtualization::ProxmoxGuestType;
+    use crate::server::hosts::r#impl::virtualization::undeclared_virtualization;
     use crate::server::hosts::service::mac_identity::{MacQuality, grade};
     use crate::server::services::r#impl::definitions::{ServiceDefinitionExt, VirtualizationRole};
     use crate::server::shared::attribution::AttributeSource;
@@ -369,6 +371,10 @@ mod tests {
         assert_eq!(presenting, Some(stored.id));
 
         let (host, ip_addresses) = identity_host(identity, owner, presenting, &subnets, network_id);
+        assert_eq!(
+            undeclared_virtualization(CredentialIntegration::Proxmox, &host),
+            None
+        );
         assert_eq!(host.base.virtualization_service_id, Some(owner));
         assert_eq!(host.base.virtualization_interface_id, Some(stored.id));
         assert!(matches!(

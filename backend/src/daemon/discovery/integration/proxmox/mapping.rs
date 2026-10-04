@@ -645,6 +645,8 @@ fn mac_evidence(mac: Option<&str>) -> Option<MacEvidence> {
 mod tests {
     use super::*;
     use crate::daemon::discovery::integration::proxmox::types::{PveEnvelope, PveVersion};
+    use crate::server::credentials::r#impl::types::CredentialIntegration;
+    use crate::server::hosts::r#impl::virtualization::undeclared_virtualization;
 
     // ------------------------------------------------------------------------------------
     // Recorded from a real Proxmox VE 8.4.21 node (the `pve` lab, `tools/wol/`) with
@@ -867,6 +869,11 @@ mod tests {
         .expect("a guest with an address is recorded");
 
         assert!(interfaces.is_empty(), "the address row carries the MAC");
+        // What the docs list as Proxmox's relationships covers what it builds.
+        assert_eq!(
+            undeclared_virtualization(CredentialIntegration::Proxmox, &host),
+            None
+        );
         assert_eq!(host.base.virtualization_service_id, Some(owner));
         assert_eq!(
             host.base.virtualization_metadata,

@@ -1002,17 +1002,20 @@ impl HostService {
                             network_live_subnets.as_ref().expect("loaded above");
 
                         let mut existing_iface = existing_by_mac.into_iter().next().unwrap();
-                        tracing::debug!(
-                            interface_ip = %ip_address.base.ip_address,
-                            interface_mac = %mac,
-                            existing_subnet_id = %existing_iface.base.subnet_id,
-                            incoming_subnet_id = %ip_address.base.subnet_id,
-                            "Found existing ip_address by MAC address (subnet_id differs, 1:1 MAC match)"
-                        );
-                        // The block was written for an interface that *moved*, and then only
-                        // refreshed the timestamp — so the reported address was discarded and the
-                        // row kept its old one, looking freshly confirmed. Carry the move through.
-                        if interface_moved(&existing_iface, &ip_address, live_subnets_for_move) {
+                        // Only a NIC re-homed to a subnet that no longer holds its old address is
+                        // the same row. Within one range, the same MAC at a different address is
+                        // ambiguous (a DHCP renewal, a second NIC answering under ARP flux, a
+                        // secondary IP), and folding it in discarded the reported address; it is
+                        // recorded as its own row below instead. Keeping a stale renewal address
+                        // beside the new one is the cost, where folding lost the live one.
+                        if !interface_moved(&existing_iface, &ip_address, live_subnets_for_move) {
+                            tracing::debug!(
+                                interface_ip = %ip_address.base.ip_address,
+                                interface_mac = %mac,
+                                existing_ip = %existing_iface.base.ip_address,
+                                "Same MAC at another address in range; recording it as its own row"
+                            );
+                        } else {
                             tracing::info!(
                                 host_id = %ip_address.base.host_id,
                                 from = %existing_iface.base.ip_address,
@@ -1021,14 +1024,14 @@ impl HostService {
                             );
                             existing_iface.base.ip_address = ip_address.base.ip_address;
                             existing_iface.base.subnet_id = ip_address.base.subnet_id;
+                            existing_iface
+                                .base
+                                .apply_mac_address(ip_address.base.mac_address.clone());
+                            existing_iface.set_last_seen_at(ip_address.last_seen_at);
+                            ip_addresses_to_refresh.push(existing_iface.clone());
+                            created_ip_addresses.push(existing_iface);
+                            continue;
                         }
-                        existing_iface
-                            .base
-                            .apply_mac_address(ip_address.base.mac_address.clone());
-                        existing_iface.set_last_seen_at(ip_address.last_seen_at);
-                        ip_addresses_to_refresh.push(existing_iface.clone());
-                        created_ip_addresses.push(existing_iface);
-                        continue;
                     }
                 }
             }
@@ -1348,6 +1351,16 @@ impl HostService {
                 &service_id_remap,
                 &live_service_ids,
             );
+            // Aligned onto its own owner (a container answering as its runtime): a service never
+            // runs inside itself, and the container details are the other container's.
+            if reassigned.base.virtualization_service_id == Some(reassigned.id) {
+                tracing::warn!(
+                    service_name = %reassigned.base.name,
+                    "Dropping container details whose owner is the service itself"
+                );
+                reassigned.base.virtualization_service_id = None;
+                reassigned.base.virtualization_metadata = None;
+            }
 
             let reassigned_id = reassigned.id;
             let created = self

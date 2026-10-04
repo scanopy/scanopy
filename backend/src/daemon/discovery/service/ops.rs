@@ -34,6 +34,7 @@ use crate::{
             mapping::CredentialQueryPayloadDiscriminants,
             run_results::{CredentialRunOutcome, CredentialRunResult},
             types::CredentialAssignment,
+            types::CredentialIntegration,
         },
         daemons::r#impl::{
             api::{DaemonDiscoveryRequest, DiscoveryUpdatePayload},
@@ -52,7 +53,7 @@ use crate::{
             base::{Host, HostBase},
             name::{HostName, HostNameSources},
             os::HostOs,
-            virtualization::HostVirtualization,
+            virtualization::{HostVirtualization, undeclared_virtualization},
         },
         interfaces::{
             r#impl::base::{Interface, InterfaceDataComplete},
@@ -1352,10 +1353,60 @@ impl DiscoveryOps {
         result
     }
 
+    /// Create a host an integration discovered, checked against what that integration declares
+    /// it reports ([`CredentialIntegration::host_virtualizations`]).
+    ///
+    /// The only way an integration submits a host: [`Self::create_host`] is private to this
+    /// module tree. A host carrying a kind of virtualization its integration does not declare
+    /// fails a debug assertion, so tests and debug builds catch it; a release build warns and
+    /// submits it anyway, since the gap is in the declaration (and the docs built from it), not
+    /// in the host.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn create_integration_host(
+        &self,
+        integration: CredentialIntegration,
+        host: Host,
+        ip_addresses: Vec<IPAddress>,
+        ports: Vec<Port>,
+        services: Vec<Service>,
+        interfaces: Vec<Interface>,
+        subnets: Vec<Subnet>,
+        interfaces_complete: bool,
+        interface_data_complete: InterfaceDataComplete,
+        cancel: &CancellationToken,
+    ) -> Result<HostResponse, Error> {
+        if let Some(kind) = undeclared_virtualization(integration, &host) {
+            tracing::warn!(
+                integration = ?integration,
+                virtualization = ?kind,
+                "An integration submitted a host with a virtualization it does not declare reporting"
+            );
+            debug_assert!(
+                false,
+                "{integration:?} submitted a {kind:?} host; add it to host_virtualizations()"
+            );
+        }
+        self.create_host(
+            host,
+            ip_addresses,
+            ports,
+            services,
+            interfaces,
+            subnets,
+            interfaces_complete,
+            interface_data_complete,
+            cancel,
+        )
+        .await
+    }
+
     /// Create a host with its children.
     /// DaemonPoll: POSTs to server. ServerPoll: buffers for server to poll.
+    ///
+    /// Private to the discovery service: integrations submit through
+    /// [`Self::create_integration_host`], which checks what they report.
     #[allow(clippy::too_many_arguments)]
-    pub async fn create_host(
+    pub(in crate::daemon::discovery::service) async fn create_host(
         &self,
         host: Host,
         ip_addresses: Vec<IPAddress>,

@@ -53,6 +53,25 @@ pub struct EndpointResponse {
     pub status: u16,
 }
 
+impl EndpointResponse {
+    /// Whether the body contains `needle` (case-insensitive) anywhere other than in an echo of the
+    /// requested path.
+    ///
+    /// Echo servers, debug pages and some reverse proxies write the request line back into the
+    /// body, so a pattern that requests `/zabbix` and looks for "zabbix" matched every one of them.
+    /// The path is removed before searching: an echo of the request says nothing about what is
+    /// serving it, while a real Zabbix page still names itself elsewhere.
+    pub fn body_contains_beyond_request(&self, needle: &str) -> bool {
+        let body = self.body.to_lowercase();
+        let needle = needle.to_lowercase();
+        let path = self.endpoint.path.to_lowercase();
+        if path.is_empty() || path == "/" {
+            return body.contains(&needle);
+        }
+        body.replace(&path, " ").contains(&needle)
+    }
+}
+
 impl Display for EndpointResponse {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let body_length = self.body.len().min(20);

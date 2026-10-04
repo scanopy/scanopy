@@ -39,6 +39,7 @@ use crate::{
         credentials::r#impl::mapping::{
             CredentialQueryPayload, CredentialQueryPayloadDiscriminants,
         },
+        credentials::r#impl::types::CredentialIntegration,
         discovery::r#impl::types::HostNamingFallback,
         ports::r#impl::base::PortType,
         services::r#impl::{base::Service, endpoints::EndpointResponse, patterns::ClientProbe},
@@ -379,6 +380,9 @@ pub struct IntegrationContext<'a> {
     /// from the integration's own `interface_view_scope`, so a call site cannot disagree with the
     /// declaration.
     pub interface_source: InterfaceSource,
+    /// The integration running, for checking what it submits against what it declares it
+    /// reports. Built by dispatch from the integration's own `credential_type`.
+    pub integration: CredentialIntegration,
     pub cancel: &'a CancellationToken,
     pub ops: &'a DiscoveryOps,
     pub utils: &'a PlatformDaemonUtils,

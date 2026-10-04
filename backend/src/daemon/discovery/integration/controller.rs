@@ -249,7 +249,8 @@ pub async fn create_client_hosts(
 
         let result = ctx
             .ops
-            .create_host(
+            .create_integration_host(
+                ctx.integration,
                 identity.into_host(network_id),
                 vec![ip_address],
                 vec![],

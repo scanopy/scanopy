@@ -84,11 +84,24 @@ impl ServiceService {
             }
         }
 
-        if let Some(virtualization_metadata) = &new_service_data.base.virtualization_metadata {
-            existing_service.base.virtualization_metadata = Some(virtualization_metadata.clone())
-        }
-        if let Some(virtualization_service_id) = new_service_data.base.virtualization_service_id {
-            existing_service.base.virtualization_service_id = Some(virtualization_service_id)
+        // A service never runs inside itself. A container that answers as its own runtime (a proxy
+        // in front of the Docker API) once arrived owned by the runtime, matched the runtime by
+        // definition, and left the runtime recorded as its own container. Its container identity
+        // is the proxy's, not the runtime's, so neither half is taken.
+        if new_service_data.base.virtualization_service_id == Some(existing_service.id) {
+            tracing::warn!(
+                service_id = %existing_service.id,
+                service_name = %existing_service.base.name,
+                "Ignoring container details whose owner is the service itself"
+            );
+        } else {
+            if let Some(virtualization_metadata) = &new_service_data.base.virtualization_metadata {
+                existing_service.base.virtualization_metadata =
+                    Some(virtualization_metadata.clone())
+            }
+            if let Some(owner) = new_service_data.base.virtualization_service_id {
+                existing_service.base.virtualization_service_id = Some(owner);
+            }
         }
 
         existing_service.base.source = match (

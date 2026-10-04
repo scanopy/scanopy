@@ -266,7 +266,23 @@ impl HostService {
             .base
             .fill_virtualization_from(&new_host_data.base)
         {
-            has_updates = true;
+            // A host never runs inside one of its own services: an ipvlan container's address once
+            // merged into its runtime's host left that host owned by its own Docker service.
+            if self.owned_by_own_service(&existing_host).await? {
+                tracing::warn!(
+                    host_id = %existing_host.id,
+                    host_name = %existing_host.base.name,
+                    "Ignoring a virtualization owner that runs on the host itself"
+                );
+                existing_host.base.virtualization_service_id =
+                    host_before_updates.base.virtualization_service_id;
+                existing_host.base.virtualization_metadata =
+                    host_before_updates.base.virtualization_metadata.clone();
+                existing_host.base.virtualization_interface_id =
+                    host_before_updates.base.virtualization_interface_id;
+            } else {
+                has_updates = true;
+            }
         }
 
         // EntitySource merge: previously concatenated discovery metadata vecs
@@ -817,6 +833,18 @@ impl HostService {
             services,
             interfaces,
         ))
+    }
+
+    /// Whether `host`'s virtualization owner is a service running on `host` itself.
+    async fn owned_by_own_service(&self, host: &Host) -> Result<bool> {
+        let Some(owner) = host.base.virtualization_service_id else {
+            return Ok(false);
+        };
+        Ok(self
+            .service_service
+            .get_by_id(&owner)
+            .await?
+            .is_some_and(|s| s.base.host_id == host.id))
     }
 
     /// Point every host presented by interface `from` at interface `to`, for a merge that maps

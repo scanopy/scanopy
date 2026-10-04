@@ -1051,3 +1051,78 @@ async fn a_presenting_interface_on_another_host_is_refused() {
         .await;
     assert!(rejected.is_err());
 }
+
+/// The same MAC at a second address in the same range is recorded beside the first, not folded
+/// into it: a two-NIC host on one segment answers for both addresses with either NIC's MAC (ARP
+/// flux), and folding lost the second address on every scan.
+#[tokio::test]
+async fn a_second_address_behind_the_same_mac_is_kept() {
+    harness!(_storage, services, lab, _container);
+
+    let first = discover(
+        &services,
+        &lab,
+        HostBase::default(),
+        vec![arp(&lab, "192.168.4.63", ens19())],
+        vec![],
+        vec![],
+    )
+    .await;
+    let second = discover(
+        &services,
+        &lab,
+        HostBase::default(),
+        vec![arp(&lab, "192.168.4.126", ens19())],
+        vec![],
+        vec![],
+    )
+    .await;
+
+    assert_eq!(second.id, first.id, "the MAC still identifies the host");
+    assert_eq!(
+        host_ips(&services, first.id).await,
+        vec![
+            "192.168.4.63".parse::<IpAddr>().unwrap(),
+            "192.168.4.126".parse().unwrap()
+        ]
+    );
+}
+
+/// A NIC whose address moved to a range its old subnet does not hold is still the same row,
+/// re-homed rather than duplicated.
+#[tokio::test]
+async fn a_nic_that_moved_to_another_range_is_rehomed() {
+    harness!(_storage, services, lab, _container);
+    let other = create_subnet(&services, lab.network_id, "10.20.0.0/24", SubnetType::Lan).await;
+    let nic: MacAddress = "bc:24:11:00:00:70".parse().unwrap();
+
+    let first = discover(
+        &services,
+        &lab,
+        HostBase::default(),
+        vec![arp(&lab, "192.168.4.70", nic)],
+        vec![],
+        vec![],
+    )
+    .await;
+    let moved = discover(
+        &services,
+        &lab,
+        HostBase::default(),
+        vec![address(
+            &lab,
+            other,
+            "10.20.0.5",
+            Some((nic, AttributeSource::ArpReply)),
+        )],
+        vec![],
+        vec![],
+    )
+    .await;
+
+    assert_eq!(moved.id, first.id);
+    assert_eq!(
+        host_ips(&services, first.id).await,
+        vec!["10.20.0.5".parse::<IpAddr>().unwrap()]
+    );
+}
