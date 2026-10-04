@@ -1,0 +1,46 @@
+{
+  "data": [
+    {
+      "netmask": "22",
+      "active": 1,
+      "cidr": "192.168.4.135/22",
+      "method": "static",
+      "iface": "vmbr0",
+      "method6": "manual",
+      "type": "bridge",
+      "families": [
+        "inet"
+      ],
+      "bridge_stp": "off",
+      "address": "192.168.4.135",
+      "autostart": 1,
+      "bridge_fd": "0",
+      "bridge_ports": "enp1s0",
+      "gateway": "192.168.4.1",
+      "priority": 4
+    },
+    {
+      "method": "manual",
+      "iface": "wlo1",
+      "priority": 5,
+      "method6": "manual",
+      "exists": 1,
+      "families": [
+        "inet"
+      ],
+      "type": "eth"
+    },
+    {
+      "method6": "manual",
+      "priority": 3,
+      "method": "manual",
+      "iface": "enp1s0",
+      "exists": 1,
+      "families": [
+        "inet"
+      ],
+      "type": "eth",
+      "active": 1
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "data": {
+    "uptime": 1658726,
+    "cpuinfo": {
+      "user_hz": 100,
+      "cores": 4,
+      "hvm": "1",
+      "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch cpuid_fault epb cat_l2 cdp_l2 ssbd ibrs ibpb stibp ibrs_enhanced tpr_shadow flexpriority ept vpid ept_ad fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid rdt_a rdseed adx smap clflushopt clwb intel_pt sha_ni xsaveopt xsavec xgetbv1 xsaves split_lock_detect user_shstk avx_vnni dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp hwp_pkg_req vnmi umip pku ospke waitpkg gfni vaes vpclmulqdq rdpid movdiri movdir64b fsrm md_clear serialize arch_lbr ibt flush_l1d arch_capabilities ibpb_exit_to_user",
+      "model": "Intel(R) N100",
+      "mhz": "2899.910",
+      "sockets": 1,
+      "cpus": 4
+    },
+    "cpu": 0.0694639427930191,
+    "rootfs": {
+      "free": 31561674752,
+      "used": 69300051968,
+      "avail": 26390937600,
+      "total": 100861726720
+    },
+    "loadavg": [
+      "0.47",
+      "0.35",
+      "0.29"
+    ],
+    "pveversion": "pve-manager/8.4.21/2606ac850d46da29",
+    "kversion": "Linux 6.8.12-16-pve #1 SMP PREEMPT_DYNAMIC PMX 6.8.12-16 (2025-10-14T08:58Z)",
+    "boot-info": {
+      "mode": "efi",
+      "secureboot": 0
+    },
+    "memory": {
+      "used": 12432179200,
+      "free": 187678720,
+      "total": 16540164096
+    },
+    "ksm": {
+      "shared": 448696320
+    },
+    "swap": {
+      "used": 5244059648,
+      "free": 3345870848,
+      "total": 8589930496
+    },
+    "current-kernel": {
+      "version": "#1 SMP PREEMPT_DYNAMIC PMX 6.8.12-16 (2025-10-14T08:58Z)",
+      "release": "6.8.12-16-pve",
+      "machine": "x86_64",
+      "sysname": "Linux"
+    },
+    "idle": 0,
+    "wait": 0.00212342885046084
+  }
+}

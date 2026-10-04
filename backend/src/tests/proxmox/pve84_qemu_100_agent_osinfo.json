@@ -1,0 +1,16 @@
+{
+  "data": {
+    "result": {
+      "variant": "Home Assistant OS Open Virtual Appliance",
+      "kernel-version": "#1 SMP PREEMPT_DYNAMIC Thu Jul 30 12:31:10 UTC 2026",
+      "pretty-name": "Home Assistant OS 18.2",
+      "id": "haos",
+      "machine": "x86_64",
+      "version-id": "18.2",
+      "kernel-release": "6.18.39-haos",
+      "variant-id": "ova",
+      "version": "18.2 (Open Virtual Appliance)",
+      "name": "Home Assistant OS"
+    }
+  }
+}
