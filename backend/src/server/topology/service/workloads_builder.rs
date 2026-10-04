@@ -1449,9 +1449,7 @@ mod tests {
         use crate::server::hosts::r#impl::virtualization::NetworkIdentityVirtualization;
         let mut host = make_host(interface);
         host.base.virtualization_metadata = Some(HostVirtualization::NetworkIdentity(
-            NetworkIdentityVirtualization {
-                interface: Some(interface.to_string()),
-            },
+            NetworkIdentityVirtualization {},
         ));
         host.base.virtualization_service_id = Some(identities_service_id);
         host

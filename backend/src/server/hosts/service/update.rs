@@ -23,6 +23,7 @@ impl HostService {
             description,
             virtualization_metadata,
             virtualization_service_id,
+            virtualization_interface_id,
             hidden,
             tags,
             expected_updated_at: _,
@@ -56,6 +57,12 @@ impl HostService {
         // a validation error, not a foreign-key 500.
         self.validate_virtualization_service(virtualization_service_id)
             .await?;
+        self.validate_virtualization_interface(
+            network_id,
+            virtualization_service_id,
+            virtualization_interface_id,
+        )
+        .await?;
 
         let mut updated_host = Host {
             id,
@@ -78,6 +85,7 @@ impl HostService {
                 description,
                 virtualization_metadata,
                 virtualization_service_id,
+                virtualization_interface_id,
                 hidden,
                 tags: tags.clone(),
                 // Preserve existing SNMP fields on update

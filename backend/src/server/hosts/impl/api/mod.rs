@@ -725,6 +725,9 @@ pub struct CreateHostRequest {
     /// The hypervisor service this VM runs on.
     #[serde(default)]
     pub virtualization_service_id: Option<Uuid>,
+    /// The interface on the virtualizing host that presents this host, for a network identity.
+    #[serde(default)]
+    pub virtualization_interface_id: Option<Uuid>,
     /// Hide the host from topology views without deleting it.
     #[serde(default)]
     pub hidden: bool,
@@ -794,6 +797,9 @@ pub struct UpdateHostRequest {
     /// The hypervisor service this VM runs on.
     #[serde(default)]
     pub virtualization_service_id: Option<Uuid>,
+    /// The interface on the virtualizing host that presents this host, for a network identity.
+    #[serde(default)]
+    pub virtualization_interface_id: Option<Uuid>,
     /// Hide the host from topology views without deleting it.
     pub hidden: bool,
     /// Tags assigned to this entity.
@@ -907,6 +913,9 @@ pub struct HostResponse {
     /// The hypervisor service this VM runs on.
     #[serde(default)]
     pub virtualization_service_id: Option<Uuid>,
+    /// The interface on the virtualizing host that presents this host, for a network identity.
+    #[serde(default)]
+    pub virtualization_interface_id: Option<Uuid>,
     /// Whether the host is hidden from topology views.
     pub hidden: bool,
     /// Tags assigned to this entity.

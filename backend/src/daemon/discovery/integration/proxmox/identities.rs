@@ -18,8 +18,9 @@ use crate::server::hosts::r#impl::{
     base::{Host, HostBase},
     virtualization::{HostVirtualization, NetworkIdentityVirtualization},
 };
+use crate::server::interfaces::r#impl::base::{Interface, InterfaceBase};
 use crate::server::ip_addresses::r#impl::base::{
-    IPAddress, MacEvidence, MacEvidenceValue, is_unset_mac,
+    IPAddress, MacEvidence, MacEvidenceValue, is_unset_mac, mac_of,
 };
 use crate::server::services::definitions::network_identities::NetworkIdentities;
 use crate::server::services::r#impl::base::{Service, ServiceBase};
@@ -118,16 +119,49 @@ pub fn guest_services(guest: &Host, identities: &[NetworkIdentity]) -> Vec<Servi
     })]
 }
 
-/// An identity's host: its addresses, each with its MAC, linked to the guest's Network
-/// Identities service (`owner`). Unnamed, since the device's own data names it.
+/// The identity's MAC as the guest OS reports it.
 ///
-/// The MAC is the guest OS's report, not the hypervisor's assignment, and a kernel macvlan MAC is
-/// random and locally administered. So it is filed as [`REPORTED`], which leaves it weak: it
-/// never anchors the host on its own. Each address matches the host the network sweep already
-/// holds for it.
+/// Not the hypervisor's assignment, and a kernel macvlan MAC is random and locally administered.
+/// So it is filed as [`REPORTED`], which leaves it weak: it never anchors a host on its own.
+fn identity_mac(identity: &NetworkIdentity) -> Option<MacEvidence> {
+    identity
+        .mac
+        .parse()
+        .ok()
+        .map(|m| MacEvidence::new(MacEvidenceValue(m), REPORTED))
+}
+
+/// The guest's own interface an identity sits on, carried in the guest's submission so the
+/// identity can name it by its stored id ([`presenting_interface_id`]). No address: the
+/// identity's addresses are its own host's.
+pub fn identity_interface(identity: &NetworkIdentity, network_id: Uuid) -> Interface {
+    Interface::new(InterfaceBase {
+        host_id: Uuid::nil(), // Server assigns.
+        network_id,
+        if_name: identity.interface.clone(),
+        mac_address: identity_mac(identity),
+        ..Default::default()
+    })
+}
+
+/// The stored id of the guest interface `identity` sits on, found among the interfaces the
+/// guest's create response returned by its MAC and name.
+pub fn presenting_interface_id(identity: &NetworkIdentity, stored: &[Interface]) -> Option<Uuid> {
+    let mac = identity.mac.parse::<mac_address::MacAddress>().ok()?;
+    stored
+        .iter()
+        .find(|i| mac_of(&i.base.mac_address) == Some(mac) && i.base.if_name == identity.interface)
+        .map(|i| i.id)
+}
+
+/// An identity's host: its addresses, each with the identity's MAC, linked to the guest's
+/// Network Identities service (`owner`) and to the guest interface that presents it
+/// (`presenting_interface`). Unnamed, since the device's own data names it. Each address matches
+/// the host the network sweep already holds for it.
 pub fn identity_host(
     identity: &NetworkIdentity,
     owner: Uuid,
+    presenting_interface: Option<Uuid>,
     subnets: &[Subnet],
     network_id: Uuid,
 ) -> (Host, Vec<IPAddress>) {
@@ -135,18 +169,13 @@ pub fn identity_host(
         network_id,
         source: EntitySource::Discovery,
         virtualization_metadata: Some(HostVirtualization::NetworkIdentity(
-            NetworkIdentityVirtualization {
-                interface: identity.interface.clone(),
-            },
+            NetworkIdentityVirtualization {},
         )),
         virtualization_service_id: Some(owner),
+        virtualization_interface_id: presenting_interface,
         ..Default::default()
     });
-    let mac: Option<MacEvidence> = identity
-        .mac
-        .parse()
-        .ok()
-        .map(|m| MacEvidence::new(MacEvidenceValue(m), REPORTED));
+    let mac = identity_mac(identity);
     let ip_addresses = identity
         .addresses
         .iter()
@@ -317,25 +346,35 @@ mod tests {
         assert!(guest_services(&guest, &[]).is_empty());
     }
 
-    /// The identity's host links to the guest's service, says which interface it is, places its
-    /// address on the LAN, and carries a MAC that cannot anchor it.
+    /// The guest submits the interface an identity sits on; the identity finds it among the
+    /// guest's stored interfaces by MAC and name, and its host links to both the guest's service
+    /// and that interface, places its address on the LAN, and carries a MAC that cannot anchor it.
     #[test]
-    fn an_identity_host_carries_its_link_interface_and_a_weak_mac() {
+    fn an_identity_host_links_its_owner_and_presenting_interface_with_a_weak_mac() {
         let (nics, reported) = docker_host_with_macvlan();
         let subnets = subnets();
+        let network_id = Uuid::new_v4();
         let identity = &network_identities(&nics, &reported, &subnets)[0];
         let owner = Uuid::new_v4();
 
-        let (host, ip_addresses) = identity_host(identity, owner, &subnets, Uuid::new_v4());
+        let submitted = identity_interface(identity, network_id);
+        assert_eq!(submitted.base.if_name.as_deref(), Some("mv-snmp4"));
+        // As stored: a server id, beside another of the guest's interfaces sharing the MAC.
+        let stored = Interface::new(submitted.base.clone());
+        let same_mac_other_name = Interface::new(InterfaceBase {
+            if_name: Some("mv-snmp5".to_string()),
+            ..submitted.base.clone()
+        });
+        let presenting = presenting_interface_id(identity, &[same_mac_other_name, stored.clone()]);
+        assert_eq!(presenting, Some(stored.id));
+
+        let (host, ip_addresses) = identity_host(identity, owner, presenting, &subnets, network_id);
         assert_eq!(host.base.virtualization_service_id, Some(owner));
-        assert_eq!(
+        assert_eq!(host.base.virtualization_interface_id, Some(stored.id));
+        assert!(matches!(
             host.base.virtualization_metadata,
-            Some(HostVirtualization::NetworkIdentity(
-                NetworkIdentityVirtualization {
-                    interface: Some("mv-snmp4".to_string()),
-                }
-            ))
-        );
+            Some(HostVirtualization::NetworkIdentity(_))
+        ));
         assert_eq!(ip_addresses.len(), 1);
         assert_eq!(ip_addresses[0].base.subnet_id, subnets[0].id);
         let mac = ip_addresses[0].base.mac_address.as_ref().expect("MAC kept");

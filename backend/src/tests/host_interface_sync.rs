@@ -42,6 +42,7 @@ fn update_request(id: Uuid, interfaces: Option<Vec<InterfaceInput>>) -> UpdateHo
         description: None,
         virtualization_metadata: None,
         virtualization_service_id: None,
+        virtualization_interface_id: None,
         hidden: false,
         tags: vec![],
         expected_updated_at: None,

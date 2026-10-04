@@ -7,8 +7,8 @@ use crate::server::services::r#impl::patterns::Pattern;
 ///
 /// Like Unclaimed Open Ports it records data rather than a running service: each identity is a
 /// host of its own linked to this service (`HostVirtualization::NetworkIdentity`). Never matched
-/// from the network; the Proxmox integration attaches it when a guest's agent reports such an
-/// interface. Not generic, so a host holds one.
+/// from the network; an integration attaches it when it reports such an interface (today Proxmox VE,
+/// through the QEMU guest agent). Not generic, so a host holds one.
 #[derive(Default, Clone, Eq, PartialEq, Hash)]
 pub struct NetworkIdentities;
 

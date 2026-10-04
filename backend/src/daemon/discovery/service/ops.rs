@@ -1680,6 +1680,7 @@ impl DiscoveryOps {
             source: EntitySource::Discovery,
             virtualization_metadata: None,
             virtualization_service_id: None,
+            virtualization_interface_id: None,
             hidden: false,
             sys_descr: None,
             sys_object_id: None,

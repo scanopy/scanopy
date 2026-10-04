@@ -41,8 +41,9 @@
 	);
 	let identityInterface = $derived.by(() => {
 		if (identityHosts.length !== 1) return null;
-		const virtualization = identityHosts[0].virtualization_metadata;
-		return virtualization?.type === 'NetworkIdentity' ? virtualization.details.interface : null;
+		const interfaceId = identityHosts[0].virtualization_interface_id;
+		if (!interfaceId) return null;
+		return topology?.interfaces.find((i) => i.id === interfaceId)?.if_name ?? null;
 	});
 
 	function hostContext(host: Host) {

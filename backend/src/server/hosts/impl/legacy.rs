@@ -380,6 +380,7 @@ impl LegacyHostWithServicesRequest {
                 source: crate::server::shared::types::entities::EntitySource::Discovery,
                 virtualization_metadata: None,
                 virtualization_service_id: None,
+                virtualization_interface_id: None,
                 hidden: host.hidden,
                 tags: host.tags,
                 sys_descr: None,

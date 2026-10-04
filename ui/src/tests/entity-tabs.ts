@@ -208,6 +208,8 @@ export const COVERAGE: Record<string, TabCoverage> = {
 					id: ID,
 					...HISTORY,
 					virtualization_metadata: 'Provider details of a VM guest; Virtualized by names the host',
+					virtualization_interface_id:
+						'The guest interface a network identity sits on; shown in its details and edge inspector',
 					...hostAttributeSources([
 						'name',
 						'hostname',

@@ -63,6 +63,7 @@ export function toHostPrimitive(response: HostResponse): Host {
 		description: hostFields.description ?? null,
 		virtualization_metadata: hostFields.virtualization_metadata ?? null,
 		virtualization_service_id: hostFields.virtualization_service_id ?? null,
+		virtualization_interface_id: hostFields.virtualization_interface_id ?? null,
 		credential_assignments: hostFields.credential_assignments ?? [],
 		hostname: hostFields.hostname ?? undefined,
 		sys_descr: hostFields.sys_descr ?? undefined,
@@ -128,6 +129,7 @@ function toCreateHostRequest(formData: HostFormData): CreateHostRequest {
 		description: formData.description,
 		virtualization_metadata: formData.virtualization_metadata,
 		virtualization_service_id: formData.virtualization_service_id,
+		virtualization_interface_id: formData.virtualization_interface_id,
 		hidden: formData.hidden,
 		tags: formData.tags,
 		ip_addresses: formData.ip_addresses.map((iface, index): IPAddressInput => ({
@@ -569,6 +571,7 @@ export function useUpdateHostMutation() {
 				description: data.host.description,
 				virtualization_metadata: data.host.virtualization_metadata,
 				virtualization_service_id: data.host.virtualization_service_id,
+				virtualization_interface_id: data.host.virtualization_interface_id,
 				hidden: data.host.hidden,
 				tags: data.host.tags,
 				credential_assignments: data.host.credential_assignments ?? undefined,
@@ -668,6 +671,7 @@ export function useUpdateHostDescriptionMutation() {
 						description: data.description,
 						virtualization_metadata: data.host.virtualization_metadata,
 						virtualization_service_id: data.host.virtualization_service_id,
+						virtualization_interface_id: data.host.virtualization_interface_id,
 						hidden: data.host.hidden,
 						expected_updated_at: data.host.updated_at,
 						tags: data.host.tags ?? []
@@ -948,6 +952,7 @@ export function createEmptyHostFormData(defaultNetworkId?: string): HostFormData
 		},
 		virtualization_metadata: null,
 		virtualization_service_id: null,
+		virtualization_interface_id: null,
 		network_id: defaultNetworkId ?? '',
 		hidden: false,
 		// The discovered attributes are simply absent on a host nothing has scanned yet. They each

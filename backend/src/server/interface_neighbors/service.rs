@@ -391,4 +391,108 @@ impl InterfaceNeighborService {
             })
             .collect())
     }
+
+    // ========================================================================
+    // Host merge — carrying adjacencies onto the surviving records
+    // ========================================================================
+
+    /// Move every resolved adjacency of interface `from` onto interface `to`, on either end.
+    ///
+    /// For a host merge that maps one host's interface onto the other's matching one. A row the
+    /// move would duplicate (the survivor already has that adjacency) or turn into a self-loop is
+    /// deleted instead, since the natural keys are unique among live rows.
+    pub async fn repoint_interface(&self, network_id: Uuid, from: Uuid, to: Uuid) -> Result<()> {
+        let to_interfaces = self.resolved_interfaces.get_for_parent(&to).await?;
+        for mut row in self.resolved_interfaces.get_for_parent(&from).await? {
+            let neighbor = row.base.neighbor_interface_id;
+            if neighbor == to
+                || to_interfaces
+                    .iter()
+                    .any(|r| r.base.neighbor_interface_id == neighbor)
+            {
+                self.resolved_interfaces.inner().delete(&row.id).await?;
+            } else {
+                row.base.interface_id = to;
+                self.resolved_interfaces.inner().update(&mut row).await?;
+            }
+        }
+
+        let pointing_at_from = self
+            .resolved_interfaces
+            .inner()
+            .get_all(
+                StorableFilter::<InterfaceNeighborInterface>::new_from_network_ids(&[network_id])
+                    .neighbor_interface_id(&from)
+                    .live(),
+            )
+            .await?;
+        let pointing_at_to = self
+            .resolved_interfaces
+            .inner()
+            .get_all(
+                StorableFilter::<InterfaceNeighborInterface>::new_from_network_ids(&[network_id])
+                    .neighbor_interface_id(&to)
+                    .live(),
+            )
+            .await?;
+        for mut row in pointing_at_from {
+            let local = row.base.interface_id;
+            if local == to || pointing_at_to.iter().any(|r| r.base.interface_id == local) {
+                self.resolved_interfaces.inner().delete(&row.id).await?;
+            } else {
+                row.base.neighbor_interface_id = to;
+                self.resolved_interfaces.inner().update(&mut row).await?;
+            }
+        }
+
+        let to_hosts = self.resolved_hosts.get_for_parent(&to).await?;
+        for mut row in self.resolved_hosts.get_for_parent(&from).await? {
+            let neighbor = row.base.neighbor_host_id;
+            if to_hosts.iter().any(|r| r.base.neighbor_host_id == neighbor) {
+                self.resolved_hosts.inner().delete(&row.id).await?;
+            } else {
+                row.base.interface_id = to;
+                self.resolved_hosts.inner().update(&mut row).await?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Point every adjacency that names host `from` as the neighbour at host `to`.
+    ///
+    /// For a host merge, after `from`'s interfaces have moved to `to`. A row local to one of
+    /// `to_interface_ids` would become a self-loop, and one the survivor already has would be a
+    /// duplicate; both are deleted.
+    pub async fn repoint_neighbor_host(
+        &self,
+        network_id: Uuid,
+        from: Uuid,
+        to: Uuid,
+        to_interface_ids: &HashSet<Uuid>,
+    ) -> Result<()> {
+        let filter = |host: &Uuid| {
+            StorableFilter::<InterfaceNeighborHost>::new_from_network_ids(&[network_id])
+                .neighbor_host_id(host)
+                .live()
+        };
+        let pointing_at_to = self.resolved_hosts.inner().get_all(filter(&to)).await?;
+        // An interface that moved to `to` and named `to` as its neighbour now names itself.
+        for row in &pointing_at_to {
+            if to_interface_ids.contains(&row.base.interface_id) {
+                self.resolved_hosts.inner().delete(&row.id).await?;
+            }
+        }
+        for mut row in self.resolved_hosts.inner().get_all(filter(&from)).await? {
+            let local = row.base.interface_id;
+            if to_interface_ids.contains(&local)
+                || pointing_at_to.iter().any(|r| r.base.interface_id == local)
+            {
+                self.resolved_hosts.inner().delete(&row.id).await?;
+            } else {
+                row.base.neighbor_host_id = to;
+                self.resolved_hosts.inner().update(&mut row).await?;
+            }
+        }
+        Ok(())
+    }
 }

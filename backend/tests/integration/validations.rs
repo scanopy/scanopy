@@ -41,6 +41,7 @@ async fn test_service_network_validation(ctx: &TestContext) -> Result<(), String
         description: None,
         virtualization_metadata: None,
         virtualization_service_id: None,
+        virtualization_interface_id: None,
         hidden: false,
         tags: Vec::new(),
         // SNMP fields

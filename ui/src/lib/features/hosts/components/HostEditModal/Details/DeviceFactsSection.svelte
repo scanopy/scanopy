@@ -17,6 +17,7 @@
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
 	import { useServicesByIds } from '$lib/features/services/queries';
 	import { useHostSummariesQuery } from '$lib/features/hosts/queries';
+	import { useInterfacesQuery } from '$lib/features/interfaces/queries';
 	import {
 		common_contact,
 		common_firmwareRevision,
@@ -78,6 +79,15 @@
 
 	// The owner is the host that runs the service virtualizing this one: the hypervisor of a VM,
 	// the runtime host of a container, the host presenting a network identity.
+	// The guest interface that presents a network identity, from the interfaces the hosts query
+	// cached; absent when that host is not loaded.
+	const interfacesQuery = useInterfacesQuery();
+	let presentingInterface = $derived(
+		host.virtualization_interface_id
+			? (interfacesQuery.data?.find((i) => i.id === host.virtualization_interface_id) ?? null)
+			: null
+	);
+
 	const ownerServiceQuery = useServicesByIds(() =>
 		host.virtualization_service_id ? [host.virtualization_service_id] : []
 	);
@@ -150,7 +160,7 @@
 			case 'NetworkIdentity':
 				return [
 					owner(common_presentedBy()),
-					sourceless(common_interface(), virtualization.details.interface)
+					sourceless(common_interface(), presentingInterface?.if_name ?? null)
 				];
 		}
 	});
