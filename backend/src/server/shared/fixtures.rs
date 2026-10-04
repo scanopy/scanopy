@@ -187,6 +187,13 @@ pub fn generate_ui_data_fixtures(output_dir: &Path) {
         "container-network-types.json",
     );
 
+    // A port's ifOperStatus, keyed by `IfOperStatus`: the inspector's status tag colour.
+    let if_oper_statuses: Vec<TypeMetadata> =
+        crate::server::interfaces::r#impl::base::IfOperStatus::iter()
+            .map(|s| s.to_metadata())
+            .collect();
+    write_fixture(&if_oper_statuses, output_dir, "if-oper-statuses.json");
+
     // Keyed by `CredentialQueryPayloadDiscriminants`, which is what a coded warning carries.
     // Neither `integrations.json` (keyed by display name) nor `credential-types.json` (keyed by
     // `CredentialType`) can resolve those eight values.
