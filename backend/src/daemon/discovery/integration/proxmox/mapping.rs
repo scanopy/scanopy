@@ -16,15 +16,13 @@ use crate::server::hosts::r#impl::{
 };
 use crate::server::hosts::service::mac_identity::identity_permits_minting;
 use crate::server::interfaces::r#impl::base::{Interface, InterfaceBase};
-use crate::server::ip_addresses::r#impl::base::{
-    IPAddress, IPAddressBase, MacEvidence, MacEvidenceValue,
-};
+use crate::server::ip_addresses::r#impl::base::{IPAddress, MacEvidence, MacEvidenceValue};
 use crate::server::lldp::canonical_mac;
 use crate::server::services::r#impl::patterns::ClientProbe;
 use crate::server::shared::attribution::{AttributeSource, Attributed};
+use crate::server::shared::position::renumber_positions;
 use crate::server::shared::types::entities::EntitySource;
 use crate::server::subnets::r#impl::base::Subnet;
-use crate::server::subnets::r#impl::inference::placeable_subnet;
 
 use super::types::{
     AgentHostName, AgentInterfaces, AgentOsInfo, ClusterResource, ClusterStatusEntry, GuestConfig,
@@ -502,14 +500,15 @@ pub fn node_host(
         .map(|a| a.ip)
         .filter(|other| *other != ip);
     let mut seen = BTreeSet::new();
-    let ip_addresses = std::iter::once(ip)
+    let mut ip_addresses: Vec<IPAddress> = std::iter::once(ip)
         .chain(others)
         .filter(|a| seen.insert(*a))
         .enumerate()
-        .map(|(position, a)| {
-            reported_address(network_id, subnets, a, None, iface_of(a), position as i32)
+        .filter_map(|(position, a)| {
+            IPAddress::discovered(network_id, subnets, a, None, iface_of(a), position as i32)
         })
         .collect();
+    renumber_positions(&mut ip_addresses);
     (host, ip_addresses)
 }
 
@@ -588,21 +587,22 @@ pub fn guest_host(
     }
 
     let mut seen = BTreeSet::new();
-    let ip_addresses: Vec<IPAddress> = addresses
+    let mut ip_addresses: Vec<IPAddress> = addresses
         .iter()
         .filter(|a| seen.insert(a.ip))
         .enumerate()
-        .map(|(position, a)| {
-            reported_address(
+        .filter_map(|(position, a)| {
+            IPAddress::discovered(
                 network_id,
                 subnets,
                 a.ip,
-                a.mac.as_deref(),
+                mac_evidence(a.mac.as_deref()),
                 a.interface.clone(),
                 position as i32,
             )
         })
         .collect();
+    renumber_positions(&mut ip_addresses);
 
     let interfaces: Vec<Interface> = if ip_addresses.is_empty() {
         nic_macs
@@ -639,27 +639,6 @@ pub fn guest_host(
 fn mac_evidence(mac: Option<&str>) -> Option<MacEvidence> {
     mac.and_then(|m| m.parse().ok())
         .map(|m| MacEvidence::new(MacEvidenceValue(m), NIC_MAC))
-}
-
-/// An address the hypervisor reports, placed in the most specific live subnet that holds it. Nil
-/// when none does, which leaves the server to place it.
-fn reported_address(
-    network_id: Uuid,
-    subnets: &[Subnet],
-    ip: IpAddr,
-    mac: Option<&str>,
-    name: Option<String>,
-    position: i32,
-) -> IPAddress {
-    IPAddress::new(IPAddressBase {
-        network_id,
-        host_id: Uuid::nil(),
-        subnet_id: placeable_subnet(subnets, ip).map_or(Uuid::nil(), |s| s.id),
-        ip_address: ip,
-        mac_address: mac_evidence(mac),
-        name,
-        position,
-    })
 }
 
 #[cfg(test)]
@@ -992,10 +971,11 @@ mod tests {
         })
     }
 
-    /// Each address row names the live subnet that holds it, the way every other discovery path
-    /// sends it; an address no live subnet holds goes with a nil id, for the server to place.
+    /// Each address follows the one submission rule: a held address names its subnet, a ULA one
+    /// goes nil for the server to infer, and a global IPv6 one is not sent, since the server could
+    /// place it nowhere and would fail the whole guest. Positions close over the dropped one.
     #[test]
-    fn a_guests_addresses_carry_the_subnet_that_holds_them() {
+    fn a_guests_addresses_follow_the_submission_rule() {
         let resources: Vec<ClusterResource> = data(RESOURCES);
         let nics = config_nics(&data(LXC_104_CONFIG));
         let interfaces: Vec<LxcInterface> = data(LXC_104_INTERFACES);
@@ -1014,19 +994,27 @@ mod tests {
         )
         .expect("a guest with addresses is recorded");
 
-        let subnet_of = |ip: &str| {
-            record
-                .ip_addresses
-                .iter()
-                .find(|r| r.base.ip_address.to_string() == ip)
-                .expect("address is submitted")
-                .base
-                .subnet_id
-        };
-        assert_eq!(subnet_of("192.168.4.191"), lan.id);
+        let submitted: Vec<(String, Uuid, i32)> = record
+            .ip_addresses
+            .iter()
+            .map(|r| {
+                (
+                    r.base.ip_address.to_string(),
+                    r.base.subnet_id,
+                    r.base.position,
+                )
+            })
+            .collect();
         assert_eq!(
-            subnet_of("2001:db8:58d0:3a00:be24:11ff:fe71:ef5c"),
-            Uuid::nil()
+            submitted,
+            vec![
+                ("192.168.4.191".to_string(), lan.id, 0),
+                (
+                    "fd0b:d38d:98f6:1:be24:11ff:fe71:ef5c".to_string(),
+                    Uuid::nil(),
+                    1
+                ),
+            ]
         );
     }
 

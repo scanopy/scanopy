@@ -77,7 +77,7 @@ use crate::{
             types::entities::EntitySource,
             types::metadata::HasId,
         },
-        subnets::r#impl::base::Subnet,
+        subnets::r#impl::{base::Subnet, inference::is_inferrable_space},
     },
 };
 
@@ -132,6 +132,37 @@ async fn reserve_submit_slot(
     let at = (*next).max(tokio::time::Instant::now());
     *next = at + interval;
     at
+}
+
+/// Drop every address the server could place nowhere: a nil subnet id, which asks the server to
+/// infer a range, on an address outside the space it infers ranges for (public IPv4, global IPv6).
+/// The server's FK insert would otherwise fail the whole host.
+///
+/// The backstop for [`IPAddress::discovered`], the rule every integration builds its addresses
+/// with: one that builds an address another way loses that address, not the host. An interface
+/// that pointed at a dropped address keeps its other data and loses only that reference.
+fn retain_submittable_addresses(ip_addresses: &mut Vec<IPAddress>, interfaces: &mut [Interface]) {
+    let mut dropped = HashSet::new();
+    ip_addresses.retain(|a| {
+        let submittable = !a.base.subnet_id.is_nil() || is_inferrable_space(&a.base.ip_address);
+        if !submittable {
+            tracing::warn!(
+                ip = %a.base.ip_address,
+                "Dropping a discovered address no subnet holds and none may be inferred for"
+            );
+            dropped.insert(a.id);
+        }
+        submittable
+    });
+    for interface in interfaces {
+        if interface
+            .base
+            .ip_address_id
+            .is_some_and(|id| dropped.contains(&id))
+        {
+            interface.base.ip_address_id = None;
+        }
+    }
 }
 
 /// Mutable host state passed to integration execute() methods.
@@ -1338,6 +1369,8 @@ impl DiscoveryOps {
     ) -> Result<HostResponse, Error> {
         let mode = self.config_store.get_mode().await?;
         let pending_id = host.id;
+        let (mut ip_addresses, mut interfaces) = (ip_addresses, interfaces);
+        retain_submittable_addresses(&mut ip_addresses, &mut interfaces);
 
         let request = DiscoveryHostRequest {
             host,
@@ -2290,6 +2323,43 @@ mod tests {
         // The reserved slot is "now", not the stale past value — no artificial
         // wait is imposed on the first request after an idle period.
         assert!(slot >= before);
+    }
+
+    /// A nil subnet on a global address is dropped before submission, along with any interface's
+    /// reference to it; held addresses and nil ULA addresses (the server infers those) go through.
+    #[test]
+    fn an_address_the_server_could_not_place_is_not_submitted() {
+        use crate::server::interfaces::r#impl::base::InterfaceBase;
+        use crate::server::ip_addresses::r#impl::base::IPAddressBase;
+
+        let address = |ip: &str, subnet_id: Uuid| {
+            IPAddress::new(IPAddressBase {
+                subnet_id,
+                ip_address: ip.parse().unwrap(),
+                ..Default::default()
+            })
+        };
+        let held = address("192.168.4.126", Uuid::new_v4());
+        let global = address("2600:4808:58d0:3a00::5", Uuid::nil());
+        let ula = address("fd0b:d38d:98f6:1::5", Uuid::nil());
+        let mut interfaces = vec![
+            Interface::new(InterfaceBase {
+                ip_address_id: Some(global.id),
+                ..Default::default()
+            }),
+            Interface::new(InterfaceBase {
+                ip_address_id: Some(held.id),
+                ..Default::default()
+            }),
+        ];
+        let mut ip_addresses = vec![held.clone(), global, ula.clone()];
+
+        retain_submittable_addresses(&mut ip_addresses, &mut interfaces);
+
+        let kept: Vec<Uuid> = ip_addresses.iter().map(|a| a.id).collect();
+        assert_eq!(kept, vec![held.id, ula.id]);
+        assert_eq!(interfaces[0].base.ip_address_id, None);
+        assert_eq!(interfaces[1].base.ip_address_id, Some(held.id));
     }
 }
 

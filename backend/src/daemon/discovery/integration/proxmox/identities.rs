@@ -19,7 +19,7 @@ use crate::server::hosts::r#impl::{
     virtualization::{HostVirtualization, NetworkIdentityVirtualization},
 };
 use crate::server::ip_addresses::r#impl::base::{
-    IPAddress, IPAddressBase, MacEvidence, MacEvidenceValue, is_unset_mac,
+    IPAddress, MacEvidence, MacEvidenceValue, is_unset_mac,
 };
 use crate::server::services::definitions::network_identities::NetworkIdentities;
 use crate::server::services::r#impl::base::{Service, ServiceBase};
@@ -151,16 +151,15 @@ pub fn identity_host(
         .addresses
         .iter()
         .enumerate()
-        .map(|(position, ip)| {
-            IPAddress::new(IPAddressBase {
+        .filter_map(|(position, ip)| {
+            IPAddress::discovered(
                 network_id,
-                host_id: Uuid::nil(),
-                subnet_id: placeable_subnet(subnets, *ip).map_or(Uuid::nil(), |s| s.id),
-                ip_address: *ip,
-                mac_address: mac.clone(),
-                name: identity.interface.clone(),
-                position: position as i32,
-            })
+                subnets,
+                *ip,
+                mac.clone(),
+                identity.interface.clone(),
+                position as i32,
+            )
         })
         .collect();
     (host, ip_addresses)

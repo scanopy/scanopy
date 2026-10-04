@@ -109,6 +109,8 @@ fn map_device(
     by_id: &HashMap<&str, &InstantOnDevice>,
 ) -> Option<MappedDevice> {
     let ip: IpAddr = device.ip_address.as_deref()?.trim().parse().ok()?;
+    // Held subnets only, stricter than the submission rule (`IPAddress::discovered`): the device
+    // is matched here, on the daemon, and needs a real subnet to match against.
     // Not first-match: the list carries the `0.0.0.0/0` organizational rows, which contain every
     // IPv4 address, so `find` returned `Internet` for everything and nothing was ever skipped.
     let subnet = placeable_subnet(subnets, ip)?;

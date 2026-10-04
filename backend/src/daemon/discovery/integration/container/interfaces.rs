@@ -259,8 +259,8 @@ pub fn container_interfaces(
 /// A container's addresses as a host of its own, with the subnet each was placed in.
 ///
 /// Its macvlan/ipvlan addresses come first (IPv4 and the global IPv6 address), named by network
-/// and placed with `placeable_subnet` over `placement_subnets`. The subnet is `None` only when no
-/// subnet holds the address, which leaves the server to place it. Bridge addresses follow, on
+/// and filed by [`IPAddress::discovered`] over `placement_subnets`: the subnet is `None` when the
+/// server is to infer one, and an address it could place nowhere is left out. Bridge addresses follow, on
 /// their bridge subnet. The runtime host's addresses are not among them: they belong to the
 /// runtime's host.
 ///
@@ -305,19 +305,18 @@ pub fn container_host_addresses(
             .into_iter()
             .filter_map(|ip| ip.as_ref()?.parse::<IpAddr>().ok());
         for ip_address in ips {
+            let Some(address) = IPAddress::discovered(
+                network_id,
+                placement_subnets,
+                ip_address,
+                mac_address.clone(),
+                Some(network_name.to_owned()),
+                0,
+            ) else {
+                continue;
+            };
             let subnet = placeable_subnet(placement_subnets, ip_address).cloned();
-            lan_addresses.push((
-                IPAddress::new(IPAddressBase {
-                    network_id,
-                    host_id: Uuid::nil(), // Server assigns.
-                    subnet_id: subnet.as_ref().map_or(Uuid::nil(), |s| s.id),
-                    ip_address,
-                    mac_address: mac_address.clone(),
-                    name: Some(network_name.to_owned()),
-                    position: 0,
-                }),
-                subnet,
-            ));
+            lan_addresses.push((address, subnet));
         }
     }
 

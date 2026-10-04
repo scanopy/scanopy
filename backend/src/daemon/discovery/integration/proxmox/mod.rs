@@ -442,7 +442,8 @@ async fn read_node(client: &ProxmoxClient, node: &NodeSpec) -> NodeReading {
 /// Record a node's host with its Proxmox VE service, returning that service's stored id.
 ///
 /// `None` when the node has no known address, or the address sits in no subnet this network
-/// holds (the matcher needs one to evaluate against).
+/// holds (the matcher needs one to evaluate against). Stricter than the submission rule
+/// ([`IPAddress::discovered`]) for that reason; the node's other addresses follow the rule.
 async fn create_node_host(
     ctx: &IntegrationContext<'_>,
     subnets: &[Subnet],

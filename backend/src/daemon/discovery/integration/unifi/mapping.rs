@@ -55,6 +55,10 @@ pub struct MappedDevice {
 /// patterns against, and there is nothing honest to hand it. A kept device's address carries the
 /// subnet it was placed on, so the server matches it to the sweep's row for the same IP.
 ///
+/// Stricter than the submission rule ([`IPAddress::discovered`]), which sends a private address no
+/// subnet holds for the server to infer: a device is matched here, on the daemon, before any
+/// subnet for it exists.
+///
 /// The rule is [`placeable_subnet`], not first-match: the list carries the `0.0.0.0/0`
 /// organizational rows, which contain every IPv4 address, so `find` returned `Internet` for
 /// everything and this skip never happened.

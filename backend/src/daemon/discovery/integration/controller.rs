@@ -27,15 +27,12 @@ use crate::server::hosts::r#impl::{
     name::{HostName, HostNameSources},
 };
 use crate::server::interfaces::r#impl::base::InterfaceDataComplete;
-use crate::server::ip_addresses::r#impl::base::{
-    IPAddress, IPAddressBase, MacEvidence, MacEvidenceValue,
-};
+use crate::server::ip_addresses::r#impl::base::{IPAddress, MacEvidence, MacEvidenceValue};
 use crate::server::lldp::canonical_mac;
 use crate::server::services::r#impl::patterns::ClientProbe;
 use crate::server::shared::attribution::{AttributeSource, Attributed};
 use crate::server::shared::types::entities::EntitySource;
 use crate::server::subnets::r#impl::base::Subnet;
-use crate::server::subnets::r#impl::inference::placeable_subnet;
 
 /// The identity fields a controller reports for one device or client.
 ///
@@ -194,18 +191,12 @@ pub struct MappedClient {
 }
 
 impl MappedClient {
-    /// A reported client, placed on the most specific live subnet that holds its address.
+    /// A reported client, filed by [`IPAddress::discovered`].
     ///
-    /// `None` only when the address is missing or unparseable. There is nothing to report about a
-    /// client whose address we cannot read. An address outside every known subnet is still
-    /// reported, since the controller is often the only witness for a client on a VLAN the sweep
-    /// cannot reach.
-    ///
-    /// `subnet_id` comes from [`placeable_subnet`], the same rule the network scan uses. Host
-    /// matching on the server compares an address's IP and subnet together, so a client sent with
-    /// a nil subnet never matches the sweep's row for the same IP and becomes a second host.
-    /// `placeable_subnet` skips the `0.0.0.0/0` organizational rows, so an address no real subnet
-    /// holds stays nil, and the server infers a range for it.
+    /// `None` when the address is missing or unparseable, or when the submission rule drops it
+    /// (a public or global address no subnet holds). A private address outside every known subnet
+    /// is still reported, nil for the server to infer a range for, since the controller is often
+    /// the only witness for a client on a VLAN the sweep cannot reach.
     pub fn new(
         identity: ControllerIdentity,
         ip: Option<&str>,
@@ -216,24 +207,17 @@ impl MappedClient {
         let ip: IpAddr = ip?.trim().parse().ok()?;
         let mac = mac.and_then(canonical_mac);
         let probe = identity.probe;
-        let subnet_id = placeable_subnet(subnets, ip).map_or(Uuid::nil(), |s| s.id);
+        // The controller reporting a device it manages: a known speaker that is not the subject,
+        // so weaker than an ARP reply the address itself sent us.
+        let mac_address = mac
+            .as_deref()
+            .and_then(|m| m.parse().ok())
+            .map(|m| MacEvidence::new(MacEvidenceValue(m), AttributeSource::Probe(probe)));
+        let ip_address = IPAddress::discovered(network_id, subnets, ip, mac_address, None, 0)?;
 
         Some(Self {
             identity,
-            ip_address: IPAddress::new(IPAddressBase {
-                network_id,
-                host_id: Uuid::nil(), // server assigns
-                subnet_id,
-                ip_address: ip,
-                // The controller reporting a device it manages: a known speaker that is not the
-                // subject, so weaker than an ARP reply the address itself sent us.
-                mac_address: mac
-                    .as_deref()
-                    .and_then(|m| m.parse().ok())
-                    .map(|m| MacEvidence::new(MacEvidenceValue(m), AttributeSource::Probe(probe))),
-                name: None,
-                position: 0,
-            }),
+            ip_address,
             ip,
         })
     }
