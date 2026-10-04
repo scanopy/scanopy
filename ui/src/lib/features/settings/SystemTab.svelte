@@ -37,7 +37,6 @@
 		settings_system_copyright,
 		settings_system_dashboardIconsAttribution,
 		settings_system_dateAndTime,
-		settings_system_dateAndTimeDesc,
 		settings_system_dateOrder,
 		settings_system_dateOrderDayFirst,
 		settings_system_dateOrderIso,
@@ -243,18 +242,19 @@
 		densityControl
 	)}
 
+	<!--
+		The preview stands in for a description: it shows the current formats while
+		the card is collapsed and updates live as the selects change.
+	-->
 	<CollapsibleCard
 		title={settings_system_dateAndTime()}
-		description={settings_system_dateAndTimeDesc()}
+		description={settings_system_preview({
+			date: formatDate(previewNow),
+			timestamp: formatTimestamp(previewNow),
+			relative: formatRelativeTime(previewRecent)
+		})}
 		expanded={false}
 	>
-		<p class="text-secondary text-sm">
-			{settings_system_preview({
-				date: formatDate(previewNow),
-				timestamp: formatTimestamp(previewNow),
-				relative: formatRelativeTime(previewRecent)
-			})}
-		</p>
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 			<form.Field name="date_order" listeners={{ onChange: onSettingChange }}>
 				{#snippet children(field)}
