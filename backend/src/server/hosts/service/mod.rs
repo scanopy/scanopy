@@ -557,6 +557,8 @@ pub(crate) struct HostCandidate {
     pub ip_addresses: Vec<IPAddress>,
     /// How it is virtualized, which says whether the MACs on its rows are its own.
     pub virtualization: Option<HostVirtualization>,
+    /// The interface on another host that presents this one, for a network identity.
+    pub virtualization_interface_id: Option<Uuid>,
 }
 
 impl HostCandidate {
@@ -846,6 +848,7 @@ mod tests {
             chassis_id: None,
             ip_addresses,
             virtualization: None,
+            virtualization_interface_id: None,
         }
     }
 
@@ -860,6 +863,7 @@ mod tests {
             chassis_id: Some(chassis_id.to_string()),
             ip_addresses,
             virtualization: None,
+            virtualization_interface_id: None,
         }
     }
 
@@ -1260,6 +1264,7 @@ mod tests {
                 compose_project: None,
                 network_type,
             })),
+            virtualization_interface_id: None,
         }
     }
 
@@ -1326,6 +1331,7 @@ mod tests {
                 chassis_id: None,
                 ip_addresses: vec![runtime_row.clone()],
                 virtualization: None,
+                virtualization_interface_id: None,
             },
         ];
 

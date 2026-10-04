@@ -1625,3 +1625,62 @@ async fn a_container_report_takes_its_address_off_its_runtimes_host() {
         vec!["192.168.7.231".parse::<IpAddr>().unwrap()]
     );
 }
+
+/// The lab's PROFINET DCP simulator: a macvlan interface `mv-dcp0` in the snmp-test VM with a
+/// locally administered MAC. Proxmox reports the interface on the VM and the identity it presents,
+/// and the DCP sweep then reports the device by that MAC alone. The device's own answer
+/// corroborates Proxmox's copy, and of the two records holding the MAC the identity is the device,
+/// so the DCP report lands on it instead of being refused.
+#[tokio::test]
+async fn a_dcp_report_joins_the_network_identity_its_mac_presents() {
+    harness!(_storage, services, lab, _container);
+    let mv: MacAddress = "8a:2e:53:fe:33:50".parse().unwrap();
+    let proxmox = AttributeSource::Probe(ClientProbe::Proxmox);
+    let nic = |source: AttributeSource| {
+        Interface::new(InterfaceBase {
+            network_id: lab.network_id,
+            if_name: Some("mv-dcp0".to_string()),
+            mac_address: Some(MacEvidence::new(MacEvidenceValue(mv), source)),
+            ..Default::default()
+        })
+    };
+
+    let guest = discover(
+        &services,
+        &lab,
+        HostBase::default(),
+        vec![config(&lab, "192.168.4.21", ens18())],
+        vec![service(&lab, "Network Identities")],
+        vec![nic(proxmox)],
+    )
+    .await;
+    let identity = discover(
+        &services,
+        &lab,
+        HostBase {
+            virtualization_metadata: Some(HostVirtualization::NetworkIdentity(
+                NetworkIdentityVirtualization {},
+            )),
+            virtualization_service_id: Some(guest.services[0].id),
+            virtualization_interface_id: Some(guest.interfaces[0].id),
+            ..Default::default()
+        },
+        vec![address(&lab, lab.lan, "192.168.7.199", Some((mv, proxmox)))],
+        vec![],
+        vec![],
+    )
+    .await;
+
+    let dcp = discover(
+        &services,
+        &lab,
+        HostBase::default(),
+        vec![],
+        vec![],
+        vec![nic(AttributeSource::ProfinetDcp)],
+    )
+    .await;
+
+    assert_eq!(dcp.id, identity.id);
+    assert_eq!(live_hosts(&services, &lab).await.len(), 2);
+}
