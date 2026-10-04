@@ -1,8 +1,8 @@
 <script lang="ts" context="module">
 	import type { Host, Interface, IPAddress, Port, Service } from '$lib/features/hosts/types/base';
 	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
-	import { entities, serviceDefinitions } from '$lib/shared/stores/metadata';
-	import { entityRef } from '$lib/shared/components/data/types';
+	import { entities, proxmoxGuestTypes, serviceDefinitions } from '$lib/shared/stores/metadata';
+	import { entityRef, type TagProps } from '$lib/shared/components/data/types';
 
 	// Context provides the host's children (interfaces, ports, services)
 	export interface HostDisplayContext {
@@ -53,13 +53,29 @@
 		},
 		getIconColor: () => entities.getColorHelper('Host').icon,
 		getTags: (host, context) => {
-			if (context?.compact) return [];
+			// A Proxmox guest's type (VM or LXC) is part of what the host is, so it shows even in
+			// compact rows; its services only in full ones.
+			const virtualization = host.virtualization_metadata;
+			const guestType =
+				virtualization?.type === 'Proxmox' ? virtualization.details.guest_type : null;
+			const guestTags: TagProps[] = guestType
+				? [
+						{
+							label: proxmoxGuestTypes.getName(guestType),
+							color: proxmoxGuestTypes.getColorHelper(guestType).color
+						}
+					]
+				: [];
+			if (context?.compact) return guestTags;
 			const services = context?.services?.filter((s) => s.host_id == host.id) ?? [];
-			return services.map((service) => ({
-				label: serviceDefinitions.getName(service.service_definition),
-				color: entities.getColorHelper('Service').color,
-				entityRef: entityRef('Service', service.id, service)
-			}));
+			return [
+				...guestTags,
+				...services.map((service) => ({
+					label: serviceDefinitions.getName(service.service_definition),
+					color: entities.getColorHelper('Service').color,
+					entityRef: entityRef('Service', service.id, service)
+				}))
+			];
 		},
 		getTagPickerProps: (host: Host, context: HostDisplayContext) => {
 			if (!context.showEntityTagPicker) return null;

@@ -33,6 +33,9 @@ impl HostService {
                     .map_err(|e| anyhow::anyhow!("Invalid loopback network: {e}"))?,
             ),
             network_id,
+            // Stands in for the daemon's own report of its `lo`, which arrives on the next scan
+            // with this exact range. Stamping it the same keeps that report from relabelling it.
+            crate::server::shared::attribution::AttributeSource::DaemonSelfReport,
         ) else {
             return Ok(());
         };

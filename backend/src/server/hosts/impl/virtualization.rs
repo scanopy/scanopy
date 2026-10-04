@@ -30,7 +30,7 @@ use crate::server::{
     VariantNames,
     ToSchema,
 )]
-#[strum_discriminants(derive(IntoStaticStr))]
+#[strum_discriminants(derive(IntoStaticStr, EnumIter))]
 #[schema(title = "HostVirtualization")]
 #[serde(tag = "type", content = "details")]
 pub enum HostVirtualization {
@@ -66,6 +66,7 @@ pub struct ProxmoxVirtualization {
     Serialize,
     Deserialize,
     IntoStaticStr,
+    EnumIter,
     VariantNames,
     ToSchema,
 )]
@@ -103,7 +104,16 @@ impl HasId for HostVirtualization {
     }
 }
 
-impl EntityMetadataProvider for HostVirtualization {
+/// Metadata lives on the discriminant so it can be iterated into `host-virtualizations.json`
+/// without inventing a payload per variant. The id is the serde `type` tag, the same string
+/// `HostVirtualization::id()` returns.
+impl HasId for HostVirtualizationDiscriminants {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+impl EntityMetadataProvider for HostVirtualizationDiscriminants {
     fn color(&self) -> Color {
         Concept::Virtualization.color()
     }
@@ -112,20 +122,51 @@ impl EntityMetadataProvider for HostVirtualization {
     }
 }
 
-impl TypeMetadataProvider for HostVirtualization {
+impl TypeMetadataProvider for HostVirtualizationDiscriminants {
     fn name(&self) -> &'static str {
         match self {
-            Self::Proxmox(_) => "Proxmox",
-            Self::VCenter(_) => "vCenter",
-            Self::ESXi(_) => "ESXi",
+            Self::Proxmox => "Proxmox",
+            Self::VCenter => "vCenter",
+            Self::ESXi => "ESXi",
         }
     }
 
     fn description(&self) -> &'static str {
         match self {
-            Self::Proxmox(_) => "A host running as a Proxmox VM or LXC container",
-            Self::VCenter(_) => "A host running as a vCenter-managed VM",
-            Self::ESXi(_) => "A host running as an ESXi VM",
+            Self::Proxmox => "A host running as a Proxmox VM or LXC container",
+            Self::VCenter => "A host running as a vCenter-managed VM",
+            Self::ESXi => "A host running as an ESXi VM",
+        }
+    }
+}
+
+impl HasId for ProxmoxGuestType {
+    fn id(&self) -> &'static str {
+        self.into()
+    }
+}
+
+impl EntityMetadataProvider for ProxmoxGuestType {
+    fn color(&self) -> Color {
+        Concept::Virtualization.color()
+    }
+    fn icon(&self) -> Icon {
+        Concept::Virtualization.icon()
+    }
+}
+
+impl TypeMetadataProvider for ProxmoxGuestType {
+    fn name(&self) -> &'static str {
+        match self {
+            Self::Qemu => "VM",
+            Self::Lxc => "LXC",
+        }
+    }
+
+    fn description(&self) -> &'static str {
+        match self {
+            Self::Qemu => "QEMU virtual machine",
+            Self::Lxc => "LXC container",
         }
     }
 }

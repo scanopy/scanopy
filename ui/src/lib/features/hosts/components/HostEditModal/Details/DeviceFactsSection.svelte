@@ -4,20 +4,33 @@
 	import AttributeSourceTag from '$lib/shared/components/data/AttributeSourceTag.svelte';
 	import { hostOsLabel, type HostOs } from '$lib/features/hosts/host-os';
 	import OsTag from '../../OsTag.svelte';
+	import EntityTag from '$lib/shared/components/data/EntityTag.svelte';
+	import { entityRef, type EntityRef } from '$lib/shared/components/data/types';
+	import type { Color } from '$lib/shared/utils/styling';
+	import { entities, hostVirtualizations, proxmoxGuestTypes } from '$lib/shared/stores/metadata';
+	import { hostDisplayName } from '$lib/features/hosts/host-display-name';
+	import { useServicesByIds } from '$lib/features/services/queries';
+	import { useHostSummariesQuery } from '$lib/features/hosts/queries';
 	import {
 		common_contact,
 		common_firmwareRevision,
 		common_hardware,
 		common_hostname,
+		common_hypervisor,
 		common_location,
+		common_manager,
 		common_manufacturer,
 		common_model,
 		common_operatingSystem,
 		common_serialNumber,
 		common_softwareRevision,
+		common_virtualization,
 		hosts_deviceFacts_firmwareGroup,
+		hosts_deviceFacts_guestName,
+		hosts_deviceFacts_guestType,
 		hosts_deviceFacts_identityGroup,
 		hosts_deviceFacts_locationGroup,
+		hosts_deviceFacts_vmId,
 		hosts_snmp_chassisId,
 		hosts_snmp_managementUrl,
 		hosts_snmp_sysDescr,
@@ -32,11 +45,75 @@
 		value: string | null | undefined;
 		/** `null` for a field that records no provenance, which the tag then says. */
 		source: AttributeSource | null | undefined;
+		/**
+		 * The model keeps no per-field provenance for this value at all, so no source tag is drawn.
+		 * Distinct from a `null` source, which is a field that could carry one and has none.
+		 */
+		sourceless?: boolean;
 		mono?: boolean;
 		link?: boolean;
 		/** Drawn as an OS tag rather than text. */
 		os?: HostOs;
+		/** Drawn as a clickable entity tag labelled with `value`. */
+		entity?: { ref: EntityRef; color: Color };
 	}
+
+	// The hypervisor is the host that runs the service virtualizing this one.
+	const hypervisorServiceQuery = useServicesByIds(() =>
+		host.virtualization_service_id ? [host.virtualization_service_id] : []
+	);
+	let hypervisorHostId = $derived(hypervisorServiceQuery.data?.[0]?.host_id ?? null);
+	const hypervisorHostQuery = useHostSummariesQuery(() => ({
+		ids: hypervisorHostId ? [hypervisorHostId] : []
+	}));
+	let hypervisorHost = $derived(
+		hypervisorHostQuery.data?.items.find((h) => h.id === hypervisorHostId) ?? null
+	);
+
+	let virtualizationFacts = $derived.by((): Fact[] => {
+		const virtualization = host.virtualization_metadata;
+		if (!virtualization) return [];
+		const guestType = virtualization.type === 'Proxmox' ? virtualization.details.guest_type : null;
+		return [
+			{
+				label: common_hypervisor(),
+				value: hypervisorHost ? hostDisplayName(hypervisorHost) : null,
+				source: null,
+				sourceless: true,
+				entity: hypervisorHost
+					? {
+							ref: entityRef('Host', hypervisorHost.id, hypervisorHost),
+							color: entities.getColorHelper('Host').color
+						}
+					: undefined
+			},
+			{
+				label: common_manager(),
+				value: hostVirtualizations.getName(virtualization.type),
+				source: null,
+				sourceless: true
+			},
+			{
+				label: hosts_deviceFacts_guestName(),
+				value: virtualization.details.vm_name,
+				source: null,
+				sourceless: true
+			},
+			{
+				label: hosts_deviceFacts_vmId(),
+				value: virtualization.details.vm_id,
+				source: null,
+				sourceless: true,
+				mono: true
+			},
+			{
+				label: hosts_deviceFacts_guestType(),
+				value: guestType ? proxmoxGuestTypes.getName(guestType) : null,
+				source: null,
+				sourceless: true
+			}
+		];
+	});
 
 	// Grouped by what each value describes, not by the protocol that carried it. A model arrives
 	// from ENTITY-MIB, a controller or an industrial probe, and each value's own tag says which.
@@ -119,6 +196,10 @@
 						link: true
 					}
 				] satisfies Fact[]
+			},
+			{
+				title: common_virtualization(),
+				facts: virtualizationFacts
 			}
 		]
 			.map((section) => ({
@@ -144,7 +225,14 @@
 								class="text-primary min-w-0 flex-1 break-words text-sm"
 								class:font-mono={fact.mono}
 							>
-								{#if fact.os}
+								{#if fact.entity}
+									<EntityTag
+										entityRef={fact.entity.ref}
+										label={fact.value ?? undefined}
+										icon={entities.getIconComponent(fact.entity.ref.entityType)}
+										color={fact.entity.color}
+									/>
+								{:else if fact.os}
 									<!-- The same tooltip the hosts table shows: every detail and the source. -->
 									<OsTag os={fact.os} source={fact.source} />
 								{:else if fact.link}
@@ -162,7 +250,9 @@
 									{fact.value}
 								{/if}
 							</span>
-							<span class="shrink-0"><AttributeSourceTag source={fact.source} /></span>
+							{#if !fact.sourceless}
+								<span class="shrink-0"><AttributeSourceTag source={fact.source} /></span>
+							{/if}
 						</div>
 					{/each}
 				</div>

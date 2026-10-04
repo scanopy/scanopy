@@ -324,7 +324,7 @@ impl InstantOnIntegration {
 
         let mapped = mapping::map_devices(&devices, &clients, network_id, subnets);
         let device_ips: Vec<std::net::IpAddr> = mapped.iter().map(|d| d.ip).collect();
-        let mapped_clients = mapping::map_clients(&clients, network_id, &device_ips);
+        let mapped_clients = mapping::map_clients(&clients, network_id, &device_ips, subnets);
 
         if mapped.len() < devices.len() {
             // Silent truncation would read as "the site only contains these devices", and in the
@@ -415,10 +415,10 @@ async fn create_device_host(
     // these hosts get an ordinary `DiscoveryWithMatch` service with a real confidence — and are
     // identified as a switch or an access point, not merely as "Instant On".
     let managed_device = device_type.map(|device_type| ManagedDevice { device_type });
-    // For the service matcher, which needs a subnet to evaluate its subnet patterns against — not
-    // for placement, which the server redoes for every address it stores. `placeable_subnet` rather
-    // than first-match: the list carries the `0.0.0.0/0` organizational rows, which contain every
-    // IPv4 address, so `find` returned `Internet` for every device.
+    // For the service matcher, which needs a subnet to evaluate its subnet patterns against. The
+    // same rule placed `ip_address` in `map_device`. `placeable_subnet` rather than first-match:
+    // the list carries the `0.0.0.0/0` organizational rows, which contain every IPv4 address, so
+    // `find` returned `Internet` for every device.
     let subnet = placeable_subnet(subnets, ip)
         .ok_or_else(|| Error::msg("device IP is in no subnet this network holds"))?;
 

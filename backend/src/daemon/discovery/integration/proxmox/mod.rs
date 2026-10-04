@@ -36,6 +36,7 @@ use uuid::Uuid;
 use crate::server::credentials::r#impl::mapping::{
     CredentialQueryPayload, CredentialQueryPayloadDiscriminants,
 };
+use crate::server::hosts::r#impl::attributes::HostOsValue;
 use crate::server::hosts::r#impl::virtualization::{
     HostVirtualizationDiscriminants, ProxmoxGuestType,
 };
@@ -44,6 +45,7 @@ use crate::server::ports::r#impl::base::PortType;
 use crate::server::services::r#impl::base::ServiceMatchBaselineParams;
 use crate::server::services::r#impl::definitions::{ServiceDefinitionExt, VirtualizationRole};
 use crate::server::services::r#impl::patterns::ClientProbe;
+use crate::server::shared::attribution::Attributed;
 use crate::server::subnets::r#impl::base::Subnet;
 use crate::server::subnets::r#impl::inference::placeable_subnet;
 
@@ -55,8 +57,11 @@ use super::{
 use crate::daemon::discovery::service::ops::HostData;
 use crate::daemon::discovery::service::warnings::AttemptOutcome;
 use client::ProxmoxClient;
-use mapping::{GuestAddress, GuestSummary, NodeSpec};
-use types::{AgentInterfaces, ClusterResource, ClusterStatusEntry, GuestConfig, LxcInterface};
+use mapping::{GuestReading, GuestSummary, NodeReading, NodeSpec, REPORTED};
+use types::{
+    AgentHostName, AgentInterfaces, AgentOsInfo, ClusterResource, ClusterStatusEntry, GuestConfig,
+    LxcInterface, NodeNetworkEntry, NodeStatus,
+};
 
 /// Connected client carried from `probe` to `execute`.
 struct ProxmoxProbeHandle {
@@ -82,7 +87,8 @@ impl DiscoveryIntegration for ProxmoxIntegration {
         15
     }
 
-    /// One config read per guest plus one runtime read per running guest, each bounded at 30s.
+    /// Two reads per node, one config read per guest, and up to three runtime reads per running
+    /// guest (the agent's interfaces, OS and hostname), each bounded at 30s.
     fn timeout(&self) -> Duration {
         Duration::from_secs(300)
     }
@@ -161,10 +167,7 @@ impl DiscoveryIntegration for ProxmoxIntegration {
 
         // The node that answered is the host being scanned; its hostname is the node name.
         if let Some(local) = nodes.iter().find(|n| n.local) {
-            host_data.with_hostname(
-                local.name.clone(),
-                crate::server::shared::attribution::AttributeSource::Probe(ClientProbe::Proxmox),
-            );
+            host_data.with_hostname(local.name.clone(), REPORTED);
         }
 
         // Nodes first, so each guest can carry its node's stored service id.
@@ -173,7 +176,17 @@ impl DiscoveryIntegration for ProxmoxIntegration {
             if ctx.cancel.is_cancelled() {
                 return Err(IntegrationFailure::cancelled());
             }
-            match create_node_host(ctx, &subnets, node, handle.port).await {
+            // A node with no address is never recorded, so nothing it reports would be kept.
+            let reading = match node.ip {
+                Some(_) => read_node(client, node).await,
+                None => NodeReading::default(),
+            };
+            if node.local
+                && let Some(os) = &reading.os
+            {
+                host_data.offer_os(Attributed::new(HostOsValue(os.clone()), REPORTED));
+            }
+            match create_node_host(ctx, &subnets, node, &reading, handle.port).await {
                 Ok(Some(service_id)) => {
                     owners.insert(node.name.clone(), service_id);
                 }
@@ -193,12 +206,12 @@ impl DiscoveryIntegration for ProxmoxIntegration {
             if ctx.cancel.is_cancelled() {
                 return Err(IntegrationFailure::cancelled());
             }
-            let (nics, addresses) = guest_addresses(client, guest).await;
+            let reading = read_guest(client, guest).await;
             let Some(record) = mapping::guest_host(
                 guest,
-                &addresses,
-                &nics,
+                &reading,
                 owners.get(&guest.node).copied(),
+                &subnets,
                 network_id,
             ) else {
                 unidentifiable.push(guest_label(guest));
@@ -269,29 +282,56 @@ fn guest_label(guest: &GuestSummary) -> String {
     }
 }
 
-/// The addresses a guest holds: read from inside it when it runs (the QEMU guest agent, or the
-/// container's interfaces), kept only where they sit on one of its configured NICs; else the
-/// static addresses its config sets (an LXC `ip=`, or a VM's cloud-init `ipconfigN`). See
-/// [`mapping::select_addresses`]. Returned with the NICs the config declares, which identify a
-/// guest no address is reported for.
-async fn guest_addresses(
-    client: &ProxmoxClient,
-    guest: &GuestSummary,
-) -> (Vec<mapping::ConfigNic>, Vec<GuestAddress>) {
+/// What a guest's node reports about it.
+///
+/// Its addresses are read from inside it when it runs (the QEMU guest agent, or the container's
+/// interfaces), kept only where they sit on one of its configured NICs; else the static addresses
+/// its config sets (an LXC `ip=`, or a VM's cloud-init `ipconfigN`). See
+/// [`mapping::select_addresses`]. The NICs the config declares come with them, and identify a
+/// guest no address is reported for. A container's hostname is in its config; a VM's OS and
+/// hostname come from its guest agent, asked only once the agent has answered the interface read.
+async fn read_guest(client: &ProxmoxClient, guest: &GuestSummary) -> GuestReading {
     let path = guest.path();
-    let nics = client
+    let config = client
         .get_best_effort::<GuestConfig>(&format!("{path}/config"))
-        .await
-        .map(|config| mapping::config_nics(&config))
+        .await;
+    let nics = config
+        .as_ref()
+        .map(mapping::config_nics)
         .unwrap_or_default();
+    let mut reading = GuestReading {
+        hostname: match guest.guest_type {
+            ProxmoxGuestType::Lxc => config.as_ref().and_then(mapping::config_hostname),
+            ProxmoxGuestType::Qemu => None,
+        },
+        ..Default::default()
+    };
 
     let runtime = if guest.running {
         match guest.guest_type {
-            ProxmoxGuestType::Qemu => client
-                .get_best_effort::<AgentInterfaces>(&format!("{path}/agent/network-get-interfaces"))
-                .await
-                .map(|agent| mapping::agent_addresses(&agent))
-                .unwrap_or_default(),
+            ProxmoxGuestType::Qemu => {
+                match client
+                    .get_best_effort::<AgentInterfaces>(&format!(
+                        "{path}/agent/network-get-interfaces"
+                    ))
+                    .await
+                {
+                    Some(agent) => {
+                        let (os_path, hostname_path) = (
+                            format!("{path}/agent/get-osinfo"),
+                            format!("{path}/agent/get-host-name"),
+                        );
+                        let (os, hostname) = tokio::join!(
+                            client.get_best_effort::<AgentOsInfo>(&os_path),
+                            client.get_best_effort::<AgentHostName>(&hostname_path),
+                        );
+                        reading.os = os.as_ref().and_then(mapping::guest_os);
+                        reading.hostname = hostname.as_ref().and_then(mapping::agent_hostname);
+                        mapping::agent_addresses(&agent)
+                    }
+                    None => vec![],
+                }
+            }
             ProxmoxGuestType::Lxc => client
                 .get_best_effort::<Vec<LxcInterface>>(&format!("{path}/interfaces"))
                 .await
@@ -302,8 +342,30 @@ async fn guest_addresses(
         vec![]
     };
 
-    let addresses = mapping::select_addresses(&nics, runtime);
-    (nics, addresses)
+    reading.addresses = mapping::select_addresses(&nics, runtime);
+    reading.nics = nics;
+    reading
+}
+
+/// What a node's own API reports about it: its OS from `/status` and its addresses from
+/// `/network`. Both need `Sys.Audit` on the node; a token without it, or a node that is offline,
+/// leaves them empty.
+async fn read_node(client: &ProxmoxClient, node: &NodeSpec) -> NodeReading {
+    let (status_path, network_path) = (
+        format!("/nodes/{}/status", node.name),
+        format!("/nodes/{}/network", node.name),
+    );
+    let (status, network) = tokio::join!(
+        client.get_best_effort::<NodeStatus>(&status_path),
+        client.get_best_effort::<Vec<NodeNetworkEntry>>(&network_path),
+    );
+    NodeReading {
+        os: status.as_ref().map(mapping::node_os),
+        addresses: network
+            .as_deref()
+            .map(mapping::node_addresses)
+            .unwrap_or_default(),
+    }
 }
 
 /// Record a node's host with its Proxmox VE service, returning that service's stored id.
@@ -314,6 +376,7 @@ async fn create_node_host(
     ctx: &IntegrationContext<'_>,
     subnets: &[Subnet],
     node: &NodeSpec,
+    reading: &NodeReading,
     port: u16,
 ) -> Result<Option<Uuid>, Error> {
     let Some(ip) = node.ip else {
@@ -325,7 +388,9 @@ async fn create_node_host(
     };
 
     let network_id = ctx.ops.network_id().await?;
-    let (host, ip_address) = mapping::node_host(node, ip, network_id);
+    let (host, ip_addresses) = mapping::node_host(node, ip, reading, subnets, network_id);
+    // The address it is reached at, which `node_host` puts first.
+    let ip_address = &ip_addresses[0];
 
     // The real matcher, fed the probe's answer: the node answered the API, which is what the
     // Proxmox VE definition's `ClientResponse` arm matches.
@@ -336,7 +401,7 @@ async fn create_node_host(
         &host,
         &ServiceMatchBaselineParams {
             subnet,
-            ip_address: &ip_address,
+            ip_address,
             all_ports: &all_ports,
             endpoint_responses: &vec![],
             virtualization_metadata: &None,
@@ -354,7 +419,7 @@ async fn create_node_host(
         .ops
         .create_host(
             host,
-            vec![ip_address],
+            ip_addresses,
             ports,
             services,
             vec![],
@@ -446,18 +511,59 @@ mod lab_tests {
                 "denied"
             }
         );
+        // A /22 around the scanned address stands in for the subnet a scan would have found it
+        // in, so the printed subnet ids show which addresses a live subnet would place.
+        let subnets = vec![lab_subnet(scanned)];
+        println!(
+            "lab subnet {} = {}",
+            subnets[0].base.cidr.value().0,
+            subnets[0].id
+        );
+        let placed = |rows: &[crate::server::ip_addresses::r#impl::base::IPAddress]| {
+            rows.iter()
+                .map(|r| {
+                    format!(
+                        "{} ({}) subnet {}",
+                        r.base.ip_address,
+                        r.base.name.as_deref().unwrap_or("-"),
+                        r.base.subnet_id
+                    )
+                })
+                .collect::<Vec<_>>()
+        };
         for node in &nodes {
+            let reading = read_node(&client, node).await;
             println!("node {node:?}");
+            println!(
+                "  os {:?}",
+                reading
+                    .os
+                    .as_ref()
+                    .map(|os| (os.to_string(), &os.kernel_version))
+            );
+            if let Some(ip) = node.ip {
+                let (_, rows) = mapping::node_host(node, ip, &reading, &subnets, uuid::Uuid::nil());
+                println!("  addresses {:?}", placed(&rows));
+            }
         }
         for guest in &guests {
-            let (nics, addresses) = guest_addresses(&client, guest).await;
-            let record = mapping::guest_host(guest, &addresses, &nics, None, uuid::Uuid::nil());
+            let reading = read_guest(&client, guest).await;
+            let record = mapping::guest_host(guest, &reading, None, &subnets, uuid::Uuid::nil());
+            println!("guest {} {:?}", guest_label(guest), guest.guest_type);
             println!(
-                "guest {} {:?} addresses {:?} interfaces {:?}",
-                guest_label(guest),
-                guest.guest_type,
-                addresses.iter().map(|a| a.ip).collect::<Vec<_>>(),
-                record.map(|r| {
+                "  os {:?} hostname {:?}",
+                reading.os.as_ref().map(|os| (
+                    os.family,
+                    os.to_string(),
+                    &os.codename,
+                    &os.kernel_version
+                )),
+                reading.hostname
+            );
+            println!(
+                "  addresses {:?} interfaces {:?}",
+                record.as_ref().map(|r| placed(&r.ip_addresses)),
+                record.as_ref().map(|r| {
                     r.interfaces
                         .iter()
                         .map(|i| i.base.mac_address.as_ref().map(|m| m.value().0.to_string()))
@@ -467,5 +573,18 @@ mod lab_tests {
         }
         assert!(!nodes.is_empty(), "the lab has a node");
         assert!(!guests.is_empty(), "the lab has a guest");
+    }
+
+    fn lab_subnet(scanned: std::net::IpAddr) -> Subnet {
+        use crate::server::shared::storage::traits::Storable;
+        use crate::server::subnets::r#impl::base::{SubnetBase, SubnetCidr, SubnetCidrValue};
+        let cidr = cidr::IpInet::new(scanned, 22).unwrap().network();
+        Subnet::new(SubnetBase {
+            cidr: SubnetCidr::new(
+                SubnetCidrValue(cidr),
+                crate::server::shared::attribution::AttributeSource::Manual,
+            ),
+            ..Default::default()
+        })
     }
 }

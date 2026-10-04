@@ -729,3 +729,141 @@ async fn a_rescan_without_a_mac_keeps_the_stored_one() {
         "an address rescan with no MAC must keep the MAC and source already stored"
     );
 }
+
+// =============================================================================
+// A controller client the sweep already found
+// =============================================================================
+
+/// What a controller reports for a client: a DHCP hostname and an address, mapped by the same
+/// `MappedClient::new` the UniFi and Instant On integrations call, against the network's live
+/// subnets as the daemon receives them.
+async fn controller_client_submission(
+    services: &ServiceFactory,
+    network_id: Uuid,
+    ip: &str,
+) -> (Submission, Uuid) {
+    use crate::daemon::discovery::integration::controller::{ControllerIdentity, MappedClient};
+    use crate::server::services::r#impl::patterns::ClientProbe;
+
+    let live = services
+        .subnet_service
+        .get_all(StorableFilter::<Subnet>::new_from_network_ids(&[network_id]).live())
+        .await
+        .unwrap();
+    let identity = ControllerIdentity {
+        probe: ClientProbe::UnifiController,
+        name: None,
+        hostname: Some("marys-laptop".to_string()),
+        chassis_id: None,
+        manufacturer: None,
+        model: None,
+        serial_number: None,
+        firmware_revision: None,
+    };
+    // No MAC: host matching has only the address to go on.
+    let client = MappedClient::new(identity, Some(ip), None, network_id, &live)
+        .expect("a parseable address maps");
+    let MappedClient {
+        identity,
+        ip_address,
+        ip: _,
+    } = client;
+    let subnet_id = ip_address.base.subnet_id;
+
+    let submission = Submission {
+        host: identity.into_host(network_id),
+        ip_addresses: vec![ip_address],
+        ports: vec![],
+        services: vec![],
+        subnets: vec![],
+    };
+    (submission, subnet_id)
+}
+
+/// The sweep reaches 192.168.1.50 on the LAN and records it with the LAN's subnet id. The
+/// controller then reports the same address for a client, with no MAC. Host matching compares IP
+/// and subnet together, so the client must carry the LAN's id to land on the sweep's host rather
+/// than becoming a second host with a second row for the same address.
+#[tokio::test]
+async fn a_controller_client_the_sweep_found_lands_on_the_same_host() {
+    harness!(services, network_id, _container);
+
+    let sweep = Submission::container_host(network_id);
+    let lan_ip = sweep.ip_addresses[0].base.ip_address;
+    let swept = submit(&services, sweep).await.expect("the sweep persists");
+
+    let (client, subnet_id) =
+        controller_client_submission(&services, network_id, &lan_ip.to_string()).await;
+    let lan_id = services
+        .subnet_service
+        .get_all(StorableFilter::<Subnet>::new_from_network_ids(&[network_id]).live())
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|s| s.base.subnet_type == SubnetType::Lan)
+        .expect("lan subnet persisted")
+        .id;
+    assert_eq!(
+        subnet_id, lan_id,
+        "precondition: the client is placed on the LAN"
+    );
+
+    let reported = submit(&services, client)
+        .await
+        .expect("the controller client persists");
+
+    assert_eq!(
+        reported.id, swept.id,
+        "the controller's client must match the host the sweep found"
+    );
+    let rows: Vec<IPAddress> = services
+        .ip_address_service
+        .get_all(StorableFilter::<IPAddress>::new_from_network_ids(&[network_id]).live())
+        .await
+        .unwrap()
+        .into_iter()
+        .filter(|ip| ip.base.ip_address == lan_ip)
+        .collect();
+    assert_eq!(
+        rows.len(),
+        1,
+        "one address row for one address, got {rows:?}"
+    );
+}
+
+/// A client on a range this network holds nothing for still reaches the server with a nil
+/// subnet, and the server infers a range for it rather than dropping it or filing it under a
+/// `0.0.0.0/0` row.
+#[tokio::test]
+async fn a_controller_client_on_no_held_range_gets_an_inferred_subnet() {
+    harness!(services, network_id, _container);
+
+    let (client, subnet_id) =
+        controller_client_submission(&services, network_id, "10.77.0.5").await;
+    assert_eq!(
+        subnet_id,
+        Uuid::nil(),
+        "precondition: nothing holds the address"
+    );
+
+    let reported = submit(&services, client)
+        .await
+        .expect("the controller client persists");
+
+    let stored = services
+        .ip_address_service
+        .get_for_host(&reported.id)
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|ip| ip.base.ip_address.to_string() == "10.77.0.5")
+        .expect("the address is stored");
+    let subnet = services
+        .subnet_service
+        .get_by_id(&stored.base.subnet_id)
+        .await
+        .unwrap()
+        .expect("the address names a stored subnet");
+    assert!(subnet.base.cidr.contains(&stored.base.ip_address));
+    assert!(!subnet.is_organizational_subnet());
+}

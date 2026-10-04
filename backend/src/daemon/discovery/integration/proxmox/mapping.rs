@@ -8,8 +8,10 @@ use std::net::IpAddr;
 use uuid::Uuid;
 
 use crate::server::hosts::r#impl::{
+    attributes::{HostHostnameValue, HostOsValue},
     base::{Host, HostBase},
     name::{HostName, HostNameSources},
+    os::{HostOs, HostOsFamily},
     virtualization::{HostVirtualization, ProxmoxGuestType, ProxmoxVirtualization},
 };
 use crate::server::hosts::service::mac_identity::identity_permits_minting;
@@ -19,12 +21,18 @@ use crate::server::ip_addresses::r#impl::base::{
 };
 use crate::server::lldp::canonical_mac;
 use crate::server::services::r#impl::patterns::ClientProbe;
-use crate::server::shared::attribution::AttributeSource;
+use crate::server::shared::attribution::{AttributeSource, Attributed};
 use crate::server::shared::types::entities::EntitySource;
+use crate::server::subnets::r#impl::base::Subnet;
+use crate::server::subnets::r#impl::inference::placeable_subnet;
 
 use super::types::{
-    AgentInterfaces, ClusterResource, ClusterStatusEntry, GuestConfig, LxcInterface,
+    AgentHostName, AgentInterfaces, AgentOsInfo, ClusterResource, ClusterStatusEntry, GuestConfig,
+    LxcInterface, NodeNetworkEntry, NodeStatus,
 };
+
+/// The source of everything Proxmox reports about a node or guest other than a NIC's MAC.
+pub const REPORTED: AttributeSource = AttributeSource::Probe(ClientProbe::Proxmox);
 
 /// The source of a guest NIC's MAC. Every MAC this integration submits is one a guest's config
 /// declares (see [`select_addresses`]), so it is the hypervisor's own assignment rather than a
@@ -331,9 +339,140 @@ fn reachable(ip: IpAddr) -> bool {
     }
 }
 
-/// A node's host: named by the node name, which is its hostname. The Proxmox VE service is added
-/// by the caller's matcher, not here.
-pub fn node_host(node: &NodeSpec, ip: IpAddr, network_id: Uuid) -> (Host, IPAddress) {
+/// The OS a QEMU guest agent reads from inside the VM.
+///
+/// `id` says the family: `mswindows` for Windows, a BSD or Solaris by its own id, and anything
+/// else is an os-release distribution id (`debian`, `haos`), which is Linux. The release is
+/// `version-id`, dropped when the name already carries it. `version` repeats the release with a
+/// parenthesised suffix, which is the codename when it is one lowercase word (`12 (bookworm)`)
+/// and a variant otherwise (HAOS's `18.2 (Open Virtual Appliance)`), so only the first is kept.
+pub fn guest_os(info: &AgentOsInfo) -> Option<HostOs> {
+    let info = &info.result;
+    let family = match info.id.as_deref().map(str::trim)? {
+        "" => return None,
+        "mswindows" => HostOsFamily::Windows,
+        "freebsd" => HostOsFamily::FreeBsd,
+        "openbsd" => HostOsFamily::OpenBsd,
+        "netbsd" => HostOsFamily::NetBsd,
+        "solaris" => HostOsFamily::Solaris,
+        _ => HostOsFamily::Linux,
+    };
+    let name = info.name.clone();
+    let (release, suffix) = match info.version.as_deref().map(str::trim) {
+        Some(version) => match version.split_once('(') {
+            Some((release, rest)) => (
+                Some(release.trim().to_string()),
+                rest.strip_suffix(')').map(str::trim),
+            ),
+            None => (Some(version.to_string()), None),
+        },
+        None => (None, None),
+    };
+    let version = info
+        .version_id
+        .clone()
+        .filter(|v| !v.trim().is_empty())
+        .or(release)
+        .filter(|v| !name.as_deref().is_some_and(|n| n.contains(v.trim())));
+    let codename = suffix
+        .filter(|s| !s.is_empty() && s.chars().all(|c| c.is_ascii_lowercase()))
+        .filter(|s| info.version_id.as_deref() != Some(*s))
+        .map(str::to_string);
+    Some(
+        HostOs {
+            family,
+            name,
+            version,
+            edition: None,
+            codename,
+            kernel_version: info.kernel_release.clone(),
+        }
+        .without_blank_fields(),
+    )
+}
+
+/// The hostname a QEMU guest agent reads from inside the VM.
+pub fn agent_hostname(reply: &AgentHostName) -> Option<String> {
+    present(reply.result.host_name.as_deref())
+}
+
+/// The hostname an LXC container's config sets.
+pub fn config_hostname(config: &GuestConfig) -> Option<String> {
+    present(config.get("hostname").and_then(|v| v.as_str()))
+}
+
+fn present(value: Option<&str>) -> Option<String> {
+    value
+        .map(str::trim)
+        .filter(|v| !v.is_empty())
+        .map(str::to_string)
+}
+
+/// A node's OS: Proxmox VE, at the `pve-manager` release `pveversion` names
+/// (`pve-manager/8.4.21/2606ac850d46da29`), on the kernel it booted.
+pub fn node_os(status: &NodeStatus) -> HostOs {
+    HostOs {
+        family: HostOsFamily::Linux,
+        name: Some("Proxmox VE".to_string()),
+        version: status
+            .pveversion
+            .as_deref()
+            .and_then(|v| v.split('/').nth(1))
+            .map(str::to_string),
+        edition: None,
+        codename: None,
+        kernel_version: status
+            .current_kernel
+            .as_ref()
+            .and_then(|k| k.release.clone()),
+    }
+    .without_blank_fields()
+}
+
+/// An address a node's network config assigns to one of its interfaces.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NodeAddress {
+    pub ip: IpAddr,
+    /// The bridge, bond or NIC it is configured on (`vmbr0`).
+    pub iface: String,
+}
+
+/// Every reachable address the node's network config assigns, IPv4 and IPv6.
+pub fn node_addresses(entries: &[NodeNetworkEntry]) -> Vec<NodeAddress> {
+    entries
+        .iter()
+        .flat_map(|e| {
+            [e.address.as_deref(), e.address6.as_deref()]
+                .into_iter()
+                .flatten()
+                .filter_map(|a| a.split('/').next()?.trim().parse().ok())
+                .map(|ip| NodeAddress {
+                    ip,
+                    iface: e.iface.clone(),
+                })
+        })
+        .filter(|a| reachable(a.ip))
+        .collect()
+}
+
+/// What a node's own API says about it beyond the cluster inventory. Each part is empty when the
+/// token may not read it.
+#[derive(Debug, Clone, Default)]
+pub struct NodeReading {
+    pub os: Option<HostOs>,
+    pub addresses: Vec<NodeAddress>,
+}
+
+/// A node's host: named by the node name, which is its hostname, and carrying its OS and every
+/// address its network config assigns. `ip`, the address it is reached at, is the first row. The
+/// Proxmox VE service is added by the caller's matcher, not here.
+pub fn node_host(
+    node: &NodeSpec,
+    ip: IpAddr,
+    reading: &NodeReading,
+    subnets: &[Subnet],
+    network_id: Uuid,
+) -> (Host, Vec<IPAddress>) {
     let identity = crate::daemon::discovery::integration::controller::ControllerIdentity {
         probe: ClientProbe::Proxmox,
         name: None,
@@ -344,10 +483,44 @@ pub fn node_host(node: &NodeSpec, ip: IpAddr, network_id: Uuid) -> (Host, IPAddr
         serial_number: None,
         firmware_revision: None,
     };
-    (
-        identity.into_host(network_id),
-        reported_address(network_id, ip, None, None, 0),
-    )
+    let mut host = identity.into_host(network_id);
+    host.base.os = reading
+        .os
+        .clone()
+        .map(|os| Attributed::new(HostOsValue(os), REPORTED));
+
+    let iface_of = |ip: IpAddr| {
+        reading
+            .addresses
+            .iter()
+            .find(|a| a.ip == ip)
+            .map(|a| a.iface.clone())
+    };
+    let others = reading
+        .addresses
+        .iter()
+        .map(|a| a.ip)
+        .filter(|other| *other != ip);
+    let mut seen = BTreeSet::new();
+    let ip_addresses = std::iter::once(ip)
+        .chain(others)
+        .filter(|a| seen.insert(*a))
+        .enumerate()
+        .map(|(position, a)| {
+            reported_address(network_id, subnets, a, None, iface_of(a), position as i32)
+        })
+        .collect();
+    (host, ip_addresses)
+}
+
+/// What a guest's node reports about it: the NICs its config declares, the addresses it holds,
+/// and, where the guest agent or the container config says, its OS and hostname.
+#[derive(Debug, Clone, Default)]
+pub struct GuestReading {
+    pub nics: Vec<ConfigNic>,
+    pub addresses: Vec<GuestAddress>,
+    pub os: Option<HostOs>,
+    pub hostname: Option<String>,
 }
 
 /// What a guest is submitted as: its host, its addresses, and, for a guest the API reports no
@@ -368,11 +541,17 @@ pub struct GuestRecord {
 /// scan.
 pub fn guest_host(
     guest: &GuestSummary,
-    addresses: &[GuestAddress],
-    nics: &[ConfigNic],
+    reading: &GuestReading,
     owner: Option<Uuid>,
+    subnets: &[Subnet],
     network_id: Uuid,
 ) -> Option<GuestRecord> {
+    let GuestReading {
+        nics,
+        addresses,
+        os,
+        hostname,
+    } = reading;
     let nic_macs: Vec<&ConfigNic> = nics.iter().filter(|n| n.mac.is_some()).collect();
     if addresses.is_empty() && nic_macs.is_empty() {
         return None;
@@ -387,6 +566,12 @@ pub fn guest_host(
             guest_type: Some(guest.guest_type),
         })),
         virtualization_service_id: owner,
+        os: os
+            .clone()
+            .map(|os| Attributed::new(HostOsValue(os), REPORTED)),
+        hostname: hostname
+            .clone()
+            .map(|h| Attributed::new(HostHostnameValue(h), REPORTED)),
         ..Default::default()
     });
     if let Some(name) = &guest.name {
@@ -405,6 +590,7 @@ pub fn guest_host(
         .map(|(position, a)| {
             reported_address(
                 network_id,
+                subnets,
                 a.ip,
                 a.mac.as_deref(),
                 a.interface.clone(),
@@ -450,9 +636,11 @@ fn mac_evidence(mac: Option<&str>) -> Option<MacEvidence> {
         .map(|m| MacEvidence::new(MacEvidenceValue(m), NIC_MAC))
 }
 
-/// An address the hypervisor reports, left for the server to attach and place.
+/// An address the hypervisor reports, placed in the most specific live subnet that holds it. Nil
+/// when none does, which leaves the server to place it.
 fn reported_address(
     network_id: Uuid,
+    subnets: &[Subnet],
     ip: IpAddr,
     mac: Option<&str>,
     name: Option<String>,
@@ -461,7 +649,7 @@ fn reported_address(
     IPAddress::new(IPAddressBase {
         network_id,
         host_id: Uuid::nil(),
-        subnet_id: Uuid::nil(),
+        subnet_id: placeable_subnet(subnets, ip).map_or(Uuid::nil(), |s| s.id),
         ip_address: ip,
         mac_address: mac_evidence(mac),
         name,
@@ -507,6 +695,16 @@ mod tests {
         include_str!("../../../../tests/proxmox/pve84_lxc_104_config.json");
     const LXC_104_INTERFACES: &str =
         include_str!("../../../../tests/proxmox/pve84_lxc_104_interfaces.json");
+    /// Home Assistant OS, whose `version` carries a variant in parentheses, not a codename.
+    const QEMU_100_OSINFO: &str =
+        include_str!("../../../../tests/proxmox/pve84_qemu_100_agent_osinfo.json");
+    const QEMU_103_OSINFO: &str =
+        include_str!("../../../../tests/proxmox/pve84_qemu_103_agent_osinfo.json");
+    const QEMU_111_HOSTNAME: &str =
+        include_str!("../../../../tests/proxmox/pve84_qemu_111_agent_hostname.json");
+    const NODE_STATUS: &str = include_str!("../../../../tests/proxmox/pve84_node_status.json");
+    /// `vmbr0` holds the node's address; its two physical NICs are bridge ports with none.
+    const NODE_NETWORK: &str = include_str!("../../../../tests/proxmox/pve84_node_network.json");
 
     fn ips(addresses: &[GuestAddress]) -> Vec<String> {
         addresses.iter().map(|a| a.ip.to_string()).collect()
@@ -673,9 +871,13 @@ mod tests {
             interfaces,
         } = guest_host(
             guest,
-            &static_addresses(&nics),
-            &nics,
+            &GuestReading {
+                addresses: static_addresses(&nics),
+                nics,
+                ..Default::default()
+            },
             Some(owner),
+            &[],
             network_id,
         )
         .expect("a guest with an address is recorded");
@@ -723,9 +925,13 @@ mod tests {
 
         let record = guest_host(
             &guest(&resources, 104),
-            &addresses,
-            &nics,
+            &GuestReading {
+                nics,
+                addresses,
+                ..Default::default()
+            },
             None,
+            &[],
             Uuid::new_v4(),
         )
         .expect("a guest with a NIC is recorded");
@@ -746,8 +952,17 @@ mod tests {
     fn a_guest_known_only_by_a_locally_administered_mac_is_recorded() {
         let resources: Vec<ClusterResource> = data(RESOURCES);
         let nics = config_nics(&data(QEMU_103_CONFIG));
-        let record = guest_host(&guest(&resources, 103), &[], &nics, None, Uuid::new_v4())
-            .expect("its configured NIC identifies it");
+        let record = guest_host(
+            &guest(&resources, 103),
+            &GuestReading {
+                nics,
+                ..Default::default()
+            },
+            None,
+            &[],
+            Uuid::new_v4(),
+        )
+        .expect("its configured NIC identifies it");
         assert_eq!(record.interfaces.len(), 1);
     }
 
@@ -756,6 +971,212 @@ mod tests {
     fn a_guest_with_no_nic_and_no_address_is_not_recorded() {
         let resources: Vec<ClusterResource> = data(RESOURCES);
         let guest = &guests(&resources)[0];
-        assert!(guest_host(guest, &[], &[], None, Uuid::new_v4()).is_none());
+        assert!(guest_host(guest, &GuestReading::default(), None, &[], Uuid::new_v4()).is_none());
+    }
+
+    /// The lab's LAN, which holds every address the node and its guests use.
+    fn lan() -> Subnet {
+        use crate::server::shared::storage::traits::Storable;
+        use crate::server::subnets::r#impl::base::{SubnetBase, SubnetCidr, SubnetCidrValue};
+        Subnet::new(SubnetBase {
+            cidr: SubnetCidr::new(
+                SubnetCidrValue("192.168.4.0/22".parse().unwrap()),
+                AttributeSource::Manual,
+            ),
+            ..Default::default()
+        })
+    }
+
+    /// Each address row names the live subnet that holds it, the way every other discovery path
+    /// sends it; an address no live subnet holds goes with a nil id, for the server to place.
+    #[test]
+    fn a_guests_addresses_carry_the_subnet_that_holds_them() {
+        let resources: Vec<ClusterResource> = data(RESOURCES);
+        let nics = config_nics(&data(LXC_104_CONFIG));
+        let interfaces: Vec<LxcInterface> = data(LXC_104_INTERFACES);
+        let reading = GuestReading {
+            addresses: select_addresses(&nics, lxc_addresses(&interfaces)),
+            nics,
+            ..Default::default()
+        };
+        let lan = lan();
+        let record = guest_host(
+            &guest(&resources, 104),
+            &reading,
+            None,
+            std::slice::from_ref(&lan),
+            Uuid::new_v4(),
+        )
+        .expect("a guest with addresses is recorded");
+
+        let subnet_of = |ip: &str| {
+            record
+                .ip_addresses
+                .iter()
+                .find(|r| r.base.ip_address.to_string() == ip)
+                .expect("address is submitted")
+                .base
+                .subnet_id
+        };
+        assert_eq!(subnet_of("192.168.4.191"), lan.id);
+        assert_eq!(
+            subnet_of("2001:db8:58d0:3a00:be24:11ff:fe71:ef5c"),
+            Uuid::nil()
+        );
+    }
+
+    /// HAOS reports its name and release apart, so both are kept; its `(Open Virtual Appliance)`
+    /// is the image variant, not a release codename.
+    #[test]
+    fn home_assistant_os_keeps_its_name_version_and_kernel() {
+        let os = guest_os(&data(QEMU_100_OSINFO)).expect("the agent names an OS");
+        assert_eq!(os.family, HostOsFamily::Linux);
+        assert_eq!(os.name.as_deref(), Some("Home Assistant OS"));
+        assert_eq!(os.version.as_deref(), Some("18.2"));
+        assert_eq!(os.codename, None);
+        assert_eq!(os.kernel_version.as_deref(), Some("6.18.39-haos"));
+    }
+
+    /// Debian's `12 (bookworm)` gives the release and its codename; the name does not repeat the
+    /// release, so it is kept.
+    #[test]
+    fn debian_takes_its_codename_from_the_version() {
+        let os = guest_os(&data(QEMU_103_OSINFO)).expect("the agent names an OS");
+        assert_eq!(os.family, HostOsFamily::Linux);
+        assert_eq!(os.to_string(), "Debian GNU/Linux 12");
+        assert_eq!(os.codename.as_deref(), Some("bookworm"));
+        assert_eq!(os.kernel_version.as_deref(), Some("6.1.0-53-amd64"));
+    }
+
+    /// A name that already carries the release does not get it twice, and Windows is told apart
+    /// by its agent id.
+    #[test]
+    fn a_release_the_name_carries_is_not_repeated() {
+        let info: AgentOsInfo = serde_json::from_value(serde_json::json!({"result": {
+            "id": "mswindows",
+            "name": "Microsoft Windows",
+            "pretty-name": "Windows Server 2022 Datacenter",
+            "version": "Microsoft Windows Server 2022",
+            "version-id": "2022",
+            "kernel-release": "20348",
+        }}))
+        .unwrap();
+        let os = guest_os(&info).unwrap();
+        assert_eq!(os.family, HostOsFamily::Windows);
+        assert_eq!(os.version.as_deref(), Some("2022"));
+
+        let info: AgentOsInfo = serde_json::from_value(serde_json::json!({"result": {
+            "id": "ubuntu",
+            "name": "Ubuntu 24.04.1 LTS",
+            "version": "24.04.1 LTS (Noble Numbat)",
+            "version-id": "24.04",
+        }}))
+        .unwrap();
+        let os = guest_os(&info).unwrap();
+        assert_eq!(os.version, None);
+        assert_eq!(
+            os.codename, None,
+            "`Noble Numbat` is not a single-word codename"
+        );
+    }
+
+    #[test]
+    fn a_vm_hostname_comes_from_its_agent_and_a_containers_from_its_config() {
+        assert_eq!(
+            agent_hostname(&data(QEMU_111_HOSTNAME)).as_deref(),
+            Some("scanopy-lab-agent")
+        );
+        assert_eq!(
+            config_hostname(&data(LXC_104_CONFIG)).as_deref(),
+            Some("wireguard")
+        );
+    }
+
+    /// The guest host carries the OS and hostname its node reported, as Proxmox's reading.
+    #[test]
+    fn a_guest_host_carries_its_os_and_hostname() {
+        let resources: Vec<ClusterResource> = data(RESOURCES);
+        let nics = config_nics(&data(QEMU_103_CONFIG));
+        let reading = GuestReading {
+            addresses: select_addresses(&nics, agent_addresses(&data(QEMU_103_AGENT))),
+            nics,
+            os: guest_os(&data(QEMU_103_OSINFO)),
+            hostname: Some("docker".to_string()),
+        };
+        let record = guest_host(&guest(&resources, 103), &reading, None, &[], Uuid::new_v4())
+            .expect("recorded");
+        let os = record.host.base.os.as_ref().expect("the OS is kept");
+        assert_eq!(os.value().0.name.as_deref(), Some("Debian GNU/Linux"));
+        assert_eq!(os.source(), REPORTED);
+        let hostname = record.host.base.hostname.as_ref().expect("hostname kept");
+        assert_eq!(hostname.value().0, "docker");
+        assert_eq!(hostname.source(), REPORTED);
+    }
+
+    #[test]
+    fn a_node_runs_proxmox_ve_at_its_pve_manager_release() {
+        let os = node_os(&data(NODE_STATUS));
+        assert_eq!(os.family, HostOsFamily::Linux);
+        assert_eq!(os.to_string(), "Proxmox VE 8.4.21");
+        assert_eq!(os.kernel_version.as_deref(), Some("6.8.12-16-pve"));
+    }
+
+    /// The node's own address stays first, named for the bridge that holds it; every other
+    /// configured address follows, each placed in the subnet that holds it.
+    #[test]
+    fn a_node_carries_every_configured_address_with_its_subnet() {
+        let resources: Vec<ClusterResource> = data(RESOURCES);
+        let status: Vec<ClusterStatusEntry> = data(STATUS);
+        let scanned: IpAddr = "192.168.4.135".parse().unwrap();
+        let node = &nodes(&resources, Some(&status), scanned)[0];
+        let mut addresses = node_addresses(&data::<Vec<NodeNetworkEntry>>(NODE_NETWORK));
+        assert_eq!(
+            addresses,
+            vec![NodeAddress {
+                ip: scanned,
+                iface: "vmbr0".to_string(),
+            }]
+        );
+        // A second bridge on a network this one has no subnet for.
+        addresses.push(NodeAddress {
+            ip: "10.20.0.1".parse().unwrap(),
+            iface: "vmbr1".to_string(),
+        });
+        let reading = NodeReading {
+            os: Some(node_os(&data(NODE_STATUS))),
+            addresses,
+        };
+
+        let lan = lan();
+        let (host, rows) = node_host(
+            node,
+            scanned,
+            &reading,
+            std::slice::from_ref(&lan),
+            Uuid::new_v4(),
+        );
+        let summary: Vec<(String, Option<&str>, Uuid, i32)> = rows
+            .iter()
+            .map(|r| {
+                (
+                    r.base.ip_address.to_string(),
+                    r.base.name.as_deref(),
+                    r.base.subnet_id,
+                    r.base.position,
+                )
+            })
+            .collect();
+        assert_eq!(
+            summary,
+            vec![
+                ("192.168.4.135".to_string(), Some("vmbr0"), lan.id, 0),
+                ("10.20.0.1".to_string(), Some("vmbr1"), Uuid::nil(), 1),
+            ]
+        );
+        assert!(rows.iter().all(|r| r.base.mac_address.is_none()));
+        assert_eq!(
+            host.base.os.as_ref().map(|os| os.value().0.to_string()),
+            Some("Proxmox VE 8.4.21".to_string())
+        );
     }
 }

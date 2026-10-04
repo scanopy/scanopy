@@ -71,7 +71,8 @@ pub struct ClusterResource {
 }
 
 /// `GET /nodes/{node}/qemu/{vmid}/config` and `.../lxc/{vmid}/config`: a flat key→value map.
-/// Only the `netN` keys are read; their values are comma-separated `key=value` strings.
+/// Read for the `netN` keys, whose values are comma-separated `key=value` strings, and for an LXC
+/// container's `hostname`.
 pub type GuestConfig = BTreeMap<String, serde_json::Value>;
 
 /// `GET /nodes/{node}/qemu/{vmid}/agent/network-get-interfaces`. The guest agent's answer is
@@ -115,4 +116,70 @@ pub struct LxcInterface {
     /// IPv6 in CIDR form.
     #[serde(default)]
     pub inet6: Option<String>,
+}
+
+/// `GET /nodes/{node}/qemu/{vmid}/agent/get-osinfo`: the guest's `/etc/os-release` (or the
+/// Windows equivalent), as the QEMU guest agent reads it.
+#[derive(Debug, Clone, Deserialize)]
+pub struct AgentOsInfo {
+    pub result: AgentOsInfoResult,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct AgentOsInfoResult {
+    /// `debian`, `haos`, `mswindows`, ...
+    #[serde(default)]
+    pub id: Option<String>,
+    /// `Debian GNU/Linux`.
+    #[serde(default)]
+    pub name: Option<String>,
+    /// `12 (bookworm)`.
+    #[serde(default)]
+    pub version: Option<String>,
+    /// `12`.
+    #[serde(rename = "version-id", default)]
+    pub version_id: Option<String>,
+    /// `6.1.0-53-amd64`.
+    #[serde(rename = "kernel-release", default)]
+    pub kernel_release: Option<String>,
+}
+
+/// `GET /nodes/{node}/qemu/{vmid}/agent/get-host-name`.
+#[derive(Debug, Clone, Deserialize)]
+pub struct AgentHostName {
+    pub result: AgentHostNameResult,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct AgentHostNameResult {
+    #[serde(rename = "host-name", default)]
+    pub host_name: Option<String>,
+}
+
+/// `GET /nodes/{node}/status`. Needs `Sys.Audit` on the node.
+#[derive(Debug, Clone, Deserialize)]
+pub struct NodeStatus {
+    /// `pve-manager/8.4.21/2606ac850d46da29`.
+    #[serde(default)]
+    pub pveversion: Option<String>,
+    #[serde(rename = "current-kernel", default)]
+    pub current_kernel: Option<NodeKernel>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct NodeKernel {
+    /// `6.8.12-16-pve`.
+    #[serde(default)]
+    pub release: Option<String>,
+}
+
+/// One entry of `GET /nodes/{node}/network`: the node's network config (bridges, bonds, NICs),
+/// with the address each is configured with. Carries no MAC.
+#[derive(Debug, Clone, Deserialize)]
+pub struct NodeNetworkEntry {
+    pub iface: String,
+    #[serde(default)]
+    pub address: Option<String>,
+    #[serde(default)]
+    pub address6: Option<String>,
 }

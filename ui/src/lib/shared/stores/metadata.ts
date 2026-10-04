@@ -23,6 +23,8 @@ import serviceCategoriesJson from '$lib/data/service-categories.json';
 import attributeSourcesJson from '$lib/data/attribute-sources.json';
 import clientProbesJson from '$lib/data/client-probes.json';
 import matchConfidencesJson from '$lib/data/match-confidences.json';
+import hostVirtualizationsJson from '$lib/data/host-virtualizations.json';
+import proxmoxGuestTypesJson from '$lib/data/proxmox-guest-types.json';
 import {
 	createColorHelper,
 	createIconComponent,
@@ -119,6 +121,8 @@ export interface MetadataRegistry {
 	attribute_sources: TypeMetadata[];
 	client_probes: TypeMetadata[];
 	match_confidences: TypeMetadata[];
+	host_virtualizations: TypeMetadata[];
+	proxmox_guest_types: TypeMetadata[];
 }
 
 // Utility type to add proper typing to the metadata field
@@ -282,7 +286,9 @@ export const metadata = writable<MetadataRegistry>({
 	service_categories: serviceCategoriesJson,
 	attribute_sources: attributeSourcesJson,
 	client_probes: clientProbesJson,
-	match_confidences: matchConfidencesJson
+	match_confidences: matchConfidencesJson,
+	host_virtualizations: hostVirtualizationsJson,
+	proxmox_guest_types: proxmoxGuestTypesJson
 } as unknown as MetadataRegistry);
 
 // Shared color helper functions that work for both TypeMetadata and EntityMetadata
@@ -471,6 +477,14 @@ export const ports = createTypeMetadataHelpers<'ports', PortTypeMetadata>('ports
 /** How confidently discovery matched a service to its definition, keyed by `MatchConfidence`. */
 export const matchConfidences = createTypeMetadataHelpers<'match_confidences', object>(
 	'match_confidences'
+);
+/** The hypervisor platform a guest runs on, keyed by `virtualization_metadata.type`. */
+export const hostVirtualizations = createTypeMetadataHelpers<'host_virtualizations', object>(
+	'host_virtualizations'
+);
+/** A Proxmox guest's type (VM or LXC container), keyed by `ProxmoxGuestType`. */
+export const proxmoxGuestTypes = createTypeMetadataHelpers<'proxmox_guest_types', object>(
+	'proxmox_guest_types'
 );
 export const discoveryTypes = createTypeMetadataHelpers<'discovery_types', DiscoveryTypeMetadata>(
 	'discovery_types'
